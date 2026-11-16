@@ -22,6 +22,7 @@
 
 #include <QPointer>
 #include <QTabWidget>
+#include <QTextBlock>
 #include <QTextDocument>
 
 #include <algorithm>
@@ -403,17 +404,11 @@ void CaptionCoordinator::insertCaption() {
     editCaption(*editor, *image);
 }
 
-bool CaptionCoordinator::editCaption(editor::BookEditor& editor, int position) {
-    const std::optional<editor::ImageCaption> current = editor.imageCaptionOf(position);
-    if (!current || editor.isReadOnly()) {
-        return false;
-    }
-    refresh();  // the numbers of the book as they are now
-
-    core::BookCaptions bookCaptions = captions();
+dialogs::InsertCaptionDialog::Data CaptionCoordinator::captionDialogData(
+    editor::BookEditor& editor, int position, editor::ImageCaption caption) {
     dialogs::InsertCaptionDialog::Data data;
-    data.labels = bookCaptions.labels;
-    data.caption = *current;
+    data.labels = captions().labels;
+    data.caption = std::move(caption);
     if (data.caption.label.isEmpty()) {
         const QString newImageLabel = settingsNewImageOptions().captionLabel;
         data.caption.label = data.labels.contains(newImageLabel) ? newImageLabel : data.labels.value(0);
@@ -438,23 +433,63 @@ bool CaptionCoordinator::editCaption(editor::BookEditor& editor, int position) {
             return editNumbering(label, parent);
         };
     }
+    return data;
+}
 
-    dialogs::InsertCaptionDialog dialog(std::move(data), m_window);
+void CaptionCoordinator::keepLabels(const core::BookCaptions& before, const QStringList& labels) {
+    if (!m_book.isProjectOpen()) {
+        return;
+    }
+    core::BookCaptions changed = captions();
+    changed.labels = labels;
+    if (changed != before || !m_book.bookCaptions()) {
+        setCaptions(changed);
+    }
+}
+
+bool CaptionCoordinator::editCaption(editor::BookEditor& editor, int position) {
+    const std::optional<editor::ImageCaption> current = editor.imageCaptionOf(position);
+    if (!current || editor.isReadOnly()) {
+        return false;
+    }
+    refresh();  // the numbers of the book as they are now
+    const core::BookCaptions bookCaptions = captions();
+    QPointer<editor::BookEditor> text(&editor);
+    dialogs::InsertCaptionDialog dialog(captionDialogData(editor, position, *current), m_window);
     if (dialog.exec() != QDialog::Accepted || !text) {
         return false;
     }
-
-    // The labels the window added or took away, and the book keeps its own from now on
-    if (m_book.isProjectOpen()) {
-        core::BookCaptions changed = captions();
-        changed.labels = dialog.labels();
-        if (changed != bookCaptions || !m_book.bookCaptions()) {
-            setCaptions(changed);
-        }
-    }
+    keepLabels(bookCaptions, dialog.labels());
     const bool done = text->setImageCaption(position, dialog.caption());
     refresh();
     return done;
+}
+
+std::optional<editor::ImageCaption> CaptionCoordinator::askNewImageCaption(
+    editor::BookEditor& editor) {
+    // As the Settings say for new images: a numbered caption of their label, or none
+    const QString label = settingsNewImageOptions().captionLabel;
+    editor::ImageCaption caption{!label.isEmpty(), true, label, QString(), false};
+    if (!core::SettingsManager::getInstance().get<bool>(IMAGE_ASK_CAPTION_KEY, true)) {
+        return caption;
+    }
+
+    // The window, its number that of the cursor's place: the image goes at the cursor
+    refresh();
+    const core::BookCaptions bookCaptions = captions();
+    const QTextBlock block =
+        editor.textDocument()->findBlockByNumber(editor.cursorPosition().paragraph);
+    const int position = block.isValid() ? block.position() + editor.cursorPosition().offset : 0;
+    QPointer<editor::BookEditor> text(&editor);
+    dialogs::InsertCaptionDialog::Data data = captionDialogData(editor, position, caption);
+    data.newImage = true;
+    data.caption.shown = true;  // its fields as for a caption, Insert Without Caption for none
+    dialogs::InsertCaptionDialog dialog(std::move(data), m_window);
+    if (dialog.exec() != QDialog::Accepted || !text) {
+        return std::nullopt;
+    }
+    keepLabels(bookCaptions, dialog.labels());
+    return dialog.caption();
 }
 
 bool CaptionCoordinator::editNumbering(const QString& label, QWidget* parent) {

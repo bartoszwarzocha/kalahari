@@ -200,7 +200,7 @@ public:
         // As the dock coordinator gives the book window its commands
         owner.setCommands(test::commands());
         CHECK(DocumentWindows::registerCommands(test::commands(),
-                                                [&owner]() { return &owner; }) == 5);
+                                                [&owner]() { return &owner; }) == 6);
     }
     ~WindowCommands() {
         for (const char* id : IDS) {
@@ -226,9 +226,10 @@ public:
     static constexpr const char* NEXT = "window.next";
     static constexpr const char* PREVIOUS = "window.previous";
     static constexpr const char* SETTINGS = "window.settings";
+    static constexpr const char* TAB_LIST = "window.tabList";
 
 private:
-    static constexpr const char* IDS[] = {MOVE, RETURN, NEXT, PREVIOUS, SETTINGS};
+    static constexpr const char* IDS[] = {MOVE, RETURN, NEXT, PREVIOUS, SETTINGS, TAB_LIST};
 };
 
 }  // namespace

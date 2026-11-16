@@ -330,6 +330,10 @@ MenuSeen contextMenu(BookEditor& editor, const std::optional<QPoint>& point,
             }
             return;
         }
+        // The words of a misspelled one come in the menu once the dictionary found them
+        if (isFindingWords(menu) && ++ticks * 5 < DICTIONARY_WAIT_MS) {
+            return;
+        }
         poll.stop();
         QAction* chosen = nullptr;
         for (QAction* action : menu->actions()) {

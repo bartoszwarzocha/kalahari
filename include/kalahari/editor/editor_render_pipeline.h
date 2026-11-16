@@ -649,8 +649,17 @@ private:
     QFont marginNumberFont() const;
 
     /// @brief The gap between the numbers on the margin and the text of a page, in document
-    ///        units: MARGIN_NUMBER_GAP_MM, at most half the page's left margin
+    ///        units: MARGIN_NUMBER_GAP_MM, at most half the page's left margin, but never less
+    ///        than MIN_MARGIN_NUMBER_GAP_MM (a narrow margin leaves the numbers on the desk)
     double marginNumberGap(int page) const;
+
+    /// @brief The gap of marginNumberGap() for a left margin of @p margin document units
+    double marginNumberGapFor(double margin) const;
+
+    /// @brief The room the numbers on the margin need on the desk left of the page, in
+    ///        document units: where the narrowest left margin is narrower than they are with
+    ///        their gap; 0 without numbers
+    double marginNumbersRoom() const;
 
     /// @brief Where the column of the numbers on the margin starts at document y, in widget
     ///        x: as wide as the largest number of the text, right-aligned a gap before it

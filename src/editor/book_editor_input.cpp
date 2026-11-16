@@ -762,9 +762,13 @@ void BookEditor::updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers mo
     if (const std::optional<Qt::CursorShape> cropping = imageCropPointerAt(pos)) {
         shape = *cropping;  // an image being cropped: its marks are dragged
     } else if (hoverAnnotationCard(pos)) {
-        shape = m_annotationCards.hoveredPart() == AnnotationCardPart::Card
-                    ? Qt::ArrowCursor
-                    : Qt::PointingHandCursor;
+        // Its text is written in place: an I-beam over it (an arrow in a read-only text)
+        const std::optional<AnnotationCardPart>& part = m_annotationCards.hoveredPart();
+        if (part == AnnotationCardPart::Text) {
+            shape = m_readOnly ? Qt::ArrowCursor : Qt::IBeamCursor;
+        } else {
+            shape = part == AnnotationCardPart::Card ? Qt::ArrowCursor : Qt::PointingHandCursor;
+        }
     } else if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos) ||
                ((modifiers & Qt::ControlModifier) &&
                 (linkAt(pos).has_value() || captionLinkAt(pos).has_value()))) {
@@ -862,7 +866,8 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
     // A double click on a card edits its annotation; on its buttons it does no more than
     // the first click
     if (const std::optional<AnnotationCardHit> card = annotationCardAt(event->position())) {
-        if (card->part == AnnotationCardPart::Card && card->id == m_pressedCard) {
+        if ((card->part == AnnotationCardPart::Card || card->part == AnnotationCardPart::Text) &&
+            card->id == m_pressedCard) {
             emit annotationEditRequested(card->id);
         }
         m_pressedCard.clear();

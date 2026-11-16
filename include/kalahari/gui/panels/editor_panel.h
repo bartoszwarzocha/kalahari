@@ -9,10 +9,14 @@
 
 #pragma once
 
+#include <kalahari/editor/text_captions.h>
+
 #include <QWidget>
 #include <QString>
 #include <atomic>
+#include <functional>
 #include <memory>
+#include <optional>
 
 namespace kalahari::core {
 class ProjectManager;
@@ -180,9 +184,15 @@ public:
     ///        the table at the cursor (BookEditor::insertTable())
     void showInsertTableDialog();
 
+    /// @brief The caption of a new image, asked as it goes in (CaptionCoordinator::
+    ///        askNewImageCaption()): not shown for none; std::nullopt: it does not go in
+    using NewImageCaption =
+        std::function<std::optional<editor::ImageCaption>(editor::BookEditor&)>;
+
     /// @brief Insert > Image...: the system window choosing a picture; Open copies it into
     ///        the folder of images and inserts it at the cursor (BookEditor::insertImageFile())
-    void showInsertImageDialog();
+    ///        with the caption @p askCaption gives (none given: that of the settings)
+    void showInsertImageDialog(const NewImageCaption& askCaption = {});
 
     /// @brief Change Image... of an image's context menu: another picture for the image at a
     ///        position of the text (BookEditor::changeImageFile())

@@ -1355,10 +1355,13 @@ void MainWindow::registerCommands() {
             editor->showHyperlinkDialog();
         }
     };
-    // Insert > Image...: the system window choosing a picture, of the editor in front
+    // Insert > Image...: the system window choosing a picture, of the editor in front, then
+    // the window of its caption
     callbacks.onInsertImage = [this]() {
         if (EditorPanel* editor = getCurrentEditor()) {
-            editor->showInsertImageDialog();
+            editor->showInsertImageDialog([this](editor::BookEditor& text) {
+                return m_captionCoordinator->askNewImageCaption(text);
+            });
         }
     };
     // Insert > Table...: the window of the new table, of the editor in front

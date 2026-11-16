@@ -27,7 +27,8 @@ namespace kalahari::editor {
 
 /// @brief A part of a card that a click finds
 enum class AnnotationCardPart {
-    Card,     ///< The card itself: its header and its text
+    Card,     ///< The card itself: its header
+    Text,     ///< Its text: a click writes it there (the frame over the text)
     Menu,     ///< Its "..." button: the menu of the annotation
     Done,     ///< The box of a to-do: it is done
     ShowAll,  ///< "Show all" under a text cut short
@@ -48,6 +49,7 @@ struct AnnotationCardHit {
     QString id;                                        ///< The annotation
     AnnotationCardPart part = AnnotationCardPart::Card;  ///< The part of its card
     QRectF rect;                                       ///< The card (paragraph coordinates)
+    QPointF inText;  ///< On its text: the point from the top left corner of the text
 };
 
 /// @brief The cards of the annotations under their paragraphs
@@ -59,8 +61,9 @@ struct AnnotationCardHit {
 /// the text: the layout gives them room under their paragraph (spaceBelow()), and they are
 /// drawn and found in the paragraph's coordinates, zoomed with its text.
 ///
-/// One annotation at a time can be written in the frame over its card: the card keeps the
-/// frame's room (setWriting()), a new one's room among the cards in the order of its place.
+/// One annotation at a time is written on its card (setWriting()): the card stays as it is,
+/// its header too, and the frame over its text takes the text's place, as high as the text
+/// written; a new one's card comes among the cards in the order of its place.
 class AnnotationCards {
     Q_DECLARE_TR_FUNCTIONS(AnnotationCards)
 
@@ -117,8 +120,12 @@ public:
     /// @brief The font of the text: the cards' text is sized after it
     void setTextFont(const QFont& font) { m_textFont = font; }
 
-    /// @brief The font of the cards' text
+    /// @brief The font of the cards' text: the text's, smaller (AnnotationCardSettings::
+    ///        fontPercent)
     QFont cardFont() const;
+
+    /// @brief The height of a line of the cards' text (document units)
+    qreal lineHeight() const;
 
     /// @brief The color of a kind on the paper
     QColor kindColor(AnnotationKind kind) const;
@@ -127,16 +134,17 @@ public:
     // Writing in the frame over the card
     // =========================================================================
 
-    /// @brief The annotation written in the frame, and the room the frame takes
+    /// @brief The annotation written on its card, and the room its text takes
     struct Writing {
         QString id;          ///< The annotation; empty: a new one
         AnnotationKind kind = AnnotationKind::Comment;  ///< Its kind
         int block = -1;      ///< A new one: the paragraph of its mark...
         int offset = 0;      ///< ...and the mark's place in it
-        qreal height = 0;    ///< The frame's height (document units)
+        qreal height = 0;    ///< The height of the text written (document units)
+        QString author;      ///< A new one: who it is by, in its card's header
     };
 
-    /// @brief An annotation is written in the frame over its card (a new one: at its place)
+    /// @brief An annotation is written on its card (a new one: at its place)
     void setWriting(const Writing& writing) { m_writing = writing; }
 
     /// @brief No annotation is written in the frame
@@ -173,6 +181,10 @@ public:
     /// @brief The card (and its part) at a point of a paragraph
     std::optional<AnnotationCardHit> hitTest(const QTextBlock& block, qreal top, qreal width,
                                              const QPointF& point) const;
+
+    /// @brief Where the text of the card written on is (the frame lies over it), in the
+    ///        coordinates of its paragraph; empty: none of the paragraph's cards is written on
+    QRectF writingTextRect(const QTextBlock& block, qreal top, qreal width) const;
 
     /// @brief Draw a paragraph's cards
     void paint(QPainter* painter, const QTextBlock& block, qreal top, qreal width) const;

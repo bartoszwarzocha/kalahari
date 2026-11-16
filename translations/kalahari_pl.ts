@@ -4055,6 +4055,16 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>Double-click to change the field.</source>
         <translation>Kliknij dwukrotnie, aby zmienić pole.</translation>
     </message>
+    <message>
+        <source>&amp;Suggestions</source>
+        <extracomment>The submenu of the words to put in place of a misspelled one. In Polish: &amp;Podpowiedzi</extracomment>
+        <translation>&amp;Podpowiedzi</translation>
+    </message>
+    <message>
+        <source>Looking for suggestions...</source>
+        <extracomment>In the submenu of the suggestions while the dictionary looks for them. In Polish: Szukam podpowiedzi…</extracomment>
+        <translation>Szukam podpowiedzi…</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -5258,11 +5268,6 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
         </translation>
     </message>
     <message>
-        <source>Texts with matches: %1. Each open text can undo the change in one step (Ctrl+Z).</source>
-        <extracomment>In Polish: Teksty z trafieniami: %1. W każdym otwartym tekście zmianę można cofnąć jednym krokiem (Ctrl+Z).</extracomment>
-        <translation>Teksty z trafieniami: %1. W każdym otwartym tekście zmianę można cofnąć jednym krokiem (Ctrl+Z).</translation>
-    </message>
-    <message>
         <source>Replace All in Book</source>
         <extracomment>In Polish: Zamień wszystko w książce / &amp;Zamień</extracomment>
         <translation>Zamień wszystko w książce</translation>
@@ -5303,6 +5308,21 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
         <source>Replace All in Book is off while all forms are found: one replacement of every form would break the declension</source>
         <extracomment>Why Replace All in Book is greyed out while the search finds all forms (&quot;Odm&quot;)</extracomment>
         <translation>Przy wyszukiwaniu wszystkich odmian „Zamień wszystko w książce” jest wyłączone – jedna zamiana wszystkich form zepsułaby odmianę</translation>
+    </message>
+    <message>
+        <source>Texts with matches: %1. %2 undoes the change in all of them at once.</source>
+        <extracomment>%2: the keys of Undo. In Polish: Teksty z trafieniami: %1. %2 cofa zmianę we wszystkich naraz.</extracomment>
+        <translation>Teksty z trafieniami: %1. %2 cofa zmianę we wszystkich naraz.</translation>
+    </message>
+    <message>
+        <source>This can no longer be redone: the texts changed since.</source>
+        <extracomment>In Polish: Tego nie da się już ponowić: teksty zmieniły się od tamtej pory.</extracomment>
+        <translation>Tego nie da się już ponowić: teksty zmieniły się od tamtej pory.</translation>
+    </message>
+    <message>
+        <source>The replacement in the book is done again.</source>
+        <extracomment>In Polish: Zamiana w książce została ponowiona.</extracomment>
+        <translation>Zamiana w książce została ponowiona.</translation>
     </message>
 </context>
 <context>
@@ -6726,6 +6746,11 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <extracomment>Window menu: a new book window, with the Dashboard. In Polish: N&amp;owe okno</extracomment>
         <translation>N&amp;owe okno</translation>
     </message>
+    <message>
+        <source>&amp;Tab List</source>
+        <extracomment>Window menu: the list of all the tabs of the window in front, to choose one (as the button with an arrow down after the tabs). In Polish: &amp;Lista kart</extracomment>
+        <translation>&amp;Lista kart</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorAutoCorrectPage</name>
@@ -8061,6 +8086,16 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <source>Rename Label</source>
         <extracomment>In Polish: Zmiana nazwy etykiety / Etykieta</extracomment>
         <translation>Zmiana nazwy etykiety</translation>
+    </message>
+    <message>
+        <source>As&amp;k for the caption of an inserted image</source>
+        <extracomment>In Polish: Py&amp;taj o podpis wstawianego obrazu</extracomment>
+        <translation>Py&amp;taj o podpis wstawianego obrazu</translation>
+    </message>
+    <message>
+        <source>Insert &gt; Image... asks for the caption of the new image (or none) before it goes into the text</source>
+        <extracomment>In Polish: Wstaw &gt; Obraz... pyta o podpis nowego obrazu (albo o jego brak), zanim obraz wejdzie do tekstu</extracomment>
+        <translation>Wstaw &gt; Obraz... pyta o podpis nowego obrazu (albo o jego brak), zanim obraz wejdzie do tekstu</translation>
     </message>
 </context>
 <context>
@@ -10699,6 +10734,16 @@ Szczegóły są w dzienniku programu.</translation>
     <message>
         <source>Tabs in More Rows</source>
         <translation>Karty w kilku wierszach</translation>
+    </message>
+    <message>
+        <source>All Tabs</source>
+        <extracomment>The button after the tabs that lists them all. In Polish: Wszystkie karty</extracomment>
+        <translation>Wszystkie karty</translation>
+    </message>
+    <message>
+        <source>All Tabs - a list to choose from (%1)</source>
+        <extracomment>%1: the keys (Alt+Down). In Polish: Wszystkie karty – lista do wyboru (%1)</extracomment>
+        <translation>Wszystkie karty – lista do wyboru (%1)</translation>
     </message>
 </context>
 <context>
@@ -14793,6 +14838,16 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <source>Reset all colors to the default values for the selected theme</source>
         <translation>Przywraca wszystkie kolory do domyślnych wartości wybranego motywu</translation>
     </message>
+    <message>
+        <source>Own Style Tag</source>
+        <extracomment>In Polish: Etykieta stylu własnego</extracomment>
+        <translation>Etykieta stylu własnego</translation>
+    </message>
+    <message>
+        <source>Background of the tag &quot;own&quot; after the styles of your own in the lists of styles</source>
+        <extracomment>In Polish: Tło etykiety „własny” przy własnych stylach na listach stylów</extracomment>
+        <translation>Tło etykiety „własny” przy własnych stylach na listach stylów</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::WritingFrame</name>
@@ -17554,6 +17609,25 @@ Harmonogram projektu:
         <source>A file outside a book is numbered as the Settings say (the gear).</source>
         <translation>Plik spoza książki jest numerowany według Ustawień (koło zębate).</translation>
     </message>
+    <message>
+        <source>Caption of the New Image</source>
+        <extracomment>Insert &gt; Image..., after the file is chosen. In Polish: Podpis nowego obrazu / Obraz wejdzie do tekstu z podpisem, który tu wpiszesz, albo bez podpisu.</extracomment>
+        <translation>Podpis nowego obrazu</translation>
+    </message>
+    <message>
+        <source>The image goes into the text with the caption you write here, or without one.</source>
+        <translation>Obraz wejdzie do tekstu z podpisem, który tu wpiszesz, albo bez podpisu.</translation>
+    </message>
+    <message>
+        <source>Insert</source>
+        <extracomment>In Polish: Wstaw</extracomment>
+        <translation>Wstaw</translation>
+    </message>
+    <message>
+        <source>Insert With&amp;out Caption</source>
+        <extracomment>In Polish: Wstaw be&amp;z podpisu</extracomment>
+        <translation>Wstaw be&amp;z podpisu</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::InsertCrossReferenceDialog</name>
@@ -19544,10 +19618,6 @@ In Polish: Dodaj / Zapisz</extracomment>
         <translation>Znak specjalny</translation>
     </message>
     <message>
-        <source>Enter inserts the character at the cursor. Esc closes the window.</source>
-        <translation>Enter wstawia znak w miejscu kursora. Esc zamyka okno.</translation>
-    </message>
-    <message>
         <source>&amp;Insert</source>
         <translation>&amp;Wstaw</translation>
     </message>
@@ -19656,10 +19726,6 @@ In Polish: Dodaj / Zapisz</extracomment>
         <translation>Skrót, autokorekta</translation>
     </message>
     <message>
-        <source>Favorite</source>
-        <translation>Ulubiony</translation>
-    </message>
-    <message>
         <source>Nothing matches “%1”. Type another name, or a code such as U+2014.</source>
         <translation>Nic nie pasuje do „%1”. Wpisz inną nazwę albo kod, np. U+2014.</translation>
     </message>
@@ -19722,6 +19788,26 @@ In Polish: Dodaj / Zapisz</extracomment>
     <message>
         <source>Cancel</source>
         <translation>Anuluj</translation>
+    </message>
+    <message>
+        <source>Enter inserts the character at the cursor. Add to Favorites or the star keeps a character at hand. Esc closes the window.</source>
+        <extracomment>In Polish: Enter wstawia znak w miejscu kursora. Przycisk „Dodaj do ulubionych” albo gwiazdka sprawia, że znak jest zawsze pod ręką. Esc zamyka okno.</extracomment>
+        <translation>Enter wstawia znak w miejscu kursora. Przycisk „Dodaj do ulubionych” albo gwiazdka sprawia, że znak jest zawsze pod ręką. Esc zamyka okno.</translation>
+    </message>
+    <message>
+        <source>Keep the character among the favorites: first in the window and in Insert &gt; Quick Character</source>
+        <extracomment>In Polish: Zachowaj znak w ulubionych: na początku okna i w menu Wstaw &gt; Szybki wybór znaku</extracomment>
+        <translation>Zachowaj znak w ulubionych: na początku okna i w menu Wstaw &gt; Szybki wybór znaku</translation>
+    </message>
+    <message>
+        <source>Favorites: click the star of a character to add it to them or to take it away</source>
+        <extracomment>In Polish: Ulubione: kliknij gwiazdkę przy znaku, żeby go dodać albo usunąć</extracomment>
+        <translation>Ulubione: kliknij gwiazdkę przy znaku, żeby go dodać albo usunąć</translation>
+    </message>
+    <message>
+        <source>No favorites yet. Select a character in another group and click Add to Favorites, or the star beside it in the list: the favorites come first here and in Insert &gt; Quick Character.</source>
+        <extracomment>In Polish: Nie ma jeszcze ulubionych. Zaznacz znak w innej grupie i kliknij „Dodaj do ulubionych” albo gwiazdkę obok niego na liście: ulubione są na początku tego okna i w menu Wstaw &gt; Szybki wybór znaku.</extracomment>
+        <translation>Nie ma jeszcze ulubionych. Zaznacz znak w innej grupie i kliknij „Dodaj do ulubionych” albo gwiazdkę obok niego na liście: ulubione są na początku tego okna i w menu Wstaw &gt; Szybki wybór znaku.</translation>
     </message>
 </context>
 <context>

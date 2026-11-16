@@ -63,7 +63,8 @@ struct AddedCommand {
 ///   6: Line Numbers and Paragraph Numbers on the Views toolbar
 ///   7: Statistics on the Panels toolbar
 ///   8: Repetitions in Text on the Views toolbar
-constexpr std::array<AddedCommand, 13> ADDED_COMMANDS{{
+///   9: Special Character on the Insert toolbar
+constexpr std::array<AddedCommand, 14> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
@@ -77,6 +78,7 @@ constexpr std::array<AddedCommand, 13> ADDED_COMMANDS{{
     {"views", "view.marginNumbers.paragraphs", 6},
     {"view", "view.statistics", 7},
     {"views", "view.repetitionMarks", 8},
+    {"insert", "insert.specialChar", 9},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -96,7 +98,7 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 8;
+constexpr int CHANGED_COMMANDS_VERSION = 9;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
@@ -320,7 +322,7 @@ void ToolbarManager::initializeConfigs() {
         QT_TRANSLATE_NOOP("QObject", "&Insert Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
-        {"insert.image", "insert.table", "insert.link", SEPARATOR_ID,
+        {"insert.image", "insert.table", "insert.link", "insert.specialChar", SEPARATOR_ID,
          "insert.footnote"}
     };
 

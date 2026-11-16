@@ -36,6 +36,10 @@ namespace dialogs {
 /// the program gives ("Figure 3."), then the text the writer types. Each label has a numbering
 /// of its own; Numbering... sets how the book counts the label chosen. Without a label and
 /// number the caption is its text alone. The gear opens Settings > Editor > Images.
+///
+/// For a new image (Insert > Image..., Data::newImage) the window asks for its caption before
+/// it goes in: Insert puts it in with the caption, Insert Without Caption without one, Cancel
+/// not at all.
 class InsertCaptionDialog : public KalahariDialog {
     Q_OBJECT
 
@@ -52,6 +56,7 @@ public:
         /// The window of the numbering of a label; whether it changed. None: a file outside a
         /// book, which the Settings number
         std::function<bool(const QString& label, QWidget* parent)> editNumbering;
+        bool newImage = false;  ///< The caption of an image Insert > Image... puts in
     };
 
     explicit InsertCaptionDialog(Data shown, QWidget* parent = nullptr);

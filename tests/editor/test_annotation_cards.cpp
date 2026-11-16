@@ -456,36 +456,131 @@ TEST_CASE("Annotation cards: the menu of the text has the annotation at the clic
     }
 }
 
-TEST_CASE("Annotation cards: the room of the frame an annotation is written in",
+TEST_CASE("Annotation cards: the card an annotation is written on keeps its header; its text "
+          "is as high as the text written",
           "[editor][annotations][cards]") {
     auto editor = cardsEditor();
     const int sixStart = editor->textDocument()->findBlockByNumber(2).position();
 
-    // A new one on "seven": its room under its paragraph
+    // A new one on "seven": its card under its paragraph, its text under the header
     editor->setAnnotationCardWriting(QString(), AnnotationKind::Note, sixStart + 4, sixStart + 9,
-                                     80.0);
-    const QRectF room = editor->annotationCardRect(QString());
-    REQUIRE_FALSE(room.isEmpty());
-    CHECK(room.height() == Approx(80.0).margin(0.5));
+                                     80.0, QStringLiteral("Anna"));
+    const QRectF card = editor->annotationCardRect(QString());
+    const QRectF text = editor->annotationCardWritingTextRect();
+    REQUIRE_FALSE(card.isEmpty());
+    REQUIRE_FALSE(text.isEmpty());
+    CHECK(text.height() == Approx(80.0).margin(0.5));
+    CHECK(card.contains(text));
+    CHECK(text.top() - card.top() > 10.0);  // the header
     CHECK(roomUnder(*editor, 2) > 0.0);
 
-    // As high as the frame, at any zoom
+    // As high as the text, at any zoom; the header stays
     editor->setAnnotationCardWritingHeight(120.0);
-    CHECK(editor->annotationCardRect(QString()).height() == Approx(120.0).margin(0.5));
+    CHECK(editor->annotationCardWritingTextRect().height() == Approx(120.0).margin(0.5));
+    CHECK(editor->annotationCardRect(QString()).height() ==
+          Approx(card.height() + 40.0).margin(0.5));
     editor->setZoomFactor(1.5);
-    CHECK(editor->annotationCardRect(QString()).height() == Approx(120.0).margin(0.5));
+    CHECK(editor->annotationCardWritingTextRect().height() == Approx(120.0).margin(0.5));
     editor->setZoomFactor(1.0);
+
+    // A line at least
+    editor->setAnnotationCardWritingHeight(1.0);
+    CHECK(editor->annotationCardWritingTextRect().height() ==
+          Approx(editor->annotationCardLineHeight()).margin(0.5));
 
     editor->clearAnnotationCardWriting();
     CHECK(editor->annotationCardRect(QString()).isEmpty());
+    CHECK(editor->annotationCardWritingTextRect().isEmpty());
     CHECK(roomUnder(*editor, 2) == 0.0);
 
-    // An annotation edited: its card keeps the frame's room, also when it was collapsed
+    // An annotation edited: its card is shown with its header, also when it was collapsed
     editor->setAnnotationCollapsed(QStringLiteral("n1"), true);
     editor->setAnnotationCardWriting(QStringLiteral("n1"), AnnotationKind::Note, 13, 13, 90.0);
-    CHECK(editor->annotationCardRect(QStringLiteral("n1")).height() == Approx(90.0).margin(0.5));
+    CHECK(editor->annotationCardWritingTextRect().height() == Approx(90.0).margin(0.5));
+    CHECK(editor->annotationCardRect(QStringLiteral("n1")).height() > 100.0);
     editor->clearAnnotationCardWriting();
     CHECK(editor->annotationCardRect(QStringLiteral("n1")).isEmpty());
+}
+
+TEST_CASE("Annotation cards: a click on a card's text writes it there, from the click",
+          "[editor][annotations][cards]") {
+    auto editor = cardsEditor();
+    const QRectF comment = editor->annotationCardRect(QStringLiteral("c1"));
+    REQUIRE_FALSE(comment.isEmpty());
+    QStringList pressed;
+    QPointF inText;
+    QObject::connect(editor.get(), &BookEditor::annotationCardTextPressed,
+                     [&pressed, &inText](const QString& id, const QPointF& at) {
+                         pressed << id;
+                         inText = at;
+                     });
+
+    // An I-beam over its text, under the header (an arrow)
+    editor->setCursorPosition({2, 0});
+    const qreal x = comment.center().x();
+    std::optional<qreal> textTop;
+    for (qreal y = comment.top() + 1.0; y < comment.bottom() && !textTop; y += 1.0) {
+        hover(*editor, QPointF(x, y));
+        if (editor->cursor().shape() == Qt::IBeamCursor) {
+            textTop = y;
+        }
+    }
+    REQUIRE(textTop.has_value());
+    CHECK(*textTop - comment.top() > 10.0);
+    hover(*editor, QPointF(x, comment.top() + 4.0));
+    CHECK(editor->cursor().shape() == Qt::ArrowCursor);
+
+    // A click there: written from the click; the cursor of the text stays
+    click(*editor, QPointF(x, *textTop + 3.0));
+    CHECK(pressed == QStringList{QStringLiteral("c1")});
+    CHECK(inText.y() == Approx(3.0).margin(1.5));
+    CHECK(inText.x() > 0.0);
+    CHECK(inText.x() < comment.width() / 2.0);
+    CHECK(editor->selectedText().isEmpty());
+    CHECK(editor->cursorPosition().paragraph == 2);
+
+    // At the zoom of the view, in pixels of the editor
+    editor->setZoomFactor(2.0);
+    const QRectF zoomed = editor->annotationCardRect(QStringLiteral("c1"));
+    REQUIRE_FALSE(zoomed.isEmpty());
+    std::optional<qreal> zoomedTop;
+    for (qreal y = zoomed.top() + 1.0; y < zoomed.bottom() && !zoomedTop; y += 1.0) {
+        hover(*editor, QPointF(zoomed.center().x(), y));
+        if (editor->cursor().shape() == Qt::IBeamCursor) {
+            zoomedTop = y;
+        }
+    }
+    REQUIRE(zoomedTop.has_value());
+    CHECK(*zoomedTop - zoomed.top() == Approx(2.0 * (*textTop - comment.top())).margin(3.0));
+    pressed.clear();
+    click(*editor, QPointF(zoomed.center().x(), *zoomedTop + 6.0));
+    CHECK(pressed == QStringList{QStringLiteral("c1")});
+    CHECK(inText.y() == Approx(6.0).margin(2.0));
+    editor->setZoomFactor(1.0);
+
+    // In a read-only text, as a click on the card: nothing is written
+    editor->setReadOnly(true);
+    pressed.clear();
+    hover(*editor, QPointF(x, *textTop + 3.0));
+    CHECK(editor->cursor().shape() == Qt::ArrowCursor);
+    click(*editor, QPointF(x, *textTop + 3.0));
+    CHECK(pressed.isEmpty());
+}
+
+TEST_CASE("Annotation cards: their text in the text's font, smaller, zoomed with it",
+          "[editor][annotations][cards]") {
+    auto editor = cardsEditor();
+    const QFont text = editor->textDocument()->defaultFont();
+    const QFont card = editor->annotationCardTextFont();
+    CHECK(card.family() == text.family());
+    CHECK(card.pointSizeF() < text.pointSizeF() * editor->zoomFactor() * 2.0);
+    const qreal line = editor->annotationCardLineHeight();
+    CHECK(line > 0.0);
+
+    editor->setZoomFactor(editor->zoomFactor() * 1.5);
+    CHECK(editor->annotationCardTextFont().pointSizeF() ==
+          Approx(card.pointSizeF() * 1.5).epsilon(0.02));
+    CHECK(editor->annotationCardLineHeight() == Approx(line * 1.5).epsilon(0.02));
 }
 
 TEST_CASE("Annotation cards: long texts cut short, and shown whole", "[editor][annotations][cards]") {
