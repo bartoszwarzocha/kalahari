@@ -6,6 +6,7 @@
 
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/backup_manager.h>
+#include <kalahari/core/bibliography.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/link_roles.h>
 #include <kalahari/core/logger.h>
@@ -14,6 +15,7 @@
 #include <kalahari/core/package_card.h>
 #include <kalahari/core/resource_paths.h>
 #include <kalahari/core/settings_manager.h>
+#include <kalahari/core/source_description.h>
 #include <kalahari/core/standalone_file.h>
 #include <kalahari/core/text_file.h>
 #include <kalahari/editor/clipboard_handler.h>
@@ -1591,6 +1593,9 @@ QString ProjectManager::addMaterial(const NewMaterial& material, const KindRef& 
     element.title = material.title;
     element.url = material.url;
     element.cover = material.cover;
+    element.description = material.description;
+    element.source = material.source;
+    element.quote = material.quote;
     const QString role = LinkRoles::suggestedFor(kind.kind->id);
     for (const QString& link : material.links) {
         if (element.linkTo(link) == nullptr && m_project->hasLinkTarget(link)) {
@@ -1626,6 +1631,9 @@ QString ProjectManager::addMaterial(const NewMaterial& material, const KindRef& 
                 element.url.toStdString(), element.id.toStdString());
     if (!element.links.isEmpty()) {
         emit linksChanged();
+    }
+    if (!material.source.isEmpty() || !material.quote.isEmpty()) {
+        emit sourcesChanged();
     }
     return element.id;
 }
@@ -1835,6 +1843,7 @@ bool ProjectManager::renameElement(const QString& elementId, const QString& titl
         Logger::getInstance().warn("renameElement: The title of {} is not in its chapter file",
                                    elementId.toStdString());
     }
+    emit elementRenamed(elementId);
     return true;
 }
 
@@ -2632,6 +2641,132 @@ QString ProjectManager::bookDictionaryPath() const {
         return {};
     }
     return QDir(toQString(m_projectPath)).filePath(BookDictionary::fileName());
+}
+
+bool ProjectManager::setSource(const QString& elementId, const SourceDescription& source) {
+    const ProjectElement* element = findElement(elementId);
+    const bool changed = element != nullptr && element->source != source;
+    const bool saved = changeDetails("setSource", elementId,
+                                     [&source](ProjectElement& each) { each.source = source; });
+    if (saved && changed) {
+        emit sourcesChanged();
+    }
+    return saved;
+}
+
+bool ProjectManager::setBookmarks(const QString& elementId,
+                                  const QList<PageBookmark>& bookmarks) {
+    return changeDetails("setBookmarks", elementId,
+                         [&bookmarks](ProjectElement& each) { each.bookmarks = bookmarks; });
+}
+
+bool ProjectManager::setLastPage(const QString& elementId, int page) {
+    if (page < 0) {
+        Logger::getInstance().warn("setLastPage: {} is below 0", page);
+        return false;
+    }
+    return changeDetails("setLastPage", elementId,
+                         [page](ProjectElement& each) { each.lastPage = page; });
+}
+
+bool ProjectManager::setQuoteSource(const QString& elementId, const QuoteSource& quote) {
+    const ProjectElement* element = findElement(elementId);
+    const bool changed = element != nullptr && element->quote != quote;
+    const bool saved = changeDetails("setQuoteSource", elementId,
+                                     [&quote](ProjectElement& each) { each.quote = quote; });
+    if (saved && changed) {
+        emit sourcesChanged();
+    }
+    return saved;
+}
+
+QList<const ProjectElement*> ProjectManager::sources() const {
+    QList<const ProjectElement*> found;
+    if (!m_project) {
+        return found;
+    }
+    QList<const ProjectElement*> workshop;
+    appendAll(m_project->workshop.elements, workshop);
+    for (const ProjectElement* element : workshop) {
+        if (!element->source.isEmpty() && isMaterial(*element)) {
+            found << element;
+        }
+    }
+    return found;
+}
+
+QList<const ProjectElement*> ProjectManager::quotesOf(const QString& elementId) const {
+    QList<const ProjectElement*> found;
+    if (!m_project || elementId.isEmpty()) {
+        return found;
+    }
+    QList<const ProjectElement*> workshop;
+    appendAll(m_project->workshop.elements, workshop);
+    for (const ProjectElement* element : workshop) {
+        if (element->quote.source == elementId && isMaterial(*element)) {
+            found << element;
+        }
+    }
+    return found;
+}
+
+int ProjectManager::placesInText(const QString& elementId) const {
+    const ProjectElement* material = findElement(elementId);
+    if (!m_project || material == nullptr) {
+        return 0;
+    }
+    const auto inBook = [this](const ProjectElement& element) {
+        int count = 0;
+        for (const ElementLink& link : element.links) {
+            const std::optional<ElementPlace> place = m_project->placeOf(link.to);
+            if ((place && place->place != BookPlace::Workshop) ||
+                m_project->linkedSection(link.to)) {
+                ++count;
+            }
+        }
+        return count;
+    };
+    int places = inBook(*material);
+    for (const ProjectElement* quote : quotesOf(elementId)) {
+        places += inBook(*quote);
+    }
+    return places;
+}
+
+QString ProjectManager::bibliographyStyle() const {
+    return Bibliography::knownStyle(bookBibliographyStyle());
+}
+
+QString ProjectManager::bookBibliographyStyle() const {
+    const ProjectBook* current = book();
+    return current != nullptr ? current->bibliographyStyle : QString();
+}
+
+bool ProjectManager::setBookBibliographyStyle(const QString& style) {
+    ProjectBook* current = book();
+    if (current == nullptr) {
+        Logger::getInstance().warn("setBookBibliographyStyle: No project is open");
+        return false;
+    }
+    if (refusesChange("setBookBibliographyStyle")) {
+        return false;
+    }
+    if (current->bibliographyStyle == style) {
+        return true;
+    }
+    const QString previous = current->bibliographyStyle;
+    current->bibliographyStyle = style;
+    if (!saveManifest()) {
+        current->bibliographyStyle = previous;
+        return false;
+    }
+    emit sourcesChanged();
+    return true;
+}
+
+QString ProjectManager::bookLanguage() const {
+    const ProjectBook* current = book();
+    return current != nullptr ? current->language : QString();
 }
 
 QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& link) const {

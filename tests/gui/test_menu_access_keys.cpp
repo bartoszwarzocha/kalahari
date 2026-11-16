@@ -562,6 +562,15 @@ void checkTextMenus(bool shown, QStringList& problems) {
         CHECK(itemCount(noteMenu) == 6 + 3);
     }
 
+    // A field: Edit Field... and Convert to Text on top of the usual menu
+    editor.fromKml(QStringLiteral("<kml><p>The<field type=\"page\"/> ") + sentence() +
+                   QStringLiteral("</p></kml>"));
+    const QRectF afterField = editor.placeRect(4, true);  // the field is the fourth character
+    const QList<test::MenuItem> fieldMenu = contextMenu(
+        &editor, &editor, QPoint(qRound(afterField.left()) - 2, qRound(afterField.center().y())));
+    collectProblems(fieldMenu, QStringLiteral("Field"), {}, problems);
+    CHECK(itemCount(fieldMenu) == 6 + 2);
+
     // An image, selected by the click: Image Properties..., Add Caption, Change Image...,
     // Original Size and Save as Image... (the windows the editor panel gives) on top of the
     // menu of selected text
@@ -991,9 +1000,9 @@ void checkNavigatorMenus(QStringList& problems) {
                         QStringLiteral("section_backmatter"), QStringLiteral("text_element"),
                         QStringLiteral("group_element"), QStringLiteral("window_element"),
                         QStringLiteral("workshop"), QStringLiteral("workshop_group"),
-                        QStringLiteral("workshop_shelf"), QStringLiteral("unassigned_files"),
-                        QStringLiteral("unassigned_file"), QStringLiteral("other_files"),
-                        QStringLiteral("standalone_file")});
+                        QStringLiteral("workshop_shelf"), QStringLiteral("workshop_view"),
+                        QStringLiteral("unassigned_files"), QStringLiteral("unassigned_file"),
+                        QStringLiteral("other_files"), QStringLiteral("standalone_file")});
 
     // Without sections the book's item adds the elements, also of the front and back matter
     REQUIRE(pm.setSections({false, QString(), {}}));

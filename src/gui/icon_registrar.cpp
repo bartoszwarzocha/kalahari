@@ -120,6 +120,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("insert.quickInsert", "resources/icons/twotone/text_snippet.svg", "Quick Insert");
     iconRegistry.registerIcon("insert.dateTime", "resources/icons/twotone/schedule.svg", "Insert Date/Time");
     iconRegistry.registerIcon("insert.field", "resources/icons/twotone/data_object.svg", "Insert Field");
+    iconRegistry.registerIcon("insert.date", "resources/icons/twotone/event.svg", "Today's Date as Text");
+    iconRegistry.registerIcon("insert.time", "resources/icons/twotone/schedule.svg", "Current Time as Text");
     iconRegistry.registerIcon("insert.horizontalLine", "resources/icons/twotone/horizontal_rule.svg", "Insert Horizontal Line");
     iconRegistry.registerIcon("insert.sceneBreak", "resources/icons/twotone/more_horiz.svg", "Insert Scene Break");
     iconRegistry.registerIcon("insert.pageBreak", "resources/icons/twotone/horizontal_split.svg", "Insert Page Break");
@@ -452,6 +454,18 @@ void registerAllIcons() {
     iconRegistry.registerIcon("action.delete", "resources/icons/twotone/delete.svg", "Delete");
     iconRegistry.registerIcon("common.firstPage", "resources/icons/twotone/first_page.svg", "First Page");
     iconRegistry.registerIcon("common.lastPage", "resources/icons/twotone/last_page.svg", "Last Page");
+    // The preview of a PDF file: its bar, its side panel and the commands of a selection
+    iconRegistry.registerIcon("material.pdf", "resources/icons/twotone/picture_as_pdf.svg", "PDF File");
+    iconRegistry.registerIcon("pdf.sidePanel", "resources/icons/twotone/view_sidebar.svg", "Side Panel");
+    iconRegistry.registerIcon("pdf.layoutContinuous", "resources/icons/twotone/view_agenda.svg", "Pages One under Another");
+    iconRegistry.registerIcon("pdf.layoutSingle", "resources/icons/twotone/description.svg", "One Page at a Time");
+    iconRegistry.registerIcon("pdf.layoutTwo", "resources/icons/twotone/import_contacts.svg", "Two Pages Side by Side");
+    iconRegistry.registerIcon("pdf.bookmarks", "resources/icons/twotone/bookmark.svg", "Bookmarks");
+    iconRegistry.registerIcon("pdf.contents", "resources/icons/twotone/toc.svg", "Contents");
+    iconRegistry.registerIcon("pdf.thumbnails", "resources/icons/twotone/grid_view.svg", "Thumbnails");
+    iconRegistry.registerIcon("pdf.results", "resources/icons/twotone/search.svg", "Search Results");
+    iconRegistry.registerIcon("pdf.quote", "resources/icons/twotone/format_quote.svg", "Create Quote");
+    iconRegistry.registerIcon("pdf.card", "resources/icons/twotone/edit.svg", "Material Card");
     iconRegistry.registerIcon("common.sort", "resources/icons/twotone/sort.svg", "Sort");
     iconRegistry.registerIcon("common.filterList", "resources/icons/twotone/filter_list.svg", "Filter");
     iconRegistry.registerIcon("common.lock", "resources/icons/twotone/lock.svg", "Lock");

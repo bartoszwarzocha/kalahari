@@ -231,8 +231,9 @@ signals:
     /// @note The Navigator's coordinator saves them, and refreshes the Navigator and the panel
     void requestSections(const kalahari::core::BookSections& sections);
 
-    /// @brief The title or the language of the book changed in the panel: the Navigator shows
-    /// the title, and the names of the sections in the language of the book
+    /// @brief The title, the author or the language of the book changed in the panel: the
+    /// Navigator shows the title, and the names of the sections in the language of the book;
+    /// the fields of the texts show them (FieldCoordinator)
     void bookChanged();
 
     /// @brief Emitted when the book's language is changed in the panel
@@ -247,6 +248,12 @@ signals:
 
     /// @brief Open material @p elementId as the settings say
     void requestOpenMaterial(const QString& elementId);
+
+    /// @brief Open the full card of material @p elementId: the source of a quote
+    void requestOpenMaterialCard(const QString& elementId);
+
+    /// @brief Open the settings of the sources (the gear of the entry of a source)
+    void requestSourceSettings();
 
     /// @brief Open what link @p link of a material names: an element, or the section in the
     /// Navigator
@@ -350,6 +357,9 @@ private:
     /// @brief Fill the Sections field and the own names of the sections of book @p book
     void populateBookSections(const core::ProjectBook& book);
 
+    /// @brief Fill the style of the bibliography of the book: its own, or that of the Settings
+    void populateBibliographyStyle();
+
     /// @brief Show the row of own names when the Sections field says own names
     void showSectionNamesRow();
 
@@ -389,6 +399,7 @@ private:
     QLineEdit* m_projectTitleEdit;
     QLineEdit* m_projectAuthorEdit;
     QComboBox* m_projectLanguageCombo;
+    QComboBox* m_projectBibliographyCombo = nullptr;  ///< Its own style, or the Settings' one
     QLineEdit* m_projectGenreEdit;
     QFormLayout* m_projectInfoLayout;          ///< Rows of the book's information
     SectionsComboBox* m_projectSectionsCombo;  ///< The sections of the book, or none

@@ -120,6 +120,7 @@ void SettingsDialog::createNavigationTree() {
     QTreeWidgetItem* editor = category(tr("Editor"));
     m_pageItems[WORD_COUNT_PAGE] =
         addPage(editor, tr("General"), [this]() { return new EditorGeneralPage(m_commands); });
+    m_pageItems[FIELDS_PAGE] = m_pageItems[WORD_COUNT_PAGE];
     m_pageItems[EDITOR_COLORS_PAGE] =
         addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
@@ -158,6 +159,15 @@ void SettingsDialog::createNavigationTree() {
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
     m_pageItems[NAVIGATOR_PAGE] =
         addPage(nullptr, tr("Navigator"), [this]() { return new NavigatorPage(m_book); });
+    //: The page of the materials: how they open, the preview of PDF files and the sources. In
+    //: Polish: Materiały
+    m_pageItems[MATERIALS_PAGE] =
+        addPage(nullptr, tr("Materials"), [this]() {
+            auto* materialsPage = new MaterialsPage();
+            connect(materialsPage, &MaterialsPage::colorsPageAsked, this,
+                    [this]() { openPage(QString::fromLatin1(EDITOR_COLORS_PAGE)); });
+            return materialsPage;
+        });
     //: Settings > Statistics and Goals: the statistics bar, the panel, the counting of the words
     //: and the colors. In Polish: Statystyki i cele
     QTreeWidgetItem* statistics = category(tr("Statistics and Goals"));
@@ -333,6 +343,20 @@ bool SettingsDialog::openPage(const QString& page) {
     if (page == QLatin1String(SHORTCUTS_PAGE)) {
         if (auto* shortcuts = m_pageStack->findChild<ShortcutsPage*>()) {
             shortcuts->setFocus(Qt::OtherFocusReason);
+        }
+    } else if (page == QLatin1String(FIELDS_PAGE)) {
+        // The cursor in the gray background of the fields, in view
+        const auto built = m_builtPages.find(item->second);
+        auto* scrollArea =
+            built != m_builtPages.end() ? qobject_cast<QScrollArea*>(built->second) : nullptr;
+        auto* shading = scrollArea != nullptr
+                            ? scrollArea->findChild<QWidget*>(QStringLiteral("fieldShading"))
+                            : nullptr;
+        if (shading != nullptr) {
+            shading->setFocus(Qt::OtherFocusReason);
+            QTimer::singleShot(0, scrollArea, [scrollArea, shading]() {
+                scrollArea->ensureWidgetVisible(shading);
+            });
         }
     } else if (page == QLatin1String(MARGIN_NUMBERING_PAGE) ||
                page == QLatin1String(WORD_COUNT_PAGE)) {

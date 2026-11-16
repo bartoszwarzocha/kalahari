@@ -30,6 +30,7 @@ set(TEST_SOURCES
     core/test_book_dictionary.cpp     # The dictionary of a book: names, rules of spelling, words
     core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
+    core/test_sources.cpp             # The sources: descriptions in the book, bibliography styles, BibTeX
     core/test_link_roles.cpp          # The roles of links, and the paragraph a link names
     core/test_book_project.cpp        # Book project and its .klh file
     core/test_old_book_conversion.cpp # Books of the first .klh format, converted to this version
@@ -91,6 +92,7 @@ set(TEST_SOURCES
     editor/test_text_links.cpp                   # Links: KML, editing, the clipboard, auto-correct
     editor/test_text_images.cpp                  # Images: KML, the store of files, layout, drawing, commands
     editor/test_text_captions.cpp                # Captions: numbers, cross-references, list of figures
+    editor/test_text_fields.cpp                  # Fields: values, formats, KML, layout, editing
     editor/test_text_footnotes.cpp               # Footnotes and endnotes: model, numbers, KML
     editor/test_note_checking.cpp                # Notes: search, replace, spelling, grammar
     editor/test_image_look.cpp                   # Images: their look (turn, crop, filters, frame)
@@ -174,6 +176,7 @@ set(TEST_SOURCES
     gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
+    gui/test_source_cards.cpp                    # The cards of the sources and quotes, the list Sources
     gui/test_versions.cpp                        # Versions of the texts: save, history, restore, insert
     gui/test_paragraph_panel.cpp                 # Paragraph and Styles panel, palette of styles
     gui/test_views_toolbar.cpp                   # Views toolbar: view modes and switches
@@ -199,6 +202,7 @@ set(TEST_SOURCES
     gui/test_caption_dialogs.cpp                 # Insert Caption, Caption Numbering, Insert Cross-Reference
     gui/test_caption_coordinator.cpp             # Captions of the book, one filter for all images
     gui/test_footnote_coordinator.cpp            # Notes: their frame, Insert > Footnote and Endnote
+    gui/test_field_coordinator.cpp               # Insert > Date && Time..., Insert > Field... and their windows
     gui/test_book_search.cpp                     # Find in Book, Replace All in Book, the Search panel
     gui/test_chapter_break.cpp                   # Book > Chapter Break: the new text, its title, Undo
     gui/test_format_dialogs.cpp                  # Format > Font..., Paragraph..., the color submenus
@@ -248,6 +252,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book_dictionary_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/material_kinds.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cover_material.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/source_description.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/bibliography.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/bibliography_records.cpp
     ${CMAKE_SOURCE_DIR}/src/core/link_roles.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_project.cpp
     ${CMAKE_SOURCE_DIR}/src/core/old_book_conversion.cpp
@@ -274,6 +281,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/text_tables.cpp       # Tables of the text
     ${CMAKE_SOURCE_DIR}/src/editor/text_images.cpp       # Images of the text
     ${CMAKE_SOURCE_DIR}/src/editor/text_captions.cpp     # Numbered captions, cross-references, the list of figures
+    ${CMAKE_SOURCE_DIR}/src/editor/text_fields.cpp       # Fields of the text
     ${CMAKE_SOURCE_DIR}/src/editor/text_footnotes.cpp    # Footnotes and endnotes
     ${CMAKE_SOURCE_DIR}/src/editor/image_store.cpp       # The image files of a book
     ${CMAKE_SOURCE_DIR}/src/editor/table_editing.cpp     # Changes of tables (the Table menu)
@@ -294,6 +302,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_notes.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_images.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_captions.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_fields.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_image_look.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_input.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_search.cpp
@@ -339,6 +348,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/versions_page.cpp  # Settings > Editor > Versions
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/navigator_page.cpp  # Settings > Navigator
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/materials_page.cpp  # Settings > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/network_page.cpp  # Settings > Network > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/folders_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
@@ -406,6 +416,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/image_filter_coordinator.cpp  # One filter for every image of the book
     ${CMAKE_SOURCE_DIR}/src/gui/book_search_coordinator.cpp  # Find in Book and Replace All in Book
     ${CMAKE_SOURCE_DIR}/src/gui/chapter_break_coordinator.cpp  # Book > Chapter Break
+    ${CMAKE_SOURCE_DIR}/src/gui/field_coordinator.cpp       # The fields of the open texts, Insert > Field...
     ${CMAKE_SOURCE_DIR}/src/gui/style_coordinator.cpp       # New, changed and deleted styles of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/style_dialog.cpp    # New Style and Modify Style
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/manage_styles_dialog.cpp  # Manage Styles
@@ -463,6 +474,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/kind_names.cpp                       # Kinds of elements in sentences
     ${CMAKE_SOURCE_DIR}/src/gui/name_labels.cpp                      # Cases and kinds of names
     ${CMAKE_SOURCE_DIR}/src/gui/cover_names.cpp                      # The materials of the cover in words
+    ${CMAKE_SOURCE_DIR}/src/gui/source_names.cpp                     # The sources in words
+    ${CMAKE_SOURCE_DIR}/src/gui/pdf_files.cpp                        # PDF files as shown
     ${CMAKE_SOURCE_DIR}/src/gui/quick_insert_items.cpp               # What quick insert offers
     ${CMAKE_SOURCE_DIR}/src/gui/read_only_book.cpp                   # A book open read-only
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/element_place_picker.cpp     # The place of an element in the book
@@ -485,6 +498,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/insert_table_dialog.cpp  # Insert > Table...
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/caption_dialogs.cpp  # The windows of captions
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/footnote_settings_dialog.cpp  # Footnote Settings
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/field_dialogs.cpp  # The windows of the fields
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/table_dialogs.cpp  # The windows of the Table menu
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/image_properties_dialog.cpp  # Image > Image Properties...
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/character_grid.cpp           # Characters in cells, in the font of the text
@@ -496,6 +510,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/material_downloader.cpp              # The title of a page, the copy of a picture
     ${CMAKE_SOURCE_DIR}/src/gui/link_names.cpp                       # The links of a material in lists
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_page.cpp             # The card of a material in Properties
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/card_parts.cpp                # The small parts of the cards
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/source_boxes.cpp              # The groups of the card of a source
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/source_description_box.cpp    # The description of a source
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/preview_panel.cpp             # A preview of a file
     ${CMAKE_SOURCE_DIR}/src/gui/panels/image_preview_panel.cpp       # The preview of a material's picture
     ${CMAKE_SOURCE_DIR}/src/gui/material_list.cpp                    # The lists of the materials
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel.cpp       # The list of a kind of materials
@@ -509,6 +527,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/book_dictionary_panel.cpp     # The book dictionary on a tab
     ${CMAKE_SOURCE_DIR}/src/gui/book_dictionary_coordinator.cpp      # The book dictionary and its windows
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/deadline_dialog.cpp          # A deadline of the book
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_quote_dialog.cpp         # A quote from a selection of a PDF
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/challenge_dialog.cpp         # Add Challenge
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/session_summary_dialog.cpp   # The summary of the session
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/version_history_dialog.cpp   # The versions of a text
@@ -648,12 +667,15 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/insert_table_dialog.h  # Insert > Table... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/caption_dialogs.h  # The windows of captions, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/footnote_settings_dialog.h  # Footnote Settings, with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/field_dialogs.h  # The windows of the fields, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/table_dialogs.h  # The windows of the Table menu, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/image_properties_dialog.h  # Image Properties, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/source_boxes.h   # The groups of the card of a source with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/preview_panel.h  # PreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
@@ -665,6 +687,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/book_dictionary_panel.h  # BookDictionaryPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_dictionary_coordinator.h  # BookDictionaryCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/deadline_dialog.h  # DeadlineDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_quote_dialog.h  # NewQuoteDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/challenge_dialog.h  # ChallengeDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/session_summary_dialog.h  # SessionSummaryDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT
@@ -676,6 +699,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/image_filter_coordinator.h  # ImageFilterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_search_coordinator.h  # BookSearchCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/chapter_break_coordinator.h  # ChapterBreakCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/field_coordinator.h  # FieldCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/style_dialog.h  # StyleDialog, StylePreview with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/manage_styles_dialog.h  # ManageStylesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT
@@ -695,6 +719,19 @@ set(TEST_SOURCES ${TEST_SOURCES}
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
 )
+
+# The preview of PDF files and its tests: only with Qt PDF
+if(KALAHARI_PDF_AVAILABLE)
+    list(APPEND TEST_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_preview_panel.cpp  # A PDF on a tab
+        ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_preview_parts.cpp  # Its bars and side panel
+        ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_pages_view.cpp     # The pages of a PDF
+        ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_pages_layout.cpp   # Their rows and zoom
+        ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_preview_panel.h  # with Q_OBJECT
+        ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_pages_view.h     # with Q_OBJECT
+        gui/test_pdf_preview.cpp  # The preview of a PDF: pages, side panel, search, selection
+    )
+endif()
 
 # Create test executable
 add_executable(kalahari-tests ${TEST_SOURCES})
@@ -756,6 +793,12 @@ target_link_libraries(kalahari-tests PRIVATE
 # OpenSpec #00042: Hunspell include/library paths for spell check service
 target_include_directories(kalahari-tests PRIVATE ${HUNSPELL_INCLUDE_DIRS})
 target_link_directories(kalahari-tests PRIVATE ${HUNSPELL_LIBRARY_DIRS})
+
+# The preview of PDF files (optional Qt PDF module)
+if(KALAHARI_PDF_AVAILABLE)
+    target_link_libraries(kalahari-tests PRIVATE Qt6::Pdf)
+    target_compile_definitions(kalahari-tests PRIVATE KALAHARI_HAS_PDF)
+endif()
 
 # Windows: Workaround for Catch2d.lib link errors with VS 2022/2026
 # Root cause: vcpkg Catch2 built with incompatible CRT, missing __std_find_* symbols

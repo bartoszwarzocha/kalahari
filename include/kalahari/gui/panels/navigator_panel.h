@@ -175,11 +175,13 @@ public:
     static AddChooser addChooser();
 
     /// @brief The setting of how a material opens: "card" (its picture on a preview tab of the
-    /// program, the usual one) or "system" (in the program the system gives its file)
+    /// program, the usual one) or "system" (in the program the system gives its file); set in
+    /// Settings > Materials > Opening
     static constexpr const char* OPEN_MATERIALS_SETTING = "navigator.openMaterials";
 
     /// @brief The setting of how a material with the address of a page opens: "browser" (in
-    /// the system's browser, the usual one) or "card" (its card in the middle of the window)
+    /// the system's browser, the usual one) or "card" (its card in the middle of the window);
+    /// set in Settings > Materials > Opening
     static constexpr const char* OPEN_PAGES_SETTING = "navigator.openPages";
 
     /// @brief The setting of what a file, a web address or a picture dropped on the Navigator
@@ -335,7 +337,12 @@ public:
     /// @note Updates the display title (including status suffix) from ProjectManager
     /// @note Does nothing if element not found in tree
     /// @note In a group of the Workshop the element goes to the place of its title
+    /// @note The number of the sources follows the descriptions
     void refreshItem(const QString& elementId);
+
+    /// @brief Give Sources in Materials the number of the materials with a bibliographic
+    /// description
+    void refreshSourcesCount();
 
     /// @brief Set modified indicator for a chapter element (OpenSpec #00042 Phase 7.5)
     /// @param elementId Element ID of the chapter
@@ -408,6 +415,10 @@ signals:
     /// @brief Request to open the settings of the kinds of materials (Settings > Navigator):
     /// Kind Settings... in the menu of Materials and of its kinds
     void requestMaterialSettings();
+
+    /// @brief Request to open the settings of the sources (Settings > Materials): Source
+    /// Settings... in the menu of Sources
+    void requestSourceSettings();
 
     /// @brief Request to add the materials @p incoming, dropped on the Navigator from outside
     /// the program or pasted in it; @p link: the node they are linked with (empty: none), as
