@@ -31,6 +31,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/table_editing.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_sorting.h>
@@ -80,6 +81,11 @@ class QScrollBar;
 class QTimer;
 class QMenu;
 class QMimeData;
+
+namespace kalahari::core {
+class BookDictionary;
+struct RuleDeviation;
+}  // namespace kalahari::core
 
 namespace kalahari::editor {
 
@@ -1287,6 +1293,49 @@ public:
     int crossReferenceCount(const QSet<QString>& ids) const;
 
     // =========================================================================
+    // Fields: the book's title, its author, the text's title, the page, the words, the date
+    // =========================================================================
+
+    /// @brief Set what the fields show of the book and the text (text_fields.h); the fields
+    ///        that show something else then are drawn anew. A context without a time gets the
+    ///        time it is set: the dates are those of when the text was opened or came to the
+    ///        front last
+    void setFieldContext(const FieldContext& context);
+    /// @brief What the fields show of the book and the text
+    const FieldContext& fieldContext() const { return m_fieldContext; }
+
+    /// @brief Insert > Field..., Date && Time...: a field at the cursor, in place of the
+    ///        selection, as one undo step
+    /// @return false in a read-only text
+    bool insertField(const TextField& field);
+
+    /// @brief The field the field commands act on (of text_fields.h): the one selected alone,
+    ///        else the one just before the cursor, else the one just after it; std::nullopt:
+    ///        none
+    std::optional<int> fieldAtCursor() const;
+
+    /// @brief The field of text_fields.h at a position; std::nullopt: none there
+    std::optional<TextField> textFieldAt(int position) const;
+
+    /// @brief The text the field at a position shows, of any kind (a caption's number too);
+    ///        empty: no field there
+    QString fieldTextAt(int position) const;
+
+    /// @brief Edit Field: the field at a position shows something else or in another format,
+    ///        as one undo step
+    /// @return false without such a field there, in a read-only text, or when it is so already
+    bool setTextFieldAt(int position, const TextField& field);
+
+    /// @brief Convert to Text: the field at a position becomes the text it shows, in its
+    ///        formatting, as one undo step
+    /// @return false without a field of text_fields.h there or in a read-only text
+    bool convertFieldToText(int position);
+
+    /// @brief The field of any kind under a point of the widget (its character); std::nullopt:
+    ///        none there
+    std::optional<int> fieldAt(const QPointF& widgetPos) const;
+
+    // =========================================================================
     // Annotations: comments, TODOs and notes
     // =========================================================================
 
@@ -1873,6 +1922,36 @@ public:
     /// @brief The dictionary the spelling is checked with, or nullptr
     SpellCheckService* spellCheckService() const;
 
+    /// @brief Check the text with the dictionary of its book too, while the spelling is checked
+    ///
+    /// The names of the book with their forms and the words of the book are right. A place
+    /// written otherwise than a spelling rule of the book wants gets a wave of its own
+    /// (HighlightKind::BookRule) in place of a misspelling's, unless the writer chose to
+    /// ignore it (Ignore All: SpellCheckService::ignoreWord()); its context menu offers the
+    /// rule's form. A name written small gets its own spelling as the first suggestion. The
+    /// chapters of the book get it (SpellingCoordinator), not the documents outside it. The
+    /// editor checks its text again when it gets another dictionary; after the dictionary
+    /// changes, requestSpellCheck() checks it again.
+    /// @param dictionary The book's dictionary (not owned); nullptr: none
+    /// @param editable Whether the context menu offers to change it: to add a word
+    ///        (addToBookDictionaryAsked()) and to remove a rule (removeBookRuleAsked())
+    void setBookDictionary(const core::BookDictionary* dictionary, bool editable);
+
+    /// @brief The dictionary of the book the text is checked with too, or nullptr
+    const core::BookDictionary* bookDictionary() const { return m_bookDictionary; }
+
+    /// @brief Whether the context menu offers to change the book's dictionary
+    ///        (setBookDictionary())
+    bool isBookDictionaryEditable() const { return m_bookDictionaryEditable; }
+
+    /// @brief Mark the places written otherwise than the spelling rules of the book's
+    ///        dictionary want, or not (the setting; they are marked by default); the text is
+    ///        checked again when it changes
+    void setBookRulesMarked(bool marked);
+
+    /// @brief Whether the places breaking the spelling rules of the book are marked
+    bool areBookRulesMarked() const { return m_bookRulesMarked; }
+
     /// @brief Check the spelling of every paragraph again
     ///
     /// The waves stay until their paragraphs are checked.
@@ -2221,6 +2300,22 @@ signals:
     ///        text was checked (checkProgress()); once for the changes made together
     void issuesChanged();
 
+    /// @brief The writer chose Add to Book Dictionary on the context menu of a misspelled word
+    ///        (setBookDictionary())
+    void addToBookDictionaryAsked(const QString& word);
+
+    /// @brief The writer chose Remove Rule on the context menu of a place breaking a spelling
+    ///        rule of the book (setBookDictionary())
+    void removeBookRuleAsked(const QString& ruleId);
+
+    /// @brief The writer chose Add Name... on the context menu of a misspelled word: the
+    ///        word is to be a name of the book's dictionary (setBookDictionary())
+    void addNameAsked(const QString& word);
+
+    /// @brief The writer chose Edit Rule... on the context menu of a place breaking a spelling
+    ///        rule of the book (setBookDictionary())
+    void editBookRuleAsked(const QString& ruleId);
+
     /// @brief Emitted when view mode changes
     /// @param mode The new view mode
     void viewModeChanged(ViewMode mode);
@@ -2270,6 +2365,10 @@ signals:
     /// @brief The writer asks to write a note's text in its frame: a click on its text, a
     /// double click on its number, Edit Footnote in the menu
     void noteEditRequested(const QString& id);
+
+    /// @brief The writer asks for the window of the field at a position: Edit Field... in the
+    /// menu, a double click on it
+    void fieldEditRequested(int position);
 
     /// @brief The notes of the text changed: one added, taken out, moved, of the other kind or
     ///        with another text (noteList()); the book numbers them again
@@ -2855,6 +2954,17 @@ private:
     ///        Footnote), Delete Footnote
     void addNoteActions(QMenu& menu, const NotePlace& note);
 
+    /// @brief The items of the context menu for a field of text_fields.h at a position: Edit
+    ///        Field..., Convert to Text
+    void addFieldActions(QMenu& menu, int position);
+
+    /// @brief The word count fields show the words of the text as they are now
+    void refreshFieldWords();
+
+    /// @brief The tooltip of the field of text_fields.h at a position: what it shows, and for
+    ///        the page in a view without pages where it is shown
+    QString fieldToolTip(int position) const;
+
     /// @brief The note whose text is at a point of the widget: its id; empty: none (or an
     ///        endnote of another text: bookEndnoteAt())
     QString noteTextAt(const QPointF& widgetPos) const;
@@ -3404,6 +3514,8 @@ private:
     std::shared_ptr<ImageStore> m_imageStore{std::make_shared<ImageStore>()};  ///< Of the images
     NewImageOptions m_newImageOptions;  ///< How a new image goes into the text
     CaptionContext m_captionContext;    ///< What the numbers depend on outside the text
+    FieldContext m_fieldContext;        ///< What the fields show of the book and the text
+    QTimer* m_fieldWordsTimer{nullptr};  ///< Counts the words for the fields when typing pauses
     CaptionRemovalConfirmation m_confirmCaptionRemoval;  ///< Asked before a caption goes
     bool m_captionRemovalAsked = false;  ///< The writer was asked already (Image Properties)
     std::vector<CaptionEntry> m_shownCaptions;  ///< As captionsChanged() last announced them
@@ -3419,6 +3531,9 @@ private:
 
     // Spelling
     SpellCheckService* m_spellCheckService{nullptr};  ///< The dictionary (not owned)
+    const core::BookDictionary* m_bookDictionary{nullptr};  ///< Of the book (not owned)
+    bool m_bookDictionaryEditable{false};  ///< Its menu items change it (setBookDictionary())
+    bool m_bookRulesMarked{true};  ///< The places breaking its rules are marked
     QTimer* m_spellTimer{nullptr};                    ///< Runs the next turn of the check
     int m_spellNext{0};             ///< The paragraph the next turn goes on from (not in view)
     int m_spellTyping{-1};          ///< Where the cursor stands after typing (-1: not typing)
@@ -3502,8 +3617,11 @@ private:
                          const std::optional<NoteRange>& inNote = std::nullopt);
 
     /// @brief The misspelled word at a place of a note's text (also right after it)
+    /// @param kind Gets what the wave marks: a misspelling or a rule of the book broken; may
+    ///        be nullptr
     /// @return The word and its range in the note's text, or an empty word
-    std::tuple<QString, int, int> getMisspelledNoteWordAt(const NoteRange& place) const;
+    std::tuple<QString, int, int> getMisspelledNoteWordAt(const NoteRange& place,
+                                                          HighlightKind* kind = nullptr) const;
 
     /// @brief The grammar issue at a place of a note's text (also right after it), its start
     ///        in the note's text (std::nullopt: none)
@@ -3512,14 +3630,35 @@ private:
     /// @brief Find misspelled word at given position
     /// @param paraIndex Paragraph index
     /// @param offset Character offset within paragraph (also right after the word)
+    /// @param kind Gets what the wave marks: a misspelling or a rule of the book broken; may
+    ///        be nullptr
     /// @return The misspelled word and its range, or empty if no error at position
-    std::tuple<QString, int, int> getMisspelledWordAt(int paraIndex, int offset) const;
+    std::tuple<QString, int, int> getMisspelledWordAt(int paraIndex, int offset,
+                                                      HighlightKind* kind = nullptr) const;
 
     /// @brief Put on the context menu what is offered for a misspelled word: the words to
-    ///        put in its place, Ignore All, Add to Dictionary
+    ///        put in its place, Ignore All, Add to Book Dictionary (with the book's dictionary),
+    ///        Add to Your Words (All Books), Add Name... (with the book's dictionary)
     /// @param replace Puts a word chosen in its place
     void addSpellingActions(QMenu& menu, const QString& word,
                             const std::function<void(const QString&)>& replace);
+
+    /// @brief Put on the context menu what is offered for a place breaking a spelling rule of
+    ///        the book: the rule's form, the rule and its note, Ignore All, Edit Rule...,
+    ///        Remove Rule
+    /// @param deviation The place, as the rule finds it
+    /// @param replace Puts a text chosen in its place
+    void addBookRuleActions(QMenu& menu, const core::RuleDeviation& deviation,
+                            const std::function<void(const QString&)>& replace);
+
+    /// @brief The place of @p text breaking a spelling rule of the book, as its wave marks it
+    ///        (the whole text); std::nullopt: none, or no book's dictionary
+    std::optional<core::RuleDeviation> bookRuleDeviation(const QString& text) const;
+
+    /// @brief Give a place breaking a spelling rule of the book (TextIssueKind::BookRule) what
+    ///        the panel shows: "Write ..." as its message, the rule's id and note, and the
+    ///        rule's form as its suggestion; a misspelled word stays as it is
+    void describeSpellingIssue(TextIssue& issue) const;
 
     /// @brief Replace word in document
     /// @param paraIndex Paragraph index

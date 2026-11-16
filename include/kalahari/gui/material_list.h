@@ -59,7 +59,8 @@ struct MaterialRow {
 /// Workshop, the columns of each list and the rows of their materials
 ///
 /// A list is named by the kind of its materials with its package ("kalahari.base:quote");
-/// ALL is the list of All Materials, the working notes too. The writer chooses the columns of
+/// ALL is the list of All Materials, the working notes too, and SOURCES that of the materials
+/// with a bibliographic description, of every kind. The writer chooses the columns of
 /// each list and their order, and between the table and the tiles of the pictures, the
 /// documents and the publications; the program keeps it for each list (LISTS_SETTING).
 class MaterialList {
@@ -67,6 +68,8 @@ class MaterialList {
 
 public:
     static constexpr const char* ALL = "";  ///< The list of All Materials
+    /// @brief The list of the sources: the materials with a bibliographic description
+    static constexpr const char* SOURCES = "sources";
 
     /// @name Ids of the columns
     /// @{
@@ -102,6 +105,15 @@ public:
     static constexpr const char* CLIPPING_CUT = "cut";    ///< A clipping: when it was cut
     static constexpr const char* CLIPPING_NOTE = "note";  ///< A clipping: its note
     static constexpr const char* CLIPPING_INSERTED = "inserted";  ///< A clipping: inserted last
+    static constexpr const char* SOURCE_KIND = "sourceKind";        ///< A source: a book...
+    static constexpr const char* SOURCE_AUTHORS = "sourceAuthors";  ///< A source: its authors
+    static constexpr const char* SOURCE_YEAR = "sourceYear";        ///< A source: its year
+    static constexpr const char* SOURCE_INCLUSION = "sourceInclusion";  ///< A source: whether
+                                                                        ///< the bibliography
+                                                                        ///< has it
+    static constexpr const char* SOURCE_PLACES = "sourcePlaces";  ///< A source: its places in
+                                                                  ///< the text
+    static constexpr const char* QUOTE_SOURCE = "quoteSource";    ///< A quote: its source
     /// @}
 
     /// @brief The setting of the columns and the view of each list, an object: list ->
@@ -149,7 +161,12 @@ public:
     /// @brief Whether @p list is the list of the materials of the cover
     static bool isCover(const QString& list);
 
-    /// @brief Name of @p list: the plural of its kind, "Quotes"; "All Materials" for ALL
+    /// @brief The kinds Add of @p list offers: those of the Materials for ALL, those that can be
+    /// a source for SOURCES (a publication first), else the kind of the list
+    static QStringList addKindsOf(const core::ProjectManager& book, const QString& list);
+
+    /// @brief Name of @p list: the plural of its kind, "Quotes"; "All Materials" for ALL,
+    /// "Sources" for SOURCES
     static QString nameOf(const QString& list);
 
     /// @brief Icon of @p list: that of its kind in the Navigator, of Materials for ALL
@@ -212,7 +229,8 @@ public:
     static QString documentKindOf(const QString& format);
 
     /// @brief What Copy of a material puts on the clipboard: the words of a quote, the address
-    /// of a page or of a picture on the web without a copy, the path of a file, else the title
+    /// of a page or of a picture on the web without a copy, the path of a file, else the title;
+    /// in SOURCES the entry of a source in the bibliography of the book (rowsOf())
     static QString copyTextOf(const core::ProjectManager& book, const QString& elementId);
 
     /// @brief Columns of the list of the clippings: the title, where it comes from, when it

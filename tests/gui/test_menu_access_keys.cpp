@@ -17,6 +17,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
 #include "context_menu_reader.h"
+#include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/project_manager.h"
@@ -503,8 +504,9 @@ private:
 
 /// The context menus of a book's text: the usual one, without a selection and with one, in
 /// both color modes; that of a misspelled word, with the words of the dictionary and without
-/// a dictionary; that of a grammar issue. @p shown: as Windows and Linux show them, where the
-/// words have keys too
+/// a dictionary, and with the book's dictionary; that of a departure from a rule of the book;
+/// that of a grammar issue. @p shown: as Windows and Linux show them, where the words have
+/// keys too
 void checkTextMenus(bool shown, QStringList& problems) {
     auto& registry = kalahari::test::commands();
     editor::BookEditor editor;
@@ -560,6 +562,15 @@ void checkTextMenus(bool shown, QStringList& problems) {
         collectProblems(noteMenu, QStringLiteral("Note"), {}, problems);
         CHECK(itemCount(noteMenu) == 6 + 3);
     }
+
+    // A field: Edit Field... and Convert to Text on top of the usual menu
+    editor.fromKml(QStringLiteral("<kml><p>The<field type=\"page\"/> ") + sentence() +
+                   QStringLiteral("</p></kml>"));
+    const QRectF afterField = editor.placeRect(4, true);  // the field is the fourth character
+    const QList<test::MenuItem> fieldMenu = contextMenu(
+        &editor, &editor, QPoint(qRound(afterField.left()) - 2, qRound(afterField.center().y())));
+    collectProblems(fieldMenu, QStringLiteral("Field"), {}, problems);
+    CHECK(itemCount(fieldMenu) == 6 + 2);
 
     // An image, selected by the click: Image Properties..., Add Caption, Change Image...,
     // Original Size and Save as Image... (the windows the editor panel gives) on top of the
@@ -740,7 +751,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
     QList<test::MenuItem> items = contextMenu(&editor, &editor, placeOf(editor, 6));
     collectProblems(items, QStringLiteral("Misspelled word"), shown ? QStringList() : wordTexts,
                     problems);
-    // and Ignore All, Add to Dictionary, then the usual menu
+    // and Ignore All, Add to Your Words, then the usual menu
     CHECK(itemCount(items) == words.size() + 2 + 6);
 
     // A word the dictionary has nothing like: the menu says there are none
@@ -756,6 +767,53 @@ void checkTextMenus(bool shown, QStringList& problems) {
     collectProblems(items, QStringLiteral("Misspelled word without suggestions"), {none},
                     problems);
     CHECK(labelsOf(items).contains(none));
+
+    // With the book's dictionary: the word can go to it as well; a word that departs from a
+    // rule of the book has the rule's menu, whose rule and note are lines that only tell
+    {
+        core::BookDictionary dictionary;
+        core::SpellingRule rule;
+        rule.right = QStringLiteral("e-mail");
+        rule.wrong = {QStringLiteral("email")};
+        rule.allForms = false;
+        rule.note = QStringLiteral("As the publisher writes it.");
+        REQUIRE_FALSE(dictionary.putRule(rule).isEmpty());
+        editor::BookEditor booked;
+        test::resizeWidget(booked, QSize(600, 400));
+        booked.fromKml(test::kmlOf({QStringLiteral("The chaptre of an email.")}));
+        booked.setContextMenuEditActions(
+            {.cut = registry.getAction(QStringLiteral("edit.cut")),
+             .copy = registry.getAction(QStringLiteral("edit.copy")),
+             .paste = registry.getAction(QStringLiteral("edit.paste")),
+             .selectAll = registry.getAction(QStringLiteral("edit.selectAll"))});
+        booked.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
+                                      registry.getAction(QStringLiteral("insert.todo")),
+                                      registry.getAction(QStringLiteral("insert.note"))});
+        booked.setSpellCheckService(&spelling);
+        booked.setBookDictionary(&dictionary, true);
+        booked.show();
+        REQUIRE(checked(booked));
+        items = contextMenu(&booked, &booked, placeOf(booked, 6));
+        collectProblems(items, QStringLiteral("Misspelled word, with the book's dictionary"),
+                        shown ? QStringList() : wordTexts, problems);
+        // and Ignore All, Add to Book Dictionary, Add to Your Words, Add Name..., then the
+        // usual menu
+        CHECK(itemCount(items) == words.size() + 4 + 6);
+
+        QStringList told = {QCoreApplication::translate(BOOK_EDITOR, "Book rule: write %1")
+                                .arg(QLocale().quoteString(rule.right)),
+                            rule.note};
+        if (!shown) {
+            told << rule.right;
+        }
+        items = contextMenu(&booked, &booked, placeOf(booked, 20));  // in "email"
+        collectProblems(items, QStringLiteral("Departure from a rule of the book"), told,
+                        problems);
+        CHECK(labelsOf(items).contains(told.first()));
+        // the rule's form and its two lines, Ignore All, Edit Rule..., Remove Rule, then the
+        // usual menu
+        CHECK(itemCount(items) == 3 + 3 + 6);
+    }
 
     // A misspelled word of a note's text: its words and the note's items on top of the usual
     // menu
@@ -784,8 +842,9 @@ void checkTextMenus(bool shown, QStringList& problems) {
                         shown ? QStringList() : wordTexts, problems);
         const QStringList labels = labelsOf(items);
         CHECK(std::any_of(labels.cbegin(), labels.cend(), [](const QString& label) {
-            return withoutAccessKey(label) == QStringLiteral("Add to Dictionary") ||
-                   withoutAccessKey(label) == QStringLiteral("Dodaj do słownika");
+            return withoutAccessKey(label) == QStringLiteral("Add to Your Words (All Books)") ||
+                   withoutAccessKey(label) == QStringLiteral("Dodaj do Twoich słów (wszystkie "
+                                                             "książki)");
         }));
         CHECK(itemCount(items) >= words.size() + 2 + 3);  // and the note's three
     }
@@ -823,7 +882,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         }
         items = contextMenu(&all, &all, placeOf(all, 6));
         collectProblems(items, QStringLiteral("Every part"), keyless, problems);
-        // (No suggestions), Ignore All, Add to Dictionary; the link's four; the annotation's line
+        // (No suggestions), Ignore All, Add to Your Words; the link's four; the annotation's line
         // and its three; the list's six; the usual menu; Linked Materials > Map
         CHECK(labelsOf(items).contains(none));
         CHECK(itemCount(items) == 3 + 4 + 4 + 6 + 6 + 2);
@@ -949,9 +1008,9 @@ void checkNavigatorMenus(QStringList& problems) {
                         QStringLiteral("section_backmatter"), QStringLiteral("text_element"),
                         QStringLiteral("group_element"), QStringLiteral("window_element"),
                         QStringLiteral("workshop"), QStringLiteral("workshop_group"),
-                        QStringLiteral("workshop_shelf"), QStringLiteral("unassigned_files"),
-                        QStringLiteral("unassigned_file"), QStringLiteral("other_files"),
-                        QStringLiteral("standalone_file")});
+                        QStringLiteral("workshop_shelf"), QStringLiteral("workshop_view"),
+                        QStringLiteral("unassigned_files"), QStringLiteral("unassigned_file"),
+                        QStringLiteral("other_files"), QStringLiteral("standalone_file")});
 
     // Without sections the book's item adds the elements, also of the front and back matter
     REQUIRE(pm.setSections({false, QString(), {}}));

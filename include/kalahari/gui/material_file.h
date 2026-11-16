@@ -18,7 +18,9 @@ namespace gui {
 /// whether it is a picture the program can show
 ///
 /// A picture is a file of an image type ("image/png", "image/webp"...). The program shows those
-/// whose format its image plugins read; for the others problem() says why it does not.
+/// whose format its image plugins read; for the others problem() says why it does not. A PDF
+/// file is no picture: the program shows its pages when it is built with their preview
+/// (PDFium), and its first page where it shows a picture (readPicture()).
 struct MaterialFile {
     Q_DECLARE_TR_FUNCTIONS(kalahari::gui::MaterialFile)
 
@@ -28,7 +30,9 @@ public:
     QString format;         ///< Format in capitals: "PNG", "PDF"; empty without a suffix
     bool exists = false;    ///< Whether the file is on the disk
     bool picture = false;   ///< Whether it is a picture by its type
-    bool readable = false;  ///< Whether it is a picture the program can show
+    bool pdf = false;       ///< Whether it is a PDF file
+    bool readable = false;  ///< Whether it is a picture, or a PDF file, the program can show
+    int pages = 0;          ///< Pages of a PDF file the program can show
     QSize size;             ///< Pixels of a picture the program can show
     qint64 bytes = 0;       ///< Size of the file
     QString readError;      ///< Why a picture of a known format cannot be read
@@ -51,7 +55,7 @@ public:
 
 /// @brief Picture @p path turned by @p rotation degrees clockwise (0, 90, 180 or 270), at most
 /// @p bounds large when they are valid; a null image when it cannot be read, and then why in
-/// @p error when it is given
+/// @p error when it is given. Of a PDF file, its first page.
 QImage readPicture(const QString& path, int rotation = 0, const QSize& bounds = QSize(),
                    QString* error = nullptr);
 

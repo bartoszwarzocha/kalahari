@@ -15,6 +15,8 @@
 namespace kalahari {
 namespace core {
 
+struct ElementKind;
+
 /// @brief Ids of the roles of links (ElementLink::role), the role a new link of a material
 /// gets, and the paragraph of a text that a link names
 struct LinkRoles {
@@ -23,6 +25,12 @@ struct LinkRoles {
     static constexpr const char* INSPIRATION = "inspiration";    ///< An inspiration
     static constexpr const char* ILLUSTRATION = "illustration";  ///< Shows what the text tells
     static constexpr const char* TO_CHECK = "to_check";          ///< Something to check
+
+    // The roles of the links of a card with the chapters
+    static constexpr const char* POINT_OF_VIEW = "pov";   ///< Tells the chapter
+    static constexpr const char* APPEARS = "appears";      ///< Is in the chapter
+    static constexpr const char* MENTIONED = "mentioned";  ///< Is only spoken of
+    static constexpr const char* SETTING = "setting";      ///< Where the chapter takes place
 
     /// @brief The setting of whether a link may name a paragraph of a text (true, the usual
     /// one); without it, the program shows no paragraphs of links, and keeps them
@@ -33,6 +41,18 @@ struct LinkRoles {
 
     /// @brief The roles, in the order the program offers them
     static const QStringList& all();
+
+    /// @brief The roles of the links of a card with the chapters, in the order the program
+    /// offers them
+    static const QStringList& ofCards();
+
+    /// @brief The roles that the cards of kind @p kind have in the chapters, in its order: its
+    /// "chapterRoles", else APPEARS and MENTIONED
+    static QStringList ofCard(const ElementKind& kind);
+
+    /// @brief The role of a new link of a card of kind @p kind with a chapter: APPEARS when it
+    /// has that role, else its first one
+    static QString suggestedForCard(const ElementKind& kind);
 
     /// @brief The role of a new link of a material of kind @p kindId (MaterialKinds): a quote
     /// is quoted in the text, a picture is an illustration, a web page, a document and a

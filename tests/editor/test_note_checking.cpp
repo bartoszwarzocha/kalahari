@@ -450,7 +450,7 @@ TEST_CASE("Notes: the misspelled words of the notes' texts, waved, listed and go
         MenuSeen seen = contextMenu(*editor, std::nullopt, true);
         REQUIRE_FALSE(seen.chosen.isEmpty());
         CHECK(seen.texts.contains(QStringLiteral("Ignore All")));
-        CHECK(seen.texts.contains(QStringLiteral("Add to Dictionary")));
+        CHECK(seen.texts.contains(QStringLiteral("Add to Your Words (All Books)")));
         CHECK(seen.texts.contains(QStringLiteral("Edit Footnote")));  // and the note's items
         CHECK(contentOf(*editor, QStringLiteral("f1")) ==
               QStringLiteral("A %1 word in <b>teh</b> note.").arg(seen.chosen));

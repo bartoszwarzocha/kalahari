@@ -114,6 +114,10 @@ signals:
     /// @brief Emitted when diagnostic mode should be disabled
     void disableDiagnosticModeRequested();
 
+    /// @brief The settings were closed with Open Book Dictionary (Editor > Spelling): the
+    ///        book's dictionary shows on its tab
+    void bookDictionaryRequested();
+
 private:
     QMainWindow* m_mainWindow;
     DockCoordinator* m_dockCoordinator;

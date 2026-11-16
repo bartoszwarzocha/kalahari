@@ -31,6 +31,127 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Cutting to the clippings is not deleting" keeps the words of the day as they were (off:
   a cut lowers them as a deletion does).
 
+- **Cards of characters, locations and items** - 2026-11-15. The Workshop has cards of
+  characters, locations and items, added from the Book menu, the Navigator ("Add Character...",
+  "Add Location...", "Add Item...") or Add Element, in the groups Characters, Locations and Items
+  of the Navigator, each with a dot of its color beside its name (Settings > Cards can turn the
+  dots off). Properties shows the short card: the portrait, the name, the field of the subtitle
+  (the role of a character), In Short, the fields of the kind shown there and Open Card. The full
+  card opens on a tab: the name with the kind and its role, the color, In Short, the fields of
+  the kind (a field naming another card suggests the cards of its kind), Own Fields and the
+  description in two columns, edited as any text of the book. The portrait is a picture among
+  the materials of the book or from a file (it becomes a material of the Workshop); a card
+  without one shows its initials in its color. A new card takes the next color of the palette
+  of Settings > Cards, which also has the dots of the Navigator; the gear of the cards opens it.
+  The library of characters and locations of the old model in project.db is gone: the cards of
+  the Workshop take its place.
+
+- **Book dictionary** - 2026-11-15. Each book has a dictionary of its own (`dictionary.json`
+  in its folder, saved at once with each change): the names of its characters, places, things
+  and other proper names with all their forms, the author's spelling rules, and words right in
+  this book only. Book > Book Dictionary... and "Book Dictionary" at the top of the Workshop
+  in the Navigator show it on a tab in the middle of the window, with three tabs and their
+  counts (Names, Spelling Rules, Book Words), a search that finds the names also in their
+  forms and other names ("annę" and "ania" find "Anna Wolska"; Find, Ctrl+F, goes to it), and
+  the keys Insert, Enter and Delete in the lists, Ctrl+Tab between the tabs. The window of a
+  name has the name and its other names (for a character of several words the first name and
+  the surname alone, which follow the name, and the diminutives and nicknames the author
+  adds), the kind (Character, Location, Item, Other name), the model of declension of each
+  word, picked by its ending and confirmed by the spelling dictionary (common nouns whose stem
+  changes have their forms from the program: Czarny Las, w Czarnym Lesie; Stary Dwór, Starego
+  Dworu), and the table of the forms by case, which the author corrects (a corrected cell
+  keeps its forms when a model changes; "Suggest the Forms Again"), "Does not change", the
+  plural and Show in Quick Insert; in Polish seven cases, in English the singular and the
+  plural, in another language the forms the author writes. The window of a spelling rule has
+  the right spelling, the wrong ones (those that suggest themselves are added: the other case
+  of a capital letter, without the hyphen, with it or apart, a word made of two apart),
+  whether its forms count too (shown from the spelling dictionary, or from the word it ends
+  with: "półelf" like "elf") and a note. In the chapters the names are right in all their
+  forms and the words of the book are right; a departure from a rule has a wavy line of its
+  own color ("Book rule", its color in Settings > Editor > Spelling) with the rule's spelling
+  and note in the context menu, Edit Rule... and Remove Rule (Settings > Editor > Spelling >
+  Book Dictionary: "Mark departures from the rules"). The context menu of a misspelled word
+  adds it to the book dictionary, to Your Words of every book, or as a name (Add Name..., the
+  window of a name with the word and its forms); so do the cards of the Spelling and Grammar
+  panel, whose button adds to the place Settings names ("The panel adds a word to"), the other
+  on the menu of its arrow. Quick Insert after @ offers the names with their forms (Right
+  shows them), and Find in Book and the find bar of a chapter find a name in all its forms, an
+  ordinary word in those of the spelling dictionary (the option "All Forms", Alt+M). Move to
+  Your Words moves words of the book to the words of every book; Remove asks first. In a book
+  open read-only the dictionary is shown, not changed. The cards of the Workshop will keep
+  their names here (`DictionaryName::card`).
+
+- **The preview of PDF files in the program** - 2026-11-15. A PDF opens in a card of its own
+  (Settings > Materials > Opening: in the program, at first, or in the system program): the
+  pages one under another (at first), one at a time or two side by side; the zoom of
+  View > Zoom (page width at first, the whole page, 100% or as last time); the page number
+  with the file's own labels, Ctrl+G, PgUp, PgDn, Home and End; in the dark theme the pages
+  as in the file (at first), dimmed or with inverted colors. The side panel has the
+  bookmarks of the source, the contents of the file, thumbnails and the hits of Find in the
+  File with their words (Ctrl+F, Enter, Shift+Enter, Esc); F6 and Shift+F6 go between the
+  bar, the side panel and the pages. Text selected with the mouse, or all the text of the
+  page (Select All), copies with Ctrl+C or with the reference to the source and the page;
+  the menu of the selection (the menu key, Shift+F10) also has Create Quote..., which opens
+  New Quote: the words, the source, the page and the link with the chapter open last, with
+  another element or with none; Create and Insert into Chapter also inserts the words with
+  their reference. Bookmark Here adds a bookmark of the page. The preview opens at the page
+  shown last (an option). The card of a PDF shows its first page, Fill In from File takes
+  the title, the author, the year and the pages from the file, a bookmark shows its page in
+  the preview, and the card of a quote has Show Page. The colors around the pages, of the
+  selection and of the hits are the editor's (Settings > Editor > Colors). The opening of
+  pictures and pages on the web moved from Settings > Navigator to Settings > Materials.
+  The pages are drawn by PDFium, the PDF library of Chromium (BSD 3-Clause and Apache 2.0),
+  as a ready shared library of pdfium-binaries built from its official sources without
+  JavaScript and XFA: the port `vcpkg-ports/pdfium` installs it with vcpkg, a build without
+  vcpkg downloads the same archive, both checked by the SHA-512 pinned in
+  `vcpkg-ports/pdfium/release.cmake`, and the CI checks the signed record of each build
+  (`scripts/verify_pdfium.cmake`). So every build has the preview, on Windows, macOS and
+  Linux (x64 and arm64); `-DKALAHARI_PDF_PREVIEW=OFF` builds the program without it, and
+  then a PDF opens in the system program and the options of the preview are dimmed.
+
+- **Sources: the bibliographic description of a material, the bibliography and the quotes
+  with their source** - 2026-11-15. A publication, a document, a web page and a recording
+  can be a source: their card has the group Bibliographic Description (the kind of source –
+  book, chapter in a book, article in a journal, web page, archival document, talk or
+  interview, film or recording, thesis, other – changes the fields; the people with their
+  roles in a table, Insert and Delete; Paste Description takes a record in BibTeX or RIS
+  copied from a library catalog or a bibliography manager), As the Bibliography Shows It
+  (the entry in the style of the book, another style to compare, In the bibliography: when
+  linked with the text, always or never, Copy Entry as text and with italics, the gear opens
+  Settings > Materials), Bookmarks of a PDF (a page and a note each, saved at once) and
+  Quotes from This Source (Insert makes a new quote with the source and the page shown last,
+  Enter opens one). The short card in the Properties panel shows the entry. The card of a
+  quote has the group Where It Comes From: a source (the materials with a description) or
+  none with the author and the work, the page and the reference in the text, as
+  "(Wiśniewska 2011, p. 45)"; Open Source opens the card of the source. Sources, first in
+  Materials of the Navigator (in italics, with its number), opens the list of all the
+  materials with a description: material, kind of source, author, title, year, in the
+  bibliography, in the text; Copy Entries copies the entries of the sources shown, in the
+  style of the book. The list of the quotes has the column Source. The styles: PN-ISO 690
+  (at first), APA, Chicago, MLA and Harvard; the reference: author and year (at first),
+  author and title, or number (Settings > Materials > Sources). A book may have its own style
+  (Properties of the book > Bibliography). The kind Source of non-fiction is retired: books
+  that have one keep it. In the book file: `source`, `bookmarks`, `lastPage` and `quote` of
+  a material, `bibliographyStyle` of a book; fields the program does not know are kept.
+
+- **Fields** - 2026-11-13. Insert > Field... inserts a value that changes by itself: the title
+  of the book, its author, the title of the text (named after its kind: "Chapter Title"), the
+  page number, the page count, the word count of the text and the date, each in its formats
+  (in capitals; 1, i, I; 12 345 or 12345; the date long, short, with the day of the week, ISO,
+  the time, the date with the time), with how it shows where it goes. A field shows on a gray
+  background, which Settings > Editor > General can turn off (the gear of the window opens
+  it); it follows the book's properties and the title of the text, the word count follows the
+  text when the typing pauses, the page fields show the page in the Page Layout view and `#`
+  in the continuous views (its tooltip says so), the date is that of when the text was opened.
+  Edit Field... of its context menu, or a double click, changes it, Convert to Text puts the
+  text it shows in its place, each one undo step; copied, it goes to other programs as its
+  text. Insert > Date & Time... inserts today's date or time in the book's language, as text
+  or, with Update Automatically, as a field; Alt+Shift+D and Alt+Shift+T insert the date (in
+  the format chosen last) and the time at once, as text (Settings > Keyboard Shortcuts lists
+  them under Insert). A plain text file keeps no fields, only the date as text. KML: `<field>`
+  (docs/kml_format.md). The window has the fields in four tabs (Book, Text, Pages, Date; Ctrl+Tab
+  or Alt with the tab's letter goes between them), with the format, how the field shows and its
+  hint under the list of the tab, so it fits a small screen without scrolling.
 - **Several books open at once, each in its own window** - 2026-11-13. Window > New Window
   opens another book window, with the Dashboard; the Window menu lists every window of the
   program and Ctrl+F6 goes through all of them. A book opened (File > Open, Recent Books, the
@@ -1437,6 +1558,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A paragraph at the top of a page drawn at the bottom of the page before** - 2026-11-13. In
+  the Page Layout view a paragraph whose first line went on to the next page could be drawn
+  in the margin of the page before, and its page fields showed that page, after its list
+  number, a caption number or a page count in it changed: the paragraph is placed on the pages
+  again.
 - **"Above" and "below" of the cross-references in Polish** - 2026-11-13. A cross-reference
   that shows where its caption is says "powyżej" and "poniżej" in the Polish program, not
   "above" and "below": the translations now also read the texts of the captions in the

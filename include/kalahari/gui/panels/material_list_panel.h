@@ -121,6 +121,9 @@ public:
     /// @brief The button of the plan of the cover; hidden in the other lists
     QToolButton* planButton() const { return m_planButton; }
 
+    /// @brief Copy Entries of the list Sources; hidden in the other lists
+    [[nodiscard]] QToolButton* entriesButton() const { return m_entriesButton; }
+
     /// @brief Group by Kind of the list of the cover; hidden in the other lists
     QToolButton* groupsButton() const { return m_groupsButton; }
 
@@ -183,6 +186,10 @@ public:
 
     /// @brief Copy the material chosen (MaterialList::copyTextOf())
     void copyCurrent();
+
+    /// @brief Copy the entries in the bibliography of all the sources the list shows, in its
+    /// order, one in each line: as text and with italics (the list Sources)
+    void copyEntries();
 
 signals:
     /// @brief The writer chose material @p elementId in the list
@@ -316,6 +323,7 @@ private:
     QToolButton* m_editButton = nullptr;
     QToolButton* m_linkButton = nullptr;
     QToolButton* m_copyButton = nullptr;
+    QToolButton* m_entriesButton = nullptr;
     QToolButton* m_deleteButton = nullptr;
     QToolButton* m_tableButton = nullptr;
     QToolButton* m_tilesButton = nullptr;

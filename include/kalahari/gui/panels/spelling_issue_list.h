@@ -78,13 +78,25 @@ struct IssueCardColors {
 IssueCardColors issueCardColors(const QColor& kindColor, const QColor& surface,
                                 const QColor& text);
 
+/// @brief Where a misspelled word of the text in front can be added
+struct AddPlaces {
+    bool bookDictionary = false;  ///< The book's dictionary too (a chapter of the book)
+    bool bookFirst = true;  ///< The book's dictionary on the button, the writer's words on the
+                            ///< menu of the arrow beside it (the setting), else the other way
+
+    bool operator==(const AddPlaces& other) const = default;
+};
+
 /// @brief The card of one issue
 ///
 /// Folded, it has two lines: the kind with the paragraph, and a few words around the issue.
 /// Unfolded (the selected card; every card when the panel shows the buttons on each), it also
-/// has the message of a grammar issue, the whole sentence, the suggestions and the actions:
-/// "Ignore Word" and "Add to Dictionary" for a misspelled word, "Ignore Rule" for a grammar
-/// issue. The suggestions of the selected card are numbered: the keys 1 to 5 choose them.
+/// has the message of a grammar issue or of a rule of the book, the whole sentence, the
+/// suggestions and the actions: "Ignore Word" and "Add to Your Words" for a misspelled word
+/// (in a chapter of the book "Add to Book Dictionary", as the setting says, with an arrow for
+/// the other place: AddPlaces), "Ignore Word" for a place breaking a rule of the book,
+/// "Ignore Rule" for a grammar issue. The suggestions of the selected card are numbered: the
+/// keys 1 to 5 choose them.
 /// Their words are never shortened: a button that does not fit in a line goes on to the next
 /// one, and a word wider than the whole line goes on in the next line of its button.
 class SpellingIssueCard : public QFrame {
@@ -132,6 +144,9 @@ public:
     ///        and the dictionary still work, as they do not change the text
     void setReadOnly(bool readOnly);
 
+    /// @brief Where a misspelled word can be added (AddPlaces)
+    void setAddPlaces(const AddPlaces& places);
+
     /// @brief The buttons of the suggestions, in their order
     QList<QAbstractButton*> suggestionButtons() const;
 
@@ -155,11 +170,20 @@ signals:
     /// @brief "Ignore Word" was clicked
     void ignoreWordClicked();
 
-    /// @brief "Add to Dictionary" was clicked
-    void addToDictionaryClicked();
+    /// @brief "Add to Book Dictionary" or "Add to Your Words" was clicked, or chosen on the
+    ///        menu of the arrow beside it
+    /// @param toBook The word goes to the book's dictionary, else to the writer's own words
+    void addToDictionaryClicked(bool toBook);
 
     /// @brief "Ignore Rule" was clicked
     void ignoreRuleClicked();
+
+    /// @brief "Add Name..." was chosen on the menu of the arrow beside the button that adds
+    ///        the word to a dictionary
+    void addNameClicked();
+
+    /// @brief "Edit Rule..." of a place breaking a spelling rule of the book was clicked
+    void editRuleClicked();
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -177,6 +201,14 @@ private:
     /// @brief The buttons of the suggestions and the actions, for the issue and the state
     void updateButtons();
 
+    /// @brief The text of the second button of the actions: the dictionary it adds the word
+    ///        to, or Edit Rule... at a place breaking a spelling rule of the book
+    [[nodiscard]] QString addButtonText(bool bookRule) const;
+
+    /// @brief The menu of the arrow beside the second button: the other dictionary, Add
+    ///        Name...
+    void showMoreMenu(QAbstractButton* more);
+
     /// @brief The colors of the labels and the buttons
     void applyColors();
 
@@ -189,6 +221,7 @@ private:
     bool m_selected = false;
     bool m_listFocused = false;
     bool m_readOnly = false;
+    AddPlaces m_addPlaces;
     IssueCardColors m_colors;
     QColor m_highlight;
 
@@ -255,19 +288,23 @@ public:
     /// @brief The text is only read: the cards grey out their suggestions
     void setReadOnly(bool readOnly);
 
+    /// @brief Where the cards of the misspelled words add them (AddPlaces)
+    void setAddPlaces(const AddPlaces& places);
+
     /// @brief Show whether the keys are in the panel, where they act on the selected card:
     ///        its frame is then in the highlight's color
     void setKeysInside(bool inside);
 
     /// @brief The colors of the cards of each kind and of the highlight
     void setColors(const IssueCardColors& spelling, const IssueCardColors& grammar,
-                   const QColor& highlight);
+                   const IssueCardColors& bookRule, const QColor& highlight);
 
     /// @brief Where the suggestions for misspelled words come from (none: no suggestions)
     void setSuggestionProvider(SuggestionProvider provider);
 
-    /// @brief The suggestions for an issue: those of a grammar issue, those of the provider
-    ///        for a misspelled word (asked once, then kept while the issue is listed)
+    /// @brief The suggestions for an issue: those of a grammar issue and of a place breaking a
+    ///        rule of the book, those of the provider for a misspelled word (asked once, then
+    ///        kept while the issue is listed)
     QStringList suggestionsFor(const SpellingPanelIssue& issue);
 
     /// @brief Ask the provider again for the suggestions of the cards (the dictionary changed)
@@ -300,11 +337,18 @@ signals:
     /// @brief "Ignore Word" of a card was clicked
     void ignoreWordClicked(const QString& key);
 
-    /// @brief "Add to Dictionary" of a card was clicked
-    void addToDictionaryClicked(const QString& key);
+    /// @brief "Add to Book Dictionary" or "Add to Your Words" of a card was clicked
+    /// @param toBook The word goes to the book's dictionary, else to the writer's own words
+    void addToDictionaryClicked(const QString& key, bool toBook);
 
     /// @brief "Ignore Rule" of a card was clicked
     void ignoreRuleClicked(const QString& key);
+
+    /// @brief "Add Name..." of a card was chosen
+    void addNameClicked(const QString& key);
+
+    /// @brief "Edit Rule..." of a card was clicked
+    void editRuleClicked(const QString& key);
 
     /// @brief The card of the selected issue was made or changed (its buttons are others)
     void selectedCardChanged();
@@ -340,6 +384,9 @@ private:
     /// @brief A card for an issue: the one it has, else one put away, else a new one
     SpellingIssueCard* cardFor(int index);
 
+    /// @brief The colors of the cards of a kind
+    [[nodiscard]] const IssueCardColors& colorsOf(editor::TextIssueKind kind) const;
+
     /// @brief Show an issue on a card, folded or not, with its suggestions
     void fillCard(SpellingIssueCard* card, int index);
 
@@ -361,6 +408,8 @@ private:
     int m_measuredWidth = -1;       ///< The width the heights were measured at
     IssueCardColors m_spellingColors;
     IssueCardColors m_grammarColors;
+    IssueCardColors m_bookRuleColors;
+    AddPlaces m_addPlaces;
     QColor m_highlight;
     SuggestionProvider m_suggestionProvider;
     QHash<QString, QStringList> m_suggestions;     ///< Of the misspelled words, by key

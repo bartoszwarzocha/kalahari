@@ -60,6 +60,7 @@ KalahariTextDocumentLayout::NoteColors noteColorsOf(
     colors.selection = view.selection;
     colors.spelling = view.spellError;
     colors.grammar = view.grammarWarning;
+    colors.bookRule = view.bookRule;
     colors.marks = &marks;
     colors.selected = selected;
     return colors;

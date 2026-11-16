@@ -23,6 +23,8 @@
 #include "kalahari/gui/utils/file_location.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/card_data.h"
+#include "kalahari/core/card_relations.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/package_card.h"
@@ -64,6 +66,7 @@
 #include <QTimerEvent>
 #include <algorithm>
 #include <functional>
+#include <utility>
 
 
 namespace {
@@ -82,6 +85,9 @@ constexpr int WORKSHOP_ROLE = Qt::UserRole + 6;
 /// The number of the elements of the Materials of the Workshop, and of each of its groups,
 /// which the tree shows at the right of the name
 constexpr int COUNT_ROLE = Qt::UserRole + 7;
+/// The color of a card (core::CardData::color) as a dot at the right of its row, while the
+/// setting core::CardColors::NAVIGATOR_DOT_SETTING shows it
+constexpr int COLOR_ROLE = Qt::UserRole + 8;
 /// Room between the name of a node and its number, in multiples of the width of a space
 constexpr int COUNT_GAP = 3;
 /// Room between the number of a node and the right edge of the tree, in multiples of the width
@@ -91,6 +97,9 @@ constexpr int COUNT_MARGIN = 4;
 constexpr int AUTO_EXPAND_DELAY = 700;
 /// The id of a group of the Workshop starts with it: "workshop:kalahari.base:work_note"
 const QString WORKSHOP_ID_PREFIX = QStringLiteral("workshop:");
+
+/// The type of the node of the book's dictionary at the top of the Workshop
+constexpr const char* BOOK_DICTIONARY_TYPE = "book_dictionary";
 /// In a list of open items, the tree has the book and the Workshop as nodes of their own; a
 /// list without it (saved before them) opens them
 const QString WORKSHOP_LAYOUT = QStringLiteral("layout:workshop");
@@ -114,6 +123,13 @@ bool isContainerType(const QString& type) {
 bool isWorkshopNode(const QString& type) {
     return type == QLatin1String("workshop") || type == QLatin1String("workshop_shelf") ||
            type == QLatin1String("workshop_group");
+}
+
+/// Whether @p item is a card with cards under it in its tree: the only element of the Workshop
+/// with a text and elements under it
+bool isCardAbove(const QTreeWidgetItem* item) {
+    return item->childCount() > 0 && item->data(0, WORKSHOP_ROLE).toBool() &&
+           item->data(0, Qt::UserRole + 1).toString() == QLatin1String("text_element");
 }
 
 /// @p text of a command of a menu with its keys @p keys in the column of the keys, unless the
@@ -295,8 +311,16 @@ std::optional<kalahari::core::ElementPlace> placeBeyondList(
     return std::nullopt;
 }
 
-/// Draws the number of a node that has one (COUNT_ROLE) at the right of the row, grey, and
-/// shortens the name to leave room for it
+/// The colors of a row in state @p state: of a disabled, an active or an inactive one
+QPalette::ColorGroup colorGroupOf(QStyle::State state) {
+    if (!state.testFlag(QStyle::State_Enabled)) {
+        return QPalette::Disabled;
+    }
+    return state.testFlag(QStyle::State_Active) ? QPalette::Active : QPalette::Inactive;
+}
+
+/// Draws at the right of the row the number of a node that has one (COUNT_ROLE), grey, or the
+/// color of a card (COLOR_ROLE) as a dot, and shortens the name to leave room for it
 class CountDelegate : public QStyledItemDelegate {
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
@@ -304,7 +328,8 @@ public:
     void paint(QPainter* painter, const QStyleOptionViewItem& option,
                const QModelIndex& index) const override {
         const QVariant count = index.data(COUNT_ROLE);
-        if (!count.isValid()) {
+        const auto color = index.data(COLOR_ROLE).value<QColor>();
+        if (!count.isValid() && !color.isValid()) {
             QStyledItemDelegate::paint(painter, option, index);
             return;
         }
@@ -312,42 +337,55 @@ public:
         initStyleOption(&item, index);
         const QWidget* widget = option.widget;
         QStyle* style = widget ? widget->style() : QApplication::style();
-        const QString number = QLocale().toString(count.toInt());
-        const int room = item.fontMetrics.horizontalAdvance(number) + gap(item.fontMetrics) +
-                         margin(item.fontMetrics);
+        const QString number = count.isValid() ? QLocale().toString(count.toInt()) : QString();
         const QRect textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &item, widget);
-        item.text = item.fontMetrics.elidedText(item.text, item.textElideMode,
-                                                std::max(0, textRect.width() - room));
+        item.text = item.fontMetrics.elidedText(
+            item.text, item.textElideMode,
+            std::max(0, textRect.width() - room(item.fontMetrics, number, color)));
         style->drawControl(QStyle::CE_ItemViewItem, &item, painter, widget);
 
-        // On the selected row in the color of its text, elsewhere grey
-        const bool selected = (option.state & QStyle::State_Selected) != 0;
-        const QPalette::ColorGroup group = (option.state & QStyle::State_Enabled) == 0
-                                               ? QPalette::Disabled
-                                           : (option.state & QStyle::State_Active) != 0
-                                               ? QPalette::Active
-                                               : QPalette::Inactive;
         painter->save();
-        painter->setFont(item.font);
-        painter->setPen(option.palette.color(
-            group, selected ? QPalette::HighlightedText : QPalette::PlaceholderText));
-        painter->drawText(textRect.adjusted(0, 0, -margin(item.fontMetrics), 0),
-                          Qt::AlignRight | Qt::AlignVCenter, number);
+        const QRect right = textRect.adjusted(0, 0, -margin(item.fontMetrics), 0);
+        if (color.isValid()) {
+            // A dot of the color, with a rim that keeps a light or dark one on any row
+            const int size = dotSize(item.fontMetrics);
+            const QRectF dot(right.right() - size + 1, right.center().y() - size / 2.0 + 1,
+                             size, size);
+            painter->setRenderHint(QPainter::Antialiasing);
+            painter->setPen(QPen(option.palette.color(QPalette::Mid), 1.0));
+            painter->setBrush(color);
+            painter->drawEllipse(dot);
+        } else {
+            // On the selected row in the color of its text, elsewhere grey
+            const bool selected = option.state.testFlag(QStyle::State_Selected);
+            painter->setFont(item.font);
+            painter->setPen(
+                option.palette.color(colorGroupOf(option.state),
+                                     selected ? QPalette::HighlightedText : QPalette::PlaceholderText));
+            painter->drawText(right, Qt::AlignRight | Qt::AlignVCenter, number);
+        }
         painter->restore();
     }
 
     QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
         QSize size = QStyledItemDelegate::sizeHint(option, index);
         const QVariant count = index.data(COUNT_ROLE);
-        if (count.isValid()) {
-            const QString number = QLocale().toString(count.toInt());
-            size.rwidth() += option.fontMetrics.horizontalAdvance(number) +
-                             gap(option.fontMetrics) + margin(option.fontMetrics);
+        const auto color = index.data(COLOR_ROLE).value<QColor>();
+        if (count.isValid() || color.isValid()) {
+            const QString number =
+                count.isValid() ? QLocale().toString(count.toInt()) : QString();
+            size.rwidth() += room(option.fontMetrics, number, color);
         }
         return size;
     }
 
 private:
+    /// The room at the right of the name: for the number or the dot, the gap and the margin
+    static int room(const QFontMetrics& metrics, const QString& number, const QColor& color) {
+        const int mark = color.isValid() ? dotSize(metrics) : metrics.horizontalAdvance(number);
+        return mark + gap(metrics) + margin(metrics);
+    }
+
     static int gap(const QFontMetrics& metrics) {
         return COUNT_GAP * metrics.horizontalAdvance(QLatin1Char(' '));
     }
@@ -355,6 +393,9 @@ private:
     static int margin(const QFontMetrics& metrics) {
         return COUNT_MARGIN * metrics.horizontalAdvance(QLatin1Char(' '));
     }
+
+    /// The dot of a card: half the height of a letter
+    static int dotSize(const QFontMetrics& metrics) { return std::max(4, metrics.height() / 2); }
 };
 
 /// Tree of the Navigator. An element is dragged to any place of the book its kind can have
@@ -608,6 +649,9 @@ NavigatorPanel::NavigatorPanel(core::ProjectManager& book, QWidget* parent)
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorPanel constructor called");
 
+    // A card shows its color wherever it was changed
+    connect(&m_book, &core::ProjectManager::cardChanged, this, &NavigatorPanel::refreshItem);
+
     auto& artProvider = core::ArtProvider::getInstance();
 
     // Create main layout
@@ -774,9 +818,8 @@ NavigatorPanel::NavigatorPanel(core::ProjectManager& book, QWidget* parent)
                            elementType.toStdString(),
                            elementId.toStdString());
 
-                // Materials and its kinds show their lists on tabs
-                if (const std::optional<QString> list = materialListOf(item)) {
-                    emit requestOpenMaterialList(*list, false);
+                // The book's dictionary, Materials and its kinds show their pages on tabs
+                if (requestPageOf(item, false)) {
                     return;
                 }
                 // The card of a material is in the Properties panel: it comes to the front
@@ -792,6 +835,10 @@ NavigatorPanel::NavigatorPanel(core::ProjectManager& book, QWidget* parent)
     // Connect to ArtProvider for theme refresh
     connect(&artProvider, &core::ArtProvider::resourcesChanged,
             this, &NavigatorPanel::refreshIcons);
+
+    // A material got or lost its bibliographic description: the number of Sources
+    connect(&m_book, &core::ProjectManager::sourcesChanged, this,
+            &NavigatorPanel::refreshSourcesCount);
 
     // Connect to ThemeManager for highlight color updates (OpenSpec #00034 Phase C)
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged,
@@ -818,6 +865,7 @@ void NavigatorPanel::clearDocument() {
     m_unassignedExpanded = true;
     m_projectFolder.clear();
     m_standaloneFiles.clear();
+    m_cardTrees.clear();
     //: The header of the Navigator while no book is open. In Polish: Żadna książka nie jest
     //: otwarta
     m_treeWidget->setHeaderLabel(tr("No book is open"));
@@ -919,6 +967,7 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
     workshopItem->setIcon(0, artProvider.getIcon(getIconIdForType(QStringLiteral("workshop")),
                                                  core::IconContext::TreeView));
     workshopItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+    addDictionaryItem(workshopItem);
     addWorkshopItems(workshopItem, project, registry);
     workshopItem->setExpanded(true);
 
@@ -1239,53 +1288,168 @@ QString NavigatorPanel::iconIdOf(const core::KindRef& kind) {
 void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
                                      const QList<core::ProjectElement>& elements,
                                      const core::BookTypeRegistry& registry, bool workshop) {
-    const core::ProjectManager& pm = m_book;
-
-    for (const core::ProjectElement& element : elements) {
-        const core::ElementForm form = core::BookProject::formOf(registry, element);
-        // A kind the program does not have shows its icon on the book's card of its package
-        const bool cardKind = element.hasKind() && !core::BookProject::kindOf(registry, element);
-        const QString iconId = iconIdOf(
-            registry, element, cardKind ? pm.packageCard(element.kind.packageId) : nullptr);
-
-        // The elements of the Workshop are in alphabetical order: they are dragged only to the
-        // links of a material
-        QString itemType;
-        Qt::ItemFlags flags = Qt::ItemIsDragEnabled;
-        switch (form) {
-        case core::ElementForm::Text:
-            itemType = QStringLiteral("text_element");
-            break;
-        case core::ElementForm::Group:
-            itemType = QStringLiteral("group_element");
-            flags |= Qt::ItemIsDropEnabled;  // Takes the drops of its elements
-            break;
-        case core::ElementForm::Window:
-            itemType = QStringLiteral("window_element");
-            break;
-        }
-
-        // The elements of the Workshop have no status
-        QTreeWidgetItem* item = new QTreeWidgetItem(parent);
-        item->setText(0, getDisplayTitle(element, form == core::ElementForm::Text && !workshop,
-                                         m_modifiedElements.contains(element.id)));
-        item->setData(0, Qt::UserRole, element.id);
-        item->setData(0, Qt::UserRole + 1, itemType);
-        item->setData(0, WORKSHOP_ROLE, workshop);
-        item->setData(0, ICON_ROLE, iconId);
-        item->setData(0, KIND_ROLE, element.kind.toString());
-        item->setData(0, TITLE_ROLE, element.title);
-        if (cardKind) {
-            item->setData(0, CARD_ROLE, element.kind.packageId);
-        }
-        item->setIcon(0, itemIcon(item, iconId));
-        item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled) | flags);
-
-        if (form == core::ElementForm::Group) {
-            addElementItems(item, element.elements, registry, workshop);
-            item->setExpanded(true);  // Expand groups by default
+    // The elements of each group under its item, the groups open
+    QList<std::pair<QTreeWidgetItem*, const QList<core::ProjectElement>*>> waiting{
+        {parent, &elements}};
+    QList<QTreeWidgetItem*> groups;
+    while (!waiting.isEmpty()) {
+        const auto [at, list] = waiting.takeFirst();
+        for (const core::ProjectElement& element : *list) {
+            QTreeWidgetItem* item = addElementItem(at, element, registry, workshop);
+            if (core::BookProject::formOf(registry, element) == core::ElementForm::Group) {
+                waiting.append({item, &element.elements});
+                groups << item;
+            }
         }
     }
+    for (QTreeWidgetItem* group : groups) {
+        group->setExpanded(true);
+    }
+}
+
+QTreeWidgetItem* NavigatorPanel::addElementItem(QTreeWidgetItem* parent,
+                                                const core::ProjectElement& element,
+                                                const core::BookTypeRegistry& registry,
+                                                bool workshop) {
+    const core::ProjectManager& pm = m_book;
+    const core::ElementForm form = core::BookProject::formOf(registry, element);
+    // A kind the program does not have shows its icon on the book's card of its package
+    const bool cardKind = element.hasKind() && !core::BookProject::kindOf(registry, element);
+    const QString iconId = iconIdOf(
+        registry, element, cardKind ? pm.packageCard(element.kind.packageId) : nullptr);
+
+    // The elements of the Workshop are in alphabetical order: they are dragged only to the
+    // links of a material
+    QString itemType;
+    Qt::ItemFlags flags = Qt::ItemIsDragEnabled;
+    switch (form) {
+    case core::ElementForm::Text:
+        itemType = QStringLiteral("text_element");
+        break;
+    case core::ElementForm::Group:
+        itemType = QStringLiteral("group_element");
+        flags |= Qt::ItemIsDropEnabled;  // Takes the drops of its elements
+        break;
+    case core::ElementForm::Window:
+        itemType = QStringLiteral("window_element");
+        break;
+    }
+
+    // The elements of the Workshop have no status
+    auto* item = new QTreeWidgetItem(parent);
+    item->setText(0, getDisplayTitle(element, form == core::ElementForm::Text && !workshop,
+                                     m_modifiedElements.contains(element.id)));
+    item->setData(0, Qt::UserRole, element.id);
+    item->setData(0, Qt::UserRole + 1, itemType);
+    item->setData(0, WORKSHOP_ROLE, workshop);
+    item->setData(0, ICON_ROLE, iconId);
+    item->setData(0, KIND_ROLE, element.kind.toString());
+    item->setData(0, TITLE_ROLE, element.title);
+    if (cardKind) {
+        item->setData(0, CARD_ROLE, element.kind.packageId);
+    }
+    showCardColor(item, element);
+    item->setIcon(0, itemIcon(item, iconId));
+    item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled) | flags);
+    return item;
+}
+
+void NavigatorPanel::addGroupElements(QTreeWidgetItem* item, const core::KindRef& kind,
+                                      const QList<core::ProjectElement>& elements,
+                                      bool material, const core::BookTypeRegistry& registry) {
+    if (kind && kind.kind->isCard()) {
+        addCardItems(item, elements, registry);
+    } else if (!material || materialsExpandable()) {
+        addElementItems(item, elements, registry, true);
+    }
+}
+
+void NavigatorPanel::addCardItems(QTreeWidgetItem* parent,
+                                  const QList<core::ProjectElement>& cards,
+                                  const core::BookTypeRegistry& registry) {
+    // The cards under each card, in the order of @p cards; under none: the top ones
+    QHash<QString, QList<const core::ProjectElement*>> under;
+    for (const core::ProjectElement& card : cards) {
+        under[m_cardTrees.value(card.id)].append(&card);
+    }
+    QList<std::pair<QTreeWidgetItem*, QString>> waiting{{parent, QString()}};
+    QList<QTreeWidgetItem*> added;
+    while (!waiting.isEmpty()) {
+        const auto [at, aboveId] = waiting.takeFirst();
+        for (const core::ProjectElement* card : under.value(aboveId)) {
+            QTreeWidgetItem* item = addElementItem(at, *card, registry, true);
+            waiting.append({item, card->id});
+            added << item;
+        }
+    }
+    // The cards with cards under them open
+    for (QTreeWidgetItem* item : added) {
+        item->setExpanded(item->childCount() > 0);
+    }
+}
+
+QHash<QString, QString> NavigatorPanel::cardTreesOf(const core::BookProject& project) const {
+    QHash<QString, QString> trees;
+    if (!cardsInTrees()) {
+        return trees;
+    }
+    // The cards of the Workshop by their kinds that have trees
+    QHash<const core::ElementKind*, QList<const core::ProjectElement*>> kinds;
+    const core::BookTypeRegistry& registry = m_book.bookTypes();
+    for (const core::ProjectElement& element : project.workshop.elements) {
+        const core::KindRef kind = core::BookProject::kindOf(registry, element);
+        if (kind && kind.kind->isCard() &&
+            core::CardRelations::treeField(*kind.kind) != nullptr) {
+            kinds[kind.kind].append(&element);
+        }
+    }
+    const core::CardRelations relations(m_book);
+    for (auto it = kinds.cbegin(); it != kinds.cend(); ++it) {
+        trees.insert(relations.treeOf(it.value(), *core::CardRelations::treeField(*it.key())));
+    }
+    return trees;
+}
+
+QString NavigatorPanel::currentElementId() const {
+    const QTreeWidgetItem* item = m_treeWidget->currentItem();
+    return item != nullptr && isElementType(typeOf(item))
+               ? item->data(0, Qt::UserRole).toString()
+               : QString();
+}
+
+void NavigatorPanel::restoreCurrentElement(const QString& elementId) {
+    QTreeWidgetItem* item = findItemByElementId(elementId);
+    if (item == nullptr) {
+        return;
+    }
+    {
+        const QSignalBlocker blocker(m_treeWidget);
+        m_treeWidget->setCurrentItem(item);
+    }
+    updateAddButton();
+}
+
+void NavigatorPanel::showMovedCards(const QHash<QString, QString>& before) {
+    for (auto it = m_cardTrees.cbegin(); it != m_cardTrees.cend(); ++it) {
+        if (before.value(it.key()) == it.value()) {
+            continue;
+        }
+        const QTreeWidgetItem* item = findItemByElementId(it.key());
+        for (QTreeWidgetItem* above = item != nullptr ? item->parent() : nullptr; above != nullptr;
+             above = above->parent()) {
+            above->setExpanded(true);
+        }
+    }
+}
+
+bool NavigatorPanel::cardTreesChanged() const {
+    const core::BookProject* project = m_book.project();
+    return project != nullptr && cardTreesOf(*project) != m_cardTrees;
+}
+
+bool NavigatorPanel::cardsInTrees() {
+    return core::SettingsManager::getInstance().get<std::string>(CARDS_TREE_SETTING, "tree") !=
+           "list";
 }
 
 void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
@@ -1330,8 +1494,9 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
         group->elements.append(element);
     }
 
-    // The elements in alphabetical order of their titles
+    // The elements in alphabetical order of their titles; the cards of some kinds in trees
     const QCollator collator = workshopOrder(project);
+    m_cardTrees = cardTreesOf(project);
 
     // The working notes and the materials are in Materials, and, grouped, the groups of cards
     // in Libraries, each where its first group would be
@@ -1400,22 +1565,51 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
         // The kinds of the Materials show their lists on tabs; their materials are under them
         // only when the settings say so, collapsed at first
         const bool material = item->parent() == materials;
-        if (!material || materialsExpandable()) {
-            addElementItems(item, group.elements, registry, true);
-        }
+        addGroupElements(item, group.kind, group.elements, material, registry);
         item->setExpanded(!material);
         if (material) {
             setCount(item, group.elements.size());
         }
     }
 
-    // Materials has the number of all of them
+    // Materials has the number of all of them, and first Sources: the materials with a
+    // bibliographic description, of every kind; a view of them, in italics, not a kind
     if (materials) {
         qsizetype all = hiddenCount;
         for (int i = 0; i < materials->childCount(); ++i) {
             all += materials->child(i)->data(0, COUNT_ROLE).toInt();
         }
         setCount(materials, all);
+        const QString sourcesList = QString::fromLatin1(MaterialList::SOURCES);
+        auto* sources = new QTreeWidgetItem();
+        materials->insertChild(0, sources);
+        sources->setText(0, MaterialList::nameOf(sourcesList));
+        sources->setData(0, Qt::UserRole, WORKSHOP_ID_PREFIX + sourcesList);
+        sources->setData(0, Qt::UserRole + 1, QStringLiteral("workshop_view"));
+        sources->setData(0, ICON_ROLE, MaterialList::iconIdOf(sourcesList));
+        sources->setData(0, KIND_ROLE, sourcesList);
+        sources->setIcon(0, itemIcon(sources, MaterialList::iconIdOf(sourcesList)));
+        sources->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+        QFont italic = m_treeWidget->font();
+        italic.setItalic(true);
+        sources->setFont(0, italic);
+        //: The tooltip of Sources in the Navigator. In Polish: Materiały z opisem
+        //: bibliograficznym, każdego typu
+        sources->setToolTip(0, tr("The materials with a bibliographic description, of every "
+                                  "kind"));
+        setCount(sources, MaterialList::countOf(m_book, sourcesList));
+    }
+}
+
+void NavigatorPanel::refreshSourcesCount() {
+    const QString list = QString::fromLatin1(MaterialList::SOURCES);
+    const QString id = WORKSHOP_ID_PREFIX + list;
+    for (QTreeWidgetItemIterator it(m_treeWidget); *it != nullptr; ++it) {
+        if ((*it)->data(0, Qt::UserRole).toString() == id) {
+            setCount(*it, MaterialList::countOf(m_book, list));
+            m_treeWidget->viewport()->update();
+            return;
+        }
     }
 }
 
@@ -1448,6 +1642,10 @@ bool NavigatorPanel::isMaterialItem(const core::ProjectManager& pm, const QTreeW
     }
     const core::ProjectElement* element = pm.findElement(item->data(0, Qt::UserRole).toString());
     return element && pm.isMaterial(*element);
+}
+
+QColor NavigatorPanel::cardColorOf(const QTreeWidgetItem* item) {
+    return item != nullptr ? item->data(0, COLOR_ROLE).value<QColor>() : QColor();
 }
 
 QString NavigatorPanel::linkOf(const core::ProjectManager& book, const QTreeWidgetItem* item) {
@@ -2384,6 +2582,26 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         menu.addSeparator();
         addExpandCollapseActions();
 
+    } else if (elementType == "workshop_view") {
+        // Sources: the list of the materials with a bibliographic description
+        if (const std::optional<QString> list = materialListOf(item)) {
+            QAction* openAction = menu.addAction(
+                artProvider.getIcon("file.open", core::IconContext::Menu),
+                withKeys(tr("&Open List"), QKeyCombination(Qt::Key_Enter)));
+            QFont bold = openAction->font();
+            bold.setBold(true);
+            openAction->setFont(bold);
+            connect(openAction, &QAction::triggered, this,
+                    [this, list]() { emit requestOpenMaterialList(*list, true); });
+            menu.addSeparator();
+            //: Opens Settings > Materials at the sources. In Polish: &Ustawienia źródeł...
+            QAction* settingsAction = menu.addAction(
+                artProvider.getIcon("dock.settings", core::IconContext::Menu),
+                tr("Source &Settings..."));
+            connect(settingsAction, &QAction::triggered, this,
+                    [this]() { emit requestSourceSettings(); });
+        }
+
     } else if (elementType == "workshop_shelf" || elementType == "workshop_group") {
         // Materials and its kinds show their lists on tabs
         if (const std::optional<QString> list = materialListOf(item)) {
@@ -2742,9 +2960,8 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
         return;
     }
 
-    // Materials and its kinds show their lists on tabs
-    if (const std::optional<QString> list = materialListOf(item)) {
-        emit requestOpenMaterialList(*list, true);
+    // The book's dictionary, Materials and its kinds show their pages on tabs
+    if (requestPageOf(item, true)) {
         return;
     }
 
@@ -2794,11 +3011,38 @@ std::optional<QString> NavigatorPanel::materialListOf(const QTreeWidgetItem* ite
     if (item->data(0, Qt::UserRole).toString() == materials) {
         return QString::fromLatin1(MaterialList::ALL);
     }
-    if (typeOf(item) == QLatin1String("workshop_group") && item->parent() != nullptr &&
+    if ((typeOf(item) == QLatin1String("workshop_group") ||
+         typeOf(item) == QLatin1String("workshop_view")) &&
+        item->parent() != nullptr &&
         item->parent()->data(0, Qt::UserRole).toString() == materials) {
         return item->data(0, KIND_ROLE).toString();
     }
     return std::nullopt;
+}
+
+bool NavigatorPanel::requestPageOf(const QTreeWidgetItem* item, bool keys) {
+    if (item != nullptr && typeOf(item) == QLatin1String(BOOK_DICTIONARY_TYPE)) {
+        emit requestOpenBookDictionary(keys);
+        return true;
+    }
+    if (const std::optional<QString> list = materialListOf(item)) {
+        emit requestOpenMaterialList(*list, keys);
+        return true;
+    }
+    return false;
+}
+
+void NavigatorPanel::addDictionaryItem(QTreeWidgetItem* workshopItem) {
+    auto* item = new QTreeWidgetItem(workshopItem);
+    //: The node at the top of the Workshop in the Navigator that shows the book's dictionary
+    //: (its names, spelling rules and words) on a tab. In Polish: Słownik książki
+    item->setText(0, tr("Book Dictionary"));
+    item->setData(0, Qt::UserRole, WORKSHOP_ID_PREFIX + QStringLiteral("dictionary"));
+    item->setData(0, Qt::UserRole + 1, QString::fromLatin1(BOOK_DICTIONARY_TYPE));
+    const QString iconId = QStringLiteral("book.dictionary");
+    item->setData(0, ICON_ROLE, iconId);
+    item->setIcon(0, itemIcon(item, iconId));
+    item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 }
 
 AddChooser NavigatorPanel::addChooser() {
@@ -3012,6 +3256,25 @@ QString NavigatorPanel::changeRefusal() const {
 
 void NavigatorPanel::onSettingsChanged() {
     updateAddButton();
+    // The dots of the colors of the cards, shown or not
+    for (QTreeWidgetItemIterator it(m_treeWidget); *it != nullptr; ++it) {
+        const QString elementId = (*it)->data(0, Qt::UserRole).toString();
+        if (const core::ProjectElement* element =
+                isElementType(typeOf(*it)) ? m_book.findElement(elementId) : nullptr) {
+            showCardColor(*it, *element);
+        }
+    }
+}
+
+void NavigatorPanel::showCardColor(QTreeWidgetItem* item, const core::ProjectElement& element) {
+    const bool shown = core::SettingsManager::getInstance().get<bool>(
+        core::CardColors::NAVIGATOR_DOT_SETTING, true);
+    const QColor color(element.card.color);
+    if (shown && color.isValid()) {
+        item->setData(0, COLOR_ROLE, color);
+    } else {
+        item->setData(0, COLOR_ROLE, QVariant());
+    }
 }
 
 void NavigatorPanel::updateAddButton() {
@@ -3093,6 +3356,7 @@ void NavigatorPanel::refreshItem(const QString& elementId) {
     if (elementId.isEmpty()) {
         return;
     }
+    refreshSourcesCount();
 
     // Find item by elementId
     QTreeWidgetItem* item = findItemByElementId(elementId);
@@ -3117,7 +3381,11 @@ void NavigatorPanel::refreshItem(const QString& elementId) {
                                          !isWorkshopItem(item),
                                      m_modifiedElements.contains(elementId)));
     item->setData(0, TITLE_ROLE, element->title);
-    if (item->parent() && typeOf(item->parent()) == QLatin1String("workshop_group")) {
+    showCardColor(item, *element);
+    // In a group of the Workshop, or under a card of its tree
+    if (const QTreeWidgetItem* parent = item->parent();
+        parent != nullptr &&
+        (typeOf(parent) == QLatin1String("workshop_group") || isCardAbove(parent))) {
         placeInWorkshopGroup(item);
     }
 
@@ -3355,14 +3623,14 @@ void NavigatorPanel::setExpandedItemIds(const QStringList& ids) {
     expandItemsById(ids);
 
     // A list saved before the book and the Workshop had nodes of their own opens them, and
-    // the groups of the Workshop, as a new book shows them: the kinds of the Materials stay
-    // collapsed
+    // the groups of the Workshop and the cards with cards under them, as a new book shows
+    // them: the kinds of the Materials stay collapsed
     if (!ids.contains(WORKSHOP_LAYOUT)) {
         const std::function<void(QTreeWidgetItem*)> open = [&open](QTreeWidgetItem* item) {
             const QString type = typeOf(item);
             const std::optional<QString> list = materialListOf(item);
             if (type == QLatin1String("book") ||
-                (isWorkshopNode(type) && (!list || list->isEmpty()))) {
+                (isWorkshopNode(type) && (!list || list->isEmpty())) || isCardAbove(item)) {
                 item->setExpanded(true);
             }
             for (int i = 0; i < item->childCount(); ++i) {

@@ -428,7 +428,7 @@ TEST_CASE("Cover materials: the text, its counts and target, and the data on the
     card.showMaterial(second);
     CHECK(card.targetLabel()->text() == QStringLiteral("target: up to 100 words"));
 
-    // Another material has its description
+    // Another material has its own group there: a quote, its words
     gui::MaterialPage other(kalahari::test::book());
     core::NewMaterial quote;
     quote.title = QStringLiteral("Quote");
@@ -436,7 +436,7 @@ TEST_CASE("Cover materials: the text, its counts and target, and the data on the
         quote, pm.bookTypes().findKind(QStringLiteral("kalahari.base"), QStringLiteral("quote")));
     REQUIRE_FALSE(quoteId.isEmpty());
     other.showMaterial(quoteId);
-    CHECK(other.descriptionGroup()->title() == QStringLiteral("Description"));
+    CHECK(other.descriptionGroup()->title() == QStringLiteral("Quote"));
     CHECK_FALSE(other.coverGroup()->isVisibleTo(&other));
     CHECK_FALSE(other.countsLabel()->isVisibleTo(&other));
 }

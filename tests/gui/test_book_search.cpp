@@ -407,6 +407,28 @@ TEST_CASE("Find in Book: the line around a match in the Search panel", "[gui][se
 // The book
 // =============================================================================
 
+TEST_CASE("Find in Book: the name of a card, as whole words in any letters",
+          "[gui][search][book]") {
+    const SearchedBook book;
+    Window window;
+    Search search(window);
+    search.panel.setOptions({.caseSensitive = true, .useRegex = true});
+
+    search.coordinator.findInBook(QStringLiteral(" Storm "));
+    search.coordinator.finishSearch();
+    CHECK(search.panel.searchText() == QStringLiteral("Storm"));
+    CHECK(search.panel.options().wholeWord);
+    CHECK_FALSE(search.panel.options().caseSensitive);
+    CHECK_FALSE(search.panel.options().useRegex);
+    CHECK(search.foundTexts() == QStringList{QStringLiteral("Foreword 1"),
+                                             QStringLiteral("The Storm 3"),
+                                             QStringLiteral("The Calm 1")});
+
+    // No name, no search
+    search.coordinator.findInBook(QStringLiteral("  "));
+    CHECK(search.panel.searchText() == QStringLiteral("Storm"));
+}
+
 TEST_CASE("Find in Book: all the texts of the book, open or not, in the order of the book",
           "[gui][search][book]") {
     SearchedBook book;
@@ -780,4 +802,48 @@ TEST_CASE("Search panel: the keys, the options, and the tree kept as it was",
     panel.setReplaceEnabled(true);
     press(replacement, Qt::Key_Return);
     CHECK(replace == 1);
+}
+
+TEST_CASE("Find in Book: all forms (Alt+M), without Replace All in Book",
+          "[gui][search][book][forms]") {
+    const SearchedBook book;
+    Window window;
+    Search search(window);
+    QStringList asked;
+    search.coordinator.setFormsOf([&asked](const QString& text) {
+        asked << text;
+        return QStringList{QStringLiteral("storm"), QStringLiteral("storms")};
+    });
+
+    // The forms as whole words: "Stormy" is not one of them
+    SearchOptions options;
+    options.allForms = true;
+    search.find(QStringLiteral("storm"), options);
+    CHECK(asked == QStringList{QStringLiteral("storm")});
+    CHECK(search.foundTexts() == QStringList{QStringLiteral("Foreword 1"),
+                                             QStringLiteral("The Storm 3"),
+                                             QStringLiteral("The Calm 1")});
+
+    // Replace All in Book is off, and says why
+    CHECK(search.coordinator.whyNotReplace().contains(QStringLiteral("all forms")));
+    auto* replace = widgetNamed<QPushButton>(search.panel, QStringLiteral("Replace All in Book"));
+    REQUIRE(replace != nullptr);
+    CHECK_FALSE(replace->isEnabled());
+    CHECK(search.coordinator.replaceAllInBook() == -1);
+    CHECK(search.asked.isEmpty());
+
+    // Without the option: the text itself, and Replace All in Book again
+    search.find(QStringLiteral("storm"));
+    CHECK(asked.size() == 1);
+    CHECK(search.foundTexts().size() == 4);
+    CHECK(search.coordinator.whyNotReplace().isEmpty());
+
+    // Alt+M turns it on in the panel, as on the find bar
+    auto* field = widgetNamed<QLineEdit>(search.panel, QStringLiteral("Find in Book"));
+    REQUIRE(field != nullptr);
+    const QKeyCombination formsKey = editor::FindReplaceBar::optionKeys().at(3);
+    press(field, formsKey.key(), formsKey.keyboardModifiers());
+    CHECK(search.panel.options().allForms);
+    press(field, formsKey.key(), formsKey.keyboardModifiers());
+    CHECK_FALSE(search.panel.options().allForms);
 }

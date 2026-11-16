@@ -105,7 +105,7 @@
     },
     "source": {
       "form": "window", "editor": "card", "places": ["workshop"], "icon": "common.filePresent",
-      "workshopGroup": "libraries",
+      "workshopGroup": "libraries", "retired": true,
       "name": { "pl": "Źródło", "en": "Source" },
       "plural": { "pl": "Źródła", "en": "Sources" },
       "words": {
@@ -122,8 +122,8 @@
   "main":     ["part", "chapter", "conclusion"],
   "back":     ["annex", "endnotes", "bibliography", "glossary", "index", "illustrations",
                "acknowledgments", "about_author", "toc"],
-  "workshop": ["source", "timeline", "mindmap", "work_note", "clipping", "cover", "quote",
-               "web_page", "picture", "document", "publication", "recording", "other_file"],
+  "workshop": ["timeline", "mindmap", "work_note", "clipping", "cover", "quote", "web_page",
+               "picture", "document", "publication", "recording", "other_file"],
   "primary":  "chapter",
   "start":    ["title_page", "introduction", "chapter"],
   "styles":   "styles.json"

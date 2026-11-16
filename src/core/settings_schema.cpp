@@ -222,10 +222,40 @@ std::map<std::string, json> buildDefaults() {
         // The kinds of materials the Navigator does not show, in every book: kinds with their
         // packages ("kalahari.base:cover"); their materials stay in the books (MaterialList)
         {"materials.hiddenKinds", json::array()},
+        // The sources (Settings > Materials > Sources): the style of the bibliography of a book
+        // without its own and the form of a reference in the text (core::Bibliography)
+        {"materials.sources.style", "pn-iso-690"},
+        {"materials.sources.reference", "authorYear"},
+        // A PDF file opens on a preview tab of the program ("preview") or in the system program
+        // ("system"); in a program built without the preview always in the system program
+        // (gui::PdfFiles)
+        {"materials.open.pdf", "preview"},
+        // The preview of a PDF file (Settings > Materials > PDF Preview): the pages one under
+        // another ("continuous"), one at a time ("single") or two side by side ("two"); in a
+        // dark theme as in the file ("file"), darker ("dim") or with their colors turned
+        // ("invert"); the zoom it opens with ("pageWidth", "wholePage", "actual" or "last", the
+        // zoom shown last: "pageWidth", "wholePage" or a number); the side panel it opens with
+        // ("bookmarks": the bookmarks, else the contents of the file, "contents", "thumbnails"
+        // or "hidden"); whether it opens at the page shown last
+        {"materials.pdf.layout", "continuous"},
+        {"materials.pdf.dark", "file"},
+        {"materials.pdf.zoom", "pageWidth"},
+        {"materials.pdf.lastZoom", "pageWidth"},
+        {"materials.pdf.side", "bookmarks"},
+        {"materials.pdf.openAtLastPage", true},
 
         // The commands that the menu of a node of the Navigator has for adding: "named" ("Add..."
         // and the commands named after the kinds most added there) or "single" ("Add..." only)
         {"navigator.addCommands", "named"},
+        // The cards of the Workshop (characters, locations, items): the palette that new cards
+        // take their colors from, in order (CardColors::next()), whether the Navigator shows
+        // the color of a card beside its name, and whether it puts a location under the one it
+        // is part of ("tree") or all of them in alphabetical order ("list")
+        {"cards.palette", json::array({"#c0504d", "#7e57c2", "#2e9e6a", "#d4a017", "#3a8fc9",
+                                       "#8d7b6a", "#b04a8f", "#e07b39", "#4f6fd1", "#6b9e2e",
+                                       "#1f9aa5", "#a35d3d"})},
+        {"cards.navigatorColorDot", true},
+        {"cards.navigatorTree", "tree"},
 
         // New projects
         {"project.defaultAuthor", ""},
@@ -358,6 +388,12 @@ std::map<std::string, json> buildDefaults() {
         {"spellingPanel.nextIssue", "panel"},
         {"spellingPanel.grammarScope", "whole"},
 
+        // The book's dictionary: the places that go against its spelling rules are marked in
+        // the chapters; Add of a misspelled word's card in the Spelling and Grammar panel puts
+        // the word in the book's dictionary ("book") or in the writer's own words ("user")
+        {"bookDictionary.markRules", true},
+        {"bookDictionary.panelAddsTo", "book"},
+
         // Editor: the paper, light or dark whatever the theme, and the colors. The user's values
         // of the theme's editor colors (both papers and their text, the desk around them, the
         // selection, the search's hits, the underlines of the misspelled words and grammar
@@ -406,6 +442,15 @@ std::map<std::string, json> buildDefaults() {
         // Editor: the formatting marks (View > Show Formatting Marks: ¶ · ° → ↵ ¬), in the
         // theme's colors of the papers
         {"editor.showFormattingMarks", false},
+
+        // Editor: the fields (the date, the book's title, the page, a caption's number) on a
+        // gray background (Settings > Editor > General)
+        {"editor.fieldShading", true},
+        // Insert > Date && Time...: the format chosen last (editor::fieldFormats() of the
+        // date: "long", "short", "full", "iso", "time", "date-time"), which Alt+Shift+D gives
+        // when it is a date alone, and Update Automatically (a field), as it was last
+        {"editor.fields.dateFormat", "long"},
+        {"editor.fields.dateAsField", false},
 
         // Editor: the working numbers on the left margin (View > Margin Numbering), only on the
         // screen: "none", "lines" (every line) or "paragraphs" (every paragraph with text). A

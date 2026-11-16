@@ -24,6 +24,7 @@ class QFormLayout;
 class QLabel;
 class QLineEdit;
 class QListWidget;
+class QMenu;
 class QPlainTextEdit;
 class QProgressBar;
 class QPushButton;
@@ -39,6 +40,13 @@ class ProjectManager;
 
 namespace kalahari {
 namespace gui {
+
+class OwnFieldsBox;
+class BibliographyEntryBox;
+class BookmarksBox;
+class QuoteSourceBox;
+class SourceDescriptionBox;
+class SourceQuotesBox;
 
 /// @brief The card of a material: short in the Properties panel, what the writer checks and
 /// changes while writing; full on a tab beside the chapters (MaterialCardPanel), the place to
@@ -78,6 +86,13 @@ namespace gui {
 /// design its author and date; of a reference picture its author or source, license and what
 /// it is about. On the full card the text has its own target, and an opinion shows how the
 /// cover prints it.
+///
+/// A material that can be a source (SourceNames::canDescribe(): a publication, a document, a
+/// web page, a recording) has on the full card its bibliographic description and its entry in
+/// the bibliography (SourceDescriptionBox, BibliographyEntryBox), and once it is a source the
+/// quotes from it (SourceQuotesBox); the short card shows its entry in the style of the book.
+/// A PDF has its bookmarks (BookmarksBox). The description of a quote is its words, and the
+/// group under them says where it comes from (QuoteSourceBox).
 ///
 /// The full card has the same parts: its picture larger, the description beside the data of
 /// the cover and the own fields, higher, and the links under them.
@@ -132,9 +147,9 @@ public:
     /// @brief Give the keys to the description
     void focusDescription();
     QPlainTextEdit* descriptionEdit() const { return m_descriptionEdit; }
-    QTableWidget* fieldsTable() const { return m_fieldsTable; }
-    QToolButton* addFieldButton() const { return m_addFieldButton; }
-    QToolButton* removeFieldButton() const { return m_removeFieldButton; }
+    [[nodiscard]] QTableWidget* fieldsTable() const;
+    [[nodiscard]] QToolButton* addFieldButton() const;
+    [[nodiscard]] QToolButton* removeFieldButton() const;
     QTreeWidget* linksList() const { return m_linksList; }
     QToolButton* addLinkButton() const { return m_addLinkButton; }
     QToolButton* removeLinkButton() const { return m_removeLinkButton; }
@@ -163,6 +178,18 @@ public:
     QLineEdit* coverDateEdit() const { return m_coverDateEdit; }
     QLineEdit* coverLicenseEdit() const { return m_coverLicenseEdit; }
     QLineEdit* coverAboutEdit() const { return m_coverAboutEdit; }
+
+    /// @brief The bibliographic description; nullptr on the short card
+    [[nodiscard]] SourceDescriptionBox* sourceBox() const { return m_sourceBox; }
+    /// @brief The entry in the bibliography: in every style on the full card, in that of the
+    /// book on the short one
+    [[nodiscard]] BibliographyEntryBox* entryBox() const { return m_entryBox; }
+    /// @brief The bookmarks of a PDF
+    [[nodiscard]] BookmarksBox* bookmarksBox() const { return m_bookmarksBox; }
+    /// @brief The quotes from a source; nullptr on the short card
+    [[nodiscard]] SourceQuotesBox* quotesBox() const { return m_quotesBox; }
+    /// @brief Where a quote comes from
+    [[nodiscard]] QuoteSourceBox* quoteBox() const { return m_quoteBox; }
 
 public slots:
     /// @brief Add a field at the end, with the keys in its name
@@ -208,6 +235,18 @@ signals:
     /// @brief A sentence for the status bar, such as that the address was copied
     void message(const QString& text);
 
+    /// @brief Open the full card of material @p elementId: the source of a quote, a quote
+    void requestOpenCard(const QString& elementId);
+
+    /// @brief Make a new quote from source @p sourceId
+    void requestNewQuote(const QString& sourceId);
+
+    /// @brief Open the settings of the sources (Settings > Materials)
+    void requestSourceSettings();
+
+    /// @brief Show page @p page of the file of material @p elementId in its preview
+    void requestShowPage(const QString& elementId, const QString& page);
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
@@ -216,9 +255,6 @@ private:
     /// @return Why the picture cannot be read; empty when it was read or is no picture. The
     /// program does not show a picture it cannot read.
     QString updateThumbnail();
-
-    /// @brief The fields of the material in the table
-    void fillFields(const core::ProjectElement& element);
 
     /// @brief The links of the material in the list
     void fillLinks(const core::ProjectElement& element);
@@ -229,14 +265,8 @@ private:
     /// @brief Save the description from its field
     void saveDescription();
 
-    /// @brief Save the fields of the table, in its order
-    void saveFields();
-
     /// @brief Save @p links as the links of the material
     void saveLinks(const QList<core::ElementLink>& links);
-
-    /// @brief The fields that the table shows
-    QList<core::ElementField> tableFields() const;
 
     /// @brief The buttons follow the rows and a book open read-only
     void updateButtons();
@@ -271,6 +301,12 @@ private:
     /// @brief Save the own target of the text from its box; 0: the target of its part
     void saveTarget();
 
+    /// @brief The groups of a source and of a quote tell the card's changes and requests
+    void connectSourceParts();
+
+    /// @brief The groups of a source, of the bookmarks and of a quote that @p element has
+    void showSourceParts(const core::ProjectElement& element);
+
     bool m_full = false;         ///< The full card
     QString m_elementId;
     MaterialSource m_source = MaterialSource::None;  ///< Where it comes from
@@ -283,7 +319,6 @@ private:
     QString m_thumbnailKey;      ///< The file, turn and time of change it was read for
     QString m_thumbnailError;    ///< Why it could not be read
     bool m_updating = false;     ///< The fields are being filled: no saving
-    QList<core::ElementField> m_fields;  ///< The fields as saved, with what the table hides
 
     QGroupBox* m_infoGroup = nullptr;
     QToolButton* m_thumbnail = nullptr;
@@ -299,10 +334,7 @@ private:
     QLabel* m_pathLabel = nullptr;
     QLabel* m_addressLabel = nullptr;
     QPlainTextEdit* m_descriptionEdit = nullptr;
-    QTableWidget* m_fieldsTable = nullptr;
-    QLabel* m_noFieldsLabel = nullptr;
-    QToolButton* m_addFieldButton = nullptr;
-    QToolButton* m_removeFieldButton = nullptr;
+    OwnFieldsBox* m_fieldsBox = nullptr;
     QTreeWidget* m_linksList = nullptr;
     QLabel* m_noLinksLabel = nullptr;
     QToolButton* m_addLinkButton = nullptr;
@@ -333,6 +365,13 @@ private:
     QComboBox* m_coverConsentBox = nullptr;
     QLineEdit* m_coverLicenseEdit = nullptr;
     QLineEdit* m_coverAboutEdit = nullptr;
+
+    // A source, a PDF, a quote
+    SourceDescriptionBox* m_sourceBox = nullptr;  ///< Full card only
+    BibliographyEntryBox* m_entryBox = nullptr;
+    BookmarksBox* m_bookmarksBox = nullptr;
+    SourceQuotesBox* m_quotesBox = nullptr;       ///< Full card only
+    QuoteSourceBox* m_quoteBox = nullptr;
     core::ProjectManager& m_book;  ///< The book of its window
 };
 
@@ -367,8 +406,8 @@ private:
 /// Properties panel: each with its picture, its title and its first field
 ///
 /// A click chooses a material, a double-click or Enter opens it, "+" or Insert opens Link with
-/// the materials of the Workshop, and "-" or Delete takes the link out of the material. The
-/// link is saved once, with the material.
+/// the materials of the Workshop, and "-" or Delete takes the link out of the material; the
+/// menu of a row has it all too (menuOpening()). The link is saved once, with the material.
 class LinkedMaterialsBox : public QGroupBox {
     Q_OBJECT
 
@@ -391,6 +430,8 @@ public:
     QToolButton* addButton() const { return m_addButton; }
     QToolButton* removeButton() const { return m_removeButton; }
     QLabel* emptyLabel() const { return m_emptyLabel; }
+    /// @brief The menu of a row, filled when it opens
+    [[nodiscard]] QMenu* rowMenu() const { return m_menu; }
 
 public slots:
     /// @brief Open Link with the materials of the Workshop and link what is checked there
@@ -403,6 +444,10 @@ signals:
     /// @brief Open material @p elementId
     void requestOpenMaterial(const QString& elementId);
 
+    /// @brief The menu of the row of material @p materialId (empty: of no row) was filled and
+    /// opens: what has it adds its actions to @p menu
+    void menuOpening(QMenu* menu, const QString& materialId);
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
@@ -410,12 +455,16 @@ private:
     /// @brief The buttons follow the rows and a book open read-only
     void updateButtons();
 
+    /// @brief Fill the menu of the current row as it opens
+    void fillMenu();
+
     QString m_link;
     QString m_emptyText;
     QListWidget* m_list = nullptr;
     QLabel* m_emptyLabel = nullptr;
     QToolButton* m_addButton = nullptr;
     QToolButton* m_removeButton = nullptr;
+    QMenu* m_menu = nullptr;
     int m_settingsListener = 0;  ///< core::SettingsManager::subscribe() id
     core::ProjectManager& m_book;  ///< The book of its window
 };

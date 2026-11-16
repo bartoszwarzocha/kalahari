@@ -17,6 +17,7 @@ enum class HighlightKind {
     CurrentSearchMatch,  ///< Current match of the search
     Spelling,            ///< Misspelled word
     Grammar,             ///< Grammar or style issue
+    BookRule,            ///< A place that breaks a spelling rule of the book's dictionary
     SpokenWord,          ///< Word being read aloud
     Repetition,          ///< Word repeated too close to another (the Repetitions panel)
     CurrentRepetition,   ///< Repeated word chosen in the Repetitions panel: framed as well

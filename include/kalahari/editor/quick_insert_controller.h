@@ -9,6 +9,7 @@
 /// typed after the character narrow the list. Up, Down, Page Up and Page Down choose an item,
 /// Enter or Tab inserts it in place of the character and the letters (one undo step), Esc
 /// closes the list and leaves the text as typed; a space or a punctuation mark closes it too.
+/// Right shows the forms of a name marked with ▸ in place of the items, Left the items again.
 
 #pragma once
 
@@ -61,11 +62,27 @@ public:
     /// @brief How many items a page of the list shows (Page Up, Page Down)
     int pageSize() const;
 
+    /// @brief Whether an item shown has forms (Right shows those of the item chosen)
+    [[nodiscard]] bool hasForms() const;
+
+    /// @brief Show the forms of the item chosen in place of the items, the first one chosen:
+    ///        each is an item that inserts it (formItem())
+    /// @return false when the item chosen has no forms or forms are shown
+    bool showForms();
+
+    /// @brief Show the items again, the one whose forms were shown chosen
+    /// @return false when no forms are shown
+    bool showItems();
+
+    /// @brief Whether the forms of an item are shown
+    [[nodiscard]] bool showsForms() const { return m_formsOf >= 0; }
+
 signals:
     /// @brief An item was clicked: it is to be inserted
     void activated(int index);
 
 private:
+    void fill(const QList<QuickInsertItem>& items, int current);
     void showChoice();
 
     QTreeWidget* m_tree = nullptr;
@@ -74,6 +91,9 @@ private:
     QList<QuickInsertItem> m_items;
     QList<QTreeWidgetItem*> m_rows;  ///< The row of each item
     int m_current = -1;
+    QString m_typed;                       ///< What the text has for the items ("@an")
+    QList<QuickInsertItem> m_listed;       ///< The items while the forms of one are shown
+    int m_formsOf = -1;                    ///< The item of m_listed whose forms are shown
 };
 
 /// @brief Quick insert in one editor
@@ -119,6 +139,7 @@ private:
     void follow();
     void place();
     bool handleKey(int key);
+    [[nodiscard]] bool takesKey(int key) const;
 
     QPointer<BookEditor> m_editor;
     ItemsFor m_itemsFor;

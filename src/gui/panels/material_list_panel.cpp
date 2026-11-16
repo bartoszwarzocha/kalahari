@@ -7,6 +7,8 @@
 #include "kalahari/gui/panels/material_list_panel.h"
 
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/bibliography.h"
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/kind_words.h"
@@ -39,6 +41,7 @@
 #include <QListView>
 #include <QLocale>
 #include <QMenu>
+#include <QMimeData>
 #include <QPainter>
 #include <QPixmap>
 #include <QPushButton>
@@ -828,6 +831,7 @@ void MaterialListPanel::createLayout() {
     m_editButton = button("materialListEdit", true);
     m_linkButton = button("materialListLink", false);
     m_copyButton = button("materialListCopy", false);
+    m_entriesButton = button("materialListEntries", true);
     m_deleteButton = button("materialListDelete", false);
     m_tableButton = button("materialListTable", false);
     m_tilesButton = button("materialListTiles", false);
@@ -842,7 +846,7 @@ void MaterialListPanel::createLayout() {
     m_groupsButton->setCheckable(true);
     m_addMenu = new QMenu(m_addButton);
     for (QToolButton* tool : {m_addButton, m_editButton, m_restoreButton, m_linkButton,
-                              m_copyButton, m_deleteButton}) {
+                              m_copyButton, m_entriesButton, m_deleteButton}) {
         toolsLayout->addWidget(tool);
     }
     auto* viewSeparator = separator(tools);
@@ -1121,6 +1125,7 @@ void MaterialListPanel::createCommands() {
         }
     });
     connect(m_copyButton, &QToolButton::clicked, this, &MaterialListPanel::copyCurrent);
+    connect(m_entriesButton, &QToolButton::clicked, this, &MaterialListPanel::copyEntries);
     connect(m_deleteButton, &QToolButton::clicked, this, [this]() {
         if (const QString id = currentMaterial(); !id.isEmpty()) {
             emit requestDelete(id);
@@ -1177,6 +1182,7 @@ void MaterialListPanel::refreshIcons() {
     m_editButton->setIcon(iconOf("edit.rename"));
     m_linkButton->setIcon(iconOf("common.link"));
     m_copyButton->setIcon(iconOf("edit.copy"));
+    m_entriesButton->setIcon(iconOf("edit.copy"));
     m_deleteButton->setIcon(iconOf("edit.delete"));
     m_tableButton->setIcon(iconOf("materials.table"));
     m_tilesButton->setIcon(iconOf("materials.tiles"));
@@ -1512,6 +1518,43 @@ void MaterialListPanel::copyCurrent() {
                      .arg(row->texts.value(QString::fromLatin1(MaterialList::TITLE))));
 }
 
+void MaterialListPanel::copyEntries() {
+    QClipboard* clipboard = QGuiApplication::clipboard();
+    if (m_list != QLatin1String(MaterialList::SOURCES) || clipboard == nullptr) {
+        return;
+    }
+    const QString style = m_book.bibliographyStyle();
+    const QString language = m_book.bookLanguage();
+    QStringList texts;
+    QStringList rich;
+    for (int shown = 0; shown < m_filter->rowCount(); ++shown) {
+        const MaterialRow* row = m_model->materialAt(
+            m_filter->mapToSource(m_filter->index(shown, 0)).row());
+        const core::ProjectElement* element =
+            row != nullptr ? m_book.findElement(row->id) : nullptr;
+        if (element == nullptr || element->source.isEmpty()) {
+            continue;
+        }
+        texts << core::Bibliography::entry(element->source, element->title, style, language,
+                                           false);
+        rich << QStringLiteral("<p>%1</p>")
+                    .arg(core::Bibliography::entry(element->source, element->title, style,
+                                                   language, true));
+    }
+    if (texts.isEmpty()) {
+        return;
+    }
+    auto* mime = new QMimeData();
+    mime->setHtml(rich.join(QString()));
+    mime->setText(texts.join(QLatin1Char('\n')));
+    clipboard->setMimeData(mime);
+    const auto count = static_cast<int>(texts.size());
+    //: The status bar after Copy Entries of the list Sources; %1 the style. In Polish:
+    //: Skopiowano zapisy: %n (%1)
+    emit message(MaterialList::tr("Entries copied: %n (%1)", nullptr, count)
+                     .arg(core::Bibliography::styleName(style)));
+}
+
 bool MaterialListPanel::eventFilter(QObject* watched, QEvent* event) {
     if (watched == m_search && event->type() == QEvent::KeyPress) {
         auto* key = static_cast<QKeyEvent*>(event);
@@ -1793,21 +1836,15 @@ void MaterialListPanel::updateCommands() {
         m_model->materialAt(m_filter->mapToSource(view()->currentIndex()).row());
     const bool changing = pm.isProjectOpen() && !pm.isReadOnly();
     bool canAdd = false;
-    if (m_list.isEmpty()) {
-        for (const QString& kind : MaterialList::kinds(m_book)) {
-            const std::optional<core::KindReference> reference = core::KindReference::parse(kind);
-            canAdd = canAdd ||
-                     (reference && core::ProjectManager::canAdd(pm.bookTypes().findKind(
-                                       reference->packageId, reference->kindId)));
-        }
-    } else if (const std::optional<core::KindReference> reference =
-                   core::KindReference::parse(m_list)) {
-        canAdd = core::ProjectManager::canAdd(
-            pm.bookTypes().findKind(reference->packageId, reference->kindId));
+    for (const QString& kind : MaterialList::addKindsOf(m_book, m_list)) {
+        const std::optional<core::KindReference> reference = core::KindReference::parse(kind);
+        canAdd = canAdd ||
+                 (reference && core::ProjectManager::canAdd(pm.bookTypes().findKind(
+                                   reference->packageId, reference->kindId)));
     }
     m_addButton->setEnabled(changing && canAdd);
     const QKeyCombination insert(Qt::NoModifier, Qt::Key_Insert);
-    if (m_list.isEmpty()) {
+    if (m_list.isEmpty() || m_list == QLatin1String(MaterialList::SOURCES)) {
         //: Adds a material in the Add Element window. In Polish: Dodaj...
         m_addButton->setText(MaterialList::tr("Add..."));
     } else {
@@ -1828,6 +1865,21 @@ void MaterialListPanel::updateCommands() {
     }
     m_editButton->setEnabled(row != nullptr);
     m_copyButton->setEnabled(row != nullptr && !row->copy.isEmpty());
+    // Copy Entries of the list Sources: in the style of the book
+    const bool sources = m_list == QLatin1String(MaterialList::SOURCES);
+    m_entriesButton->setVisible(sources);
+    if (sources) {
+        const QString style = core::Bibliography::styleName(pm.bibliographyStyle());
+        //: The list Sources: copies the entries of its sources; %1 the style of the book. In
+        //: Polish: Kopiuj zapisy (%1)
+        m_entriesButton->setText(MaterialList::tr("Copy Entries (%1)").arg(style));
+        //: In Polish: Kopiuje zapisy w bibliografii wszystkich źródeł widocznych na liście,
+        //: w jej kolejności
+        m_entriesButton->setToolTip(MaterialList::tr(
+            "Copies the entries in the bibliography of all the sources the list shows, in its "
+            "order"));
+        m_entriesButton->setEnabled(m_filter->rowCount() > 0);
+    }
     m_linkButton->setEnabled(row != nullptr && !row->text && changing);
     m_deleteButton->setEnabled(row != nullptr && changing);
     updateClippingCommands(row);

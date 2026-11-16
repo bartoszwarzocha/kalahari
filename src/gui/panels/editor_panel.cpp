@@ -556,6 +556,9 @@ void EditorPanel::applySettings() {
     // The formatting marks (View > Show Formatting Marks) and how the scene breaks look
     appearance.showFormattingMarks = settings.get<bool>("editor.showFormattingMarks");
 
+    // The gray background of the fields (Settings > Editor > General)
+    appearance.fieldShading = settings.get<bool>("editor.fieldShading");
+
     // The numbers on the left margin (View > Margin Numbering)
     editor::MarginNumbers& numbers = appearance.marginNumbers;
     numbers.numbering = editor::marginNumberingFromName(
@@ -592,6 +595,7 @@ void EditorPanel::applySettings() {
         editor::EditorColors::IssueColors colors;
         colors.spelling = onPaper(editor::issueColorKey(editor::TextIssueKind::Spelling), paper);
         colors.grammar = onPaper(editor::issueColorKey(editor::TextIssueKind::Grammar), paper);
+        colors.bookRule = onPaper(editor::issueColorKey(editor::TextIssueKind::BookRule), paper);
         colors.repetition = onPaper(editor::REPETITION_COLOR_KEY, paper);
         return colors;
     };

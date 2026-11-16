@@ -5,6 +5,7 @@
 /// @brief The spelling dictionary every editor checks its text with (Hunspell)
 
 #include <kalahari/editor/spell_check_service.h>
+#include <kalahari/core/affix_expander.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/resource_paths.h>
 
@@ -23,6 +24,8 @@
 #include <QTimer>
 
 #include <algorithm>
+#include <functional>
+#include <memory>
 #include <mutex>
 #include <utility>
 #include <vector>
@@ -30,6 +33,9 @@
 namespace kalahari::editor {
 
 namespace {
+
+/// @brief The typographic apostrophe (’): the dictionaries know the words with the plain one
+constexpr QChar TYPOGRAPHIC_APOSTROPHE = u'\u2019';
 
 // =============================================================================
 // Dictionary files
@@ -254,6 +260,20 @@ QString partsOf(const QString& word) {
         }
     }
     return parts;
+}
+
+/// @brief Add the wrong parts of a hyphenated word wrong as a whole (none: it is right)
+/// @param start Where the word starts in its text
+/// @param right Whether a word is right
+void addWrongParts(QList<SpellErrorInfo>& errors, const QString& word, qsizetype start,
+                   const std::function<bool(const QString&)>& right) {
+    for (const WordSpan& part : wordsOf(partsOf(word))) {
+        const QString partWord = word.mid(part.start, part.length);
+        if (isChecked(part) && !right(partWord)) {
+            errors.append(SpellErrorInfo(static_cast<int>(start + part.start),
+                                         static_cast<int>(part.length), partWord));
+        }
+    }
 }
 
 // =============================================================================
@@ -654,12 +674,15 @@ bool SpellCheckService::isActive() const
     return m_enabled && m_inUse;
 }
 
-bool SpellCheckService::isCorrect(const QString& word) const
+bool SpellCheckService::isCorrect(const QString& word, const WordFilter& alsoRight) const
 {
     if (!m_inUse || word.isEmpty()) {
         return true;
     }
-    if (isWordCorrect(word)) {
+    const auto right = [this, &alsoRight](const QString& checked) {
+        return isWordCorrect(checked) || (alsoRight && alsoRight(checked));
+    };
+    if (right(word)) {
         return true;
     }
 
@@ -668,7 +691,7 @@ bool SpellCheckService::isCorrect(const QString& word) const
         return false;
     }
     for (const WordSpan& part : wordsOf(partsOf(word))) {
-        if (isChecked(part) && !isWordCorrect(word.mid(part.start, part.length))) {
+        if (isChecked(part) && !right(word.mid(part.start, part.length))) {
             return false;
         }
     }
@@ -682,7 +705,7 @@ QStringList SpellCheckService::suggestions(const QString& word, int maxSuggestio
         return result;
     }
     QString asked = word;
-    asked.replace(QChar(0x2019), QLatin1Char('\''));
+    asked.replace(TYPOGRAPHIC_APOSTROPHE, QLatin1Char('\''));
     const bool capitalizedWord = isCapitalized(asked);
     const auto suggest = [this, &asked](const QString& misspelled, bool capitalize) {
         QStringList found;
@@ -746,34 +769,30 @@ QStringList SpellCheckService::suggestions(const QString& word, int maxSuggestio
     return result;
 }
 
-QList<SpellErrorInfo> SpellCheckService::checkParagraph(const QString& text) const
+QList<SpellErrorInfo> SpellCheckService::checkParagraph(const QString& text,
+                                                        const WordFilter& alsoRight) const
 {
     QList<SpellErrorInfo> errors;
     if (!isActive() || text.isEmpty()) {
         return errors;
     }
 
+    const auto right = [this, &alsoRight](const QString& checked) {
+        return isWordCorrect(checked) || (alsoRight && alsoRight(checked));
+    };
     for (const WordSpan& span : wordsOf(text)) {
         if (!isChecked(span)) {
             continue;
         }
         const QString word = text.mid(span.start, span.length);
-        if (isWordCorrect(word)) {
+        if (right(word)) {
             continue;
         }
-        if (!hasHyphen(word)) {
+        if (hasHyphen(word)) {
+            addWrongParts(errors, word, span.start, right);
+        } else {
             errors.append(SpellErrorInfo(static_cast<int>(span.start),
                                          static_cast<int>(span.length), word));
-            continue;
-        }
-
-        // A hyphenated word wrong as a whole: its wrong parts (none: it is right)
-        for (const WordSpan& part : wordsOf(partsOf(word))) {
-            const QString partWord = word.mid(part.start, part.length);
-            if (isChecked(part) && !isWordCorrect(partWord)) {
-                errors.append(SpellErrorInfo(static_cast<int>(span.start + part.start),
-                                             static_cast<int>(part.length), partWord));
-            }
         }
     }
     return errors;
@@ -786,11 +805,36 @@ QStringList SpellCheckService::stems(const QString& word) const
         return result;
     }
     QString asked = word;
-    asked.replace(QChar(0x2019), QLatin1Char('\''));
+    asked.replace(TYPOGRAPHIC_APOSTROPHE, QLatin1Char('\''));
     for (const std::string& stem : m_hunspell->stem(toDictionary(asked))) {
         result.append(fromDictionary(stem));
     }
     return result;
+}
+
+QStringList SpellCheckService::relatedForms(const QString& word) const
+{
+    const core::AffixExpander* expander = word.isEmpty() ? nullptr : affixExpander();
+    if (expander == nullptr) {
+        return {};
+    }
+    QString asked = word;
+    asked.replace(TYPOGRAPHIC_APOSTROPHE, QLatin1Char('\''));
+    return expander->relatedForms(asked);
+}
+
+const core::AffixExpander* SpellCheckService::affixExpander() const
+{
+    if (!m_inUse) {
+        return nullptr;
+    }
+    if (m_expander == nullptr || m_expanderDictionary != m_dictionary) {
+        const QString files = folderOf(m_dictionary) + QLatin1Char('/') + m_dictionary;
+        m_expander = std::make_unique<core::AffixExpander>();
+        m_expander->load(files + QStringLiteral(".aff"), files + QStringLiteral(".dic"));
+        m_expanderDictionary = m_dictionary;
+    }
+    return m_expander.get();
 }
 
 bool SpellCheckService::isWordCorrect(const QString& word) const
@@ -800,7 +844,7 @@ bool SpellCheckService::isWordCorrect(const QString& word) const
     }
     // The dictionaries know the typewriter apostrophe (don't)
     QString asked = word;
-    asked.replace(QChar(0x2019), QLatin1Char('\''));
+    asked.replace(TYPOGRAPHIC_APOSTROPHE, QLatin1Char('\''));
     return m_hunspell->spell(toDictionary(asked));
 }
 
@@ -823,7 +867,7 @@ bool SpellCheckService::isOwnWord(const QString& word) const
 
     // With an ending after an apostrophe (Kalahari's)
     for (qsizetype i = 1; i < word.size(); ++i) {
-        if (word[i] == QLatin1Char('\'') || word[i] == QChar(0x2019)) {
+        if (word[i] == QLatin1Char('\'') || word[i] == TYPOGRAPHIC_APOSTROPHE) {
             return knownInAnyCase(word.left(i));
         }
     }

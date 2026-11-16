@@ -356,8 +356,8 @@ TEST_CASE("Palette: the kinds of all book types, each in the parts of the book i
           "contributors, first_publications");
     CHECK(idsOf(palette.kindsIn(BookPlace::Workshop)) ==
           "mindmap, timeline, character, location, item, work_note, clipping, cover, quote, "
-          "web_page, picture, document, publication, recording, other_file, source, draft, "
-          "logline, synopsis, treatment, step_outline");
+          "web_page, picture, document, publication, recording, other_file, draft, logline, "
+          "synopsis, treatment, step_outline");
 
     // A tile shows the name of its kind and the type the kind comes from
     const Tile prologue = tileOf(palette, QStringLiteral("Prologue"));

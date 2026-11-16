@@ -6,9 +6,11 @@
 /// and the data of their chapter files
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/book_dictionary.h>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_package.h>
 #include <kalahari/core/book_type_registry.h>
+#include <kalahari/core/card_data.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/clipping.h>
 #include <kalahari/core/database_types.h>
@@ -279,6 +281,66 @@ QList<Entry> entriesOfFolder(const QString& path, QChar separator) {
 // =============================================================================
 // Creating, opening and closing
 // =============================================================================
+
+TEST_CASE("ProjectManager keeps the dictionary of the book in its folder",
+          "[project_manager][dictionary]") {
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    const auto addWord = [](const QString& word) {
+        return [word](BookDictionary& dictionary) { dictionary.addWord(word); };
+    };
+
+    // Without a book: none
+    REQUIRE(pm.closeProject(false));
+    CHECK(pm.bookDictionaryPath().isEmpty());
+    CHECK_FALSE(pm.changeBookDictionary(addWord(QStringLiteral("Kirran"))));
+
+    // A new book: an empty one, without a file until it has something
+    REQUIRE(pm.createProject(dir.path(), "Words", "Author", "pl", true));
+    const QString manifest = pm.getManifestPath();
+    const QString path = pm.bookDictionaryPath();
+    CHECK(path == QDir(pm.getProjectPath()).filePath(QStringLiteral("dictionary.json")));
+    CHECK(pm.bookDictionary().isEmpty());
+    CHECK_FALSE(QFile::exists(path));
+
+    // Changed: saved at once, and the editors told
+    int changes = 0;
+    const QMetaObject::Connection connection = QObject::connect(
+        &pm, &ProjectManager::bookDictionaryChanged, [&changes]() { ++changes; });
+    REQUIRE(pm.changeBookDictionary(addWord(QStringLiteral("Kirran"))));
+    CHECK(changes == 1);
+    CHECK(pm.bookDictionary().hasWord(QStringLiteral("Kirran")));
+    CHECK(QFile::exists(path));
+    REQUIRE(pm.changeBookDictionary(addWord(QStringLiteral("Kirran"))));  // nothing new
+    CHECK(changes == 1);
+
+    // Closed: none; opened again: read from its file
+    REQUIRE(pm.closeProject(false));
+    CHECK(pm.bookDictionary().isEmpty());
+    CHECK(changes == 2);
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.bookDictionary().hasWord(QStringLiteral("Kirran")));
+    CHECK(changes == 3);
+
+    // A file that cannot be read: the book opens with an empty dictionary, and the file is
+    // not written over
+    REQUIRE(pm.closeProject(false));
+    {
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        file.write("{not json");
+    }
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.bookDictionary().isEmpty());
+    CHECK_FALSE(pm.changeBookDictionary(addWord(QStringLiteral("Eldrion"))));
+    {
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::ReadOnly));
+        CHECK(file.readAll() == QByteArray("{not json"));
+    }
+    QObject::disconnect(connection);
+    REQUIRE(pm.closeProject(false));
+}
 
 TEST_CASE("ProjectManager closes the database after projectAboutToClose", "[project_manager]") {
     QTemporaryDir dir;
@@ -709,10 +771,16 @@ TEST_CASE("A user project has the kinds and the elements chosen in the palette",
     CHECK(chapterFileOf(chapter.id).title() == "Rozdział 1");
     CHECK(book->backElements.isEmpty());
 
-    // The working note is in the Workshop's folder; a character waits for its window
-    CHECK(titles(project->workshop.elements) == "Notatka 1");
+    // The working note and the card of a character are texts in the Workshop's folder; the card
+    // has the first color of the palette
+    CHECK(titles(project->workshop.elements) == "Notatka 1, Postać 1");
+    REQUIRE(project->workshop.elements.size() == 2);
     CHECK(project->workshop.elements.first().file == "workshop/work_note_001.kchapter");
     CHECK(QFileInfo::exists(QDir(pm.getProjectPath()).filePath("workshop/work_note_001.kchapter")));
+    const ProjectElement& character = project->workshop.elements.at(1);
+    CHECK(character.file == "workshop/character_001.kchapter");
+    CHECK(character.card.color == CardColors::palette().constFirst());
+    CHECK(project->workshop.elements.first().card.isEmpty());
 
     const QString manifest = pm.getManifestPath();
     REQUIRE(pm.closeProject(false));
@@ -1275,6 +1343,10 @@ TEST_CASE("ProjectManager opens elements whose package is not installed, read-on
     REQUIRE(pm.openProject(manifest, &problems));
     CHECK(problems.isEmpty());
     CHECK(pm.isReadOnly());
+    // Nor its dictionary
+    CHECK_FALSE(pm.changeBookDictionary(
+        [](BookDictionary& dictionary) { dictionary.addWord(QStringLiteral("Kirran")); }));
+    CHECK(pm.bookDictionary().isEmpty());
     CHECK(pm.missingPackages() == QStringList{"acme.thriller"});
 
     const ProjectElement* arc = pm.findElement(part);
@@ -1733,8 +1805,8 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     const KindRef material = kind("kalahari.base", "picture");
     const KindRef otherFile = kind("kalahari.base", "other_file");
 
-    // The kinds of the Workshop; the program adds working notes and materials, and the other
-    // kinds that open in a window of their own wait for their windows. The one kind of
+    // The kinds of the Workshop; the program adds working notes, cards and materials, and the
+    // other kinds that open in a window of their own wait for their windows. The one kind of
     // materials of earlier versions gets no new elements.
     CHECK(references(pm.kindsFor(BookPlace::Workshop)) ==
           "kalahari.base:mindmap, kalahari.base:timeline, kalahari.base:character, "
@@ -1748,7 +1820,8 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "material")));
     CHECK(ProjectManager::canAdd(pm.chapterKindFor(BookPlace::Main)));
     CHECK(ProjectManager::canAdd(pm.partKind()));
-    CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "character")));
+    CHECK(ProjectManager::canAdd(kind("kalahari.base", "character")));
+    CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "mindmap")));
     CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "toc")));
     CHECK_FALSE(ProjectManager::canAdd(KindRef{}));
 

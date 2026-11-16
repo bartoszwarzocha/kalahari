@@ -123,11 +123,16 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"insert.footnote", QStringLiteral("Ctrl+Alt+Shift+F")},
         {"insert.endnote", QStringLiteral("Ctrl+Alt+Shift+E")},
         {"insert.clipping", QStringLiteral("Ctrl+Alt+Shift+X")},
+        {"insert.date", QStringLiteral("Ctrl+Alt+Shift+D")},
+        {"insert.time", QStringLiteral("Ctrl+Alt+Shift+T")},
 #else
         // Word's Ctrl+Alt+F and Ctrl+Alt+D are AltGr on Windows
         {"insert.footnote", QStringLiteral("Alt+Shift+F")},
         {"insert.endnote", QStringLiteral("Alt+Shift+E")},
         {"insert.clipping", QStringLiteral("Alt+Shift+X")},  // the clipping cut with Ctrl+Shift+X
+        // The date and the time at once, as text, as in Word (no menu has them)
+        {"insert.date", QStringLiteral("Alt+Shift+D")},
+        {"insert.time", QStringLiteral("Alt+Shift+T")},
 #endif
         // The formatting characters, as in Word; Ctrl+_ is Ctrl+Shift+-
         {"insert.noBreakSpace", QStringLiteral("Ctrl+Shift+Space")},
