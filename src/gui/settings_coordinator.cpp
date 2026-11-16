@@ -17,6 +17,7 @@
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/widgets/central_tabs.h"
+#include "kalahari/core/card_data.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 #include <QApplication>
@@ -129,6 +130,9 @@ void SettingsCoordinator::runSettingsDialog(const QString& page, QWidget* parent
     if (m_languageChanged) {
         offerRestartForLanguage();
     }
+    if (dialog.isBookDictionaryAsked()) {
+        emit bookDictionaryRequested();
+    }
 }
 
 void SettingsCoordinator::offerRestartForLanguage() {
@@ -206,9 +210,12 @@ void SettingsCoordinator::applyInWindow(const QStringList& changedKeys) {
         dashboardPanel->onSettingsChanged();
     }
 
-    // Navigator: the "+" button on the project's node follows the Add Element window
+    // Navigator: the "+" button on the project's node follows the Add Element window, and the
+    // cards show their colors or not
     NavigatorPanel* navigatorPanel = m_dockCoordinator->navigatorPanel();
-    if (navigatorPanel && changed(QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING))) {
+    if (navigatorPanel != nullptr &&
+        (changed(QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING)) ||
+         changed(QString::fromLatin1(core::CardColors::NAVIGATOR_DOT_SETTING)))) {
         navigatorPanel->onSettingsChanged();
     }
 

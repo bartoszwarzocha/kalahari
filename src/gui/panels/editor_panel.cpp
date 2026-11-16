@@ -593,6 +593,7 @@ void EditorPanel::applySettings() {
         editor::EditorColors::IssueColors colors;
         colors.spelling = onPaper(editor::issueColorKey(editor::TextIssueKind::Spelling), paper);
         colors.grammar = onPaper(editor::issueColorKey(editor::TextIssueKind::Grammar), paper);
+        colors.bookRule = onPaper(editor::issueColorKey(editor::TextIssueKind::BookRule), paper);
         colors.repetition = onPaper(editor::REPETITION_COLOR_KEY, paper);
         return colors;
     };

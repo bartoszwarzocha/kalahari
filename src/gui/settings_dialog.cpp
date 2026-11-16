@@ -12,6 +12,7 @@
 #include "kalahari/gui/settings/stats_pages.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 
@@ -135,7 +136,15 @@ void SettingsDialog::createNavigationTree() {
         return imagesPage;
     });
     m_pageItems[SPELLING_PAGE] =
-        addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
+        addPage(editor, tr("Spelling"), [this]() {
+            auto* spellingPage = new EditorSpellingPage(m_spelling, m_book.isProjectOpen());
+            // Open Book Dictionary: OK, then the dictionary on its tab
+            connect(spellingPage, &EditorSpellingPage::bookDictionaryAsked, this, [this]() {
+                accept();
+                m_bookDictionaryAsked = result() == QDialog::Accepted;
+            });
+            return spellingPage;
+        });
     addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_book, m_grammar); });
     addPage(editor, tr("Auto-correct"), [this]() { return new EditorAutoCorrectPage(m_commands); });
     //: Settings > Editor > Quick Insert: @ and # in the text. In Polish: Szybkie wstawianie
@@ -151,6 +160,17 @@ void SettingsDialog::createNavigationTree() {
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
     m_pageItems[NAVIGATOR_PAGE] =
         addPage(nullptr, tr("Navigator"), [this]() { return new NavigatorPage(m_book); });
+    //: Settings > Cards: the cards of characters, locations and items. In Polish: Karty
+    m_pageItems[CARDS_PAGE] = addPage(nullptr, tr("Cards"), []() { return new CardsPage(); });
+    //: The page of the materials: how they open, the preview of PDF files and the sources. In
+    //: Polish: Materiały
+    m_pageItems[MATERIALS_PAGE] =
+        addPage(nullptr, tr("Materials"), [this]() {
+            auto* materialsPage = new MaterialsPage();
+            connect(materialsPage, &MaterialsPage::colorsPageAsked, this,
+                    [this]() { openPage(QString::fromLatin1(EDITOR_COLORS_PAGE)); });
+            return materialsPage;
+        });
     //: Settings > Statistics and Goals: the statistics bar, the panel, the counting of the words
     //: and the colors. In Polish: Statystyki i cele
     QTreeWidgetItem* statistics = category(tr("Statistics and Goals"));

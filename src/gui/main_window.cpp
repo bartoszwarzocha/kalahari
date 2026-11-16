@@ -16,6 +16,7 @@
 #include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/material_list_coordinator.h"
 #include "kalahari/gui/panels/material_list_panel.h"
+#include "kalahari/gui/panels/book_dictionary_panel.h"
 #include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/special_character_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
@@ -36,6 +37,7 @@
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/spelling_panel_coordinator.h"
+#include "kalahari/gui/book_dictionary_coordinator.h"
 #include "kalahari/gui/repetitions_coordinator.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
@@ -56,11 +58,12 @@
 #include "kalahari/gui/recent_books_menu.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
-#include "kalahari/gui/panels/image_preview_panel.h"
+#include "kalahari/gui/panels/preview_panel.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/text_images.h"
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/quick_insert_controller.h"
+#include "kalahari/editor/search_forms.h"
 #include "kalahari/editor/view_modes.h"
 #include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/editor_appearance.h"
@@ -343,6 +346,11 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenWithSystem);
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenLink,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenLink);
+    // The source of a quote opens on its card
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenMaterialCard,
+            m_navigatorCoordinator, [this](const QString& elementId) {
+                m_navigatorCoordinator->onRequestOpenMaterialCard(elementId);
+            });
     // A material with an address: its page in the browser, the copy of its picture; a change
     // on one card of a material shows on the others
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenInBrowser,
@@ -532,6 +540,20 @@ MainWindow::MainWindow(QWidget* parent)
     };
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestMaterialSettings, this,
             openMaterialSettings);
+    // Source Settings... of Sources and the gears of the entries of the sources: Settings >
+    // Materials
+    const auto openSourceSettings = [this]() {
+        if (m_settingsCoordinator != nullptr) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::MATERIALS_PAGE));
+        }
+    };
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestSourceSettings, this,
+            openSourceSettings);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestSourceSettings, this,
+            openSourceSettings);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::sourceSettingsRequested, this,
+            openSourceSettings);
     connect(m_materialListCoordinator, &MaterialListCoordinator::settingsRequested, this,
             openMaterialSettings);
     // Save Version and Version History of the text in front; a text is opened as from the
@@ -611,11 +633,12 @@ MainWindow::MainWindow(QWidget* parent)
     // The gear of the group of the versions: their settings
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestVersionSettings, this,
             [this]() {
-                if (m_settingsCoordinator) {
+                if (m_settingsCoordinator != nullptr) {
                     m_settingsCoordinator->openSettingsPage(
                         QString::fromLatin1(SettingsDialog::VERSIONS_PAGE));
                 }
             });
+    connectCards();
 
     // Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys; what
     // is done in the Annotations panel is undone in the text in front
@@ -924,6 +947,13 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookLanguageChanged,
             m_spellingCoordinator, &SpellingCoordinator::updateDictionary);
     m_settingsCoordinator->setSpellCheckService(m_spellingCoordinator->service());
+    // The option of all forms of Find in Book: the forms of the names of the book's dictionary
+    // and of the words of the spelling dictionary of its chapters
+    m_bookSearchCoordinator->setFormsOf([this](const QString& text) {
+        return editor::formsToFind(
+            text, &m_book->bookDictionary(),
+            m_spellingCoordinator != nullptr ? m_spellingCoordinator->service() : nullptr);
+    });
 
     // Grammar as you type, in the spelling's language: on LanguageTool the program prepares
     // on this computer, or on a server in the internet the writer chose
@@ -939,6 +969,7 @@ MainWindow::MainWindow(QWidget* parent)
     m_spellingPanelCoordinator = new SpellingPanelCoordinator(
         *m_book, *m_commands, m_dockCoordinator->spellingPanel(), m_dockCoordinator->spellingDock(),
         m_dockCoordinator->centralTabs(), m_spellingCoordinator, m_grammarCoordinator, this);
+    createBookDictionary();
 
     // The Repetitions panel, the marks of the repeated words and Next Repetition; a chapter
     // is opened as from the Navigator
@@ -1422,12 +1453,12 @@ void MainWindow::registerCommands() {
             QString::fromLatin1(SettingsDialog::MARGIN_NUMBERING_PAGE));
     };
 
-    // Zoom commands act on the editor in front, or on the preview of a material, which fits
-    // its picture to the window for the width of the page and the whole page
+    // Zoom commands act on the editor in front, or on the preview of a material: a picture
+    // fits the window for the width of the page and the whole page, a PDF file as it says
     const auto onEditor = [this](void (editor::BookEditor::*action)(),
-                                 void (ImagePreviewPanel::*previewAction)()) {
+                                 void (PreviewPanel::*previewAction)()) {
         return [this, action, previewAction]() {
-            if (ImagePreviewPanel* preview = currentPreview()) {
+            if (PreviewPanel* preview = currentPreview()) {
                 (preview->*previewAction)();
                 return;
             }
@@ -1437,14 +1468,13 @@ void MainWindow::registerCommands() {
             }
         };
     };
-    callbacks.onZoomIn = onEditor(&editor::BookEditor::zoomIn, &ImagePreviewPanel::zoomIn);
-    callbacks.onZoomOut = onEditor(&editor::BookEditor::zoomOut, &ImagePreviewPanel::zoomOut);
-    callbacks.onZoomReset =
-        onEditor(&editor::BookEditor::zoomReset, &ImagePreviewPanel::zoomReset);
+    callbacks.onZoomIn = onEditor(&editor::BookEditor::zoomIn, &PreviewPanel::zoomIn);
+    callbacks.onZoomOut = onEditor(&editor::BookEditor::zoomOut, &PreviewPanel::zoomOut);
+    callbacks.onZoomReset = onEditor(&editor::BookEditor::zoomReset, &PreviewPanel::zoomReset);
     callbacks.onZoomPageWidth =
-        onEditor(&editor::BookEditor::zoomToPageWidth, &ImagePreviewPanel::zoomToFit);
+        onEditor(&editor::BookEditor::zoomToPageWidth, &PreviewPanel::zoomToPageWidth);
     callbacks.onZoomWholePage =
-        onEditor(&editor::BookEditor::zoomToWholePage, &ImagePreviewPanel::zoomToFit);
+        onEditor(&editor::BookEditor::zoomToWholePage, &PreviewPanel::zoomToWholePage);
 
     // View commands
     callbacks.onDashboard = [this]() {
@@ -1633,11 +1663,17 @@ void MainWindow::registerCommands() {
         };
     }
 
-    // Find goes to the search of a list of materials too
+    // Find goes to the search of a list of materials, of the book's dictionary and of the
+    // preview of a PDF file too
     if (Command* command = registry.getCommand("edit.find")) {
         command->isEnabled = [this]() {
-            return hasDocumentInFront() || (m_materialListCoordinator != nullptr &&
-                                            m_materialListCoordinator->currentList() != nullptr);
+            const PreviewPanel* preview =
+                m_dockCoordinator != nullptr ? currentPreview() : nullptr;
+            return hasDocumentInFront() || (preview != nullptr && preview->canFind()) ||
+                   (m_materialListCoordinator != nullptr &&
+                    m_materialListCoordinator->currentList() != nullptr) ||
+                   (m_bookDictionaryCoordinator != nullptr &&
+                    m_bookDictionaryCoordinator->currentPanel() != nullptr);
         };
     }
 
@@ -1875,14 +1911,54 @@ void MainWindow::onSelectAll() {
     }
 }
 
+void MainWindow::createBookDictionary() {
+    m_bookDictionaryCoordinator =
+        new BookDictionaryCoordinator(*m_book, *m_commands, m_dockCoordinator->centralTabs(),
+                                      m_spellingCoordinator, statusBar(), this);
+    m_bookDictionaryCoordinator->connectCommands();
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenBookDictionary,
+            m_bookDictionaryCoordinator, &BookDictionaryCoordinator::openDictionary);
+    // Add Name... and Edit Rule... of the text's menu and of the cards of the panel
+    connect(m_spellingCoordinator, &SpellingCoordinator::addNameAsked,
+            m_bookDictionaryCoordinator, &BookDictionaryCoordinator::addName);
+    connect(m_spellingCoordinator, &SpellingCoordinator::editRuleAsked,
+            m_bookDictionaryCoordinator, &BookDictionaryCoordinator::editRule);
+    connect(m_spellingPanelCoordinator, &SpellingPanelCoordinator::addNameAsked,
+            m_bookDictionaryCoordinator, &BookDictionaryCoordinator::addName);
+    connect(m_spellingPanelCoordinator, &SpellingPanelCoordinator::editRuleAsked,
+            m_bookDictionaryCoordinator, &BookDictionaryCoordinator::editRule);
+    // Open Book Dictionary of Settings > Editor > Spelling
+    connect(m_settingsCoordinator, &SettingsCoordinator::bookDictionaryRequested,
+            m_bookDictionaryCoordinator,
+            [this]() { m_bookDictionaryCoordinator->openDictionary(); });
+    // The gear of its page: Settings > Editor > Spelling
+    connect(m_bookDictionaryCoordinator, &BookDictionaryCoordinator::settingsRequested, this,
+            [this]() {
+                if (m_settingsCoordinator != nullptr) {
+                    m_settingsCoordinator->openSettingsPage(
+                        QString::fromLatin1(SettingsDialog::SPELLING_PAGE));
+                }
+            });
+}
+
 void MainWindow::onFind() {
     core::Logger::getInstance().info("Action triggered: Find");
 
-    // A list of materials in front: its search
+    // A list of materials or the book's dictionary in front: its search
     if (MaterialListPanel* list = m_materialListCoordinator != nullptr
                                       ? m_materialListCoordinator->currentList()
                                       : nullptr) {
         list->focusSearch();
+        return;
+    }
+    if (BookDictionaryPanel* dictionary = m_bookDictionaryCoordinator != nullptr
+                                              ? m_bookDictionaryCoordinator->currentPanel()
+                                              : nullptr) {
+        dictionary->focusSearch();
+        return;
+    }
+    if (PreviewPanel* preview = currentPreview(); preview != nullptr && preview->canFind()) {
+        preview->find();
         return;
     }
     EditorPanel* editor = getCurrentEditor();
@@ -2603,6 +2679,42 @@ void MainWindow::onAbout() {
 
 // Dock management - OpenSpec #00038 Phase 4: Delegated to DockCoordinator
 
+void MainWindow::connectCards() {
+    PropertiesPanel* properties = m_dockCoordinator->propertiesPanel();
+    connect(properties, &PropertiesPanel::requestOpenCard, this,
+            [this](const QString& elementId) {
+                if (const core::ProjectElement* element = book().findElement(elementId);
+                    element != nullptr) {
+                    m_navigatorCoordinator->onElementSelected(elementId, element->title);
+                }
+            });
+    const auto openCardSettings = [this]() {
+        if (m_settingsCoordinator != nullptr) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::CARDS_PAGE));
+        }
+    };
+    connect(properties, &PropertiesPanel::requestCardSettings, this, openCardSettings);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::cardSettingsRequested, this,
+            openCardSettings);
+    connect(properties, &PropertiesPanel::cardMaterialAdded, m_navigatorCoordinator,
+            &NavigatorCoordinator::refreshNavigator);
+    // The other card of a relation, and a card made with a relation
+    connect(properties, &PropertiesPanel::requestSelectCard, m_dockCoordinator->navigatorPanel(),
+            &NavigatorPanel::revealElement);
+    connect(properties, &PropertiesPanel::cardAdded, m_navigatorCoordinator,
+            &NavigatorCoordinator::refreshNavigator);
+    // What is dropped on a card: its materials; Find in Book of the full card
+    connect(properties, &PropertiesPanel::requestAddCardMaterials, m_navigatorCoordinator,
+            &NavigatorCoordinator::onRequestAddMaterials);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::findInBookRequested, this,
+            [this](const QString& text) {
+                if (m_bookSearchCoordinator != nullptr) {
+                    m_bookSearchCoordinator->findInBook(text);
+                }
+            });
+}
+
 void MainWindow::createDocks() {
     auto& logger = core::Logger::getInstance();
     logger.debug("Creating dock widgets via DockCoordinator");
@@ -2723,10 +2835,12 @@ void MainWindow::createDocks() {
         // (none over the Dashboard or without a tab)
         EditorPanel* front = getCurrentEditor();
         m_statusBarStatistics->setEditor(front ? front->getBookEditor() : nullptr);
-        // The zoom of the preview of a material follows it
-        if (ImagePreviewPanel* preview = currentPreview()) {
-            connect(preview, &ImagePreviewPanel::zoomChanged, this,
-                    &MainWindow::updatePageStatus, Qt::UniqueConnection);
+        // The zoom of the preview of a material follows it, and the page of a PDF file
+        if (PreviewPanel* preview = currentPreview()) {
+            connect(preview, &PreviewPanel::zoomChanged, this, &MainWindow::updatePageStatus,
+                    Qt::UniqueConnection);
+            connect(preview, &PreviewPanel::pageChanged, this, &MainWindow::updatePageStatus,
+                    Qt::UniqueConnection);
         }
         updatePageStatus();
 
@@ -3169,9 +3283,13 @@ EditorPanel* MainWindow::getCurrentEditor() {
     return qobject_cast<EditorPanel*>(currentWidget);  // nullptr if not EditorPanel
 }
 
-ImagePreviewPanel* MainWindow::currentPreview() {
+PreviewPanel* MainWindow::currentPreview() {
+    // The page the keys went to last, also in a window of its own
+    if (m_documentWindows != nullptr) {
+        return qobject_cast<PreviewPanel*>(m_documentWindows->frontPage());
+    }
     QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
-    return centralTabs != nullptr ? qobject_cast<ImagePreviewPanel*>(centralTabs->currentWidget())
+    return centralTabs != nullptr ? qobject_cast<PreviewPanel*>(centralTabs->currentWidget())
                                   : nullptr;
 }
 
@@ -3594,9 +3712,11 @@ void MainWindow::updatePageStatus() {
         return;
     }
 
-    // The zoom of the preview of a material
-    if (ImagePreviewPanel* preview = currentPreview()) {
-        m_pageLabel->hide();
+    // The page (of a PDF file) and the zoom of the preview of a material
+    if (const PreviewPanel* preview = currentPreview()) {
+        const QString page = preview->pageStatus();
+        m_pageLabel->setText(page);
+        m_pageLabel->setVisible(!page.isEmpty());
         m_zoomLabel->setText(tr("%1%").arg(qRound(preview->zoom() * 100.0)));
         m_zoomLabel->show();
         return;

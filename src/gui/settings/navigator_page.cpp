@@ -17,11 +17,10 @@
 /// its list on a tab of its own, or the one tab of the lists shows it. The Navigator follows
 /// the first setting at once; the second applies to the next kind clicked.
 ///
-/// How a material opens: its picture on a preview tab of the program, or in the program the
-/// system gives its file; a material with the address of a page in the browser or on its card.
 /// What a file, a web address or a picture dropped on the Navigator or pasted in it gives: a
 /// material at once, linked with the node or not, or the Add Element window. The Navigator
-/// reads the settings each time a material opens or comes.
+/// reads the setting each time a material comes. How a material opens is on the page
+/// Materials.
 ///
 /// Whether a link of a material may name a paragraph of a chapter, marked with a paperclip in
 /// the editor (core::LinkRoles::PARAGRAPHS_SETTING). The paperclips follow the setting at once.
@@ -80,13 +79,6 @@ constexpr const char* EXPAND = "expand";
 /// The values of MaterialList::TABS_SETTING
 constexpr const char* OWN = "own";
 constexpr const char* ONE = "one";
-
-/// The values of NavigatorPanel::OPEN_MATERIALS_SETTING
-constexpr const char* CARD = "card";
-constexpr const char* SYSTEM = "system";
-
-/// The values of NavigatorPanel::OPEN_PAGES_SETTING ("card" as above)
-constexpr const char* BROWSER = "browser";
 
 /// The values of core::CoverMaterial::UNIT_SETTING
 constexpr const char* CHARACTERS = "characters";
@@ -284,100 +276,6 @@ NavigatorPage::NavigatorPage(const core::ProjectManager& book, QWidget* parent)
         settings.set<std::string>(MaterialList::TABS_SETTING, value.get<std::string>());
     };
     bindCustom(std::move(tabs));
-    addGap(materials);
-    //: In Polish: Na karcie w programie
-    m_openCard = new QRadioButton(tr("On a tab of the program"));
-    m_openCard->setObjectName(QStringLiteral("navigatorOpenMaterialsCard"));
-    //: In Polish: W programie systemowym
-    m_openSystem = new QRadioButton(tr("In the system program"));
-    m_openSystem->setObjectName(QStringLiteral("navigatorOpenMaterialsSystem"));
-    auto* openChoices = new QWidget();
-    auto* openLayout = new QVBoxLayout(openChoices);
-    openLayout->setContentsMargins(0, 0, 0, 0);
-    openLayout->addWidget(m_openCard);
-    //: In Polish: Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak
-    //: rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki
-    //: program nie będzie miał jego podglądu. Materiał bez pliku i adresu otwiera się na swojej
-    //: karcie.
-    alignWithText(addNote(openLayout, tr("A picture, also the copy of one from the web, opens "
-                                         "on a preview tab, as a chapter does. A file of "
-                                         "another kind, such as a PDF, opens in the system "
-                                         "program until the program has a preview of it. A "
-                                         "material without a file and an address opens on its "
-                                         "card.")),
-                  m_openCard);
-    openLayout->addWidget(m_openSystem);
-    //: In Polish: Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we
-    //: Właściwościach.
-    alignWithText(addNote(openLayout, tr("Pictures too. The Preview button in the Properties "
-                                         "panel then opens the preview tab.")),
-                  m_openSystem);
-    //: In Polish: Otwieranie materiałów:
-    auto* openLabel = new QLabel(tr("Opening materials:"));
-    openLabel->setBuddy(m_openCard);
-    materials->addRow(openLabel, openChoices);
-
-    Binding openMaterials;
-    openMaterials.key = []() { return std::string(NavigatorPanel::OPEN_MATERIALS_SETTING); };
-    openMaterials.stored = [&settings]() {
-        return json(settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, CARD));
-    };
-    openMaterials.shown = [this]() { return json(m_openSystem->isChecked() ? SYSTEM : CARD); };
-    openMaterials.show = [this](const json& value) {
-        const bool system = value.is_string() && value.get<std::string>() == SYSTEM;
-        (system ? m_openSystem : m_openCard)->setChecked(true);
-    };
-    openMaterials.store = [&settings](const json& value) {
-        settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING,
-                                  value.get<std::string>());
-    };
-    bindCustom(std::move(openMaterials));
-    addGap(materials);
-
-    // A page, and a picture on the web without a copy: the program shows no web pages
-    //: In Polish: W przeglądarce
-    m_pagesBrowser = new QRadioButton(tr("In the browser"));
-    m_pagesBrowser->setObjectName(QStringLiteral("navigatorOpenPagesBrowser"));
-    //: In Polish: Na karcie materiału
-    m_pagesCard = new QRadioButton(tr("On the card of the material"));
-    m_pagesCard->setObjectName(QStringLiteral("navigatorOpenPagesCard"));
-    auto* pagesChoices = new QWidget();
-    auto* pagesLayout = new QVBoxLayout(pagesChoices);
-    pagesLayout->setContentsMargins(0, 0, 0, 0);
-    pagesLayout->addWidget(m_pagesBrowser);
-    //: In Polish: Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału
-    //: na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.
-    alignWithText(addNote(pagesLayout, tr("Double-click and Enter open the address in the "
-                                          "system's browser. Open Card in the menu of the node "
-                                          "opens the card of the material in the middle of the "
-                                          "window.")),
-                  m_pagesBrowser);
-    pagesLayout->addWidget(m_pagesCard);
-    //: In Polish: Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk
-    //: „Otwórz w przeglądarce” na tej karcie.
-    alignWithText(addNote(pagesLayout, tr("Double-click and Enter open the card of the material "
-                                          "in the middle of the window; its Open in Browser "
-                                          "button opens the address.")),
-                  m_pagesCard);
-    //: In Polish: Strony i obrazy z sieci:
-    auto* pagesLabel = new QLabel(tr("Pages and pictures on the web:"));
-    pagesLabel->setBuddy(m_pagesBrowser);
-    materials->addRow(pagesLabel, pagesChoices);
-
-    Binding openPages;
-    openPages.key = []() { return std::string(NavigatorPanel::OPEN_PAGES_SETTING); };
-    openPages.stored = [&settings]() {
-        return json(settings.get<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, BROWSER));
-    };
-    openPages.shown = [this]() { return json(m_pagesCard->isChecked() ? CARD : BROWSER); };
-    openPages.show = [this](const json& value) {
-        const bool card = value.is_string() && value.get<std::string>() == CARD;
-        (card ? m_pagesCard : m_pagesBrowser)->setChecked(true);
-    };
-    openPages.store = [&settings](const json& value) {
-        settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, value.get<std::string>());
-    };
-    bindCustom(std::move(openPages));
     addGap(materials);
 
     // Files, web addresses and pictures dropped on the Navigator or pasted in it

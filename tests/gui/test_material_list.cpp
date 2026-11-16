@@ -203,7 +203,7 @@ TEST_CASE("Materials list: the lists of a book, their names, columns and sorting
 
     // Each list has the columns of its kind; some are hidden at first
     CHECK(MaterialList::shownColumns(kalahari::test::book(), listOf(core::MaterialKinds::QUOTE)) ==
-          QStringList{"quote", "links"});
+          QStringList{"quote", "quoteSource", "links"});
     CHECK(MaterialList::shownColumns(kalahari::test::book(), QString()) ==
           QStringList{"type", "title", "details", "links"});
     CHECK(
@@ -323,9 +323,10 @@ TEST_CASE("Materials list: the rows, the search, the filters and the sorting",
 
     // A column hidden and shown again; one column always stays
     panel.showColumn(QString::fromLatin1(MaterialList::TITLE), true);
-    CHECK(panel.shownColumns() == QStringList{"quote", "links", "title"});
+    CHECK(panel.shownColumns() == QStringList{"quote", "quoteSource", "links", "title"});
     CHECK(MaterialList::shownColumns(kalahari::test::book(), listOf(core::MaterialKinds::QUOTE)) ==
-          QStringList{"quote", "links", "title"});
+          QStringList{"quote", "quoteSource", "links", "title"});
+    panel.showColumn(QString::fromLatin1(MaterialList::QUOTE_SOURCE), false);
     panel.showColumn(QString::fromLatin1(MaterialList::LINKS), false);
     panel.showColumn(QString::fromLatin1(MaterialList::TITLE), false);
     CHECK(panel.shownColumns() == QStringList{"quote"});

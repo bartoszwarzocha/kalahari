@@ -6,10 +6,12 @@
 ///        grammar issue, made only for the cards in view
 
 #include "kalahari/gui/panels/spelling_issue_list.h"
+#include "kalahari/editor/text_issue.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/widgets/flow_layout.h"
 
 #include <QAbstractButton>
+#include <QAction>
 #include <QApplication>
 #include <QEvent>
 #include <QFont>
@@ -18,6 +20,7 @@
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
@@ -491,26 +494,58 @@ SpellingIssueCard::SpellingIssueCard(QWidget* parent)
     m_suggestionRow->hide();
     layout->addWidget(m_suggestionRow);
 
-    // Ignore it, or add the word to the dictionary
+    // Ignore it, or add the word to a dictionary: the one of the button, or the other one on
+    // the menu of the arrow beside it
     m_actionRow = buttonRow(this);
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         auto* button = new ActionButton(m_actionRow);
         m_actionRow->layout()->addWidget(button);
         m_actionButtons.append(button);
     }
     connect(m_actionButtons.at(0), &QAbstractButton::clicked, this, [this]() {
-        if (m_issue.issue.kind == editor::TextIssueKind::Spelling) {
-            emit ignoreWordClicked();
-        } else {
+        if (m_issue.issue.kind == editor::TextIssueKind::Grammar) {
             emit ignoreRuleClicked();
+        } else {
+            emit ignoreWordClicked();
         }
     });
-    connect(m_actionButtons.at(1), &QAbstractButton::clicked, this,
-            &SpellingIssueCard::addToDictionaryClicked);
+    // The second one adds the word to a dictionary; at a place breaking a rule of the book
+    // it opens the rule's window
+    connect(m_actionButtons.at(1), &QAbstractButton::clicked, this, [this]() {
+        if (m_issue.issue.kind == editor::TextIssueKind::BookRule) {
+            emit editRuleClicked();
+        } else {
+            emit addToDictionaryClicked(m_addPlaces.bookDictionary && m_addPlaces.bookFirst);
+        }
+    });
+    QAbstractButton* more = m_actionButtons.at(2);
+    more->setObjectName(QStringLiteral("spellingAddMore"));
+    more->setText(QStringLiteral("\u25BE"));
+    more->setAccessibleName(tr("Other places to add the word"));
+    connect(more, &QAbstractButton::clicked, this, [this, more]() { showMoreMenu(more); });
     m_actionRow->hide();
     layout->addWidget(m_actionRow);
 
     updateFonts();
+}
+
+void SpellingIssueCard::showMoreMenu(QAbstractButton* more) {
+    // The other dictionary, and the word as a name of the book
+    QMenu menu(this);
+    const bool toBook = !m_addPlaces.bookFirst;
+    const QAction* other = menu.addAction(toBook ? tr("Add to Book Dictionary")
+                                                 : tr("Add to Your Words (All Books)"));
+    //: Opens the window of a new name of the book's dictionary, with the word in it. In
+    //: Polish: Dodaj imię lub nazwę…
+    const QAction* name = menu.addAction(tr("Add Name..."));
+    const QAction* chosen = nullptr;
+    connect(&menu, &QMenu::triggered, &menu, [&chosen](const QAction* action) { chosen = action; });
+    menu.exec(more->mapToGlobal(QPoint(0, more->height())));
+    if (chosen == other) {
+        emit addToDictionaryClicked(toBook);
+    } else if (chosen == name) {
+        emit addNameClicked();
+    }
 }
 
 void SpellingIssueCard::setIssue(const SpellingPanelIssue& issue) {
@@ -579,6 +614,13 @@ void SpellingIssueCard::setReadOnly(bool readOnly) {
     }
 }
 
+void SpellingIssueCard::setAddPlaces(const AddPlaces& places) {
+    if (places != m_addPlaces) {
+        m_addPlaces = places;
+        updateButtons();
+    }
+}
+
 QList<QAbstractButton*> SpellingIssueCard::suggestionButtons() const {
     return m_suggestionButtons.mid(0, m_suggestions.size());
 }
@@ -607,7 +649,11 @@ QString SpellingIssueCard::contextText() const {
 void SpellingIssueCard::updateTexts() {
     const editor::TextIssue& issue = m_issue.issue;
     const bool spelling = issue.kind == editor::TextIssueKind::Spelling;
-    m_kindLabel->setText(spelling ? tr("Spelling") : tr("Grammar"));
+    switch (issue.kind) {
+        case editor::TextIssueKind::Spelling: m_kindLabel->setText(tr("Spelling")); break;
+        case editor::TextIssueKind::Grammar: m_kindLabel->setText(tr("Grammar")); break;
+        case editor::TextIssueKind::BookRule: m_kindLabel->setText(tr("Book rule")); break;
+    }
     //: The place of a misspelled word or a grammar issue on its card: the paragraph's number
     //: among those with text. In Polish: akapit %1
     QString place = tr("paragraph %1").arg(m_issue.number);
@@ -719,17 +765,29 @@ void SpellingIssueCard::updateButtons() {
     m_noSuggestionsLabel->setVisible(m_suggestions.isEmpty());
     m_suggestionRow->setVisible(m_expanded);
 
-    // Ignoring and the dictionary: greyed out in a text only read as well, as in the menu of
+    // Ignoring and the dictionaries: greyed out in a text only read as well, as in the menu of
     // the wave
-    m_actionButtons.at(0)->setText(spelling ? tr("Ignore Word") : tr("Ignore Rule"));
-    m_actionButtons.at(1)->setText(tr("Add to Dictionary"));
-    m_actionButtons.at(1)->setVisible(spelling);
+    const bool grammar = m_issue.issue.kind == editor::TextIssueKind::Grammar;
+    const bool bookRule = m_issue.issue.kind == editor::TextIssueKind::BookRule;
+    m_actionButtons.at(0)->setText(grammar ? tr("Ignore Rule") : tr("Ignore Word"));
+    m_actionButtons.at(1)->setText(addButtonText(bookRule));
+    m_actionButtons.at(1)->setVisible(spelling || (bookRule && m_addPlaces.bookDictionary));
+    m_actionButtons.at(2)->setVisible(spelling && m_addPlaces.bookDictionary);
     for (QAbstractButton* button : std::as_const(m_actionButtons)) {
         button->setEnabled(!m_readOnly);
         button->setToolTip(m_readOnly ? readOnlyReason() : QString());
         button->setFocusPolicy(policy);
     }
     m_actionRow->setVisible(m_expanded);
+}
+
+QString SpellingIssueCard::addButtonText(bool bookRule) const {
+    if (bookRule) {
+        //: Opens the window of the spelling rule of the book. In Polish: Zmień zasadę…
+        return tr("Edit Rule...");
+    }
+    return m_addPlaces.bookDictionary && m_addPlaces.bookFirst ? tr("Add to Book Dictionary")
+                                                               : tr("Add to Your Words");
 }
 
 void SpellingIssueCard::applyColors() {
@@ -911,6 +969,15 @@ void SpellingIssueList::setReadOnly(bool readOnly) {
     }
 }
 
+void SpellingIssueList::setAddPlaces(const AddPlaces& places) {
+    if (places != m_addPlaces) {
+        m_addPlaces = places;
+        for (SpellingIssueCard* shown : std::as_const(m_shown)) {
+            shown->setAddPlaces(places);
+        }
+    }
+}
+
 void SpellingIssueList::setKeysInside(bool inside) {
     if (inside != m_keysInside) {
         m_keysInside = inside;
@@ -921,16 +988,23 @@ void SpellingIssueList::setKeysInside(bool inside) {
 }
 
 void SpellingIssueList::setColors(const IssueCardColors& spelling, const IssueCardColors& grammar,
-                                  const QColor& highlight) {
+                                  const IssueCardColors& bookRule, const QColor& highlight) {
     m_spellingColors = spelling;
     m_grammarColors = grammar;
+    m_bookRuleColors = bookRule;
     m_highlight = highlight;
     for (SpellingIssueCard* shown : std::as_const(m_shown)) {
-        shown->setColors(shown->issue().issue.kind == editor::TextIssueKind::Spelling
-                             ? m_spellingColors
-                             : m_grammarColors,
-                         m_highlight);
+        shown->setColors(colorsOf(shown->issue().issue.kind), m_highlight);
     }
+}
+
+const IssueCardColors& SpellingIssueList::colorsOf(editor::TextIssueKind kind) const {
+    switch (kind) {
+        case editor::TextIssueKind::Grammar: return m_grammarColors;
+        case editor::TextIssueKind::BookRule: return m_bookRuleColors;
+        case editor::TextIssueKind::Spelling: break;
+    }
+    return m_spellingColors;
 }
 
 void SpellingIssueList::setSuggestionProvider(SuggestionProvider provider) {
@@ -949,7 +1023,7 @@ void SpellingIssueList::forgetSuggestions() {
 }
 
 QStringList SpellingIssueList::suggestionsFor(const SpellingPanelIssue& issue) {
-    if (issue.issue.kind == editor::TextIssueKind::Grammar) {
+    if (issue.issue.kind != editor::TextIssueKind::Spelling) {
         return issue.issue.suggestions.mid(0, MAX_SUGGESTIONS);
     }
     if (const auto found = m_suggestions.constFind(issue.key); found != m_suggestions.cend()) {
@@ -1233,19 +1307,22 @@ SpellingIssueCard* SpellingIssueList::cardFor(int index) {
     connect(made, &SpellingIssueCard::ignoreWordClicked, this,
             [this, made]() { emit ignoreWordClicked(made->issue().key); });
     connect(made, &SpellingIssueCard::addToDictionaryClicked, this,
-            [this, made]() { emit addToDictionaryClicked(made->issue().key); });
+            [this, made](bool toBook) { emit addToDictionaryClicked(made->issue().key, toBook); });
     connect(made, &SpellingIssueCard::ignoreRuleClicked, this,
             [this, made]() { emit ignoreRuleClicked(made->issue().key); });
+    connect(made, &SpellingIssueCard::addNameClicked, this,
+            [this, made]() { emit addNameClicked(made->issue().key); });
+    connect(made, &SpellingIssueCard::editRuleClicked, this,
+            [this, made]() { emit editRuleClicked(made->issue().key); });
     return made;
 }
 
 void SpellingIssueList::fillCard(SpellingIssueCard* card, int index) {
     const SpellingPanelIssue& issue = m_issues.at(index);
     const bool expanded = isExpanded(index);
-    card->setColors(issue.issue.kind == editor::TextIssueKind::Spelling ? m_spellingColors
-                                                                        : m_grammarColors,
-                    m_highlight);
+    card->setColors(colorsOf(issue.issue.kind), m_highlight);
     card->setReadOnly(m_readOnly);
+    card->setAddPlaces(m_addPlaces);
     card->setIssue(issue);
     if (expanded) {
         card->setSuggestions(suggestionsFor(issue));

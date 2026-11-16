@@ -352,7 +352,8 @@ TEST_CASE("Read-only book: the Navigator's menus open and show, and change nothi
     const QList<MenuItem> workshop =
         menuOf(itemOf(*tree, Qt::UserRole + 1, QStringLiteral("workshop")));
     CHECK(textsOf(workshop, false) ==
-          QStringList{"Add...", "Add Working note...", "Rename...", "Grouping"});
+          QStringList{"Add...", "Add Character...", "Add Location...", "Add Item...",
+                      "Add Working note...", "Rename...", "Grouping"});
     CHECK(greyedSayWhy(workshop));
 
     // The "+" button is grey and says why; the keys of the node change nothing

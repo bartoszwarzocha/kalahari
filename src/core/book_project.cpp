@@ -5,13 +5,16 @@
 /// @brief Book project as its .klh file saves it
 
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/card_data.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/source_description.h>
 #include <QFile>
 #include <QFileInfo>
 #include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonValue>
+#include <QRegularExpression>
 #include <QSaveFile>
 #include <QUrl>
 #include <QUuid>
@@ -48,6 +51,12 @@ const BookPart& bookPart(BookPlace place) {
 
 void addProblem(QStringList& problems, const QString& field, const QString& message) {
     problems << field + QStringLiteral(": ") + message;
+}
+
+/// A color of a card: "#RRGGBB"
+bool isColor(const QString& text) {
+    static const QRegularExpression color(QStringLiteral("^#[0-9A-Fa-f]{6}$"));
+    return color.match(text).hasMatch();
 }
 
 bool isWholeNumber(const QJsonValue& value) {
@@ -371,6 +380,153 @@ void readCover(Fields& fields, ProjectElement& element, QStringList& problems) {
     data.extra = coverFields.rest();
 }
 
+/// The portraits of a card: [{"image": "e31", "label": "youth"}]
+QList<CardPortrait> readPortraits(Fields& fields, QStringList& problems) {
+    QList<CardPortrait> portraits;
+    const QJsonArray array = fields.array("portraits");
+    for (qsizetype i = 0; i < array.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(fields.path("portraits")).arg(i);
+        if (!array.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object with \"image\""));
+            continue;
+        }
+        Fields entry(array.at(i).toObject(), path, problems);
+        CardPortrait portrait;
+        portrait.image = entry.string("image", true);
+        portrait.label = entry.string("label");
+        portrait.extra = entry.rest();
+        if (!portrait.image.isEmpty()) {
+            portraits << portrait;
+        }
+    }
+    return portraits;
+}
+
+/// What a card has beside its text: the values of its fields, its color and its portraits,
+/// with the fields of "card" this version does not know
+void readCard(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue card = fields.take("card");
+    if (card.isUndefined()) {
+        return;
+    }
+    if (!card.isObject()) {
+        fields.problem("card", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields cardFields(card.toObject(), fields.path("card"), problems);
+    CardData& data = element.card;
+    const QJsonValue values = cardFields.take("values");
+    if (values.isObject()) {
+        const QJsonObject object = values.toObject();
+        for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
+            if (it.value().isString()) {
+                data.values.insert(it.key(), it.value().toString());
+            } else {
+                cardFields.problem("values",
+                                   QStringLiteral("'%1' must be a text").arg(it.key()));
+            }
+        }
+    } else if (!values.isUndefined()) {
+        cardFields.problem("values", QStringLiteral("must be an object of fields and their "
+                                                    "values"));
+    }
+    data.color = cardFields.string("color");
+    if (!data.color.isEmpty() && !isColor(data.color)) {
+        cardFields.problem("color", QStringLiteral("must be a color such as \"#c0392b\""));
+        data.color.clear();
+    }
+    data.portraits = readPortraits(cardFields, problems);
+    data.extra = cardFields.rest();
+}
+
+/// The bibliographic description of a material that is a source, with the fields of "source"
+/// this version does not know
+void readSource(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue source = fields.take("source");
+    if (source.isUndefined()) {
+        return;
+    }
+    if (!source.isObject()) {
+        fields.problem("source", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields sourceFields(source.toObject(), fields.path("source"), problems);
+    SourceDescription& data = element.source;
+    data.type = sourceFields.string("type");
+    const QJsonArray people = sourceFields.array("people");
+    for (qsizetype i = 0; i < people.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(sourceFields.path("people")).arg(i);
+        if (!people.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object with a name"));
+            continue;
+        }
+        Fields personFields(people.at(i).toObject(), path, problems);
+        SourcePerson person;
+        person.name = personFields.string("name");
+        person.role = personFields.string("role");
+        person.extra = personFields.rest();
+        data.people << person;
+    }
+    for (const QString& name : SourceDescription::allFields()) {
+        const QByteArray key = name.toLatin1();
+        data.setValue(name, sourceFields.string(key.constData()));
+    }
+    data.bibliography = sourceFields.string("bibliography");
+    data.extra = sourceFields.rest();
+}
+
+/// The bookmarks of the file of a material and the page shown last
+void readBookmarks(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonArray bookmarks = fields.array("bookmarks");
+    for (qsizetype i = 0; i < bookmarks.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(fields.path("bookmarks")).arg(i);
+        if (!bookmarks.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object with a page"));
+            continue;
+        }
+        Fields bookmarkFields(bookmarks.at(i).toObject(), path, problems);
+        PageBookmark bookmark;
+        const QJsonValue page = bookmarkFields.take("page");
+        const int number = isWholeNumber(page) ? page.toInt(0) : 0;
+        if (number < 1) {
+            bookmarkFields.problem("page", QStringLiteral("must be a whole number, 1 or more"));
+            continue;
+        }
+        bookmark.page = number;
+        bookmark.note = bookmarkFields.string("note");
+        bookmark.extra = bookmarkFields.rest();
+        element.bookmarks << bookmark;
+    }
+    const QJsonValue lastPage = fields.take("lastPage");
+    if (!lastPage.isUndefined()) {
+        const int number = isWholeNumber(lastPage) ? lastPage.toInt(-1) : -1;
+        if (number < 0) {
+            fields.problem("lastPage", QStringLiteral("must be a whole number, 0 or more"));
+        } else {
+            element.lastPage = number;
+        }
+    }
+}
+
+/// Where a quote comes from, with the fields of "quote" this version does not know
+void readQuote(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue quote = fields.take("quote");
+    if (quote.isUndefined()) {
+        return;
+    }
+    if (!quote.isObject()) {
+        fields.problem("quote", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields quoteFields(quote.toObject(), fields.path("quote"), problems);
+    QuoteSource& data = element.quote;
+    data.source = quoteFields.string("source");
+    data.page = quoteFields.string("page");
+    data.author = quoteFields.string("author");
+    data.work = quoteFields.string("work");
+    data.extra = quoteFields.rest();
+}
+
 ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& seen,
                            QStringList& problems) {
     ProjectElement element;
@@ -406,6 +562,10 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     element.links = readLinks(fields, problems);
     readView(fields, element, problems);
     readCover(fields, element, problems);
+    readCard(fields, element, problems);
+    readSource(fields, element, problems);
+    readBookmarks(fields, element, problems);
+    readQuote(fields, element, problems);
     element.extra = fields.rest();
     return element;
 }
@@ -636,8 +796,76 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
     if (const QJsonValue footnotes = fields.take("footnotes"); !footnotes.isUndefined()) {
         book.footnotes = readFootnotes(footnotes, fields.path("footnotes"), problems);
     }
+    book.bibliographyStyle = fields.string("bibliographyStyle");
     book.extra = fields.rest();
     return book;
+}
+
+/// A relation between cards that the writer named (@p path), after the relations @p before
+OwnRelation readOwnRelation(const QJsonObject& object, const QString& path,
+                            const QList<OwnRelation>& before, QStringList& problems) {
+    Fields entry(object, path, problems);
+    OwnRelation relation;
+    relation.id = entry.string("id", true);
+    relation.kind = entry.string("kind", true);
+    relation.otherKind = entry.string("other", true);
+    relation.name = entry.string("name", true);
+    relation.inverse = entry.string("inverse");
+    if (relation.inverse.isEmpty()) {
+        relation.inverse = relation.id;
+    }
+    relation.extra = entry.rest();
+    // Its id is none of a package, and none of another one
+    const QString& id = relation.id;
+    if (!id.isEmpty() && !id.startsWith(QLatin1String(OwnRelation::ID_PREFIX))) {
+        entry.problem("id", QStringLiteral("'%1' must start with \"%2\"")
+                                .arg(id, QLatin1String(OwnRelation::ID_PREFIX)));
+    } else if (std::any_of(before.cbegin(), before.cend(),
+                           [&id](const OwnRelation& each) { return each.id == id; })) {
+        entry.problem("id", QStringLiteral("'%1' is listed twice").arg(id));
+    }
+    return relation;
+}
+
+/// The problems of the inverses of relations @p relations (@p paths): each one of them,
+/// between the same kinds the other way round and with the relation as its inverse
+void checkOwnInverses(const QList<OwnRelation>& relations, const QStringList& paths,
+                      QStringList& problems) {
+    for (qsizetype i = 0; i < relations.size(); ++i) {
+        const OwnRelation& relation = relations.at(i);
+        const auto inverse = std::find_if(relations.cbegin(), relations.cend(),
+                                          [&relation](const OwnRelation& each) {
+                                              return each.id == relation.inverse;
+                                          });
+        if (inverse == relations.cend()) {
+            addProblem(problems, paths.at(i) + QStringLiteral(".inverse"),
+                       QStringLiteral("'%1' is no relation of the list").arg(relation.inverse));
+        } else if (inverse->inverse != relation.id || inverse->kind != relation.otherKind ||
+                   inverse->otherKind != relation.kind) {
+            addProblem(problems, paths.at(i) + QStringLiteral(".inverse"),
+                       QStringLiteral("'%1' must be the relation between the same kinds the "
+                                      "other way round, with '%2' as its inverse")
+                           .arg(relation.inverse, relation.id));
+        }
+    }
+}
+
+/// The relations between cards that the writer named, in the Workshop, each with its inverse
+QList<OwnRelation> readOwnRelations(Fields& fields, QStringList& problems) {
+    QList<OwnRelation> relations;
+    QStringList paths;  // of each of the relations
+    const QJsonArray array = fields.array("relations");
+    for (qsizetype i = 0; i < array.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(fields.path("relations")).arg(i);
+        if (array.at(i).isObject()) {
+            relations << readOwnRelation(array.at(i).toObject(), path, relations, problems);
+            paths << path;
+        } else {
+            addProblem(problems, path, QStringLiteral("must be an object with \"id\""));
+        }
+    }
+    checkOwnInverses(relations, paths, problems);
+    return relations;
 }
 
 ProjectWorkshop readWorkshop(const QJsonValue& value, Seen& seen, QStringList& problems) {
@@ -656,6 +884,7 @@ ProjectWorkshop readWorkshop(const QJsonValue& value, Seen& seen, QStringList& p
     workshop.grouped = fields.boolean("grouped", false);
     workshop.elements = readElements(fields.array("elements"), fields.path("elements"), seen,
                                      problems);
+    workshop.relations = readOwnRelations(fields, problems);
     workshop.extra = fields.rest();
     return workshop;
 }
@@ -698,6 +927,113 @@ QString dateTimeText(const QDateTime& time) {
 }
 
 QJsonArray elementsToJson(const QList<ProjectElement>& elements);
+
+/// What a card has beside its text, as "card" saves it
+QJsonObject cardToJson(const CardData& card) {
+    QJsonObject data = card.extra;
+    if (card.values.isEmpty()) {
+        data.remove(QLatin1String("values"));
+    } else {
+        QJsonObject values;
+        for (auto it = card.values.constBegin(); it != card.values.constEnd(); ++it) {
+            values.insert(it.key(), it.value());
+        }
+        data.insert(QLatin1String("values"), values);
+    }
+    setOrRemove(data, "color", card.color);
+    if (card.portraits.isEmpty()) {
+        data.remove(QLatin1String("portraits"));
+    } else {
+        QJsonArray portraits;
+        for (const CardPortrait& portrait : card.portraits) {
+            QJsonObject each = portrait.extra;
+            each.insert(QLatin1String("image"), portrait.image);
+            setOrRemove(each, "label", portrait.label);
+            portraits.append(each);
+        }
+        data.insert(QLatin1String("portraits"), portraits);
+    }
+    return data;
+}
+
+/// The data of a card beside its text (@p element: CardData) in @p json
+void writeCard(QJsonObject& json, const ProjectElement& element) {
+    if (element.card.isEmpty()) {
+        json.remove(QLatin1String("card"));
+    } else {
+        json.insert(QLatin1String("card"), cardToJson(element.card));
+    }
+}
+
+/// @p source as the "source" object of an element, the fields the program does not know kept
+QJsonObject sourceToJson(const SourceDescription& source) {
+    QJsonObject data = source.extra;
+    setOrRemove(data, "type", source.type);
+    QJsonArray people;
+    for (const SourcePerson& person : source.people) {
+        QJsonObject each = person.extra;
+        each.insert(QLatin1String("name"), person.name);
+        setOrRemove(each, "role", person.role);
+        people.append(each);
+    }
+    if (people.isEmpty()) {
+        data.remove(QLatin1String("people"));
+    } else {
+        data.insert(QLatin1String("people"), people);
+    }
+    for (auto value = source.values.cbegin(); value != source.values.cend(); ++value) {
+        data.insert(value.key(), value.value());
+    }
+    setOrRemove(data, "bibliography", source.bibliography);
+    return data;
+}
+
+/// @p bookmarks as the "bookmarks" array of an element
+QJsonArray bookmarksToJson(const QList<PageBookmark>& bookmarks) {
+    QJsonArray array;
+    for (const PageBookmark& bookmark : bookmarks) {
+        QJsonObject each = bookmark.extra;
+        each.insert(QLatin1String("page"), bookmark.page);
+        setOrRemove(each, "note", bookmark.note);
+        array.append(each);
+    }
+    return array;
+}
+
+/// @p quote as the "quote" object of an element
+QJsonObject quoteToJson(const QuoteSource& quote) {
+    QJsonObject data = quote.extra;
+    setOrRemove(data, "source", quote.source);
+    setOrRemove(data, "page", quote.page);
+    setOrRemove(data, "author", quote.author);
+    setOrRemove(data, "work", quote.work);
+    return data;
+}
+
+/// The description of a source, the bookmarks, the page shown last and the source of a quote
+/// of @p element in @p json
+void writeSource(QJsonObject& json, const ProjectElement& element) {
+    if (element.source.isEmpty()) {
+        json.remove(QLatin1String("source"));
+    } else {
+        json.insert(QLatin1String("source"), sourceToJson(element.source));
+    }
+    if (element.bookmarks.isEmpty()) {
+        json.remove(QLatin1String("bookmarks"));
+    } else {
+        json.insert(QLatin1String("bookmarks"), bookmarksToJson(element.bookmarks));
+    }
+    if (element.lastPage > 0) {
+        json.insert(QLatin1String("lastPage"), element.lastPage);
+    } else {
+        json.remove(QLatin1String("lastPage"));
+    }
+    if (element.quote.isEmpty()) {
+        json.remove(QLatin1String("quote"));
+    } else {
+        json.insert(QLatin1String("quote"), quoteToJson(element.quote));
+    }
+}
 
 QJsonObject elementToJson(const ProjectElement& element) {
     QJsonObject json = element.extra;
@@ -789,6 +1125,8 @@ QJsonObject elementToJson(const ProjectElement& element) {
         }
         json.insert(QLatin1String("cover"), data);
     }
+    writeSource(json, element);
+    writeCard(json, element);
     return json;
 }
 
@@ -881,6 +1219,7 @@ QJsonObject bookToJson(const ProjectBook& book) {
     } else {
         json.remove(QLatin1String("footnotes"));
     }
+    setOrRemove(json, "bibliographyStyle", book.bibliographyStyle);
     return json;
 }
 
@@ -938,6 +1277,22 @@ QJsonObject workshopToJson(const ProjectWorkshop& workshop) {
     setOrRemove(json, "name", workshop.name);
     json.insert(QLatin1String("grouped"), workshop.grouped);
     json.insert(QLatin1String("elements"), elementsToJson(workshop.elements));
+    if (workshop.relations.isEmpty()) {
+        json.remove(QLatin1String("relations"));
+    } else {
+        QJsonArray relations;
+        for (const OwnRelation& relation : workshop.relations) {
+            QJsonObject each = relation.extra;
+            each.insert(QLatin1String("id"), relation.id);
+            each.insert(QLatin1String("kind"), relation.kind);
+            each.insert(QLatin1String("other"), relation.otherKind);
+            each.insert(QLatin1String("name"), relation.name);
+            setOrRemove(each, "inverse", relation.inverse == relation.id ? QString()
+                                                                         : relation.inverse);
+            relations.append(each);
+        }
+        json.insert(QLatin1String("relations"), relations);
+    }
     return json;
 }
 
@@ -1207,8 +1562,10 @@ bool ProjectElement::operator==(const ProjectElement& other) const {
            file == other.file && url == other.url && status == other.status &&
            firstPageLeft == other.firstPageLeft && elements == other.elements &&
            description == other.description && fields == other.fields && links == other.links &&
-           rotation == other.rotation && cover == other.cover && viewExtra == other.viewExtra &&
-           extra == other.extra;
+           rotation == other.rotation && cover == other.cover && card == other.card &&
+           source == other.source && bookmarks == other.bookmarks && lastPage == other.lastPage &&
+           quote == other.quote &&
+           viewExtra == other.viewExtra && extra == other.extra;
 }
 
 // =============================================================================

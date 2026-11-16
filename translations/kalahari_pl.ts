@@ -1327,6 +1327,10 @@
         <translation>Pod&amp;ział rozdziału</translation>
     </message>
     <message>
+        <source>Book &amp;Dictionary...</source>
+        <translation>Słownik &amp;książki...</translation>
+    </message>
+    <message>
         <source>Date &amp;&amp; &amp;Time...</source>
         <translation>Data i &amp;godzina...</translation>
     </message>
@@ -3671,10 +3675,6 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <translation>(Brak podpowiedzi)</translation>
     </message>
     <message>
-        <source>Add t&amp;o Dictionary</source>
-        <translation>Dodaj do &amp;słownika</translation>
-    </message>
-    <message>
         <source>&amp;Ignore This Rule</source>
         <translation>&amp;Pomijaj tę regułę</translation>
     </message>
@@ -3934,6 +3934,56 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <translation>&amp;Usuń przypis</translation>
     </message>
     <message>
+        <source>Add to &amp;Book Dictionary</source>
+        <extracomment>In Polish: Dodaj do &amp;słownika książki</extracomment>
+        <translation>Dodaj do &amp;słownika książki</translation>
+    </message>
+    <message>
+        <source>The word is right in this book only</source>
+        <translation>Słowo jest poprawne tylko w tej książce</translation>
+    </message>
+    <message>
+        <source>Add to Your &amp;Words (All Books)</source>
+        <extracomment>The user&apos;s own dictionary, which every book has. In Polish: &amp;Dodaj do Twoich słów (wszystkie książki)</extracomment>
+        <translation>&amp;Dodaj do Twoich słów (wszystkie książki)</translation>
+    </message>
+    <message>
+        <source>Book rule: write %1</source>
+        <extracomment>%1 is the right spelling in quotes, as the rule has it: Book rule: write &quot;Smok&quot;</extracomment>
+        <translation>Zasada książki: pisz %1</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Rule</source>
+        <translation>&amp;Usuń zasadę</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary no longer has this rule</source>
+        <translation>Usuwa tę zasadę ze słownika książki</translation>
+    </message>
+    <message>
+        <source>Write %1</source>
+        <extracomment>%1 is the right spelling in quotes, as the rule has it: Write &quot;Smok&quot;</extracomment>
+        <translation>Pisz %1</translation>
+    </message>
+    <message>
+        <source>Book rule</source>
+        <translation>Zasada książki</translation>
+    </message>
+    <message>
+        <source>Add Nam&amp;e...</source>
+        <extracomment>Opens the window of a new name of the book&apos;s dictionary, with the word in it. In Polish: Dodaj &amp;imię lub nazwę…</extracomment>
+        <translation>Dodaj &amp;imię lub nazwę...</translation>
+    </message>
+    <message>
+        <source>The word is a name of the book: right in all its forms</source>
+        <translation>Słowo jest imieniem lub nazwą z książki: poprawne we wszystkich formach</translation>
+    </message>
+    <message>
+        <source>&amp;Edit Rule...</source>
+        <extracomment>Opens the window of the spelling rule of the book. In Polish: Zmień z&amp;asadę…</extracomment>
+        <translation>Zmień z&amp;asadę...</translation>
+    </message>
+    <message>
         <source>&amp;Edit Field...</source>
         <extracomment>The context menu of a field. In Polish: &amp;Edytuj pole...</extracomment>
         <translation>&amp;Edytuj pole...</translation>
@@ -4099,6 +4149,21 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     <message>
         <source>Use Regular Expression (%1)</source>
         <translation>Wyrażenie regularne (%1)</translation>
+    </message>
+    <message>
+        <source>Forms</source>
+        <extracomment>The option of the find bar that finds every form of a word or a name, short. In Polish: Odm</extracomment>
+        <translation>Odm</translation>
+    </message>
+    <message>
+        <source>All Forms (%1)</source>
+        <extracomment>In Polish: Wszystkie odmiany (%1)</extracomment>
+        <translation>Wszystkie odmiany (%1)</translation>
+    </message>
+    <message>
+        <source>Replace All is off while all forms are found: one replacement of every form would break the declension</source>
+        <extracomment>The tooltip of Replace All of the find bar while it finds all forms</extracomment>
+        <translation>Przy wyszukiwaniu wszystkich odmian „Zamień wszystko” jest wyłączone – jedna zamiana wszystkich form zepsułaby odmianę</translation>
     </message>
 </context>
 <context>
@@ -4873,6 +4938,216 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::BookDictionaryCoordinator</name>
+    <message>
+        <source>Remove Name</source>
+        <extracomment>In Polish: Usuń imię lub nazwę</extracomment>
+        <translation>Usuń imię lub nazwę</translation>
+    </message>
+    <message>
+        <source>Remove %1 from the book&apos;s dictionary? Its forms will no longer be right in the book.</source>
+        <extracomment>%1: the name in quotes. In Polish: Usunąć %1 ze słownika książki? Jego formy nie będą już poprawne w książce.</extracomment>
+        <translation>Usunąć %1 ze słownika książki? Jego formy nie będą już poprawne w książce.</translation>
+    </message>
+    <message>
+        <source>Remove Spelling Rule</source>
+        <extracomment>In Polish: Usuń zasadę pisowni</extracomment>
+        <translation>Usuń zasadę pisowni</translation>
+    </message>
+    <message>
+        <source>Remove the rule %1 from the book&apos;s dictionary? The spellings it marks will no longer be marked.</source>
+        <extracomment>%1: the right spelling of the rule in quotes. In Polish: Usunąć zasadę %1 ze słownika książki? Zapisy, które zaznacza, nie będą już zaznaczane.</extracomment>
+        <translation>Usunąć zasadę %1 ze słownika książki? Zapisy, które zaznacza, nie będą już zaznaczane.</translation>
+    </message>
+    <message>
+        <source>Remove Words</source>
+        <extracomment>In Polish: Usuń słowa</extracomment>
+        <translation>Usuń słowa</translation>
+    </message>
+    <message>
+        <source>Remove the word %1 from the book&apos;s dictionary?</source>
+        <extracomment>%1: the word in quotes. In Polish: Usunąć słowo %1 ze słownika książki?</extracomment>
+        <translation>Usunąć słowo %1 ze słownika książki?</translation>
+    </message>
+    <message>
+        <source>Remove the chosen words from the book&apos;s dictionary (%1)?</source>
+        <extracomment>%1: how many. In Polish: Usunąć wybrane słowa ze słownika książki (%1)?</extracomment>
+        <translation>Usunąć wybrane słowa ze słownika książki (%1)?</translation>
+    </message>
+    <message>
+        <source>Book Dictionary</source>
+        <extracomment>The tab of the book&apos;s dictionary. In Polish: Słownik książki</extracomment>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Your words cannot be changed now</source>
+        <extracomment>In Polish: Twoich słów nie można teraz zmienić</extracomment>
+        <translation>Twoich słów nie można teraz zmienić</translation>
+    </message>
+    <message>
+        <source>The book is open read-only: its dictionary cannot be changed</source>
+        <translation>Książka jest otwarta tylko do odczytu: jej słownika nie można zmienić</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary cannot be saved</source>
+        <translation>Nie można zapisać słownika książki</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::BookDictionaryPanel</name>
+    <message>
+        <source>does not change</source>
+        <extracomment>The forms of a name that has the same form in every case. In Polish: nie odmienia się
+----------
+The word of the rule has no other forms. In Polish: nie odmienia się</extracomment>
+        <translation>nie odmienia się</translation>
+    </message>
+    <message>
+        <source>no</source>
+        <extracomment>The rule covers its spellings alone, not their forms. In Polish: nie</extracomment>
+        <translation>nie</translation>
+    </message>
+    <message>
+        <source>yes (like %1)</source>
+        <extracomment>The rule has the forms of another word; %1: the word in quotes. In Polish: tak (jak %1)</extracomment>
+        <translation>tak (jak %1)</translation>
+    </message>
+    <message>
+        <source>yes</source>
+        <extracomment>In Polish: tak</extracomment>
+        <translation>tak</translation>
+    </message>
+    <message>
+        <source>Book Dictionary</source>
+        <extracomment>The title of the page of the book&apos;s dictionary. In Polish: Słownik książki</extracomment>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>Spelling Settings: Book Dictionary</source>
+        <extracomment>The gear of the book&apos;s dictionary. In Polish: Ustawienia pisowni: Słownik książki</extracomment>
+        <translation>Ustawienia pisowni: Słownik książki</translation>
+    </message>
+    <message>
+        <source>Search in the dictionary, also in the forms (%1)</source>
+        <extracomment>%1: the keys of Find. In Polish: Szukaj w słowniku, także w formach (%1)</extracomment>
+        <translation>Szukaj w słowniku, także w formach (%1)</translation>
+    </message>
+    <message>
+        <source>Search in the dictionary</source>
+        <extracomment>In Polish: Szukaj w słowniku</extracomment>
+        <translation>Szukaj w słowniku</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The columns of the names. In Polish: Imię lub nazwa, Rodzaj, Formy, Inne nazwy</extracomment>
+        <translation>Imię lub nazwa</translation>
+    </message>
+    <message>
+        <source>Kind</source>
+        <translation>Rodzaj</translation>
+    </message>
+    <message>
+        <source>Forms</source>
+        <translation>Formy</translation>
+    </message>
+    <message>
+        <source>Other Names</source>
+        <translation>Inne nazwy</translation>
+    </message>
+    <message>
+        <source>Write</source>
+        <extracomment>The columns of the spelling rules. In Polish: Pisz, Zamiast, W odmianach, Uwaga</extracomment>
+        <translation>Pisz</translation>
+    </message>
+    <message>
+        <source>Instead of</source>
+        <translation>Zamiast</translation>
+    </message>
+    <message>
+        <source>In Forms</source>
+        <translation>W odmianach</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <translation>Uwaga</translation>
+    </message>
+    <message>
+        <source>Word</source>
+        <extracomment>In Polish: Słowo</extracomment>
+        <translation>Słowo</translation>
+    </message>
+    <message>
+        <source>A word to add</source>
+        <extracomment>In Polish: Słowo do dodania</extracomment>
+        <translation>Słowo do dodania</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Edit...</source>
+        <extracomment>In Polish: Zmień…</extracomment>
+        <translation>Zmień...</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Move to Your Words</source>
+        <extracomment>Moves the chosen words of the book to the writer&apos;s own words. In Polish: Przenieś do Twoich słów</extracomment>
+        <translation>Przenieś do Twoich słów</translation>
+    </message>
+    <message>
+        <source>%1 · forms: %2 (the language of the book)</source>
+        <extracomment>%1: the title of the book, %2: the language of the forms of the names. In Polish: %1 · formy: %2 (język książki)</extracomment>
+        <translation>%1 · formy: %2 (język książki)</translation>
+    </message>
+    <message>
+        <source>Names (%1)</source>
+        <extracomment>The tabs of the book&apos;s dictionary with their counts. In Polish: Imiona i nazwy (%1)</extracomment>
+        <translation>Imiona i nazwy (%1)</translation>
+    </message>
+    <message>
+        <source>Spelling Rules (%1)</source>
+        <extracomment>In Polish: Zasady pisowni (%1)</extracomment>
+        <translation>Zasady pisowni (%1)</translation>
+    </message>
+    <message>
+        <source>Book Words (%1)</source>
+        <extracomment>In Polish: Słowa książki (%1)</extracomment>
+        <translation>Słowa książki (%1)</translation>
+    </message>
+    <message>
+        <source>Add Name...</source>
+        <extracomment>In Polish: Dodaj imię lub nazwę… / Dodaj zasadę…</extracomment>
+        <translation>Dodaj imię lub nazwę...</translation>
+    </message>
+    <message>
+        <source>Add Rule...</source>
+        <translation>Dodaj zasadę...</translation>
+    </message>
+    <message>
+        <source>Names written in the dictionary: they are right in all their forms, Quick Insert offers them and Find in Book finds them. Once there are cards of characters, locations and items, their names join them here.</source>
+        <translation>Imiona i nazwy zapisane w słowniku: są poprawne we wszystkich formach, szybkie wstawianie je podpowiada, a Znajdź w książce je znajduje. Gdy będą karty postaci, miejsc i przedmiotów, ich nazwy też tu trafią.</translation>
+    </message>
+    <message>
+        <source>The spelling check marks a departure from a rule with a wavy line of its own color, and offers the rule&apos;s spelling.</source>
+        <translation>Sprawdzanie pisowni zaznacza odstępstwo od zasady falistą linią w osobnym kolorze i podpowiada pisownię z zasady.</translation>
+    </message>
+    <message>
+        <source>Words right in this book only. The words of every book are in Settings &gt; Editor &gt; Spelling &gt; Your Words; &quot;Move to Your Words&quot; moves the chosen words there.</source>
+        <translation>Słowa poprawne tylko w tej książce. Słowa wszystkich książek są w Ustawieniach &gt; Edytor &gt; Pisownia &gt; Twoje słowa; „Przenieś do Twoich słów” przenosi tam wybrane słowa.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::BookSearchCoordinator</name>
     <message>
         <source>No book is open</source>
@@ -5019,6 +5294,11 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
         <source>The texts are as they were before the replacement.</source>
         <extracomment>In Polish: Teksty są takie jak przed zamianą.</extracomment>
         <translation>Teksty są takie jak przed zamianą.</translation>
+    </message>
+    <message>
+        <source>Replace All in Book is off while all forms are found: one replacement of every form would break the declension</source>
+        <extracomment>Why Replace All in Book is greyed out while the search finds all forms (&quot;Odm&quot;)</extracomment>
+        <translation>Przy wyszukiwaniu wszystkich odmian „Zamień wszystko w książce” jest wyłączone – jedna zamiana wszystkich form zepsułaby odmianę</translation>
     </message>
 </context>
 <context>
@@ -8188,10 +8468,6 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Usuń</translation>
     </message>
     <message>
-        <source>Words that are right whatever the dictionary says; &quot;Add to Dictionary&quot; in the context menu of a misspelled word puts it here. A word in lower case is right also with capital letters.</source>
-        <translation>Słowa poprawne bez względu na słownik; trafia tu każde słowo dodane poleceniem „Dodaj do słownika” z menu podręcznego. Słowo dodane małymi literami jest poprawne także pisane wielkimi literami.</translation>
-    </message>
-    <message>
         <source>Colors</source>
         <translation>Kolory</translation>
     </message>
@@ -8240,8 +8516,47 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Przy ustawieniu „Sprawdzana w całym tekście” cały tekst jest sprawdzany w tle, gdy panel jest widoczny, więc liczniki i lista obejmą go w całości, gdy tylko sprawdzanie się skończy. Bezpłatny serwer api.languagetool.org ogranicza liczbę zapytań na minutę, więc tam długi tekst sprawdza się dłużej. Na tym komputerze takiego ograniczenia nie ma.</translation>
     </message>
     <message>
-        <source>The color of the wavy line under a misspelled word and of the frames of its cards in the Spelling and Grammar panel. Each theme has its own colors: these are the colors of the current theme.</source>
-        <translation>Kolor falistej linii pod błędem pisowni i ramek jego kart w panelu „Pisownia i gramatyka”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+        <source>The color of the wavy line under a misspelled word and of the frames of its cards in the Spelling and Grammar panel; below it, the same for a word written otherwise than a spelling rule of the book&apos;s dictionary wants. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolor falistej linii pod błędem pisowni i ramek jego kart w panelu „Pisownia i gramatyka”; poniżej to samo dla słowa zapisanego inaczej, niż chce zasada pisowni ze słownika książki. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Words that are right whatever the dictionary says, in every book; &quot;Add to Your Words&quot; in the context menu of a misspelled word puts it here. The words right in one book only belong to its dictionary. A word in lower case is right also with capital letters.</source>
+        <translation>Słowa poprawne bez względu na słownik, we wszystkich książkach; trafiają tu przez „Dodaj do Twoich słów” w menu podręcznym błędnego słowa. Słowa poprawne tylko w jednej książce należą do jej słownika. Słowo zapisane małymi literami jest poprawne także wielkimi.</translation>
+    </message>
+    <message>
+        <source>Book Dictionary</source>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>Mark departures from the rules</source>
+        <extracomment>In the group Book Dictionary: a word written otherwise than a spelling rule of the book&apos;s dictionary wants gets a wavy line. In Polish: Zaznaczaj odstępstwa od zasad</extracomment>
+        <translation>Zaznaczaj odstępstwa od zasad</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary</source>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>Your words (all books)</source>
+        <translation>Twoje słowa (wszystkie książki)</translation>
+    </message>
+    <message>
+        <source>The panel adds a word to:</source>
+        <extracomment>Where Add of a misspelled word&apos;s card in the Spelling and Grammar panel puts the word. In Polish: Panel dodaje słowo do:</extracomment>
+        <translation>Panel dodaje słowo do:</translation>
+    </message>
+    <message>
+        <source>Open Book Dictionary</source>
+        <translation>Otwórz słownik książki</translation>
+    </message>
+    <message>
+        <source>Open a book first: each book has its own dictionary</source>
+        <extracomment>Why Open Book Dictionary in the settings is grey. In Polish: Najpierw otwórz książkę: każda ma własny słownik</extracomment>
+        <translation>Najpierw otwórz książkę: każda ma własny słownik</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary is kept in the folder of the book and has three parts: the names with their forms, the spelling rules and the words of this book. The context menu of a misspelled word always has both places: the book&apos;s dictionary and your words.</source>
+        <translation>Słownik książki jest zapisany w folderze książki i ma trzy części: imiona i nazwy z formami, zasady pisowni i słowa tej książki. Menu podręczne błędnego słowa zawsze ma oba miejsca: słownik książki i Twoje słowa.</translation>
     </message>
 </context>
 <context>
@@ -9656,6 +9971,20 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>The title of the message about materials of several kinds that could not be added. In Polish: Nie udało się dodać materiałów</extracomment>
         <translation>Nie udało się dodać materiałów</translation>
     </message>
+    <message>
+        <source>Quote from: %1</source>
+        <extracomment>The title of a new quote from a source: %1 the title of the source. In Polish: Cytat z: %1</extracomment>
+        <translation>Cytat z: %1</translation>
+    </message>
+    <message>
+        <source>Links Not Saved</source>
+        <translation>Nie zapisano powiązań</translation>
+    </message>
+    <message>
+        <source>The file has no page %1</source>
+        <extracomment>%1: the page the writer asked for. In Polish: W pliku nie ma strony %1</extracomment>
+        <translation>W pliku nie ma strony %1</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPage</name>
@@ -9723,56 +10052,6 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Materials</source>
         <extracomment>The group of the materials of the Workshop. In Polish: Materiały</extracomment>
         <translation>Materiały</translation>
-    </message>
-    <message>
-        <source>On a tab of the program</source>
-        <extracomment>In Polish: Na karcie w programie</extracomment>
-        <translation>Na karcie w programie</translation>
-    </message>
-    <message>
-        <source>In the system program</source>
-        <extracomment>In Polish: W programie systemowym</extracomment>
-        <translation>W programie systemowym</translation>
-    </message>
-    <message>
-        <source>Pictures too. The Preview button in the Properties panel then opens the preview tab.</source>
-        <extracomment>In Polish: Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</extracomment>
-        <translation>Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</translation>
-    </message>
-    <message>
-        <source>Opening materials:</source>
-        <extracomment>In Polish: Otwieranie materiałów:</extracomment>
-        <translation>Otwieranie materiałów:</translation>
-    </message>
-    <message>
-        <source>A picture, also the copy of one from the web, opens on a preview tab, as a chapter does. A file of another kind, such as a PDF, opens in the system program until the program has a preview of it. A material without a file and an address opens on its card.</source>
-        <extracomment>In Polish: Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki program nie będzie miał jego podglądu. Materiał bez pliku i adresu otwiera się na swojej karcie.</extracomment>
-        <translation>Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki program nie będzie miał jego podglądu. Materiał bez pliku i adresu otwiera się na swojej karcie.</translation>
-    </message>
-    <message>
-        <source>In the browser</source>
-        <extracomment>In Polish: W przeglądarce</extracomment>
-        <translation>W przeglądarce</translation>
-    </message>
-    <message>
-        <source>On the card of the material</source>
-        <extracomment>In Polish: Na karcie materiału</extracomment>
-        <translation>Na karcie materiału</translation>
-    </message>
-    <message>
-        <source>Double-click and Enter open the address in the system&apos;s browser. Open Card in the menu of the node opens the card of the material in the middle of the window.</source>
-        <extracomment>In Polish: Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.</extracomment>
-        <translation>Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.</translation>
-    </message>
-    <message>
-        <source>Double-click and Enter open the card of the material in the middle of the window; its Open in Browser button opens the address.</source>
-        <extracomment>In Polish: Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk „Otwórz w przeglądarce” na tej karcie.</extracomment>
-        <translation>Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk „Otwórz w przeglądarce” na tej karcie.</translation>
-    </message>
-    <message>
-        <source>Pages and pictures on the web:</source>
-        <extracomment>In Polish: Strony i obrazy z sieci:</extracomment>
-        <translation>Strony i obrazy z sieci:</translation>
     </message>
     <message>
         <source>At once, linked</source>
@@ -10195,7 +10474,7 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
     <message>
         <source>&amp;Grouping</source>
-        <extracomment>Whether the Workshop has its cards in Libraries and its materials in Resources. In Polish: &amp;Grupowanie</extracomment>
+        <extracomment>Whether the Workshop has its cards (characters, locations, items) in Libraries. In Polish: &amp;Grupowanie</extracomment>
         <translation>&amp;Grupowanie</translation>
     </message>
     <message>
@@ -10232,6 +10511,21 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Kind &amp;Settings...</source>
         <extracomment>Opens Settings &gt; Navigator at the kinds of materials. In Polish: Ustawienia &amp;typów...</extracomment>
         <translation>Ustawienia &amp;typów...</translation>
+    </message>
+    <message>
+        <source>Book Dictionary</source>
+        <extracomment>The node at the top of the Workshop in the Navigator that shows the book&apos;s dictionary (its names, spelling rules and words) on a tab. In Polish: Słownik książki</extracomment>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>The materials with a bibliographic description, of every kind</source>
+        <extracomment>The tooltip of Sources in the Navigator. In Polish: Materiały z opisem bibliograficznym, każdego typu</extracomment>
+        <translation>Materiały z opisem bibliograficznym, każdego typu</translation>
+    </message>
+    <message>
+        <source>Source &amp;Settings...</source>
+        <extracomment>Opens Settings &gt; Materials at the sources. In Polish: &amp;Ustawienia źródeł...</extracomment>
+        <translation>&amp;Ustawienia źródeł...</translation>
     </message>
 </context>
 <context>
@@ -10895,6 +11189,7 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
     <message>
         <source>Keep the text of the {kind} as it is in the editor now as a version</source>
+        <extracomment>In Polish: Zachowaj tekst {kind:genitive} taki, jak teraz w edytorze, jako wersję</extracomment>
         <translation>Zachowaj jako wersję tekst {kind:genitive} taki, jak teraz w edytorze</translation>
     </message>
     <message>
@@ -10944,7 +11239,28 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
     <message>
         <source>With mirror margins (Settings &gt; Editor &gt; Pages and Margins) the first page of {kind:s=this|p=these} {kind} is a left page: its inner margin is on the right. Unchecked: a right page.</source>
+        <extracomment>In Polish: Przy marginesach lustrzanych (Ustawienia &gt; Edytor &gt; Strony i marginesy) pierwsza strona {kind:genitive} jest lewa: margines wewnętrzny ma po prawej. Bez zaznaczenia jest prawa.</extracomment>
         <translation>Przy marginesach lustrzanych (Ustawienia &gt; Edytor &gt; Strony i marginesy) pierwsza strona {kind:genitive} jest lewa: margines wewnętrzny ma po prawej. Bez zaznaczenia jest prawa.</translation>
+    </message>
+    <message>
+        <source>The style of the bibliography and of the references of this book</source>
+        <extracomment>In Polish: Norma zapisu bibliografii i odnośników tej książki</extracomment>
+        <translation>Norma zapisu bibliografii i odnośników tej książki</translation>
+    </message>
+    <message>
+        <source>Bibliography:</source>
+        <extracomment>The style of the bibliography of the book: PN-ISO 690, APA... In Polish: Bibliografia:</extracomment>
+        <translation>Bibliografia:</translation>
+    </message>
+    <message>
+        <source>Bibliography Style Not Saved</source>
+        <extracomment>In Polish: Nie zapisano normy bibliografii</extracomment>
+        <translation>Nie zapisano normy bibliografii</translation>
+    </message>
+    <message>
+        <source>As in the Settings (%1)</source>
+        <extracomment>The book follows the style of the Settings: %1 its name. In Polish: Jak w Ustawieniach (%1)</extracomment>
+        <translation>Jak w Ustawieniach (%1)</translation>
     </message>
 </context>
 <context>
@@ -11104,6 +11420,15 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>The tooltip of Replace All in Book. In Polish: Zamień wszystkie trafienia we wszystkich tekstach książki</extracomment>
         <translation>Zamień wszystkie trafienia we wszystkich tekstach książki</translation>
     </message>
+    <message>
+        <source>Forms</source>
+        <extracomment>The option that finds every form of a word or a name, short; its tooltip. In Polish: Odm / Wszystkie odmiany (%1)</extracomment>
+        <translation>Odm</translation>
+    </message>
+    <message>
+        <source>All Forms (%1)</source>
+        <translation>Wszystkie odmiany (%1)</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SectionNamesEdit</name>
@@ -11167,6 +11492,7 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
     <message>
         <source>Colors</source>
+        <extracomment>In Polish: Kolory</extracomment>
         <translation>Kolory</translation>
     </message>
     <message>
@@ -11314,7 +11640,9 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>Materials</source>
-        <extracomment>The page of the downloads for the materials with a web address. In Polish: Materiały</extracomment>
+        <extracomment>The page of the materials: how they open, the preview of PDF files and the sources. In Polish: Materiały
+----------
+The page of the downloads for the materials with a web address. In Polish: Materiały</extracomment>
         <translation>Materiały</translation>
     </message>
     <message>
@@ -11352,6 +11680,11 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <extracomment>Settings &gt; Editor &gt; Images: new images, the captions of new books. In Polish: Obrazy</extracomment>
         <translation>Obrazy</translation>
     </message>
+    <message>
+        <source>Cards</source>
+        <extracomment>Settings &gt; Cards: the cards of characters, locations and items. In Polish: Karty</extracomment>
+        <translation>Karty</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SettingsPage</name>
@@ -11378,6 +11711,10 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>On: a color too light for a light background is shown darker, and one too dark for a dark background lighter (on the paper and in the panels). Off: the colors exactly as set. One setting for the spelling, the grammar, the annotations and the comparison of the versions.</source>
         <translation>Włączone: kolor zbyt jasny na jasnym tle jest pokazywany ciemniej, a zbyt ciemny na ciemnym tle – jaśniej (na papierze i w panelach). Wyłączone: kolory dokładnie takie, jak ustawione. Jedno ustawienie dla pisowni, gramatyki, uwag i porównania wersji.</translation>
+    </message>
+    <message>
+        <source>Departure from a book rule</source>
+        <translation>Odstępstwo od zasady książki</translation>
     </message>
 </context>
 <context>
@@ -11489,6 +11826,11 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Regular expression</source>
         <translation>Wyrażenie regularne</translation>
+    </message>
+    <message>
+        <source>All forms</source>
+        <extracomment>The option of the find bar that finds a word in all its forms. In Polish: Wszystkie odmiany</extracomment>
+        <translation>Wszystkie odmiany</translation>
     </message>
     <message>
         <source>Close the bar</source>
@@ -13615,6 +13957,14 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Checking the grammar further on...</source>
         <translation>Sprawdzanie gramatyki w dalszych akapitach...</translation>
     </message>
+    <message>
+        <source>The book is open read-only: its dictionary cannot be changed</source>
+        <translation>Książka jest otwarta tylko do odczytu – nie można zmienić jej słownika</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary cannot be saved</source>
+        <translation>Nie można zapisać słownika książki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SpellingIssueCard</name>
@@ -13632,6 +13982,7 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>paragraph %1</source>
+        <extracomment>The place of a misspelled word or a grammar issue on its card: the paragraph&apos;s number among those with text. In Polish: akapit %1</extracomment>
         <translation>akapit %1</translation>
     </message>
     <message>
@@ -13653,8 +14004,34 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>Pomijaj tę regułę</translation>
     </message>
     <message>
-        <source>Add to Dictionary</source>
-        <translation>Dodaj do słownika</translation>
+        <source>Other places to add the word</source>
+        <translation>Inne miejsca, do których można dodać słowo</translation>
+    </message>
+    <message>
+        <source>Add to Book Dictionary</source>
+        <translation>Dodaj do słownika książki</translation>
+    </message>
+    <message>
+        <source>Add to Your Words (All Books)</source>
+        <translation>Dodaj do Twoich słów (wszystkie książki)</translation>
+    </message>
+    <message>
+        <source>Book rule</source>
+        <translation>Zasada książki</translation>
+    </message>
+    <message>
+        <source>Add to Your Words</source>
+        <translation>Dodaj do Twoich słów</translation>
+    </message>
+    <message>
+        <source>Add Name...</source>
+        <extracomment>Opens the window of a new name of the book&apos;s dictionary, with the word in it. In Polish: Dodaj imię lub nazwę…</extracomment>
+        <translation>Dodaj imię lub nazwę...</translation>
+    </message>
+    <message>
+        <source>Edit Rule...</source>
+        <extracomment>Opens the window of the spelling rule of the book. In Polish: Zmień zasadę…</extracomment>
+        <translation>Zmień zasadę...</translation>
     </message>
 </context>
 <context>
@@ -13697,14 +14074,17 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>Spelling %1</source>
+        <extracomment>%1 is the number of the misspelled words, or – when the spelling is not checked</extracomment>
         <translation>Pisownia %1</translation>
     </message>
     <message>
         <source>Grammar %1</source>
+        <extracomment>%1 is the number of the grammar issues, or – when the grammar is not checked</extracomment>
         <translation>Gramatyka %1</translation>
     </message>
     <message>
         <source>Open {kind:indefinite} or a file to see its spelling and grammar issues.</source>
+        <extracomment>In Polish: Otwórz {kind:accusative} albo plik, aby zobaczyć jego błędy pisowni i gramatyki.</extracomment>
         <translation>Otwórz {kind:accusative} albo plik, aby zobaczyć błędy pisowni i gramatyki.</translation>
     </message>
     <message>
@@ -13733,14 +14113,17 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>No spelling or grammar issues in {kind:s=this|p=these} {kind}.</source>
+        <extracomment>In Polish: Brak błędów pisowni i gramatyki w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</extracomment>
         <translation>Brak błędów pisowni i gramatyki w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</translation>
     </message>
     <message>
         <source>No misspelled words in {kind:s=this|p=these} {kind}.</source>
+        <extracomment>In Polish: Brak błędów pisowni w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</extracomment>
         <translation>Brak błędów pisowni w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</translation>
     </message>
     <message>
         <source>No grammar issues in {kind:s=this|p=these} {kind}.</source>
+        <extracomment>In Polish: Brak błędów gramatyki w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</extracomment>
         <translation>Brak błędów gramatyki w {kind:m=tym|f=tej|n=tym|p=tych} {kind:locative}.</translation>
     </message>
     <message>
@@ -13753,11 +14136,22 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>%1 – next issue (the keys go to the panel)</source>
+        <extracomment>%1 is the key of Tools &gt; Next Spelling or Grammar Issue, for example F7</extracomment>
         <translation>%1 – następny błąd (klawisze przechodzą do panelu)</translation>
     </message>
     <message>
         <source>%1 – next issue, with its menu at the word</source>
+        <extracomment>%1 is the key of Tools &gt; Next Spelling or Grammar Issue</extracomment>
         <translation>%1 – następny błąd z menu przy słowie</translation>
+    </message>
+    <message>
+        <source>Show or hide the places written otherwise than the spelling rules of the book want</source>
+        <translation>Pokaż lub ukryj odstępstwa od zasad pisowni książki</translation>
+    </message>
+    <message>
+        <source>Rules %1</source>
+        <extracomment>%1 is the number of the places written otherwise than the spelling rules of the book want. In Polish: Zasady %1</extracomment>
+        <translation>Zasady %1</translation>
     </message>
 </context>
 <context>
@@ -13768,14 +14162,17 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>Checking the spelling: paragraph %1 of %2...</source>
+        <extracomment>%1 is the number of the paragraph, %2 of all the paragraphs with text</extracomment>
         <translation>Sprawdzanie pisowni: akapit %1 z %2...</translation>
     </message>
     <message>
         <source>Checking the grammar: paragraph %1 of %2...</source>
+        <extracomment>%1 is the number of the paragraph, %2 of all the paragraphs with text</extracomment>
         <translation>Sprawdzanie gramatyki: akapit %1 z %2...</translation>
     </message>
     <message>
         <source>The spelling of the whole {kind} is checked, the grammar only around the part in view.</source>
+        <extracomment>In Polish: Sprawdzono pisownię w {kind:m=całym|f=całej|n=całym|p=całych} {kind:locative}, a gramatykę tylko wokół widocznego fragmentu.</extracomment>
         <translation>Sprawdzono pisownię w {kind:m=całym|f=całej|n=całym|p=całych} {kind:locative}, a gramatykę tylko wokół widocznego fragmentu.</translation>
     </message>
     <message>
@@ -13784,6 +14181,7 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>The whole {kind} is checked.</source>
+        <extracomment>In Polish: Sprawdzono {kind:m=cały|f=całą|n=całe|p=całe} {kind:accusative}.</extracomment>
         <translation>Sprawdzono {kind:m=cały|f=całą|n=całe|p=całe} {kind:accusative}.</translation>
     </message>
     <message>
@@ -17622,6 +18020,132 @@ The button that moves the element. In Polish: Przenieś</extracomment>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::NameDialog</name>
+    <message>
+        <source>Name</source>
+        <extracomment>The window of a name of the book&apos;s dictionary. In Polish: Imię lub nazwa</extracomment>
+        <translation>Imię lub nazwa</translation>
+    </message>
+    <message>
+        <source>A name of the book in all its forms: the spelling check takes them for right, Quick Insert offers them and Find in Book finds them.</source>
+        <translation>Imię lub nazwa z książki we wszystkich formach: sprawdzanie pisowni uznaje je za poprawne, szybkie wstawianie je podpowiada, a Znajdź w książce je znajduje.</translation>
+    </message>
+    <message>
+        <source>Names of this entry</source>
+        <extracomment>The list of the name itself and its other names. In Polish: Nazwy tej pozycji</extracomment>
+        <translation>Nazwy tej pozycji</translation>
+    </message>
+    <message>
+        <source>Add Other Name</source>
+        <extracomment>Adds a diminutive or a nickname of the name. In Polish: Dodaj inną nazwę</extracomment>
+        <translation>Dodaj inną nazwę</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>&amp;Name:</source>
+        <extracomment>In Polish: Imię lub nazwa:</extracomment>
+        <translation>&amp;Imię lub nazwa:</translation>
+    </message>
+    <message>
+        <source>&amp;Kind:</source>
+        <extracomment>What the name names: a character, a place... In Polish: Rodzaj:</extracomment>
+        <translation>&amp;Rodzaj:</translation>
+    </message>
+    <message>
+        <source>Declension</source>
+        <extracomment>How the words of the name decline. In Polish: Odmiana</extracomment>
+        <translation>Odmiana</translation>
+    </message>
+    <message>
+        <source>Does not change</source>
+        <extracomment>Every word of the name has the same form in every case. In Polish: Nie odmienia się</extracomment>
+        <translation>Nie odmienia się</translation>
+    </message>
+    <message>
+        <source>Suggest the Forms Again</source>
+        <extracomment>Gives every cell of the table the forms of the models again. In Polish: Podpowiedz formy od nowa</extracomment>
+        <translation>Podpowiedz formy od nowa</translation>
+    </message>
+    <message>
+        <source>The plural too (e.g. &quot;at the Wolskis&apos;&quot;)</source>
+        <extracomment>In Polish: Także liczba mnoga (np. „u Wolskich”)</extracomment>
+        <translation>Także liczba mnoga (np. „u Wolskich”)</translation>
+    </message>
+    <message>
+        <source>Show in Quick Insert (@)</source>
+        <extracomment>In Polish: Pokazuj w szybkim wstawianiu (@)</extracomment>
+        <translation>Pokazuj w szybkim wstawianiu (@)</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj / Zapisz</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>(new name)</source>
+        <extracomment>An other name not written yet, in the list of the names. In Polish: (nowa nazwa)</extracomment>
+        <translation>(nowa nazwa)</translation>
+    </message>
+    <message>
+        <source>%1 declines like:</source>
+        <extracomment>The model of declension of a word of the name; %1 is the word in quotes. In Polish: %1 odmienia się jak:</extracomment>
+        <translation>%1 odmienia się jak:</translation>
+    </message>
+    <message>
+        <source>The program has no models of declension for the language of the book: write the forms yourself.</source>
+        <translation>Program nie ma wzorów odmiany dla języka książki: wpisz formy samodzielnie.</translation>
+    </message>
+    <message>
+        <source>The forms are the singular and the plural; the spelling check takes the forms with &apos;s (Anna&apos;s) for right by itself.</source>
+        <translation>Formy to liczba pojedyncza i mnoga; formy z 's (Anna's) sprawdzanie pisowni samo uznaje za poprawne.</translation>
+    </message>
+    <message>
+        <source>The spelling dictionary knows the words of the name and confirms the forms of the models with them. Check the forms: the program only suggests them.</source>
+        <translation>Słownik pisowni zna słowa tej nazwy i potwierdza nimi formy ze wzorów. Sprawdź formy: program tylko je podpowiada.</translation>
+    </message>
+    <message>
+        <source>The spelling dictionary does not know the words of the name, so the forms come from the models of the same endings alone. Check them and correct them if needed.</source>
+        <translation>Słownik pisowni nie zna słów tej nazwy, więc formy pochodzą tylko ze wzorów o tych samych końcówkach. Sprawdź je i w razie potrzeby popraw.</translation>
+    </message>
+    <message>
+        <source>The spelling dictionary does not know %1, so its forms come from the model alone. Check them and correct them if needed.</source>
+        <extracomment>%1: the words in quotes the spelling dictionary does not know</extracomment>
+        <translation>Słownik pisowni nie zna %1, więc formy pochodzą tylko ze wzoru. Sprawdź je i w razie potrzeby popraw.</translation>
+    </message>
+    <message>
+        <source>A cell can have several forms, apart by commas.</source>
+        <translation>Komórka może mieć kilka form, oddzielonych przecinkami.</translation>
+    </message>
+    <message>
+        <source>main</source>
+        <extracomment>The name itself, in the list of the names of an entry. In Polish: główna</extracomment>
+        <translation>główna</translation>
+    </message>
+    <message>
+        <source>other name</source>
+        <extracomment>A diminutive or a nickname. In Polish: inna nazwa</extracomment>
+        <translation>inna nazwa</translation>
+    </message>
+    <message>
+        <source>first name alone</source>
+        <extracomment>In Polish: samo imię</extracomment>
+        <translation>samo imię</translation>
+    </message>
+    <message>
+        <source>surname alone</source>
+        <extracomment>In Polish: samo nazwisko</extracomment>
+        <translation>samo nazwisko</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::NewFileDialog</name>
     <message>
         <source>in {group:plural}</source>
@@ -18665,6 +19189,94 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>The replacements of the table are turned off now (Settings &gt; Editor &gt; Auto-correct).</source>
         <translation>Zamiany z tabeli są teraz wyłączone (Ustawienia &gt; Edytor &gt; Autokorekta).</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::RuleDialog</name>
+    <message>
+        <source>Spelling Rule</source>
+        <extracomment>The window of a spelling rule of the book&apos;s dictionary. In Polish: Zasada pisowni</extracomment>
+        <translation>Zasada pisowni</translation>
+    </message>
+    <message>
+        <source>How you want a word written in this book: the spelling check marks the other spellings and offers this one.</source>
+        <translation>Jak chcesz zapisywać słowo w tej książce: sprawdzanie pisowni zaznacza inne zapisy i podpowiada ten.</translation>
+    </message>
+    <message>
+        <source>&amp;Write:</source>
+        <extracomment>The right spelling of the rule. In Polish: Pisz:</extracomment>
+        <translation>&amp;Pisz:</translation>
+    </message>
+    <message>
+        <source>Wrong spellings</source>
+        <extracomment>In Polish: Błędne zapisy</extracomment>
+        <translation>Błędne zapisy</translation>
+    </message>
+    <message>
+        <source>Another wrong spelling</source>
+        <extracomment>In Polish: Inny błędny zapis</extracomment>
+        <translation>Inny błędny zapis</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj
+----------
+In Polish: Dodaj / Zapisz</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>The program adds the spellings that suggest themselves: the other case of a capital letter, without the hyphen, with it or apart. The rule holds also where the spelling dictionary takes them for right.</source>
+        <translation>Program dodaje zapisy, które się nasuwają: z wielką lub małą literą, bez łącznika, z łącznikiem lub osobno. Zasada obowiązuje także tam, gdzie słownik pisowni uznaje je za poprawne.</translation>
+    </message>
+    <message>
+        <source>&amp;Instead of:</source>
+        <extracomment>The wrong spellings of the rule. In Polish: Zamiast:</extracomment>
+        <translation>&amp;Zamiast:</translation>
+    </message>
+    <message>
+        <source>&amp;Also in their forms</source>
+        <extracomment>The rule covers every form of the word. In Polish: Także w odmianach</extracomment>
+        <translation>&amp;Także w odmianach</translation>
+    </message>
+    <message>
+        <source>A short note, e.g. where the spelling comes from (optional)</source>
+        <extracomment>In Polish: Krótkie wyjaśnienie, np. skąd ta pisownia (nieobowiązkowe)</extracomment>
+        <translation>Krótkie wyjaśnienie, np. skąd ta pisownia (nieobowiązkowe)</translation>
+    </message>
+    <message>
+        <source>&amp;Note:</source>
+        <extracomment>The author&apos;s note on the rule. In Polish: Uwaga:</extracomment>
+        <translation>&amp;Uwaga:</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>suggested</source>
+        <extracomment>A wrong spelling the program added to the rule. In Polish: podpowiedź programu</extracomment>
+        <translation>podpowiedź programu</translation>
+    </message>
+    <message>
+        <source>Only the spellings listed, in no other forms.</source>
+        <translation>Tylko wymienione zapisy, bez innych form.</translation>
+    </message>
+    <message>
+        <source>The spelling dictionary knows no other forms of the word: the rule covers the spellings listed.</source>
+        <translation>Słownik pisowni nie zna innych form tego słowa: zasada obejmuje wymienione zapisy.</translation>
+    </message>
+    <message>
+        <source>Forms from the spelling dictionary: %1</source>
+        <translation>Formy ze słownika pisowni: %1</translation>
+    </message>
+    <message>
+        <source>Forms like those of %1, as the spelling dictionary does not know %2: %3</source>
+        <translation>Formy według wzoru %1 – słownik pisowni nie zna słowa %2: %3</translation>
     </message>
 </context>
 <context>
@@ -20453,6 +21065,11 @@ Note: %2</source>
         <translation>%1
 Notatka: %2</translation>
     </message>
+    <message>
+        <source>Open the Material</source>
+        <extracomment>The menu of a material linked with a chapter or a card. In Polish: Otwórz materiał</extracomment>
+        <translation>Otwórz materiał</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::MaterialFile</name>
@@ -20475,6 +21092,15 @@ Notatka: %2</translation>
         <source>The program does not show %1 pictures. Open the file in the system program.</source>
         <extracomment>%1: the format, e.g. WEBP. In Polish: Program nie pokazuje obrazów %1. Otwórz plik w programie systemowym.</extracomment>
         <translation>Program nie pokazuje obrazów %1. Otwórz plik w programie systemowym.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n page(s)</source>
+        <extracomment>The pages of a PDF file. In Polish: %n strona / %n strony / %n stron</extracomment>
+        <translation>
+            <numerusform>%n strona</numerusform>
+            <numerusform>%n strony</numerusform>
+            <numerusform>%n stron</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -20526,39 +21152,9 @@ In Polish: Otwórz podgląd</extracomment>
         <translation>Wpisz opis...</translation>
     </message>
     <message>
-        <source>Own Fields</source>
-        <extracomment>The writer&apos;s own fields of a material: a name and a value each. In Polish: Własne pola</extracomment>
-        <translation>Własne pola</translation>
-    </message>
-    <message>
-        <source>Add Field (Insert)</source>
-        <extracomment>In Polish: Dodaj pole (Insert)</extracomment>
-        <translation>Dodaj pole (Insert)</translation>
-    </message>
-    <message>
-        <source>Delete Field (Delete)</source>
-        <extracomment>In Polish: Usuń pole (Delete)</extracomment>
-        <translation>Usuń pole (Delete)</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <extracomment>The columns of the own fields of a material. In Polish: Nazwa</extracomment>
-        <translation>Nazwa</translation>
-    </message>
-    <message>
-        <source>Value</source>
-        <extracomment>In Polish: Wartość</extracomment>
-        <translation>Wartość</translation>
-    </message>
-    <message>
         <source>Own fields of the material</source>
         <extracomment>In Polish: Własne pola materiału</extracomment>
         <translation>Własne pola materiału</translation>
-    </message>
-    <message>
-        <source>No fields. &quot;+&quot; or Insert adds a field.</source>
-        <extracomment>In Polish: Brak pól. „+” albo Insert dodaje pole.</extracomment>
-        <translation>Brak pól. „+” albo Insert dodaje pole.</translation>
     </message>
     <message>
         <source>Links</source>
@@ -20607,26 +21203,6 @@ In Polish: Otwórz podgląd</extracomment>
         <source>Description Not Saved</source>
         <extracomment>In Polish: Nie zapisano opisu</extracomment>
         <translation>Nie zapisano opisu</translation>
-    </message>
-    <message>
-        <source>Fields Not Saved</source>
-        <extracomment>In Polish: Nie zapisano pól</extracomment>
-        <translation>Nie zapisano pól</translation>
-    </message>
-    <message>
-        <source>Delete the field &quot;%1&quot; with its value?</source>
-        <extracomment>%1: the name of the field. In Polish: Usunąć pole „%1” razem z jego wartością?</extracomment>
-        <translation>Usunąć pole „%1” razem z jego wartością?</translation>
-    </message>
-    <message>
-        <source>Delete Field</source>
-        <extracomment>In Polish: Usuń pole</extracomment>
-        <translation>Usuń pole</translation>
-    </message>
-    <message>
-        <source>&amp;Delete</source>
-        <extracomment>In Polish: &amp;Usuń</extracomment>
-        <translation>&amp;Usuń</translation>
     </message>
     <message>
         <source>Links Not Saved</source>
@@ -20810,6 +21386,59 @@ Notatka: %2</translation>
         <extracomment>In Polish: Nie zapisano stanu</extracomment>
         <translation>Nie zapisano stanu</translation>
     </message>
+    <message>
+        <source>Quote</source>
+        <extracomment>The words of a quote, in the field of the description of its card. In Polish: Cytat</extracomment>
+        <translation>Cytat</translation>
+    </message>
+    <message>
+        <source>Words of the quote</source>
+        <extracomment>In Polish: Słowa cytatu</extracomment>
+        <translation>Słowa cytatu</translation>
+    </message>
+    <message>
+        <source>Type or paste the words of the quote...</source>
+        <extracomment>In Polish: Wpisz albo wklej słowa cytatu...</extracomment>
+        <translation>Wpisz albo wklej słowa cytatu...</translation>
+    </message>
+    <message>
+        <source>This version of the program has no preview of PDF files; the system program opens them</source>
+        <extracomment>The tooltip of Preview for a PDF file in a program built without the preview of PDF files. In Polish: Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy</extracomment>
+        <translation>Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy</translation>
+    </message>
+    <message>
+        <source>The program shows only pictures and PDF files</source>
+        <extracomment>The tooltip of Preview for a file that is no picture nor PDF. In Polish: Program pokazuje tylko obrazy i pliki PDF</extracomment>
+        <translation>Program pokazuje tylko obrazy i pliki PDF</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::NameFormsTable</name>
+    <message>
+        <source>Forms</source>
+        <extracomment>The table of the forms of a name in its window. In Polish: Formy</extracomment>
+        <translation>Formy</translation>
+    </message>
+    <message>
+        <source>Case</source>
+        <extracomment>The column of the cases in the table of the forms of a name. In Polish: Przypadek</extracomment>
+        <translation>Przypadek</translation>
+    </message>
+    <message>
+        <source>Singular</source>
+        <extracomment>In Polish: Liczba pojedyncza</extracomment>
+        <translation>Liczba pojedyncza</translation>
+    </message>
+    <message>
+        <source>Plural</source>
+        <extracomment>In Polish: Liczba mnoga</extracomment>
+        <translation>Liczba mnoga</translation>
+    </message>
+    <message>
+        <source>Form</source>
+        <extracomment>The row of a language without cases: the form of the name. In Polish: Forma</extracomment>
+        <translation>Forma</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::MaterialList</name>
@@ -20930,7 +21559,9 @@ Notatka: %2</translation>
     </message>
     <message>
         <source>Kind</source>
-        <extracomment>The kind of a document: PDF, text, spreadsheet... In Polish: Rodzaj</extracomment>
+        <extracomment>What a material of the cover is: a description, a tagline... In Polish: Rodzaj
+----------
+The kind of a document: PDF, text, spreadsheet... In Polish: Rodzaj</extracomment>
         <translation>Rodzaj</translation>
     </message>
     <message>
@@ -21176,7 +21807,9 @@ Notatka: %2</translation>
     </message>
     <message>
         <source>Author</source>
-        <extracomment>Who wrote an opinion, made a design or a picture. In Polish: Autor</extracomment>
+        <extracomment>The authors of a source. In Polish: Autor
+----------
+Who wrote an opinion, made a design or a picture. In Polish: Autor</extracomment>
         <translation>Autor</translation>
     </message>
     <message>
@@ -21196,7 +21829,9 @@ Notatka: %2</translation>
     </message>
     <message>
         <source>Source</source>
-        <extracomment>Where an opinion comes from. In Polish: Źródło</extracomment>
+        <extracomment>Where an opinion comes from. In Polish: Źródło
+----------
+Where a quote comes from: a source and its page. In Polish: Źródło</extracomment>
         <translation>Źródło</translation>
     </message>
     <message>
@@ -21284,6 +21919,65 @@ Notatka: %2</translation>
         <extracomment>The filter Kind of the list of the cover that shows all of them. In Polish: wszystkie</extracomment>
         <translation>wszystkie</translation>
     </message>
+    <message>
+        <source>%1, p. %2</source>
+        <extracomment>The source of a quote in the list of the quotes: %1 the source, %2 the page. In Polish: %1, s. %2</extracomment>
+        <translation>%1, s. %2</translation>
+    </message>
+    <message>
+        <source>Sources</source>
+        <extracomment>The list of the materials with a bibliographic description, on a tab and in the Navigator. In Polish: Źródła</extracomment>
+        <translation>Źródła</translation>
+    </message>
+    <message>
+        <source>Material</source>
+        <extracomment>The kind of the material of a source: publication, web page. In Polish: Typ materiału</extracomment>
+        <translation>Typ materiału</translation>
+    </message>
+    <message>
+        <source>Kind of source</source>
+        <extracomment>A book, an article, a web page... In Polish: Rodzaj źródła</extracomment>
+        <translation>Rodzaj źródła</translation>
+    </message>
+    <message>
+        <source>Year</source>
+        <extracomment>The year of a source. In Polish: Rok</extracomment>
+        <translation>Rok</translation>
+    </message>
+    <message>
+        <source>In the bibliography</source>
+        <extracomment>Whether the bibliography of the book has a source. In Polish: W bibliografii</extracomment>
+        <translation>W bibliografii</translation>
+    </message>
+    <message>
+        <source>In the text</source>
+        <extracomment>How many places of the text a source is linked with, its quotes too. In Polish: W tekście</extracomment>
+        <translation>W tekście</translation>
+    </message>
+    <message>
+        <source>Bibliographic Description Not Saved</source>
+        <extracomment>In Polish: Nie zapisano opisu bibliograficznego</extracomment>
+        <translation>Nie zapisano opisu bibliograficznego</translation>
+    </message>
+    <message numerus="yes">
+        <source>Entries copied: %n (%1)</source>
+        <extracomment>The status bar after Copy Entries of the list Sources; %1 the style. In Polish: Skopiowano zapisy: %n (%1)</extracomment>
+        <translation>
+            <numerusform>Skopiowano zapisy: %n (%1)</numerusform>
+            <numerusform>Skopiowano zapisy: %n (%1)</numerusform>
+            <numerusform>Skopiowano zapisy: %n (%1)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Copy Entries (%1)</source>
+        <extracomment>The list Sources: copies the entries of its sources; %1 the style of the book. In Polish: Kopiuj zapisy (%1)</extracomment>
+        <translation>Kopiuj zapisy (%1)</translation>
+    </message>
+    <message>
+        <source>Copies the entries in the bibliography of all the sources the list shows, in its order</source>
+        <extracomment>In Polish: Kopiuje zapisy w bibliografii wszystkich źródeł widocznych na liście, w jej kolejności</extracomment>
+        <translation>Kopiuje zapisy w bibliografii wszystkich źródeł widocznych na liście, w jej kolejności</translation>
+    </message>
 </context>
 <context>
     <name>LinkRoles</name>
@@ -21316,6 +22010,238 @@ Notatka: %2</translation>
         <source>paragraph %1</source>
         <extracomment>The paragraph of a chapter a link names, after its role. In Polish: akapit %1</extracomment>
         <translation>akapit %1</translation>
+    </message>
+    <message>
+        <source>point of view</source>
+        <extracomment>A role of a card in a chapter: the chapter is told by the character. In Polish: punkt widzenia</extracomment>
+        <translation>punkt widzenia</translation>
+    </message>
+    <message>
+        <source>appears</source>
+        <extracomment>A role of a card in a chapter: the character or the item is in the chapter. In Polish: występuje</extracomment>
+        <translation>występuje</translation>
+    </message>
+    <message>
+        <source>mentioned</source>
+        <extracomment>A role of a card in a chapter: the card is only spoken of. In Polish: wzmianka</extracomment>
+        <translation>wzmianka</translation>
+    </message>
+    <message>
+        <source>setting</source>
+        <extracomment>A role of a card in a chapter: where the chapter takes place. In Polish: miejsce akcji</extracomment>
+        <translation>miejsce akcji</translation>
+    </message>
+</context>
+<context>
+    <name>NameLabels</name>
+    <message>
+        <source>nominative</source>
+        <extracomment>A grammatical case of a name; in Polish: mianownik</extracomment>
+        <translation>mianownik</translation>
+    </message>
+    <message>
+        <source>genitive</source>
+        <extracomment>In Polish: dopełniacz</extracomment>
+        <translation>dopełniacz</translation>
+    </message>
+    <message>
+        <source>dative</source>
+        <extracomment>In Polish: celownik</extracomment>
+        <translation>celownik</translation>
+    </message>
+    <message>
+        <source>accusative</source>
+        <extracomment>In Polish: biernik</extracomment>
+        <translation>biernik</translation>
+    </message>
+    <message>
+        <source>instrumental</source>
+        <extracomment>In Polish: narzędnik</extracomment>
+        <translation>narzędnik</translation>
+    </message>
+    <message>
+        <source>locative</source>
+        <extracomment>In Polish: miejscownik</extracomment>
+        <translation>miejscownik</translation>
+    </message>
+    <message>
+        <source>vocative</source>
+        <extracomment>In Polish: wołacz</extracomment>
+        <translation>wołacz</translation>
+    </message>
+    <message>
+        <source>%1 plural</source>
+        <extracomment>A grammatical case (%1, &quot;genitive&quot;) in the plural; in Polish: %1 lm.</extracomment>
+        <translation>%1 lm.</translation>
+    </message>
+    <message>
+        <source>plural</source>
+        <extracomment>The number of a form of a name, in a language without cases</extracomment>
+        <translation>liczba mnoga</translation>
+    </message>
+    <message>
+        <source>singular</source>
+        <translation>liczba pojedyncza</translation>
+    </message>
+    <message>
+        <source>character</source>
+        <extracomment>What a name of the book&apos;s dictionary names: a person or another being of the story</extracomment>
+        <translation>postać</translation>
+    </message>
+    <message>
+        <source>location</source>
+        <extracomment>What a name of the book&apos;s dictionary names: a place</extracomment>
+        <translation>miejsce</translation>
+    </message>
+    <message>
+        <source>item</source>
+        <extracomment>What a name of the book&apos;s dictionary names: a thing</extracomment>
+        <translation>przedmiot</translation>
+    </message>
+    <message>
+        <source>name</source>
+        <extracomment>What a name of the book&apos;s dictionary names: a people, an order, an event</extracomment>
+        <translation>nazwa</translation>
+    </message>
+    <message>
+        <source>Characters</source>
+        <extracomment>The heading of the characters of the book in a list</extracomment>
+        <translation>Postacie</translation>
+    </message>
+    <message>
+        <source>Locations</source>
+        <extracomment>The heading of the places of the book in a list</extracomment>
+        <translation>Miejsca</translation>
+    </message>
+    <message>
+        <source>Items</source>
+        <extracomment>The heading of the things of the book in a list</extracomment>
+        <translation>Przedmioty</translation>
+    </message>
+    <message>
+        <source>Other Names</source>
+        <extracomment>The heading of the other proper names of the book in a list</extracomment>
+        <translation>Inne nazwy</translation>
+    </message>
+    <message>
+        <source>Character</source>
+        <extracomment>A kind of name of the book&apos;s dictionary in its window; in Polish: Postać</extracomment>
+        <translation>Postać</translation>
+    </message>
+    <message>
+        <source>Location</source>
+        <extracomment>In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Item</source>
+        <extracomment>In Polish: Przedmiot</extracomment>
+        <translation>Przedmiot</translation>
+    </message>
+    <message>
+        <source>Other name</source>
+        <extracomment>A people, an order, an event; in Polish: Inna nazwa</extracomment>
+        <translation>Inna nazwa</translation>
+    </message>
+    <message>
+        <source>who? what?</source>
+        <extracomment>The questions of the nominative; in Polish: kto? co?</extracomment>
+        <translation>kto? co?</translation>
+    </message>
+    <message>
+        <source>of whom? of what?</source>
+        <extracomment>Of the genitive; in Polish: kogo? czego?</extracomment>
+        <translation>kogo? czego?</translation>
+    </message>
+    <message>
+        <source>to whom? to what?</source>
+        <extracomment>Of the dative; in Polish: komu? czemu?</extracomment>
+        <translation>komu? czemu?</translation>
+    </message>
+    <message>
+        <source>whom? what?</source>
+        <extracomment>Of the accusative; in Polish: kogo? co?</extracomment>
+        <translation>kogo? co?</translation>
+    </message>
+    <message>
+        <source>with whom? with what?</source>
+        <extracomment>Of the instrumental; in Polish: z kim? z czym?</extracomment>
+        <translation>z kim? z czym?</translation>
+    </message>
+    <message>
+        <source>about whom? about what?</source>
+        <extracomment>Of the locative; in Polish: o kim? o czym?</extracomment>
+        <translation>o kim? o czym?</translation>
+    </message>
+    <message>
+        <source>O!</source>
+        <extracomment>Of the vocative; in Polish: o!</extracomment>
+        <translation>o!</translation>
+    </message>
+    <message>
+        <source>Jan – a man&apos;s name ending in a consonant</source>
+        <extracomment>A model of declension: its sample word, then the words that decline like it. In Polish: Jan – męskie na spółgłoskę</extracomment>
+        <translation>Jan – męskie na spółgłoskę</translation>
+    </message>
+    <message>
+        <source>Marek – a man&apos;s name whose e drops (Marka)</source>
+        <extracomment>In Polish: Marek – męskie z opadającym e (Marka)</extracomment>
+        <translation>Marek – męskie z opadającym e (Marka)</translation>
+    </message>
+    <message>
+        <source>Kuba – a man&apos;s name ending in -a or -o</source>
+        <extracomment>In Polish: Kuba – męskie na -a lub -o</extracomment>
+        <translation>Kuba – męskie na -a lub -o</translation>
+    </message>
+    <message>
+        <source>Kowalski – a masculine adjective (-ski, -cki, -y)</source>
+        <extracomment>In Polish: Kowalski – przymiotnikowe męskie (-ski, -cki, -y)</extracomment>
+        <translation>Kowalski – przymiotnikowe męskie (-ski, -cki, -y)</translation>
+    </message>
+    <message>
+        <source>Anna – a feminine noun ending in -a</source>
+        <extracomment>In Polish: Anna – żeńskie na -a</extracomment>
+        <translation>Anna – żeńskie na -a</translation>
+    </message>
+    <message>
+        <source>Kowalska – a feminine adjective (-ska, -cka, -owa)</source>
+        <extracomment>In Polish: Kowalska – przymiotnikowe żeńskie (-ska, -cka, -owa)</extracomment>
+        <translation>Kowalska – przymiotnikowe żeńskie (-ska, -cka, -owa)</translation>
+    </message>
+    <message>
+        <source>Gdańsk – a masculine thing, genitive -a</source>
+        <extracomment>In Polish: Gdańsk – męskie nieżywotne, dopełniacz na -a</extracomment>
+        <translation>Gdańsk – męskie nieżywotne, dopełniacz na -a</translation>
+    </message>
+    <message>
+        <source>Londyn – a masculine thing, genitive -u</source>
+        <extracomment>In Polish: Londyn – męskie nieżywotne, dopełniacz na -u</extracomment>
+        <translation>Londyn – męskie nieżywotne, dopełniacz na -u</translation>
+    </message>
+    <message>
+        <source>Gniezno – a neuter noun ending in -o</source>
+        <extracomment>In Polish: Gniezno – nijakie na -o</extracomment>
+        <translation>Gniezno – nijakie na -o</translation>
+    </message>
+    <message>
+        <source>Opole – a neuter noun ending in -e</source>
+        <extracomment>In Polish: Opole – nijakie na -e</extracomment>
+        <translation>Opole – nijakie na -e</translation>
+    </message>
+    <message>
+        <source>Zakopane – a neuter adjective</source>
+        <extracomment>In Polish: Zakopane – przymiotnikowe nijakie</extracomment>
+        <translation>Zakopane – przymiotnikowe nijakie</translation>
+    </message>
+    <message>
+        <source>Regular – the plural with -s</source>
+        <extracomment>An English name: its plural with -s. In Polish: Regularna – liczba mnoga z -s</extracomment>
+        <translation>Regularna – liczba mnoga z -s</translation>
+    </message>
+    <message>
+        <source>Does not change</source>
+        <extracomment>A word of a name that has the same form in every case. In Polish: Nie odmienia się</extracomment>
+        <translation>Nie odmienia się</translation>
     </message>
 </context>
 <context>
@@ -21419,6 +22345,16 @@ Notatka: %2</translation>
         <source>%1 – the quote is in it</source>
         <extracomment>A paragraph with the words of the quote being linked. In Polish: %1 – jest w nim ten cytat</extracomment>
         <translation>%1 – jest w nim ten cytat</translation>
+    </message>
+    <message>
+        <source>Chapters of &quot;%1&quot;</source>
+        <extracomment>The window that links a card of a character, a location or an item with the chapters it is in; %1: its name. In Polish: Rozdziały karty „%1”</extracomment>
+        <translation>Rozdziały karty „%1”</translation>
+    </message>
+    <message>
+        <source>Check the chapters the card is in, and say how.</source>
+        <extracomment>In Polish: Zaznacz rozdziały, w których jest karta, i powiedz, w jaki sposób.</extracomment>
+        <translation>Zaznacz rozdziały, w których jest karta, i powiedz, w jaki sposób.</translation>
     </message>
 </context>
 <context>
@@ -24988,10 +25924,6 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
         <translation>Otwieraj listę po @ albo #</translation>
     </message>
     <message>
-        <source>Names from the cards of the Workshop</source>
-        <translation>Imiona i nazwy z kart Warsztatu</translation>
-    </message>
-    <message>
         <source>Text fragments</source>
         <translation>Fragmenty tekstu</translation>
     </message>
@@ -25054,8 +25986,12 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
         <translation>Przywróć domyślne &amp;znaki</translation>
     </message>
     <message>
-        <source>Type # and the first letters of a name at the start of a word to insert its text. The names of the cards are those of the book open; they need no list here.</source>
-        <translation>Wpisz # i pierwsze litery nazwy na początku słowa, żeby wstawić jej tekst. Imiona i nazwy z kart pochodzą z otwartej książki; nie trzeba ich tu dopisywać.</translation>
+        <source>Names from the book dictionary (and the cards)</source>
+        <translation>Imiona i nazwy ze słownika książki (i z kart)</translation>
+    </message>
+    <message>
+        <source>Type # and the first letters of a name at the start of a word to insert its text. The names of the book dictionary and of the cards are those of the book open; they need no list here.</source>
+        <translation>Wpisz # i pierwsze litery nazwy na początku słowa, żeby wstawić jej tekst. Imiona i nazwy ze słownika książki i z kart pochodzą z otwartej książki; nie trzeba ich tu dopisywać.</translation>
     </message>
 </context>
 <context>
@@ -25314,10 +26250,12 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
     <name>kalahari::gui::RepetitionsPanel</name>
     <message>
         <source>Chapter</source>
+        <extracomment>The scope of the panel Repetitions: the text in front. In Polish: Rozdział</extracomment>
         <translation>Rozdział</translation>
     </message>
     <message>
         <source>Whole Book</source>
+        <extracomment>The scope of the panel Repetitions: all the texts of the book. In Polish: Cała książka</extracomment>
         <translation>Cała książka</translation>
     </message>
     <message>
@@ -25397,6 +26335,21 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Inserts: %1</source>
         <extracomment>Quick insert: what the chosen item puts in the text</extracomment>
         <translation>Wstawia: %1</translation>
+    </message>
+    <message>
+        <source>%1 – forms</source>
+        <extracomment>Quick insert: the heading of the forms of a name (%1, &quot;Anna Wolska&quot;) in the list</extracomment>
+        <translation>%1 – odmiany</translation>
+    </message>
+    <message>
+        <source>↑↓ choose · ← back to the list · Enter, Tab insert · Esc leaves “%1”</source>
+        <extracomment>Quick insert: the keys of the forms of a name; %1 is what was typed in the text (&quot;@an&quot;)</extracomment>
+        <translation>↑↓ wybór · ← powrót do listy · Enter, Tab wstawia · Esc zostawia „%1”</translation>
+    </message>
+    <message>
+        <source>↑↓ choose · → forms · Enter, Tab insert · Esc leaves “%1”</source>
+        <extracomment>Quick insert: the keys of a list with names that have forms (▸); %1 is what was typed in the text (&quot;@an&quot;)</extracomment>
+        <translation>↑↓ wybór · → odmiany · Enter, Tab wstawia · Esc zostawia „%1”</translation>
     </message>
 </context>
 <context>
@@ -25746,6 +26699,7 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
     </message>
     <message>
         <source>Saves the text &quot;%1&quot; as a Markdown file.</source>
+        <extracomment>%1: the title of the text. In Polish: Zapisuje tekst „%1” jako plik Markdown.</extracomment>
         <translation>Zapisuje tekst „%1” jako plik Markdown.</translation>
     </message>
     <message>
@@ -25755,6 +26709,7 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
     </message>
     <message>
         <source>Saves the book &quot;%1&quot; as a Markdown file.</source>
+        <extracomment>%1: the title of the book. In Polish: Zapisuje książkę „%1” jako plik Markdown.</extracomment>
         <translation>Zapisuje książkę „%1” jako plik Markdown.</translation>
     </message>
     <message>
@@ -25865,6 +26820,1859 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Saves the book &quot;%1&quot; in the format %2.</source>
         <extracomment>The format of a plugin; %1: the title of the book, %2: the format with its extension. In Polish: Zapisuje książkę „%1” w formacie %2.</extracomment>
         <translation>Zapisuje książkę „%1” w formacie %2.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::BibliographyEntryBox</name>
+    <message>
+        <source>As the Bibliography Shows It</source>
+        <extracomment>The group with the entry of a source in the bibliography. In Polish: Tak wygląda w bibliografii</extracomment>
+        <translation>Tak wygląda w bibliografii</translation>
+    </message>
+    <message>
+        <source>The choice shows the entry in another style; the style of the book is in the Properties of the book.</source>
+        <extracomment>In Polish: Wybór pokazuje zapis w innej normie; normę książki zmienisz we Właściwościach książki.</extracomment>
+        <translation>Wybór pokazuje zapis w innej normie; normę książki zmienisz we Właściwościach książki.</translation>
+    </message>
+    <message>
+        <source>Style:</source>
+        <extracomment>The style of a bibliography: PN-ISO 690, APA... In Polish: Norma:</extracomment>
+        <translation>Norma:</translation>
+    </message>
+    <message>
+        <source>Entry in the bibliography</source>
+        <extracomment>In Polish: Zapis w bibliografii</extracomment>
+        <translation>Zapis w bibliografii</translation>
+    </message>
+    <message>
+        <source>In the bibliography:</source>
+        <extracomment>Whether the bibliography of the book has a source. In Polish: W bibliografii:</extracomment>
+        <translation>W bibliografii:</translation>
+    </message>
+    <message>
+        <source>Copy Entry</source>
+        <extracomment>In Polish: Kopiuj zapis</extracomment>
+        <translation>Kopiuj zapis</translation>
+    </message>
+    <message>
+        <source>Source Settings</source>
+        <extracomment>Opens Settings &gt; Materials. In Polish: Ustawienia źródeł</extracomment>
+        <translation>Ustawienia źródeł</translation>
+    </message>
+    <message>
+        <source>Bibliographic Description Not Saved</source>
+        <translation>Nie zapisano opisu bibliograficznego</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>%1 (the book&apos;s)</source>
+        <extracomment>The style of the book among the styles of a bibliography: %1 its name. In Polish: %1 (domyślna książki)</extracomment>
+        <translation>%1 (norma książki)</translation>
+    </message>
+    <message>
+        <source>In the Bibliography · %1</source>
+        <extracomment>The short card: %1 the style of the book. In Polish: W bibliografii · %1</extracomment>
+        <translation>W bibliografii · %1</translation>
+    </message>
+    <message>
+        <source>Fill in the bibliographic description, and its entry in the bibliography shows here.</source>
+        <extracomment>In Polish: Uzupełnij opis bibliograficzny, a tu pojawi się zapis w bibliografii.</extracomment>
+        <translation>Uzupełnij opis bibliograficzny, a tu pojawi się zapis w bibliografii.</translation>
+    </message>
+    <message>
+        <source>Entry copied (%1)</source>
+        <extracomment>%1: the style. In Polish: Skopiowano zapis (%1)</extracomment>
+        <translation>Skopiowano zapis (%1)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::BookmarksBox</name>
+    <message>
+        <source>Bookmarks</source>
+        <extracomment>Places in the file of a material: a page and a note each. In Polish: Zakładki</extracomment>
+        <translation>Zakładki</translation>
+    </message>
+    <message>
+        <source>Add Bookmark (Insert)</source>
+        <extracomment>In Polish: Dodaj zakładkę (Insert)</extracomment>
+        <translation>Dodaj zakładkę (Insert)</translation>
+    </message>
+    <message>
+        <source>Delete Bookmark (Delete)</source>
+        <extracomment>In Polish: Usuń zakładkę (Delete)</extracomment>
+        <translation>Usuń zakładkę (Delete)</translation>
+    </message>
+    <message>
+        <source>Bookmarks of the file</source>
+        <extracomment>In Polish: Zakładki pliku</extracomment>
+        <translation>Zakładki pliku</translation>
+    </message>
+    <message>
+        <source>Page</source>
+        <extracomment>The columns of the bookmarks. In Polish: Strona</extracomment>
+        <translation>Strona</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>No bookmarks. &quot;+&quot; or Insert adds a bookmark.</source>
+        <extracomment>In Polish: Brak zakładek. „+” albo Insert dodaje zakładkę.</extracomment>
+        <translation>Brak zakładek. „+” albo Insert dodaje zakładkę.</translation>
+    </message>
+    <message>
+        <source>Delete Bookmark</source>
+        <translation>Usuń zakładkę</translation>
+    </message>
+    <message>
+        <source>Delete the bookmark of page %1 with its note?</source>
+        <extracomment>%1: the page. In Polish: Usunąć zakładkę strony %1 razem z notatką?</extracomment>
+        <translation>Usunąć zakładkę strony %1 razem z notatką?</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Bookmarks Not Saved</source>
+        <extracomment>In Polish: Nie zapisano zakładek</extracomment>
+        <translation>Nie zapisano zakładek</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Show the Page in the Preview</source>
+        <extracomment>In Polish: Pokaż stronę w podglądzie</extracomment>
+        <translation>Pokaż stronę w podglądzie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::MaterialsPage</name>
+    <message>
+        <source>Sources</source>
+        <extracomment>The group of the page Materials. In Polish: Źródła</extracomment>
+        <translation>Źródła</translation>
+    </message>
+    <message>
+        <source>%1 (recommended)</source>
+        <extracomment>The style the program has at first: %1 its name. In Polish: %1 (zalecana)</extracomment>
+        <translation>%1 (zalecana)</translation>
+    </message>
+    <message>
+        <source>Style:</source>
+        <extracomment>The style of the bibliography and of the entries of the sources. In Polish: Norma zapisu:</extracomment>
+        <translation>Norma zapisu:</translation>
+    </message>
+    <message>
+        <source>The style of new books and of the books without their own; a book may have its own in the Properties of the book.</source>
+        <extracomment>In Polish: Norma nowych książek i książek bez własnej; książka może mieć własną we Właściwościach książki.</extracomment>
+        <translation>Norma nowych książek i książek bez własnej; książka może mieć własną we Właściwościach książki.</translation>
+    </message>
+    <message>
+        <source>Reference:</source>
+        <extracomment>How the text refers to a source: (Wiśniewska 2011, s. 45). In Polish: Odnośnik:</extracomment>
+        <translation>Odnośnik:</translation>
+    </message>
+    <message>
+        <source>Opening</source>
+        <extracomment>The group of the page Materials: how the materials open. In Polish: Otwieranie</extracomment>
+        <translation>Otwieranie</translation>
+    </message>
+    <message>
+        <source>On a tab of the program</source>
+        <extracomment>In Polish: Na karcie w programie</extracomment>
+        <translation>Na karcie w programie</translation>
+    </message>
+    <message>
+        <source>In the system program</source>
+        <extracomment>In Polish: W programie systemowym</extracomment>
+        <translation>W programie systemowym</translation>
+    </message>
+    <message>
+        <source>A picture, also the copy of one from the web, opens on a preview tab, as a chapter does. A file the program does not show opens in the system program, and a material without a file and an address on its card.</source>
+        <extracomment>In Polish: Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak rozdział. Plik, którego program nie pokazuje, otwiera się w programie systemowym, a materiał bez pliku i adresu – na swojej karcie.</extracomment>
+        <translation>Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak rozdział. Plik, którego program nie pokazuje, otwiera się w programie systemowym, a materiał bez pliku i adresu – na swojej karcie.</translation>
+    </message>
+    <message>
+        <source>The Preview button in the Properties panel then opens the preview tab.</source>
+        <extracomment>In Polish: Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</extracomment>
+        <translation>Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</translation>
+    </message>
+    <message>
+        <source>Pictures:</source>
+        <extracomment>In Polish: Obrazy:</extracomment>
+        <translation>Obrazy:</translation>
+    </message>
+    <message>
+        <source>In the browser</source>
+        <extracomment>In Polish: W przeglądarce</extracomment>
+        <translation>W przeglądarce</translation>
+    </message>
+    <message>
+        <source>On the card of the material</source>
+        <extracomment>In Polish: Na karcie materiału</extracomment>
+        <translation>Na karcie materiału</translation>
+    </message>
+    <message>
+        <source>Double-click and Enter open the address in the system&apos;s browser. Open Card in the menu of the node opens the card of the material in the middle of the window.</source>
+        <extracomment>In Polish: Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.</extracomment>
+        <translation>Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.</translation>
+    </message>
+    <message>
+        <source>Double-click and Enter open the card of the material in the middle of the window; its Open in Browser button opens the address.</source>
+        <extracomment>In Polish: Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk „Otwórz w przeglądarce” na tej karcie.</extracomment>
+        <translation>Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk „Otwórz w przeglądarce” na tej karcie.</translation>
+    </message>
+    <message>
+        <source>Pages and pictures on the web:</source>
+        <extracomment>In Polish: Strony i obrazy z sieci:</extracomment>
+        <translation>Strony i obrazy z sieci:</translation>
+    </message>
+    <message>
+        <source>On a preview tab of the program</source>
+        <extracomment>In Polish: Na karcie podglądu w programie</extracomment>
+        <translation>Na karcie podglądu w programie</translation>
+    </message>
+    <message>
+        <source>The pages, the bookmarks, the contents and the search of the file; text selected on a page makes a quote with its page.</source>
+        <extracomment>In Polish: Strony, zakładki, spis treści i szukanie w pliku; tekst zaznaczony na stronie daje cytat z numerem strony.</extracomment>
+        <translation>Strony, zakładki, spis treści i szukanie w pliku; tekst zaznaczony na stronie daje cytat z numerem strony.</translation>
+    </message>
+    <message>
+        <source>Show Page on the cards of the sources and the quotes still opens the preview at the page.</source>
+        <extracomment>In Polish: Przycisk „Pokaż stronę” na kartach źródeł i cytatów nadal otwiera podgląd na tej stronie.</extracomment>
+        <translation>Przycisk „Pokaż stronę” na kartach źródeł i cytatów nadal otwiera podgląd na tej stronie.</translation>
+    </message>
+    <message>
+        <source>This version of the program has no preview of PDF files: they open in the system program.</source>
+        <extracomment>In Polish: Ta wersja programu nie ma podglądu plików PDF: otwierają się w programie systemowym.</extracomment>
+        <translation>Ta wersja programu nie ma podglądu plików PDF: otwierają się w programie systemowym.</translation>
+    </message>
+    <message>
+        <source>PDF files:</source>
+        <extracomment>In Polish: Pliki PDF:</extracomment>
+        <translation>Pliki PDF:</translation>
+    </message>
+    <message>
+        <source>PDF Preview</source>
+        <extracomment>The group of the page Materials. In Polish: Podgląd PDF</extracomment>
+        <translation>Podgląd PDF</translation>
+    </message>
+    <message>
+        <source>One under another</source>
+        <extracomment>In Polish: Jedna pod drugą</extracomment>
+        <translation>Jedna pod drugą</translation>
+    </message>
+    <message>
+        <source>One page at a time</source>
+        <extracomment>In Polish: Po jednej stronie</extracomment>
+        <translation>Po jednej stronie</translation>
+    </message>
+    <message>
+        <source>Two side by side</source>
+        <extracomment>In Polish: Dwie obok siebie</extracomment>
+        <translation>Dwie obok siebie</translation>
+    </message>
+    <message>
+        <source>The buttons on the bar of the preview change the same setting.</source>
+        <extracomment>In Polish: Przyciski na pasku podglądu zmieniają to samo ustawienie.</extracomment>
+        <translation>Przyciski na pasku podglądu zmieniają to samo ustawienie.</translation>
+    </message>
+    <message>
+        <source>Page layout:</source>
+        <extracomment>In Polish: Układ stron:</extracomment>
+        <translation>Układ stron:</translation>
+    </message>
+    <message>
+        <source>Pages as in the file</source>
+        <extracomment>In Polish: Strony jak w pliku</extracomment>
+        <translation>Strony jak w pliku</translation>
+    </message>
+    <message>
+        <source>Pages dimmed</source>
+        <extracomment>In Polish: Strony przyciemnione</extracomment>
+        <translation>Strony przyciemnione</translation>
+    </message>
+    <message>
+        <source>In a dark theme:</source>
+        <extracomment>In Polish: W ciemnym motywie:</extracomment>
+        <translation>W ciemnym motywie:</translation>
+    </message>
+    <message>
+        <source>Page width (recommended)</source>
+        <extracomment>The zoom the preview opens with. In Polish: Szerokość strony (zalecana)</extracomment>
+        <translation>Szerokość strony (zalecana)</translation>
+    </message>
+    <message>
+        <source>Whole page</source>
+        <extracomment>In Polish: Cała strona</extracomment>
+        <translation>Cała strona</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <source>As last time</source>
+        <extracomment>In Polish: Jak ostatnio</extracomment>
+        <translation>Jak ostatnio</translation>
+    </message>
+    <message>
+        <source>Zoom:</source>
+        <extracomment>In Polish: Powiększenie:</extracomment>
+        <translation>Powiększenie:</translation>
+    </message>
+    <message>
+        <source>Bookmarks, else the contents (recommended)</source>
+        <extracomment>The side panel the preview opens with. In Polish: Zakładki, a bez nich spis treści (zalecane)</extracomment>
+        <translation>Zakładki, a bez nich spis treści (zalecane)</translation>
+    </message>
+    <message>
+        <source>Contents</source>
+        <extracomment>In Polish: Spis treści</extracomment>
+        <translation>Spis treści</translation>
+    </message>
+    <message>
+        <source>Thumbnails</source>
+        <extracomment>In Polish: Miniatury</extracomment>
+        <translation>Miniatury</translation>
+    </message>
+    <message>
+        <source>Hidden</source>
+        <extracomment>In Polish: Ukryty</extracomment>
+        <translation>Ukryty</translation>
+    </message>
+    <message>
+        <source>Side panel:</source>
+        <extracomment>In Polish: Panel boczny:</extracomment>
+        <translation>Panel boczny:</translation>
+    </message>
+    <message>
+        <source>Open at the page shown last</source>
+        <extracomment>In Polish: Otwieraj na stronie oglądanej ostatnio</extracomment>
+        <translation>Otwieraj na stronie oglądanej ostatnio</translation>
+    </message>
+    <message>
+        <source>The colors around the pages, of the selection and of the search hits are on the page Editor &gt; Colors, for each theme apart.</source>
+        <extracomment>In Polish: Kolory tła wokół stron, zaznaczenia i wyników szukania są na stronie Edytor &gt; Kolory, osobno w każdym motywie.</extracomment>
+        <translation>Kolory tła wokół stron, zaznaczenia i wyników szukania są na stronie Edytor &gt; Kolory, osobno w każdym motywie.</translation>
+    </message>
+    <message>
+        <source>Sh&amp;ow</source>
+        <extracomment>Shows the page Editor &gt; Colors. In Polish: Po&amp;każ</extracomment>
+        <translation>Po&amp;każ</translation>
+    </message>
+    <message>
+        <source>The card of a quote shows the reference, and Copy with Reference in the preview of a PDF file adds it to the text copied.</source>
+        <extracomment>In Polish: Odnośnik pokazuje karta cytatu, a „Kopiuj z odnośnikiem” w podglądzie PDF dodaje go do skopiowanego tekstu.</extracomment>
+        <translation>Odnośnik pokazuje karta cytatu, a „Kopiuj z odnośnikiem” w podglądzie PDF dodaje go do skopiowanego tekstu.</translation>
+    </message>
+    <message>
+        <source>Inverted colors</source>
+        <extracomment>In Polish: Odwrócone kolory</extracomment>
+        <translation>Odwrócone kolory</translation>
+    </message>
+    <message>
+        <source>Light text on a dark page. Only the look on the screen changes; the file stays as it is.</source>
+        <extracomment>Under Inverted colors, the last choice of In a dark theme. In Polish: Jasny tekst na ciemnym tle. Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.</extracomment>
+        <translation>Jasny tekst na ciemnym tle. Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::QuoteSourceBox</name>
+    <message>
+        <source>Where It Comes From</source>
+        <extracomment>Where a quote comes from. In Polish: Skąd</extracomment>
+        <translation>Skąd pochodzi</translation>
+    </message>
+    <message>
+        <source>The materials with a bibliographic description</source>
+        <extracomment>In Polish: Materiały z opisem bibliograficznym</extracomment>
+        <translation>Materiały z opisem bibliograficznym</translation>
+    </message>
+    <message>
+        <source>Open Source</source>
+        <extracomment>In Polish: Otwórz źródło</extracomment>
+        <translation>Otwórz źródło</translation>
+    </message>
+    <message>
+        <source>Source:</source>
+        <extracomment>In Polish: Źródło:</extracomment>
+        <translation>Źródło:</translation>
+    </message>
+    <message>
+        <source>45, xii or 41–42</source>
+        <extracomment>The page of a quote, as the writer puts it. In Polish: 45, xii albo 41–42</extracomment>
+        <translation>45, xii albo 41–42</translation>
+    </message>
+    <message>
+        <source>Page:</source>
+        <extracomment>In Polish: Strona:</extracomment>
+        <translation>Strona:</translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <extracomment>Who said a quote without a source. In Polish: Autor:</extracomment>
+        <translation>Autor:</translation>
+    </message>
+    <message>
+        <source>Work:</source>
+        <extracomment>Where a quote without a source was said. In Polish: Dzieło:</extracomment>
+        <translation>Dzieło:</translation>
+    </message>
+    <message>
+        <source>Author, work:</source>
+        <extracomment>In Polish: Autor, dzieło:</extracomment>
+        <translation>Autor, dzieło:</translation>
+    </message>
+    <message>
+        <source>Reference:</source>
+        <extracomment>How the text refers to a quote: (Wiśniewska 2011, s. 45). In Polish: Odnośnik:</extracomment>
+        <translation>Odnośnik:</translation>
+    </message>
+    <message>
+        <source>Source of the Quote Not Saved</source>
+        <extracomment>In Polish: Nie zapisano źródła cytatu</extracomment>
+        <translation>Nie zapisano źródła cytatu</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>No source – the author and the work below</source>
+        <extracomment>The choice of a quote that comes from no material. In Polish: Bez źródła – autor i dzieło wpisane niżej</extracomment>
+        <translation>Bez źródła – autor i dzieło wpisane niżej</translation>
+    </message>
+    <message>
+        <source>%1 (no bibliographic description)</source>
+        <extracomment>A source of a quote whose description was emptied: %1 its title. In Polish: %1 (bez opisu bibliograficznego)</extracomment>
+        <translation>%1 (bez opisu bibliograficznego)</translation>
+    </message>
+    <message>
+        <source>The source is gone</source>
+        <extracomment>In Polish: Nie ma już tego źródła</extracomment>
+        <translation>Nie ma już tego źródła</translation>
+    </message>
+    <message>
+        <source>From the card of the source: “%1”</source>
+        <extracomment>The author and the work of a quote from a source: %1 its title. In Polish: z karty źródła: „%1”</extracomment>
+        <translation>Z karty źródła: „%1”</translation>
+    </message>
+    <message>
+        <source>From the card of the source: %1, “%2”</source>
+        <extracomment>%1 the authors, %2 the title. In Polish: z karty źródła: %1, „%2”</extracomment>
+        <translation>Z karty źródła: %1, „%2”</translation>
+    </message>
+    <message>
+        <source>Choose a source or type the author.</source>
+        <extracomment>In Polish: Wybierz źródło albo wpisz autora.</extracomment>
+        <translation>Wybierz źródło albo wpisz autora.</translation>
+    </message>
+    <message>
+        <source>Show Page</source>
+        <extracomment>In Polish: Pokaż stronę</extracomment>
+        <translation>Pokaż stronę</translation>
+    </message>
+    <message>
+        <source>Show the page in the preview of the file of the source</source>
+        <extracomment>In Polish: Pokaż stronę w podglądzie pliku źródła</extracomment>
+        <translation>Pokaż stronę w podglądzie pliku źródła</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SourceDescriptionBox</name>
+    <message>
+        <source>Bibliographic Description</source>
+        <extracomment>The group of the card of a material with its author, title, publisher... In Polish: Opis bibliograficzny</extracomment>
+        <translation>Opis bibliograficzny</translation>
+    </message>
+    <message>
+        <source>Kind of source:</source>
+        <extracomment>In Polish: Rodzaj źródła:</extracomment>
+        <translation>Rodzaj źródła:</translation>
+    </message>
+    <message>
+        <source>Add Person (Insert)</source>
+        <extracomment>In Polish: Dodaj osobę (Insert)</extracomment>
+        <translation>Dodaj osobę (Insert)</translation>
+    </message>
+    <message>
+        <source>Remove Person (Delete)</source>
+        <extracomment>In Polish: Usuń osobę (Delete)</extracomment>
+        <translation>Usuń osobę (Delete)</translation>
+    </message>
+    <message>
+        <source>People of the source</source>
+        <extracomment>In Polish: Osoby źródła</extracomment>
+        <translation>Osoby źródła</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The columns of the people of a source. In Polish: Imię i nazwisko</extracomment>
+        <translation>Imię i nazwisko</translation>
+    </message>
+    <message>
+        <source>Role</source>
+        <extracomment>What a person of a source did. In Polish: Rola</extracomment>
+        <translation>Rola</translation>
+    </message>
+    <message>
+        <source>A name (&quot;Anna Wiśniewska&quot; or &quot;Wiśniewska, Anna&quot;) or the name of an institution</source>
+        <extracomment>In Polish: Nazwisko z imieniem („Anna Wiśniewska” albo „Wiśniewska, Anna”) albo nazwa instytucji</extracomment>
+        <translation>Nazwisko z imieniem („Anna Wiśniewska” albo „Wiśniewska, Anna”) albo nazwa instytucji</translation>
+    </message>
+    <message>
+        <source>No people. &quot;+&quot; or Insert adds an author, an editor, a translator...</source>
+        <extracomment>In Polish: Brak osób. „+” albo Insert dodaje autora, redakcję, tłumaczenie...</extracomment>
+        <translation>Brak osób. „+” albo Insert dodaje autora, redakcję, tłumaczenie...</translation>
+    </message>
+    <message>
+        <source>People:</source>
+        <extracomment>The authors, editors, translators of a source. In Polish: Osoby:</extracomment>
+        <translation>Osoby:</translation>
+    </message>
+    <message>
+        <source>Paste Description (BibTeX, RIS)</source>
+        <extracomment>In Polish: Wklej opis (BibTeX, RIS)</extracomment>
+        <translation>Wklej opis (BibTeX, RIS)</translation>
+    </message>
+    <message>
+        <source>Pastes a description copied from a library catalog or from a bibliography manager</source>
+        <extracomment>In Polish: Wkleja opis skopiowany z katalogu biblioteki albo z programu do bibliografii</extracomment>
+        <translation>Wkleja opis skopiowany z katalogu biblioteki albo z programu do bibliografii</translation>
+    </message>
+    <message>
+        <source>Remove Person</source>
+        <translation>Usuń osobę</translation>
+    </message>
+    <message>
+        <source>Remove &quot;%1&quot; from the description?</source>
+        <extracomment>%1: the name. In Polish: Usunąć „%1” z opisu?</extracomment>
+        <translation>Usunąć „%1” z opisu?</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Paste Description</source>
+        <extracomment>In Polish: Wklej opis</extracomment>
+        <translation>Wklej opis</translation>
+    </message>
+    <message>
+        <source>The clipboard has no description in BibTeX or RIS. Copy the description of the source from a library catalog (export as BibTeX or RIS) or from a bibliography manager.</source>
+        <extracomment>In Polish: Schowek nie ma opisu w formacie BibTeX ani RIS. Skopiuj opis źródła z katalogu biblioteki (eksport BibTeX albo RIS) albo z programu do bibliografii.</extracomment>
+        <translation>Schowek nie ma opisu w formacie BibTeX ani RIS. Skopiuj opis źródła z katalogu biblioteki (eksport BibTeX albo RIS) albo z programu do bibliografii.</translation>
+    </message>
+    <message>
+        <source>Replace the bibliographic description with the one from the clipboard?</source>
+        <extracomment>In Polish: Zastąpić opis bibliograficzny opisem ze schowka?</extracomment>
+        <translation>Zastąpić opis bibliograficzny opisem ze schowka?</translation>
+    </message>
+    <message>
+        <source>&amp;Replace</source>
+        <extracomment>In Polish: &amp;Zastąp</extracomment>
+        <translation>&amp;Zastąp</translation>
+    </message>
+    <message>
+        <source>Bibliographic Description Not Saved</source>
+        <extracomment>In Polish: Nie zapisano opisu bibliograficznego</extracomment>
+        <translation>Nie zapisano opisu bibliograficznego</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Bibliographic description pasted</source>
+        <extracomment>In Polish: Wklejono opis bibliograficzny</extracomment>
+        <translation>Wklejono opis bibliograficzny</translation>
+    </message>
+    <message>
+        <source>Fill In from File</source>
+        <extracomment>In Polish: Uzupełnij z pliku</extracomment>
+        <translation>Uzupełnij z pliku</translation>
+    </message>
+    <message>
+        <source>Fills the empty fields with the title, the authors, the year and the pages the PDF file has</source>
+        <extracomment>In Polish: Wpisuje w puste pola tytuł, autorów, rok i liczbę stron zapisane w pliku PDF</extracomment>
+        <translation>Wpisuje w puste pola tytuł, autorów, rok i liczbę stron zapisane w pliku PDF</translation>
+    </message>
+    <message>
+        <source>The PDF file cannot be read. It may be damaged or protected with a password.</source>
+        <extracomment>In Polish: Nie da się odczytać pliku PDF. Może być uszkodzony albo chroniony hasłem.</extracomment>
+        <translation>Nie da się odczytać pliku PDF. Może być uszkodzony albo chroniony hasłem.</translation>
+    </message>
+    <message>
+        <source>Nothing to fill in: the file has no title, author or year, or the description has them already.</source>
+        <extracomment>In Polish: Nie ma czego uzupełnić: plik nie ma tytułu, autora ani roku albo opis już je ma.</extracomment>
+        <translation>Nie ma czego uzupełnić: plik nie ma tytułu, autora ani roku albo opis już je ma.</translation>
+    </message>
+    <message>
+        <source>Description filled in from the file</source>
+        <extracomment>In Polish: Uzupełniono opis z pliku</extracomment>
+        <translation>Uzupełniono opis z pliku</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SourceNames</name>
+    <message>
+        <source>Book</source>
+        <extracomment>A kind of source. In Polish: Książka</extracomment>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>Chapter in a book</source>
+        <extracomment>A kind of source. In Polish: Rozdział w książce</extracomment>
+        <translation>Rozdział w książce</translation>
+    </message>
+    <message>
+        <source>Article in a journal</source>
+        <extracomment>A kind of source. In Polish: Artykuł w czasopiśmie</extracomment>
+        <translation>Artykuł w czasopiśmie</translation>
+    </message>
+    <message>
+        <source>Web page</source>
+        <extracomment>A kind of source. In Polish: Strona internetowa</extracomment>
+        <translation>Strona internetowa</translation>
+    </message>
+    <message>
+        <source>Archival document</source>
+        <extracomment>A kind of source: a letter, a diary, a record in an archive. In Polish: Dokument archiwalny</extracomment>
+        <translation>Dokument archiwalny</translation>
+    </message>
+    <message>
+        <source>Talk or interview</source>
+        <extracomment>A kind of source. In Polish: Rozmowa lub wywiad</extracomment>
+        <translation>Rozmowa lub wywiad</translation>
+    </message>
+    <message>
+        <source>Film or recording</source>
+        <extracomment>A kind of source. In Polish: Film lub nagranie</extracomment>
+        <translation>Film lub nagranie</translation>
+    </message>
+    <message>
+        <source>Thesis</source>
+        <extracomment>A kind of source. In Polish: Praca dyplomowa</extracomment>
+        <translation>Praca dyplomowa</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <extracomment>A kind of source. In Polish: Inne</extracomment>
+        <translation>Inne</translation>
+    </message>
+    <message>
+        <source>author</source>
+        <extracomment>What a person of a source did. In Polish: autor</extracomment>
+        <translation>autor</translation>
+    </message>
+    <message>
+        <source>editor</source>
+        <extracomment>What a person of a source did. In Polish: redakcja</extracomment>
+        <translation>redakcja</translation>
+    </message>
+    <message>
+        <source>translator</source>
+        <extracomment>What a person of a source did. In Polish: tłumaczenie</extracomment>
+        <translation>tłumaczenie</translation>
+    </message>
+    <message>
+        <source>interviewee</source>
+        <extracomment>The one asked in a talk or an interview. In Polish: rozmówca</extracomment>
+        <translation>rozmówca</translation>
+    </message>
+    <message>
+        <source>interviewer</source>
+        <extracomment>The one who asks in a talk or an interview. In Polish: prowadzący</extracomment>
+        <translation>prowadzący</translation>
+    </message>
+    <message>
+        <source>director</source>
+        <extracomment>What a person of a film did. In Polish: reżyseria</extracomment>
+        <translation>reżyseria</translation>
+    </message>
+    <message>
+        <source>supervisor</source>
+        <extracomment>The supervisor of a thesis. In Polish: promotor</extracomment>
+        <translation>promotor</translation>
+    </message>
+    <message>
+        <source>institution</source>
+        <extracomment>The author of a source is an institution. In Polish: instytucja</extracomment>
+        <translation>instytucja</translation>
+    </message>
+    <message>
+        <source>Chapter title:</source>
+        <extracomment>In Polish: Tytuł rozdziału:</extracomment>
+        <translation>Tytuł rozdziału:</translation>
+    </message>
+    <message>
+        <source>Article title:</source>
+        <extracomment>In Polish: Tytuł artykułu:</extracomment>
+        <translation>Tytuł artykułu:</translation>
+    </message>
+    <message>
+        <source>Page title:</source>
+        <extracomment>In Polish: Tytuł strony:</extracomment>
+        <translation>Tytuł strony:</translation>
+    </message>
+    <message>
+        <source>Title or description:</source>
+        <extracomment>In Polish: Tytuł lub opis:</extracomment>
+        <translation>Tytuł lub opis:</translation>
+    </message>
+    <message>
+        <source>Title:</source>
+        <extracomment>The title of a source. In Polish: Tytuł:</extracomment>
+        <translation>Tytuł:</translation>
+    </message>
+    <message>
+        <source>Subtitle:</source>
+        <extracomment>In Polish: Podtytuł:</extracomment>
+        <translation>Podtytuł:</translation>
+    </message>
+    <message>
+        <source>Book title:</source>
+        <extracomment>The book of a chapter. In Polish: Tytuł książki:</extracomment>
+        <translation>Tytuł książki:</translation>
+    </message>
+    <message>
+        <source>Journal:</source>
+        <extracomment>In Polish: Czasopismo:</extracomment>
+        <translation>Czasopismo:</translation>
+    </message>
+    <message>
+        <source>Site:</source>
+        <extracomment>The web site of a page. In Polish: Witryna:</extracomment>
+        <translation>Witryna:</translation>
+    </message>
+    <message>
+        <source>Archive:</source>
+        <extracomment>The archive of a document. In Polish: Archiwum:</extracomment>
+        <translation>Archiwum:</translation>
+    </message>
+    <message>
+        <source>Edition:</source>
+        <extracomment>In Polish: Wydanie:</extracomment>
+        <translation>Wydanie:</translation>
+    </message>
+    <message>
+        <source>Place:</source>
+        <extracomment>Where a talk took place, where a film was made. In Polish: Miejsce:</extracomment>
+        <translation>Miejsce:</translation>
+    </message>
+    <message>
+        <source>Place of publication:</source>
+        <extracomment>In Polish: Miejsce wydania:</extracomment>
+        <translation>Miejsce wydania:</translation>
+    </message>
+    <message>
+        <source>University:</source>
+        <extracomment>In Polish: Uczelnia:</extracomment>
+        <translation>Uczelnia:</translation>
+    </message>
+    <message>
+        <source>Producer:</source>
+        <extracomment>Who made a film or a recording. In Polish: Wytwórnia:</extracomment>
+        <translation>Wytwórnia:</translation>
+    </message>
+    <message>
+        <source>Publisher:</source>
+        <extracomment>In Polish: Wydawnictwo:</extracomment>
+        <translation>Wydawnictwo:</translation>
+    </message>
+    <message>
+        <source>Date:</source>
+        <extracomment>In Polish: Data:</extracomment>
+        <translation>Data:</translation>
+    </message>
+    <message>
+        <source>Year:</source>
+        <extracomment>The year of a source. In Polish: Rok:</extracomment>
+        <translation>Rok:</translation>
+    </message>
+    <message>
+        <source>Volume:</source>
+        <extracomment>The volume of a journal. In Polish: Tom:</extracomment>
+        <translation>Tom:</translation>
+    </message>
+    <message>
+        <source>Issue:</source>
+        <extracomment>The issue of a journal. In Polish: Numer:</extracomment>
+        <translation>Numer:</translation>
+    </message>
+    <message>
+        <source>Pages:</source>
+        <extracomment>The pages of a chapter or an article: 41–58. In Polish: Strony:</extracomment>
+        <translation>Strony:</translation>
+    </message>
+    <message>
+        <source>Number of pages:</source>
+        <extracomment>How many pages a book has. In Polish: Liczba stron:</extracomment>
+        <translation>Liczba stron:</translation>
+    </message>
+    <message>
+        <source>Series:</source>
+        <extracomment>In Polish: Seria:</extracomment>
+        <translation>Seria:</translation>
+    </message>
+    <message>
+        <source>Address:</source>
+        <extracomment>The web address of a source. In Polish: Adres:</extracomment>
+        <translation>Adres:</translation>
+    </message>
+    <message>
+        <source>Published:</source>
+        <extracomment>When a web page was published. In Polish: Opublikowano:</extracomment>
+        <translation>Opublikowano:</translation>
+    </message>
+    <message>
+        <source>Accessed:</source>
+        <extracomment>When the writer read a web page. In Polish: Dostęp:</extracomment>
+        <translation>Dostęp:</translation>
+    </message>
+    <message>
+        <source>Fonds:</source>
+        <extracomment>The fonds of an archive. In Polish: Zespół:</extracomment>
+        <translation>Zespół:</translation>
+    </message>
+    <message>
+        <source>Call number:</source>
+        <extracomment>The call number of a document in an archive. In Polish: Sygnatura:</extracomment>
+        <translation>Sygnatura:</translation>
+    </message>
+    <message>
+        <source>Kind of thesis:</source>
+        <extracomment>Bachelor&apos;s, master&apos;s, doctoral. In Polish: Rodzaj pracy:</extracomment>
+        <translation>Rodzaj pracy:</translation>
+    </message>
+    <message>
+        <source>Form:</source>
+        <extracomment>What a source is: a manuscript, a sound recording of 48 minutes. In Polish: Postać:</extracomment>
+        <translation>Postać:</translation>
+    </message>
+    <message>
+        <source>Language:</source>
+        <extracomment>In Polish: Język:</extracomment>
+        <translation>Język:</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <extracomment>A source is in the bibliography of the book always. In Polish: Zawsze</extracomment>
+        <translation>Zawsze</translation>
+    </message>
+    <message>
+        <source>Never</source>
+        <extracomment>A source is in the bibliography of the book never. In Polish: Nigdy</extracomment>
+        <translation>Nigdy</translation>
+    </message>
+    <message>
+        <source>When linked with the text</source>
+        <extracomment>A source is in the bibliography of the book when it or a quote of it is linked with the text. In Polish: Gdy jest powiązane z tekstem</extracomment>
+        <translation>Gdy jest powiązane z tekstem</translation>
+    </message>
+    <message>
+        <source>%1 – %2</source>
+        <extracomment>A source in a list to choose from: %1 its title, %2 its author and year. In Polish: %1 – %2</extracomment>
+        <translation>%1 – %2</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SourceQuotesBox</name>
+    <message>
+        <source>Quotes from This Source</source>
+        <extracomment>In Polish: Cytaty z tego źródła</extracomment>
+        <translation>Cytaty z tego źródła</translation>
+    </message>
+    <message>
+        <source>New Quote from This Source... (Insert)</source>
+        <extracomment>In Polish: Nowy cytat z tego źródła... (Insert)</extracomment>
+        <translation>Nowy cytat z tego źródła... (Insert)</translation>
+    </message>
+    <message>
+        <source>Quotes from this source</source>
+        <extracomment>In Polish: Cytaty z tego źródła</extracomment>
+        <translation>Cytaty z tego źródła</translation>
+    </message>
+    <message>
+        <source>Page</source>
+        <extracomment>The columns of the quotes of a source. In Polish: Strona</extracomment>
+        <translation>Strona</translation>
+    </message>
+    <message>
+        <source>Quote</source>
+        <extracomment>In Polish: Cytat</extracomment>
+        <translation>Cytat</translation>
+    </message>
+    <message>
+        <source>A double-click or Enter opens the quote</source>
+        <extracomment>In Polish: Dwuklik albo Enter otwiera cytat</extracomment>
+        <translation>Dwuklik albo Enter otwiera cytat</translation>
+    </message>
+    <message>
+        <source>No quotes. &quot;+&quot; or Insert adds a quote from this source.</source>
+        <extracomment>In Polish: Brak cytatów. „+” albo Insert dodaje cytat z tego źródła.</extracomment>
+        <translation>Brak cytatów. „+” albo Insert dodaje cytat z tego źródła.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PdfFiles</name>
+    <message>
+        <source>The file is missing.</source>
+        <extracomment>In Polish: Nie ma pliku.</extracomment>
+        <translation>Nie ma pliku.</translation>
+    </message>
+    <message>
+        <source>The file is protected with a password.</source>
+        <extracomment>In Polish: Plik jest chroniony hasłem.</extracomment>
+        <translation>Plik jest chroniony hasłem.</translation>
+    </message>
+    <message>
+        <source>The PDF file cannot be read. It may be damaged.</source>
+        <extracomment>In Polish: Nie da się odczytać pliku PDF. Może być uszkodzony.</extracomment>
+        <translation>Nie da się odczytać pliku PDF. Może być uszkodzony.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PdfPreviewPanel</name>
+    <message>
+        <source>p. %1</source>
+        <extracomment>A page in the list of the hits of a search: %1 its number. In Polish: s. %1</extracomment>
+        <translation>s. %1</translation>
+    </message>
+    <message>
+        <source>Pages of the PDF file: PgUp and PgDn change the page, Enter opens the card of the material</source>
+        <extracomment>The pages on the tab of the preview of a PDF file. In Polish: Strony pliku PDF: PgUp i PgDn zmieniają stronę, Enter otwiera kartę materiału</extracomment>
+        <translation>Strony pliku PDF: PgUp i PgDn zmieniają stronę, Enter otwiera kartę materiału</translation>
+    </message>
+    <message>
+        <source>&amp;Open in the System Program</source>
+        <extracomment>In Polish: &amp;Otwórz w programie systemowym</extracomment>
+        <translation>&amp;Otwórz w programie systemowym</translation>
+    </message>
+    <message>
+        <source>Side Panel</source>
+        <extracomment>The button that shows and hides the side panel of the preview. In Polish: Panel boczny
+----------
+In Polish: Panel boczny</extracomment>
+        <translation>Panel boczny</translation>
+    </message>
+    <message>
+        <source>Previous Page</source>
+        <extracomment>In Polish: Poprzednia strona</extracomment>
+        <translation>Poprzednia strona</translation>
+    </message>
+    <message>
+        <source>Next Page</source>
+        <extracomment>In Polish: Następna strona</extracomment>
+        <translation>Następna strona</translation>
+    </message>
+    <message>
+        <source>Page</source>
+        <extracomment>In Polish: Strona
+----------
+The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
+        <translation>Strona</translation>
+    </message>
+    <message>
+        <source>Page number</source>
+        <extracomment>In Polish: Numer strony (Ctrl+G)</extracomment>
+        <translation>Numer strony</translation>
+    </message>
+    <message>
+        <source>Zoom Out</source>
+        <translation>Pomniejsz</translation>
+    </message>
+    <message>
+        <source>Zoom</source>
+        <extracomment>In Polish: Powiększenie</extracomment>
+        <translation>Powiększenie</translation>
+    </message>
+    <message>
+        <source>Page Width</source>
+        <extracomment>The zoom at which the width of the page fills the window. In Polish: Szerokość strony</extracomment>
+        <translation>Szerokość strony</translation>
+    </message>
+    <message>
+        <source>Whole Page</source>
+        <extracomment>The zoom at which the whole page is in the window. In Polish: Cała strona</extracomment>
+        <translation>Cała strona</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <extracomment>A zoom of the pages; %1: the percent. In Polish: %1%</extracomment>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <source>Zoom In</source>
+        <translation>Powiększ</translation>
+    </message>
+    <message>
+        <source>Pages One under Another</source>
+        <extracomment>In Polish: Strony jedna pod drugą</extracomment>
+        <translation>Strony jedna pod drugą</translation>
+    </message>
+    <message>
+        <source>One Page at a Time</source>
+        <extracomment>In Polish: Po jednej stronie</extracomment>
+        <translation>Po jednej stronie</translation>
+    </message>
+    <message>
+        <source>Two Pages Side by Side</source>
+        <extracomment>In Polish: Dwie strony obok siebie</extracomment>
+        <translation>Dwie strony obok siebie</translation>
+    </message>
+    <message>
+        <source>Find in the File</source>
+        <extracomment>In Polish: Szukaj w pliku (Ctrl+F)</extracomment>
+        <translation>Szukaj w pliku</translation>
+    </message>
+    <message>
+        <source>Previous Hit</source>
+        <extracomment>In Polish: Poprzedni wynik</extracomment>
+        <translation>Poprzedni wynik</translation>
+    </message>
+    <message>
+        <source>Next Hit</source>
+        <extracomment>In Polish: Następny wynik</extracomment>
+        <translation>Następny wynik</translation>
+    </message>
+    <message>
+        <source>Material Card</source>
+        <extracomment>The button that opens the card of the material of the PDF file. In Polish: Karta materiału</extracomment>
+        <translation>Karta materiału</translation>
+    </message>
+    <message>
+        <source>Open in the System Program</source>
+        <extracomment>In Polish: Otwórz w programie systemowym</extracomment>
+        <translation>Otwórz w programie systemowym</translation>
+    </message>
+    <message>
+        <source>PDF Preview Settings</source>
+        <extracomment>The gear of the preview of a PDF file. In Polish: Ustawienia podglądu PDF</extracomment>
+        <translation>Ustawienia podglądu PDF</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>Bookmarks: Enter goes to the page, Insert adds a bookmark, F2 changes the note, Delete takes it away</source>
+        <extracomment>In Polish: Zakładki: Enter przechodzi do strony, Insert dodaje zakładkę, F2 zmienia notatkę, Delete usuwa</extracomment>
+        <translation>Zakładki: Enter przechodzi do strony, Insert dodaje zakładkę, F2 zmienia notatkę, Delete usuwa</translation>
+    </message>
+    <message>
+        <source>No bookmarks. The button below or Insert adds a bookmark at the page shown.</source>
+        <extracomment>In Polish: Bez zakładek. Przycisk niżej albo Insert dodaje zakładkę na pokazanej stronie.</extracomment>
+        <translation>Bez zakładek. Przycisk niżej albo Insert dodaje zakładkę na pokazanej stronie.</translation>
+    </message>
+    <message>
+        <source>Bookmarks</source>
+        <extracomment>In Polish: Zakładki</extracomment>
+        <translation>Zakładki</translation>
+    </message>
+    <message>
+        <source>Contents of the file</source>
+        <extracomment>In Polish: Spis treści pliku</extracomment>
+        <translation>Spis treści pliku</translation>
+    </message>
+    <message>
+        <source>The file has no table of contents.</source>
+        <extracomment>In Polish: Plik nie ma spisu treści.</extracomment>
+        <translation>Plik nie ma spisu treści.</translation>
+    </message>
+    <message>
+        <source>Contents</source>
+        <extracomment>In Polish: Spis treści</extracomment>
+        <translation>Spis treści</translation>
+    </message>
+    <message>
+        <source>Pages</source>
+        <extracomment>In Polish: Strony</extracomment>
+        <translation>Strony</translation>
+    </message>
+    <message>
+        <source>Thumbnails</source>
+        <extracomment>In Polish: Miniatury</extracomment>
+        <translation>Miniatury</translation>
+    </message>
+    <message>
+        <source>Search results</source>
+        <extracomment>In Polish: Wyniki szukania</extracomment>
+        <translation>Wyniki szukania</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <extracomment>In Polish: Kopiuj</extracomment>
+        <translation>Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copy with Reference</source>
+        <extracomment>In Polish: Kopiuj z odnośnikiem</extracomment>
+        <translation>Kopiuj z odnośnikiem</translation>
+    </message>
+    <message>
+        <source>Copy together with the reference to the source and its page</source>
+        <extracomment>In Polish: Kopiuj razem z odnośnikiem do źródła i strony</extracomment>
+        <translation>Kopiuj razem z odnośnikiem do źródła i strony</translation>
+    </message>
+    <message>
+        <source>Create Quote...</source>
+        <extracomment>In Polish: Utwórz cytat…</extracomment>
+        <translation>Utwórz cytat...</translation>
+    </message>
+    <message>
+        <source>Bookmark Here</source>
+        <extracomment>In Polish: Zakładka tutaj</extracomment>
+        <translation>Zakładka tutaj</translation>
+    </message>
+    <message>
+        <source>Select All Text of the Page</source>
+        <extracomment>In Polish: Zaznacz cały tekst strony</extracomment>
+        <translation>Zaznacz cały tekst strony</translation>
+    </message>
+    <message>
+        <source>Selection</source>
+        <extracomment>In Polish: Zaznaczenie</extracomment>
+        <translation>Zaznaczenie</translation>
+    </message>
+    <message>
+        <source>Page %1 of %2</source>
+        <extracomment>The page shown in the status bar: %1 its number, %2 the number of pages. In Polish: Strona %1 z %2</extracomment>
+        <translation>Strona %1 z %2</translation>
+    </message>
+    <message>
+        <source>Delete Bookmark</source>
+        <translation>Usuń zakładkę</translation>
+    </message>
+    <message>
+        <source>Delete the bookmark of page %1 with its note?</source>
+        <extracomment>%1: the page. In Polish: Usunąć zakładkę strony %1 razem z notatką?</extracomment>
+        <translation>Usunąć zakładkę strony %1 razem z notatką?</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>of %1</source>
+        <extracomment>The number of pages after the field of the page: %1 how many. In Polish: z %1</extracomment>
+        <translation>z %1</translation>
+    </message>
+    <message>
+        <source>Page %1 of the file</source>
+        <extracomment>The tooltip of the field of the page: %1 the page counted from the first one of the file. In Polish: Strona %1 pliku (Ctrl+G)</extracomment>
+        <translation>Strona %1 pliku</translation>
+    </message>
+    <message>
+        <source>Bookmark at Page %1</source>
+        <extracomment>The button under the bookmarks: %1 the page shown. In Polish: Zakładka na s. %1</extracomment>
+        <translation>Zakładka na s. %1</translation>
+    </message>
+    <message>
+        <source>Add Bookmark</source>
+        <extracomment>In Polish: Dodaj zakładkę</extracomment>
+        <translation>Dodaj zakładkę</translation>
+    </message>
+    <message>
+        <source>No hits</source>
+        <extracomment>In Polish: Brak wyników</extracomment>
+        <translation>Brak wyników</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n hit(s)</source>
+        <extracomment>How many hits the search found. In Polish: %n wynik / %n wyniki / %n wyników</extracomment>
+        <translation>
+            <numerusform>%n wynik</numerusform>
+            <numerusform>%n wyniki</numerusform>
+            <numerusform>%n wyników</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1 of %2</source>
+        <extracomment>The hit gone to: %1 which, %2 how many. In Polish: %1 z %2</extracomment>
+        <translation>%1 z %2</translation>
+    </message>
+    <message>
+        <source>The file does not have this text.</source>
+        <extracomment>In Polish: Nie ma w pliku tego tekstu.</extracomment>
+        <translation>Nie ma w pliku tego tekstu.</translation>
+    </message>
+    <message>
+        <source>Type at least three letters in the field &quot;Find in the File&quot;, or press Enter.</source>
+        <extracomment>In Polish: Wpisz w pole „Szukaj w pliku” co najmniej trzy litery albo naciśnij Enter.</extracomment>
+        <translation>Wpisz w pole „Szukaj w pliku” co najmniej trzy litery albo naciśnij Enter.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::NewQuoteDialog</name>
+    <message>
+        <source>From the selection in “%1”.</source>
+        <extracomment>%1: the title of the file. In Polish: Z zaznaczenia w pliku „%1”.</extracomment>
+        <translation>Z zaznaczenia w pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>From the selection on page %1 of “%2”.</source>
+        <extracomment>%1: the page, %2: the title of the file. In Polish: Z zaznaczenia na stronie %1 pliku „%2”.</extracomment>
+        <translation>Z zaznaczenia na stronie %1 pliku „%2”.</translation>
+    </message>
+    <message>
+        <source>New Quote</source>
+        <extracomment>In Polish: Nowy cytat</extracomment>
+        <translation>Nowy cytat</translation>
+    </message>
+    <message>
+        <source>&amp;Quote</source>
+        <extracomment>In Polish: &amp;Cytat</extracomment>
+        <translation>&amp;Cytat</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <extracomment>In Polish: Źródło</extracomment>
+        <translation>Źródło</translation>
+    </message>
+    <message>
+        <source>&amp;Page</source>
+        <extracomment>In Polish: &amp;Strona</extracomment>
+        <translation>&amp;Strona</translation>
+    </message>
+    <message>
+        <source>%1 (open)</source>
+        <extracomment>The chapter open last. %1: its title. In Polish: %1 (otwarty)</extracomment>
+        <translation>%1 (otwarty)</translation>
+    </message>
+    <message>
+        <source>no link</source>
+        <extracomment>In Polish: bez powiązania</extracomment>
+        <translation>bez powiązania</translation>
+    </message>
+    <message>
+        <source>Other Element...</source>
+        <extracomment>In Polish: Inny element...</extracomment>
+        <translation>Inny element...</translation>
+    </message>
+    <message>
+        <source>&amp;Link with</source>
+        <extracomment>In Polish: &amp;Powiąż z</extracomment>
+        <translation>&amp;Powiąż z</translation>
+    </message>
+    <message>
+        <source>The quote goes to the Workshop with its source and page. The selection in the PDF file stays as it is.</source>
+        <extracomment>In Polish: Cytat trafia do Warsztatu ze źródłem i stroną. Zaznaczenie w pliku PDF zostaje bez zmian.</extracomment>
+        <translation>Cytat trafia do Warsztatu ze źródłem i stroną. Zaznaczenie w pliku PDF zostaje bez zmian.</translation>
+    </message>
+    <message>
+        <source>&amp;Create</source>
+        <extracomment>In Polish: &amp;Utwórz</extracomment>
+        <translation>&amp;Utwórz</translation>
+    </message>
+    <message>
+        <source>Create and &amp;Insert into Chapter</source>
+        <extracomment>In Polish: Utwórz i &amp;wstaw do rozdziału</extracomment>
+        <translation>Utwórz i &amp;wstaw do rozdziału</translation>
+    </message>
+    <message>
+        <source>No chapter is open</source>
+        <extracomment>In Polish: Żaden rozdział nie jest otwarty</extracomment>
+        <translation>Żaden rozdział nie jest otwarty</translation>
+    </message>
+    <message>
+        <source>The chapter is read-only</source>
+        <extracomment>In Polish: Rozdział jest tylko do odczytu</extracomment>
+        <translation>Rozdział jest tylko do odczytu</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardPage</name>
+    <message>
+        <source>Card Settings</source>
+        <extracomment>The gear of a card of a character, a location or an item: Settings &gt; Cards. In Polish: Ustawienia kart</extracomment>
+        <translation>Ustawienia kart</translation>
+    </message>
+    <message>
+        <source>Portrait</source>
+        <extracomment>The portrait of a card of a character, a location or an item. In Polish: Portret</extracomment>
+        <translation>Portret</translation>
+    </message>
+    <message>
+        <source>Change the Portrait</source>
+        <extracomment>The tooltip of the portrait of a card. In Polish: Zmień portret</extracomment>
+        <translation>Zmień portret</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The name of a character, a location or an item on its card. In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>In Short</source>
+        <extracomment>The short description of a card, for screen readers. In Polish: W skrócie</extracomment>
+        <translation>W skrócie</translation>
+    </message>
+    <message>
+        <source>Who or what it is, in a sentence or two...</source>
+        <extracomment>In Polish: Kim lub czym jest – w jednym lub dwóch zdaniach...</extracomment>
+        <translation>Kim lub czym jest – w jednym lub dwóch zdaniach...</translation>
+    </message>
+    <message>
+        <source>Card color:</source>
+        <extracomment>The color of a card of a character, a location or an item, which the Navigator shows beside its name. In Polish: Kolor karty:</extracomment>
+        <translation>Kolor karty:</translation>
+    </message>
+    <message>
+        <source>Change the Card Color...</source>
+        <extracomment>In Polish: Zmień kolor karty...</extracomment>
+        <translation>Zmień kolor karty...</translation>
+    </message>
+    <message>
+        <source>Card color</source>
+        <extracomment>In Polish: Kolor karty</extracomment>
+        <translation>Kolor karty</translation>
+    </message>
+    <message>
+        <source>In short:</source>
+        <extracomment>The caption of the short description of a card: who the character is, what the location is. In Polish: W skrócie:</extracomment>
+        <translation>W skrócie:</translation>
+    </message>
+    <message>
+        <source>Data</source>
+        <extracomment>The group of the fields of a card of a character, a location or an item. In Polish: Dane</extracomment>
+        <translation>Dane</translation>
+    </message>
+    <message>
+        <source>Own fields of the card</source>
+        <extracomment>In Polish: Własne pola karty</extracomment>
+        <translation>Własne pola karty</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <extracomment>The long description of a card of a character, a location or an item: the text of the card. In Polish: Opis</extracomment>
+        <translation>Opis</translation>
+    </message>
+    <message>
+        <source>Open Card</source>
+        <extracomment>The button of the short card of a character, a location or an item in the Properties panel, which opens its full card. In Polish: Otwórz kartę</extracomment>
+        <translation>Otwórz kartę</translation>
+    </message>
+    <message>
+        <source>Open the full card beside the chapters</source>
+        <extracomment>In Polish: Otwórz pełną kartę obok rozdziałów</extracomment>
+        <translation>Otwórz pełną kartę obok rozdziałów</translation>
+    </message>
+    <message>
+        <source>{Kind} Information</source>
+        <extracomment>The group of the short card of a character, a location or an item in the Properties panel. In Polish: Informacje o {kind:locative}</extracomment>
+        <translation>Informacje o {kind:locative}</translation>
+    </message>
+    <message>
+        <source>%1:</source>
+        <extracomment>The caption of a field of a card: %1 its name (&quot;Age&quot;). In Polish: %1:</extracomment>
+        <translation>%1:</translation>
+    </message>
+    <message>
+        <source>Type or choose a card...</source>
+        <extracomment>A field of a card that names another card (the owner of an item, the location a location lies in), when it is empty. In Polish: Wpisz albo wybierz kartę...</extracomment>
+        <translation>Wpisz albo wybierz kartę...</translation>
+    </message>
+    <message>
+        <source>Picture from the &amp;Materials</source>
+        <extracomment>The submenu of the portrait of a card with the pictures of the materials of the book. In Polish: Obraz z &amp;materiałów</extracomment>
+        <translation>Obraz z &amp;materiałów</translation>
+    </message>
+    <message>
+        <source>Picture from a &amp;File...</source>
+        <extracomment>In Polish: Obraz z &amp;pliku...</extracomment>
+        <translation>Obraz z &amp;pliku...</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Portrait</source>
+        <extracomment>Takes the portrait off the card; its picture stays in the materials. In Polish: &amp;Usuń portret</extracomment>
+        <translation>&amp;Usuń portret</translation>
+    </message>
+    <message>
+        <source>Choose the Picture of the Portrait</source>
+        <extracomment>The system window choosing the picture of the portrait of a card. In Polish: Wybierz obraz portretu</extracomment>
+        <translation>Wybierz obraz portretu</translation>
+    </message>
+    <message>
+        <source>Images</source>
+        <extracomment>The pictures of the window choosing a portrait. In Polish: Obrazy</extracomment>
+        <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>All Files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Portrait Not Changed</source>
+        <extracomment>In Polish: Nie zmieniono portretu</extracomment>
+        <translation>Nie zmieniono portretu</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Portrait Not Added</source>
+        <extracomment>In Polish: Nie dodano portretu</extracomment>
+        <translation>Nie dodano portretu</translation>
+    </message>
+    <message>
+        <source>The file &quot;%1&quot; is not a picture Kalahari can show.</source>
+        <extracomment>%1: the name of the file. In Polish: Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać.</extracomment>
+        <translation>Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać.</translation>
+    </message>
+    <message>
+        <source>The picture could not be copied into the materials of the book.</source>
+        <extracomment>In Polish: Nie udało się skopiować obrazu do materiałów książki.</extracomment>
+        <translation>Nie udało się skopiować obrazu do materiałów książki.</translation>
+    </message>
+    <message>
+        <source>The color of the card &quot;%1&quot;</source>
+        <extracomment>What the color window chooses: %1 the name of a card. In Polish: Kolor karty „%1”</extracomment>
+        <translation>Kolor karty „%1”</translation>
+    </message>
+    <message>
+        <source>Card Not Saved</source>
+        <extracomment>In Polish: Nie zapisano karty</extracomment>
+        <translation>Nie zapisano karty</translation>
+    </message>
+    <message>
+        <source>Rename Failed</source>
+        <extracomment>In Polish: Nie udało się zmienić nazwy</extracomment>
+        <translation>Nie udało się zmienić nazwy</translation>
+    </message>
+    <message>
+        <source>Description Not Saved</source>
+        <extracomment>In Polish: Nie zapisano opisu</extracomment>
+        <translation>Nie zapisano opisu</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <extracomment>The kind of a card under its name, with the value of the field beside it: &quot;Character · main&quot;. In Polish: %1 · %2</extracomment>
+        <translation>%1 · %2</translation>
+    </message>
+    <message>
+        <source>Find in Book</source>
+        <extracomment>The button of the bar of a full card that searches the texts of the book for the name of the card. In Polish: Znajdź w książce</extracomment>
+        <translation>Znajdź w książce</translation>
+    </message>
+    <message>
+        <source>Searches all the texts of the book for the name of the card (the Search panel)</source>
+        <extracomment>In Polish: Szuka nazwy karty we wszystkich tekstach książki (panel „Wyszukiwanie”)</extracomment>
+        <translation>Szuka nazwy karty we wszystkich tekstach książki (panel „Wyszukiwanie”)</translation>
+    </message>
+    <message>
+        <source>Relation...</source>
+        <extracomment>The button of the bar of a full card that opens the window Relation. In Polish: Relacja...</extracomment>
+        <translation>Relacja...</translation>
+    </message>
+    <message>
+        <source>A new relation with another card</source>
+        <extracomment>In Polish: Nowa relacja z inną kartą</extracomment>
+        <translation>Nowa relacja z inną kartą</translation>
+    </message>
+    <message>
+        <source>No materials are linked with the card. &quot;+&quot; or Insert links them; a file or a picture dropped on the card adds one.</source>
+        <extracomment>The materials of a card without any. In Polish: Z kartą nie są powiązane żadne materiały. „+” albo Insert je powiąże, a plik albo obraz upuszczony na kartę doda nowy materiał.</extracomment>
+        <translation>Z kartą nie są powiązane żadne materiały. „+” albo Insert je powiąże, a plik albo obraz upuszczony na kartę doda nowy materiał.</translation>
+    </message>
+    <message>
+        <source>Set as &amp;Portrait</source>
+        <extracomment>In the menu of a picture linked with a card. In Polish: Ustaw jako &amp;portret</extracomment>
+        <translation>Ustaw jako &amp;portret</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardPanel</name>
+    <message>
+        <source>Description of the card</source>
+        <extracomment>The editor of the long description of a card, for screen readers. In Polish: Opis karty</extracomment>
+        <translation>Opis karty</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardsPage</name>
+    <message>
+        <source>Colors</source>
+        <extracomment>Settings &gt; Cards: the group of the colors of the cards of characters, locations and items. In Polish: Kolory</extracomment>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>Color dots of the cards in the Navigator</source>
+        <extracomment>The dot of the color of a card beside its name in the Navigator. In Polish: Kropki kolorów kart w Nawigatorze</extracomment>
+        <translation>Kropki kolorów kart w Nawigatorze</translation>
+    </message>
+    <message>
+        <source>A color of the palette of new cards</source>
+        <extracomment>What the color window chooses from the palette of the cards. In Polish: Kolor palety nowych kart</extracomment>
+        <translation>Kolor palety nowych kart</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <extracomment>In Polish: Przywróć domyślne</extracomment>
+        <translation>Przywróć domyślne</translation>
+    </message>
+    <message>
+        <source>Palette of new cards:</source>
+        <extracomment>The palette that new cards of characters, locations and items take their colors from. In Polish: Paleta nowych kart:</extracomment>
+        <translation>Paleta nowych kart:</translation>
+    </message>
+    <message>
+        <source>A new card gets the color of the palette that the fewest cards of the book have. A click on a swatch changes the color, Delete takes it out, &quot;+&quot; or Insert adds one. The color of one card is changed on its full card.</source>
+        <extracomment>In Polish: Nowa karta dostaje ten kolor palety, który ma najmniej kart książki. Kliknięcie próbki zmienia kolor, Delete go usuwa, a „+” albo Insert dodaje nowy. Kolor jednej karty zmienia się na jej pełnej karcie.</extracomment>
+        <translation>Nowa karta dostaje ten kolor palety, który ma najmniej kart książki. Kliknięcie próbki zmienia kolor, Delete go usuwa, a „+” albo Insert dodaje nowy. Kolor jednej karty zmienia się na jej pełnej karcie.</translation>
+    </message>
+    <message>
+        <source>Navigator</source>
+        <extracomment>Settings &gt; Cards: the group of how the cards are in the Navigator. In Polish: Nawigator</extracomment>
+        <translation>Nawigator</translation>
+    </message>
+    <message>
+        <source>A tree by parent location</source>
+        <extracomment>The locations in the Navigator, each under the location it is part of. In Polish: Drzewo według miejsca nadrzędnego</extracomment>
+        <translation>Drzewo według miejsca nadrzędnego</translation>
+    </message>
+    <message>
+        <source>An alphabetical list</source>
+        <extracomment>In Polish: Lista alfabetyczna</extracomment>
+        <translation>Lista alfabetyczna</translation>
+    </message>
+    <message>
+        <source>For example, a district under its city. The cards of other kinds whose field names a card of the same kind are in trees as well.</source>
+        <extracomment>In Polish: Na przykład Żoliborz pod Warszawą. Tak samo są ułożone karty innych rodzajów, których pole wskazuje kartę tego samego rodzaju.</extracomment>
+        <translation>Na przykład Żoliborz pod Warszawą. Tak samo są ułożone karty innych rodzajów, których pole wskazuje kartę tego samego rodzaju.</translation>
+    </message>
+    <message>
+        <source>Locations in the Navigator:</source>
+        <extracomment>The label of the choice between a tree and a list of the locations. In Polish: Miejsca w Nawigatorze:</extracomment>
+        <translation>Miejsca w Nawigatorze:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::OwnFieldsBox</name>
+    <message>
+        <source>Own Fields</source>
+        <extracomment>The writer&apos;s own fields of an element of the Workshop (a material, a card of a character): a name and a value each. In Polish: Własne pola</extracomment>
+        <translation>Własne pola</translation>
+    </message>
+    <message>
+        <source>Add Field (Insert)</source>
+        <extracomment>In Polish: Dodaj pole (Insert)</extracomment>
+        <translation>Dodaj pole (Insert)</translation>
+    </message>
+    <message>
+        <source>Delete Field (Delete)</source>
+        <extracomment>In Polish: Usuń pole (Delete)</extracomment>
+        <translation>Usuń pole (Delete)</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The columns of the own fields. In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <extracomment>In Polish: Wartość</extracomment>
+        <translation>Wartość</translation>
+    </message>
+    <message>
+        <source>No fields. &quot;+&quot; or Insert adds a field.</source>
+        <extracomment>In Polish: Brak pól. „+” albo Insert dodaje pole.</extracomment>
+        <translation>Brak pól. „+” albo Insert dodaje pole.</translation>
+    </message>
+    <message>
+        <source>Fields Not Saved</source>
+        <extracomment>In Polish: Nie zapisano pól</extracomment>
+        <translation>Nie zapisano pól</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Delete the field &quot;%1&quot; with its value?</source>
+        <extracomment>%1: the name of the field. In Polish: Usunąć pole „%1” razem z jego wartością?</extracomment>
+        <translation>Usunąć pole „%1” razem z jego wartością?</translation>
+    </message>
+    <message>
+        <source>Delete Field</source>
+        <extracomment>In Polish: Usuń pole</extracomment>
+        <translation>Usuń pole</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PaletteEdit</name>
+    <message>
+        <source>Add Color... (Insert)</source>
+        <extracomment>The button after the swatches of a palette in the Settings. In Polish: Dodaj kolor... (Insert)</extracomment>
+        <translation>Dodaj kolor... (Insert)</translation>
+    </message>
+    <message>
+        <source>Color %1: %2</source>
+        <extracomment>A swatch of a palette in the Settings: %1 its number, %2 its color, &quot;#C0504D&quot;. In Polish: Kolor %1: %2</extracomment>
+        <translation>Kolor %1: %2</translation>
+    </message>
+    <message>
+        <source>Color %1: %2. A click changes it, Delete takes it out.</source>
+        <extracomment>The tooltip of a swatch of a palette in the Settings: %1 its number, %2 its color. In Polish: Kolor %1: %2. Kliknięcie go zmienia, Delete usuwa.</extracomment>
+        <translation>Kolor %1: %2. Kliknięcie go zmienia, Delete usuwa.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardChaptersBox</name>
+    <message>
+        <source>In Chapters</source>
+        <extracomment>The group of the chapters a card of a character, a location or an item is in. In Polish: W rozdziałach</extracomment>
+        <translation>W rozdziałach</translation>
+    </message>
+    <message>
+        <source>Link with Chapters... (Insert)</source>
+        <extracomment>In Polish: Powiąż z rozdziałami... (Insert)</extracomment>
+        <translation>Powiąż z rozdziałami... (Insert)</translation>
+    </message>
+    <message>
+        <source>Remove from Chapter (Delete)</source>
+        <extracomment>In Polish: Usuń z rozdziału (Delete)</extracomment>
+        <translation>Usuń z rozdziału (Delete)</translation>
+    </message>
+    <message>
+        <source>Chapters of the card</source>
+        <extracomment>In Polish: Rozdziały karty</extracomment>
+        <translation>Rozdziały karty</translation>
+    </message>
+    <message>
+        <source>The card is in no chapter yet. &quot;+&quot; or Insert links it.</source>
+        <extracomment>In Polish: Karta nie jest jeszcze w żadnym rozdziale. „+” albo Insert ją powiąże.</extracomment>
+        <translation>Karta nie jest jeszcze w żadnym rozdziale. „+” albo Insert ją powiąże.</translation>
+    </message>
+    <message>
+        <source>Links Not Saved</source>
+        <extracomment>In Polish: Nie zapisano powiązań</extracomment>
+        <translation>Nie zapisano powiązań</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Open the Chapter</source>
+        <extracomment>The menu of a chapter of a card. In Polish: Otwórz rozdział</extracomment>
+        <translation>Otwórz rozdział</translation>
+    </message>
+    <message>
+        <source>Change the Link... (F2)</source>
+        <extracomment>In Polish: Zmień powiązanie... (F2)</extracomment>
+        <translation>Zmień powiązanie... (F2)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::RelationsBox</name>
+    <message>
+        <source>Relations</source>
+        <extracomment>The group of the relations of a card with the other cards. In Polish: Relacje</extracomment>
+        <translation>Relacje</translation>
+    </message>
+    <message>
+        <source>New Relation... (Insert)</source>
+        <extracomment>In Polish: Nowa relacja... (Insert)</extracomment>
+        <translation>Nowa relacja... (Insert)</translation>
+    </message>
+    <message>
+        <source>Delete Relation (Delete)</source>
+        <extracomment>In Polish: Usuń relację (Delete)</extracomment>
+        <translation>Usuń relację (Delete)</translation>
+    </message>
+    <message>
+        <source>Relations of the card</source>
+        <extracomment>In Polish: Relacje karty</extracomment>
+        <translation>Relacje karty</translation>
+    </message>
+    <message>
+        <source>No relations. &quot;+&quot; or Insert adds one.</source>
+        <extracomment>In Polish: Brak relacji. „+” albo Insert dodaje relację.</extracomment>
+        <translation>Brak relacji. „+” albo Insert dodaje relację.</translation>
+    </message>
+    <message>
+        <source>Delete the relation &quot;%1 – %2&quot; with its note?</source>
+        <extracomment>%1: the relation, %2: the other card. In Polish: Usunąć relację „%1 – %2” razem z jej notatką?</extracomment>
+        <translation>Usunąć relację „%1 – %2” razem z jej notatką?</translation>
+    </message>
+    <message>
+        <source>Delete Relation</source>
+        <extracomment>In Polish: Usuń relację</extracomment>
+        <translation>Usuń relację</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Relation Not Saved</source>
+        <extracomment>In Polish: Nie zapisano relacji</extracomment>
+        <translation>Nie zapisano relacji</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Open the Card</source>
+        <extracomment>The menu of a relation of a card. In Polish: Otwórz kartę, Pokaż kartę</extracomment>
+        <translation>Otwórz kartę</translation>
+    </message>
+    <message>
+        <source>Show the Card</source>
+        <translation>Pokaż kartę</translation>
+    </message>
+    <message>
+        <source>Change the Relation... (F2)</source>
+        <extracomment>In Polish: Zmień relację... (F2)</extracomment>
+        <translation>Zmień relację... (F2)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::RelationDialog</name>
+    <message>
+        <source>On the card &quot;%1&quot;: &lt;b&gt;%2&lt;/b&gt; – %3</source>
+        <extracomment>How a card shows a relation, in the window Relation: %1 the card, %2 the name of the relation, %3 the other card. Keep &lt;b&gt; and &lt;/b&gt;. In Polish: Na karcie „%1”: &lt;b&gt;%2&lt;/b&gt; – %3</extracomment>
+        <translation>Na karcie „%1”: &lt;b&gt;%2&lt;/b&gt; – %3</translation>
+    </message>
+    <message>
+        <source>Relation of &quot;%1&quot;</source>
+        <extracomment>The window of a relation of a card with another card; %1: the name of the card. In Polish: Relacja karty „%1”</extracomment>
+        <translation>Relacja karty „%1”</translation>
+    </message>
+    <message>
+        <source>Choose the card and the kind of the relation. Both cards show it.</source>
+        <extracomment>In Polish: Wybierz kartę i rodzaj relacji. Relacja pokaże się na obu kartach.</extracomment>
+        <translation>Wybierz kartę i rodzaj relacji. Relacja pokaże się na obu kartach.</translation>
+    </message>
+    <message>
+        <source>&amp;Change</source>
+        <extracomment>The button of the window Relation. In Polish: &amp;Dodaj, &amp;Zmień</extracomment>
+        <translation>&amp;Zmień</translation>
+    </message>
+    <message>
+        <source>&amp;Add</source>
+        <translation>&amp;Dodaj</translation>
+    </message>
+    <message>
+        <source>Type to filter...</source>
+        <extracomment>In Polish: Pisz, żeby filtrować...</extracomment>
+        <translation>Pisz, żeby filtrować...</translation>
+    </message>
+    <message>
+        <source>Filter of the cards</source>
+        <extracomment>In Polish: Filtr kart</extracomment>
+        <translation>Filtr kart</translation>
+    </message>
+    <message>
+        <source>Cards</source>
+        <extracomment>In Polish: Karty</extracomment>
+        <translation>Karty</translation>
+    </message>
+    <message>
+        <source>Relation</source>
+        <extracomment>In Polish: Relacja</extracomment>
+        <translation>Relacja</translation>
+    </message>
+    <message>
+        <source>e.g. creditor</source>
+        <extracomment>What the other card is to the card, in a relation the writer names. In Polish: np. wierzyciel</extracomment>
+        <translation>np. wierzyciel</translation>
+    </message>
+    <message>
+        <source>e.g. debtor</source>
+        <extracomment>In Polish: np. dłużniczka</extracomment>
+        <translation>np. dłużniczka</translation>
+    </message>
+    <message>
+        <source>e.g. since childhood</source>
+        <extracomment>In Polish: np. od dzieciństwa</extracomment>
+        <translation>np. od dzieciństwa</translation>
+    </message>
+    <message>
+        <source>&amp;With whom or what:</source>
+        <extracomment>In Polish: &amp;Z kim albo z czym:</extracomment>
+        <translation>&amp;Z kim albo z czym:</translation>
+    </message>
+    <message>
+        <source>&amp;Relation:</source>
+        <extracomment>In Polish: &amp;Relacja:</extracomment>
+        <translation>&amp;Relacja:</translation>
+    </message>
+    <message>
+        <source>On both cards:</source>
+        <extracomment>In Polish: Na obu kartach:</extracomment>
+        <translation>Na obu kartach:</translation>
+    </message>
+    <message>
+        <source>&amp;Note:</source>
+        <extracomment>In Polish: &amp;Notatka:</extracomment>
+        <translation>&amp;Notatka:</translation>
+    </message>
+    <message>
+        <source>Enter saves, Esc closes</source>
+        <extracomment>The keys of the window Relation, beside its buttons. In Polish: Enter zapisuje, Esc zamyka</extracomment>
+        <translation>Enter zapisuje, Esc zamyka</translation>
+    </message>
+    <message>
+        <source>Create {kind} &quot;%1&quot;...</source>
+        <extracomment>The last items of the list of the window Relation: a new card of a kind with the name typed, %1. In Polish: Utwórz {kind:accusative} „%1”...</extracomment>
+        <translation>Utwórz {kind:accusative} „%1”...</translation>
+    </message>
+    <message>
+        <source>own</source>
+        <extracomment>The group of a relation the writer named, in the window Relation. In Polish: własna</extracomment>
+        <translation>własna</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>A relation in the window Relation with its group: &quot;siblings (family)&quot;. In Polish: %1 (%2)</extracomment>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>Own Relation...</source>
+        <extracomment>The last relation of the window Relation, which the writer names. In Polish: Własna relacja...</extracomment>
+        <translation>Własna relacja...</translation>
+    </message>
+    <message>
+        <source>On the card &quot;%1&quot;:</source>
+        <extracomment>The name of a relation the writer names, as card %1 shows it. In Polish: Na karcie „%1”:</extracomment>
+        <translation>Na karcie „%1”:</translation>
+    </message>
+    <message>
+        <source>Card Not Added</source>
+        <extracomment>In Polish: Nie dodano karty</extracomment>
+        <translation>Nie dodano karty</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Relation Not Saved</source>
+        <extracomment>In Polish: Nie zapisano relacji</extracomment>
+        <translation>Nie zapisano relacji</translation>
     </message>
 </context>
 </TS>
