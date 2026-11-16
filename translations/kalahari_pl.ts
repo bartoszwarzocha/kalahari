@@ -22903,6 +22903,34 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
     </message>
 </context>
 <context>
+    <name>CaptionSettings</name>
+    <message>
+        <source>Figure</source>
+        <extracomment>A label of captions. In Polish: Rysunek</extracomment>
+        <translation>Rysunek</translation>
+    </message>
+    <message>
+        <source>Photo</source>
+        <extracomment>A label of captions. In Polish: Fotografia</extracomment>
+        <translation>Fotografia</translation>
+    </message>
+    <message>
+        <source>Illustration</source>
+        <extracomment>A label of captions. In Polish: Ilustracja</extracomment>
+        <translation>Ilustracja</translation>
+    </message>
+    <message>
+        <source>Map</source>
+        <extracomment>A label of captions. In Polish: Mapa</extracomment>
+        <translation>Mapa</translation>
+    </message>
+    <message>
+        <source>Diagram</source>
+        <extracomment>A label of captions. In Polish: Schemat</extracomment>
+        <translation>Schemat</translation>
+    </message>
+</context>
+<context>
     <name>SessionSummary</name>
     <message>
         <source>Words per %1 min</source>
