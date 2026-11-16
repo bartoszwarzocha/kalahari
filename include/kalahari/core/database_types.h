@@ -52,50 +52,6 @@ struct ChapterHistoryEntry {
 };
 
 // =============================================================================
-// Library Items (Characters, Locations, Items)
-// =============================================================================
-
-/// @brief Character from library (maps to 'characters' table)
-struct CharacterInfo {
-    QString id;              ///< Unique character ID (UUID)
-    QString name;            ///< Character name
-    QString description;     ///< Character description
-    QString color;           ///< Hex color for UI (e.g., "#FF5733")
-    QString notes;           ///< Additional notes
-    QDateTime createdAt;     ///< Creation timestamp
-    QDateTime modifiedAt;    ///< Last modification timestamp
-
-    /// @brief Check if character info is valid
-    bool isValid() const { return !id.isEmpty() && !name.isEmpty(); }
-};
-
-/// @brief Location from library (maps to 'locations' table)
-struct LocationInfo {
-    QString id;              ///< Unique location ID (UUID)
-    QString name;            ///< Location name
-    QString description;     ///< Location description
-    QString notes;           ///< Additional notes
-    QDateTime createdAt;     ///< Creation timestamp
-    QDateTime modifiedAt;    ///< Last modification timestamp
-
-    /// @brief Check if location info is valid
-    bool isValid() const { return !id.isEmpty() && !name.isEmpty(); }
-};
-
-/// @brief Item from library (maps to 'items' table)
-struct ItemInfo {
-    QString id;              ///< Unique item ID (UUID)
-    QString name;            ///< Item name
-    QString description;     ///< Item description
-    QString notes;           ///< Additional notes
-    QDateTime createdAt;     ///< Creation timestamp
-    QDateTime modifiedAt;    ///< Last modification timestamp
-
-    /// @brief Check if item info is valid
-    bool isValid() const { return !id.isEmpty() && !name.isEmpty(); }
-};
-
-// =============================================================================
 // Statistics
 // =============================================================================
 

@@ -38,6 +38,10 @@ QString linkPlace(const core::ProjectManager& book, const QString& link);
 /// itself for a role of a later version, empty for none
 QString linkRoleName(const QString& role);
 
+/// @brief Name of role @p role of a card in a chapter (core::LinkRoles::ofCards()): "point of
+/// view"...; empty for another role
+QString cardRoleName(const QString& role);
+
 /// @brief The role and the paragraph of @p link in a few words: "quoted in the text ·
 /// paragraph 4"; the paragraph only while links may name one
 /// (core::LinkRoles::paragraphsShown()); empty when it says neither
