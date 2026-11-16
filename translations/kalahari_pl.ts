@@ -1346,6 +1346,14 @@
         <source>Book &amp;Dictionary...</source>
         <translation>Słownik &amp;książki...</translation>
     </message>
+    <message>
+        <source>Link Paragraph &amp;with Card...</source>
+        <translation>Powiąż akap&amp;it z kartą...</translation>
+    </message>
+    <message>
+        <source>&amp;Open Card at Cursor</source>
+        <translation>Otwórz kartę przy k&amp;ursorze</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -4051,6 +4059,16 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>C&amp;reate Card</source>
         <extracomment>The submenu of the context menu of a word or a selection with the kinds of cards: a new card named after them. In Polish: &amp;Utwórz kartę</extracomment>
         <translation>&amp;Utwórz kartę</translation>
+    </message>
+    <message>
+        <source>Linked cards</source>
+        <extracomment>The tooltip of the sign of the cards beside a paragraph, over the names of the cards. In Polish: Powiązane karty</extracomment>
+        <translation>Powiązane karty</translation>
+    </message>
+    <message>
+        <source>Linked Card&amp;s</source>
+        <extracomment>The submenu of the cards of characters, locations and items linked with the paragraph; its key is one the commands of the menu never have. In Polish: Powiązane k&amp;arty</extracomment>
+        <translation>Powiązane k&amp;arty</translation>
     </message>
 </context>
 <context>
@@ -27896,6 +27914,46 @@ The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
         <extracomment>The label of the choice between a tree and a list of the locations. In Polish: Miejsca w Nawigatorze:</extracomment>
         <translation>Miejsca w Nawigatorze:</translation>
     </message>
+    <message>
+        <source>In the Text</source>
+        <extracomment>Settings &gt; Cards: the group of the cards in the texts of the book. In Polish: W tekście</extracomment>
+        <translation>W tekście</translation>
+    </message>
+    <message>
+        <source>Names of the cards and linked paragraphs</source>
+        <extracomment>The Properties panel shows the card whose name the cursor is in and the cards linked with the paragraph. In Polish: Imiona i nazwy z kart oraz powiązane akapity</extracomment>
+        <translation>Imiona i nazwy z kart oraz powiązane akapity</translation>
+    </message>
+    <message>
+        <source>Only linked paragraphs</source>
+        <extracomment>In Polish: Tylko powiązane akapity</extracomment>
+        <translation>Tylko powiązane akapity</translation>
+    </message>
+    <message>
+        <source>Do not show</source>
+        <extracomment>In Polish: Nie pokazuj</extracomment>
+        <translation>Nie pokazuj</translation>
+    </message>
+    <message>
+        <source>When the cursor is in the name of a card, in any of its forms, the Properties panel shows the card under the data of the text. The book&apos;s dictionary knows the forms.</source>
+        <extracomment>In Polish: Gdy kursor jest w imieniu lub nazwie z karty, w dowolnej formie, panel „Właściwości” pokazuje tę kartę pod danymi tekstu. Formy zna słownik książki.</extracomment>
+        <translation>Gdy kursor jest w imieniu lub nazwie z karty, w dowolnej formie, panel „Właściwości” pokazuje tę kartę pod danymi tekstu. Formy zna słownik książki.</translation>
+    </message>
+    <message>
+        <source>Card at the cursor:</source>
+        <extracomment>The label of the choice of what the Properties panel shows of the cards at the cursor. In Polish: Karta przy kursorze:</extracomment>
+        <translation>Karta przy kursorze:</translation>
+    </message>
+    <message>
+        <source>Signs of the cards beside the linked paragraphs</source>
+        <extracomment>The signs of the kinds of the cards beside a paragraph linked with them, like the paperclip of a material. In Polish: Znaki kart na marginesie przy powiązanych akapitach</extracomment>
+        <translation>Znaki kart na marginesie przy powiązanych akapitach</translation>
+    </message>
+    <message>
+        <source>A click on a sign opens the card. Without the signs, the Properties panel still names the cards of the paragraph.</source>
+        <extracomment>In Polish: Kliknięcie znaku otwiera kartę. Bez znaków panel „Właściwości” nadal wymienia karty akapitu.</extracomment>
+        <translation>Kliknięcie znaku otwiera kartę. Bez znaków panel „Właściwości” nadal wymienia karty akapitu.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::OwnFieldsBox</name>
@@ -28312,6 +28370,250 @@ The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
     <message>
         <source>&amp;Add</source>
         <translation>&amp;Dodaj</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardList</name>
+    <message>
+        <source>Name</source>
+        <extracomment>The column of the names of the cards in the list of cards. In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>In Short</source>
+        <extracomment>The column of the short description of a card: who a character is, what a location is. In Polish: W skrócie</extracomment>
+        <translation>W skrócie</translation>
+    </message>
+    <message>
+        <source>Chapters</source>
+        <extracomment>How many chapters a card is in. In Polish: Rozdziały</extracomment>
+        <translation>Rozdziały</translation>
+    </message>
+    <message>
+        <source>Relations</source>
+        <extracomment>How many relations a card has with the other cards. In Polish: Relacje</extracomment>
+        <translation>Relacje</translation>
+    </message>
+    <message>
+        <source>Enter saves, Shift+Enter starts a new line</source>
+        <extracomment>The editor of a longer text of a card in the list of cards, empty. In Polish: Enter zapisuje, Shift+Enter zaczyna nowy wiersz</extracomment>
+        <translation>Enter zapisuje, Shift+Enter zaczyna nowy wiersz</translation>
+    </message>
+    <message>
+        <source>Card Not Saved</source>
+        <extracomment>In Polish: Nie zapisano karty</extracomment>
+        <translation>Nie zapisano karty</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Re&amp;lation...</source>
+        <extracomment>Adds a relation of a card with another card in the window Relation. In Polish: Re&amp;lacja...</extracomment>
+        <translation>Re&amp;lacja...</translation>
+    </message>
+    <message>
+        <source>Open the full card (%1)</source>
+        <extracomment>The button Edit of a list of cards; %1: the keys. In Polish: Otwórz pełną kartę (%1)</extracomment>
+        <translation>Otwórz pełną kartę (%1)</translation>
+    </message>
+    <message>
+        <source>Relation...</source>
+        <extracomment>Adds a relation of the card chosen with another card. In Polish: Relacja...</extracomment>
+        <translation>Relacja...</translation>
+    </message>
+    <message>
+        <source>Card Settings</source>
+        <extracomment>The gear of a list of cards: Settings &gt; Cards. In Polish: Ustawienia kart</extracomment>
+        <translation>Ustawienia kart</translation>
+    </message>
+    <message>
+        <source>Search in the cards</source>
+        <extracomment>In Polish: Szukaj w kartach</extracomment>
+        <translation>Szukaj w kartach</translation>
+    </message>
+    <message>
+        <source>List of cards</source>
+        <extracomment>In Polish: Lista kart</extracomment>
+        <translation>Lista kart</translation>
+    </message>
+    <message>
+        <source>%1: nothing yet. Add (%2) adds a card.</source>
+        <extracomment>A list of cards without any; %1: its name, &quot;Characters&quot;; %2: the keys of Add. In Polish: %1: na razie pusto. „Dodaj” (%2) dodaje nową kartę.</extracomment>
+        <translation>%1: na razie pusto. „Dodaj” (%2) dodaje nową kartę.</translation>
+    </message>
+    <message>
+        <source>No card matches the filters.</source>
+        <extracomment>In Polish: Żadna karta nie pasuje do filtrów.</extracomment>
+        <translation>Żadna karta nie pasuje do filtrów.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardsInTextCoordinator</name>
+    <message>
+        <source>No book is open</source>
+        <extracomment>Why Book &gt; Link Paragraph with Card... is greyed out. In Polish: Żadna książka nie jest otwarta
+----------
+Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie jest otwarta</extracomment>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>The cursor is not in a text of the book</source>
+        <extracomment>In Polish: Kursor nie jest w tekście książki</extracomment>
+        <translation>Kursor nie jest w tekście książki</translation>
+    </message>
+    <message>
+        <source>Links name no paragraphs (Settings &gt; Navigator)</source>
+        <extracomment>The setting of Settings &gt; Navigator &gt; Materials is off. In Polish: Powiązania nie wskazują akapitów (Ustawienia &gt; Nawigator)</extracomment>
+        <translation>Powiązania nie wskazują akapitów (Ustawienia &gt; Nawigator)</translation>
+    </message>
+    <message>
+        <source>The book has no cards yet</source>
+        <extracomment>The book has no cards of characters, locations or items. In Polish: Książka nie ma jeszcze kart</extracomment>
+        <translation>Książka nie ma jeszcze kart</translation>
+    </message>
+    <message>
+        <source>The paragraph at the cursor is empty</source>
+        <extracomment>In Polish: Akapit przy kursorze jest pusty</extracomment>
+        <translation>Akapit przy kursorze jest pusty</translation>
+    </message>
+    <message>
+        <source>The cursor is in no name of a card, and its paragraph has no cards</source>
+        <extracomment>In Polish: Kursor nie jest w imieniu ani nazwie z karty, a jego akapit nie ma kart</extracomment>
+        <translation>Kursor nie jest w imieniu ani nazwie z karty, a jego akapit nie ma kart</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CursorCardBox</name>
+    <message>
+        <source>Card at the Cursor</source>
+        <extracomment>The group of the Properties panel with the card whose name the cursor of the text is in. In Polish: Karta przy kursorze</extracomment>
+        <translation>Karta przy kursorze</translation>
+    </message>
+    <message>
+        <source>Card Settings</source>
+        <extracomment>The gear of the card at the cursor: Settings &gt; Cards. In Polish: Ustawienia kart</extracomment>
+        <translation>Ustawienia kart</translation>
+    </message>
+    <message>
+        <source>Open Card</source>
+        <extracomment>The button of the card at the cursor in the Properties panel, which opens its full card. In Polish: Otwórz kartę</extracomment>
+        <translation>Otwórz kartę</translation>
+    </message>
+    <message>
+        <source>Open the full card beside the chapters</source>
+        <extracomment>In Polish: Otwórz pełną kartę obok rozdziałów</extracomment>
+        <translation>Otwórz pełną kartę obok rozdziałów</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ParagraphCardsBox</name>
+    <message>
+        <source>Cards of the Paragraph</source>
+        <extracomment>The group of the Properties panel with the cards of characters, locations and items linked with the paragraph at the cursor. In Polish: Karty akapitu</extracomment>
+        <translation>Karty akapitu</translation>
+    </message>
+    <message>
+        <source>Link Paragraph with Card... (Insert)</source>
+        <extracomment>In Polish: Powiąż akapit z kartą... (Insert)</extracomment>
+        <translation>Powiąż akapit z kartą... (Insert)</translation>
+    </message>
+    <message>
+        <source>Take the Card off the Paragraph (Delete)</source>
+        <extracomment>The card stays linked with the chapter. In Polish: Odłącz kartę od akapitu (Delete)</extracomment>
+        <translation>Odłącz kartę od akapitu (Delete)</translation>
+    </message>
+    <message>
+        <source>Cards of the paragraph</source>
+        <extracomment>In Polish: Karty akapitu</extracomment>
+        <translation>Karty akapitu</translation>
+    </message>
+    <message>
+        <source>This paragraph has no cards yet.</source>
+        <extracomment>In Polish: Ten akapit nie ma jeszcze kart.</extracomment>
+        <translation>Ten akapit nie ma jeszcze kart.</translation>
+    </message>
+    <message>
+        <source>Change Not Saved</source>
+        <extracomment>In Polish: Nie zapisano zmiany</extracomment>
+        <translation>Nie zapisano zmiany</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ParagraphCardDialog</name>
+    <message>
+        <source>Link Paragraph with Card</source>
+        <extracomment>The window that links a paragraph of a chapter with a card of a character, a location or an item. In Polish: Powiąż akapit z kartą</extracomment>
+        <translation>Powiąż akapit z kartą</translation>
+    </message>
+    <message>
+        <source>%1, paragraph %2: &quot;%3&quot;</source>
+        <extracomment>The chapter, the number of the paragraph and its first words. In Polish: %1, akapit %2: „%3”</extracomment>
+        <translation>%1, akapit %2: „%3”</translation>
+    </message>
+    <message>
+        <source>&amp;Link</source>
+        <extracomment>The button of the window Link Paragraph with Card. In Polish: &amp;Powiąż</extracomment>
+        <translation>&amp;Powiąż</translation>
+    </message>
+    <message>
+        <source>Type to filter...</source>
+        <extracomment>In Polish: Pisz, żeby filtrować...</extracomment>
+        <translation>Pisz, żeby filtrować...</translation>
+    </message>
+    <message>
+        <source>Filter of the cards</source>
+        <extracomment>In Polish: Filtr kart</extracomment>
+        <translation>Filtr kart</translation>
+    </message>
+    <message>
+        <source>Cards</source>
+        <extracomment>In Polish: Karty</extracomment>
+        <translation>Karty</translation>
+    </message>
+    <message>
+        <source>Role in the paragraph</source>
+        <extracomment>In Polish: Rola w akapicie</extracomment>
+        <translation>Rola w akapicie</translation>
+    </message>
+    <message>
+        <source>&amp;Card:</source>
+        <extracomment>In Polish: &amp;Karta:</extracomment>
+        <translation>&amp;Karta:</translation>
+    </message>
+    <message>
+        <source>&amp;Role in the paragraph:</source>
+        <extracomment>In Polish: &amp;Rola w akapicie:</extracomment>
+        <translation>&amp;Rola w akapicie:</translation>
+    </message>
+    <message>
+        <source>Enter saves, Esc closes</source>
+        <extracomment>The keys of the window Link Paragraph with Card, beside its buttons. In Polish: Enter zapisuje, Esc zamyka</extracomment>
+        <translation>Enter zapisuje, Esc zamyka</translation>
+    </message>
+    <message>
+        <source>The card is linked with this paragraph already. Its role changes.</source>
+        <extracomment>In Polish: Karta jest już powiązana z tym akapitem. Zmieni się jej rola.</extracomment>
+        <translation>Karta jest już powiązana z tym akapitem. Zmieni się jej rola.</translation>
+    </message>
+    <message>
+        <source>The card is linked with paragraph %1 of this chapter. The link moves to this paragraph.</source>
+        <extracomment>A card links with one paragraph of a chapter. In Polish: Karta jest powiązana z akapitem %1 tego rozdziału. Powiązanie przejdzie na ten akapit.</extracomment>
+        <translation>Karta jest powiązana z akapitem %1 tego rozdziału. Powiązanie przejdzie na ten akapit.</translation>
+    </message>
+    <message>
+        <source>Paragraph Not Linked</source>
+        <extracomment>In Polish: Nie powiązano akapitu</extracomment>
+        <translation>Nie powiązano akapitu</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
     </message>
 </context>
 </TS>

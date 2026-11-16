@@ -44,6 +44,7 @@ struct QuickInsertItem {
     QString group;   ///< The heading of its group in the list: "Characters", "Text Fragments"
     QString owner;   ///< The name it is another name of ("Anna Wolska" for "Ania"), or empty
     QList<QuickInsertForm> forms;  ///< The forms of a name (→ shows them), its own first
+    QString color{};  ///< The color of the card it is the name of ("#c0504d"); empty: none
 
     bool operator==(const QuickInsertItem&) const = default;
 };

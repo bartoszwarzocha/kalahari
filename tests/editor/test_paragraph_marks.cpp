@@ -367,7 +367,7 @@ TEST_CASE("Paragraph marks: the signs of the kinds of the cards beside the paper
     // The context menu of the paragraph: Linked Cards, with the cards of all the signs
     chosen.clear();
     {
-        SubmenuChooser chooser(QStringLiteral("Linked &Cards"), QStringLiteral("Jan"));
+        SubmenuChooser chooser(QStringLiteral("Linked Card&s"), QStringLiteral("Jan"));
         editor->setCursorPosition({1, 3});
         QContextMenuEvent menuKey(QContextMenuEvent::Keyboard, QPoint(), QPoint());
         QCoreApplication::sendEvent(editor.get(), &menuKey);

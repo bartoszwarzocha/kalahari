@@ -9,12 +9,17 @@
 #include <kalahari/editor/quick_insert.h>
 
 #include <QApplication>
+#include <QColor>
 #include <QFocusEvent>
 #include <QFontMetrics>
 #include <QHeaderView>
+#include <QIcon>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QMimeData>
+#include <QPainter>
+#include <QPen>
+#include <QPixmap>
 #include <QStringView>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -60,6 +65,25 @@ int stepsOf(int key, int page) {
         default:
             return 0;
     }
+}
+
+/// @brief The share of the height of a line the dot of the color of a card takes
+constexpr qreal COLOR_DOT_SHARE = 0.6;
+
+/// @brief The dot of color @p color (none: an empty place of its size) beside a name of a
+///        card, @p side pixels wide for the screen's @p ratio, with a line of @p border
+QIcon colorDot(const QString& color, int side, qreal ratio, const QColor& border) {
+    QPixmap pixmap(QSize(side, side) * ratio);
+    pixmap.setDevicePixelRatio(ratio);
+    pixmap.fill(Qt::transparent);
+    if (const QColor fill(color); fill.isValid()) {
+        QPainter painter(&pixmap);
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.setPen(QPen(border, 1.0));
+        painter.setBrush(fill);
+        painter.drawEllipse(QRectF(0.5, 0.5, side - 1.0, side - 1.0));
+    }
+    return QIcon(pixmap);
 }
 
 /// @brief The text an item inserts as the list shows it: one line, the paragraph breaks as ¶
@@ -147,6 +171,11 @@ void QuickInsertList::fill(const QList<QuickInsertItem>& items, int current) {
     groupFont.setBold(true);
     groupFont.setPointSizeF(groupFont.pointSizeF() * 0.85);
     QString group;
+    // The names of the cards with their colors, the other rows of the list in line with them
+    const bool dots = std::ranges::any_of(
+        items, [](const QuickInsertItem& item) { return !item.color.isEmpty(); });
+    const int side = static_cast<int>(QFontMetrics(font()).height() * COLOR_DOT_SHARE);
+    m_tree->setIconSize(QSize(side, side));
     for (const QuickInsertItem& item : items) {
         if (item.group != group || m_rows.isEmpty()) {
             group = item.group;
@@ -166,6 +195,10 @@ void QuickInsertList::fill(const QList<QuickInsertItem>& items, int current) {
         row->setForeground(1, palette().brush(QPalette::PlaceholderText));
         row->setToolTip(0, item.name);
         row->setToolTip(1, item.detail);
+        if (dots) {
+            row->setIcon(0, colorDot(item.color, side, devicePixelRatioF(),
+                                     palette().color(QPalette::Mid)));
+        }
         m_rows.append(row);
     }
 

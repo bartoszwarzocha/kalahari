@@ -225,9 +225,10 @@ void BookEditor::addParagraphMarkMenus(QMenu& menu, int paragraph)
         }
         if (!mark.icon.isEmpty()) {
             //: The submenu of the cards of characters, locations and items linked with the
-            //: paragraph. In Polish: Powiązane &karty
+            //: paragraph; its key is one the commands of the menu never have. In Polish:
+            //: Powiązane k&arty
             cards = cards != nullptr ? cards : menu.addMenu(paragraphMarkIcon(mark),
-                                                            tr("Linked &Cards"));
+                                                            tr("Linked Card&s"));
             addParagraphMarkItems(*cards, mark);
         } else if (materials == nullptr) {
             //: The submenu of the materials linked with the paragraph. In Polish: Powiązane

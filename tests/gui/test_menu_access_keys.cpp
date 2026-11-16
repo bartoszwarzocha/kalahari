@@ -825,6 +825,36 @@ void checkTextMenus(bool shown, QStringList& problems) {
         CHECK(labelsOf(items).first() ==
               QCoreApplication::translate(BOOK_EDITOR, "C&reate Card"));
 
+        // In a paragraph linked with materials and with a card, with the commands of the cards
+        // (CardsInTextCoordinator): each item has its own key, the commands keep theirs
+        QAction* open = registry.getAction(QStringLiteral("book.openCardAtCursor"));
+        REQUIRE(open != nullptr);
+        const bool openEnabled = open->isEnabled();
+        open->setEnabled(true);
+        booked.setContextMenuCardActions(
+            {.link = registry.getAction(QStringLiteral("book.linkParagraphCard")), .open = open});
+        booked.setParagraphMarks(
+            {editor::ParagraphMark{0, {QStringLiteral("m1")}, {QStringLiteral("Map")}},
+             editor::ParagraphMark{
+                 0, {QStringLiteral("c1")}, {QStringLiteral("Anna")}, QStringLiteral("character")}},
+            QIcon(), {{QStringLiteral("character"), QIcon()}});
+        items = contextMenu(&booked, &booked, QPoint(5, 5), QContextMenuEvent::Keyboard);
+        // The titles of a material and of a card are names the menu shows as they are
+        collectProblems(items, QStringLiteral("Selection in a paragraph with linked cards"),
+                        shown ? QStringList()
+                              : QStringList{QStringLiteral("Map"), QStringLiteral("Anna")},
+                        problems);
+        // and Link Paragraph with Card..., Open Card at Cursor, Linked Materials > Map and
+        // Linked Cards > Anna
+        CHECK(itemCount(items) == 1 + 3 + 8 + 2 + 2 + 2);
+        CHECK(labelsOf(items).contains(registry.getAction(
+                  QStringLiteral("book.linkParagraphCard"))->text()));
+        CHECK(labelsOf(items).contains(open->text()));
+        CHECK(labelsOf(items).contains(QCoreApplication::translate(BOOK_EDITOR, "Linked Card&s")));
+        booked.setContextMenuCardActions({});
+        booked.setParagraphMarks({}, QIcon());
+        open->setEnabled(openEnabled);
+
         QStringList told = {QCoreApplication::translate(BOOK_EDITOR, "Book rule: write %1")
                                 .arg(QLocale().quoteString(rule.right)),
                             rule.note};

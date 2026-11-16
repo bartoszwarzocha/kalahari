@@ -168,10 +168,10 @@ void CardsPage::addTextGroup() {
     //: Settings > Cards: the group of the cards in the texts of the book. In Polish: W tekście
     QFormLayout* text = addGroup(tr("In the Text"));
     //: The Properties panel shows the card whose name the cursor is in and the cards linked
-    //: with the paragraph. In Polish: Imiona z kart i akapity powiązane
+    //: with the paragraph. In Polish: Imiona i nazwy z kart oraz powiązane akapity
     m_atCursorNames = new QRadioButton(tr("Names of the cards and linked paragraphs"));
     m_atCursorNames->setObjectName(QStringLiteral("cardsAtCursorNames"));
-    //: In Polish: Tylko akapity powiązane
+    //: In Polish: Tylko powiązane akapity
     m_atCursorParagraphs = new QRadioButton(tr("Only linked paragraphs"));
     m_atCursorParagraphs->setObjectName(QStringLiteral("cardsAtCursorParagraphs"));
     //: In Polish: Nie pokazuj
@@ -223,12 +223,12 @@ void CardsPage::addTextGroup() {
     bindCustom(std::move(atCursor));
 
     //: The signs of the kinds of the cards beside a paragraph linked with them, like the
-    //: paperclip of a material. In Polish: Znaki kart na marginesie przy akapitach powiązanych
+    //: paperclip of a material. In Polish: Znaki kart na marginesie przy powiązanych akapitach
     QCheckBox* marks = addCheckBox(text, tr("Signs of the cards beside the linked paragraphs"),
                                    ParagraphMarksCoordinator::CARD_MARKS_SETTING);
     marks->setObjectName(QStringLiteral("cardsParagraphMarks"));
-    //: In Polish: Kliknięcie znaku otwiera kartę. Bez znaków karty akapitu wymienia nadal panel
-    //: „Właściwości”.
+    //: In Polish: Kliknięcie znaku otwiera kartę. Bez znaków panel „Właściwości” nadal wymienia
+    //: karty akapitu.
     addNote(text, tr("A click on a sign opens the card. Without the signs, the Properties panel "
                      "still names the cards of the paragraph."));
 }
