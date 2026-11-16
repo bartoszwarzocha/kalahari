@@ -69,7 +69,7 @@ public:
 
     /// @brief Bring the window up to date with the plugins loaded now: the commands and panels
     ///        of the new ones in, those of the plugins gone out
-    void sync();
+    Q_INVOKABLE void sync();
 
     /// @brief Show the states of the commands again (a book opened or closed)
     void updateCommands();
@@ -109,7 +109,6 @@ private:
     struct Parts {
         std::vector<std::string> commandIds;
         std::vector<Panel> panels;
-        QPointer<QMenu> menu;  ///< Its own submenu of Tools > Plugins, when it has one
     };
 
     void addPlugin(const std::string& pluginId);
@@ -125,7 +124,7 @@ private:
     [[nodiscard]] QMenu* existingMenu(const std::string& menuPath) const;
 
     /// Tools > Plugins > the plugin's name, made when it is not there yet
-    QMenu* pluginMenu(const QString& pluginName, Parts& parts);
+    [[nodiscard]] QMenu* pluginMenu(const std::string& pluginId, const QString& pluginName) const;
 
     /// Read a panel's page from its plugin
     void readPage(Panel& panel);
@@ -145,7 +144,6 @@ private:
     QMainWindow* m_window;
     DockCoordinator* m_docks;
     std::map<std::string, Parts> m_plugins;  ///< By plugin id
-    QPointer<QAction> m_separator;           ///< Between Tools > Plugins and the plugins' menus
     int m_listener = 0;                      ///< Of PluginManager
 };
 

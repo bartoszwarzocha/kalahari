@@ -45,6 +45,10 @@ namespace {
 
 /// The icon of the plugins' commands and panels without one of their own
 constexpr const char* PLUGINS_ICON = "menu.plugins";
+/// The object name of the line between Tools > Plugins and the plugins' menus
+constexpr const char* SEPARATOR_NAME = "pluginMenusSeparator";
+/// The start of the object names of the plugins' own submenus of Tools > Plugins
+constexpr const char* MENU_NAME_PREFIX = "PluginMenu_";
 
 QList<PluginCoordinator*>& coordinatorList() {
     static QList<PluginCoordinator*> list;
@@ -87,6 +91,11 @@ QString pluginName(const std::string& pluginId) {
 
 /// Register the icon of a plugin's command or panel under @p id: an SVG file of the plugin,
 /// an icon of the program, or the icon of the plugins
+/// The object name of the plugin's own submenu of Tools > Plugins
+QString menuNameOf(const std::string& pluginId) {
+    return QString::fromLatin1(MENU_NAME_PREFIX) + qt(pluginId);
+}
+
 void registerIcon(const std::string& id, const std::string& icon, const QString& label) {
     auto& icons = core::IconRegistry::getInstance();
     QString path;
@@ -116,8 +125,7 @@ PluginCoordinator::PluginCoordinator(core::ProjectManager& book, CommandRegistry
     m_listener = core::PluginManager::getInstance().addChangeListener(
         [guard = QPointer<PluginCoordinator>(this)](const std::string&) {
             if (guard != nullptr) {
-                QMetaObject::invokeMethod(guard.data(), &PluginCoordinator::sync,
-                                          Qt::QueuedConnection);
+                QMetaObject::invokeMethod(guard.data(), "sync", Qt::QueuedConnection);
             }
         });
     sync();
@@ -215,16 +223,23 @@ void PluginCoordinator::removePlugin(const std::string& pluginId) {
             panel.dock->deleteLater();
         }
     }
-    // sync() runs after the events of the change (and the menus they closed), so the menu
-    // can go at once
-    delete parts.menu.data();
     m_plugins.erase(it);
 
+    const QMenu* plugins = existingMenu("TOOLS/Plugins");
+    if (plugins == nullptr) {
+        return;
+    }
+    // sync() runs after the events of the change (and the menus they closed), so the menu
+    // can go at once
+    delete plugins->findChild<QMenu*>(menuNameOf(pluginId), Qt::FindDirectChildrenOnly);
     // The line above the plugins' menus goes with the last of them
-    const bool anyMenu = std::any_of(m_plugins.cbegin(), m_plugins.cend(),
-                                     [](const auto& each) { return each.second.menu != nullptr; });
+    const QList<QMenu*> menus = plugins->findChildren<QMenu*>(Qt::FindDirectChildrenOnly);
+    const bool anyMenu = std::any_of(menus.cbegin(), menus.cend(), [](const QMenu* menu) {
+        return menu->objectName().startsWith(QLatin1String(MENU_NAME_PREFIX));
+    });
     if (!anyMenu) {
-        delete m_separator.data();
+        delete plugins->findChild<QAction*>(QString::fromLatin1(SEPARATOR_NAME),
+                                            Qt::FindDirectChildrenOnly);
     }
 }
 
@@ -239,7 +254,7 @@ void PluginCoordinator::addCommand(const std::string& pluginId, const QString& p
                 "Plugins: '{}' asks for the menu '{}', which the program does not have", id,
                 info.menu);
         }
-        menu = pluginMenu(pluginName, parts);
+        menu = pluginMenu(pluginId, pluginName);
         menuPath = "TOOLS/Plugins/" + pluginName.toStdString();
     }
     if (menu == nullptr) {
@@ -384,21 +399,25 @@ QMenu* PluginCoordinator::existingMenu(const std::string& menuPath) const {
     return menu;
 }
 
-QMenu* PluginCoordinator::pluginMenu(const QString& pluginName, Parts& parts) {
-    if (parts.menu != nullptr) {
-        return parts.menu;
-    }
+QMenu* PluginCoordinator::pluginMenu(const std::string& pluginId,
+                                     const QString& pluginName) const {
     QMenu* plugins = existingMenu("TOOLS/Plugins");
     if (plugins == nullptr) {
         return nullptr;
     }
-    if (m_separator == nullptr) {
-        m_separator = plugins->addSeparator();
+    const QString name = menuNameOf(pluginId);
+    if (auto* own = plugins->findChild<QMenu*>(name, Qt::FindDirectChildrenOnly)) {
+        return own;
     }
-    parts.menu = plugins->addMenu(literalMenuText(pluginName));
-    parts.menu->setToolTipsVisible(true);
-    MenuBuilder::showSubmenuIcon(parts.menu, QString::fromLatin1(PLUGINS_ICON));
-    return parts.menu;
+    if (plugins->findChild<QAction*>(QString::fromLatin1(SEPARATOR_NAME),
+                                     Qt::FindDirectChildrenOnly) == nullptr) {
+        plugins->addSeparator()->setObjectName(QString::fromLatin1(SEPARATOR_NAME));
+    }
+    QMenu* own = plugins->addMenu(literalMenuText(pluginName));
+    own->setObjectName(name);
+    own->setToolTipsVisible(true);
+    MenuBuilder::showSubmenuIcon(own, QString::fromLatin1(PLUGINS_ICON));
+    return own;
 }
 
 void PluginCoordinator::refreshPanel(const std::string& pluginId, const std::string& panelId) {
