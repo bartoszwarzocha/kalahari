@@ -189,6 +189,20 @@
       },
       "title": { "pl": "Notatka %n", "en": "Note %n" }
     },
+    "clipping": {
+      "form": "text", "places": ["workshop"], "icon": "template.clipping",
+      "workshopGroup": "resources",
+      "name": { "pl": "Wycinek", "en": "Clipping" },
+      "plural": { "pl": "Wycinki", "en": "Clippings" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "wycinek", "plural": "wycinki",
+                "genitive": "wycinka", "dative": "wycinkowi", "accusative": "wycinek",
+                "instrumental": "wycinkiem", "locative": "wycinku",
+                "genitivePlural": "wycinków" },
+        "en": { "singular": "clipping", "plural": "clippings", "indefinite": "a clipping" }
+      },
+      "title": { "pl": "Wycinek %n", "en": "Clipping %n" }
+    },
     "mindmap": {
       "form": "window", "editor": "mindmap", "places": ["workshop"], "icon": "template.mindmap",
       "name": { "pl": "Mapa myśli", "en": "Mind map" },
@@ -574,8 +588,8 @@
   "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface", "introduction"],
   "main":     ["chapter", "part"],
   "back":     ["afterword", "acknowledgments", "glossary", "about_author", "toc"],
-  "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "cover",
-               "quote", "web_page", "picture", "document", "publication", "recording",
+  "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "clipping",
+               "cover", "quote", "web_page", "picture", "document", "publication", "recording",
                "other_file"],
   "primary":  "chapter",
   "styles":   "styles.json"

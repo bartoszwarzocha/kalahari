@@ -528,12 +528,12 @@ TEST_CASE("Issues: the waves have the colors of the editor's appearance, on each
     };
 
     const RenderColors before;
-    appearance.colors.issuesLight = {.spelling = QColor(0, 160, 0),
-                                     .grammar = QColor(170, 0, 170),
+    appearance.colors.issuesLight = {.spelling = QColor::fromRgb(0, 160, 0),
+                                     .grammar = QColor::fromRgb(170, 0, 170),
                                      .repetition = QColor(),
                                      .bookRule = QColor()};
-    appearance.colors.issuesDark = {.spelling = QColor(0, 220, 220),
-                                    .grammar = QColor(230, 230, 0),
+    appearance.colors.issuesDark = {.spelling = QColor::fromRgb(0, 220, 220),
+                                    .grammar = QColor::fromRgb(230, 230, 0),
                                     .repetition = QColor(),
                                     .bookRule = QColor()};
 

@@ -46,6 +46,7 @@ namespace kalahari {
 namespace gui {
 
 class CardPage;
+class ClippingOriginBox;
 class EditorPanel;
 class LinkedMaterialsBox;
 class MaterialPage;
@@ -101,6 +102,9 @@ public:
     LinkedMaterialsBox* chapterMaterials() const { return m_chapterMaterials; }
     LinkedMaterialsBox* sectionMaterials() const { return m_sectionMaterials; }
     LinkedMaterialsBox* partMaterials() const { return m_partMaterials; }
+
+    /// @brief Where the clipping of the chapter page comes from (hidden for another element)
+    [[nodiscard]] ClippingOriginBox* clippingOrigin() const { return m_clippingOrigin; }
 
 public slots:
     /// @brief Show project properties view
@@ -314,6 +318,14 @@ signals:
     /// @brief The gear of the group of the versions: Settings > Editor > Versions
     void requestVersionSettings();
 
+    /// @brief Restore to Its Place of the group Origin: insert clipping @p elementId where it
+    /// was cut from
+    void requestClippingRestore(const QString& elementId);
+
+    /// @brief Go to Its Place of the group Origin: open the text clipping @p elementId was cut
+    /// from at its place
+    void requestClippingOrigin(const QString& elementId);
+
 private:
     /// @brief Setup UI components
     void setupUI();
@@ -465,6 +477,7 @@ private:
     QGroupBox* m_chapterNotesGroup;
     QTextEdit* m_chapterNotesEdit;
     LinkedMaterialsBox* m_chapterMaterials = nullptr;  ///< The materials of the element
+    ClippingOriginBox* m_clippingOrigin = nullptr;     ///< Where a clipping comes from
     QGroupBox* m_chapterVersionsGroup = nullptr;  ///< The versions of the text (showVersions())
     QLabel* m_versionsCountLabel = nullptr;       ///< How many, and when the last one was kept
     QLabel* m_versionsLastLabel = nullptr;        ///< The description of the last one

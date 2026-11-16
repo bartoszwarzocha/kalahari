@@ -114,7 +114,7 @@ TEST_CASE("Notes: the numbers in their formats", "[editor][footnotes]") {
     CHECK(noteNumberText(10, NoteNumberFormat::Symbols) == QStringLiteral("†††"));
     CHECK(noteNumberText(0, NoteNumberFormat::Decimal).isEmpty());
 
-    // As the book names them (Insert > Footnote Layout...)
+    // As the book names them (Format > Footnote Layout...)
     CHECK(noteNumberFormatOf(QStringLiteral("1")) == NoteNumberFormat::Decimal);
     CHECK(noteNumberFormatOf(QStringLiteral("a")) == NoteNumberFormat::LowerAlpha);
     CHECK(noteNumberFormatOf(QStringLiteral("A")) == NoteNumberFormat::UpperAlpha);

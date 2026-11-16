@@ -36,4 +36,10 @@ CheckOptions:
     value: 'true'
   - key: performance-move-const-arg.CheckTriviallyCopyableMove
     value: 'false'
+  # misc-include-cleaner (SonarQube analysis, scripts/sonar_analysis.py): Qt's classes
+  # are included through their public headers (<QString>), which only include the
+  # internal files that declare them (qstring.h); the check cannot see that and would
+  # add the internal files, against Qt's usage. Qt's headers are left to the code.
+  - key: misc-include-cleaner.IgnoreHeaders
+    value: 'Qt[A-Za-z0-9]*/.*'
 ...

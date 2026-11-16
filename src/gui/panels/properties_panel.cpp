@@ -10,6 +10,7 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/utils/reading_time.h"
 #include "kalahari/gui/panels/card_page.h"
+#include "kalahari/gui/panels/clipping_origin_box.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -450,6 +451,14 @@ QWidget* PropertiesPanel::createChapterPage() {
     infoLayout->addRow(m_chapterFirstPageLeft);
 
     layout->addWidget(infoGroup);
+
+    // Where a clipping comes from (populateChapterFields())
+    m_clippingOrigin = new ClippingOriginBox(m_book, scrollContent);
+    connect(m_clippingOrigin, &ClippingOriginBox::requestRestore, this,
+            &PropertiesPanel::requestClippingRestore);
+    connect(m_clippingOrigin, &ClippingOriginBox::requestShowOrigin, this,
+            &PropertiesPanel::requestClippingOrigin);
+    layout->addWidget(m_clippingOrigin);
 
     // Notes group
     QGroupBox* notesGroup = new QGroupBox(tr("Notes"), scrollContent);
@@ -1695,6 +1704,7 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     selectChapterStatus(core::ProjectManager::statusOf(*element));
     m_chapterFirstPageLeft->setChecked(element->firstPageLeft);
     m_chapterNotesEdit->setPlainText(pm.notes(elementId));
+    m_clippingOrigin->showClipping(elementId);
 
     // An element of a book open read-only is read only, here too
     const bool readOnly = pm.isReadOnly();

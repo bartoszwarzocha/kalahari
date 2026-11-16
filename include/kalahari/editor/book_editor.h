@@ -54,6 +54,7 @@
 #include <QElapsedTimer>
 #include <QHash>
 #include <QList>
+#include <QMap>
 #include <QPointer>
 #include <QSet>
 #include <QTextTable>
@@ -495,6 +496,18 @@ public:
     /// @brief Undo the last step, which took the text to another text (removeTextFrom()):
     ///        the text comes back, and its words are not written (movingStarted())
     void undoMovedText();
+
+    /// @brief Take the selection away as one undo step, with the annotations anchored in it,
+    ///        and leave the clipboard as it is (Edit > Cut to Clippings: the annotations go with
+    ///        the text to the clipping, as Cut takes them to the clipboard)
+    /// @param moved The words go to another text and are not deleted: the step, its undo and
+    ///        its redo are moving (movingStarted()), as Book > Chapter Break is
+    /// @return false in a read-only text or without a selection
+    bool takeSelection(bool moved);
+
+    /// @brief The level of undo of the text as it is: one for each step undo() takes back
+    ///        (Edit > Cut to Clippings follows its step with it)
+    [[nodiscard]] int undoLevel() const { return m_undoLevel; }
 
     /// @brief Insert a newline, splitting the paragraph at cursor position
     ///
@@ -1424,18 +1437,24 @@ public:
     /// @return Its id; empty when no mark is there
     QString annotationMarkAt(const QPointF& point) const;
 
-    /// @brief Show marks beside paragraphs, in the left margin of the page: the paperclips
-    /// of the materials linked with them
+    /// @brief Show marks of one kind beside paragraphs, in the left margin of the page: the
+    /// paperclips of the materials linked with them, or the scissors of the clippings cut from
+    /// them
     ///
     /// A mark stays with its paragraph while the text is edited; a new text drops the marks.
-    /// A click on a mark, or its item in the context menu of the paragraph, chooses a
-    /// material it names (paragraphMarkClicked()).
-    /// @param marks The marks; one past the end of the text is left out
+    /// A click on a paperclip, or its item in the context menu of the paragraph, chooses a
+    /// material it names (paragraphMarkClicked()); one on the scissors, or their item in the
+    /// context menu, shows a clipping (paragraphMarkClicked()) or restores it there
+    /// (clippingRestoreRequested()). The marks of the other kind stay; beside a paragraph
+    /// with both, the scissors are left of the paperclip.
+    /// @param marks The marks, all of kind @p kind; one past the end of the text is left out
     /// @param icon What they show, in the color of the text
-    void setParagraphMarks(const QList<ParagraphMark>& marks, const QIcon& icon);
+    /// @param kind What they stand for: the marks of this kind shown before go
+    void setParagraphMarks(const QList<ParagraphMark>& marks, const QIcon& icon,
+                           ParagraphMarkKind kind = ParagraphMarkKind::Materials);
 
     /// @brief The marks beside the paragraphs, with the paragraphs they are at now, in the
-    /// order of the text
+    /// order of the text (beside one paragraph: the paperclip, then the scissors)
     QList<ParagraphMark> paragraphMarks() const;
 
     /// @brief The mark beside a paragraph at a point of the editor
@@ -1736,6 +1755,10 @@ public:
         QAction* paste = nullptr;
         QAction* selectAll = nullptr;
         QAction* link = nullptr;  ///< Insert > Link, whose keys Edit Hyperlink of a link shows
+        /// Edit > Cut to Clippings, under Cut, and Insert > Clipping, under Paste: items of
+        /// their own names, with the icons, the keys and the state of the commands
+        QAction* cutToClippings = nullptr;
+        QAction* insertClipping = nullptr;  ///< Insert > Clipping (see cutToClippings)
     };
 
     /// @brief The commands of the Edit menu the text's context menu shows as its editing
@@ -2467,6 +2490,11 @@ signals:
     /// @param id What the mark names (ParagraphMark::ids)
     void paragraphMarkClicked(const QString& id);
 
+    /// @brief Emitted when Restore Here is chosen at the scissors beside a paragraph: in the
+    /// menu of a click on them, or in the context menu of the paragraph
+    /// @param id The clipping, cut from the paragraph (ParagraphMark::ids)
+    void clippingRestoreRequested(const QString& id);
+
     /// @brief Emitted when a paragraph is modified (text inserted/deleted)
     /// @param paragraphIndex Index of the modified paragraph
     void paragraphModified(int paragraphIndex);
@@ -2702,6 +2730,20 @@ private:
     /// annotations) was made with; for a replacement those before it when it is undone,
     /// the end of the replaced text when it is redone
     void restoreStepCursor();
+
+    /// @brief What an undo level is besides a change of the text
+    struct LevelKind {
+        bool pasting = false;  ///< A paste (m_pasteLevels)
+        bool moving = false;   ///< Words moved, not written (m_movedLevels)
+    };
+
+    /// @brief Announce that undo or redo changes level @p level: pastingStarted() for a paste,
+    ///        movingStarted() for words moved
+    LevelKind announceLevel(int level);
+
+    /// @brief The end of the change of level @p level of @p kind: pastingFinished(),
+    ///        movingFinished()
+    void finishLevel(int level, LevelKind kind);
 
     // The cards of the annotations under the paragraphs (book_editor_cards.cpp)
 
@@ -3483,7 +3525,7 @@ private:
         ParagraphMark mark;
     };
     std::vector<AnchoredMark> m_paragraphMarks;  ///< setParagraphMarks()
-    QIcon m_paragraphMarkIcon;                   ///< What they show
+    QMap<ParagraphMarkKind, QIcon> m_paragraphMarkIcons;  ///< What the marks of each kind show
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
     ContextMenuTableActions m_contextMenuTableActions;  ///< The Table menu's, in a cell
     ContextMenuImageActions m_contextMenuImageActions;  ///< The Image menu's, on an image
@@ -3565,6 +3607,9 @@ private:
     int m_undoLevel = 0;
     /// The levels of undo that pasted or dropped text: undoing and redoing them is pasting too
     QSet<int> m_pasteLevels;
+    /// The levels of undo that took text to another text (takeSelection()): undoing and
+    /// redoing them is moving too
+    QSet<int> m_movedLevels;
 
     /// @brief The last level of undo pasted or dropped text: pastingFinished()
     void finishPasting();
@@ -3683,19 +3728,31 @@ private:
     /// @param fromMouse A right click: outside the selection it puts the cursor at @p pos
     /// @param kind Only a misspelled word or only a grammar issue there (none: either, the
     ///        word first)
-    /// @brief Hold the marks beside the paragraphs at the paragraphs of their numbers
+    /// @brief Hold marks beside the paragraphs at the paragraphs of their numbers, with those
+    /// held already
     void anchorParagraphMarks(const QList<ParagraphMark>& marks);
 
     /// @brief Give the render pipeline the marks at the paragraphs they are at now
     /// @param always Also when they are where they were (a new icon)
     void syncParagraphMarks(bool always = false);
 
-    /// @brief The material a mark beside a paragraph names is chosen: at once when it names
-    /// one, else in a menu at @p globalPos
+    /// @brief The material a paperclip beside a paragraph names is chosen: at once when it
+    /// names one, else in a menu at @p globalPos; the scissors open their menu there
     void openParagraphMark(const ParagraphMark& mark, const QPoint& globalPos);
 
-    /// @brief Add an item to @p menu for each material @p mark names
+    /// @brief Add an item to @p menu for each material @p mark names; for the scissors,
+    /// Show Clipping and Restore Here (in a submenu of each clipping when they are several)
     void addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark);
+
+    /// @brief Add Show Clipping and Restore Here of clipping @p id to @p menu
+    void addClippingItems(QMenu& menu, const QString& id);
+
+    /// @brief Add to the context menu a submenu for each mark beside paragraph @p paragraph:
+    /// Linked Materials, Clippings From Here
+    void addParagraphMarkMenus(QMenu& menu, int paragraph);
+
+    /// @brief The tooltip of mark @p mark: what it names
+    static QString paragraphMarkToolTip(const ParagraphMark& mark);
 
     /// @param inNote A place of a note's text (its number at @p pos): the misspelled word or
     ///        the grammar issue there
