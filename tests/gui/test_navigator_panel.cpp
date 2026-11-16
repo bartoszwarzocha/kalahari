@@ -157,6 +157,35 @@ TEST_CASE("Navigator: the elements of a book in its three sections", "[gui][navi
     CHECK(findItem(tree, "Chapter 1")->text(0) == QStringLiteral("*Chapter 1 [Draft]"));
 }
 
+TEST_CASE("Navigator: the book's dictionary at the top of the Workshop opens its page",
+          "[gui][navigator][dictionary]") {
+    gui::NavigatorPanel panel(kalahari::test::book());
+    auto* tree = panel.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    panel.loadProject(novel({}, {element("Prologue", "kalahari.base:chapter")}), registry());
+
+    QTreeWidgetItem* dictionary = findItem(tree, "workshop:dictionary");
+    REQUIRE(dictionary != nullptr);
+    CHECK(dictionary->text(0) == QStringLiteral("Book Dictionary"));
+    CHECK(typeOf(dictionary) == QStringLiteral("book_dictionary"));
+    CHECK(typeOf(dictionary->parent()) == QStringLiteral("workshop"));
+    CHECK(dictionary->parent()->indexOfChild(dictionary) == 0);
+    CHECK_FALSE(dictionary->flags().testFlag(Qt::ItemIsDragEnabled));
+    CHECK_FALSE(dictionary->flags().testFlag(Qt::ItemIsDropEnabled));
+
+    // A click shows the page; Enter (or a double click) gives it the keys too
+    QList<bool> opened;
+    QObject::connect(&panel, &gui::NavigatorPanel::requestOpenBookDictionary,
+                     [&opened](bool keys) { opened.append(keys); });
+    QStringList selected;
+    QObject::connect(&panel, &gui::NavigatorPanel::elementSelected,
+                     [&selected](const QString& id) { selected.append(id); });
+    emit tree->itemClicked(dictionary, 0);
+    emit tree->itemActivated(dictionary, 0);
+    CHECK(opened == QList<bool>{false, true});
+    CHECK(selected.isEmpty());
+}
+
 TEST_CASE("Navigator: the header says whether a book is open", "[gui][navigator]") {
     gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();

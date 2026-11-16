@@ -87,7 +87,8 @@ public:
     /// @brief What the matches become
     [[nodiscard]] QString replaceText() const;
 
-    /// @brief The options of the search (Match Case, Whole Word, Regular Expression)
+    /// @brief The options of the search (Match Case, Whole Word, Regular Expression, All
+    ///        Forms), without the forms (BookSearchCoordinator finds them)
     [[nodiscard]] editor::SearchOptions options() const;
 
     /// @brief Set the options, without asking for a search
@@ -160,6 +161,7 @@ private:
     QToolButton* m_caseButton = nullptr;
     QToolButton* m_wordButton = nullptr;
     QToolButton* m_regexButton = nullptr;
+    QToolButton* m_formsButton = nullptr;
     QLineEdit* m_replaceField = nullptr;
     QPushButton* m_replaceButton = nullptr;
     QLabel* m_statusLabel = nullptr;

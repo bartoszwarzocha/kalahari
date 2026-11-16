@@ -25,6 +25,9 @@ set(TEST_SOURCES
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
     core/test_book_type_registry.cpp  # Book type packages and their registry
     core/test_kind_words.cpp          # Names of kinds in sentences, and the markers of translations
+    core/test_affix_expander.cpp      # The forms a Hunspell dictionary gives its words
+    core/test_name_declension.cpp     # The forms of names in the grammatical cases
+    core/test_book_dictionary.cpp     # The dictionary of a book: names, rules of spelling, words
     core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
     core/test_sources.cpp             # The sources: descriptions in the book, bibliography styles, BibTeX
@@ -59,6 +62,8 @@ set(TEST_SOURCES
     editor/test_grammar_check_service.cpp   # Grammar: texts checked on a LanguageTool server
     editor/test_grammar.cpp                 # Grammar as you type in the editor
     editor/test_spelling.cpp                # Spelling as you type in the editor
+    editor/test_book_dictionary_checking.cpp  # Chapters checked with the book's dictionary too
+    editor/test_search_forms.cpp            # The search of all forms of a name or a word
     editor/test_text_issues.cpp             # The misspelled words and grammar issues as one list
     editor/test_book_editor_integration.cpp # Task 7.18: Integration tests
     editor/test_buffer_commands.cpp        # Cursor position helpers
@@ -141,6 +146,8 @@ set(TEST_SOURCES
     gui/test_program_folders.cpp                 # Folders of the program and the Folders page
     gui/test_spelling_coordinator.cpp            # Spelling as you type: dictionary, command, settings page
     gui/test_spelling_panel.cpp                  # Spelling and Grammar panel: cards, counts, keys, the text in front, F7
+    gui/test_name_dialog.cpp                     # Book dictionary: the forms table, the windows of a name and a rule
+    gui/test_book_dictionary_page.cpp            # Book dictionary: its page on a tab, its commands and windows
     gui/test_repetitions_panel.cpp               # Repetitions panel: cards, words, keys, marks, Next Repetition, settings page
     gui/test_grammar_coordinator.cpp             # Grammar as you type: where it is checked, command, settings page
     gui/test_grammar_components.cpp              # Java and LanguageTool: versions, downloads, folders
@@ -237,6 +244,12 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book_type_package.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/affix_expander.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/name_declension.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/name_declension_polish.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/book_dictionary.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/book_dictionary_rules.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/book_dictionary_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/material_kinds.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cover_material.cpp
     ${CMAKE_SOURCE_DIR}/src/core/source_description.cpp
@@ -303,6 +316,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/text_keys.cpp             # The keys of the text on each system
     ${CMAKE_SOURCE_DIR}/src/editor/auto_correct.cpp          # Autocorrect: the changes of the text as it is typed
     ${CMAKE_SOURCE_DIR}/src/editor/search_engine.cpp        # OpenSpec #00044 Task 9.4: SearchEngine
+    ${CMAKE_SOURCE_DIR}/src/editor/search_forms.cpp         # The forms of the search of all forms
     ${CMAKE_SOURCE_DIR}/src/editor/kml_document_model.cpp  # KML reader
     ${CMAKE_SOURCE_DIR}/src/editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout
     ${CMAKE_SOURCE_DIR}/src/editor/kalahari_text_document_layout_notes.cpp  # The layout of the notes
@@ -458,6 +472,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/color_palettes.cpp           # The palettes of the color window
     ${CMAKE_SOURCE_DIR}/src/gui/section_words.cpp                    # Parts of the book in sentences
     ${CMAKE_SOURCE_DIR}/src/gui/kind_names.cpp                       # Kinds of elements in sentences
+    ${CMAKE_SOURCE_DIR}/src/gui/name_labels.cpp                      # Cases and kinds of names
     ${CMAKE_SOURCE_DIR}/src/gui/cover_names.cpp                      # The materials of the cover in words
     ${CMAKE_SOURCE_DIR}/src/gui/source_names.cpp                     # The sources in words
     ${CMAKE_SOURCE_DIR}/src/gui/pdf_files.cpp                        # PDF files as shown
@@ -506,6 +521,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/versions_coordinator.cpp             # Save Version and Version History
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/version_name_dialog.cpp      # The description of a version
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/quick_insert_item_dialog.cpp  # A fragment or a character of quick insert
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/name_dialog.cpp              # A name of the book dictionary
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rule_dialog.cpp              # A spelling rule of the book dictionary
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/name_forms_table.cpp         # The forms of a name
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/book_dictionary_panel.cpp     # The book dictionary on a tab
+    ${CMAKE_SOURCE_DIR}/src/gui/book_dictionary_coordinator.cpp      # The book dictionary and its windows
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/deadline_dialog.cpp          # A deadline of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_quote_dialog.cpp         # A quote from a selection of a PDF
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/challenge_dialog.cpp         # Add Challenge
@@ -661,6 +681,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/quick_insert_item_dialog.h  # QuickInsertItemDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/name_dialog.h  # NameDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rule_dialog.h  # RuleDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/name_forms_table.h  # NameFormsTable with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/book_dictionary_panel.h  # BookDictionaryPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_dictionary_coordinator.h  # BookDictionaryCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/deadline_dialog.h  # DeadlineDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_quote_dialog.h  # NewQuoteDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/challenge_dialog.h  # ChallengeDialog with Q_OBJECT

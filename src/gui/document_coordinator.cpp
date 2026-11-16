@@ -14,6 +14,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/preview_panel.h"
 #include "kalahari/gui/panels/material_list_panel.h"
+#include "kalahari/gui/panels/book_dictionary_panel.h"
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/utils/tab_focus.h"
@@ -2175,7 +2176,7 @@ void DocumentCoordinator::onProjectClosed() {
 
     // The book's chapters close with it; their changes were saved or discarded before (also
     // those in windows of their own, which close with their last tab). So do the previews and
-    // the cards of its materials, and the lists of them.
+    // the cards of its materials, the lists of them and the page of its dictionary.
     const QList<QWidget*> pages = DocumentWindows::of(*m_centralTabs).pages();
     for (auto it = pages.crbegin(); it != pages.crend(); ++it) {
         QWidget* widget = *it;
@@ -2183,7 +2184,8 @@ void DocumentCoordinator::onProjectClosed() {
               qobject_cast<PreviewPanel*>(widget) != nullptr ||
               qobject_cast<MaterialCardPanel*>(widget) != nullptr) &&
              !widget->property("elementId").toString().isEmpty()) ||
-            qobject_cast<MaterialListPanel*>(widget)) {
+            qobject_cast<MaterialListPanel*>(widget) != nullptr ||
+            qobject_cast<BookDictionaryPanel*>(widget) != nullptr) {
             DocumentWindows::removePage(widget);
             widget->deleteLater();
         }

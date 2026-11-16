@@ -18,6 +18,7 @@
 #include <QObject>
 #include <QSet>
 #include <QString>
+#include <QStringList>
 #include <QTimer>
 
 #include <functional>
@@ -170,7 +171,7 @@ public:
     /// @brief Replace All in Book: every match of the search with what the panel says, after
     ///        the window asks
     /// @return How many matches were replaced; 0 when none or the writer said no; -1 when the
-    ///         book cannot change
+    ///         book cannot change or the search finds all forms
     int replaceAllInBook();
 
     /// @brief Why Replace All in Book cannot be done now (empty: it can)
@@ -184,6 +185,13 @@ public:
 
     /// @brief Replace the window that asks first (for the tests)
     void setConfirmer(Confirmer confirm) { m_confirm = std::move(confirm); }
+
+    /// @brief The forms a text has for the option of all forms (editor::formsToFind())
+    using FormsOf = std::function<QStringList(const QString& text)>;
+
+    /// @brief Find the forms of @p formsOf with the option of all forms ("Odm"); none: the
+    ///        text itself
+    void setFormsOf(FormsOf formsOf) { m_formsOf = std::move(formsOf); }
 
 signals:
     /// @brief The search went through all the texts (the panel shows what it found)
@@ -280,6 +288,7 @@ private:
     QStatusBar* m_statusBar = nullptr;
     QWidget* m_window = nullptr;
     Confirmer m_confirm;
+    FormsOf m_formsOf;  ///< The forms of the option of all forms
 
     editor::SearchEngine m_engine;            ///< Matches the query (without a document)
     std::optional<Query> m_query;             ///< What was searched for last; none: nothing

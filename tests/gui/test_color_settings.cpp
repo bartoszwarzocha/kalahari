@@ -181,7 +181,7 @@ TEST_CASE("Settings: the color of the misspelled words, on the Spelling page",
     // The theme's color: the frames of the cards in the panel have it too, without a color of
     // their own; the colors optimized by default
     CHECK(underline->color() == themeColor(key));
-    CHECK(colorsOfGroup(page, QStringLiteral("Colors")).size() == 1);
+    CHECK(colorsOfGroup(page, QStringLiteral("Colors")).size() == 2);  // and of the book's rules
     CHECK(optimizeBox(page)->isChecked());
     CHECK_FALSE(dialog.hasChanges());
 
@@ -231,6 +231,34 @@ TEST_CASE("Settings: the color of the misspelled words, on the Spelling page",
         dialog.applyChanges();
         CHECK_FALSE(settings.hasKey(setting));
     }
+}
+
+TEST_CASE("Settings: the color of the places breaking a rule of the book, on the Spelling page",
+          "[gui][settings][colors]") {
+    const ThemeColorsOnly themeColors;
+    auto& settings = SettingsManager::getInstance();
+    const std::string key = kalahari::editor::issueColorKey(TextIssueKind::BookRule);
+    const std::string setting = settingOf(key);
+    REQUIRE(themeColor(key).isValid());
+
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    QWidget* page = openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Spelling"));
+    ColorConfigWidget* rule = colorNamed(page, QStringLiteral("Departure from a book rule"));
+    CHECK(rule->color() == themeColor(key));
+    CHECK(issueColor(TextIssueKind::BookRule) == themeColor(key));
+
+    // Its own color, the misspelled words keep theirs
+    pick(rule, QColor(QStringLiteral("#7a33cc")));
+    CHECK(dialog.applyChanges() == QStringList{QString::fromStdString(setting)});
+    QCoreApplication::processEvents();
+    CHECK(issueColor(TextIssueKind::BookRule) == QColor(QStringLiteral("#7a33cc")));
+    CHECK(issueColor(TextIssueKind::Spelling) ==
+          themeColor(kalahari::editor::issueColorKey(TextIssueKind::Spelling)));
+
+    // The theme's color again
+    pick(rule, themeColor(key));
+    dialog.applyChanges();
+    CHECK_FALSE(settings.hasKey(setting));
 }
 
 TEST_CASE("Settings: the color of the grammar issues, on the Grammar page",

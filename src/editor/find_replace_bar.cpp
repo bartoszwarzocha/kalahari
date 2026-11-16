@@ -24,6 +24,8 @@
 #include <QPainter>
 #include <QKeySequence>
 
+#include <utility>
+
 namespace kalahari::editor {
 
 namespace {
@@ -38,6 +40,10 @@ constexpr int INPUT_MAXIMUM_WIDTH = 360;
 
 /// @brief The space between the field and the groups of buttons
 constexpr int GROUP_SPACING = 8;
+
+/// @brief The buttons' width (the narrowest one for the option of the forms) and height
+constexpr int BUTTON_WIDTH = 28;
+constexpr int BUTTON_HEIGHT = 24;
 
 } // anonymous namespace
 
@@ -110,20 +116,29 @@ void FindReplaceBar::setupUi()
     m_caseSensitiveBtn = new QToolButton(options);
     m_caseSensitiveBtn->setText(tr("Aa"));
     m_caseSensitiveBtn->setCheckable(true);
-    m_caseSensitiveBtn->setFixedSize(28, 24);
+    m_caseSensitiveBtn->setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT);
     optionsLayout->addWidget(m_caseSensitiveBtn);
 
     m_wholeWordBtn = new QToolButton(options);
     m_wholeWordBtn->setText(tr("W"));
     m_wholeWordBtn->setCheckable(true);
-    m_wholeWordBtn->setFixedSize(28, 24);
+    m_wholeWordBtn->setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT);
     optionsLayout->addWidget(m_wholeWordBtn);
 
     m_regexBtn = new QToolButton(options);
     m_regexBtn->setText(tr(".*"));
     m_regexBtn->setCheckable(true);
-    m_regexBtn->setFixedSize(28, 24);
+    m_regexBtn->setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT);
     optionsLayout->addWidget(m_regexBtn);
+
+    m_allFormsBtn = new QToolButton(options);
+    //: The option of the find bar that finds every form of a word or a name, short. In Polish:
+    //: Odm
+    m_allFormsBtn->setText(tr("Forms"));
+    m_allFormsBtn->setCheckable(true);
+    m_allFormsBtn->setMinimumWidth(BUTTON_WIDTH);
+    m_allFormsBtn->setFixedHeight(BUTTON_HEIGHT);
+    optionsLayout->addWidget(m_allFormsBtn);
 
     findItems->addWidget(options);
 
@@ -136,13 +151,13 @@ void FindReplaceBar::setupUi()
     m_prevBtn = new QToolButton(navigation);
     m_prevBtn->setIcon(art.getIcon("navigation.up", core::IconContext::Button));
     m_prevBtn->setToolTip(tr("Previous Match (Shift+Enter)"));
-    m_prevBtn->setFixedSize(28, 24);
+    m_prevBtn->setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT);
     navigationLayout->addWidget(m_prevBtn);
 
     m_nextBtn = new QToolButton(navigation);
     m_nextBtn->setIcon(art.getIcon("navigation.down", core::IconContext::Button));
     m_nextBtn->setToolTip(tr("Next Match (Enter)"));
-    m_nextBtn->setFixedSize(28, 24);
+    m_nextBtn->setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT);
     navigationLayout->addWidget(m_nextBtn);
 
     // Separator
@@ -162,7 +177,7 @@ void FindReplaceBar::setupUi()
     //: The gear of the find bar: Settings > Editor > Colors, with the colors of the hits
     m_settingsBtn->setToolTip(tr("Colors of the Search Hits"));
     m_settingsBtn->setAccessibleName(m_settingsBtn->toolTip());
-    m_settingsBtn->setFixedSize(24, 24);
+    m_settingsBtn->setFixedSize(BUTTON_HEIGHT, BUTTON_HEIGHT);
     m_settingsBtn->setAutoRaise(true);
     findRow->addWidget(m_settingsBtn, 0, Qt::AlignTop);
 
@@ -170,7 +185,7 @@ void FindReplaceBar::setupUi()
     m_closeBtn = new QToolButton(this);
     m_closeBtn->setIcon(art.getIcon("dock.close", core::IconContext::Button));
     m_closeBtn->setToolTip(tr("Close (Escape)"));
-    m_closeBtn->setFixedSize(24, 24);
+    m_closeBtn->setFixedSize(BUTTON_HEIGHT, BUTTON_HEIGHT);
     m_closeBtn->setAutoRaise(true);
     findRow->addWidget(m_closeBtn, 0, Qt::AlignTop);
 
@@ -200,12 +215,12 @@ void FindReplaceBar::setupUi()
 
     m_replaceBtn = new QPushButton(tr("Replace"), replaceButtons);
     m_replaceBtn->setToolTip(tr("Replace Current Match"));
-    m_replaceBtn->setFixedHeight(24);
+    m_replaceBtn->setFixedHeight(BUTTON_HEIGHT);
     replaceButtonsLayout->addWidget(m_replaceBtn);
 
     m_replaceAllBtn = new QPushButton(tr("Replace All"), replaceButtons);
     m_replaceAllBtn->setToolTip(tr("Replace All Matches"));
-    m_replaceAllBtn->setFixedHeight(24);
+    m_replaceAllBtn->setFixedHeight(BUTTON_HEIGHT);
     replaceButtonsLayout->addWidget(m_replaceAllBtn);
 
     replaceRow->addWidget(replaceButtons);
@@ -217,8 +232,8 @@ void FindReplaceBar::setupUi()
     // is skipped while it is hidden)
     const QList<QWidget*> tabOrder = {m_searchInput, m_replaceInput, m_replaceBtn,
                                       m_replaceAllBtn, m_caseSensitiveBtn, m_wholeWordBtn,
-                                      m_regexBtn, m_prevBtn, m_nextBtn, m_settingsBtn,
-                                      m_closeBtn};
+                                      m_regexBtn, m_allFormsBtn, m_prevBtn, m_nextBtn,
+                                      m_settingsBtn, m_closeBtn};
     for (qsizetype i = 1; i < tabOrder.size(); ++i) {
         setTabOrder(tabOrder.at(i - 1), tabOrder.at(i));
     }
@@ -240,6 +255,8 @@ void FindReplaceBar::createShortcuts()
     m_caseSensitiveBtn->setToolTip(tr("Match Case (%1)").arg(keysOf(0)));
     m_wholeWordBtn->setToolTip(tr("Match Whole Word (%1)").arg(keysOf(1)));
     m_regexBtn->setToolTip(tr("Use Regular Expression (%1)").arg(keysOf(2)));
+    //: In Polish: Wszystkie odmiany (%1)
+    m_allFormsBtn->setToolTip(tr("All Forms (%1)").arg(keysOf(3)));
 }
 
 QList<QKeyCombination> FindReplaceBar::optionKeys()
@@ -247,13 +264,14 @@ QList<QKeyCombination> FindReplaceBar::optionKeys()
     const Qt::KeyboardModifiers modifiers =
         isMacOS() ? (Qt::ControlModifier | Qt::AltModifier) : Qt::AltModifier;
     return {QKeyCombination(modifiers, Qt::Key_C), QKeyCombination(modifiers, Qt::Key_W),
-            QKeyCombination(modifiers, Qt::Key_R)};
+            QKeyCombination(modifiers, Qt::Key_R), QKeyCombination(modifiers, Qt::Key_M)};
 }
 
 QToolButton* FindReplaceBar::optionFor(const QKeyEvent* event) const
 {
     // In the order of optionKeys()
-    const QList<QToolButton*> options = {m_caseSensitiveBtn, m_wholeWordBtn, m_regexBtn};
+    const QList<QToolButton*> options = {m_caseSensitiveBtn, m_wholeWordBtn, m_regexBtn,
+                                         m_allFormsBtn};
     const qsizetype option = optionKeys().indexOf(event->keyCombination());
     return option >= 0 && option < options.size() ? options.at(option) : nullptr;
 }
@@ -292,6 +310,8 @@ void FindReplaceBar::createConnections()
             this, &FindReplaceBar::onOptionsChanged);
     connect(m_regexBtn, &QToolButton::toggled,
             this, &FindReplaceBar::onOptionsChanged);
+    connect(m_allFormsBtn, &QToolButton::toggled,
+            this, &FindReplaceBar::onOptionsChanged);
 
     // Navigation
     connect(m_prevBtn, &QToolButton::clicked,
@@ -318,6 +338,11 @@ void FindReplaceBar::createConnections()
 // =============================================================================
 // Public Interface
 // =============================================================================
+
+void FindReplaceBar::setFormsOf(FormsOf formsOf)
+{
+    m_formsOf = std::move(formsOf);
+}
 
 void FindReplaceBar::setSearchEngine(editor::SearchEngine* engine)
 {
@@ -574,6 +599,7 @@ void FindReplaceBar::onOptionsChanged()
     if (m_searchEngine && !m_searchInput->text().isEmpty()) {
         m_searchEngine->findAll();
     }
+    updateButtonStates();
 }
 
 void FindReplaceBar::onClose()
@@ -616,14 +642,21 @@ void FindReplaceBar::updateButtonStates()
 {
     bool hasMatches = m_searchEngine && m_searchEngine->totalMatchCount() > 0;
     bool canReplace = hasMatches;
+    // One replacement of every form would break the declension
+    const bool allForms = m_allFormsBtn->isChecked();
+    const bool canReplaceAll = canReplace && !allForms;
 
     // A button that turns off with the keys would give them to the next element of the
     // window, the font box of the toolbar: they go back to the text, where Undo takes back
     // the replacement just done
-    const QWidget* keys = window()->focusWidget();
-    if (!hasMatches && keys != nullptr &&
-        (keys == m_prevBtn || keys == m_nextBtn || keys == m_replaceBtn ||
-         keys == m_replaceAllBtn)) {
+    QList<const QWidget*> turnedOff;
+    if (!hasMatches) {
+        turnedOff = {m_prevBtn, m_nextBtn, m_replaceBtn};
+    }
+    if (!canReplaceAll) {
+        turnedOff.append(m_replaceAllBtn);
+    }
+    if (turnedOff.contains(window()->focusWidget())) {
         emit textFocusRequested();
     }
 
@@ -633,7 +666,13 @@ void FindReplaceBar::updateButtonStates()
 
     // Replace buttons
     m_replaceBtn->setEnabled(canReplace);
-    m_replaceAllBtn->setEnabled(canReplace);
+    m_replaceAllBtn->setEnabled(canReplaceAll);
+    m_replaceAllBtn->setToolTip(
+        allForms
+            //: The tooltip of Replace All of the find bar while it finds all forms
+            ? tr("Replace All is off while all forms are found: one replacement of every form "
+                 "would break the declension")
+            : tr("Replace All Matches"));
 }
 
 void FindReplaceBar::applySearchOptions()
@@ -646,6 +685,10 @@ void FindReplaceBar::applySearchOptions()
     options.caseSensitive = m_caseSensitiveBtn->isChecked();
     options.wholeWord = m_wholeWordBtn->isChecked();
     options.useRegex = m_regexBtn->isChecked();
+    options.allForms = m_allFormsBtn->isChecked();
+    if (options.allForms && m_formsOf) {
+        options.forms = m_formsOf(m_searchInput->text());
+    }
     options.wrapAround = true;  // Always wrap
 
     m_searchEngine->setOptions(options);
