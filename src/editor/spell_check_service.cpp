@@ -816,13 +816,16 @@ void SpellCheckService::findSuggestions(const QString& word, int maxSuggestions,
         return;
     }
 
-    // The thread, made at the first question
+    // The thread, made at the first question, runs at the priority of the window's thread:
+    // the writer waits for its answer with the menu open. Hunspell stops looking at a time
+    // limit of clock(), which on Windows runs on also while a thread waits for the processor,
+    // so on a busy computer a thread of a lower priority can come back with no suggestions
     if (m_suggestionThread == nullptr) {
         m_suggestionThread = new QThread(this);
         m_suggestionThread->setObjectName(QStringLiteral("Spelling suggestions"));
         m_suggestionWorker = new SuggestionWorker();
         m_suggestionWorker->moveToThread(m_suggestionThread);
-        m_suggestionThread->start(QThread::LowPriority);
+        m_suggestionThread->start();
         m_suggestionIdle = new QTimer(this);
         m_suggestionIdle->setSingleShot(true);
         m_suggestionIdle->setInterval(SUGGESTIONS_IDLE_MS);
@@ -882,10 +885,7 @@ void SpellCheckService::onSuggestionsFound(const QString& dictionary, const QStr
         }
         return;
     }
-    if (m_knownSuggestions.size() >= MAX_KNOWN_SUGGESTIONS) {
-        m_knownSuggestions.clear();
-    }
-    m_knownSuggestions.insert(asked, found);
+    keepSuggestions(asked, found);
     for (const WaitingForSuggestions& each : std::as_const(waiting)) {
         if (!each.context.isNull()) {
             each.done(finishSuggestions(asked, found, each.maxSuggestions));
@@ -912,15 +912,27 @@ QStringList SpellCheckService::suggestions(const QString& word, int maxSuggestio
         return {};
     }
     const QString asked = askedWord(word);
-    auto known = m_knownSuggestions.constFind(asked);
-    if (known == m_knownSuggestions.cend()) {
-        if (m_knownSuggestions.size() >= MAX_KNOWN_SUGGESTIONS) {
-            m_knownSuggestions.clear();
-        }
-        known =
-            m_knownSuggestions.insert(asked, dictionarySuggestions(*m_hunspell, m_latin1, asked));
+    if (const auto known = m_knownSuggestions.constFind(asked);
+        known != m_knownSuggestions.cend()) {
+        return finishSuggestions(asked, *known, maxSuggestions);
     }
-    return finishSuggestions(asked, *known, maxSuggestions);
+    const DictionarySuggestions found = dictionarySuggestions(*m_hunspell, m_latin1, asked);
+    keepSuggestions(asked, found);
+    return finishSuggestions(asked, found, maxSuggestions);
+}
+
+void SpellCheckService::keepSuggestions(const QString& asked,
+                                        const DictionarySuggestions& found) const
+{
+    // An answer with none is not kept, so that the word is looked up again: Hunspell stops
+    // looking at a time limit, which a busy computer can reach before the first suggestion
+    if (found.isEmpty()) {
+        return;
+    }
+    if (m_knownSuggestions.size() >= MAX_KNOWN_SUGGESTIONS) {
+        m_knownSuggestions.clear();
+    }
+    m_knownSuggestions.insert(asked, found);
 }
 
 QStringList SpellCheckService::finishSuggestions(const QString& asked,

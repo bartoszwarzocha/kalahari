@@ -160,14 +160,16 @@ public:
     /// @brief The suggestions() for a word, found on a thread of their own, so that the window
     ///        never waits for them
     ///
-    /// @p done gets them on the window's thread once they are found: at once when they were
-    /// found before (for the same word with the same dictionary), not at all when @p context
-    /// is gone by then. The thread has a copy of the dictionary of its own, made at the first
+    /// @p done gets them on the window's thread once they are found: at once when some were
+    /// found before (for the same word with the same dictionary; a word with none is looked up
+    /// again), not at all when @p context is gone by then. The thread runs at the priority of
+    /// the window's thread and has a copy of the dictionary of its own, made at the first
     /// question and dropped when no question came for a few minutes.
     void findSuggestions(const QString& word, int maxSuggestions, QObject* context,
                          std::function<void(const QStringList&)> done);
 
-    /// @brief The suggestions for a word when they were found before, without waiting
+    /// @brief The suggestions for a word when some were found before, without waiting (none:
+    ///        not looked up yet, or no suggestions found then)
     [[nodiscard]] std::optional<QStringList> knownSuggestions(const QString& word,
                                                               int maxSuggestions = 5) const;
 
@@ -259,6 +261,9 @@ private:
     struct DictionarySuggestions {
         QStringList found;
         QStringList small;
+
+        /// @brief The dictionary suggested nothing
+        [[nodiscard]] bool isEmpty() const { return found.isEmpty() && small.isEmpty(); }
     };
 
     /// @brief One waiting for the suggestions of a word (findSuggestions())
@@ -285,6 +290,10 @@ private:
     /// @brief The thread found the suggestions of a word: those waiting for them get them
     void onSuggestionsFound(const QString& dictionary, const QString& asked,
                             const DictionarySuggestions& found);
+
+    /// @brief Keep what the dictionary suggested for a word for the next question about it
+    ///        (an answer with none is not kept)
+    void keepSuggestions(const QString& asked, const DictionarySuggestions& found) const;
 
     /// @brief Stop the thread of the suggestions, waiting for the word it is at
     void stopSuggestionThread();
@@ -349,7 +358,7 @@ private:
     QThread* m_suggestionThread = nullptr;
     SuggestionWorker* m_suggestionWorker = nullptr;
     QTimer* m_suggestionIdle = nullptr;
-    /// What the dictionary in use suggested for the words asked about
+    /// What the dictionary in use suggested for the words asked about (keepSuggestions())
     mutable QHash<QString, DictionarySuggestions> m_knownSuggestions;
     QHash<QString, QList<WaitingForSuggestions>> m_waitingForSuggestions;
 
