@@ -391,7 +391,13 @@ TEST_CASE("Central tabs: the list of all the tabs, from its button and with Alt+
                                QStringLiteral("&5 Quotes"), QStringLiteral("&6 Images")});
     CHECK(space.tabs.currentIndex() == 4);
 
-    // In more rows too, and with Alt+Down on the tabs
+    // In more rows too, and with Alt+Down on the tabs. The tabs have the keys only in an
+    // active window; a system may not make it active (Windows on the test machines, at times)
+    space.tabs.activateWindow();
+    if (!kalahari::test::waitUntil(
+            [&space]() { return QApplication::activeWindow() == &space.tabs; })) {
+        SKIP("the system did not make the test's window active");
+    }
     for (const PanelTabBar::Rows rows : {PanelTabBar::Rows::Single, PanelTabBar::Rows::Wrap}) {
         space.tabs.setRows(rows);
         settle();
