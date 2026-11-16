@@ -10,6 +10,10 @@
 #include <QRegularExpression>
 #include <QTransform>
 
+// fpdfview.h includes windows.h on Windows
+#if defined(Q_OS_WIN) && !defined(NOMINMAX)
+#define NOMINMAX  // std::min and std::max, not the macros of windows.h
+#endif
 #include <cpp/fpdf_scopers.h>
 #include <fpdf_doc.h>
 #include <fpdf_text.h>
@@ -255,8 +259,8 @@ struct PdfDocument::Page {
     std::pair<QString, QString> contextOf(int start, int end) {
         FPDF_TEXTPAGE loaded = textPage();
         const int count = characterCount();
-        const auto isSpace = [loaded](int index) {
-            return QChar::isSpace(static_cast<char32_t>(FPDFText_GetUnicode(loaded, index)));
+        const auto isSpace = [loaded](int at) {
+            return QChar::isSpace(static_cast<char32_t>(FPDFText_GetUnicode(loaded, at)));
         };
         const int from = std::max(0, start - CONTEXT_LENGTH);
         QString before = textOf(from, start - from);
