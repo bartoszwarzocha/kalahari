@@ -8524,8 +8524,9 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Słownik książki</translation>
     </message>
     <message>
-        <source>Mark departures from the book&apos;s spelling rules</source>
-        <translation>Zaznaczaj odstępstwa od zasad pisowni książki</translation>
+        <source>Mark departures from the rules</source>
+        <extracomment>In the group Book Dictionary: a word written otherwise than a spelling rule of the book&apos;s dictionary wants gets a wavy line. In Polish: Zaznaczaj odstępstwa od zasad</extracomment>
+        <translation>Zaznaczaj odstępstwa od zasad</translation>
     </message>
     <message>
         <source>The book&apos;s dictionary</source>

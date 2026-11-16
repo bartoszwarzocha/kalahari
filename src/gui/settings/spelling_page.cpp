@@ -235,7 +235,10 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, bool
 
 void EditorSpellingPage::addBookDictionaryGroup(bool bookOpen) {
     QFormLayout* group = addGroup(tr("Book Dictionary"));
-    QCheckBox* marked = addCheckBox(group, tr("Mark departures from the book's spelling rules"),
+    // Short: a check box does not wrap, and the narrowest window has to show it
+    //: In the group Book Dictionary: a word written otherwise than a spelling rule of the
+    //: book's dictionary wants gets a wavy line. In Polish: Zaznaczaj odstępstwa od zasad
+    QCheckBox* marked = addCheckBox(group, tr("Mark departures from the rules"),
                                     SpellingCoordinator::MARK_RULES_KEY);
     marked->setObjectName(QStringLiteral("bookDictionaryMarkRules"));
     auto* addsTo = new QComboBox();

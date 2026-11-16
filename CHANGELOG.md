@@ -35,16 +35,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   forms and the words of the book are right; a departure from a rule has a wavy line of its
   own color ("Book rule", its color in Settings > Editor > Spelling) with the rule's spelling
   and note in the context menu, Edit Rule... and Remove Rule (Settings > Editor > Spelling >
-  Book Dictionary: "Mark departures from the book's spelling rules"). The context menu of a
-  misspelled word adds it to the book dictionary, to Your Words of every book, or as a name
-  (Add Name..., the window of a name with the word and its forms); so do the cards of the
-  Spelling and Grammar panel, whose button adds to the place Settings names ("The panel adds a
-  word to"), the other on the menu of its arrow. Quick Insert after @ offers the names with
-  their forms (Right shows them), and Find in Book and the find bar of a chapter find a name
-  in all its forms, an ordinary word in those of the spelling dictionary (the option "All
-  Forms", Alt+M). Move to Your Words moves words of the book to the words of every book;
-  Remove asks first. In a book open read-only the dictionary is shown, not changed. The cards
-  of the Workshop will keep their names here (`DictionaryName::card`).
+  Book Dictionary: "Mark departures from the rules"). The context menu of a misspelled word
+  adds it to the book dictionary, to Your Words of every book, or as a name (Add Name..., the
+  window of a name with the word and its forms); so do the cards of the Spelling and Grammar
+  panel, whose button adds to the place Settings names ("The panel adds a word to"), the other
+  on the menu of its arrow. Quick Insert after @ offers the names with their forms (Right
+  shows them), and Find in Book and the find bar of a chapter find a name in all its forms, an
+  ordinary word in those of the spelling dictionary (the option "All Forms", Alt+M). Move to
+  Your Words moves words of the book to the words of every book; Remove asks first. In a book
+  open read-only the dictionary is shown, not changed. The cards of the Workshop will keep
+  their names here (`DictionaryName::card`).
 
 - **The preview of PDF files in the program** - 2026-11-15. A PDF opens in a card of its own
   (Settings > Materials > Opening: in the program, at first, or in the system program): the
