@@ -122,6 +122,8 @@ set(TEST_SOURCES
     editor/test_pdf_export.cpp                   # Export of a book to PDF: its pages and the file
     editor/test_book_print.cpp                   # The print of a book: the pages on the sheets
     editor/test_epub_export.cpp                  # Export of a book to EPUB 3
+    editor/test_rtf_reader.cpp                   # Import of RTF: Word, WordPad, TextEdit, Scrivener
+    editor/test_scrivener_reader.cpp             # Import of a project of Scrivener
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     gui/test_command_registry.cpp
@@ -663,6 +665,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_import_kml.cpp      # Import of a file into a book: the KML of a text, cleanups
     ${CMAKE_SOURCE_DIR}/src/editor/docx_reader.cpp          # Import of a Word document (DOCX)
     ${CMAKE_SOURCE_DIR}/src/editor/markdown_reader.cpp      # Import of Markdown
+    ${CMAKE_SOURCE_DIR}/src/editor/rtf_reader.cpp           # Import of RTF (Scrivener, Word, TextEdit)
+    ${CMAKE_SOURCE_DIR}/src/editor/scrivener_reader.cpp     # Import of a project of Scrivener
     ${CMAKE_SOURCE_DIR}/src/editor/text_reader.cpp          # Import of plain text: encodings, paragraphs, titles
     ${CMAKE_SOURCE_DIR}/src/editor/book_pages.cpp           # The pages of a book as the page view shows them (PDF, printer)
     ${CMAKE_SOURCE_DIR}/src/editor/book_print.cpp           # The print of a book: the pages on the sheets

@@ -459,6 +459,10 @@ std::vector<ImportPiece> splitDocument(const ImportDocument& document, const Spl
     return pieces;
 }
 
+int importWords(const ImportDocument& document, size_t from, size_t to) {
+    return wordsOf(document, from, to);
+}
+
 std::map<int, int> headingCounts(const ImportDocument& document) {
     std::map<int, int> counts;
     for (const ImportBlock& block : document.blocks) {

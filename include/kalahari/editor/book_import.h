@@ -60,6 +60,10 @@ TextEncoding detectTextEncoding(const QByteArray& data);
 ///        ends (CR LF, CR) as '\n'
 QString decodeText(const QByteArray& data, TextEncoding encoding);
 
+/// @brief The character of @p byte in Windows code page @p codePage: of 1250 (Central European)
+///        and 1252 (Western); nullopt for another code page (ASCII is ASCII in every one)
+std::optional<QChar> windowsCharacter(unsigned char byte, int codePage);
+
 // =============================================================================
 // The document read from a file
 // =============================================================================
@@ -262,6 +266,7 @@ struct ImportProblem {
         None,        ///< Nothing went wrong
         CannotOpen,  ///< The file cannot be opened
         NotDocx,     ///< The file is not a Word document (DOCX)
+        NotScrivener,  ///< The folder or the file is not a project of Scrivener
         Damaged,     ///< A part of the document cannot be read
         Plugin,      ///< The plugin of its format could not read it (detail: what it said)
     };
@@ -269,6 +274,10 @@ struct ImportProblem {
     Kind kind = Kind::None;
     QString detail;  ///< What went wrong, in English
 };
+
+/// @brief The heading level a style's name says: "heading 1" (Word, LibreOffice, Google Docs),
+///        "Nagłówek 1"; 0: none
+int headingLevelOfStyleName(const QString& name);
 
 /// @brief Read a Word document (DOCX)
 ///
@@ -292,6 +301,36 @@ bool readDocx(const QString& path, ImportDocument* document, ImportProblem* prob
 /// @param folder The folder the paths of the images are relative to; empty: the images are
 ///        missing
 ImportDocument readMarkdown(const QString& text, const QString& folder);
+
+/// @brief A comment or a footnote that a text of Scrivener links to, kept beside its RTF
+///        (a link scrivcmt://<id> on the text it is about)
+struct LinkedNote {
+    bool footnote = false;              ///< A footnote; else a comment
+    std::vector<ImportBlock> paragraphs;  ///< Its text
+};
+
+/// @brief How an RTF document is read
+struct RtfReadOptions {
+    QString folder;  ///< The folder of the files its pictures name (TextEdit's attachments);
+                     ///< empty: those pictures are missing
+    QHash<QString, LinkedNote> linked;  ///< The comments and the footnotes of Scrivener the
+                                        ///< text links to, by their ids
+};
+
+/// @brief Read RTF: the texts of Scrivener, the files of Word, WordPad and TextEdit
+///
+/// Its paragraphs with their styles (of its stylesheet: keys "s1", "s2"... with their names,
+/// their headings of a name such as "Heading 1" or of an outline level), alignment, indents
+/// and spacing; bold, italic, underline, strikethrough, raised and lowered text, small
+/// capitals, fonts, sizes and colors; line breaks, tabs (also between the cells of a table:
+/// each row a paragraph), page breaks; links; pictures in PNG and JPEG (\pict, TextEdit's
+/// attachments in @p options' folder); footnotes and endnotes; Word's comments; Scrivener's
+/// inline annotations and footnotes, and the comments and footnotes it links to. The text is
+/// read in its code pages (1250 and 1252 always, others when the system has them) and
+/// Unicode. Headers and footers, objects and shapes are left out (ImportDocument::omissions),
+/// and the groups the program does not know are left out without their text when RTF marks
+/// them so ({\*...}).
+ImportDocument readRtf(const QByteArray& rtf, const RtfReadOptions& options = {});
 
 /// @brief The titles a plain text marks as the starts of its texts
 enum class TitlePattern {
@@ -380,6 +419,9 @@ struct ImportPiece {
 /// paragraph. A text with nothing in it is left out, but one of a heading.
 std::vector<ImportPiece> splitDocument(const ImportDocument& document,
                                        const SplitOptions& options);
+
+/// @brief The words of blocks [from, to) of a document, with those of their notes
+int importWords(const ImportDocument& document, size_t from, size_t to);
 
 /// @brief The number of the headings of each level of a document (of its body, not in tables)
 std::map<int, int> headingCounts(const ImportDocument& document);

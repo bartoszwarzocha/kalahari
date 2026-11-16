@@ -1624,6 +1624,12 @@ void ImportBookDialog::showFiles() {
                     problems << tr("The file \"%1\" is not a Word document (DOCX).")
                                     .arg(QFileInfo(file.path).fileName());
                     break;
+                case editor::ImportProblem::Kind::NotScrivener:
+                    //: %1: the name of the folder or the file. In Polish: „%1” nie jest
+                    //: projektem Scrivenera: nie ma w nim pliku .scrivx.
+                    problems << tr("\"%1\" is not a Scrivener project: it has no .scrivx file.")
+                                    .arg(QFileInfo(file.path).fileName());
+                    break;
                 case editor::ImportProblem::Kind::Damaged:
                     //: %1: the name of the file. In Polish: Części pliku „%1” nie można
                     //: odczytać: plik jest uszkodzony.

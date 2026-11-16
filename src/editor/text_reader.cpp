@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <map>
+#include <optional>
 
 namespace kalahari::editor {
 
@@ -57,6 +58,15 @@ constexpr std::array<char16_t, 96> ISO_8859_2{
     0x010D, 0x00E9, 0x0119, 0x00EB, 0x011B, 0x00ED, 0x00EE, 0x010F,
     0x0111, 0x0144, 0x0148, 0x00F3, 0x00F4, 0x0151, 0x00F6, 0x00F7,
     0x0159, 0x016F, 0x00FA, 0x0171, 0x00FC, 0x00FD, 0x0163, 0x02D9,
+};
+
+/// The characters of the bytes 0x80 to 0x9F of Windows-1252 (U+FFFD: none), as Python's codec
+/// cp1252 gives them; the bytes 0xA0 to 0xFF are those of Latin-1
+constexpr std::array<char16_t, 32> WINDOWS_1252{
+    0x20AC, 0xFFFD, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021,
+    0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0xFFFD, 0x017D, 0xFFFD,
+    0xFFFD, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014,
+    0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0xFFFD, 0x017E, 0x0178,
 };
 
 constexpr unsigned char HIGH_BYTES = 0x80;
@@ -259,6 +269,20 @@ TextEncoding detectTextEncoding(const QByteArray& data) {
     return scoreOf(data, TextEncoding::Iso8859_2) > scoreOf(data, TextEncoding::Windows1250)
                ? TextEncoding::Iso8859_2
                : TextEncoding::Windows1250;
+}
+
+std::optional<QChar> windowsCharacter(unsigned char byte, int codePage) {
+    if (byte < HIGH_BYTES) {
+        return QChar(byte);
+    }
+    switch (codePage) {
+        case 1250:
+            return QChar(WINDOWS_1250[byte - HIGH_BYTES]);
+        case 1252:
+            return QChar(byte < ISO_LETTERS ? WINDOWS_1252[byte - HIGH_BYTES] : char16_t(byte));
+        default:
+            return std::nullopt;
+    }
 }
 
 QString decodeText(const QByteArray& data, TextEncoding encoding) {
