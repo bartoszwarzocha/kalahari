@@ -33,10 +33,6 @@
 #include <QListWidget>
 #include <QMenu>
 #include <QPainter>
-#include <QPdfBookmarkModel>
-#include <QPdfDocument>
-#include <QPdfLink>
-#include <QPdfSearchModel>
 #include <QPointer>
 #include <QPushButton>
 #include <QRegularExpression>
@@ -154,11 +150,11 @@ private:
             width = view->viewport()->width();
         }
         text.setTextWidth(width > 0 ? width : HIT_WIDTH);
-        const int page = index.data(static_cast<int>(QPdfSearchModel::Role::Page)).toInt();
+        const int page = index.data(static_cast<int>(PdfSearchModel::Role::Page)).toInt();
         const QString before =
-            index.data(static_cast<int>(QPdfSearchModel::Role::ContextBefore)).toString();
+            index.data(static_cast<int>(PdfSearchModel::Role::ContextBefore)).toString();
         const QString after =
-            index.data(static_cast<int>(QPdfSearchModel::Role::ContextAfter)).toString();
+            index.data(static_cast<int>(PdfSearchModel::Role::ContextAfter)).toString();
         const QString hit = m_panel.searchModel()->searchString();
         //: A page in the list of the hits of a search: %1 its number. In Polish: s. %1
         const QString pageText = PdfPreviewPanel::tr("p. %1").arg(m_panel.pageLabel(page));
@@ -480,7 +476,10 @@ void PdfPreviewPanel::connectSidePanel() {
     connect(m_bookmarksList, &QTreeWidget::itemClicked, this, &PdfPreviewPanel::goToBookmark);
     connect(m_bookmarksList, &QTreeWidget::itemChanged, this, &PdfPreviewPanel::saveBookmarkNote);
     const auto goToContents = [this](const QModelIndex& index) {
-        m_view->setCurrentPage(index.data(static_cast<int>(QPdfBookmarkModel::Role::Page)).toInt());
+        const int page = index.data(static_cast<int>(PdfContentsModel::Role::Page)).toInt();
+        if (page >= 0) {
+            m_view->setCurrentPage(page);
+        }
     };
     connect(m_contentsTree, &QTreeView::activated, this, goToContents);
     connect(m_contentsTree, &QTreeView::clicked, this, goToContents);

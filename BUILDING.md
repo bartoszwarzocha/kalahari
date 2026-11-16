@@ -64,6 +64,18 @@ scripts\build_windows.bat              # Windows
 - pybind11 + Python 3.11 (plugin scripting)
 - OpenSSL (plugin signature verification)
 - Hunspell (spell checking)
+- PDFium (the preview of PDF files; BSD 3-Clause and Apache 2.0) – a ready shared library of
+  [pdfium-binaries](https://github.com/bblanchon/pdfium-binaries), nothing is compiled
+
+**The preview of PDF files (PDFium):** the port `vcpkg-ports/pdfium` (an overlay port of
+`vcpkg.json`) downloads the archive of PDFium for the platform and checks it by the SHA-512
+pinned in `vcpkg-ports/pdfium/release.cmake`. A build without vcpkg (`-DUSE_SYSTEM_PACKAGES=ON`)
+downloads the same archive into `<build>/_deps` at the first configure and checks it the same
+way. Without network access give a copy with `-DPDFium_DIR=<folder of PDFiumConfig.cmake>`;
+`-DKALAHARI_PDF_PREVIEW=OFF` builds the program without the preview (PDF files then open in
+the system program). On Windows `pdfium.dll` is copied beside `kalahari.exe` and
+`kalahari-tests.exe` after each build. The CI checks that each pinned archive is the one
+pdfium-binaries built (`cmake -P scripts/verify_pdfium.cmake`, needs the GitHub CLI).
 
 ---
 
