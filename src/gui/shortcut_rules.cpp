@@ -12,6 +12,7 @@
 #include <QStringList>
 
 #include <algorithm>
+#include <array>
 #include <initializer_list>
 #include <utility>
 
@@ -352,9 +353,14 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
     find.rows.push_back({tr("Replace (in the replace field)"), enterKeys(NONE), NONE, {},
                          tr("In the replace field %1 replaces the match."), {}});
     const QString turnsOn = tr("In the find bar %1 turns on “%2”.");
-    const std::pair<QString, Qt::Key> options[] = {{tr("Match case"), Qt::Key_C},
-                                                   {tr("Whole words"), Qt::Key_W},
-                                                   {tr("Regular expression"), Qt::Key_R}};
+    // In the order of FindReplaceBar::optionKeys()
+    const std::array<std::pair<QString, Qt::Key>, 4> options{
+        {{tr("Match case"), Qt::Key_C},
+         {tr("Whole words"), Qt::Key_W},
+         {tr("Regular expression"), Qt::Key_R},
+         //: The option of the find bar that finds a word in all its forms. In Polish:
+         //: Wszystkie odmiany
+         {tr("All forms"), Qt::Key_M}}};
     for (const auto& [label, key] : options) {
         const QKeyCombination optionKeys = keyWith(toggle, key);
         find.rows.push_back(

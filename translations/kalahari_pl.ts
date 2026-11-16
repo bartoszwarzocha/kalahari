@@ -11819,6 +11819,11 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <translation>Wyrażenie regularne</translation>
     </message>
     <message>
+        <source>All forms</source>
+        <extracomment>The option of the find bar that finds a word in all its forms. In Polish: Wszystkie odmiany</extracomment>
+        <translation>Wszystkie odmiany</translation>
+    </message>
+    <message>
         <source>Close the bar</source>
         <translation>Zamknij pasek</translation>
     </message>

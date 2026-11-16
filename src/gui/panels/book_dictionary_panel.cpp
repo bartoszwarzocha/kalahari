@@ -321,6 +321,7 @@ void BookDictionaryPanel::createLayout() {
         // Without rows chosen, the current one is chosen (selectedIds())
         connect(list, &QTreeWidget::currentItemChanged, this,
                 &BookDictionaryPanel::updateButtons);
+        // A double click edits; Enter: eventFilter()
         connect(list, &QTreeWidget::itemActivated, this, &BookDictionaryPanel::requestEdit);
     }
     m_newWord->installEventFilter(this);
@@ -560,6 +561,11 @@ bool BookDictionaryPanel::eventFilter(QObject* watched, QEvent* event) {
     }
     if (watched != currentList()) {
         return QWidget::eventFilter(watched, event);
+    }
+    // Enter edits on every system: on macOS a list does not activate its row with it
+    if (enter) {
+        requestEdit();
+        return true;
     }
     if (key->key() == Qt::Key_Insert) {
         requestAdd();
