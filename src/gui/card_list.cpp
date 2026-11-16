@@ -88,8 +88,8 @@ void putText(MaterialRow& row, const QString& columnId, const QString& text) {
 /// What card @p element of kind @p kind shows in the columns of the fields: those of its kind,
 /// a value to choose sorted by the order of the choices, and those of the writer's
 void setFieldTexts(const core::ProjectManager& book, MaterialRow& row,
-                   const core::ProjectElement& element, const core::ElementKind& kind) {
-    for (const core::CardField& field : kind.fields) {
+                   const core::ProjectElement& element, const core::KindRef& kind) {
+    for (const core::CardField& field : book.cardFields(kind)) {
         const QString id = QString::fromLatin1(CardList::FIELD_PREFIX) + field.id;
         putText(row, id, CardList::textOf(book, element, field).simplified());
         if (field.type == core::CardFieldType::Choice) {
@@ -138,7 +138,7 @@ MaterialRow rowOf(const core::ProjectManager& book, const core::ProjectElement& 
     row.links = element.linkTargets();
     row.copy = element.title;
     putText(row, QString::fromLatin1(MaterialList::TITLE), element.title);
-    setFieldTexts(book, row, element, *kind.kind);
+    setFieldTexts(book, row, element, kind);
     putText(row, QString::fromLatin1(MaterialList::DESCRIPTION), row.summary);
     putText(row, QString::fromLatin1(MaterialList::DETAILS), CardPage::subtitleOf(book, element));
     const QString chaptersId = QString::fromLatin1(CardList::CHAPTERS);
@@ -163,7 +163,7 @@ QList<MaterialColumn> CardList::columnsOf(const core::ProjectManager& book, cons
     //: The column of the names of the cards in the list of cards. In Polish: Nazwa
     QList<MaterialColumn> columns{{QString::fromLatin1(MaterialList::TITLE), tr("Name")}};
     if (kind) {
-        for (const core::CardField& field : kind.kind->fields) {
+        for (const core::CardField& field : book.cardFields(kind)) {
             columns << MaterialColumn{QString::fromLatin1(FIELD_PREFIX) + field.id,
                                       field.name.text(programLanguage()), field.inList, true,
                                       editable};

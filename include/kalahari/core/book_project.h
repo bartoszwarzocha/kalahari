@@ -89,7 +89,10 @@
 ///   "fragments"; "arc"), or the writer's own names:
 ///   { "front": "Przedmowa i wstęp", "main": "Opowieść", "back": "Dodatki" }. None: the
 ///   first set. An id this version does not know is saved back and gives the first set.
-/// - The Workshop has the name of its node ("name"), whether it is grouped and its elements.
+/// - The Workshop has the name of its node ("name"), whether it is grouped and its elements,
+///   the relations between cards that the writer named ("relations", OwnRelation) and the
+///   fields of the cards of the kinds the writer changed them in ("cardFields",
+///   BookCardField); a kind without them has the fields of its package.
 /// - An element has an id unique in the project, its kind, a title, a file relative to the
 ///   project folder (if it has one), a status ("draft", "revision" or "final"; groups have
 ///   none) and the elements inside it (groups). The order and nesting of elements are saved
@@ -122,6 +125,7 @@
 
 #include <kalahari/core/book_type_registry.h>
 #include <kalahari/core/card_data.h>
+#include <kalahari/core/card_field_set.h>
 #include <kalahari/core/cover_material.h>
 #include <kalahari/core/source_description.h>
 #include <QByteArray>
@@ -367,6 +371,8 @@ struct ProjectWorkshop {
     bool grouped = false;            ///< Whether cards go to Libraries
     QList<ProjectElement> elements;  ///< Elements, in the order they were added
     QList<OwnRelation> relations;    ///< Relations between cards that the writer named
+    CardFieldSets cardFields;        ///< The fields of the cards of the kinds the writer
+                                     ///< changed them in (BookCardField)
     QJsonObject extra;               ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectWorkshop&) const = default;

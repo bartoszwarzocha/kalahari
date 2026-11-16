@@ -57,6 +57,7 @@ set(KALAHARI_CORE_SOURCES
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
     core/package_json.cpp       # The parts of booktype.json that its readers share
     core/card_package.cpp       # The fields of the kinds of cards and the relations of a package
+    core/card_field_set.cpp     # The fields of the cards as a book has them
     core/card_names.cpp         # The names of the cards in the book's dictionary
     core/card_name_index.cpp    # Which card a name at a place of a text is
     core/book_type_registry.cpp # Book type packages loaded from folders
@@ -173,6 +174,7 @@ set(KALAHARI_SOURCES
     core/recent_books_manager.cpp # RecentBooksManager - Recent files management (OpenSpec #00030)
     core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
     core/card_relations.cpp # The relations between the cards of a book (uses ProjectManager)
+    core/project_manager_card_fields.cpp # ProjectManager: the fields of the cards of the book
     core/package_card.cpp   # Cards of the packages a book uses: names and icons (IconRegistry)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus

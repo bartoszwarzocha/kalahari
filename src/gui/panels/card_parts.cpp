@@ -191,7 +191,7 @@ void placeAtTitle(QGroupBox* group, QWidget* button) {
 
 QString subtitleValue(const core::ProjectManager& book, const core::ProjectElement& card) {
     const core::KindRef kind = book.kindOf(card);
-    const core::CardField* field = kind ? kind.kind->subtitleField() : nullptr;
+    const core::CardField* field = book.subtitleField(kind);
     const QString value = field != nullptr ? card.card.value(field->id) : QString();
     const core::CardFieldChoice* choice =
         field != nullptr && field->type == core::CardFieldType::Choice ? field->choice(value)

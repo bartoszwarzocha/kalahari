@@ -319,6 +319,13 @@ CardPage::CardPage(core::ProjectManager& book, bool full, QWidget* parent)
                     refresh();
                 }
             });
+    // New fields of the cards of its kind (the window Card Fields): the form anew
+    connect(&m_book, &core::ProjectManager::cardFieldsChanged, this, [this](const QString& kind) {
+        if (kind == m_kindKey) {
+            m_kindKey.clear();
+            refresh();
+        }
+    });
     // The icons, and the colors of the theme the initials and the swatch are drawn in
     const auto redraw = [this]() {
         m_portraitKey.clear();
@@ -571,7 +578,7 @@ void CardPage::refresh() {
     const bool wasUpdating = m_updating;
     m_updating = true;
     if (const QString kindKey = kind.reference(); kindKey != m_kindKey) {
-        buildFields(*kind.kind);
+        buildFields(kind);
         m_kindKey = kindKey;
     }
     showHeader(*element);
@@ -634,11 +641,11 @@ void CardPage::setDescriptionWidget(QWidget* description) {
     setTabOrder(description, m_relations->addButton());
 }
 
-void CardPage::buildFields(const core::ElementKind& kind) {
+void CardPage::buildFields(const core::KindRef& kind) {
     clearFields();
     QList<QWidget*> besides;
     QList<QWidget*> fields;
-    for (const core::CardField& field : kind.fields) {
+    for (const core::CardField& field : m_book.cardFields(kind)) {
         if (!(m_full ? field.onCard : field.inProperties)) {
             continue;
         }
@@ -763,7 +770,7 @@ void CardPage::fillFields(const core::ProjectElement& element) {
     const core::KindRef kind = m_book.kindOf(element);
     const bool readOnly = m_book.isReadOnly();
     for (auto it = m_editors.cbegin(); it != m_editors.cend(); ++it) {
-        showValue(it.value(), kind ? kind.kind->field(it.key()) : nullptr,
+        showValue(it.value(), m_book.cardField(kind, it.key()),
                   m_book.cardFieldText(element.id, it.key()), readOnly);
     }
 }
@@ -1200,7 +1207,7 @@ QString CardPage::subtitleOf(const core::ProjectManager& book,
 QStringList CardPage::suggestedCards(const QString& fieldId) const {
     const core::ProjectElement* element = m_book.findElement(m_elementId);
     const core::KindRef kind = element != nullptr ? m_book.kindOf(*element) : core::KindRef{};
-    const core::CardField* field = kind ? kind.kind->field(fieldId) : nullptr;
+    const core::CardField* field = m_book.cardField(kind, fieldId);
     if (field == nullptr || kind.package == nullptr) {
         return {};
     }

@@ -885,6 +885,7 @@ ProjectWorkshop readWorkshop(const QJsonValue& value, Seen& seen, QStringList& p
     workshop.elements = readElements(fields.array("elements"), fields.path("elements"), seen,
                                      problems);
     workshop.relations = readOwnRelations(fields, problems);
+    workshop.cardFields = card_fields::read(fields.take("cardFields"));
     workshop.extra = fields.rest();
     return workshop;
 }
@@ -1292,6 +1293,12 @@ QJsonObject workshopToJson(const ProjectWorkshop& workshop) {
             relations.append(each);
         }
         json.insert(QLatin1String("relations"), relations);
+    }
+    if (const QJsonObject cardFields = card_fields::write(workshop.cardFields);
+        cardFields.isEmpty()) {
+        json.remove(QLatin1String("cardFields"));
+    } else {
+        json.insert(QLatin1String("cardFields"), cardFields);
     }
     return json;
 }

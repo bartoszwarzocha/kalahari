@@ -34,6 +34,7 @@ set(TEST_SOURCES
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
     core/test_card_data.cpp           # The cards of the Workshop: their fields, data in the book and colors
     core/test_card_relations.cpp      # The relations between cards, and the fields that name a card by one
+    core/test_card_field_set.cpp      # The fields of the cards as a book has them, and those new books start with
     core/test_sources.cpp             # The sources: descriptions in the book, bibliography styles, BibTeX
     core/test_link_roles.cpp          # The roles of links, and the paragraph a link names
     core/test_book_project.cpp        # Book project and its .klh file
@@ -255,6 +256,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book_type_package.cpp
     ${CMAKE_SOURCE_DIR}/src/core/package_json.cpp
     ${CMAKE_SOURCE_DIR}/src/core/card_package.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/card_field_set.cpp
     ${CMAKE_SOURCE_DIR}/src/core/card_names.cpp
     ${CMAKE_SOURCE_DIR}/src/core/card_name_index.cpp
     ${CMAKE_SOURCE_DIR}/src/core/card_relations.cpp
@@ -279,6 +281,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/unicode_paths.cpp
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/project_manager_card_fields.cpp
     ${CMAKE_SOURCE_DIR}/src/core/recent_books_manager.cpp
     # OpenSpec #00041: SQLite Project Database
     ${CMAKE_SOURCE_DIR}/src/core/project_database.cpp

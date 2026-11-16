@@ -269,8 +269,9 @@ private:
     /// @brief The icon of the kind of @p element, beside the kind; full card
     void showKindIcon(const core::ProjectElement& element);
 
-    /// @brief The fields of @p kind in the form, those that this card shows
-    void buildFields(const core::ElementKind& kind);
+    /// @brief The fields of the cards of @p kind in the book (core::ProjectManager::
+    /// cardFields()) in the form, those that this card shows
+    void buildFields(const core::KindRef& kind);
 
     /// @brief No fields: those of another kind go
     void clearFields();

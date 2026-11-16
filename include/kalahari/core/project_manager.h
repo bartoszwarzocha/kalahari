@@ -49,6 +49,7 @@
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/card_field_set.h"
 #include "kalahari/core/card_name_index.h"
 #include "kalahari/core/card_relations.h"
 #include "kalahari/core/chapter_versions.h"
@@ -872,6 +873,53 @@ public:
     bool setCardFieldText(const QString& cardId, const QString& fieldId, const QString& text);
 
     // =========================================================================
+    // Fields of the cards (project_manager_card_fields.cpp)
+    // =========================================================================
+
+    /// @brief The fields of the cards of kind @p kind in the open book, in the order of the
+    /// card: the book's own set (setCardFields()), else the fields of the kind; empty for a
+    /// kind that is no kind of cards
+    ///
+    /// The list stays while the book keeps the set; a new set gives a new list.
+    [[nodiscard]] const QList<CardField>& cardFields(const KindRef& kind) const;
+
+    /// @brief Field @p fieldId of the cards of kind @p kind (cardFields()); nullptr when they
+    /// have none
+    [[nodiscard]] const CardField* cardField(const KindRef& kind, const QString& fieldId) const;
+
+    /// @brief The field whose value stands beside the kind under the name of a card of kind
+    /// @p kind (ElementKind::subtitleField()), while the book shows it somewhere; nullptr: none
+    [[nodiscard]] const CardField* subtitleField(const KindRef& kind) const;
+
+    /// @brief Every field of the cards of kind @p kind, as the window Card Fields changes them
+    /// (card_fields::complete())
+    [[nodiscard]] QList<BookCardField> cardFieldSet(const KindRef& kind) const;
+
+    /// @brief Whether the book has fields of the cards of kind @p kind of its own, not those of
+    /// the package
+    [[nodiscard]] bool hasOwnCardFields(const KindRef& kind) const;
+
+    /// @brief Give the cards of kind @p kind the fields @p fields and save the .klh file
+    /// (cardFieldsChanged())
+    ///
+    /// The fields of the package (an empty list, or the same fields shown in the same places)
+    /// leave the book without a set of its own. A field of the writer that names a card gets
+    /// its relation (ownRelation()), named after it; a new name of the field renames the
+    /// relation. The values of the cards stay, also those of the fields that go.
+    /// @return false for a kind that is no kind of cards, or when the file cannot be written
+    bool setCardFields(const KindRef& kind, const QList<BookCardField>& fields);
+
+    /// @brief Make own field @p index of card @p cardId (ProjectElement::fields) a field of all
+    /// the cards of its kind, and save the .klh file
+    ///
+    /// The field of the cards with its name (a text field) takes it, else a new field of the
+    /// writer, shown on the card; each card of the kind gives it the value of its own field
+    /// with that name, which goes, unless the card has a value there already.
+    /// @return The id of the field of the cards; empty when the card has no such field or the
+    ///         file cannot be written
+    QString addFieldToKind(const QString& cardId, int index);
+
+    // =========================================================================
     // Sources, Bookmarks and Quotes
     // =========================================================================
 
@@ -1240,6 +1288,10 @@ signals:
     /// a picture of a portrait deleted)
     void cardChanged(const QString& elementId);
 
+    /// @brief The fields of the cards of kind @p kind ("kalahari.base:character") changed
+    /// (setCardFields(), addFieldToKind()): what they show, in what order, and where
+    void cardFieldsChanged(const QString& kind);
+
     /// @brief The dictionary of the book changed (changeBookDictionary()), or another book with
     ///        its own dictionary opened
     void bookDictionaryChanged();
@@ -1311,6 +1363,11 @@ private:
     ///         written; the project stays as it was then
     bool changeProject(const char* what, const std::function<void(BookProject&)>& change);
 
+    /// @brief Give new project @p project the fields of the cards that the Settings give new
+    /// books (card_fields::defaults()), with the relations of the fields of the writer that
+    /// name cards
+    static void giveDefaultCardFields(BookProject& project);
+
     /// @brief Cards @p cardIds tell of a change of their relations (cardChanged()), and the
     /// links changed (linksChanged())
     void relationsChanged(const QStringList& cardIds);
@@ -1366,6 +1423,14 @@ private:
     QHash<QString, PackageCard> m_packageCards;   ///< Cards of the open book, by package id
     BookDictionary m_bookDictionary;              ///< Of the open book
     mutable std::optional<CardNameIndex> m_cardNames;  ///< cardNames() of m_bookDictionary
+
+    /// @brief The fields of the cards of a kind, computed from the set they were computed from
+    struct ShownCardFields {
+        const ElementKind* kind = nullptr;  ///< The kind of the package
+        QList<BookCardField> set;           ///< The set of the book; empty: none
+        QList<CardField> fields;            ///< card_fields::effective()
+    };
+    mutable std::map<QString, ShownCardFields> m_cardFields;  ///< cardFields(), by the kind
     bool m_bookDictionaryRead = false;            ///< Its file was read (or there is none)
 
     // OpenSpec #00041: SQLite Project Database. A book open read-only has no lock and no

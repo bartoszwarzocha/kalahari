@@ -616,6 +616,8 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
     }
     book.folder = QString::fromLatin1(BookProject::BOOK_FOLDER);
     project.books.append(book);
+    // The cards start with the fields that the Settings give new books
+    giveDefaultCardFields(project);
 
     QString manifestPath = QDir(projectDir).filePath(
         safeFileName(request.title) + QLatin1String(BookProject::FILE_EXTENSION));
@@ -2809,7 +2811,7 @@ QString ProjectManager::cardFieldText(const QString& cardId, const QString& fiel
         return {};
     }
     const KindRef kind = kindOf(*card);
-    const CardField* field = kind ? kind.kind->field(fieldId) : nullptr;
+    const CardField* field = cardField(kind, fieldId);
     if (field != nullptr) {
         if (const ProjectElement* named = CardRelations(*this).fieldCard(*card, *field)) {
             return named->title;

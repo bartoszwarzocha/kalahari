@@ -106,6 +106,9 @@ MaterialListCoordinator::MaterialListCoordinator(core::ProjectManager& book,
     // The fields and the relations of a card, its color and portrait; the forms of the names
     // the search finds the cards by
     connect(&m_book, &core::ProjectManager::cardChanged, this, &MaterialListCoordinator::refresh);
+    // The fields of the cards (the window Card Fields): the columns of their lists
+    connect(&m_book, &core::ProjectManager::cardFieldsChanged, this,
+            &MaterialListCoordinator::refresh);
     connect(&m_book, &core::ProjectManager::bookDictionaryChanged, this,
             &MaterialListCoordinator::refresh);
     connect(m_centralTabs, &QTabWidget::currentChanged, this,

@@ -191,7 +191,7 @@ const core::CardField* CardCellDelegate::fieldAt(const QModelIndex& index) const
         fieldId.isEmpty() ? nullptr
                           : m_book.findElement(index.data(MaterialListPanel::ID_ROLE).toString());
     const core::KindRef kind = card != nullptr ? m_book.kindOf(*card) : core::KindRef{};
-    return kind ? kind.kind->field(fieldId) : nullptr;
+    return m_book.cardField(kind, fieldId);
 }
 
 QString CardCellDelegate::valueAt(const QModelIndex& index) const {
