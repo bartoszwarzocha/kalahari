@@ -51,6 +51,7 @@ struct Theme {
         QColor infoHeader; ///< Color for information panel headers
         QColor infoBarBackground; ///< Info bar (standalone file banner) background color
         QColor infoBarBorder; ///< Info bar (standalone file banner) border color
+        QColor styleTag; ///< Background of the tag of a writer's own style in the style lists
     } colors;
 
     /// @brief Qt Palette colors (for native widget styling)

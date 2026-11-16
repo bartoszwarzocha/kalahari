@@ -8,8 +8,10 @@
 
 #include <kalahari/gui/panels/annotation_colors.h>
 
+#include <QFont>
 #include <QFrame>
 #include <QList>
+#include <QMargins>
 #include <QRectF>
 
 #include <functional>
@@ -29,11 +31,13 @@ class CommandRegistry;
 /// within the text column; or over a card of the text, as wide as it: the card makes room for
 /// the frame as high as it is (cardHeightNeeded()), or the frame lies over it within the
 /// editor. Its header says what is written and has an X in the corner; its footer says what
-/// the keys do. Ctrl+Enter keeps the text; Esc or the X drops it. Going anywhere else in the
-/// program closes it, the text kept: a click outside it, or the keys going to another place of
-/// the program. It stays open while another application is in front, for a menu or a list
-/// over it (its own context menu) and for the editor's scroll bars (it goes along with its
-/// place; the keys stay in it). While it has the keys, the window's shortcuts do nothing
+/// the keys do. Over the text of a card (Placement::cardText) it is that text alone, written
+/// in place: no header, no footer, no border, the card's font and lines; the card is as high
+/// as the text written, and the keys are in the tooltip. Ctrl+Enter keeps the text; Esc or
+/// the X drops it. Going anywhere else in the program closes it, the text kept: a click
+/// outside it, or the keys going to another place of the program. It stays open while another
+/// application is in front, for a menu or a list over it (its own context menu) and for the
+/// editor's scroll bars (it goes along with its place; the keys stay in it). While it has the keys, the window's shortcuts do nothing
 /// (bold, the commands of the text... would change the text under it), except saving, closing
 /// and quitting; no key and no click goes through it to the editor.
 ///
@@ -51,6 +55,11 @@ public:
         /// The card makes room for the frame (cardHeightNeeded()); false: the frame lies over
         /// it, within the editor
         bool cardMakesRoom = true;
+        /// The text of the card it is written on (empty: none): the frame is that text, in
+        /// its place, and the card is as high as the text written (cardHeightNeeded())
+        QRectF cardText{};
+        QFont cardFont{};          ///< The font of the card's text, as the editor shows it
+        qreal cardLineHeight = 0;  ///< The height of a line of it (pixels of the editor)
     };
 
     /// @brief Gives the placement as it is now (the view scrolls and changes)
@@ -88,6 +97,14 @@ public:
 
     /// @brief Give the keys to the text, with the cursor at its end
     void startTyping();
+
+    /// @brief Give the keys to the text of a card, with the cursor where it was clicked
+    /// @param inText From the top left corner of the card's text (Placement::cardText), in
+    ///        pixels of the editor; without a card's text, the cursor goes to the end
+    void startTypingAt(const QPointF& inText);
+
+    /// @brief Whether the frame is the text of a card (Placement::cardText)
+    bool isCardText() const { return m_cardText; }
 
 signals:
     /// @brief Ctrl+Enter: keep the text
@@ -152,8 +169,13 @@ protected:
     /// @brief The style sheet of the frame's parts in these colors
     virtual QString styleSheetFor(const AnnotationCardColors& colors) const;
 
-    /// @brief The text box as high as its text, between a few lines and a limit
+    /// @brief The text box as high as its text, between a few lines and a limit (the text of
+    ///        a card: as high as its text)
     void updateTextHeight();
+
+    /// @brief The frame became the text of a card, or stopped being it: its own parts the
+    ///        header and the footer do not hide are shown or hidden
+    virtual void cardTextChanged() {}
 
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
@@ -194,6 +216,23 @@ private:
     /// @brief Ask for a place() once the editor's event is over
     void schedulePlacement();
 
+    /// @brief Be the text of a card, or the frame with its header and footer
+    void setCardText(bool cardText);
+
+    /// @brief The font and the height of the lines of the card's text
+    void setCardFont(const QFont& font, qreal lineHeight);
+
+    /// @brief Give every paragraph of the text this height of lines (QTextBlockFormat), not as
+    ///        a step of Undo
+    void setLineHeight(qreal height, int type);
+
+    /// @brief The height of the text of a card (pixels)
+    int cardTextHeight() const;
+
+    /// @brief How far down the text of a card goes from the card's text, so that its lines lie
+    ///        as the card draws them: in the middle of their line boxes
+    qreal cardTextOffset() const;
+
     QString m_name;
     AnnotationCardColors m_colors;
     PlacementProvider m_placement;
@@ -210,6 +249,12 @@ private:
     bool m_closing = false;            ///< It asked to be closed or dropped: it asks no more
     bool m_keysAway = false;           ///< The keys went from it to another application
     bool m_keysLeftByMouse = false;    ///< The keys are leaving it with a click or the wheel
+    bool m_cardText = false;           ///< It is the text of a card
+    qreal m_cardLineHeight = 0;        ///< The height of the lines of the card's text
+    qreal m_cardOffset = 0;            ///< cardTextOffset() where it was placed last
+    QMargins m_margins;                ///< Of the frame with its header and footer
+    int m_spacing = 0;                 ///< Between the header, the text and the footer
+    qreal m_documentMargin = 0;        ///< Of its text in the frame with its header
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 

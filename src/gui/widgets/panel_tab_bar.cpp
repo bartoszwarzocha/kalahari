@@ -877,6 +877,12 @@ void PanelTabBar::leaveEvent(QEvent* event) {
 }
 
 void PanelTabBar::keyPressEvent(QKeyEvent* event) {
+    // Alt with an arrow is not a move between the tabs (Alt+Down lists the tabs in the middle
+    // of the window: CentralTabs)
+    if (event->modifiers() & Qt::AltModifier) {
+        QWidget::keyPressEvent(event);
+        return;
+    }
     int next = -1;
     switch (event->key()) {
     case Qt::Key_Left:

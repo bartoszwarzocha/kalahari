@@ -327,6 +327,7 @@ std::map<std::string, json> buildDefaults() {
         {"editor.images.width", 0},
         {"editor.images.addCaption", true},
         {"editor.images.captionLabel", ""},
+        {"editor.images.askCaption", true},
         {"editor.images.downscale", false},
         {"editor.images.maxDpi", 300},
         {"editor.images.manuscript", "inline"},

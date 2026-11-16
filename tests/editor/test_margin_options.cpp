@@ -587,3 +587,40 @@ TEST_CASE("Margin numbers: on the margin of the lines, every few, from 1 on ever
     editor->setCursorPosition(pageTwo);
     CHECK(numberInk(*editor) > pageOne * 3 / 2);
 }
+
+TEST_CASE("Margin numbers: with no left margin they are on the desk beside the page, a gap "
+          "before the text",
+          "[editor][marginNumbers][margins]") {
+    auto editor = editorWith(ViewMode::Page, paragraphs(3));
+    change(*editor, [](EditorAppearance& appearance) {
+        appearance.pageMargins.left = 0.0;
+        appearance.pageMargins.mirrored = false;
+    });
+    number(*editor, MarginNumbering::Lines);
+
+    for (const ViewMode mode : {ViewMode::Page, ViewMode::Continuous}) {
+        CAPTURE(static_cast<int>(mode));
+        editor->setViewMode(mode);
+        editor->setCursorPosition({1, 0});
+        const QImage image = paint(*editor);
+        const QRectF line = caret(*editor);
+
+        // The red pixels of the line's number, in the view (not those of the text: with
+        // subpixel antialiasing its edges are red too)
+        int inkLeft = -1;
+        int inkRight = -1;
+        for (int x = 0; x < static_cast<int>(line.left()); ++x) {
+            for (int y = static_cast<int>(line.top()); y < static_cast<int>(line.bottom()); ++y) {
+                const QColor pixel = image.pixelColor(x, y);
+                if (pixel.red() - std::max(pixel.green(), pixel.blue()) > 60) {
+                    inkLeft = inkLeft < 0 ? x : inkLeft;
+                    inkRight = x;
+                    break;
+                }
+            }
+        }
+        REQUIRE(inkLeft > 0);
+        // A gap of 2 mm at least (about 7 pixels at 100%) between them and the text
+        CHECK(inkRight < line.left() - 5.0);
+    }
+}

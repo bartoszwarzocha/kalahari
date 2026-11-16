@@ -84,6 +84,11 @@ ThemePage::ThemePage(QWidget* parent)
              "themes.", ".ui.brightText", [](const Theme& t) { return t.palette.brightText; });
     addColor(ui, tr("Info Header"), tr("Color for information panel headers"),
              "themes.", ".colors.infoHeader", [](const Theme& t) { return t.colors.infoHeader; });
+    //: In Polish: Etykieta stylu własnego
+    addColor(ui, tr("Own Style Tag"),
+             tr("Background of the tag \"own\" after the styles of your own in the lists of "
+                "styles"),
+             "themes.", ".colors.styleTag", [](const Theme& t) { return t.colors.styleTag; });
 
     QVBoxLayout* palette = group(tr("Palette Colors"));
     const auto paletteColor = [&](const QString& label, const QString& toolTip, const char* key,

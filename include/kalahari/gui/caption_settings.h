@@ -35,6 +35,9 @@ inline constexpr const char* IMAGE_WIDTH_KEY = "editor.images.width";
 inline constexpr const char* IMAGE_CAPTION_KEY = "editor.images.addCaption";
 /// @brief The label of that caption; empty: the first label of the captions of new books
 inline constexpr const char* IMAGE_CAPTION_LABEL_KEY = "editor.images.captionLabel";
+/// @brief Whether Insert > Image... asks for the caption of the new image (or none) before it
+///        goes in; false: the caption IMAGE_CAPTION_KEY says
+inline constexpr const char* IMAGE_ASK_CAPTION_KEY = "editor.images.askCaption";
 /// @brief Whether a copy of a very large image is made smaller (IMAGE_MAX_DPI_KEY)
 inline constexpr const char* IMAGE_DOWNSCALE_KEY = "editor.images.downscale";
 /// @brief Above how many dots per inch, at its size in the text, a copy is made smaller

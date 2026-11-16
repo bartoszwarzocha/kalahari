@@ -9,6 +9,7 @@
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/editor/text_captions.h"
+#include "kalahari/gui/dialogs/caption_dialogs.h"
 
 #include <QDateTime>
 #include <QHash>
@@ -129,6 +130,12 @@ public:
     /// @return Whether the caption changed
     bool editCaption(editor::BookEditor& editor, int position);
 
+    /// @brief The caption of an image Insert > Image... puts at the cursor of @p editor: the
+    ///        window of the caption of a new image, unless the Settings say not to ask
+    ///        (IMAGE_ASK_CAPTION_KEY: then the numbered caption of the Settings, or none)
+    /// @return The caption (not shown: none); std::nullopt: Cancel, the image does not go in
+    std::optional<editor::ImageCaption> askNewImageCaption(editor::BookEditor& editor);
+
     /// @brief Insert > Cross-Reference...: the window of a cross-reference at the cursor
     void insertCrossReference();
 
@@ -169,6 +176,16 @@ private:
 
     /// @brief The book keeps the Settings' labels and numbering once it has its first caption
     void keepCaptionsOnce();
+
+    /// @brief What the window of a caption shows for the place @p position of @p editor (an
+    ///        image, or the cursor where a new one goes); a caption without a label gets that
+    ///        of the Settings for new images
+    dialogs::InsertCaptionDialog::Data captionDialogData(editor::BookEditor& editor, int position,
+                                                         editor::ImageCaption caption);
+
+    /// @brief The labels the window of a caption added or took away; the book keeps its own
+    ///        from now on
+    void keepLabels(const core::BookCaptions& before, const QStringList& labels);
 
     /// @brief Asks before numbered captions go whose cross-references would show "?"
     bool confirmRemoval(const QStringList& ids);

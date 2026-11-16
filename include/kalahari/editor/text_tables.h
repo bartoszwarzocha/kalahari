@@ -49,6 +49,14 @@ namespace kalahari::editor {
 /// @brief The most rows or columns one cell of KML may span
 inline constexpr int MAX_TABLE_SPAN = 100;
 
+/// @brief Id of the style of the paragraphs of the header rows of a table (10 pt, bold): the
+///        editor gives it to the cells of the header rows of a new table when the book has it
+inline constexpr char TABLE_HEADER_STYLE_ID[] = "table_header";
+
+/// @brief Id of the style of the paragraphs of the other rows of a table (10 pt), as
+///        TABLE_HEADER_STYLE_ID
+inline constexpr char TABLE_ROW_STYLE_ID[] = "table_row";
+
 // =============================================================================
 // Properties of the table's format
 // =============================================================================

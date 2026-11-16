@@ -12,6 +12,7 @@
 #include "kalahari/gui/copy_target.h"
 #include "kalahari/gui/paste_target.h"
 #include "kalahari/gui/panels/annotations_panel.h"
+#include "kalahari/gui/panels/search_panel.h"
 #include "kalahari/gui/panels/spelling_panel.h"
 
 #include <QAbstractItemView>
@@ -184,9 +185,9 @@ void fieldDo(Field& field, Edit edit) {
 bool bookCan(const editor::BookEditor& book, Edit edit) {
     switch (edit) {
     case Edit::Undo:
-        return book.canUndo();
+        return book.canUndoCommand();
     case Edit::Redo:
-        return book.canRedo();
+        return book.canRedoCommand();
     case Edit::Cut:
         // A read-only text (a chapter of a book open read-only) is copied, not cut; Undo,
         // Redo and Paste ask it themselves
@@ -206,10 +207,10 @@ bool bookCan(const editor::BookEditor& book, Edit edit) {
 void bookDo(editor::BookEditor& book, Edit edit) {
     switch (edit) {
     case Edit::Undo:
-        book.undo();
+        book.undoCommand();
         break;
     case Edit::Redo:
-        book.redo();
+        book.redoCommand();
         break;
     case Edit::Cut:
         book.cut();
@@ -384,16 +385,17 @@ EditCoordinator::Target EditCoordinator::targetOf(QWidget* element) const {
         return target;
     }
 
-    // What is done in the find bar and in the Annotations and the Spelling and Grammar panels
-    // are steps of the text's undo history: the text in the find bar's book, the one in front
-    // for the panels
+    // What is done in the find bar and in the Annotations, the Spelling and Grammar and the
+    // Search panels (Replace All in Book) are steps of the text's undo history: the text in
+    // the find bar's book, the one in front for the panels
     for (QWidget* part = element; part != nullptr; part = part->parentWidget()) {
         if (qobject_cast<editor::FindReplaceBar*>(part) != nullptr) {
             target.history = qobject_cast<editor::BookEditor*>(part->parentWidget());
             break;
         }
         if (qobject_cast<AnnotationsPanel*>(part) != nullptr ||
-            qobject_cast<SpellingPanel*>(part) != nullptr) {
+            qobject_cast<SpellingPanel*>(part) != nullptr ||
+            qobject_cast<SearchPanel*>(part) != nullptr) {
             target.history = m_editorInFront ? m_editorInFront() : nullptr;
             break;
         }
@@ -419,8 +421,8 @@ bool EditCoordinator::canDo(Edit edit, QWidget* element) const {
         return bookCan(*target.book, edit);
     }
     if (target.history != nullptr) {
-        return (edit == Edit::Undo && target.history->canUndo()) ||
-               (edit == Edit::Redo && target.history->canRedo());
+        return (edit == Edit::Undo && target.history->canUndoCommand()) ||
+               (edit == Edit::Redo && target.history->canRedoCommand());
     }
     if (target.list != nullptr) {
         return listCan(*target.list, edit);

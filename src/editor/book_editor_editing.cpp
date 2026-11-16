@@ -16,6 +16,7 @@
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/shared_history.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_images.h>
 #include <QAction>
@@ -1202,6 +1203,38 @@ bool BookEditor::canUndo() const
 bool BookEditor::canRedo() const
 {
     return !m_readOnly && m_textBuffer && m_textBuffer->isRedoAvailable();
+}
+
+bool BookEditor::canUndoCommand() const
+{
+    return canUndo() ||
+           (!m_readOnly && m_sharedHistory != nullptr && m_sharedHistory->undoesFor(*this));
+}
+
+bool BookEditor::canRedoCommand() const
+{
+    return canRedo() ||
+           (!m_readOnly && m_sharedHistory != nullptr && m_sharedHistory->redoesFor(*this));
+}
+
+void BookEditor::undoCommand()
+{
+    // Replace All in Book, its last step: undone in every text it changed (user's test of
+    // 16.11)
+    if (!m_readOnly && m_sharedHistory != nullptr && m_sharedHistory->undoesFor(*this)) {
+        m_sharedHistory->undoFor(*this);
+        return;
+    }
+    undo();
+}
+
+void BookEditor::redoCommand()
+{
+    if (!m_readOnly && m_sharedHistory != nullptr && m_sharedHistory->redoesFor(*this)) {
+        m_sharedHistory->redoFor(*this);
+        return;
+    }
+    redo();
 }
 
 void BookEditor::undo()

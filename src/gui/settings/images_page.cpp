@@ -126,6 +126,14 @@ EditorImagesPage::EditorImagesPage(QWidget* parent)
     connect(caption, &QCheckBox::toggled, this, syncCaption);
     whenLoaded(syncCaption);
 
+    // The caption chosen as the image goes in: the label above is the one shown first
+    //: In Polish: Py&taj o podpis przy wstawianiu obrazu (Wstaw > Obraz…)
+    auto* askCaption = new QCheckBox(tr("As&k for the caption when inserting an image "
+                                        "(Insert > Image...)"));
+    askCaption->setObjectName(QStringLiteral("imageAskCaption"));
+    image->addRow(askCaption);
+    bind(askCaption, IMAGE_ASK_CAPTION_KEY);
+
     // The captions of new books: their labels, how they are numbered, what a cross-reference
     // shows
     //: In Polish: Podpisy w nowych książkach

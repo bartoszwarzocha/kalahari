@@ -66,7 +66,7 @@ void AnnotationFrame::setKind(editor::AnnotationKind kind) {
 
 void AnnotationFrame::setAuthor(const QString& author) {
     m_author = author.trimmed();
-    m_authorLabel->setVisible(!m_author.isEmpty());
+    m_authorLabel->setVisible(!isCardText() && !m_author.isEmpty());
     updateAuthorLabel();
 }
 
@@ -83,8 +83,19 @@ bool AnnotationFrame::canSave() const {
     return !text().trimmed().isEmpty();
 }
 
+void AnnotationFrame::cardTextChanged() {
+    // The card's header shows who it is by: the label takes no room
+    QSizePolicy policy = m_authorLabel->sizePolicy();
+    policy.setRetainSizeWhenHidden(!isCardText());
+    m_authorLabel->setSizePolicy(policy);
+    m_authorLabel->setVisible(!isCardText() && !m_author.isEmpty());
+}
+
 void AnnotationFrame::paintEvent(QPaintEvent* event) {
     Q_UNUSED(event)
+    if (isCardText()) {
+        return;  // the card under it is the editor's
+    }
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 

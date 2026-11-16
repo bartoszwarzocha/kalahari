@@ -93,6 +93,7 @@ class FindReplaceBar;
 class KmlDocumentModel;
 class SpellCheckService;
 class GrammarCheckService;
+class SharedHistory;
 
 /// @brief Custom text editor widget for KML documents
 ///
@@ -572,6 +573,27 @@ public:
 
     /// @brief Redo the last undone command
     void redo();
+
+    /// @brief Whether the writer's Undo (Edit > Undo, its keys) can do something: a step of
+    ///        all the texts it changed (setSharedHistory()) or of this text
+    bool canUndoCommand() const;
+
+    /// @brief Whether the writer's Redo can do something, as canUndoCommand()
+    bool canRedoCommand() const;
+
+    /// @brief The writer's Undo: while the last step of this text is a step of more texts
+    ///        (Replace All in Book), it is undone in all of them; else undo()
+    void undoCommand();
+
+    /// @brief The writer's Redo, as undoCommand()
+    void redoCommand();
+
+    /// @brief The steps of more texts than this one its Undo and Redo do while they are its
+    ///        last (undoCommand()); nullptr: none. It is taken off before it goes
+    void setSharedHistory(SharedHistory* history) { m_sharedHistory = history; }
+
+    /// @brief The history of setSharedHistory()
+    SharedHistory* sharedHistory() const { return m_sharedHistory; }
 
     /// @brief Undo the last step for good: it cannot be redone
     ///
@@ -1074,9 +1096,13 @@ public:
     /// settings (NewImageOptions); a file with more dots per inch at that width than the
     /// settings allow is copied smaller. The image goes in a paragraph of its own, aligned as
     /// the settings say, and is selected.
+    /// @param caption Its caption, as the writer chose it at Insert > Image... (not shown:
+    ///        none); std::nullopt: the numbered caption of the settings
+    ///        (NewImageOptions::captionLabel), or none
     /// @return false when the file could not be copied or is not an image, without a folder
     ///         of images, or in a read-only text (changeRefused())
-    bool insertImageFile(const QString& path);
+    bool insertImageFile(const QString& path,
+                         const std::optional<ImageCaption>& caption = std::nullopt);
 
     /// @brief The width in pixels of the copy of a file inserted at the cursor now: fewer than
     ///        the file's when it has more dots per inch at its width in the text than
@@ -1088,8 +1114,10 @@ public:
     ///        images, as insertImageFile() inserts a file
     bool insertPicture(const QImage& picture);
 
-    /// @brief Insert an image of the book's folder at the cursor, as insertImageFile() does
-    bool insertImage(const ImageProperties& image);
+    /// @brief Insert an image of the book's folder at the cursor, as insertImageFile() does,
+    ///        with its caption as insertImageFile() gives it
+    bool insertImage(const ImageProperties& image,
+                     const std::optional<ImageCaption>& caption = std::nullopt);
 
     /// @brief The image the selection is (exactly one image): its position in the document
     std::optional<int> selectedImage() const;
@@ -1445,19 +1473,31 @@ public:
     /// @return Empty when it has no card shown (collapsed to its mark, or no cards)
     QRectF annotationCardRect(const QString& id) const;
 
-    /// @brief An annotation is written in the frame over its card: the card makes room for
-    ///        the frame; a new one's room comes among the cards of the paragraph of its mark,
-    ///        in the order of its place. The room comes into view.
+    /// @brief An annotation is written on its card: the card stays, with its header, and the
+    ///        frame lies over its text, which is as high as the text written; a new one's card
+    ///        comes among the cards of the paragraph of its mark, in the order of its place.
+    ///        The card comes into view.
     /// @param id The annotation; empty: a new one
     /// @param kind Its kind
     /// @param start Where its fragment starts (a position in the document)
     /// @param end Where it ends: its mark
-    /// @param height The frame's height, in pixels of the editor
+    /// @param height The height of the text written, in pixels of the editor
+    /// @param author A new one: who it is by, in its card's header
     void setAnnotationCardWriting(const QString& id, AnnotationKind kind, int start, int end,
-                                  qreal height);
+                                  qreal height, const QString& author = {});
 
-    /// @brief The frame over the card is of another height (pixels of the editor)
+    /// @brief The text written on the card is of another height (pixels of the editor)
     void setAnnotationCardWritingHeight(qreal height);
+
+    /// @brief Where the text of the card written on is in the editor (the frame lies over
+    ///        it); empty: none
+    QRectF annotationCardWritingTextRect() const;
+
+    /// @brief The font of the cards' text as the editor shows it now (zoomed)
+    QFont annotationCardTextFont() const;
+
+    /// @brief The height of a line of the cards' text as the editor shows it now (pixels)
+    qreal annotationCardLineHeight() const;
 
     /// @brief No annotation is written in the frame over its card any more
     void clearAnnotationCardWriting();
@@ -2339,6 +2379,13 @@ signals:
     /// @param id The annotation's id
     void annotationEditRequested(const QString& id);
 
+    /// @brief Emitted when the text of an annotation's card is clicked: it is written there,
+    ///        from where it was clicked
+    /// @param id The annotation's id
+    /// @param inText Where it was clicked, from the top left corner of the card's text, in
+    ///        pixels of the editor
+    void annotationCardTextPressed(const QString& id, const QPointF& inText);
+
     /// @brief The writer asks to write a note's text in its frame: a click on its text, a
     /// double click on its number, Edit Footnote in the menu
     void noteEditRequested(const QString& id);
@@ -3002,6 +3049,11 @@ private:
     /// @brief Add a row to the end of a table, as one undo step
     void appendTableRow(QTextTable& table);
 
+    /// @brief The format of the paragraph of a new cell: in the style of a table row when the
+    ///        book has the styles of tables (cellParagraphFormat() gives a header row its
+    ///        own), else Normal
+    [[nodiscard]] QTextBlockFormat tableCellFormat() const;
+
     /// @brief The paragraph Up or Down goes to from the first or the last line of @p block
     ///        where a table is next to it: the cell above or below in the column under
     ///        @p x (layout coordinates), or the paragraph before or after the table
@@ -3395,6 +3447,7 @@ private:
     QTextCursor m_selectedCard;         ///< The fragment of the card gone to: its outline goes
                                         ///< when the cursor leaves it
     bool m_readOnly = false;            ///< The text can only be read (isReadOnly())
+    SharedHistory* m_sharedHistory = nullptr;  ///< setSharedHistory()
     QString m_readOnlyReason;           ///< Why (setReadOnlyReason())
 
     // IME composition state (Phase 4.5/4.6/4.7)

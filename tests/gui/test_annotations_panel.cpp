@@ -5,6 +5,7 @@
 /// @brief The Annotations panel, the frame an annotation is written in, and the commands of
 /// the annotations
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
 #include "kalahari/core/kind_words.h"
@@ -568,6 +569,52 @@ TEST_CASE("Annotations panel: a card shows who made the annotation", "[gui][anno
     CHECK_FALSE(card.toolTip().contains(QStringLiteral("Anna")));
 }
 
+TEST_CASE("Annotations panel: a long note takes the height of its text, right under the card "
+          "before it",
+          "[gui][annotations]") {
+    // Regression (test of 16.11): the card of a long note had the height of its text at the
+    // width a label likes, not at the width of the panel; the list gave it the room of its
+    // text, and the card stood in the middle of that room, with a gap above it and its text
+    // over the author's line
+    AnnotationsPanel panel(kalahari::test::commands());
+    QString longText;
+    for (int i = 0; i < 12; ++i) {
+        longText += QStringLiteral("Salt travels in slabs, each of them weighing about thirty "
+                                   "kilograms, on camels that walk slowly in the heat. ");
+    }
+    AnnotationEntry comment =
+        entryOf(QStringLiteral("c"), AnnotationKind::Comment, QStringLiteral("Check"), 0, 0);
+    AnnotationEntry todo =
+        entryOf(QStringLiteral("t"), AnnotationKind::Todo, QStringLiteral("Add a scene"), 0, 1);
+    AnnotationEntry note =
+        entryOf(QStringLiteral("n"), AnnotationKind::Note, longText.trimmed(), 0, 2);
+    for (AnnotationEntry* entry : {&comment, &todo, &note}) {
+        entry->annotation.author = QStringLiteral("Jan Testowy");
+    }
+    panel.setEntries({comment, todo, note});
+    panel.resize(420, 1400);
+    panel.show();
+    QApplication::processEvents();
+
+    const AnnotationCard* first = panel.card(comment.key());
+    const AnnotationCard* second = panel.card(todo.key());
+    const AnnotationCard* third = panel.card(note.key());
+    REQUIRE(first != nullptr);
+    REQUIRE(second != nullptr);
+    REQUIRE(third != nullptr);
+    // One gap of the list between the cards, the same before the long one
+    const int gap = second->geometry().top() - first->geometry().bottom();
+    CHECK(third->geometry().top() - second->geometry().bottom() == gap);
+    // As high as its text needs at its width, the author above the text
+    CHECK(third->height() >= third->heightForWidth(third->width()));
+    const auto* author = third->findChild<QLabel*>(QStringLiteral("annotationAuthor"));
+    const auto* text = third->findChild<QLabel*>(QStringLiteral("annotationText"));
+    REQUIRE(author != nullptr);
+    REQUIRE(text != nullptr);
+    CHECK(author->geometry().bottom() < text->geometry().top());
+    CHECK(text->height() >= text->heightForWidth(text->width()));
+}
+
 TEST_CASE("Annotations panel: an annotation the filters hide is shown when it is gone to",
           "[gui][annotations]") {
     AnnotationsPanel panel(kalahari::test::commands());
@@ -1084,6 +1131,95 @@ TEST_CASE("Annotations: the text of an annotation edited in its frame changes in
     CHECK(desk.editor().textDocument()->toPlainText() == QStringLiteral("One two three"));
     desk.editor().undo();
     CHECK(desk.editor().textDocument()->toPlainText() == QStringLiteral("One two"));
+}
+
+TEST_CASE("Annotations: a click on the text of a card writes it there, in the card's look, "
+          "without a window of its own",
+          "[gui][annotations]") {
+    Desk desk(kmlWith(record(QStringLiteral("c1"), QStringLiteral("comment"),
+                             QStringLiteral("Old text")),
+                      {QStringLiteral("<anchor ref=\"c1\">One</anchor> two"),
+                       QStringLiteral("Three")}));
+    desk.tabs.resize(800, 600);
+    desk.tabs.show();  // the frame watches the program while it is shown
+    editor::BookEditor& text = desk.editor();
+    editor::EditorAppearance appearance = text.appearance();
+    appearance.annotationCards.show = true;
+    text.setAppearance(appearance);
+    QApplication::processEvents();
+    const QRectF card = text.annotationCardRect(QStringLiteral("c1"));
+    REQUIRE_FALSE(card.isEmpty());
+
+    // The start of the card's text: where the mouse is an I-beam first
+    const auto hoverAt = [&text](const QPointF& point) {
+        QMouseEvent move(QEvent::MouseMove, point, text.mapToGlobal(point), Qt::NoButton,
+                         Qt::NoButton, Qt::NoModifier);
+        QApplication::sendEvent(&text, &move);
+        return text.cursor().shape() == Qt::IBeamCursor;
+    };
+    qreal top = -1.0;
+    for (qreal y = card.top() + 1.0; y < card.bottom() && top < 0.0; y += 1.0) {
+        top = hoverAt(QPointF(card.center().x(), y)) ? y : -1.0;
+    }
+    REQUIRE(top > 0.0);
+    qreal left = -1.0;
+    for (qreal x = card.left() + 1.0; x < card.center().x() && left < 0.0; x += 1.0) {
+        left = hoverAt(QPointF(x, top + 4.0)) ? x : -1.0;
+    }
+    REQUIRE(left > 0.0);
+
+    // One click before its first letter: written there at once
+    click(&text, QPointF(left + 1.0, top + 4.0));
+    REQUIRE(desk.coordinator->isWriting());
+    AnnotationFrame* frame = desk.coordinator->frame();
+    CHECK(frame->isCardText());
+    QTextEdit* written = desk.frameText();
+    CHECK(frame->window()->focusWidget() == written);
+    CHECK(written->textCursor().position() == 0);
+    CHECK(written->toPlainText() == QStringLiteral("Old text"));
+
+    // The card's text itself: in its font, where it was, with nothing of a window around it
+    CHECK(written->font().family() == text.annotationCardTextFont().family());
+    CHECK(written->font().pointSizeF() ==
+          Catch::Approx(text.annotationCardTextFont().pointSizeF()).epsilon(0.01));
+    const QRect place = frame->geometry();
+    CHECK(place.top() > card.top() + 10.0);
+    CHECK(std::abs(place.left() - left) <= 3);
+    CHECK(place.right() < card.right());
+    CHECK(place.bottom() < text.annotationCardRect(QStringLiteral("c1")).bottom());
+    CHECK(written->frameWidth() == 0);
+    for (const char* part :
+         {"annotationFrameKind", "annotationFrameHint", "annotationFrameAuthor"}) {
+        INFO(part);
+        auto* label = frame->findChild<QLabel*>(QString::fromLatin1(part));
+        REQUIRE(label != nullptr);
+        CHECK_FALSE(label->isVisibleTo(frame));
+    }
+    auto* cancel = frame->findChild<QToolButton*>(QStringLiteral("annotationFrameClose"));
+    REQUIRE(cancel != nullptr);
+    CHECK_FALSE(cancel->isVisibleTo(frame));
+    for (const QPushButton* button : frame->findChildren<QPushButton*>()) {
+        CHECK_FALSE(button->isVisibleTo(frame));
+    }
+    CHECK(written->toolTip().contains(AnnotationFrame::saveKeysText()));
+
+    // A new line: the card grows by a line
+    const qreal cardHeight = text.annotationCardRect(QStringLiteral("c1")).height();
+    written->textCursor().insertText(QStringLiteral("New"));
+    press(written, Qt::Key_Return);
+    QApplication::processEvents();
+    QApplication::processEvents();
+    CHECK(text.annotationCardRect(QStringLiteral("c1")).height() ==
+          Catch::Approx(cardHeight + text.annotationCardLineHeight()).margin(2.0));
+    CHECK(frame->geometry().height() ==
+          Catch::Approx(2.0 * text.annotationCardLineHeight()).margin(2.0));
+
+    // Ctrl+Enter keeps it, in a step of its own
+    press(written, Qt::Key_Return, Qt::ControlModifier);
+    CHECK_FALSE(desk.coordinator->isWriting());
+    CHECK(desk.annotation(QStringLiteral("c1")).text == QStringLiteral("New\nOld text"));
+    text.undo();
+    CHECK(desk.annotation(QStringLiteral("c1")).text == QStringLiteral("Old text"));
 }
 
 TEST_CASE("Annotations: what was written is kept before the document is saved or closed",

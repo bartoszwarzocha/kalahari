@@ -11,6 +11,7 @@
 
 #include <QFont>
 #include <QHash>
+#include <QRawFont>
 #include <QList>
 #include <QListWidget>
 #include <QSize>
@@ -57,6 +58,8 @@ private:
     QFont m_cell;
     QFont m_glyph;
     QFont m_mark;
+    mutable QRawFont m_raw;               ///< The font itself, made at the first question
+    mutable bool m_rawMade = false;
     mutable QHash<char32_t, bool> m_has;  ///< The characters asked for, known
 };
 
@@ -90,6 +93,13 @@ public:
     void setCharacters(const QList<char32_t>& codes, const SpecialCharacters& characters,
                        const CharacterFonts& fonts,
                        const std::function<QString(char32_t)>& toolTipOf);
+
+    /// @brief Mark the favorite characters among those shown with a small star in the corner of
+    ///        their cells, the others without it
+    void setFavorites(const QList<char32_t>& favorites);
+
+    /// @brief Whether the cell of a character shown has the star of a favorite
+    [[nodiscard]] bool isMarkedFavorite(char32_t code) const;
 
     /// @brief The characters shown, in their order
     [[nodiscard]] QList<char32_t> characters() const;

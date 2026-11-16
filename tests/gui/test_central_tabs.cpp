@@ -8,6 +8,7 @@
 /// button in the corner that switches the rows and keeps the setting
 
 #include <catch2/catch_test_macros.hpp>
+#include "../editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/widgets/central_tabs.h"
@@ -15,6 +16,8 @@
 
 #include <QAbstractButton>
 #include <QApplication>
+#include <QKeyEvent>
+#include <QKeySequence>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPixmap>
@@ -118,6 +121,11 @@ struct Workspace {
     }
 };
 
+/// Where a widget is in the tabs (the buttons are in a widget of the corner)
+QRect placeIn(const QWidget& tabs, const QWidget& widget) {
+    return {widget.mapTo(&tabs, QPoint(0, 0)), widget.size()};
+}
+
 } // anonymous namespace
 
 TEST_CASE("Central tabs: one row of Qt's tabs by default", "[gui][centraltabs]") {
@@ -130,14 +138,16 @@ TEST_CASE("Central tabs: one row of Qt's tabs by default", "[gui][centraltabs]")
     // The button of the rows in the right corner, up, with an icon as big as the tabs' icons
     QToolButton* button = space.tabs.rowsButton();
     REQUIRE(button != nullptr);
-    CHECK(space.tabs.cornerWidget(Qt::TopRightCorner) == button);
+    const QWidget* corner = space.tabs.cornerWidget(Qt::TopRightCorner);
+    REQUIRE(corner != nullptr);
+    CHECK(corner->isAncestorOf(button));
     CHECK(button->isVisible());
     CHECK(button->isCheckable());
     CHECK_FALSE(button->isChecked());
     CHECK_FALSE(button->icon().isNull());
     CHECK_FALSE(button->toolTip().isEmpty());
     CHECK(button->iconSize() == space.tabs.tabBar()->iconSize());
-    CHECK(space.tabs.tabBar()->geometry().right() < button->geometry().left());
+    CHECK(space.tabs.tabBar()->geometry().right() < placeIn(space.tabs, *button).left());
 }
 
 TEST_CASE("Central tabs in rows: Qt's tabs wrapped to the width, the pages under them",
@@ -169,9 +179,10 @@ TEST_CASE("Central tabs in rows: Qt's tabs wrapped to the width, the pages under
     const QToolButton* button = space.tabs.rowsButton();
     CHECK(button->isChecked());
     CHECK(button->isVisible());
-    CHECK(bar->geometry().right() < button->geometry().left());
-    CHECK(button->geometry().top() >= bar->geometry().top());
-    CHECK(button->geometry().bottom() <= bar->geometry().bottom());
+    const QRect place = placeIn(space.tabs, *button);
+    CHECK(bar->geometry().right() < place.left());
+    CHECK(place.top() >= bar->geometry().top());
+    CHECK(place.bottom() <= bar->geometry().bottom());
 
     // Qt's close buttons and arrows do not show through
     CHECK(shownCloseButtons(*bar) == 0);
@@ -336,7 +347,74 @@ TEST_CASE("Central tabs: the button switches the rows at once and keeps the sett
     space.tabs.tabBar()->show();
     button->show();
     settle();
-    CHECK(space.tabs.tabBar()->geometry().right() < button->geometry().left());
+    CHECK(space.tabs.tabBar()->geometry().right() < placeIn(space.tabs, *button).left());
 
     settings.set<std::string>(CentralTabs::ROWS_KEY, saved);
+}
+
+TEST_CASE("Central tabs: the list of all the tabs, from its button and with Alt+Down on the "
+          "tabs",
+          "[gui][centraltabs]") {
+    registerAllIcons();
+    Workspace space;
+    QToolButton* list = space.tabs.listButton();
+    REQUIRE(list != nullptr);
+
+    // Before the button of the rows, with an icon as big as the tabs' icons, its keys in its
+    // tooltip
+    CHECK(list->isVisible());
+    CHECK_FALSE(list->icon().isNull());
+    CHECK(list->iconSize() == space.tabs.tabBar()->iconSize());
+    CHECK(list->toolTip().contains(QKeySequence(Qt::ALT | Qt::Key_Down)
+                                       .toString(QKeySequence::NativeText)));
+    CHECK(placeIn(space.tabs, *list).right() <
+          placeIn(space.tabs, *space.tabs.rowsButton()).left());
+
+    // Every tab, numbered, the one in front checked; the one chosen comes to the front
+    space.tabs.setCurrentIndex(2);
+    QStringList texts = kalahari::test::runPopupMenu([list]() { list->click(); },
+                                     QStringLiteral("&5 Quotes"));
+    CHECK(texts == QStringList{QStringLiteral("&1 Dashboard"),
+                               QStringLiteral("&2 Chapter One: The Caravan"),
+                               QStringLiteral("&3 Chapter Two: Sand"),
+                               QStringLiteral("&4 Chapter Three: The Well"),
+                               QStringLiteral("&5 Quotes"), QStringLiteral("&6 Images")});
+    CHECK(space.tabs.currentIndex() == 4);
+
+    // In more rows too, and with Alt+Down on the tabs
+    for (const PanelTabBar::Rows rows : {PanelTabBar::Rows::Single, PanelTabBar::Rows::Wrap}) {
+        space.tabs.setRows(rows);
+        settle();
+        QWidget* tabs = rows == PanelTabBar::Rows::Wrap
+                            ? static_cast<QWidget*>(space.tabs.tabRows())
+                            : static_cast<QWidget*>(space.tabs.tabBar());
+        REQUIRE(tabs != nullptr);
+        space.tabs.activateWindow();
+        tabs->setFocus(Qt::OtherFocusReason);
+        settle();
+        REQUIRE(QApplication::focusWidget() == tabs);
+        texts = kalahari::test::runPopupMenu(
+            [tabs]() {
+                QKeyEvent override(QEvent::ShortcutOverride, Qt::Key_Down, Qt::AltModifier);
+                override.ignore();  // as the shortcuts send it
+                QApplication::sendEvent(tabs, &override);
+                CHECK(override.isAccepted());  // not a shortcut of the window
+                QKeyEvent press(QEvent::KeyPress, Qt::Key_Down, Qt::AltModifier);
+                QApplication::sendEvent(tabs, &press);
+            },
+            QStringLiteral("&2 Chapter One: The Caravan"));
+        CHECK(texts.size() == 6);
+        CHECK(space.tabs.currentIndex() == 1);
+        space.tabs.setCurrentIndex(0);
+    }
+    space.tabs.setRows(PanelTabBar::Rows::Single);
+
+    // In a page, Alt+Down is not the tabs'
+    QWidget* page = space.tabs.currentWidget();
+    page->setFocusPolicy(Qt::StrongFocus);
+    page->setFocus(Qt::OtherFocusReason);
+    QKeyEvent override(QEvent::ShortcutOverride, Qt::Key_Down, Qt::AltModifier);
+    override.ignore();
+    QApplication::sendEvent(page, &override);
+    CHECK_FALSE(override.isAccepted());
 }

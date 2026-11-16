@@ -11,7 +11,13 @@
 
 #include <QAbstractButton>
 #include <QAction>
+#include <QApplication>
 #include <QEvent>
+#include <QHBoxLayout>
+#include <QKeyEvent>
+#include <QKeySequence>
+#include <QMenu>
+#include <QPointer>
 #include <QTabBar>
 #include <QToolButton>
 
@@ -19,6 +25,16 @@
 
 namespace kalahari {
 namespace gui {
+
+namespace {
+
+/// @brief Alt+Down: the list of all the tabs, as it opens a list of a field
+bool isListKey(const QKeyEvent* event) {
+    return event->key() == Qt::Key_Down &&
+           (event->modifiers() & ~Qt::KeypadModifier) == Qt::AltModifier;
+}
+
+}  // namespace
 
 /// @brief Qt's tab bar of CentralTabs, with the tabs in more rows over it
 ///
@@ -209,20 +225,43 @@ CentralTabs::CentralTabs(QWidget* parent)
       m_rowsAction(core::ArtProvider::getInstance().createAction(
           QStringLiteral("tabs.rows"), tr("Tabs in More Rows"), this,
           core::IconContext::TabBar)),
-      m_rowsButton(new QToolButton(this))
+      m_rowsButton(new QToolButton(this)),
+      m_listButton(new QToolButton(this))
 {
     setObjectName(QStringLiteral("centralTabs"));
     setTabBar(m_bar);
 
-    // The button after the tabs, with an icon as big as theirs
+    // The buttons after the tabs, with icons as big as theirs: the list of all the tabs, then
+    // the rows (user's test of 16.11: the list, as in Total Commander)
+    auto* corner = new QWidget(this);
+    corner->setObjectName(QStringLiteral("centralTabButtons"));
+    auto* buttons = new QHBoxLayout(corner);
+    buttons->setContentsMargins(0, 0, 0, 0);
+    buttons->setSpacing(0);
+    //: The button after the tabs that lists them all. In Polish: Wszystkie karty
+    QAction* listAction = core::ArtProvider::getInstance().createAction(
+        QStringLiteral("tabs.list"), tr("All Tabs"), this, core::IconContext::TabBar);
+    //: %1: the keys (Alt+Down). In Polish: Wszystkie karty – lista do wyboru (%1)
+    listAction->setToolTip(tr("All Tabs - a list to choose from (%1)")
+                               .arg(QKeySequence(Qt::ALT | Qt::Key_Down)
+                                        .toString(QKeySequence::NativeText)));
+    connect(listAction, &QAction::triggered, this, [this]() { showTabList(); });
+    m_listButton->setObjectName(QStringLiteral("centralTabListButton"));
+    m_listButton->setDefaultAction(listAction);
+    m_listButton->setAutoRaise(true);
+    m_listButton->setFocusPolicy(Qt::NoFocus);  // Alt+Down on the tabs
     m_rowsAction->setCheckable(true);
     m_rowsButton->setObjectName(QStringLiteral("centralTabRowsButton"));
     m_rowsButton->setDefaultAction(m_rowsAction);
     m_rowsButton->setAutoRaise(true);
-    m_rowsButton->setIconSize(tabBar()->iconSize());
-    setCornerWidget(m_rowsButton, Qt::TopRightCorner);
-    connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
-            m_rowsButton, [this]() { m_rowsButton->setIconSize(tabBar()->iconSize()); });
+    for (QToolButton* button : {m_listButton, m_rowsButton}) {
+        button->setParent(corner);
+        button->setIconSize(tabBar()->iconSize());
+        buttons->addWidget(button);
+        connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, button,
+                [this, button]() { button->setIconSize(tabBar()->iconSize()); });
+    }
+    setCornerWidget(corner, Qt::TopRightCorner);
 
     // Clicked (not set by the program): the rows at once, and the setting
     connect(m_rowsAction, &QAction::triggered, this, [this](bool wrap) {
@@ -247,6 +286,82 @@ PanelTabBar* CentralTabs::tabRows() const {
 
 QToolButton* CentralTabs::rowsButton() const {
     return m_rowsButton;
+}
+
+QToolButton* CentralTabs::listButton() const {
+    return m_listButton;
+}
+
+void CentralTabs::showTabList() {
+    // Under the button, its right edge at the button's; without the button (the window's
+    // bars hidden), at the right end of the tabs
+    const QWidget* under = m_listButton->isVisible() ? static_cast<QWidget*>(m_listButton)
+                                                     : static_cast<QWidget*>(tabBar());
+    showTabList(*this, under->mapToGlobal(under->rect().bottomRight()));
+}
+
+void CentralTabs::showTabList(QTabWidget& tabs, const QPoint& globalPos) {
+    if (tabs.count() == 0) {
+        return;
+    }
+    QMenu menu(&tabs);
+    menu.setObjectName(QStringLiteral("tabList"));
+    menu.setToolTipsVisible(true);
+    QAction* current = nullptr;
+    for (int i = 0; i < tabs.count(); ++i) {
+        // The first nine with their numbers as access keys, as the windows of the Window menu
+        QString title = tabs.tabText(i);
+        title.replace(QLatin1Char('&'), QStringLiteral("&&"));
+        const QString text = i < 9 ? QStringLiteral("&%1 %2").arg(i + 1).arg(title)
+                                   : QStringLiteral("%1 %2").arg(i + 1).arg(title);
+        QAction* action = menu.addAction(tabs.tabIcon(i), text);
+        action->setCheckable(true);
+        action->setChecked(i == tabs.currentIndex());
+        action->setToolTip(tabs.tabToolTip(i));
+        action->setData(i);
+        if (i == tabs.currentIndex()) {
+            current = action;
+        }
+    }
+    menu.setActiveAction(current);
+
+    // Its right edge at the point, within the screen
+    const QSize size = menu.sizeHint();
+    const QPoint at(globalPos.x() - size.width() + 1, globalPos.y() + 1);
+    QPointer<QWidget> page;
+    connect(&menu, &QMenu::triggered, &menu, [&page, &tabs](const QAction* chosen) {
+        page = tabs.widget(chosen->data().toInt());
+    });
+    menu.exec(at);
+    if (page != nullptr && tabs.indexOf(page) >= 0) {
+        tabs.setCurrentWidget(page);
+        page->setFocus(Qt::OtherFocusReason);
+    }
+}
+
+bool CentralTabs::tabsHaveKeys() const {
+    const QWidget* keys = QApplication::focusWidget();
+    return keys != nullptr && (keys == tabBar() || tabBar()->isAncestorOf(keys));
+}
+
+bool CentralTabs::event(QEvent* event) {
+    // Alt+Down on the tabs is theirs, not a shortcut of the window (in a page it is the
+    // page's or the window's: the next to-do)
+    if (event->type() == QEvent::ShortcutOverride && tabsHaveKeys() &&
+        isListKey(static_cast<QKeyEvent*>(event))) {
+        event->accept();
+        return true;
+    }
+    return QTabWidget::event(event);
+}
+
+void CentralTabs::keyPressEvent(QKeyEvent* event) {
+    if (tabsHaveKeys() && isListKey(event)) {
+        showTabList();
+        event->accept();
+        return;
+    }
+    QTabWidget::keyPressEvent(event);
 }
 
 void CentralTabs::applySettings() {

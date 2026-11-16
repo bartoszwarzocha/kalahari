@@ -373,7 +373,7 @@ TEST_CASE("Views toolbar: one customized before gets the repetitions after the f
         CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
               "view.mode.continuous | view.mode.page | view.marginNumbers.paragraphs | "
               "view.zoomIn | view.showFormattingMarks | view.repetitionMarks");
-        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 8);
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) >= 8);
 
         // Taken away by the writer after that, it stays away
         QStringList without = manager.getToolbarCommands(views);
@@ -384,6 +384,49 @@ TEST_CASE("Views toolbar: one customized before gets the repetitions after the f
     CHECK(next.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
           "view.mode.continuous | view.mode.page | view.marginNumbers.paragraphs | "
           "view.zoomIn | view.showFormattingMarks");
+
+    settings.set<std::string>("toolbars.configurations", savedToolbars);
+    settings.set<int>("toolbars.addedCommands", savedVersion);
+}
+
+TEST_CASE("Insert toolbar: Special Character comes to a toolbar customized before it, once",
+          "[gui][toolbar]") {
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string savedToolbars = settings.get<std::string>("toolbars.configurations", "");
+    const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
+    const QString insert = QStringLiteral("insert");
+
+    // A new toolbar has it after Link
+    {
+        settings.set<std::string>("toolbars.configurations", "");
+        QMainWindow window;
+        ToolbarManager manager(kalahari::test::commands(), &window);
+        CHECK(manager.getToolbarCommands(insert).join(QStringLiteral(" | ")).toStdString() ==
+              "insert.image | insert.table | insert.link | insert.specialChar | _SEPARATOR_ | "
+              "insert.footnote");
+    }
+
+    // Customized before it came: Table taken away
+    settings.set<std::string>(
+        "toolbars.configurations",
+        R"({"builtIn":{"insert":["insert.image","insert.link","insert.footnote"]}})");
+    settings.set<int>("toolbars.addedCommands", 8);
+    QMainWindow window;
+    {
+        ToolbarManager manager(kalahari::test::commands(), &window);
+        CHECK(manager.getToolbarCommands(insert).join(QStringLiteral(" | ")).toStdString() ==
+              "insert.image | insert.link | insert.specialChar | insert.footnote");
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 9);
+
+        // Taken away by the writer after that, it stays away
+        QStringList without = manager.getToolbarCommands(insert);
+        without.removeAll(QStringLiteral("insert.specialChar"));
+        manager.setToolbarCommands(insert, without);
+    }
+    ToolbarManager next(kalahari::test::commands(), &window);
+    CHECK(next.getToolbarCommands(insert).join(QStringLiteral(" | ")).toStdString() ==
+          "insert.image | insert.link | insert.footnote");
 
     settings.set<std::string>("toolbars.configurations", savedToolbars);
     settings.set<int>("toolbars.addedCommands", savedVersion);

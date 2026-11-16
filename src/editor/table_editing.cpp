@@ -43,13 +43,29 @@ bool startsAt(const QTextTableCell& cell, int row, int column) {
     return cell.isValid() && cell.row() == row && cell.column() == column;
 }
 
-/// Give a new cell an empty paragraph of the format, without the formatting of the cell it
-/// was copied from, and the properties
+/// Whether a paragraph is in one of the styles of tables
+bool isInTableStyle(const QTextBlockFormat& format) {
+    const QString style = paragraphStyleOf(format);
+    return style == QLatin1String(TABLE_ROW_STYLE_ID) ||
+           style == QLatin1String(TABLE_HEADER_STYLE_ID);
+}
+
+/// The paragraph of a table in Normal in the style of the new cells of its row, as the
+/// editor gives them (cellParagraphFormat()); the paragraph's own formatting stays
+void giveCellStyle(CopiedParagraph& paragraph, const QTextBlockFormat& cellFormat) {
+    if (paragraphStyleOf(paragraph.blockFormat) == QLatin1String(NORMAL_STYLE_ID)) {
+        setParagraphStyle(paragraph.blockFormat, paragraphStyleOf(cellFormat));
+    }
+}
+
+/// Give a new cell an empty paragraph of the format (in a header row of its style:
+/// cellParagraphFormat()), without the formatting of the cell it was copied from, and the
+/// properties
 void prepareNewCell(QTextCursor& cursor, const QTextTableCell& cell,
-                    const QTextBlockFormat& paragraphFormat,
+                    const QTextBlockFormat& paragraphFormat, bool headerRow,
                     const TableCellProperties& properties) {
     cursor.setPosition(cell.firstPosition());
-    cursor.setBlockFormat(paragraphFormat);
+    cursor.setBlockFormat(cellParagraphFormat(paragraphFormat, headerRow));
     setParagraphCharFormat(cursor, QTextCharFormat());
     setCellProperties(cursor, cell, properties);
 }
@@ -375,6 +391,42 @@ void setHeaderRows(QTextTable& table, int rows)
     table.setFormat(format);
 }
 
+QTextBlockFormat cellParagraphFormat(const QTextBlockFormat& paragraphFormat, bool headerRow)
+{
+    QTextBlockFormat format = paragraphFormat;
+    if (headerRow && paragraphStyleOf(format) == QLatin1String(TABLE_ROW_STYLE_ID)) {
+        setParagraphStyle(format, QString::fromLatin1(TABLE_HEADER_STYLE_ID));
+    }
+    return format;
+}
+
+void restyleHeaderRows(QTextCursor& cursor, const QTextTable& table, int headerRowsBefore)
+{
+    const int headerRows = table.format().headerRowCount();
+    const int first = std::clamp(std::min(headerRowsBefore, headerRows), 0, table.rows());
+    const int last = std::clamp(std::max(headerRowsBefore, headerRows), 0, table.rows());
+    for (int row = first; row < last; ++row) {
+        const bool header = row < headerRows;
+        const QString from =
+            QString::fromLatin1(header ? TABLE_ROW_STYLE_ID : TABLE_HEADER_STYLE_ID);
+        const QString to = QString::fromLatin1(header ? TABLE_HEADER_STYLE_ID : TABLE_ROW_STYLE_ID);
+        for (const QTextTableCell& cell : startingCells(table, row)) {
+            const QTextDocument& document = *cursor.document();
+            for (QTextBlock block = document.findBlock(cell.firstPosition());
+                 block.isValid() && block.position() <= cell.lastPosition();
+                 block = block.next()) {
+                if (paragraphStyleOf(block.blockFormat()) != from) {
+                    continue;
+                }
+                QTextBlockFormat format = block.blockFormat();
+                setParagraphStyle(format, to);
+                cursor.setPosition(block.position());
+                cursor.setBlockFormat(format);
+            }
+        }
+    }
+}
+
 // =============================================================================
 // Rows and columns
 // =============================================================================
@@ -404,7 +456,7 @@ void insertTableRows(QTextCursor& cursor, QTextTable& table, int row, int count,
         for (int column = 0; column < table.columns(); ++column) {
             const QTextTableCell cell = table.cellAt(added, column);
             if (startsAt(cell, added, column)) {
-                prepareNewCell(cursor, cell, paragraphFormat,
+                prepareNewCell(cursor, cell, paragraphFormat, row < headerRows,
                                cellProperties[static_cast<size_t>(column)]);
             }
         }
@@ -443,6 +495,7 @@ void insertTableColumns(QTextCursor& cursor, QTextTable& table, int column, int 
     }
     const int at = right ? column + 1 : column;
     const double width = widths[static_cast<size_t>(column)];
+    const int headerRows = table.format().headerRowCount();
     table.insertColumns(at, count);
 
     for (int row = 0; row < table.rows(); ++row) {
@@ -450,7 +503,8 @@ void insertTableColumns(QTextCursor& cursor, QTextTable& table, int column, int 
         for (int part = at; part < at + count; ++part) {
             const QTextTableCell cell = table.cellAt(row, part);
             if (startsAt(cell, row, part)) {
-                prepareNewCell(cursor, cell, paragraphFormat, cellProperties[static_cast<size_t>(row)]);
+                prepareNewCell(cursor, cell, paragraphFormat, row < headerRows,
+                               cellProperties[static_cast<size_t>(row)]);
                 added = true;
             }
         }
@@ -710,7 +764,8 @@ void splitTableCell(QTextCursor& cursor, QTextTable& table, int row, int column,
     }
     for (size_t i = 1; i < cells.size(); ++i) {
         if (isCellEmpty(cells[i])) {
-            prepareNewCell(cursor, cells[i], paragraphFormat, properties);
+            prepareNewCell(cursor, cells[i], paragraphFormat,
+                           cells[i].row() < table.format().headerRowCount(), properties);
         }
     }
 
@@ -947,7 +1002,7 @@ QTextTable* textToTable(QTextCursor& cursor, int first, int last, QChar separato
     cursor.setPosition(firstBlock.position());
     cursor.setPosition(lastBlock.position() + lastBlock.length() - 1, QTextCursor::KeepAnchor);
     cursor.removeSelectedText();
-    cursor.setBlockFormat(paragraphFormat);
+    cursor.setBlockFormat(paragraphBlockFormat());  // the paragraph after the table: Normal
     setParagraphCharFormat(cursor, QTextCharFormat());
 
     TableShape shape;
@@ -958,12 +1013,16 @@ QTextTable* textToTable(QTextCursor& cursor, int first, int last, QChar separato
     for (int row = 0; row < shape.rows; ++row) {
         for (int column = 0; column < shape.columns; ++column) {
             const QTextTableCell cell = table->cellAt(row, column);
+            const QTextBlockFormat cellFormat =
+                cellParagraphFormat(paragraphFormat, row < shape.headerRows);
             cursor.setPosition(cell.firstPosition());
-            cursor.setBlockFormat(paragraphFormat);
+            cursor.setBlockFormat(cellFormat);
             cursor.setBlockCharFormat(QTextCharFormat());
             const std::vector<CopiedParagraph>& cells = rows[static_cast<size_t>(row)];
             if (static_cast<size_t>(column) < cells.size()) {
-                setCellParagraphs(cursor, cell, {cells[static_cast<size_t>(column)]});
+                CopiedParagraph paragraph = cells[static_cast<size_t>(column)];
+                giveCellStyle(paragraph, cellFormat);
+                setCellParagraphs(cursor, cell, {paragraph});
             }
         }
     }
@@ -1015,6 +1074,12 @@ int tableToText(QTextCursor& cursor, QTextTable& table, QChar separator)
             }
         }
         paragraphs.push_back(std::move(line));
+    }
+    // Out of the table, the paragraphs of its styles in Normal
+    for (CopiedParagraph& paragraph : paragraphs) {
+        if (isInTableStyle(paragraph.blockFormat)) {
+            setParagraphStyle(paragraph.blockFormat, QString::fromLatin1(NORMAL_STYLE_ID));
+        }
     }
 
     const QTextBlock before = document.findBlock(table.firstPosition() - 1);

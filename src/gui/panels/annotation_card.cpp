@@ -39,7 +39,12 @@ AnnotationCard::AnnotationCard(QWidget* parent)
     : QFrame(parent)
 {
     setAttribute(Qt::WA_Hover);
-    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    // As high as its text at the width it has (a long note wraps in many lines): a fixed
+    // height would be the height of the text at the width a label likes, and the list would
+    // put the card in the middle of the room the text needs, over its own lines
+    QSizePolicy policy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    policy.setHeightForWidth(true);
+    setSizePolicy(policy);
 
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(BAR_WIDTH + 8, 6, 8, 7);

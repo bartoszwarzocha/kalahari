@@ -21,6 +21,7 @@
 #include "kalahari/gui/read_only_book.h"
 
 #include <QApplication>
+#include <QKeySequence>
 #include <QLocale>
 #include <QStatusBar>
 #include <QTabWidget>
@@ -704,11 +705,17 @@ bool BookSearchCoordinator::confirm(int matches, int texts) const {
         //: / %n trafienia „%1” zostaną usunięte. / %n trafień „%1” zostanie usuniętych.
         question = tr("%n matches of \"%1\" will be deleted.", nullptr, matches).arg(found);
     }
-    //: In Polish: Teksty z trafieniami: %1. W każdym otwartym tekście zmianę można cofnąć
-    //: jednym krokiem (Ctrl+Z).
-    question += QLatin1Char(' ') + tr("Texts with matches: %1. Each open text can undo the "
-                                      "change in one step (Ctrl+Z).")
-                                       .arg(texts);
+    // The keys of Undo, as the program has them now
+    QString undoKeys = QKeySequence(QKeySequence::Undo).toString(QKeySequence::NativeText);
+    if (const Command* undoCommand = m_commands.getCommand("edit.undo");
+        undoCommand != nullptr && !undoCommand->shortcut.isEmpty()) {
+        undoKeys = undoCommand->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
+    }
+    //: %2: the keys of Undo. In Polish: Teksty z trafieniami: %1. %2 cofa zmianę we
+    //: wszystkich naraz.
+    question += QLatin1Char(' ') + tr("Texts with matches: %1. %2 undoes the change in all of "
+                                      "them at once.")
+                                       .arg(QString::number(texts), undoKeys);
     //: In Polish: Zamień wszystko w książce / &Zamień
     return dialogs::MessageDialog::confirm(m_window, tr("Replace All in Book"), question,
                                            tr("&Replace"), dialogs::MessageDialog::Kind::Question);
@@ -789,13 +796,16 @@ int BookSearchCoordinator::replaceAllInBook() {
         changed += count;
     }
     m_undo = step;
-    // Changed again or closed, a text cannot go back to the text before
-    for (editor::BookEditor* editor : std::as_const(step.editors)) {
-        m_undoWatch.append(connect(editor, &editor::BookEditor::contentChanged, this,
-                                   &BookSearchCoordinator::forgetUndo));
-        m_undoWatch.append(
-            connect(editor, &QObject::destroyed, this, &BookSearchCoordinator::forgetUndo));
+    // The writer's Undo in a text it changed, or in an open text not changed since, undoes it
+    // in all of them (user's test of 16.11)
+    const QList<editor::BookEditor*> openTexts = openNow.values();
+    for (const editor::BookEditor* editor : openTexts) {
+        if (!editor->isReadOnly() && !step.editors.contains(editor)) {
+            m_untouched.append(editor);
+        }
     }
+    shareHistory(openTexts);
+    watchStep(step);
 
     //: In Polish: Zamieniono %n trafienie w książce. / Zamieniono %n trafienia w książce. /
     //: Zamieniono %n trafień w książce.
@@ -816,20 +826,37 @@ int BookSearchCoordinator::replaceAllInBook() {
     return changed;
 }
 
+BookSearchCoordinator::~BookSearchCoordinator() {
+    forgetUndo();
+    for (const QPointer<editor::BookEditor>& editor : std::as_const(m_sharing)) {
+        if (editor != nullptr && editor->sharedHistory() == this) {
+            editor->setSharedHistory(nullptr);
+        }
+    }
+}
+
 bool BookSearchCoordinator::canUndo() const {
-    if (!m_undo || m_book.isReadOnly()) {
+    return canTake(m_undo);
+}
+
+bool BookSearchCoordinator::canRedo() const {
+    return canTake(m_redo);
+}
+
+bool BookSearchCoordinator::canTake(const std::optional<Step>& step) const {
+    if (!step || m_book.isReadOnly()) {
         return false;
     }
     // Every open text it changed is still open, and no text it changed in its file is open now
     const QHash<QString, editor::BookEditor*> open = openEditors();
     const QList<editor::BookEditor*> openNow = open.values();
-    const auto& editors = m_undo->editors;
+    const auto& editors = step->editors;
     if (std::any_of(editors.cbegin(), editors.cend(), [&openNow](editor::BookEditor* editor) {
             return !openNow.contains(editor);
         })) {
         return false;
     }
-    const auto& saved = m_undo->savedTexts;
+    const auto& saved = step->savedTexts;
     return std::none_of(saved.cbegin(), saved.cend(),
                         [&open](const SavedText& text) { return open.contains(text.elementId); });
 }
@@ -841,18 +868,7 @@ bool BookSearchCoordinator::undo() {
         say(tr("This can no longer be undone: the texts changed since."));
         return false;
     }
-    const Step step = *m_undo;
-    forgetUndo();
-    for (editor::BookEditor* editor : step.editors) {
-        editor->undo();
-    }
-    auto& projects = m_book;
-    for (const SavedText& text : step.savedTexts) {
-        projects.setChapterContent(text.elementId, text.kml);
-        if (text.saved) {
-            projects.saveChapterContent(text.elementId);
-        }
-    }
+    take(*m_undo, false);
     //: In Polish: Teksty są takie jak przed zamianą.
     say(tr("The texts are as they were before the replacement."));
     if (m_query) {
@@ -861,12 +877,123 @@ bool BookSearchCoordinator::undo() {
     return true;
 }
 
+bool BookSearchCoordinator::redo() {
+    if (!m_redo || !canRedo()) {
+        forgetUndo();
+        //: In Polish: Tego nie da się już ponowić: teksty zmieniły się od tamtej pory.
+        say(tr("This can no longer be redone: the texts changed since."));
+        return false;
+    }
+    take(*m_redo, true);
+    //: In Polish: Zamiana w książce jest znów zrobiona.
+    say(tr("The replacement in the book is done again."));
+    if (m_query) {
+        search();
+    }
+    return true;
+}
+
+void BookSearchCoordinator::take(const Step& step, bool forward) {
+    const Step taken = step;
+    const QList<const editor::BookEditor*> untouched = m_untouched;
+    forgetUndo();
+
+    // The open texts undo or redo their own step; the others get their text back, and the
+    // text they have now is kept for the step back
+    Step back;
+    back.editors = taken.editors;
+    auto& projects = m_book;
+    m_taking = true;
+    for (editor::BookEditor* editor : taken.editors) {
+        if (forward) {
+            editor->redo();
+        } else {
+            editor->undo();
+        }
+    }
+    for (const SavedText& text : taken.savedTexts) {
+        back.savedTexts.append({text.elementId, projects.chapterText(text.elementId), text.saved});
+        projects.setChapterContent(text.elementId, text.kml);
+        if (text.saved) {
+            projects.saveChapterContent(text.elementId);
+        }
+    }
+    m_taking = false;
+
+    if (forward) {
+        m_undo = back;
+    } else {
+        m_redo = back;
+    }
+    m_untouched = untouched;
+    watchStep(back);
+}
+
+bool BookSearchCoordinator::takes(const std::optional<Step>& step,
+                                  const editor::BookEditor& text) const {
+    if (m_taking || !step) {
+        return false;
+    }
+    const auto& editors = step->editors;
+    const bool changed =
+        std::any_of(editors.cbegin(), editors.cend(),
+                    [&text](const editor::BookEditor* editor) { return editor == &text; });
+    return (changed || m_untouched.contains(&text)) && canTake(step);
+}
+
+bool BookSearchCoordinator::undoesFor(const editor::BookEditor& text) const {
+    return takes(m_undo, text);
+}
+
+bool BookSearchCoordinator::redoesFor(const editor::BookEditor& text) const {
+    return takes(m_redo, text);
+}
+
+void BookSearchCoordinator::undoFor(editor::BookEditor& text) {
+    Q_UNUSED(text)
+    undo();
+}
+
+void BookSearchCoordinator::redoFor(editor::BookEditor& text) {
+    Q_UNUSED(text)
+    redo();
+}
+
+void BookSearchCoordinator::watchStep(const Step& step) {
+    // Changed again or closed, a text cannot go back to the text before
+    for (editor::BookEditor* editor : step.editors) {
+        m_undoWatch.append(connect(editor, &editor::BookEditor::contentChanged, this,
+                                   &BookSearchCoordinator::forgetUndo));
+        m_undoWatch.append(
+            connect(editor, &QObject::destroyed, this, &BookSearchCoordinator::forgetUndo));
+    }
+
+    // An open text it did not change, changed since: its Undo is its own again
+    for (const editor::BookEditor* editor : std::as_const(m_untouched)) {
+        const auto leave = [this, editor]() { m_untouched.removeAll(editor); };
+        m_undoWatch.append(connect(editor, &editor::BookEditor::contentChanged, this, leave));
+        m_undoWatch.append(connect(editor, &QObject::destroyed, this, leave));
+    }
+}
+
+void BookSearchCoordinator::shareHistory(const QList<editor::BookEditor*>& editors) {
+    m_sharing.removeAll(nullptr);
+    for (editor::BookEditor* editor : editors) {
+        editor->setSharedHistory(this);
+        if (!m_sharing.contains(editor)) {
+            m_sharing.append(editor);
+        }
+    }
+}
+
 void BookSearchCoordinator::forgetUndo() {
     for (const QMetaObject::Connection& connection : std::as_const(m_undoWatch)) {
         disconnect(connection);
     }
     m_undoWatch.clear();
     m_undo.reset();
+    m_redo.reset();
+    m_untouched.clear();
 }
 
 // =============================================================================

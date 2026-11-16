@@ -323,6 +323,58 @@ TEST_CASE("Captions: a new image gets a numbered caption in a paragraph of its o
     CHECK(editor->toKml() == QStringLiteral("<kml><p>One two</p><p>Three</p></kml>"));
 }
 
+TEST_CASE("Captions: a new image with the caption the writer chose, or without one",
+          "[editor][captions][editing]") {
+    BookFolder book;
+    QTemporaryDir outside;
+    QImage picture(QSize(8, 8), QImage::Format_RGB32);
+    picture.fill(Qt::blue);
+    const QString file = outside.path() + QStringLiteral("/map.png");
+    REQUIRE(picture.save(file));
+
+    auto editor = editorWith(QStringLiteral("<kml><p>One two</p><p>Three</p></kml>"), book.path());
+    BookEditor::NewImageOptions options;
+    options.captionLabel = QStringLiteral("Figure");  // not taken: the writer chose
+    editor->setNewImageOptions(options);
+    editor->setCursorPosition({0, 3});
+
+    SECTION("a numbered one of another label, with its text") {
+        const ImageCaption caption{true, true, QStringLiteral("Map"), QStringLiteral(" Oasis "),
+                                   false};
+        REQUIRE(editor->insertImageFile(file, caption));
+        CHECK(withoutIds(editor->toKml()) ==
+              QStringLiteral("<kml><p>One two</p><p align=\"center\"><img src=\"images/map.png\"/>"
+                             "</p><p style=\"caption\" align=\"center\">Map <caption-number "
+                             "label=\"Map\" id=\"*\"/>. Oasis</p><p>Three</p></kml>"));
+        CHECK(editor->selectedImage() == 8);
+    }
+
+    SECTION("above the image: the image selected after it") {
+        REQUIRE(editor->insertImageFile(
+            file, ImageCaption{true, false, QString(), QStringLiteral("Oasis"), true}));
+        const QTextDocument& document = *editor->textDocument();
+        CHECK(isCaptionBlock(document.findBlockByNumber(1)));
+        CHECK(document.findBlockByNumber(1).text() == QStringLiteral("Oasis"));
+        CHECK(hasImages(document.findBlockByNumber(2)));
+        CHECK(editor->selectedImage() == document.findBlockByNumber(2).position());
+        editor->undo();
+        CHECK(editor->toKml() == QStringLiteral("<kml><p>One two</p><p>Three</p></kml>"));
+    }
+
+    SECTION("without a caption") {
+        REQUIRE(editor->insertImageFile(file, ImageCaption{}));
+        CHECK(editor->toKml() ==
+              QStringLiteral("<kml><p>One two</p><p align=\"center\"><img src=\"images/map.png\"/>"
+                             "</p><p>Three</p></kml>"));
+    }
+
+    SECTION("its text alone, but empty: none") {
+        const ImageCaption caption{true, false, QString(), QString(), false};
+        REQUIRE(editor->insertImageFile(file, caption));
+        CHECK(editor->textDocument()->blockCount() == 3);
+    }
+}
+
 TEST_CASE("Captions: an image deleted with its caption, after asking for its cross-references",
           "[editor][captions][editing]") {
     BookFolder book;
