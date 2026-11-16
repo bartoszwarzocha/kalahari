@@ -75,6 +75,7 @@ public:
     static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
     static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
     static constexpr const char* NAVIGATOR_PAGE = "navigator";       ///< Navigator
+    static constexpr const char* CARDS_PAGE = "cards";               ///< Cards
     static constexpr const char* MATERIALS_PAGE = "materials";       ///< Materials
     static constexpr const char* STATS_BAR_PAGE = "stats.bar";       ///< Statistics > Bar and Panel
     static constexpr const char* STATS_COUNTING_PAGE = "stats.counting";  ///< Statistics > Counting
@@ -118,10 +119,14 @@ public:
     /// Grammar panel), VERSIONS_PAGE (the gear of the versions), REPETITIONS_PAGE (the gear of
     /// the Repetitions panel), ANNOTATIONS_PAGE (the gear of the Annotations panel),
     /// NAVIGATOR_PAGE (the gear of a list of materials), MATERIALS_PAGE (the gear of the entry
-    /// of a source) or SHORTCUTS_PAGE (as
-    /// showShortcutsPage())
+    /// of a source), CARDS_PAGE (the gear of a card of a character, a location or an item) or
+    /// SHORTCUTS_PAGE (as showShortcutsPage())
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);
+
+    /// @brief Whether the dialog was closed with Open Book Dictionary (Editor > Spelling): the
+    ///        window shows the book's dictionary
+    [[nodiscard]] bool isBookDictionaryAsked() const { return m_bookDictionaryAsked; }
 
 public slots:
     /// @brief OK: write the changed settings, then close; a value that cannot be written
@@ -187,6 +192,7 @@ private:
     std::vector<QTreeWidgetItem*> m_plannedItems;  ///< Pages of options not available yet
     CommandRegistry& m_commands;  ///< The commands of its window
     const core::ProjectManager& m_book;  ///< The book of its window
+    bool m_bookDictionaryAsked = false;  ///< Closed with Open Book Dictionary
 };
 
 } // namespace gui

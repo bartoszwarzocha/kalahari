@@ -84,6 +84,7 @@ class ImageFilterCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
+class BookDictionaryCoordinator;
 class RepetitionsCoordinator;
 class DocumentWindows;
 class WritingStatsCoordinator;
@@ -252,6 +253,11 @@ private:
     /// Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void createDocks();
 
+    /// @brief The cards of characters, locations and items: Open Card of the short card opens
+    /// the full card on a tab, the gears of both open Settings > Cards, a portrait from a file
+    /// shows in the Navigator as a new material
+    void connectCards();
+
     /// @brief Reset the layout to default: the toolbars (ToolbarManager) and the panels
     /// @note Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void resetLayout();
@@ -259,6 +265,12 @@ private:
     /// @brief Book > Book Properties...: the Properties panel in front with the book's
     /// properties, its first field ready for typing
     void showBookProperties();
+
+    /// @brief The book's dictionary: its page on a tab (Book > Book Dictionary..., Book
+    /// Dictionary in the Navigator) and its windows (Add Name... and Edit Rule... of the text
+    /// and of the Spelling and Grammar panel)
+    /// @note Call after the spelling and its panel are made
+    void createBookDictionary();
 
     /// @brief Make the Book menu and the commands of the open book follow it
     ///
@@ -527,6 +539,9 @@ private:
 
     /// @brief The Spelling and Grammar panel and when it shows
     SpellingPanelCoordinator* m_spellingPanelCoordinator{nullptr};
+
+    /// @brief The book's dictionary on its tab and its windows
+    BookDictionaryCoordinator* m_bookDictionaryCoordinator{nullptr};
 
     /// @brief The Repetitions panel, the marks of the repeated words and Next Repetition
     RepetitionsCoordinator* m_repetitionsCoordinator{nullptr};

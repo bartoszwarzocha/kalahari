@@ -12,14 +12,12 @@
 #include <QFileInfo>
 #include <QMimeDatabase>
 #include <QMimeType>
-#include <QPainter>
-#include <QPointF>
 
 #ifdef KALAHARI_HAS_PDF
 #include "kalahari/gui/panels/pdf_preview_panel.h"
+#include "kalahari/gui/pdf_document.h"
 
-#include <QDateTime>
-#include <QPdfDocument>
+#include <QRegularExpression>
 #endif
 
 #include <initializer_list>
@@ -27,6 +25,21 @@
 #include <string>
 
 namespace kalahari::gui {
+
+#ifdef KALAHARI_HAS_PDF
+namespace {
+
+/// The year of a date of a PDF file ("D:20190301120000Z"); empty: none
+QString yearOf(const QString& date) {
+    static const QRegularExpression year(QStringLiteral("^\\s*(?:D:)?(\\d{4})"));
+    const QRegularExpressionMatch match = year.match(date);
+    return match.hasMatch() && match.capturedView(1) != QLatin1String("0000")
+               ? match.captured(1)
+               : QString();
+}
+
+}  // namespace
+#endif
 
 bool PdfFiles::previewAvailable() {
 #ifdef KALAHARI_HAS_PDF
@@ -52,10 +65,6 @@ bool PdfFiles::opensInPreview() {
     return previewAvailable() && choice(OPEN_SETTING, PREVIEW, {PREVIEW, SYSTEM}) == PREVIEW;
 }
 
-bool PdfFiles::highlightsOn() {
-    return core::SettingsManager::getInstance().get<bool>(HIGHLIGHTS_SETTING, false);
-}
-
 QString PdfFiles::choice(const char* key, const char* fallback,
                          std::initializer_list<const char*> values) {
     const auto value =
@@ -68,24 +77,15 @@ QString PdfFiles::choice(const char* key, const char* fallback,
     return QString::fromLatin1(fallback);
 }
 
-QImage PdfFiles::onPaper(const QImage& page) {
-    if (page.isNull() || !page.hasAlphaChannel()) {
-        return page;
-    }
-    QImage paper(page.size(), QImage::Format_ARGB32_Premultiplied);
-    paper.setDevicePixelRatio(page.devicePixelRatio());
-    // The paper of a PDF is white, as the PDF format says, whatever the theme
-    paper.fill(Qt::white);
-    QPainter painter(&paper);
-    painter.drawImage(QPointF(0, 0), page);
-    return paper;
+bool PdfFiles::highlightsOn() {
+    return core::SettingsManager::getInstance().get<bool>(HIGHLIGHTS_SETTING, false);
 }
 
 QImage PdfFiles::firstPage(const QString& path, const QSize& bounds, QString* error) {
 #ifdef KALAHARI_HAS_PDF
-    QPdfDocument document(nullptr);
-    if (const QPdfDocument::Error loaded = document.load(path);
-        loaded != QPdfDocument::Error::None || document.pageCount() < 1) {
+    PdfDocument document;
+    if (const PdfDocument::Error loaded = document.load(path);
+        loaded != PdfDocument::Error::None || document.pageCount() < 1) {
         if (error != nullptr) {
             *error = loadProblem(static_cast<int>(loaded));
         }
@@ -99,11 +99,11 @@ QImage PdfFiles::firstPage(const QString& path, const QSize& bounds, QString* er
     const QSize size = bounds.isValid() ? points.scaled(QSizeF(bounds), Qt::KeepAspectRatio)
                                               .toSize()
                                         : points.toSize();
-    const QImage page = document.render(0, size.expandedTo(QSize(1, 1)));
+    QImage page = document.render(0, size.expandedTo(QSize(1, 1)));
     if (page.isNull() && error != nullptr) {
-        *error = loadProblem(static_cast<int>(QPdfDocument::Error::Unknown));
+        *error = loadProblem(static_cast<int>(PdfDocument::Error::Unknown));
     }
-    return onPaper(page);
+    return page;
 #else
     Q_UNUSED(path)
     Q_UNUSED(bounds)
@@ -114,9 +114,9 @@ QImage PdfFiles::firstPage(const QString& path, const QSize& bounds, QString* er
 
 int PdfFiles::pageCount(const QString& path, QString* error) {
 #ifdef KALAHARI_HAS_PDF
-    QPdfDocument document(nullptr);
-    if (const QPdfDocument::Error loaded = document.load(path);
-        loaded != QPdfDocument::Error::None || document.pageCount() < 1) {
+    PdfDocument document;
+    if (const PdfDocument::Error loaded = document.load(path);
+        loaded != PdfDocument::Error::None || document.pageCount() < 1) {
         if (error != nullptr) {
             *error = loadProblem(static_cast<int>(loaded));
         }
@@ -132,20 +132,15 @@ int PdfFiles::pageCount(const QString& path, QString* error) {
 
 std::optional<PdfMetaData> PdfFiles::metaData(const QString& path) {
 #ifdef KALAHARI_HAS_PDF
-    QPdfDocument document(nullptr);
-    if (document.load(path) != QPdfDocument::Error::None) {
+    PdfDocument document;
+    if (document.load(path) != PdfDocument::Error::None) {
         return std::nullopt;
     }
     PdfMetaData data;
-    data.title = document.metaData(QPdfDocument::MetaDataField::Title).toString().simplified();
-    data.author = document.metaData(QPdfDocument::MetaDataField::Author).toString().simplified();
-    data.subject =
-        document.metaData(QPdfDocument::MetaDataField::Subject).toString().simplified();
-    const QDateTime created =
-        document.metaData(QPdfDocument::MetaDataField::CreationDate).toDateTime();
-    if (created.isValid()) {
-        data.year = QString::number(created.date().year());
-    }
+    data.title = document.metaData(PdfDocument::MetaDataField::Title).simplified();
+    data.author = document.metaData(PdfDocument::MetaDataField::Author).simplified();
+    data.subject = document.metaData(PdfDocument::MetaDataField::Subject).simplified();
+    data.year = yearOf(document.metaData(PdfDocument::MetaDataField::CreationDate));
     data.pages = document.pageCount();
     return data;
 #else
@@ -156,12 +151,12 @@ std::optional<PdfMetaData> PdfFiles::metaData(const QString& path) {
 
 QString PdfFiles::loadProblem(int error) {
 #ifdef KALAHARI_HAS_PDF
-    switch (static_cast<QPdfDocument::Error>(error)) {
-    case QPdfDocument::Error::FileNotFound:
+    switch (static_cast<PdfDocument::Error>(error)) {
+    case PdfDocument::Error::FileNotFound:
         //: In Polish: Nie ma pliku.
         return tr("The file is missing.");
-    case QPdfDocument::Error::IncorrectPassword:
-    case QPdfDocument::Error::UnsupportedSecurityScheme:
+    case PdfDocument::Error::IncorrectPassword:
+    case PdfDocument::Error::UnsupportedSecurityScheme:
         //: In Polish: Plik jest chroniony hasłem.
         return tr("The file is protected with a password.");
     default:

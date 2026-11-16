@@ -14,8 +14,10 @@
 #include <QTextCursor>
 #include <QRegularExpression>
 #include <algorithm>
+#include <functional>
 #include <iterator>
 #include <utility>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -27,6 +29,42 @@ bool isWholeWord(const QString& text, qsizetype start, qsizetype length) {
     const qsizetype end = start + length;
     return (start == 0 || !text.at(start - 1).isLetterOrNumber()) &&
            (end == text.size() || !text.at(end).isLetterOrNumber());
+}
+
+/// Whether two options find the same matches
+bool matchSame(const SearchOptions& a, const SearchOptions& b) {
+    return a.caseSensitive == b.caseSensitive && a.wholeWord == b.wholeWord &&
+           a.useRegex == b.useRegex && a.allForms == b.allForms && a.forms == b.forms;
+}
+
+/// The expression that finds @p forms as whole words (no letter or digit just before or
+/// after them), the longest first: "Annie" is not found as "Anni"
+QString formsPattern(const QStringList& forms) {
+    QStringList sorted = forms;
+    std::ranges::stable_sort(sorted, std::ranges::greater{},
+                             [](const QString& form) { return form.size(); });
+    QStringList escaped;
+    escaped.reserve(sorted.size());
+    for (QString& form : sorted) {
+        form.replace(QChar::Nbsp, u' ');  // as the text is searched
+        escaped.append(QRegularExpression::escape(form));
+    }
+    return QStringLiteral("(?<![\\p{L}\\p{N}])(?:%1)(?![\\p{L}\\p{N}])")
+        .arg(escaped.join(u'|'));
+}
+
+/// Add the ranges of @p text that @p regex matches (only whole words: @p wholeWords); an
+/// expression that can match nothing (x*, ^) finds only the text it does match
+void addRegexMatches(const QRegularExpression& regex, const QString& text, bool wholeWords,
+                     std::vector<std::pair<qsizetype, qsizetype>>& ranges) {
+    QRegularExpressionMatchIterator it = regex.globalMatch(text);
+    while (it.hasNext()) {
+        const QRegularExpressionMatch match = it.next();
+        const qsizetype length = match.capturedLength();
+        if (length > 0 && (!wholeWords || isWholeWord(text, match.capturedStart(), length))) {
+            ranges.emplace_back(match.capturedStart(), length);
+        }
+    }
 }
 
 /// Matches ordered by where they start (std::lower_bound() by position)
@@ -169,9 +207,7 @@ QString SearchEngine::replaceText() const {
 
 void SearchEngine::setOptions(const SearchOptions& options) {
     // Check if options that affect matching have changed
-    if (m_options.caseSensitive != options.caseSensitive ||
-        m_options.wholeWord != options.wholeWord ||
-        m_options.useRegex != options.useRegex) {
+    if (!matchSame(m_options, options)) {
         m_matchesDirty = true;
         m_currentMatchIndex = -1;
     }
@@ -491,13 +527,17 @@ bool SearchEngine::prepareSearch() {
         return false;
     }
 
-    if (m_options.useRegex) {
-        // Unicode properties: \w and \b know Polish and other non-ASCII letters
-        QRegularExpression::PatternOptions regexOptions =
-            QRegularExpression::UseUnicodePropertiesOption;
-        if (!m_options.caseSensitive) {
-            regexOptions |= QRegularExpression::CaseInsensitiveOption;
-        }
+    // Unicode properties: \w and \b know Polish and other non-ASCII letters
+    QRegularExpression::PatternOptions regexOptions =
+        QRegularExpression::UseUnicodePropertiesOption;
+    if (!m_options.caseSensitive) {
+        regexOptions |= QRegularExpression::CaseInsensitiveOption;
+    }
+    m_formsSearch = !m_options.useRegex && m_options.allForms && !m_options.forms.isEmpty();
+    if (m_formsSearch) {
+        m_regex = QRegularExpression(formsPattern(m_options.forms), regexOptions);
+        m_searchReady = m_regex.isValid();
+    } else if (m_options.useRegex) {
         m_regex = QRegularExpression(m_searchText, regexOptions);
         m_searchReady = m_regex.isValid();
     } else {
@@ -565,17 +605,9 @@ std::vector<std::pair<qsizetype, qsizetype>> SearchEngine::matchesIn(
     QString text = original;
     text.replace(QChar::Nbsp, u' ');  // copies the text only if it has one
 
-    if (m_options.useRegex) {
-        // An expression that can match nothing (x*, ^) finds only the text it does match
-        QRegularExpressionMatchIterator it = m_regex.globalMatch(text);
-        while (it.hasNext()) {
-            const QRegularExpressionMatch match = it.next();
-            const qsizetype length = match.capturedLength();
-            if (length > 0 &&
-                (!m_options.wholeWord || isWholeWord(text, match.capturedStart(), length))) {
-                ranges.emplace_back(match.capturedStart(), length);
-            }
-        }
+    if (m_options.useRegex || m_formsSearch) {
+        // The forms are words
+        addRegexMatches(m_regex, text, m_options.wholeWord || m_formsSearch, ranges);
     } else {
         const Qt::CaseSensitivity sensitivity =
             m_options.caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;

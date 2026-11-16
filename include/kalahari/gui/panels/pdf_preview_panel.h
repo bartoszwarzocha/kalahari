@@ -23,9 +23,6 @@ class QLabel;
 class QLineEdit;
 class QListView;
 class QListWidget;
-class QPdfBookmarkModel;
-class QPdfDocument;
-class QPdfSearchModel;
 class QPushButton;
 class QSplitter;
 class QStackedWidget;
@@ -160,7 +157,7 @@ public:
     /// @brief The bar over a selection made with the mouse
     [[nodiscard]] QFrame* selectionBar() const { return m_selectionBar; }
     /// @brief The search in the file
-    [[nodiscard]] QPdfSearchModel* searchModel() const { return m_search; }
+    [[nodiscard]] PdfSearchModel* searchModel() const { return m_search; }
     /// @brief The button that shows and hides the side panel
     [[nodiscard]] QAction* sideAction() const { return m_sideAction; }
     /// @brief The button of the layout @p layout of the pages
@@ -389,9 +386,9 @@ private:
 
     QString m_path;
     QString m_problem;
-    QPdfDocument* m_document = nullptr;
-    QPdfSearchModel* m_search = nullptr;
-    QPdfBookmarkModel* m_contents = nullptr;
+    PdfDocument* m_document = nullptr;
+    PdfSearchModel* m_search = nullptr;
+    PdfContentsModel* m_contents = nullptr;
     int m_hit = -1;              ///< The hit gone to; -1: none
     bool m_goToFirstHit = false; ///< The first hit found is gone to
     int m_menuPage = -1;         ///< The page the menu was opened on; -1: none

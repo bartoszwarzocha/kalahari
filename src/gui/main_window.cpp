@@ -16,6 +16,7 @@
 #include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/material_list_coordinator.h"
 #include "kalahari/gui/panels/material_list_panel.h"
+#include "kalahari/gui/panels/book_dictionary_panel.h"
 #include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/special_character_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
@@ -33,6 +34,7 @@
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/spelling_panel_coordinator.h"
+#include "kalahari/gui/book_dictionary_coordinator.h"
 #include "kalahari/gui/repetitions_coordinator.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
@@ -58,6 +60,7 @@
 #include "kalahari/editor/text_images.h"
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/quick_insert_controller.h"
+#include "kalahari/editor/search_forms.h"
 #include "kalahari/editor/view_modes.h"
 #include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/editor_appearance.h"
@@ -621,11 +624,12 @@ MainWindow::MainWindow(QWidget* parent)
     // The gear of the group of the versions: their settings
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestVersionSettings, this,
             [this]() {
-                if (m_settingsCoordinator) {
+                if (m_settingsCoordinator != nullptr) {
                     m_settingsCoordinator->openSettingsPage(
                         QString::fromLatin1(SettingsDialog::VERSIONS_PAGE));
                 }
             });
+    connectCards();
 
     // Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys; what
     // is done in the Annotations panel is undone in the text in front
@@ -912,6 +916,13 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookLanguageChanged,
             m_spellingCoordinator, &SpellingCoordinator::updateDictionary);
     m_settingsCoordinator->setSpellCheckService(m_spellingCoordinator->service());
+    // The option of all forms of Find in Book: the forms of the names of the book's dictionary
+    // and of the words of the spelling dictionary of its chapters
+    m_bookSearchCoordinator->setFormsOf([this](const QString& text) {
+        return editor::formsToFind(
+            text, &m_book->bookDictionary(),
+            m_spellingCoordinator != nullptr ? m_spellingCoordinator->service() : nullptr);
+    });
 
     // Grammar as you type, in the spelling's language: on LanguageTool the program prepares
     // on this computer, or on a server in the internet the writer chose
@@ -927,6 +938,7 @@ MainWindow::MainWindow(QWidget* parent)
     m_spellingPanelCoordinator = new SpellingPanelCoordinator(
         *m_book, *m_commands, m_dockCoordinator->spellingPanel(), m_dockCoordinator->spellingDock(),
         m_dockCoordinator->centralTabs(), m_spellingCoordinator, m_grammarCoordinator, this);
+    createBookDictionary();
 
     // The Repetitions panel, the marks of the repeated words and Next Repetition; a chapter
     // is opened as from the Navigator
@@ -1611,14 +1623,17 @@ void MainWindow::registerCommands() {
         };
     }
 
-    // Find goes to the search of a list of materials and of the preview of a PDF file too
+    // Find goes to the search of a list of materials, of the book's dictionary and of the
+    // preview of a PDF file too
     if (Command* command = registry.getCommand("edit.find")) {
         command->isEnabled = [this]() {
             const PreviewPanel* preview =
                 m_dockCoordinator != nullptr ? currentPreview() : nullptr;
             return hasDocumentInFront() || (preview != nullptr && preview->canFind()) ||
                    (m_materialListCoordinator != nullptr &&
-                    m_materialListCoordinator->currentList() != nullptr);
+                    m_materialListCoordinator->currentList() != nullptr) ||
+                   (m_bookDictionaryCoordinator != nullptr &&
+                    m_bookDictionaryCoordinator->currentPanel() != nullptr);
         };
     }
 
@@ -1856,14 +1871,50 @@ void MainWindow::onSelectAll() {
     }
 }
 
+void MainWindow::createBookDictionary() {
+    m_bookDictionaryCoordinator =
+        new BookDictionaryCoordinator(*m_book, *m_commands, m_dockCoordinator->centralTabs(),
+                                      m_spellingCoordinator, statusBar(), this);
+    m_bookDictionaryCoordinator->connectCommands();
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenBookDictionary,
+            m_bookDictionaryCoordinator, &BookDictionaryCoordinator::openDictionary);
+    // Add Name... and Edit Rule... of the text's menu and of the cards of the panel
+    connect(m_spellingCoordinator, &SpellingCoordinator::addNameAsked,
+            m_bookDictionaryCoordinator, &BookDictionaryCoordinator::addName);
+    connect(m_spellingCoordinator, &SpellingCoordinator::editRuleAsked,
+            m_bookDictionaryCoordinator, &BookDictionaryCoordinator::editRule);
+    connect(m_spellingPanelCoordinator, &SpellingPanelCoordinator::addNameAsked,
+            m_bookDictionaryCoordinator, &BookDictionaryCoordinator::addName);
+    connect(m_spellingPanelCoordinator, &SpellingPanelCoordinator::editRuleAsked,
+            m_bookDictionaryCoordinator, &BookDictionaryCoordinator::editRule);
+    // Open Book Dictionary of Settings > Editor > Spelling
+    connect(m_settingsCoordinator, &SettingsCoordinator::bookDictionaryRequested,
+            m_bookDictionaryCoordinator,
+            [this]() { m_bookDictionaryCoordinator->openDictionary(); });
+    // The gear of its page: Settings > Editor > Spelling
+    connect(m_bookDictionaryCoordinator, &BookDictionaryCoordinator::settingsRequested, this,
+            [this]() {
+                if (m_settingsCoordinator != nullptr) {
+                    m_settingsCoordinator->openSettingsPage(
+                        QString::fromLatin1(SettingsDialog::SPELLING_PAGE));
+                }
+            });
+}
+
 void MainWindow::onFind() {
     core::Logger::getInstance().info("Action triggered: Find");
 
-    // A list of materials in front: its search
+    // A list of materials or the book's dictionary in front: its search
     if (MaterialListPanel* list = m_materialListCoordinator != nullptr
                                       ? m_materialListCoordinator->currentList()
                                       : nullptr) {
         list->focusSearch();
+        return;
+    }
+    if (BookDictionaryPanel* dictionary = m_bookDictionaryCoordinator != nullptr
+                                              ? m_bookDictionaryCoordinator->currentPanel()
+                                              : nullptr) {
+        dictionary->focusSearch();
         return;
     }
     if (PreviewPanel* preview = currentPreview(); preview != nullptr && preview->canFind()) {
@@ -2587,6 +2638,42 @@ void MainWindow::onAbout() {
 }
 
 // Dock management - OpenSpec #00038 Phase 4: Delegated to DockCoordinator
+
+void MainWindow::connectCards() {
+    PropertiesPanel* properties = m_dockCoordinator->propertiesPanel();
+    connect(properties, &PropertiesPanel::requestOpenCard, this,
+            [this](const QString& elementId) {
+                if (const core::ProjectElement* element = book().findElement(elementId);
+                    element != nullptr) {
+                    m_navigatorCoordinator->onElementSelected(elementId, element->title);
+                }
+            });
+    const auto openCardSettings = [this]() {
+        if (m_settingsCoordinator != nullptr) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::CARDS_PAGE));
+        }
+    };
+    connect(properties, &PropertiesPanel::requestCardSettings, this, openCardSettings);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::cardSettingsRequested, this,
+            openCardSettings);
+    connect(properties, &PropertiesPanel::cardMaterialAdded, m_navigatorCoordinator,
+            &NavigatorCoordinator::refreshNavigator);
+    // The other card of a relation, and a card made with a relation
+    connect(properties, &PropertiesPanel::requestSelectCard, m_dockCoordinator->navigatorPanel(),
+            &NavigatorPanel::revealElement);
+    connect(properties, &PropertiesPanel::cardAdded, m_navigatorCoordinator,
+            &NavigatorCoordinator::refreshNavigator);
+    // What is dropped on a card: its materials; Find in Book of the full card
+    connect(properties, &PropertiesPanel::requestAddCardMaterials, m_navigatorCoordinator,
+            &NavigatorCoordinator::onRequestAddMaterials);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::findInBookRequested, this,
+            [this](const QString& text) {
+                if (m_bookSearchCoordinator != nullptr) {
+                    m_bookSearchCoordinator->findInBook(text);
+                }
+            });
+}
 
 void MainWindow::createDocks() {
     auto& logger = core::Logger::getInstance();

@@ -1331,6 +1331,10 @@
         <translation>Pod&amp;ział rozdziału</translation>
     </message>
     <message>
+        <source>Book &amp;Dictionary...</source>
+        <translation>Słownik &amp;książki...</translation>
+    </message>
+    <message>
         <source>Date &amp;&amp; &amp;Time...</source>
         <translation>Data i &amp;godzina...</translation>
     </message>
@@ -3667,10 +3671,6 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <translation>(Brak podpowiedzi)</translation>
     </message>
     <message>
-        <source>Add t&amp;o Dictionary</source>
-        <translation>Dodaj do &amp;słownika</translation>
-    </message>
-    <message>
         <source>&amp;Ignore This Rule</source>
         <translation>&amp;Pomijaj tę regułę</translation>
     </message>
@@ -3930,6 +3930,56 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <translation>&amp;Usuń przypis</translation>
     </message>
     <message>
+        <source>Add to &amp;Book Dictionary</source>
+        <extracomment>In Polish: Dodaj do &amp;słownika książki</extracomment>
+        <translation>Dodaj do &amp;słownika książki</translation>
+    </message>
+    <message>
+        <source>The word is right in this book only</source>
+        <translation>Słowo jest poprawne tylko w tej książce</translation>
+    </message>
+    <message>
+        <source>Add to Your &amp;Words (All Books)</source>
+        <extracomment>The user&apos;s own dictionary, which every book has. In Polish: &amp;Dodaj do Twoich słów (wszystkie książki)</extracomment>
+        <translation>&amp;Dodaj do Twoich słów (wszystkie książki)</translation>
+    </message>
+    <message>
+        <source>Book rule: write %1</source>
+        <extracomment>%1 is the right spelling in quotes, as the rule has it: Book rule: write &quot;Smok&quot;</extracomment>
+        <translation>Zasada książki: pisz %1</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Rule</source>
+        <translation>&amp;Usuń zasadę</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary no longer has this rule</source>
+        <translation>Usuwa tę zasadę ze słownika książki</translation>
+    </message>
+    <message>
+        <source>Write %1</source>
+        <extracomment>%1 is the right spelling in quotes, as the rule has it: Write &quot;Smok&quot;</extracomment>
+        <translation>Pisz %1</translation>
+    </message>
+    <message>
+        <source>Book rule</source>
+        <translation>Zasada książki</translation>
+    </message>
+    <message>
+        <source>Add Nam&amp;e...</source>
+        <extracomment>Opens the window of a new name of the book&apos;s dictionary, with the word in it. In Polish: Dodaj &amp;imię lub nazwę…</extracomment>
+        <translation>Dodaj &amp;imię lub nazwę...</translation>
+    </message>
+    <message>
+        <source>The word is a name of the book: right in all its forms</source>
+        <translation>Słowo jest imieniem lub nazwą z książki: poprawne we wszystkich formach</translation>
+    </message>
+    <message>
+        <source>&amp;Edit Rule...</source>
+        <extracomment>Opens the window of the spelling rule of the book. In Polish: Zmień z&amp;asadę…</extracomment>
+        <translation>Zmień z&amp;asadę...</translation>
+    </message>
+    <message>
         <source>&amp;Edit Field...</source>
         <extracomment>The context menu of a field. In Polish: &amp;Edytuj pole...</extracomment>
         <translation>&amp;Edytuj pole...</translation>
@@ -4095,6 +4145,21 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     <message>
         <source>Use Regular Expression (%1)</source>
         <translation>Wyrażenie regularne (%1)</translation>
+    </message>
+    <message>
+        <source>Forms</source>
+        <extracomment>The option of the find bar that finds every form of a word or a name, short. In Polish: Odm</extracomment>
+        <translation>Odm</translation>
+    </message>
+    <message>
+        <source>All Forms (%1)</source>
+        <extracomment>In Polish: Wszystkie odmiany (%1)</extracomment>
+        <translation>Wszystkie odmiany (%1)</translation>
+    </message>
+    <message>
+        <source>Replace All is off while all forms are found: one replacement of every form would break the declension</source>
+        <extracomment>The tooltip of Replace All of the find bar while it finds all forms</extracomment>
+        <translation>Przy wyszukiwaniu wszystkich odmian „Zamień wszystko” jest wyłączone – jedna zamiana wszystkich form zepsułaby odmianę</translation>
     </message>
 </context>
 <context>
@@ -4869,6 +4934,216 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::BookDictionaryCoordinator</name>
+    <message>
+        <source>Remove Name</source>
+        <extracomment>In Polish: Usuń imię lub nazwę</extracomment>
+        <translation>Usuń imię lub nazwę</translation>
+    </message>
+    <message>
+        <source>Remove %1 from the book&apos;s dictionary? Its forms will no longer be right in the book.</source>
+        <extracomment>%1: the name in quotes. In Polish: Usunąć %1 ze słownika książki? Jego formy nie będą już poprawne w książce.</extracomment>
+        <translation>Usunąć %1 ze słownika książki? Jego formy nie będą już poprawne w książce.</translation>
+    </message>
+    <message>
+        <source>Remove Spelling Rule</source>
+        <extracomment>In Polish: Usuń zasadę pisowni</extracomment>
+        <translation>Usuń zasadę pisowni</translation>
+    </message>
+    <message>
+        <source>Remove the rule %1 from the book&apos;s dictionary? The spellings it marks will no longer be marked.</source>
+        <extracomment>%1: the right spelling of the rule in quotes. In Polish: Usunąć zasadę %1 ze słownika książki? Zapisy, które zaznacza, nie będą już zaznaczane.</extracomment>
+        <translation>Usunąć zasadę %1 ze słownika książki? Zapisy, które zaznacza, nie będą już zaznaczane.</translation>
+    </message>
+    <message>
+        <source>Remove Words</source>
+        <extracomment>In Polish: Usuń słowa</extracomment>
+        <translation>Usuń słowa</translation>
+    </message>
+    <message>
+        <source>Remove the word %1 from the book&apos;s dictionary?</source>
+        <extracomment>%1: the word in quotes. In Polish: Usunąć słowo %1 ze słownika książki?</extracomment>
+        <translation>Usunąć słowo %1 ze słownika książki?</translation>
+    </message>
+    <message>
+        <source>Remove the chosen words from the book&apos;s dictionary (%1)?</source>
+        <extracomment>%1: how many. In Polish: Usunąć wybrane słowa ze słownika książki (%1)?</extracomment>
+        <translation>Usunąć wybrane słowa ze słownika książki (%1)?</translation>
+    </message>
+    <message>
+        <source>Book Dictionary</source>
+        <extracomment>The tab of the book&apos;s dictionary. In Polish: Słownik książki</extracomment>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Your words cannot be changed now</source>
+        <extracomment>In Polish: Twoich słów nie można teraz zmienić</extracomment>
+        <translation>Twoich słów nie można teraz zmienić</translation>
+    </message>
+    <message>
+        <source>The book is open read-only: its dictionary cannot be changed</source>
+        <translation>Książka jest otwarta tylko do odczytu: jej słownika nie można zmienić</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary cannot be saved</source>
+        <translation>Nie można zapisać słownika książki</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::BookDictionaryPanel</name>
+    <message>
+        <source>does not change</source>
+        <extracomment>The forms of a name that has the same form in every case. In Polish: nie odmienia się
+----------
+The word of the rule has no other forms. In Polish: nie odmienia się</extracomment>
+        <translation>nie odmienia się</translation>
+    </message>
+    <message>
+        <source>no</source>
+        <extracomment>The rule covers its spellings alone, not their forms. In Polish: nie</extracomment>
+        <translation>nie</translation>
+    </message>
+    <message>
+        <source>yes (like %1)</source>
+        <extracomment>The rule has the forms of another word; %1: the word in quotes. In Polish: tak (jak %1)</extracomment>
+        <translation>tak (jak %1)</translation>
+    </message>
+    <message>
+        <source>yes</source>
+        <extracomment>In Polish: tak</extracomment>
+        <translation>tak</translation>
+    </message>
+    <message>
+        <source>Book Dictionary</source>
+        <extracomment>The title of the page of the book&apos;s dictionary. In Polish: Słownik książki</extracomment>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>Spelling Settings: Book Dictionary</source>
+        <extracomment>The gear of the book&apos;s dictionary. In Polish: Ustawienia pisowni: Słownik książki</extracomment>
+        <translation>Ustawienia pisowni: Słownik książki</translation>
+    </message>
+    <message>
+        <source>Search in the dictionary, also in the forms (%1)</source>
+        <extracomment>%1: the keys of Find. In Polish: Szukaj w słowniku, także w formach (%1)</extracomment>
+        <translation>Szukaj w słowniku, także w formach (%1)</translation>
+    </message>
+    <message>
+        <source>Search in the dictionary</source>
+        <extracomment>In Polish: Szukaj w słowniku</extracomment>
+        <translation>Szukaj w słowniku</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The columns of the names. In Polish: Imię lub nazwa, Rodzaj, Formy, Inne nazwy</extracomment>
+        <translation>Imię lub nazwa</translation>
+    </message>
+    <message>
+        <source>Kind</source>
+        <translation>Rodzaj</translation>
+    </message>
+    <message>
+        <source>Forms</source>
+        <translation>Formy</translation>
+    </message>
+    <message>
+        <source>Other Names</source>
+        <translation>Inne nazwy</translation>
+    </message>
+    <message>
+        <source>Write</source>
+        <extracomment>The columns of the spelling rules. In Polish: Pisz, Zamiast, W odmianach, Uwaga</extracomment>
+        <translation>Pisz</translation>
+    </message>
+    <message>
+        <source>Instead of</source>
+        <translation>Zamiast</translation>
+    </message>
+    <message>
+        <source>In Forms</source>
+        <translation>W odmianach</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <translation>Uwaga</translation>
+    </message>
+    <message>
+        <source>Word</source>
+        <extracomment>In Polish: Słowo</extracomment>
+        <translation>Słowo</translation>
+    </message>
+    <message>
+        <source>A word to add</source>
+        <extracomment>In Polish: Słowo do dodania</extracomment>
+        <translation>Słowo do dodania</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Edit...</source>
+        <extracomment>In Polish: Zmień…</extracomment>
+        <translation>Zmień...</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Move to Your Words</source>
+        <extracomment>Moves the chosen words of the book to the writer&apos;s own words. In Polish: Przenieś do Twoich słów</extracomment>
+        <translation>Przenieś do Twoich słów</translation>
+    </message>
+    <message>
+        <source>%1 · forms: %2 (the language of the book)</source>
+        <extracomment>%1: the title of the book, %2: the language of the forms of the names. In Polish: %1 · formy: %2 (język książki)</extracomment>
+        <translation>%1 · formy: %2 (język książki)</translation>
+    </message>
+    <message>
+        <source>Names (%1)</source>
+        <extracomment>The tabs of the book&apos;s dictionary with their counts. In Polish: Imiona i nazwy (%1)</extracomment>
+        <translation>Imiona i nazwy (%1)</translation>
+    </message>
+    <message>
+        <source>Spelling Rules (%1)</source>
+        <extracomment>In Polish: Zasady pisowni (%1)</extracomment>
+        <translation>Zasady pisowni (%1)</translation>
+    </message>
+    <message>
+        <source>Book Words (%1)</source>
+        <extracomment>In Polish: Słowa książki (%1)</extracomment>
+        <translation>Słowa książki (%1)</translation>
+    </message>
+    <message>
+        <source>Add Name...</source>
+        <extracomment>In Polish: Dodaj imię lub nazwę… / Dodaj zasadę…</extracomment>
+        <translation>Dodaj imię lub nazwę...</translation>
+    </message>
+    <message>
+        <source>Add Rule...</source>
+        <translation>Dodaj zasadę...</translation>
+    </message>
+    <message>
+        <source>Names written in the dictionary: they are right in all their forms, Quick Insert offers them and Find in Book finds them. Once there are cards of characters, locations and items, their names join them here.</source>
+        <translation>Imiona i nazwy zapisane w słowniku: są poprawne we wszystkich formach, szybkie wstawianie je podpowiada, a Znajdź w książce je znajduje. Gdy będą karty postaci, miejsc i przedmiotów, ich nazwy też tu trafią.</translation>
+    </message>
+    <message>
+        <source>The spelling check marks a departure from a rule with a wavy line of its own color, and offers the rule&apos;s spelling.</source>
+        <translation>Sprawdzanie pisowni zaznacza odstępstwo od zasady falistą linią w osobnym kolorze i podpowiada pisownię z zasady.</translation>
+    </message>
+    <message>
+        <source>Words right in this book only. The words of every book are in Settings &gt; Editor &gt; Spelling &gt; Your Words; &quot;Move to Your Words&quot; moves the chosen words there.</source>
+        <translation>Słowa poprawne tylko w tej książce. Słowa wszystkich książek są w Ustawieniach &gt; Edytor &gt; Pisownia &gt; Twoje słowa; „Przenieś do Twoich słów” przenosi tam wybrane słowa.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::BookSearchCoordinator</name>
     <message>
         <source>No book is open</source>
@@ -5015,6 +5290,11 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
         <source>The texts are as they were before the replacement.</source>
         <extracomment>In Polish: Teksty są takie jak przed zamianą.</extracomment>
         <translation>Teksty są takie jak przed zamianą.</translation>
+    </message>
+    <message>
+        <source>Replace All in Book is off while all forms are found: one replacement of every form would break the declension</source>
+        <extracomment>Why Replace All in Book is greyed out while the search finds all forms (&quot;Odm&quot;)</extracomment>
+        <translation>Przy wyszukiwaniu wszystkich odmian „Zamień wszystko w książce” jest wyłączone – jedna zamiana wszystkich form zepsułaby odmianę</translation>
     </message>
 </context>
 <context>
@@ -8184,10 +8464,6 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Usuń</translation>
     </message>
     <message>
-        <source>Words that are right whatever the dictionary says; &quot;Add to Dictionary&quot; in the context menu of a misspelled word puts it here. A word in lower case is right also with capital letters.</source>
-        <translation>Słowa poprawne bez względu na słownik; trafia tu każde słowo dodane poleceniem „Dodaj do słownika” z menu podręcznego. Słowo dodane małymi literami jest poprawne także pisane wielkimi literami.</translation>
-    </message>
-    <message>
         <source>Colors</source>
         <translation>Kolory</translation>
     </message>
@@ -8236,8 +8512,47 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Przy ustawieniu „Sprawdzana w całym tekście” cały tekst jest sprawdzany w tle, gdy panel jest widoczny, więc liczniki i lista obejmą go w całości, gdy tylko sprawdzanie się skończy. Bezpłatny serwer api.languagetool.org ogranicza liczbę zapytań na minutę, więc tam długi tekst sprawdza się dłużej. Na tym komputerze takiego ograniczenia nie ma.</translation>
     </message>
     <message>
-        <source>The color of the wavy line under a misspelled word and of the frames of its cards in the Spelling and Grammar panel. Each theme has its own colors: these are the colors of the current theme.</source>
-        <translation>Kolor falistej linii pod błędem pisowni i ramek jego kart w panelu „Pisownia i gramatyka”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+        <source>The color of the wavy line under a misspelled word and of the frames of its cards in the Spelling and Grammar panel; below it, the same for a word written otherwise than a spelling rule of the book&apos;s dictionary wants. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolor falistej linii pod błędem pisowni i ramek jego kart w panelu „Pisownia i gramatyka”; poniżej to samo dla słowa zapisanego inaczej, niż chce zasada pisowni ze słownika książki. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Words that are right whatever the dictionary says, in every book; &quot;Add to Your Words&quot; in the context menu of a misspelled word puts it here. The words right in one book only belong to its dictionary. A word in lower case is right also with capital letters.</source>
+        <translation>Słowa poprawne bez względu na słownik, we wszystkich książkach; trafiają tu przez „Dodaj do Twoich słów” w menu podręcznym błędnego słowa. Słowa poprawne tylko w jednej książce należą do jej słownika. Słowo zapisane małymi literami jest poprawne także wielkimi.</translation>
+    </message>
+    <message>
+        <source>Book Dictionary</source>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>Mark departures from the rules</source>
+        <extracomment>In the group Book Dictionary: a word written otherwise than a spelling rule of the book&apos;s dictionary wants gets a wavy line. In Polish: Zaznaczaj odstępstwa od zasad</extracomment>
+        <translation>Zaznaczaj odstępstwa od zasad</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary</source>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>Your words (all books)</source>
+        <translation>Twoje słowa (wszystkie książki)</translation>
+    </message>
+    <message>
+        <source>The panel adds a word to:</source>
+        <extracomment>Where Add of a misspelled word&apos;s card in the Spelling and Grammar panel puts the word. In Polish: Panel dodaje słowo do:</extracomment>
+        <translation>Panel dodaje słowo do:</translation>
+    </message>
+    <message>
+        <source>Open Book Dictionary</source>
+        <translation>Otwórz słownik książki</translation>
+    </message>
+    <message>
+        <source>Open a book first: each book has its own dictionary</source>
+        <extracomment>Why Open Book Dictionary in the settings is grey. In Polish: Najpierw otwórz książkę: każda ma własny słownik</extracomment>
+        <translation>Najpierw otwórz książkę: każda ma własny słownik</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary is kept in the folder of the book and has three parts: the names with their forms, the spelling rules and the words of this book. The context menu of a misspelled word always has both places: the book&apos;s dictionary and your words.</source>
+        <translation>Słownik książki jest zapisany w folderze książki i ma trzy części: imiona i nazwy z formami, zasady pisowni i słowa tej książki. Menu podręczne błędnego słowa zawsze ma oba miejsca: słownik książki i Twoje słowa.</translation>
     </message>
 </context>
 <context>
@@ -10194,6 +10509,11 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>Ustawienia &amp;typów...</translation>
     </message>
     <message>
+        <source>Book Dictionary</source>
+        <extracomment>The node at the top of the Workshop in the Navigator that shows the book&apos;s dictionary (its names, spelling rules and words) on a tab. In Polish: Słownik książki</extracomment>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
         <source>The materials with a bibliographic description, of every kind</source>
         <extracomment>The tooltip of Sources in the Navigator. In Polish: Materiały z opisem bibliograficznym, każdego typu</extracomment>
         <translation>Materiały z opisem bibliograficznym, każdego typu</translation>
@@ -11096,6 +11416,15 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>The tooltip of Replace All in Book. In Polish: Zamień wszystkie trafienia we wszystkich tekstach książki</extracomment>
         <translation>Zamień wszystkie trafienia we wszystkich tekstach książki</translation>
     </message>
+    <message>
+        <source>Forms</source>
+        <extracomment>The option that finds every form of a word or a name, short; its tooltip. In Polish: Odm / Wszystkie odmiany (%1)</extracomment>
+        <translation>Odm</translation>
+    </message>
+    <message>
+        <source>All Forms (%1)</source>
+        <translation>Wszystkie odmiany (%1)</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SectionNamesEdit</name>
@@ -11347,6 +11676,11 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <extracomment>Settings &gt; Editor &gt; Images: new images, the captions of new books. In Polish: Obrazy</extracomment>
         <translation>Obrazy</translation>
     </message>
+    <message>
+        <source>Cards</source>
+        <extracomment>Settings &gt; Cards: the cards of characters, locations and items. In Polish: Karty</extracomment>
+        <translation>Karty</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SettingsPage</name>
@@ -11373,6 +11707,10 @@ The page of the downloads for the materials with a web address. In Polish: Mater
     <message>
         <source>On: a color too light for a light background is shown darker, and one too dark for a dark background lighter (on the paper and in the panels). Off: the colors exactly as set. One setting for the spelling, the grammar, the annotations and the comparison of the versions.</source>
         <translation>Włączone: kolor zbyt jasny na jasnym tle jest pokazywany ciemniej, a zbyt ciemny na ciemnym tle – jaśniej (na papierze i w panelach). Wyłączone: kolory dokładnie takie, jak ustawione. Jedno ustawienie dla pisowni, gramatyki, uwag i porównania wersji.</translation>
+    </message>
+    <message>
+        <source>Departure from a book rule</source>
+        <translation>Odstępstwo od zasady książki</translation>
     </message>
 </context>
 <context>
@@ -11484,6 +11822,11 @@ The page of the downloads for the materials with a web address. In Polish: Mater
     <message>
         <source>Regular expression</source>
         <translation>Wyrażenie regularne</translation>
+    </message>
+    <message>
+        <source>All forms</source>
+        <extracomment>The option of the find bar that finds a word in all its forms. In Polish: Wszystkie odmiany</extracomment>
+        <translation>Wszystkie odmiany</translation>
     </message>
     <message>
         <source>Close the bar</source>
@@ -13610,6 +13953,14 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <source>Checking the grammar further on...</source>
         <translation>Sprawdzanie gramatyki w dalszych akapitach...</translation>
     </message>
+    <message>
+        <source>The book is open read-only: its dictionary cannot be changed</source>
+        <translation>Książka jest otwarta tylko do odczytu – nie można zmienić jej słownika</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary cannot be saved</source>
+        <translation>Nie można zapisać słownika książki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SpellingIssueCard</name>
@@ -13649,8 +14000,34 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <translation>Pomijaj tę regułę</translation>
     </message>
     <message>
-        <source>Add to Dictionary</source>
-        <translation>Dodaj do słownika</translation>
+        <source>Other places to add the word</source>
+        <translation>Inne miejsca, do których można dodać słowo</translation>
+    </message>
+    <message>
+        <source>Add to Book Dictionary</source>
+        <translation>Dodaj do słownika książki</translation>
+    </message>
+    <message>
+        <source>Add to Your Words (All Books)</source>
+        <translation>Dodaj do Twoich słów (wszystkie książki)</translation>
+    </message>
+    <message>
+        <source>Book rule</source>
+        <translation>Zasada książki</translation>
+    </message>
+    <message>
+        <source>Add to Your Words</source>
+        <translation>Dodaj do Twoich słów</translation>
+    </message>
+    <message>
+        <source>Add Name...</source>
+        <extracomment>Opens the window of a new name of the book&apos;s dictionary, with the word in it. In Polish: Dodaj imię lub nazwę…</extracomment>
+        <translation>Dodaj imię lub nazwę...</translation>
+    </message>
+    <message>
+        <source>Edit Rule...</source>
+        <extracomment>Opens the window of the spelling rule of the book. In Polish: Zmień zasadę…</extracomment>
+        <translation>Zmień zasadę...</translation>
     </message>
 </context>
 <context>
@@ -13762,6 +14139,15 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <source>%1 – next issue, with its menu at the word</source>
         <extracomment>%1 is the key of Tools &gt; Next Spelling or Grammar Issue</extracomment>
         <translation>%1 – następny błąd z menu przy słowie</translation>
+    </message>
+    <message>
+        <source>Show or hide the places written otherwise than the spelling rules of the book want</source>
+        <translation>Pokaż lub ukryj odstępstwa od zasad pisowni książki</translation>
+    </message>
+    <message>
+        <source>Rules %1</source>
+        <extracomment>%1 is the number of the places written otherwise than the spelling rules of the book want. In Polish: Zasady %1</extracomment>
+        <translation>Zasady %1</translation>
     </message>
 </context>
 <context>
@@ -17311,6 +17697,132 @@ The button that moves the element. In Polish: Przenieś</extracomment>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::NameDialog</name>
+    <message>
+        <source>Name</source>
+        <extracomment>The window of a name of the book&apos;s dictionary. In Polish: Imię lub nazwa</extracomment>
+        <translation>Imię lub nazwa</translation>
+    </message>
+    <message>
+        <source>A name of the book in all its forms: the spelling check takes them for right, Quick Insert offers them and Find in Book finds them.</source>
+        <translation>Imię lub nazwa z książki we wszystkich formach: sprawdzanie pisowni uznaje je za poprawne, szybkie wstawianie je podpowiada, a Znajdź w książce je znajduje.</translation>
+    </message>
+    <message>
+        <source>Names of this entry</source>
+        <extracomment>The list of the name itself and its other names. In Polish: Nazwy tej pozycji</extracomment>
+        <translation>Nazwy tej pozycji</translation>
+    </message>
+    <message>
+        <source>Add Other Name</source>
+        <extracomment>Adds a diminutive or a nickname of the name. In Polish: Dodaj inną nazwę</extracomment>
+        <translation>Dodaj inną nazwę</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>&amp;Name:</source>
+        <extracomment>In Polish: Imię lub nazwa:</extracomment>
+        <translation>&amp;Imię lub nazwa:</translation>
+    </message>
+    <message>
+        <source>&amp;Kind:</source>
+        <extracomment>What the name names: a character, a place... In Polish: Rodzaj:</extracomment>
+        <translation>&amp;Rodzaj:</translation>
+    </message>
+    <message>
+        <source>Declension</source>
+        <extracomment>How the words of the name decline. In Polish: Odmiana</extracomment>
+        <translation>Odmiana</translation>
+    </message>
+    <message>
+        <source>Does not change</source>
+        <extracomment>Every word of the name has the same form in every case. In Polish: Nie odmienia się</extracomment>
+        <translation>Nie odmienia się</translation>
+    </message>
+    <message>
+        <source>Suggest the Forms Again</source>
+        <extracomment>Gives every cell of the table the forms of the models again. In Polish: Podpowiedz formy od nowa</extracomment>
+        <translation>Podpowiedz formy od nowa</translation>
+    </message>
+    <message>
+        <source>The plural too (e.g. &quot;at the Wolskis&apos;&quot;)</source>
+        <extracomment>In Polish: Także liczba mnoga (np. „u Wolskich”)</extracomment>
+        <translation>Także liczba mnoga (np. „u Wolskich”)</translation>
+    </message>
+    <message>
+        <source>Show in Quick Insert (@)</source>
+        <extracomment>In Polish: Pokazuj w szybkim wstawianiu (@)</extracomment>
+        <translation>Pokazuj w szybkim wstawianiu (@)</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj / Zapisz</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>(new name)</source>
+        <extracomment>An other name not written yet, in the list of the names. In Polish: (nowa nazwa)</extracomment>
+        <translation>(nowa nazwa)</translation>
+    </message>
+    <message>
+        <source>%1 declines like:</source>
+        <extracomment>The model of declension of a word of the name; %1 is the word in quotes. In Polish: %1 odmienia się jak:</extracomment>
+        <translation>%1 odmienia się jak:</translation>
+    </message>
+    <message>
+        <source>The program has no models of declension for the language of the book: write the forms yourself.</source>
+        <translation>Program nie ma wzorów odmiany dla języka książki: wpisz formy samodzielnie.</translation>
+    </message>
+    <message>
+        <source>The forms are the singular and the plural; the spelling check takes the forms with &apos;s (Anna&apos;s) for right by itself.</source>
+        <translation>Formy to liczba pojedyncza i mnoga; formy z 's (Anna's) sprawdzanie pisowni samo uznaje za poprawne.</translation>
+    </message>
+    <message>
+        <source>The spelling dictionary knows the words of the name and confirms the forms of the models with them. Check the forms: the program only suggests them.</source>
+        <translation>Słownik pisowni zna słowa tej nazwy i potwierdza nimi formy ze wzorów. Sprawdź formy: program tylko je podpowiada.</translation>
+    </message>
+    <message>
+        <source>The spelling dictionary does not know the words of the name, so the forms come from the models of the same endings alone. Check them and correct them if needed.</source>
+        <translation>Słownik pisowni nie zna słów tej nazwy, więc formy pochodzą tylko ze wzorów o tych samych końcówkach. Sprawdź je i w razie potrzeby popraw.</translation>
+    </message>
+    <message>
+        <source>The spelling dictionary does not know %1, so its forms come from the model alone. Check them and correct them if needed.</source>
+        <extracomment>%1: the words in quotes the spelling dictionary does not know</extracomment>
+        <translation>Słownik pisowni nie zna %1, więc formy pochodzą tylko ze wzoru. Sprawdź je i w razie potrzeby popraw.</translation>
+    </message>
+    <message>
+        <source>A cell can have several forms, apart by commas.</source>
+        <translation>Komórka może mieć kilka form, oddzielonych przecinkami.</translation>
+    </message>
+    <message>
+        <source>main</source>
+        <extracomment>The name itself, in the list of the names of an entry. In Polish: główna</extracomment>
+        <translation>główna</translation>
+    </message>
+    <message>
+        <source>other name</source>
+        <extracomment>A diminutive or a nickname. In Polish: inna nazwa</extracomment>
+        <translation>inna nazwa</translation>
+    </message>
+    <message>
+        <source>first name alone</source>
+        <extracomment>In Polish: samo imię</extracomment>
+        <translation>samo imię</translation>
+    </message>
+    <message>
+        <source>surname alone</source>
+        <extracomment>In Polish: samo nazwisko</extracomment>
+        <translation>samo nazwisko</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::NewFileDialog</name>
     <message>
         <source>in {group:plural}</source>
@@ -18209,6 +18721,94 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>The replacements of the table are turned off now (Settings &gt; Editor &gt; Auto-correct).</source>
         <translation>Zamiany z tabeli są teraz wyłączone (Ustawienia &gt; Edytor &gt; Autokorekta).</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::RuleDialog</name>
+    <message>
+        <source>Spelling Rule</source>
+        <extracomment>The window of a spelling rule of the book&apos;s dictionary. In Polish: Zasada pisowni</extracomment>
+        <translation>Zasada pisowni</translation>
+    </message>
+    <message>
+        <source>How you want a word written in this book: the spelling check marks the other spellings and offers this one.</source>
+        <translation>Jak chcesz zapisywać słowo w tej książce: sprawdzanie pisowni zaznacza inne zapisy i podpowiada ten.</translation>
+    </message>
+    <message>
+        <source>&amp;Write:</source>
+        <extracomment>The right spelling of the rule. In Polish: Pisz:</extracomment>
+        <translation>&amp;Pisz:</translation>
+    </message>
+    <message>
+        <source>Wrong spellings</source>
+        <extracomment>In Polish: Błędne zapisy</extracomment>
+        <translation>Błędne zapisy</translation>
+    </message>
+    <message>
+        <source>Another wrong spelling</source>
+        <extracomment>In Polish: Inny błędny zapis</extracomment>
+        <translation>Inny błędny zapis</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj
+----------
+In Polish: Dodaj / Zapisz</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>The program adds the spellings that suggest themselves: the other case of a capital letter, without the hyphen, with it or apart. The rule holds also where the spelling dictionary takes them for right.</source>
+        <translation>Program dodaje zapisy, które się nasuwają: z wielką lub małą literą, bez łącznika, z łącznikiem lub osobno. Zasada obowiązuje także tam, gdzie słownik pisowni uznaje je za poprawne.</translation>
+    </message>
+    <message>
+        <source>&amp;Instead of:</source>
+        <extracomment>The wrong spellings of the rule. In Polish: Zamiast:</extracomment>
+        <translation>&amp;Zamiast:</translation>
+    </message>
+    <message>
+        <source>&amp;Also in their forms</source>
+        <extracomment>The rule covers every form of the word. In Polish: Także w odmianach</extracomment>
+        <translation>&amp;Także w odmianach</translation>
+    </message>
+    <message>
+        <source>A short note, e.g. where the spelling comes from (optional)</source>
+        <extracomment>In Polish: Krótkie wyjaśnienie, np. skąd ta pisownia (nieobowiązkowe)</extracomment>
+        <translation>Krótkie wyjaśnienie, np. skąd ta pisownia (nieobowiązkowe)</translation>
+    </message>
+    <message>
+        <source>&amp;Note:</source>
+        <extracomment>The author&apos;s note on the rule. In Polish: Uwaga:</extracomment>
+        <translation>&amp;Uwaga:</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>suggested</source>
+        <extracomment>A wrong spelling the program added to the rule. In Polish: podpowiedź programu</extracomment>
+        <translation>podpowiedź programu</translation>
+    </message>
+    <message>
+        <source>Only the spellings listed, in no other forms.</source>
+        <translation>Tylko wymienione zapisy, bez innych form.</translation>
+    </message>
+    <message>
+        <source>The spelling dictionary knows no other forms of the word: the rule covers the spellings listed.</source>
+        <translation>Słownik pisowni nie zna innych form tego słowa: zasada obejmuje wymienione zapisy.</translation>
+    </message>
+    <message>
+        <source>Forms from the spelling dictionary: %1</source>
+        <translation>Formy ze słownika pisowni: %1</translation>
+    </message>
+    <message>
+        <source>Forms like those of %1, as the spelling dictionary does not know %2: %3</source>
+        <translation>Formy według wzoru %1 – słownik pisowni nie zna słowa %2: %3</translation>
     </message>
 </context>
 <context>
@@ -19997,6 +20597,11 @@ Note: %2</source>
         <translation>%1
 Notatka: %2</translation>
     </message>
+    <message>
+        <source>Open the Material</source>
+        <extracomment>The menu of a material linked with a chapter or a card. In Polish: Otwórz materiał</extracomment>
+        <translation>Otwórz materiał</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::MaterialFile</name>
@@ -20079,39 +20684,9 @@ In Polish: Otwórz podgląd</extracomment>
         <translation>Wpisz opis...</translation>
     </message>
     <message>
-        <source>Own Fields</source>
-        <extracomment>The writer&apos;s own fields of a material: a name and a value each. In Polish: Własne pola</extracomment>
-        <translation>Własne pola</translation>
-    </message>
-    <message>
-        <source>Add Field (Insert)</source>
-        <extracomment>In Polish: Dodaj pole (Insert)</extracomment>
-        <translation>Dodaj pole (Insert)</translation>
-    </message>
-    <message>
-        <source>Delete Field (Delete)</source>
-        <extracomment>In Polish: Usuń pole (Delete)</extracomment>
-        <translation>Usuń pole (Delete)</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <extracomment>The columns of the own fields of a material. In Polish: Nazwa</extracomment>
-        <translation>Nazwa</translation>
-    </message>
-    <message>
-        <source>Value</source>
-        <extracomment>In Polish: Wartość</extracomment>
-        <translation>Wartość</translation>
-    </message>
-    <message>
         <source>Own fields of the material</source>
         <extracomment>In Polish: Własne pola materiału</extracomment>
         <translation>Własne pola materiału</translation>
-    </message>
-    <message>
-        <source>No fields. &quot;+&quot; or Insert adds a field.</source>
-        <extracomment>In Polish: Brak pól. „+” albo Insert dodaje pole.</extracomment>
-        <translation>Brak pól. „+” albo Insert dodaje pole.</translation>
     </message>
     <message>
         <source>Links</source>
@@ -20160,26 +20735,6 @@ In Polish: Otwórz podgląd</extracomment>
         <source>Description Not Saved</source>
         <extracomment>In Polish: Nie zapisano opisu</extracomment>
         <translation>Nie zapisano opisu</translation>
-    </message>
-    <message>
-        <source>Fields Not Saved</source>
-        <extracomment>In Polish: Nie zapisano pól</extracomment>
-        <translation>Nie zapisano pól</translation>
-    </message>
-    <message>
-        <source>Delete the field &quot;%1&quot; with its value?</source>
-        <extracomment>%1: the name of the field. In Polish: Usunąć pole „%1” razem z jego wartością?</extracomment>
-        <translation>Usunąć pole „%1” razem z jego wartością?</translation>
-    </message>
-    <message>
-        <source>Delete Field</source>
-        <extracomment>In Polish: Usuń pole</extracomment>
-        <translation>Usuń pole</translation>
-    </message>
-    <message>
-        <source>&amp;Delete</source>
-        <extracomment>In Polish: &amp;Usuń</extracomment>
-        <translation>&amp;Usuń</translation>
     </message>
     <message>
         <source>Links Not Saved</source>
@@ -20380,13 +20935,41 @@ Notatka: %2</translation>
     </message>
     <message>
         <source>This version of the program has no preview of PDF files; the system program opens them</source>
-        <extracomment>The tooltip of Preview for a PDF file in a program without the Qt PDF module. In Polish: Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy</extracomment>
+        <extracomment>The tooltip of Preview for a PDF file in a program built without the preview of PDF files. In Polish: Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy</extracomment>
         <translation>Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy</translation>
     </message>
     <message>
         <source>The program shows only pictures and PDF files</source>
         <extracomment>The tooltip of Preview for a file that is no picture nor PDF. In Polish: Program pokazuje tylko obrazy i pliki PDF</extracomment>
         <translation>Program pokazuje tylko obrazy i pliki PDF</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::NameFormsTable</name>
+    <message>
+        <source>Forms</source>
+        <extracomment>The table of the forms of a name in its window. In Polish: Formy</extracomment>
+        <translation>Formy</translation>
+    </message>
+    <message>
+        <source>Case</source>
+        <extracomment>The column of the cases in the table of the forms of a name. In Polish: Przypadek</extracomment>
+        <translation>Przypadek</translation>
+    </message>
+    <message>
+        <source>Singular</source>
+        <extracomment>In Polish: Liczba pojedyncza</extracomment>
+        <translation>Liczba pojedyncza</translation>
+    </message>
+    <message>
+        <source>Plural</source>
+        <extracomment>In Polish: Liczba mnoga</extracomment>
+        <translation>Liczba mnoga</translation>
+    </message>
+    <message>
+        <source>Form</source>
+        <extracomment>The row of a language without cases: the form of the name. In Polish: Forma</extracomment>
+        <translation>Forma</translation>
     </message>
 </context>
 <context>
@@ -20960,6 +21543,238 @@ Where a quote comes from: a source and its page. In Polish: Źródło</extracomm
         <extracomment>The paragraph of a chapter a link names, after its role. In Polish: akapit %1</extracomment>
         <translation>akapit %1</translation>
     </message>
+    <message>
+        <source>point of view</source>
+        <extracomment>A role of a card in a chapter: the chapter is told by the character. In Polish: punkt widzenia</extracomment>
+        <translation>punkt widzenia</translation>
+    </message>
+    <message>
+        <source>appears</source>
+        <extracomment>A role of a card in a chapter: the character or the item is in the chapter. In Polish: występuje</extracomment>
+        <translation>występuje</translation>
+    </message>
+    <message>
+        <source>mentioned</source>
+        <extracomment>A role of a card in a chapter: the card is only spoken of. In Polish: wzmianka</extracomment>
+        <translation>wzmianka</translation>
+    </message>
+    <message>
+        <source>setting</source>
+        <extracomment>A role of a card in a chapter: where the chapter takes place. In Polish: miejsce akcji</extracomment>
+        <translation>miejsce akcji</translation>
+    </message>
+</context>
+<context>
+    <name>NameLabels</name>
+    <message>
+        <source>nominative</source>
+        <extracomment>A grammatical case of a name; in Polish: mianownik</extracomment>
+        <translation>mianownik</translation>
+    </message>
+    <message>
+        <source>genitive</source>
+        <extracomment>In Polish: dopełniacz</extracomment>
+        <translation>dopełniacz</translation>
+    </message>
+    <message>
+        <source>dative</source>
+        <extracomment>In Polish: celownik</extracomment>
+        <translation>celownik</translation>
+    </message>
+    <message>
+        <source>accusative</source>
+        <extracomment>In Polish: biernik</extracomment>
+        <translation>biernik</translation>
+    </message>
+    <message>
+        <source>instrumental</source>
+        <extracomment>In Polish: narzędnik</extracomment>
+        <translation>narzędnik</translation>
+    </message>
+    <message>
+        <source>locative</source>
+        <extracomment>In Polish: miejscownik</extracomment>
+        <translation>miejscownik</translation>
+    </message>
+    <message>
+        <source>vocative</source>
+        <extracomment>In Polish: wołacz</extracomment>
+        <translation>wołacz</translation>
+    </message>
+    <message>
+        <source>%1 plural</source>
+        <extracomment>A grammatical case (%1, &quot;genitive&quot;) in the plural; in Polish: %1 lm.</extracomment>
+        <translation>%1 lm.</translation>
+    </message>
+    <message>
+        <source>plural</source>
+        <extracomment>The number of a form of a name, in a language without cases</extracomment>
+        <translation>liczba mnoga</translation>
+    </message>
+    <message>
+        <source>singular</source>
+        <translation>liczba pojedyncza</translation>
+    </message>
+    <message>
+        <source>character</source>
+        <extracomment>What a name of the book&apos;s dictionary names: a person or another being of the story</extracomment>
+        <translation>postać</translation>
+    </message>
+    <message>
+        <source>location</source>
+        <extracomment>What a name of the book&apos;s dictionary names: a place</extracomment>
+        <translation>miejsce</translation>
+    </message>
+    <message>
+        <source>item</source>
+        <extracomment>What a name of the book&apos;s dictionary names: a thing</extracomment>
+        <translation>przedmiot</translation>
+    </message>
+    <message>
+        <source>name</source>
+        <extracomment>What a name of the book&apos;s dictionary names: a people, an order, an event</extracomment>
+        <translation>nazwa</translation>
+    </message>
+    <message>
+        <source>Characters</source>
+        <extracomment>The heading of the characters of the book in a list</extracomment>
+        <translation>Postacie</translation>
+    </message>
+    <message>
+        <source>Locations</source>
+        <extracomment>The heading of the places of the book in a list</extracomment>
+        <translation>Miejsca</translation>
+    </message>
+    <message>
+        <source>Items</source>
+        <extracomment>The heading of the things of the book in a list</extracomment>
+        <translation>Przedmioty</translation>
+    </message>
+    <message>
+        <source>Other Names</source>
+        <extracomment>The heading of the other proper names of the book in a list</extracomment>
+        <translation>Inne nazwy</translation>
+    </message>
+    <message>
+        <source>Character</source>
+        <extracomment>A kind of name of the book&apos;s dictionary in its window; in Polish: Postać</extracomment>
+        <translation>Postać</translation>
+    </message>
+    <message>
+        <source>Location</source>
+        <extracomment>In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Item</source>
+        <extracomment>In Polish: Przedmiot</extracomment>
+        <translation>Przedmiot</translation>
+    </message>
+    <message>
+        <source>Other name</source>
+        <extracomment>A people, an order, an event; in Polish: Inna nazwa</extracomment>
+        <translation>Inna nazwa</translation>
+    </message>
+    <message>
+        <source>who? what?</source>
+        <extracomment>The questions of the nominative; in Polish: kto? co?</extracomment>
+        <translation>kto? co?</translation>
+    </message>
+    <message>
+        <source>of whom? of what?</source>
+        <extracomment>Of the genitive; in Polish: kogo? czego?</extracomment>
+        <translation>kogo? czego?</translation>
+    </message>
+    <message>
+        <source>to whom? to what?</source>
+        <extracomment>Of the dative; in Polish: komu? czemu?</extracomment>
+        <translation>komu? czemu?</translation>
+    </message>
+    <message>
+        <source>whom? what?</source>
+        <extracomment>Of the accusative; in Polish: kogo? co?</extracomment>
+        <translation>kogo? co?</translation>
+    </message>
+    <message>
+        <source>with whom? with what?</source>
+        <extracomment>Of the instrumental; in Polish: z kim? z czym?</extracomment>
+        <translation>z kim? z czym?</translation>
+    </message>
+    <message>
+        <source>about whom? about what?</source>
+        <extracomment>Of the locative; in Polish: o kim? o czym?</extracomment>
+        <translation>o kim? o czym?</translation>
+    </message>
+    <message>
+        <source>O!</source>
+        <extracomment>Of the vocative; in Polish: o!</extracomment>
+        <translation>o!</translation>
+    </message>
+    <message>
+        <source>Jan – a man&apos;s name ending in a consonant</source>
+        <extracomment>A model of declension: its sample word, then the words that decline like it. In Polish: Jan – męskie na spółgłoskę</extracomment>
+        <translation>Jan – męskie na spółgłoskę</translation>
+    </message>
+    <message>
+        <source>Marek – a man&apos;s name whose e drops (Marka)</source>
+        <extracomment>In Polish: Marek – męskie z opadającym e (Marka)</extracomment>
+        <translation>Marek – męskie z opadającym e (Marka)</translation>
+    </message>
+    <message>
+        <source>Kuba – a man&apos;s name ending in -a or -o</source>
+        <extracomment>In Polish: Kuba – męskie na -a lub -o</extracomment>
+        <translation>Kuba – męskie na -a lub -o</translation>
+    </message>
+    <message>
+        <source>Kowalski – a masculine adjective (-ski, -cki, -y)</source>
+        <extracomment>In Polish: Kowalski – przymiotnikowe męskie (-ski, -cki, -y)</extracomment>
+        <translation>Kowalski – przymiotnikowe męskie (-ski, -cki, -y)</translation>
+    </message>
+    <message>
+        <source>Anna – a feminine noun ending in -a</source>
+        <extracomment>In Polish: Anna – żeńskie na -a</extracomment>
+        <translation>Anna – żeńskie na -a</translation>
+    </message>
+    <message>
+        <source>Kowalska – a feminine adjective (-ska, -cka, -owa)</source>
+        <extracomment>In Polish: Kowalska – przymiotnikowe żeńskie (-ska, -cka, -owa)</extracomment>
+        <translation>Kowalska – przymiotnikowe żeńskie (-ska, -cka, -owa)</translation>
+    </message>
+    <message>
+        <source>Gdańsk – a masculine thing, genitive -a</source>
+        <extracomment>In Polish: Gdańsk – męskie nieżywotne, dopełniacz na -a</extracomment>
+        <translation>Gdańsk – męskie nieżywotne, dopełniacz na -a</translation>
+    </message>
+    <message>
+        <source>Londyn – a masculine thing, genitive -u</source>
+        <extracomment>In Polish: Londyn – męskie nieżywotne, dopełniacz na -u</extracomment>
+        <translation>Londyn – męskie nieżywotne, dopełniacz na -u</translation>
+    </message>
+    <message>
+        <source>Gniezno – a neuter noun ending in -o</source>
+        <extracomment>In Polish: Gniezno – nijakie na -o</extracomment>
+        <translation>Gniezno – nijakie na -o</translation>
+    </message>
+    <message>
+        <source>Opole – a neuter noun ending in -e</source>
+        <extracomment>In Polish: Opole – nijakie na -e</extracomment>
+        <translation>Opole – nijakie na -e</translation>
+    </message>
+    <message>
+        <source>Zakopane – a neuter adjective</source>
+        <extracomment>In Polish: Zakopane – przymiotnikowe nijakie</extracomment>
+        <translation>Zakopane – przymiotnikowe nijakie</translation>
+    </message>
+    <message>
+        <source>Regular – the plural with -s</source>
+        <extracomment>An English name: its plural with -s. In Polish: Regularna – liczba mnoga z -s</extracomment>
+        <translation>Regularna – liczba mnoga z -s</translation>
+    </message>
+    <message>
+        <source>Does not change</source>
+        <extracomment>A word of a name that has the same form in every case. In Polish: Nie odmienia się</extracomment>
+        <translation>Nie odmienia się</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::LinkDialog</name>
@@ -21062,6 +21877,16 @@ Where a quote comes from: a source and its page. In Polish: Źródło</extracomm
         <source>%1 – the quote is in it</source>
         <extracomment>A paragraph with the words of the quote being linked. In Polish: %1 – jest w nim ten cytat</extracomment>
         <translation>%1 – jest w nim ten cytat</translation>
+    </message>
+    <message>
+        <source>Chapters of &quot;%1&quot;</source>
+        <extracomment>The window that links a card of a character, a location or an item with the chapters it is in; %1: its name. In Polish: Rozdziały karty „%1”</extracomment>
+        <translation>Rozdziały karty „%1”</translation>
+    </message>
+    <message>
+        <source>Check the chapters the card is in, and say how.</source>
+        <extracomment>In Polish: Zaznacz rozdziały, w których jest karta, i powiedz, w jaki sposób.</extracomment>
+        <translation>Zaznacz rozdziały, w których jest karta, i powiedz, w jaki sposób.</translation>
     </message>
 </context>
 <context>
@@ -24631,10 +25456,6 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
         <translation>Otwieraj listę po @ albo #</translation>
     </message>
     <message>
-        <source>Names from the cards of the Workshop</source>
-        <translation>Imiona i nazwy z kart Warsztatu</translation>
-    </message>
-    <message>
         <source>Text fragments</source>
         <translation>Fragmenty tekstu</translation>
     </message>
@@ -24697,8 +25518,12 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
         <translation>Przywróć domyślne &amp;znaki</translation>
     </message>
     <message>
-        <source>Type # and the first letters of a name at the start of a word to insert its text. The names of the cards are those of the book open; they need no list here.</source>
-        <translation>Wpisz # i pierwsze litery nazwy na początku słowa, żeby wstawić jej tekst. Imiona i nazwy z kart pochodzą z otwartej książki; nie trzeba ich tu dopisywać.</translation>
+        <source>Names from the book dictionary (and the cards)</source>
+        <translation>Imiona i nazwy ze słownika książki (i z kart)</translation>
+    </message>
+    <message>
+        <source>Type # and the first letters of a name at the start of a word to insert its text. The names of the book dictionary and of the cards are those of the book open; they need no list here.</source>
+        <translation>Wpisz # i pierwsze litery nazwy na początku słowa, żeby wstawić jej tekst. Imiona i nazwy ze słownika książki i z kart pochodzą z otwartej książki; nie trzeba ich tu dopisywać.</translation>
     </message>
 </context>
 <context>
@@ -25042,6 +25867,21 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Inserts: %1</source>
         <extracomment>Quick insert: what the chosen item puts in the text</extracomment>
         <translation>Wstawia: %1</translation>
+    </message>
+    <message>
+        <source>%1 – forms</source>
+        <extracomment>Quick insert: the heading of the forms of a name (%1, &quot;Anna Wolska&quot;) in the list</extracomment>
+        <translation>%1 – odmiany</translation>
+    </message>
+    <message>
+        <source>↑↓ choose · ← back to the list · Enter, Tab insert · Esc leaves “%1”</source>
+        <extracomment>Quick insert: the keys of the forms of a name; %1 is what was typed in the text (&quot;@an&quot;)</extracomment>
+        <translation>↑↓ wybór · ← powrót do listy · Enter, Tab wstawia · Esc zostawia „%1”</translation>
+    </message>
+    <message>
+        <source>↑↓ choose · → forms · Enter, Tab insert · Esc leaves “%1”</source>
+        <extracomment>Quick insert: the keys of a list with names that have forms (▸); %1 is what was typed in the text (&quot;@an&quot;)</extracomment>
+        <translation>↑↓ wybór · → odmiany · Enter, Tab wstawia · Esc zostawia „%1”</translation>
     </message>
 </context>
 <context>
@@ -26968,6 +27808,587 @@ The columns of the highlights of the preview. In Polish: Strona</extracomment>
         <source>Asking %1…</source>
         <extracomment>%1: the catalog, Google Books, Open Library or doi.org. In Polish: Łączenie z %1…</extracomment>
         <translation>Łączenie z %1…</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardPage</name>
+    <message>
+        <source>Card Settings</source>
+        <extracomment>The gear of a card of a character, a location or an item: Settings &gt; Cards. In Polish: Ustawienia kart</extracomment>
+        <translation>Ustawienia kart</translation>
+    </message>
+    <message>
+        <source>Portrait</source>
+        <extracomment>The portrait of a card of a character, a location or an item. In Polish: Portret</extracomment>
+        <translation>Portret</translation>
+    </message>
+    <message>
+        <source>Change the Portrait</source>
+        <extracomment>The tooltip of the portrait of a card. In Polish: Zmień portret</extracomment>
+        <translation>Zmień portret</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The name of a character, a location or an item on its card. In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>In Short</source>
+        <extracomment>The short description of a card, for screen readers. In Polish: W skrócie</extracomment>
+        <translation>W skrócie</translation>
+    </message>
+    <message>
+        <source>Who or what it is, in a sentence or two...</source>
+        <extracomment>In Polish: Kim lub czym jest – w jednym lub dwóch zdaniach...</extracomment>
+        <translation>Kim lub czym jest – w jednym lub dwóch zdaniach...</translation>
+    </message>
+    <message>
+        <source>Card color:</source>
+        <extracomment>The color of a card of a character, a location or an item, which the Navigator shows beside its name. In Polish: Kolor karty:</extracomment>
+        <translation>Kolor karty:</translation>
+    </message>
+    <message>
+        <source>Change the Card Color...</source>
+        <extracomment>In Polish: Zmień kolor karty...</extracomment>
+        <translation>Zmień kolor karty...</translation>
+    </message>
+    <message>
+        <source>Card color</source>
+        <extracomment>In Polish: Kolor karty</extracomment>
+        <translation>Kolor karty</translation>
+    </message>
+    <message>
+        <source>In short:</source>
+        <extracomment>The caption of the short description of a card: who the character is, what the location is. In Polish: W skrócie:</extracomment>
+        <translation>W skrócie:</translation>
+    </message>
+    <message>
+        <source>Data</source>
+        <extracomment>The group of the fields of a card of a character, a location or an item. In Polish: Dane</extracomment>
+        <translation>Dane</translation>
+    </message>
+    <message>
+        <source>Own fields of the card</source>
+        <extracomment>In Polish: Własne pola karty</extracomment>
+        <translation>Własne pola karty</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <extracomment>The long description of a card of a character, a location or an item: the text of the card. In Polish: Opis</extracomment>
+        <translation>Opis</translation>
+    </message>
+    <message>
+        <source>Open Card</source>
+        <extracomment>The button of the short card of a character, a location or an item in the Properties panel, which opens its full card. In Polish: Otwórz kartę</extracomment>
+        <translation>Otwórz kartę</translation>
+    </message>
+    <message>
+        <source>Open the full card beside the chapters</source>
+        <extracomment>In Polish: Otwórz pełną kartę obok rozdziałów</extracomment>
+        <translation>Otwórz pełną kartę obok rozdziałów</translation>
+    </message>
+    <message>
+        <source>{Kind} Information</source>
+        <extracomment>The group of the short card of a character, a location or an item in the Properties panel. In Polish: Informacje o {kind:locative}</extracomment>
+        <translation>Informacje o {kind:locative}</translation>
+    </message>
+    <message>
+        <source>%1:</source>
+        <extracomment>The caption of a field of a card: %1 its name (&quot;Age&quot;). In Polish: %1:</extracomment>
+        <translation>%1:</translation>
+    </message>
+    <message>
+        <source>Type or choose a card...</source>
+        <extracomment>A field of a card that names another card (the owner of an item, the location a location lies in), when it is empty. In Polish: Wpisz albo wybierz kartę...</extracomment>
+        <translation>Wpisz albo wybierz kartę...</translation>
+    </message>
+    <message>
+        <source>Picture from the &amp;Materials</source>
+        <extracomment>The submenu of the portrait of a card with the pictures of the materials of the book. In Polish: Obraz z &amp;materiałów</extracomment>
+        <translation>Obraz z &amp;materiałów</translation>
+    </message>
+    <message>
+        <source>Picture from a &amp;File...</source>
+        <extracomment>In Polish: Obraz z &amp;pliku...</extracomment>
+        <translation>Obraz z &amp;pliku...</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Portrait</source>
+        <extracomment>Takes the portrait off the card; its picture stays in the materials. In Polish: &amp;Usuń portret</extracomment>
+        <translation>&amp;Usuń portret</translation>
+    </message>
+    <message>
+        <source>Choose the Picture of the Portrait</source>
+        <extracomment>The system window choosing the picture of the portrait of a card. In Polish: Wybierz obraz portretu</extracomment>
+        <translation>Wybierz obraz portretu</translation>
+    </message>
+    <message>
+        <source>Images</source>
+        <extracomment>The pictures of the window choosing a portrait. In Polish: Obrazy</extracomment>
+        <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>All Files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Portrait Not Changed</source>
+        <extracomment>In Polish: Nie zmieniono portretu</extracomment>
+        <translation>Nie zmieniono portretu</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Portrait Not Added</source>
+        <extracomment>In Polish: Nie dodano portretu</extracomment>
+        <translation>Nie dodano portretu</translation>
+    </message>
+    <message>
+        <source>The file &quot;%1&quot; is not a picture Kalahari can show.</source>
+        <extracomment>%1: the name of the file. In Polish: Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać.</extracomment>
+        <translation>Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać.</translation>
+    </message>
+    <message>
+        <source>The picture could not be copied into the materials of the book.</source>
+        <extracomment>In Polish: Nie udało się skopiować obrazu do materiałów książki.</extracomment>
+        <translation>Nie udało się skopiować obrazu do materiałów książki.</translation>
+    </message>
+    <message>
+        <source>The color of the card &quot;%1&quot;</source>
+        <extracomment>What the color window chooses: %1 the name of a card. In Polish: Kolor karty „%1”</extracomment>
+        <translation>Kolor karty „%1”</translation>
+    </message>
+    <message>
+        <source>Card Not Saved</source>
+        <extracomment>In Polish: Nie zapisano karty</extracomment>
+        <translation>Nie zapisano karty</translation>
+    </message>
+    <message>
+        <source>Rename Failed</source>
+        <extracomment>In Polish: Nie udało się zmienić nazwy</extracomment>
+        <translation>Nie udało się zmienić nazwy</translation>
+    </message>
+    <message>
+        <source>Description Not Saved</source>
+        <extracomment>In Polish: Nie zapisano opisu</extracomment>
+        <translation>Nie zapisano opisu</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <extracomment>The kind of a card under its name, with the value of the field beside it: &quot;Character · main&quot;. In Polish: %1 · %2</extracomment>
+        <translation>%1 · %2</translation>
+    </message>
+    <message>
+        <source>Find in Book</source>
+        <extracomment>The button of the bar of a full card that searches the texts of the book for the name of the card. In Polish: Znajdź w książce</extracomment>
+        <translation>Znajdź w książce</translation>
+    </message>
+    <message>
+        <source>Searches all the texts of the book for the name of the card (the Search panel)</source>
+        <extracomment>In Polish: Szuka nazwy karty we wszystkich tekstach książki (panel „Wyszukiwanie”)</extracomment>
+        <translation>Szuka nazwy karty we wszystkich tekstach książki (panel „Wyszukiwanie”)</translation>
+    </message>
+    <message>
+        <source>Relation...</source>
+        <extracomment>The button of the bar of a full card that opens the window Relation. In Polish: Relacja...</extracomment>
+        <translation>Relacja...</translation>
+    </message>
+    <message>
+        <source>A new relation with another card</source>
+        <extracomment>In Polish: Nowa relacja z inną kartą</extracomment>
+        <translation>Nowa relacja z inną kartą</translation>
+    </message>
+    <message>
+        <source>No materials are linked with the card. &quot;+&quot; or Insert links them; a file or a picture dropped on the card adds one.</source>
+        <extracomment>The materials of a card without any. In Polish: Z kartą nie są powiązane żadne materiały. „+” albo Insert je powiąże, a plik albo obraz upuszczony na kartę doda nowy materiał.</extracomment>
+        <translation>Z kartą nie są powiązane żadne materiały. „+” albo Insert je powiąże, a plik albo obraz upuszczony na kartę doda nowy materiał.</translation>
+    </message>
+    <message>
+        <source>Set as &amp;Portrait</source>
+        <extracomment>In the menu of a picture linked with a card. In Polish: Ustaw jako &amp;portret</extracomment>
+        <translation>Ustaw jako &amp;portret</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardPanel</name>
+    <message>
+        <source>Description of the card</source>
+        <extracomment>The editor of the long description of a card, for screen readers. In Polish: Opis karty</extracomment>
+        <translation>Opis karty</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardsPage</name>
+    <message>
+        <source>Colors</source>
+        <extracomment>Settings &gt; Cards: the group of the colors of the cards of characters, locations and items. In Polish: Kolory</extracomment>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>Color dots of the cards in the Navigator</source>
+        <extracomment>The dot of the color of a card beside its name in the Navigator. In Polish: Kropki kolorów kart w Nawigatorze</extracomment>
+        <translation>Kropki kolorów kart w Nawigatorze</translation>
+    </message>
+    <message>
+        <source>A color of the palette of new cards</source>
+        <extracomment>What the color window chooses from the palette of the cards. In Polish: Kolor palety nowych kart</extracomment>
+        <translation>Kolor palety nowych kart</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <extracomment>In Polish: Przywróć domyślne</extracomment>
+        <translation>Przywróć domyślne</translation>
+    </message>
+    <message>
+        <source>Palette of new cards:</source>
+        <extracomment>The palette that new cards of characters, locations and items take their colors from. In Polish: Paleta nowych kart:</extracomment>
+        <translation>Paleta nowych kart:</translation>
+    </message>
+    <message>
+        <source>A new card gets the color of the palette that the fewest cards of the book have. A click on a swatch changes the color, Delete takes it out, &quot;+&quot; or Insert adds one. The color of one card is changed on its full card.</source>
+        <extracomment>In Polish: Nowa karta dostaje ten kolor palety, który ma najmniej kart książki. Kliknięcie próbki zmienia kolor, Delete go usuwa, a „+” albo Insert dodaje nowy. Kolor jednej karty zmienia się na jej pełnej karcie.</extracomment>
+        <translation>Nowa karta dostaje ten kolor palety, który ma najmniej kart książki. Kliknięcie próbki zmienia kolor, Delete go usuwa, a „+” albo Insert dodaje nowy. Kolor jednej karty zmienia się na jej pełnej karcie.</translation>
+    </message>
+    <message>
+        <source>Navigator</source>
+        <extracomment>Settings &gt; Cards: the group of how the cards are in the Navigator. In Polish: Nawigator</extracomment>
+        <translation>Nawigator</translation>
+    </message>
+    <message>
+        <source>A tree by parent location</source>
+        <extracomment>The locations in the Navigator, each under the location it is part of. In Polish: Drzewo według miejsca nadrzędnego</extracomment>
+        <translation>Drzewo według miejsca nadrzędnego</translation>
+    </message>
+    <message>
+        <source>An alphabetical list</source>
+        <extracomment>In Polish: Lista alfabetyczna</extracomment>
+        <translation>Lista alfabetyczna</translation>
+    </message>
+    <message>
+        <source>For example, a district under its city. The cards of other kinds whose field names a card of the same kind are in trees as well.</source>
+        <extracomment>In Polish: Na przykład Żoliborz pod Warszawą. Tak samo są ułożone karty innych rodzajów, których pole wskazuje kartę tego samego rodzaju.</extracomment>
+        <translation>Na przykład Żoliborz pod Warszawą. Tak samo są ułożone karty innych rodzajów, których pole wskazuje kartę tego samego rodzaju.</translation>
+    </message>
+    <message>
+        <source>Locations in the Navigator:</source>
+        <extracomment>The label of the choice between a tree and a list of the locations. In Polish: Miejsca w Nawigatorze:</extracomment>
+        <translation>Miejsca w Nawigatorze:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::OwnFieldsBox</name>
+    <message>
+        <source>Own Fields</source>
+        <extracomment>The writer&apos;s own fields of an element of the Workshop (a material, a card of a character): a name and a value each. In Polish: Własne pola</extracomment>
+        <translation>Własne pola</translation>
+    </message>
+    <message>
+        <source>Add Field (Insert)</source>
+        <extracomment>In Polish: Dodaj pole (Insert)</extracomment>
+        <translation>Dodaj pole (Insert)</translation>
+    </message>
+    <message>
+        <source>Delete Field (Delete)</source>
+        <extracomment>In Polish: Usuń pole (Delete)</extracomment>
+        <translation>Usuń pole (Delete)</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The columns of the own fields. In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <extracomment>In Polish: Wartość</extracomment>
+        <translation>Wartość</translation>
+    </message>
+    <message>
+        <source>No fields. &quot;+&quot; or Insert adds a field.</source>
+        <extracomment>In Polish: Brak pól. „+” albo Insert dodaje pole.</extracomment>
+        <translation>Brak pól. „+” albo Insert dodaje pole.</translation>
+    </message>
+    <message>
+        <source>Fields Not Saved</source>
+        <extracomment>In Polish: Nie zapisano pól</extracomment>
+        <translation>Nie zapisano pól</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Delete the field &quot;%1&quot; with its value?</source>
+        <extracomment>%1: the name of the field. In Polish: Usunąć pole „%1” razem z jego wartością?</extracomment>
+        <translation>Usunąć pole „%1” razem z jego wartością?</translation>
+    </message>
+    <message>
+        <source>Delete Field</source>
+        <extracomment>In Polish: Usuń pole</extracomment>
+        <translation>Usuń pole</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PaletteEdit</name>
+    <message>
+        <source>Add Color... (Insert)</source>
+        <extracomment>The button after the swatches of a palette in the Settings. In Polish: Dodaj kolor... (Insert)</extracomment>
+        <translation>Dodaj kolor... (Insert)</translation>
+    </message>
+    <message>
+        <source>Color %1: %2</source>
+        <extracomment>A swatch of a palette in the Settings: %1 its number, %2 its color, &quot;#C0504D&quot;. In Polish: Kolor %1: %2</extracomment>
+        <translation>Kolor %1: %2</translation>
+    </message>
+    <message>
+        <source>Color %1: %2. A click changes it, Delete takes it out.</source>
+        <extracomment>The tooltip of a swatch of a palette in the Settings: %1 its number, %2 its color. In Polish: Kolor %1: %2. Kliknięcie go zmienia, Delete usuwa.</extracomment>
+        <translation>Kolor %1: %2. Kliknięcie go zmienia, Delete usuwa.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardChaptersBox</name>
+    <message>
+        <source>In Chapters</source>
+        <extracomment>The group of the chapters a card of a character, a location or an item is in. In Polish: W rozdziałach</extracomment>
+        <translation>W rozdziałach</translation>
+    </message>
+    <message>
+        <source>Link with Chapters... (Insert)</source>
+        <extracomment>In Polish: Powiąż z rozdziałami... (Insert)</extracomment>
+        <translation>Powiąż z rozdziałami... (Insert)</translation>
+    </message>
+    <message>
+        <source>Remove from Chapter (Delete)</source>
+        <extracomment>In Polish: Usuń z rozdziału (Delete)</extracomment>
+        <translation>Usuń z rozdziału (Delete)</translation>
+    </message>
+    <message>
+        <source>Chapters of the card</source>
+        <extracomment>In Polish: Rozdziały karty</extracomment>
+        <translation>Rozdziały karty</translation>
+    </message>
+    <message>
+        <source>The card is in no chapter yet. &quot;+&quot; or Insert links it.</source>
+        <extracomment>In Polish: Karta nie jest jeszcze w żadnym rozdziale. „+” albo Insert ją powiąże.</extracomment>
+        <translation>Karta nie jest jeszcze w żadnym rozdziale. „+” albo Insert ją powiąże.</translation>
+    </message>
+    <message>
+        <source>Links Not Saved</source>
+        <extracomment>In Polish: Nie zapisano powiązań</extracomment>
+        <translation>Nie zapisano powiązań</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Open the Chapter</source>
+        <extracomment>The menu of a chapter of a card. In Polish: Otwórz rozdział</extracomment>
+        <translation>Otwórz rozdział</translation>
+    </message>
+    <message>
+        <source>Change the Link... (F2)</source>
+        <extracomment>In Polish: Zmień powiązanie... (F2)</extracomment>
+        <translation>Zmień powiązanie... (F2)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::RelationsBox</name>
+    <message>
+        <source>Relations</source>
+        <extracomment>The group of the relations of a card with the other cards. In Polish: Relacje</extracomment>
+        <translation>Relacje</translation>
+    </message>
+    <message>
+        <source>New Relation... (Insert)</source>
+        <extracomment>In Polish: Nowa relacja... (Insert)</extracomment>
+        <translation>Nowa relacja... (Insert)</translation>
+    </message>
+    <message>
+        <source>Delete Relation (Delete)</source>
+        <extracomment>In Polish: Usuń relację (Delete)</extracomment>
+        <translation>Usuń relację (Delete)</translation>
+    </message>
+    <message>
+        <source>Relations of the card</source>
+        <extracomment>In Polish: Relacje karty</extracomment>
+        <translation>Relacje karty</translation>
+    </message>
+    <message>
+        <source>No relations. &quot;+&quot; or Insert adds one.</source>
+        <extracomment>In Polish: Brak relacji. „+” albo Insert dodaje relację.</extracomment>
+        <translation>Brak relacji. „+” albo Insert dodaje relację.</translation>
+    </message>
+    <message>
+        <source>Delete the relation &quot;%1 – %2&quot; with its note?</source>
+        <extracomment>%1: the relation, %2: the other card. In Polish: Usunąć relację „%1 – %2” razem z jej notatką?</extracomment>
+        <translation>Usunąć relację „%1 – %2” razem z jej notatką?</translation>
+    </message>
+    <message>
+        <source>Delete Relation</source>
+        <extracomment>In Polish: Usuń relację</extracomment>
+        <translation>Usuń relację</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Relation Not Saved</source>
+        <extracomment>In Polish: Nie zapisano relacji</extracomment>
+        <translation>Nie zapisano relacji</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Open the Card</source>
+        <extracomment>The menu of a relation of a card. In Polish: Otwórz kartę, Pokaż kartę</extracomment>
+        <translation>Otwórz kartę</translation>
+    </message>
+    <message>
+        <source>Show the Card</source>
+        <translation>Pokaż kartę</translation>
+    </message>
+    <message>
+        <source>Change the Relation... (F2)</source>
+        <extracomment>In Polish: Zmień relację... (F2)</extracomment>
+        <translation>Zmień relację... (F2)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::RelationDialog</name>
+    <message>
+        <source>On the card &quot;%1&quot;: &lt;b&gt;%2&lt;/b&gt; – %3</source>
+        <extracomment>How a card shows a relation, in the window Relation: %1 the card, %2 the name of the relation, %3 the other card. Keep &lt;b&gt; and &lt;/b&gt;. In Polish: Na karcie „%1”: &lt;b&gt;%2&lt;/b&gt; – %3</extracomment>
+        <translation>Na karcie „%1”: &lt;b&gt;%2&lt;/b&gt; – %3</translation>
+    </message>
+    <message>
+        <source>Relation of &quot;%1&quot;</source>
+        <extracomment>The window of a relation of a card with another card; %1: the name of the card. In Polish: Relacja karty „%1”</extracomment>
+        <translation>Relacja karty „%1”</translation>
+    </message>
+    <message>
+        <source>Choose the card and the kind of the relation. Both cards show it.</source>
+        <extracomment>In Polish: Wybierz kartę i rodzaj relacji. Relacja pokaże się na obu kartach.</extracomment>
+        <translation>Wybierz kartę i rodzaj relacji. Relacja pokaże się na obu kartach.</translation>
+    </message>
+    <message>
+        <source>&amp;Change</source>
+        <extracomment>The button of the window Relation. In Polish: &amp;Dodaj, &amp;Zmień</extracomment>
+        <translation>&amp;Zmień</translation>
+    </message>
+    <message>
+        <source>&amp;Add</source>
+        <translation>&amp;Dodaj</translation>
+    </message>
+    <message>
+        <source>Type to filter...</source>
+        <extracomment>In Polish: Pisz, żeby filtrować...</extracomment>
+        <translation>Pisz, żeby filtrować...</translation>
+    </message>
+    <message>
+        <source>Filter of the cards</source>
+        <extracomment>In Polish: Filtr kart</extracomment>
+        <translation>Filtr kart</translation>
+    </message>
+    <message>
+        <source>Cards</source>
+        <extracomment>In Polish: Karty</extracomment>
+        <translation>Karty</translation>
+    </message>
+    <message>
+        <source>Relation</source>
+        <extracomment>In Polish: Relacja</extracomment>
+        <translation>Relacja</translation>
+    </message>
+    <message>
+        <source>e.g. creditor</source>
+        <extracomment>What the other card is to the card, in a relation the writer names. In Polish: np. wierzyciel</extracomment>
+        <translation>np. wierzyciel</translation>
+    </message>
+    <message>
+        <source>e.g. debtor</source>
+        <extracomment>In Polish: np. dłużniczka</extracomment>
+        <translation>np. dłużniczka</translation>
+    </message>
+    <message>
+        <source>e.g. since childhood</source>
+        <extracomment>In Polish: np. od dzieciństwa</extracomment>
+        <translation>np. od dzieciństwa</translation>
+    </message>
+    <message>
+        <source>&amp;With whom or what:</source>
+        <extracomment>In Polish: &amp;Z kim albo z czym:</extracomment>
+        <translation>&amp;Z kim albo z czym:</translation>
+    </message>
+    <message>
+        <source>&amp;Relation:</source>
+        <extracomment>In Polish: &amp;Relacja:</extracomment>
+        <translation>&amp;Relacja:</translation>
+    </message>
+    <message>
+        <source>On both cards:</source>
+        <extracomment>In Polish: Na obu kartach:</extracomment>
+        <translation>Na obu kartach:</translation>
+    </message>
+    <message>
+        <source>&amp;Note:</source>
+        <extracomment>In Polish: &amp;Notatka:</extracomment>
+        <translation>&amp;Notatka:</translation>
+    </message>
+    <message>
+        <source>Enter saves, Esc closes</source>
+        <extracomment>The keys of the window Relation, beside its buttons. In Polish: Enter zapisuje, Esc zamyka</extracomment>
+        <translation>Enter zapisuje, Esc zamyka</translation>
+    </message>
+    <message>
+        <source>Create {kind} &quot;%1&quot;...</source>
+        <extracomment>The last items of the list of the window Relation: a new card of a kind with the name typed, %1. In Polish: Utwórz {kind:accusative} „%1”...</extracomment>
+        <translation>Utwórz {kind:accusative} „%1”...</translation>
+    </message>
+    <message>
+        <source>own</source>
+        <extracomment>The group of a relation the writer named, in the window Relation. In Polish: własna</extracomment>
+        <translation>własna</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>A relation in the window Relation with its group: &quot;siblings (family)&quot;. In Polish: %1 (%2)</extracomment>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>Own Relation...</source>
+        <extracomment>The last relation of the window Relation, which the writer names. In Polish: Własna relacja...</extracomment>
+        <translation>Własna relacja...</translation>
+    </message>
+    <message>
+        <source>On the card &quot;%1&quot;:</source>
+        <extracomment>The name of a relation the writer names, as card %1 shows it. In Polish: Na karcie „%1”:</extracomment>
+        <translation>Na karcie „%1”:</translation>
+    </message>
+    <message>
+        <source>Card Not Added</source>
+        <extracomment>In Polish: Nie dodano karty</extracomment>
+        <translation>Nie dodano karty</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Relation Not Saved</source>
+        <extracomment>In Polish: Nie zapisano relacji</extracomment>
+        <translation>Nie zapisano relacji</translation>
     </message>
 </context>
 </TS>

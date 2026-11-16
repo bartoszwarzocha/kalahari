@@ -6,6 +6,7 @@
 
 #include <kalahari/editor/quick_insert_controller.h>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/quick_insert.h>
 
 #include <QApplication>
 #include <QFocusEvent>
@@ -14,10 +15,13 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QMimeData>
+#include <QStringView>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <array>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -31,6 +35,32 @@ constexpr int WIDTH_IN_CHARACTERS = 46;
 
 /// @brief The space between the cursor and the list, in pixels
 constexpr int CURSOR_GAP = 3;
+
+/// @brief Beside the detail of an item with forms: Right shows them
+constexpr QStringView FORMS_MARK = u"  ▸";
+
+/// @brief The keys of the list taken before any shortcut that has them (Esc), beside Right
+///        and Left (QuickInsertController::takesKey())
+constexpr std::array<int, 8> LIST_KEYS = {Qt::Key_Up,     Qt::Key_Down,  Qt::Key_PageUp,
+                                          Qt::Key_PageDown, Qt::Key_Return, Qt::Key_Enter,
+                                          Qt::Key_Tab,    Qt::Key_Escape};
+
+/// @brief How far Up, Down, Page Up and Page Down move the choice (@p page: a page); 0 for
+///        another key
+int stepsOf(int key, int page) {
+    switch (key) {
+        case Qt::Key_Up:
+            return -1;
+        case Qt::Key_Down:
+            return 1;
+        case Qt::Key_PageUp:
+            return -page;
+        case Qt::Key_PageDown:
+            return page;
+        default:
+            return 0;
+    }
+}
 
 /// @brief The text an item inserts as the list shows it: one line, the paragraph breaks as ¶
 QString shownText(const QString& text) {
@@ -102,6 +132,13 @@ QuickInsertList::QuickInsertList(QWidget* parent) : QFrame(parent) {
 }
 
 void QuickInsertList::setItems(const QList<QuickInsertItem>& items, const QString& typed) {
+    m_typed = typed;
+    m_listed.clear();
+    m_formsOf = -1;
+    fill(items, items.isEmpty() ? -1 : 0);
+}
+
+void QuickInsertList::fill(const QList<QuickInsertItem>& items, int current) {
     m_items = items;
     m_rows.clear();
     m_tree->clear();
@@ -120,7 +157,12 @@ void QuickInsertList::setItems(const QList<QuickInsertItem>& items, const QStrin
                 heading->setFirstColumnSpanned(true);
             }
         }
-        auto* row = new QTreeWidgetItem(m_tree, {item.name, shownText(item.detail)});
+        // ▸: Right shows its forms
+        QString detail = shownText(item.detail);
+        if (!item.forms.isEmpty()) {
+            detail.append(FORMS_MARK);
+        }
+        auto* row = new QTreeWidgetItem(m_tree, {item.name, detail});
         row->setForeground(1, palette().brush(QPalette::PlaceholderText));
         row->setToolTip(0, item.name);
         row->setToolTip(1, item.detail);
@@ -129,13 +171,12 @@ void QuickInsertList::setItems(const QList<QuickInsertItem>& items, const QStrin
 
     if (items.isEmpty()) {
         //: Quick insert: the list after the letters typed in the text (%1, "@xyz") found nothing
-        m_preview->setText(tr("Nothing matches “%1”. The next character closes the list.").arg(typed));
+        m_preview->setText(
+            tr("Nothing matches “%1”. The next character closes the list.").arg(m_typed));
         m_tree->hide();
     } else {
         m_tree->show();
     }
-    //: Quick insert: the keys of the list; %1 is what was typed in the text ("@an")
-    m_keys->setText(tr("↑↓ choose · Enter, Tab insert · Esc leaves “%1”").arg(typed));
 
     // As high as its rows, up to VISIBLE_ROWS of them
     const int rowHeight = std::max(m_tree->sizeHintForRow(0), QFontMetrics(font()).height() + 4);
@@ -143,7 +184,7 @@ void QuickInsertList::setItems(const QList<QuickInsertItem>& items, const QStrin
     m_tree->setFixedHeight(rows * rowHeight + 2 * m_tree->frameWidth() + 2);
 
     m_current = -1;
-    setCurrent(items.isEmpty() ? -1 : 0);
+    setCurrent(current);
     adjustSize();
 }
 
@@ -183,7 +224,57 @@ int QuickInsertList::pageSize() const {
     return VISIBLE_ROWS - 1;
 }
 
+bool QuickInsertList::hasForms() const {
+    return std::ranges::any_of(m_items,
+                               [](const QuickInsertItem& item) { return !item.forms.isEmpty(); });
+}
+
+bool QuickInsertList::showForms() {
+    if (showsForms() || m_current < 0 || m_items.at(m_current).forms.isEmpty()) {
+        return false;
+    }
+    const QuickInsertItem& item = m_items.at(m_current);
+    QList<QuickInsertItem> forms;
+    forms.reserve(item.forms.size());
+    for (const QuickInsertForm& form : item.forms) {
+        QuickInsertItem shown = formItem(item, form);
+        shown.detail = form.cases;
+        //: Quick insert: the heading of the forms of a name (%1, "Anna Wolska") in the list
+        shown.group = tr("%1 – forms").arg(item.name);
+        forms.append(shown);
+    }
+    const int formsOf = m_current;
+    m_listed = m_items;
+    m_formsOf = formsOf;
+    fill(forms, 0);
+    return true;
+}
+
+bool QuickInsertList::showItems() {
+    if (!showsForms()) {
+        return false;
+    }
+    const int chosen = m_formsOf;
+    m_formsOf = -1;
+    const QList<QuickInsertItem> items = std::exchange(m_listed, {});
+    fill(items, chosen);
+    return true;
+}
+
 void QuickInsertList::showChoice() {
+    if (showsForms()) {
+        //: Quick insert: the keys of the forms of a name; %1 is what was typed in the text ("@an")
+        m_keys->setText(tr("↑↓ choose · ← back to the list · Enter, Tab insert · Esc leaves “%1”")
+                            .arg(m_typed));
+    } else if (hasForms()) {
+        //: Quick insert: the keys of a list with names that have forms (▸); %1 is what was typed
+        //: in the text ("@an")
+        m_keys->setText(tr("↑↓ choose · → forms · Enter, Tab insert · Esc leaves “%1”")
+                            .arg(m_typed));
+    } else {
+        //: Quick insert: the keys of the list; %1 is what was typed in the text ("@an")
+        m_keys->setText(tr("↑↓ choose · Enter, Tab insert · Esc leaves “%1”").arg(m_typed));
+    }
     if (m_current < 0) {
         return;
     }
@@ -356,20 +447,31 @@ bool QuickInsertController::insertCurrent() {
     return true;
 }
 
-bool QuickInsertController::handleKey(int key) {
+bool QuickInsertController::takesKey(int key) const {
     switch (key) {
-        case Qt::Key_Up:
-            m_list->move(-1);
+        case Qt::Key_Right:
+            return m_list->hasForms() || m_list->showsForms();
+        case Qt::Key_Left:
+            return m_list->showsForms();
+        default:
+            return std::ranges::find(LIST_KEYS, key) != LIST_KEYS.end();
+    }
+}
+
+bool QuickInsertController::handleKey(int key) {
+    if (const int steps = stepsOf(key, m_list->pageSize()); steps != 0) {
+        m_list->move(steps);
+        return true;
+    }
+    switch (key) {
+        case Qt::Key_Right:
+            if (!takesKey(key)) {
+                return false;  // The cursor moves in the text
+            }
+            m_list->showForms();
             return true;
-        case Qt::Key_Down:
-            m_list->move(1);
-            return true;
-        case Qt::Key_PageUp:
-            m_list->move(-m_list->pageSize());
-            return true;
-        case Qt::Key_PageDown:
-            m_list->move(m_list->pageSize());
-            return true;
+        case Qt::Key_Left:
+            return m_list->showItems();
         case Qt::Key_Return:
         case Qt::Key_Enter:
         case Qt::Key_Tab:
@@ -400,11 +502,7 @@ bool QuickInsertController::eventFilter(QObject* watched, QEvent* event) {
                 if (plain) {
                     if (event->type() == QEvent::ShortcutOverride) {
                         // The keys of the list before any shortcut that has them (Esc)
-                        static const QList<int> listKeys = {Qt::Key_Up,     Qt::Key_Down,
-                                                            Qt::Key_PageUp, Qt::Key_PageDown,
-                                                            Qt::Key_Return, Qt::Key_Enter,
-                                                            Qt::Key_Tab,    Qt::Key_Escape};
-                        if (listKeys.contains(key->key())) {
+                        if (takesKey(key->key())) {
                             event->accept();
                             return true;
                         }
