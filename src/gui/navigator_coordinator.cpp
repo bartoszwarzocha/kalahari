@@ -210,8 +210,7 @@ NavigatorCoordinator::NavigatorCoordinator(core::ProjectManager& book, CommandRe
     m_settingsListener = core::SettingsManager::getInstance().subscribe(
         [self = QPointer<NavigatorCoordinator>(this)](const std::string& key) {
             if (self != nullptr && key == NavigatorPanel::CARDS_TREE_SETTING) {
-                QMetaObject::invokeMethod(self, &NavigatorCoordinator::refreshCardTrees,
-                                          Qt::QueuedConnection);
+                QMetaObject::invokeMethod(self, "refreshCardTrees", Qt::QueuedConnection);
             }
         });
 
