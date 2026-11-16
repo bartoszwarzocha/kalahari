@@ -16,6 +16,7 @@
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/shared_history.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_images.h>
 #include <QAction>
@@ -712,6 +713,28 @@ bool BookEditor::removeTextFrom(const CursorPosition& at)
     return true;
 }
 
+bool BookEditor::takeSelection(bool moved)
+{
+    if (refusesChange() || !hasSelection() || !m_textBuffer) {
+        return false;
+    }
+    // With the annotations, as Cut takes them: they go with the text
+    if (moved) {
+        emit movingStarted();
+    }
+    const bool taken = removeSelection(false);
+    if (moved) {
+        if (taken) {
+            m_movedLevels.insert(m_undoLevel);
+        }
+        emit movingFinished();
+    }
+    if (taken) {
+        emit cursorPositionChanged(m_cursorPosition);
+    }
+    return taken;
+}
+
 void BookEditor::undoMovedText()
 {
     // The text comes back from another text: its words are not written
@@ -1189,6 +1212,38 @@ bool BookEditor::canRedo() const
     return !m_readOnly && m_textBuffer && m_textBuffer->isRedoAvailable();
 }
 
+bool BookEditor::canUndoCommand() const
+{
+    return canUndo() ||
+           (!m_readOnly && m_sharedHistory != nullptr && m_sharedHistory->undoesFor(*this));
+}
+
+bool BookEditor::canRedoCommand() const
+{
+    return canRedo() ||
+           (!m_readOnly && m_sharedHistory != nullptr && m_sharedHistory->redoesFor(*this));
+}
+
+void BookEditor::undoCommand()
+{
+    // Replace All in Book, its last step: undone in every text it changed (user's test of
+    // 16.11)
+    if (!m_readOnly && m_sharedHistory != nullptr && m_sharedHistory->undoesFor(*this)) {
+        m_sharedHistory->undoFor(*this);
+        return;
+    }
+    undo();
+}
+
+void BookEditor::redoCommand()
+{
+    if (!m_readOnly && m_sharedHistory != nullptr && m_sharedHistory->redoesFor(*this)) {
+        m_sharedHistory->redoFor(*this);
+        return;
+    }
+    redo();
+}
+
 void BookEditor::undo()
 {
     if (refusesChange()) {
@@ -1214,10 +1269,7 @@ void BookEditor::undo()
     m_stepCursor.reset();
     m_pendingFormat = QTextCharFormat();
     const int level = m_undoLevel;
-    const bool pasting = m_pasteLevels.contains(level);
-    if (pasting) {
-        emit pastingStarted();
-    }
+    const LevelKind kind = announceLevel(level);
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->undo(&cursor);
     m_undoLevel = std::max(0, level - 1);
@@ -1230,9 +1282,7 @@ void BookEditor::undo()
     ensureCursorVisible();
     update();
     emit contentChanged();
-    if (pasting) {
-        emit pastingFinished(level, true);
-    }
+    finishLevel(level, kind);
     emit cursorPositionChanged(m_cursorPosition);
     if (learned) {
         emit autoCorrectionUndone(learned->list, learned->exception);
@@ -1251,10 +1301,7 @@ void BookEditor::redo()
     m_stepCursor.reset();
     m_pendingFormat = QTextCharFormat();  // as undo() does
     const int level = m_undoLevel + 1;
-    const bool pasting = m_pasteLevels.contains(level);
-    if (pasting) {
-        emit pastingStarted();
-    }
+    const LevelKind kind = announceLevel(level);
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->redo(&cursor);
     m_undoLevel = level;
@@ -1267,10 +1314,31 @@ void BookEditor::redo()
     ensureCursorVisible();
     update();
     emit contentChanged();
-    if (pasting) {
+    finishLevel(level, kind);
+    emit cursorPositionChanged(m_cursorPosition);
+}
+
+BookEditor::LevelKind BookEditor::announceLevel(int level)
+{
+    const LevelKind kind{.pasting = m_pasteLevels.contains(level),
+                         .moving = m_movedLevels.contains(level)};
+    if (kind.pasting) {
+        emit pastingStarted();
+    }
+    if (kind.moving) {
+        emit movingStarted();
+    }
+    return kind;
+}
+
+void BookEditor::finishLevel(int level, LevelKind kind)
+{
+    if (kind.pasting) {
         emit pastingFinished(level, true);
     }
-    emit cursorPositionChanged(m_cursorPosition);
+    if (kind.moving) {
+        emit movingFinished();
+    }
 }
 
 void BookEditor::undoWithoutRedo()
@@ -1284,6 +1352,7 @@ void BookEditor::undoWithoutRedo()
     undo();
     m_textBuffer->clearUndoRedoStacks(QTextDocument::RedoStack);
     m_pasteLevels.removeIf([this](int paste) { return paste > m_undoLevel; });
+    m_movedLevels.removeIf([this](int moved) { return moved > m_undoLevel; });
 }
 
 void BookEditor::clearUndoStack()
@@ -1296,6 +1365,7 @@ void BookEditor::clearUndoStack()
         m_textBuffer->clearUndoRedoStacks();
         m_undoLevel = 0;
         m_pasteLevels.clear();
+        m_movedLevels.clear();
         m_learnableChange.reset();  // no longer undone
         m_textBuffer->setModified(!modified);
         m_textBuffer->setModified(modified);

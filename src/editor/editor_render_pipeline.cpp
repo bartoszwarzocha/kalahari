@@ -5,6 +5,7 @@
 /// @brief Implementation of unified rendering pipeline (OpenSpec #00043 Phase 12.1)
 
 #include <kalahari/editor/editor_render_pipeline.h>
+#include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/editor/search_engine.h>
@@ -18,6 +19,7 @@
 #include <QPixmap>
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <map>
 
 namespace kalahari::editor {
@@ -28,9 +30,13 @@ namespace {
 constexpr double PAGE_NUMBER_FONT_SCALE = 0.8;
 
 /// The numbers on the margin: their right edge this far left of the text (or half the
-/// margin, when it is narrower than twice as much), and their size without a valid one
+/// margin, when it is narrower than twice as much, but never closer than the smallest gap),
+/// and their size without a valid one. A margin narrower than the numbers leaves them on the
+/// desk beside the page, which has room for as many digits at least
 constexpr double MARGIN_NUMBER_GAP_MM = 8.0;
+constexpr double MIN_MARGIN_NUMBER_GAP_MM = 2.0;
 constexpr double DEFAULT_MARGIN_NUMBER_POINTS = 8.0;
+constexpr int MARGIN_NUMBER_DIGITS = 4;
 
 /// Shade of the desk around the pages, from the paper color, where the desk has no color of its
 /// own (QColor::darker() for light paper, QColor::lighter() for dark paper)
@@ -299,14 +305,18 @@ void EditorRenderPipeline::computeViewGeometry() {
     // The pages, or the endless page of the continuous views, are a column with the page
     // gap around it, the same in every view. It is centred while it fits the view and
     // scrolls sideways when the zoom makes it wider.
+    // The desk left of the page has room for the numbers on the margin where the margin is
+    // narrower than they are
     const double gap = std::max(0.0, m_context.pageMode.pageSpacing);
+    computed.deskLeft = gap + marginNumbersRoom();
     const double pageWidth = computed.pageWidthPixels * scale;
     const double pagesViewWidth = std::max(0.0, viewWidth - m_context.scrollBarWidth);
-    computed.contentWidth = pageWidth + 2.0 * gap * scale;
+    computed.contentWidth = pageWidth + (computed.deskLeft + gap) * scale;
     const double maxX = std::max(0.0, computed.contentWidth - pagesViewWidth);
     m_context.scrollX = std::clamp(m_context.scrollX, 0.0, maxX);
     computed.pageCenterOffset =
-        maxX > 0.0 ? gap * scale - m_context.scrollX : (pagesViewWidth - pageWidth) / 2.0;
+        maxX > 0.0 ? computed.deskLeft * scale - m_context.scrollX
+                   : std::max((pagesViewWidth - pageWidth) / 2.0, computed.deskLeft * scale);
     computed.originX = computed.pageCenterOffset + computed.marginLeft * scale;
     // A bar over the view's top edge (find/replace) takes the top of the view: the pages
     // start below it, and the scroll range has room for it, so that no line is hidden under
@@ -499,6 +509,8 @@ void EditorRenderPipeline::setConfigMarginNumbers(const MarginNumbers& numbers) 
     if (m_context.marginNumbers == numbers) return;
 
     m_context.marginNumbers = numbers;
+    // The desk beside the page may need room for them, or no more
+    computeViewGeometry();
     markRepaintOnly();
 }
 
@@ -868,19 +880,30 @@ void EditorRenderPipeline::renderAnnotationMarks(QPainter* painter, const QRect&
 }
 
 void EditorRenderPipeline::setParagraphMarks(std::vector<ParagraphMark> marks,
-                                             const QIcon& icon) {
+                                             const QMap<ParagraphMarkKind, QIcon>& icons) {
     m_paragraphMarks = std::move(marks);
-    m_paragraphMarkIcon = icon;
+    m_paragraphMarkIcons = icons;
+    // A mark goes left of those of its paragraph before it
+    m_paragraphMarkSlots.assign(m_paragraphMarks.size(), 0);
+    for (size_t i = 0; i < m_paragraphMarks.size(); ++i) {
+        m_paragraphMarkSlots[i] = static_cast<size_t>(
+            std::count_if(m_paragraphMarks.cbegin(),
+                          m_paragraphMarks.cbegin() + static_cast<std::ptrdiff_t>(i),
+                          [&mark = m_paragraphMarks[i]](const ParagraphMark& before) {
+                              return before.paragraph == mark.paragraph;
+                          }));
+    }
     markRepaintOnly();
 }
 
 std::optional<ParagraphMark> EditorRenderPipeline::paragraphMarkAt(const QPointF& point) const {
     const size_t first = m_context.computed.firstVisibleParagraph;
     const size_t last = m_context.computed.lastVisibleParagraph;
-    for (const ParagraphMark& mark : m_paragraphMarks) {
+    for (size_t i = 0; i < m_paragraphMarks.size(); ++i) {
+        const ParagraphMark& mark = m_paragraphMarks[i];
         const auto paragraph = static_cast<size_t>(std::max(mark.paragraph, 0));
         if (paragraph < first || paragraph > last) continue;
-        const QRectF rect = paragraphMarkRect(paragraph);
+        const QRectF rect = paragraphMarkRect(paragraph, m_paragraphMarkSlots[i]);
         const double growX = std::max(0.0, (MARK_HIT_SIZE - rect.width()) / 2.0);
         const double growY = std::max(0.0, (MARK_HIT_SIZE - rect.height()) / 2.0);
         if (!rect.isEmpty() && rect.adjusted(-growX, -growY, growX, growY).contains(point)) {
@@ -890,7 +913,7 @@ std::optional<ParagraphMark> EditorRenderPipeline::paragraphMarkAt(const QPointF
     return std::nullopt;
 }
 
-QRectF EditorRenderPipeline::paragraphMarkRect(size_t paragraph) const {
+QRectF EditorRenderPipeline::paragraphMarkRect(size_t paragraph, size_t slot) const {
     if (!m_textSource || paragraph >= m_textSource->paragraphCount()) return {};
     QTextLayout* layout = m_textSource->layout(paragraph);
     if (!layout || layout->lineCount() == 0) return {};
@@ -908,27 +931,34 @@ QRectF EditorRenderPipeline::paragraphMarkRect(size_t paragraph) const {
     const double besides = m_context.marginNumbers.numbering == MarginNumbering::None
                                ? textLeft
                                : marginNumbersLeft(lineY);
-    const double x = besides - size * (1.0 + PARAGRAPH_MARK_GAP_SHARE);
+    const double x =
+        besides - (size * (1.0 + PARAGRAPH_MARK_GAP_SHARE) * (1.0 + static_cast<double>(slot)));
     const double middle = paragraphWidgetY(paragraph) + (line.y() + line.height() / 2.0) * scale;
     return QRectF(x, middle - size / 2.0, size, size);
 }
 
 void EditorRenderPipeline::renderParagraphMarks(QPainter* painter, const QRect& clipRect) {
-    if (!m_textSource || m_paragraphMarks.empty() || m_paragraphMarkIcon.isNull()) return;
+    if (!m_textSource || m_paragraphMarks.empty()) {
+        return;
+    }
 
     const size_t first = m_context.computed.firstVisibleParagraph;
     const size_t last = m_context.computed.lastVisibleParagraph;
     const qreal ratio = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
     painter->save();
-    for (const ParagraphMark& mark : m_paragraphMarks) {
+    for (size_t i = 0; i < m_paragraphMarks.size(); ++i) {
+        const ParagraphMark& mark = m_paragraphMarks[i];
         const auto paragraph = static_cast<size_t>(std::max(mark.paragraph, 0));
-        if (paragraph < first || paragraph > last) continue;
-        const QRectF rect = paragraphMarkRect(paragraph);
+        const QIcon icon = m_paragraphMarkIcons.value(mark.kind);
+        if (paragraph < first || paragraph > last || icon.isNull()) {
+            continue;
+        }
+        const QRectF rect = paragraphMarkRect(paragraph, m_paragraphMarkSlots[i]);
         if (rect.isEmpty() || !rect.intersects(clipRect)) continue;
 
         // The icon in the color of the text, whatever the colors of the program's icons:
         // it is read on the paper
-        QPixmap pixmap = m_paragraphMarkIcon.pixmap(rect.size().toSize(), ratio);
+        QPixmap pixmap = icon.pixmap(rect.size().toSize(), ratio);
         {
             QPainter tint(&pixmap);
             tint.setCompositionMode(QPainter::CompositionMode_SourceIn);
@@ -2074,8 +2104,32 @@ QFont EditorRenderPipeline::marginNumberFont() const {
 
 double EditorRenderPipeline::marginNumberGap(int page) const {
     const auto& computed = m_context.computed;
-    const double margin = computed.marginLeft + pageShiftX(page);
-    return std::min(MARGIN_NUMBER_GAP_MM * computed.mmToPixels, margin / 2.0);
+    return marginNumberGapFor(computed.marginLeft + pageShiftX(page));
+}
+
+double EditorRenderPipeline::marginNumberGapFor(double margin) const {
+    const double mm = m_context.computed.mmToPixels;
+    return std::max(MIN_MARGIN_NUMBER_GAP_MM * mm,
+                    std::min(MARGIN_NUMBER_GAP_MM * mm, margin / 2.0));
+}
+
+double EditorRenderPipeline::marginNumbersRoom() const {
+    const MarginNumbers& numbers = m_context.marginNumbers;
+    if (numbers.numbering == MarginNumbering::None) return 0.0;
+    // The widest number: as many digits as the text has, MARGIN_NUMBER_DIGITS at least
+    const size_t count = m_textSource ? m_textSource->paragraphCount() : 0;
+    const MarginCounts all = count > 0 ? m_textSource->marginCountsBefore(count) : MarginCounts{};
+    const int largest = numbers.numbering == MarginNumbering::Lines ? all.lines : all.paragraphs;
+    const auto digits = static_cast<qsizetype>(
+        std::max<size_t>(MARGIN_NUMBER_DIGITS, QString::number(largest).size()));
+    const double width =
+        QFontMetricsF(marginNumberFont()).horizontalAdvance(QString(digits, QLatin1Char('8')));
+    // The narrowest left margin: with mirror margins every other page has the right one
+    const auto& computed = m_context.computed;
+    const double margin = m_context.viewMode == ViewMode::Page && m_context.pageMode.mirrorMargins
+                              ? std::min(computed.marginLeft, computed.marginRight)
+                              : computed.marginLeft;
+    return std::max(0.0, marginNumberGapFor(margin) + width - margin);
 }
 
 double EditorRenderPipeline::marginNumbersLeft(double documentY) const {

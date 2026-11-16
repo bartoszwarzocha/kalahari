@@ -6,6 +6,7 @@
 
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
+#include <kalahari/editor/editor_types.h>
 #include "book_editor_internal.h"
 #include <QAction>
 #include <QDateTime>
@@ -13,6 +14,7 @@
 #include <QTextBlock>
 
 #include <algorithm>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -102,10 +104,17 @@ QString BookEditor::annotationMarkAt(const QPointF& point) const
 // Marks beside the paragraphs
 // =============================================================================
 
-void BookEditor::setParagraphMarks(const QList<ParagraphMark>& marks, const QIcon& icon)
+void BookEditor::setParagraphMarks(const QList<ParagraphMark>& marks, const QIcon& icon,
+                                   ParagraphMarkKind kind)
 {
-    m_paragraphMarkIcon = icon;
-    anchorParagraphMarks(marks);
+    m_paragraphMarkIcons.insert(kind, icon);
+    std::erase_if(m_paragraphMarks,
+                  [kind](const AnchoredMark& each) { return each.mark.kind == kind; });
+    QList<ParagraphMark> ofKind = marks;
+    for (ParagraphMark& mark : ofKind) {
+        mark.kind = kind;
+    }
+    anchorParagraphMarks(ofKind);
     syncParagraphMarks(true);
 }
 
@@ -120,8 +129,9 @@ QList<ParagraphMark> BookEditor::paragraphMarks() const
         // A paragraph that took in the next one (the text between them deleted) has the
         // marks of both
         const auto same = std::find_if(marks.begin(), marks.end(),
-                                       [paragraph](const ParagraphMark& mark) {
-                                           return mark.paragraph == paragraph;
+                                       [paragraph, &each](const ParagraphMark& mark) {
+                                           return mark.paragraph == paragraph &&
+                                                  mark.kind == each.mark.kind;
                                        });
         if (same == marks.end()) {
             ParagraphMark mark = each.mark;
@@ -137,7 +147,7 @@ QList<ParagraphMark> BookEditor::paragraphMarks() const
         }
     }
     std::sort(marks.begin(), marks.end(), [](const ParagraphMark& a, const ParagraphMark& b) {
-        return a.paragraph < b.paragraph;
+        return a.paragraph != b.paragraph ? a.paragraph < b.paragraph : a.kind < b.kind;
     });
     return marks;
 }
@@ -149,7 +159,6 @@ std::optional<ParagraphMark> BookEditor::paragraphMarkAt(const QPointF& point) c
 
 void BookEditor::anchorParagraphMarks(const QList<ParagraphMark>& marks)
 {
-    m_paragraphMarks.clear();
     if (!m_textBuffer) {
         return;
     }
@@ -170,13 +179,13 @@ void BookEditor::syncParagraphMarks(bool always)
     const QList<ParagraphMark> now = paragraphMarks();
     std::vector<ParagraphMark> marks(now.cbegin(), now.cend());
     if (always || marks != m_renderPipeline->paragraphMarks()) {
-        m_renderPipeline->setParagraphMarks(std::move(marks), m_paragraphMarkIcon);
+        m_renderPipeline->setParagraphMarks(std::move(marks), m_paragraphMarkIcons);
     }
 }
 
 void BookEditor::openParagraphMark(const ParagraphMark& mark, const QPoint& globalPos)
 {
-    if (mark.ids.size() == 1) {
+    if (mark.kind == ParagraphMarkKind::Materials && mark.ids.size() == 1) {
         emit paragraphMarkClicked(mark.ids.first());
         return;
     }
@@ -187,6 +196,12 @@ void BookEditor::openParagraphMark(const ParagraphMark& mark, const QPoint& glob
 
 void BookEditor::addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark)
 {
+    const QIcon icon = m_paragraphMarkIcons.value(mark.kind);
+    const bool clippings = mark.kind == ParagraphMarkKind::Clippings;
+    if (clippings && mark.ids.size() == 1) {
+        addClippingItems(menu, mark.ids.first());
+        return;
+    }
     for (qsizetype i = 0; i < mark.ids.size(); ++i) {
         const QString id = mark.ids.at(i);
         QString title = mark.titles.value(i);
@@ -194,10 +209,77 @@ void BookEditor::addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark)
             title = id;
         }
         // A "&" of the title is shown, not taken for an access key
-        QAction* item = menu.addAction(m_paragraphMarkIcon,
-                                       title.replace(QLatin1Char('&'), QStringLiteral("&&")));
+        title.replace(QLatin1Char('&'), QStringLiteral("&&"));
+        if (clippings) {
+            addClippingItems(*menu.addMenu(icon, title), id);
+            continue;
+        }
+        const QAction* item = menu.addAction(icon, title);
         connect(item, &QAction::triggered, this, [this, id]() { emit paragraphMarkClicked(id); });
     }
+}
+
+void BookEditor::addClippingItems(QMenu& menu, const QString& id)
+{
+    //: The scissors beside a paragraph a clipping was cut from: shows the clipping in the
+    //: Properties panel. In Polish: &Pokaż wycinek
+    const QAction* show = menu.addAction(tr("&Show Clipping"));
+    connect(show, &QAction::triggered, this, [this, id]() { emit paragraphMarkClicked(id); });
+    //: The scissors beside a paragraph a clipping was cut from: inserts it back where it was
+    //: cut from. In Polish: Przywróć &tutaj
+    QAction* restore = menu.addAction(tr("&Restore Here"));
+    restore->setEnabled(!m_readOnly);
+    connect(restore, &QAction::triggered, this,
+            [this, id]() { emit clippingRestoreRequested(id); });
+}
+
+void BookEditor::addParagraphMarkMenus(QMenu& menu, int paragraph)
+{
+    bool separated = false;
+    for (const ParagraphMark& mark : paragraphMarks()) {
+        if (mark.paragraph != paragraph) {
+            continue;
+        }
+        if (!separated) {
+            menu.addSeparator();
+            separated = true;
+        }
+        //: The submenu of the materials linked with the paragraph. In Polish: Powiązane
+        //: mate&riały
+        const QString materials = tr("Linked Mate&rials");
+        //: The submenu of the clippings cut from the paragraph (the scissors beside it). In
+        //: Polish: Wycinki z tego &miejsca
+        const QString clippings = tr("Clippings &From Here");
+        addParagraphMarkItems(
+            *menu.addMenu(m_paragraphMarkIcons.value(mark.kind),
+                          mark.kind == ParagraphMarkKind::Clippings ? clippings : materials),
+            mark);
+    }
+}
+
+QString BookEditor::paragraphMarkToolTip(const ParagraphMark& mark)
+{
+    const bool clippings = mark.kind == ParagraphMarkKind::Clippings;
+    //: The tooltip of the paperclip beside a paragraph, over the titles of the materials. In
+    //: Polish: Powiązane materiały
+    const QString materials = tr("Linked materials");
+    //: The tooltip of the scissors beside a paragraph, over the clippings cut from it. In
+    //: Polish: Wycięto tu
+    const QString cut = tr("Cut here");
+    QStringList lines{
+        QStringLiteral("<b>%1</b>").arg((clippings ? cut : materials).toHtmlEscaped())};
+    for (const QString& title : mark.titles) {
+        lines << title.toHtmlEscaped();
+    }
+    if (clippings) {
+        //: The end of the tooltip of the scissors beside a paragraph. In Polish: Kliknięcie
+        //: albo menu akapitu: Pokaż wycinek, Przywróć tutaj
+        lines << QStringLiteral("<i>%1</i>")
+                     .arg(tr("A click or the menu of the paragraph: Show Clipping, Restore Here")
+                              .toHtmlEscaped());
+    }
+    return QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
+        .arg(lines.join(QStringLiteral("<br>")));
 }
 
 bool BookEditor::updateAnnotation(const Annotation& annotation, bool joinPreviousStep)

@@ -89,7 +89,7 @@
   "main":     ["act", "episode"],
   "back":     [],
   "workshop": ["logline", "synopsis", "treatment", "step_outline", "character", "location",
-               "work_note", "quote", "web_page", "picture", "document", "publication",
+               "work_note", "clipping", "quote", "web_page", "picture", "document", "publication",
                "recording", "other_file"],
   "primary":  "act",
   "start":    ["title_page", "act"],

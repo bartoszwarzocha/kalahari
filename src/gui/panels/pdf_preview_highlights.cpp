@@ -74,6 +74,26 @@ QRectF placeOf(const core::PdfHighlight& highlight) {
     return place;
 }
 
+/// Gives @p highlights the highlight of @p areas of @p page in the color @p color: the text
+/// highlighted already gets the color, other text a new highlight with @p text; its index
+qsizetype putHighlight(QList<core::PdfHighlight>& highlights, int page,
+                       const QList<QRectF>& areas, const QString& text, const QString& color) {
+    const auto same = std::ranges::find_if(highlights, [page, &areas](const auto& each) {
+        return each.page == page && each.areas == areas;
+    });
+    if (same != highlights.end()) {
+        same->color = color;
+        return same - highlights.begin();
+    }
+    highlights.append(core::PdfHighlight{.page = page,
+                                         .areas = areas,
+                                         .text = text,
+                                         .color = color,
+                                         .note = {},
+                                         .extra = {}});
+    return highlights.size() - 1;
+}
+
 }  // namespace
 
 void PdfPreviewPanel::buildHighlightsTab(
@@ -201,22 +221,8 @@ void PdfPreviewPanel::highlightIn(const QColor& color) {
     const int page = m_view->selectionPage() + 1;
     const QString name = (color.isValid() ? color : m_firstHighlightColor).name().toUpper();
     QList<core::PdfHighlight> highlights = element->highlights;
-    // The text highlighted already gets the color
-    const auto same = std::ranges::find_if(highlights, [page, &areas](const auto& each) {
-        return each.page == page && each.areas == areas;
-    });
-    qsizetype index = same - highlights.begin();
-    if (same != highlights.end()) {
-        same->color = name;
-    } else {
-        highlights.append(core::PdfHighlight{.page = page,
-                                             .areas = areas,
-                                             .text = m_view->selectedText().simplified(),
-                                             .color = name,
-                                             .note = {},
-                                             .extra = {}});
-        index = highlights.size() - 1;
-    }
+    const qsizetype index =
+        putHighlight(highlights, page, areas, m_view->selectedText().simplified(), name);
     saveHighlights(highlights);
     // The highlight shows in place of the selection
     m_view->clearSelection();

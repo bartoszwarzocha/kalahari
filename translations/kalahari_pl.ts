@@ -507,16 +507,12 @@
         <translation>&amp;Znajdź...</translation>
     </message>
     <message>
-        <source>Find &amp;Next</source>
+        <source>Find Ne&amp;xt</source>
         <translation>Znajdź &amp;następny</translation>
     </message>
     <message>
         <source>Find Pre&amp;vious</source>
         <translation>Znajdź pop&amp;rzedni</translation>
-    </message>
-    <message>
-        <source>Find &amp;&amp; Rep&amp;lace...</source>
-        <translation>Znajdź i za&amp;mień...</translation>
     </message>
     <message>
         <source>Find in &amp;Book...</source>
@@ -585,10 +581,6 @@
     <message>
         <source>&amp;Endnote</source>
         <translation>Przypis &amp;końcowy</translation>
-    </message>
-    <message>
-        <source>Footnote La&amp;yout...</source>
-        <translation>Usta&amp;wienia przypisów...</translation>
     </message>
     <message>
         <source>Add &amp;Annotation...</source>
@@ -1325,6 +1317,22 @@
     <message>
         <source>Chapter Brea&amp;k</source>
         <translation>Pod&amp;ział rozdziału</translation>
+    </message>
+    <message>
+        <source>Cut to Clippi&amp;ngs</source>
+        <translation>Wytnij &amp;do wycinków</translation>
+    </message>
+    <message>
+        <source>Find &amp;&amp; Rep&amp;lace...</source>
+        <translation>Znajdź i za&amp;mień...</translation>
+    </message>
+    <message>
+        <source>Clipping from the &amp;Workshop...</source>
+        <translation>&amp;Wycinek z Warsztatu...</translation>
+    </message>
+    <message>
+        <source>Foo&amp;tnote Layout...</source>
+        <translation>Ustaw&amp;ienia przypisów...</translation>
     </message>
     <message>
         <source>Book &amp;Dictionary...</source>
@@ -2470,6 +2478,11 @@ Uruchomić ponownie teraz?</translation>
         <translation>&amp;Statystyki</translation>
     </message>
     <message>
+        <source>T&amp;o Dos</source>
+        <extracomment>The submenu of Edit with Next To Do and Previous To Do. In Polish: Uwa&amp;gi do zrobienia</extracomment>
+        <translation>Uwa&amp;gi do zrobienia</translation>
+    </message>
+    <message>
         <source>P&amp;lugins</source>
         <translation>&amp;Wtyczki</translation>
     </message>
@@ -2578,10 +2591,6 @@ Uruchomić ponownie teraz?</translation>
         <translation>Numerac&amp;ja na marginesie</translation>
     </message>
     <message>
-        <source>&amp;Text Effects</source>
-        <translation>&amp;Efekty tekstu</translation>
-    </message>
-    <message>
         <source>&amp;Change Case</source>
         <translation>Zmień wielkość &amp;liter</translation>
     </message>
@@ -2623,6 +2632,10 @@ Uruchomić ponownie teraz?</translation>
         <source>&amp;Filter</source>
         <extracomment>In Polish: &amp;Filtr</extracomment>
         <translation>&amp;Filtr</translation>
+    </message>
+    <message>
+        <source>Te&amp;xt Effects</source>
+        <translation>&amp;Efekty tekstu</translation>
     </message>
 </context>
 <context>
@@ -3934,6 +3947,41 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <translation>&amp;Usuń przypis</translation>
     </message>
     <message>
+        <source>Cut to C&amp;lippings</source>
+        <extracomment>The item of the text&apos;s context menu under Cut. In Polish: Wytni&amp;j do wycinków</extracomment>
+        <translation>Wytni&amp;j do wycinków</translation>
+    </message>
+    <message>
+        <source>&amp;Insert Clipping...</source>
+        <extracomment>The item of the text&apos;s context menu under Paste: Insert &gt; Clipping from the Workshop. In Polish: Wstaw w&amp;ycinek...</extracomment>
+        <translation>Wstaw w&amp;ycinek...</translation>
+    </message>
+    <message>
+        <source>&amp;Show Clipping</source>
+        <extracomment>The scissors beside a paragraph a clipping was cut from: shows the clipping in the Properties panel. In Polish: &amp;Pokaż wycinek</extracomment>
+        <translation>&amp;Pokaż wycinek</translation>
+    </message>
+    <message>
+        <source>&amp;Restore Here</source>
+        <extracomment>The scissors beside a paragraph a clipping was cut from: inserts it back where it was cut from. In Polish: Przywróć &amp;tutaj</extracomment>
+        <translation>Przywróć &amp;tutaj</translation>
+    </message>
+    <message>
+        <source>Clippings &amp;From Here</source>
+        <extracomment>The submenu of the clippings cut from the paragraph (the scissors beside it). In Polish: Wycinki z tego &amp;miejsca</extracomment>
+        <translation>Wycinki z tego &amp;miejsca</translation>
+    </message>
+    <message>
+        <source>Cut here</source>
+        <extracomment>The tooltip of the scissors beside a paragraph, over the clippings cut from it. In Polish: Wycięto tu</extracomment>
+        <translation>Wycięto tu</translation>
+    </message>
+    <message>
+        <source>A click or the menu of the paragraph: Show Clipping, Restore Here</source>
+        <extracomment>The end of the tooltip of the scissors beside a paragraph. In Polish: Kliknięcie albo menu akapitu: Pokaż wycinek, Przywróć tutaj</extracomment>
+        <translation>Kliknięcie albo menu akapitu: Pokaż wycinek, Przywróć tutaj</translation>
+    </message>
+    <message>
         <source>Add to &amp;Book Dictionary</source>
         <extracomment>In Polish: Dodaj do &amp;słownika książki</extracomment>
         <translation>Dodaj do &amp;słownika książki</translation>
@@ -4050,6 +4098,16 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     <message>
         <source>Double-click to change the field.</source>
         <translation>Kliknij dwukrotnie, aby zmienić pole.</translation>
+    </message>
+    <message>
+        <source>&amp;Suggestions</source>
+        <extracomment>The submenu of the words to put in place of a misspelled one. In Polish: &amp;Podpowiedzi</extracomment>
+        <translation>&amp;Podpowiedzi</translation>
+    </message>
+    <message>
+        <source>Looking for suggestions...</source>
+        <extracomment>In the submenu of the suggestions while the dictionary looks for them. In Polish: Szukam podpowiedzi…</extracomment>
+        <translation>Szukam podpowiedzi…</translation>
     </message>
 </context>
 <context>
@@ -5254,11 +5312,6 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
         </translation>
     </message>
     <message>
-        <source>Texts with matches: %1. Each open text can undo the change in one step (Ctrl+Z).</source>
-        <extracomment>In Polish: Teksty z trafieniami: %1. W każdym otwartym tekście zmianę można cofnąć jednym krokiem (Ctrl+Z).</extracomment>
-        <translation>Teksty z trafieniami: %1. W każdym otwartym tekście zmianę można cofnąć jednym krokiem (Ctrl+Z).</translation>
-    </message>
-    <message>
         <source>Replace All in Book</source>
         <extracomment>In Polish: Zamień wszystko w książce / &amp;Zamień</extracomment>
         <translation>Zamień wszystko w książce</translation>
@@ -5299,6 +5352,21 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
         <source>Replace All in Book is off while all forms are found: one replacement of every form would break the declension</source>
         <extracomment>Why Replace All in Book is greyed out while the search finds all forms (&quot;Odm&quot;)</extracomment>
         <translation>Przy wyszukiwaniu wszystkich odmian „Zamień wszystko w książce” jest wyłączone – jedna zamiana wszystkich form zepsułaby odmianę</translation>
+    </message>
+    <message>
+        <source>Texts with matches: %1. %2 undoes the change in all of them at once.</source>
+        <extracomment>%2: the keys of Undo. In Polish: Teksty z trafieniami: %1. %2 cofa zmianę we wszystkich naraz.</extracomment>
+        <translation>Teksty z trafieniami: %1. %2 cofa zmianę we wszystkich naraz.</translation>
+    </message>
+    <message>
+        <source>This can no longer be redone: the texts changed since.</source>
+        <extracomment>In Polish: Tego nie da się już ponowić: teksty zmieniły się od tamtej pory.</extracomment>
+        <translation>Tego nie da się już ponowić: teksty zmieniły się od tamtej pory.</translation>
+    </message>
+    <message>
+        <source>The replacement in the book is done again.</source>
+        <extracomment>In Polish: Zamiana w książce została ponowiona.</extracomment>
+        <translation>Zamiana w książce została ponowiona.</translation>
     </message>
 </context>
 <context>
@@ -6722,6 +6790,11 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <extracomment>Window menu: a new book window, with the Dashboard. In Polish: N&amp;owe okno</extracomment>
         <translation>N&amp;owe okno</translation>
     </message>
+    <message>
+        <source>&amp;Tab List</source>
+        <extracomment>Window menu: the list of all the tabs of the window in front, to choose one (as the button with an arrow down after the tabs). In Polish: &amp;Lista kart</extracomment>
+        <translation>&amp;Lista kart</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorAutoCorrectPage</name>
@@ -8057,6 +8130,16 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <source>Rename Label</source>
         <extracomment>In Polish: Zmiana nazwy etykiety / Etykieta</extracomment>
         <translation>Zmiana nazwy etykiety</translation>
+    </message>
+    <message>
+        <source>As&amp;k for the caption of an inserted image</source>
+        <extracomment>In Polish: Py&amp;taj o podpis wstawianego obrazu</extracomment>
+        <translation>Py&amp;taj o podpis wstawianego obrazu</translation>
+    </message>
+    <message>
+        <source>Insert &gt; Image... asks for the caption of the new image (or none) before it goes into the text</source>
+        <extracomment>In Polish: Wstaw &gt; Obraz... pyta o podpis nowego obrazu (albo o jego brak), zanim obraz wejdzie do tekstu</extracomment>
+        <translation>Wstaw &gt; Obraz... pyta o podpis nowego obrazu (albo o jego brak), zanim obraz wejdzie do tekstu</translation>
     </message>
 </context>
 <context>
@@ -10538,6 +10621,16 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Tabs in More Rows</source>
         <translation>Karty w kilku wierszach</translation>
     </message>
+    <message>
+        <source>All Tabs</source>
+        <extracomment>The button after the tabs that lists them all. In Polish: Wszystkie karty</extracomment>
+        <translation>Wszystkie karty</translation>
+    </message>
+    <message>
+        <source>All Tabs - a list to choose from (%1)</source>
+        <extracomment>%1: the keys (Alt+Down). In Polish: Wszystkie karty – lista do wyboru (%1)</extracomment>
+        <translation>Wszystkie karty – lista do wyboru (%1)</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::ChapterBreakCoordinator</name>
@@ -11679,6 +11772,11 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <source>Images</source>
         <extracomment>Settings &gt; Editor &gt; Images: new images, the captions of new books. In Polish: Obrazy</extracomment>
         <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>Clippings</source>
+        <extracomment>Settings &gt; Editor &gt; Clippings: Cut to Clippings and Insert &gt; Clipping from the Workshop. In Polish: Wycinki</extracomment>
+        <translation>Wycinki</translation>
     </message>
     <message>
         <source>Cards</source>
@@ -14626,6 +14724,16 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <source>Reset all colors to the default values for the selected theme</source>
         <translation>Przywraca wszystkie kolory do domyślnych wartości wybranego motywu</translation>
     </message>
+    <message>
+        <source>Own Style Tag</source>
+        <extracomment>In Polish: Etykieta stylu własnego</extracomment>
+        <translation>Etykieta stylu własnego</translation>
+    </message>
+    <message>
+        <source>Background of the tag &quot;own&quot; after the styles of your own in the lists of styles</source>
+        <extracomment>In Polish: Tło etykiety „własny” przy własnych stylach na listach stylów</extracomment>
+        <translation>Tło etykiety „własny” przy własnych stylach na listach stylów</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::WritingFrame</name>
@@ -15333,7 +15441,7 @@ Harmonogram projektu:
     </message>
     <message>
         <source>Footnote Layout</source>
-        <extracomment>Insert &gt; Footnote Layout... In Polish: Ustawienia przypisów / Numeracja i miejsce przypisów w tej książce.</extracomment>
+        <extracomment>Format &gt; Footnote Layout... In Polish: Ustawienia przypisów / Numeracja i miejsce przypisów w tej książce.</extracomment>
         <translation>Ustawienia przypisów</translation>
     </message>
     <message>
@@ -15723,7 +15831,7 @@ Harmonogram projektu:
     <name>kalahari::gui::FootnoteCoordinator</name>
     <message>
         <source>No book is open</source>
-        <extracomment>Why Insert &gt; Footnote Layout... is greyed out. In Polish: Żadna książka nie jest otwarta</extracomment>
+        <extracomment>Why Format &gt; Footnote Layout... is greyed out. In Polish: Żadna książka nie jest otwarta</extracomment>
         <translation>Żadna książka nie jest otwarta</translation>
     </message>
 </context>
@@ -17386,6 +17494,25 @@ Harmonogram projektu:
     <message>
         <source>A file outside a book is numbered as the Settings say (the gear).</source>
         <translation>Plik spoza książki jest numerowany według Ustawień (koło zębate).</translation>
+    </message>
+    <message>
+        <source>Caption of the New Image</source>
+        <extracomment>Insert &gt; Image..., after the file is chosen. In Polish: Podpis nowego obrazu / Obraz wejdzie do tekstu z podpisem, który tu wpiszesz, albo bez podpisu.</extracomment>
+        <translation>Podpis nowego obrazu</translation>
+    </message>
+    <message>
+        <source>The image goes into the text with the caption you write here, or without one.</source>
+        <translation>Obraz wejdzie do tekstu z podpisem, który tu wpiszesz, albo bez podpisu.</translation>
+    </message>
+    <message>
+        <source>Insert</source>
+        <extracomment>In Polish: Wstaw</extracomment>
+        <translation>Wstaw</translation>
+    </message>
+    <message>
+        <source>Insert With&amp;out Caption</source>
+        <extracomment>In Polish: Wstaw be&amp;z podpisu</extracomment>
+        <translation>Wstaw be&amp;z podpisu</translation>
     </message>
 </context>
 <context>
@@ -19377,10 +19504,6 @@ In Polish: Dodaj / Zapisz</extracomment>
         <translation>Znak specjalny</translation>
     </message>
     <message>
-        <source>Enter inserts the character at the cursor. Esc closes the window.</source>
-        <translation>Enter wstawia znak w miejscu kursora. Esc zamyka okno.</translation>
-    </message>
-    <message>
         <source>&amp;Insert</source>
         <translation>&amp;Wstaw</translation>
     </message>
@@ -19489,10 +19612,6 @@ In Polish: Dodaj / Zapisz</extracomment>
         <translation>Skrót, autokorekta</translation>
     </message>
     <message>
-        <source>Favorite</source>
-        <translation>Ulubiony</translation>
-    </message>
-    <message>
         <source>Nothing matches “%1”. Type another name, or a code such as U+2014.</source>
         <translation>Nic nie pasuje do „%1”. Wpisz inną nazwę albo kod, np. U+2014.</translation>
     </message>
@@ -19555,6 +19674,26 @@ In Polish: Dodaj / Zapisz</extracomment>
     <message>
         <source>Cancel</source>
         <translation>Anuluj</translation>
+    </message>
+    <message>
+        <source>Enter inserts the character at the cursor. Add to Favorites or the star keeps a character at hand. Esc closes the window.</source>
+        <extracomment>In Polish: Enter wstawia znak w miejscu kursora. Przycisk „Dodaj do ulubionych” albo gwiazdka sprawia, że znak jest zawsze pod ręką. Esc zamyka okno.</extracomment>
+        <translation>Enter wstawia znak w miejscu kursora. Przycisk „Dodaj do ulubionych” albo gwiazdka sprawia, że znak jest zawsze pod ręką. Esc zamyka okno.</translation>
+    </message>
+    <message>
+        <source>Keep the character among the favorites: first in the window and in Insert &gt; Quick Character</source>
+        <extracomment>In Polish: Zachowaj znak w ulubionych: na początku okna i w menu Wstaw &gt; Szybki wybór znaku</extracomment>
+        <translation>Zachowaj znak w ulubionych: na początku okna i w menu Wstaw &gt; Szybki wybór znaku</translation>
+    </message>
+    <message>
+        <source>Favorites: click the star of a character to add it to them or to take it away</source>
+        <extracomment>In Polish: Ulubione: kliknij gwiazdkę przy znaku, żeby go dodać albo usunąć</extracomment>
+        <translation>Ulubione: kliknij gwiazdkę przy znaku, żeby go dodać albo usunąć</translation>
+    </message>
+    <message>
+        <source>No favorites yet. Select a character in another group and click Add to Favorites, or the star beside it in the list: the favorites come first here and in Insert &gt; Quick Character.</source>
+        <extracomment>In Polish: Nie ma jeszcze ulubionych. Zaznacz znak w innej grupie i kliknij „Dodaj do ulubionych” albo gwiazdkę obok niego na liście: ulubione są na początku tego okna i w menu Wstaw &gt; Szybki wybór znaku.</extracomment>
+        <translation>Nie ma jeszcze ulubionych. Zaznacz znak w innej grupie i kliknij „Dodaj do ulubionych” albo gwiazdkę obok niego na liście: ulubione są na początku tego okna i w menu Wstaw &gt; Szybki wybór znaku.</translation>
     </message>
 </context>
 <context>
@@ -21920,6 +22059,46 @@ Where a quote comes from: a source and its page. In Polish: Źródło</extracomm
         <translation>wszystkie</translation>
     </message>
     <message>
+        <source>From</source>
+        <extracomment>The text a clipping was cut from, in the list of the clippings. In Polish: Skąd</extracomment>
+        <translation>Skąd</translation>
+    </message>
+    <message>
+        <source>Cut</source>
+        <extracomment>When a clipping was cut, in the list of the clippings. In Polish: Wycięto</extracomment>
+        <translation>Wycięto</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>The note of a clipping, in the list of the clippings. In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>Inserted</source>
+        <extracomment>When a clipping was inserted into a text, in the list of the clippings. In Polish: Wstawiony</extracomment>
+        <translation>Wstawiony</translation>
+    </message>
+    <message>
+        <source>Restore to Its Place</source>
+        <extracomment>Inserts the clipping chosen where it was cut from. In Polish: Przywróć na miejsce</extracomment>
+        <translation>Przywróć na miejsce</translation>
+    </message>
+    <message>
+        <source>Clipping Settings</source>
+        <extracomment>The gear of the list of the clippings: Settings &gt; Editor &gt; Clippings. In Polish: Ustawienia wycinków</extracomment>
+        <translation>Ustawienia wycinków</translation>
+    </message>
+    <message>
+        <source>Restore to Its &amp;Place</source>
+        <extracomment>In the menu of a clipping of a list: inserts it where it was cut from. In Polish: &amp;Przywróć na miejsce</extracomment>
+        <translation>&amp;Przywróć na miejsce</translation>
+    </message>
+    <message>
+        <source>&amp;Go to Its Place</source>
+        <extracomment>In the menu of a clipping of a list: opens the text it was cut from at the place. In Polish: Przejdź do &amp;miejsca</extracomment>
+        <translation>Przejdź do &amp;miejsca</translation>
+    </message>
+    <message>
         <source>%1, p. %2</source>
         <extracomment>The source of a quote in the list of the quotes: %1 the source, %2 the page. In Polish: %1, s. %2</extracomment>
         <translation>%1, s. %2</translation>
@@ -23505,6 +23684,16 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         <source>Cutting, restoring a version or Replace All is not writing.</source>
         <extracomment>In Polish: Wycięcie, przywrócenie wersji albo „Zamień wszystko” to nie pisanie.</extracomment>
         <translation>Wycięcie, przywrócenie wersji albo „Zamień wszystko” to nie pisanie.</translation>
+    </message>
+    <message>
+        <source>Cutting to the &amp;clippings is not deleting</source>
+        <extracomment>Under &quot;Words added&quot; of Settings &gt; Statistics and Goals &gt; Counting. In Polish: Wycięcie do wycinków &amp;nie jest usunięciem</extracomment>
+        <translation>Wycięcie do wycinków &amp;nie jest usunięciem</translation>
+    </message>
+    <message>
+        <source>The words cut go to the Workshop, so the words of the day stay as they were. Inserting a clipping back counts as a paste.</source>
+        <extracomment>In Polish: Wycięte słowa trafiają do Warsztatu, więc słowa dnia się nie zmieniają. Wstawienie wycinka z powrotem liczy się jak wklejenie.</extracomment>
+        <translation>Wycięte słowa trafiają do Warsztatu, więc słowa dnia się nie zmieniają. Wstawienie wycinka z powrotem liczy się jak wklejenie.</translation>
     </message>
 </context>
 <context>
@@ -26848,6 +27037,565 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Saves the book &quot;%1&quot; in the format %2.</source>
         <extracomment>The format of a plugin; %1: the title of the book, %2: the format with its extension. In Polish: Zapisuje książkę „%1” w formacie %2.</extracomment>
         <translation>Zapisuje książkę „%1” w formacie %2.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ClippingsCoordinator</name>
+    <message>
+        <source>The paragraph with the cursor is empty, and nothing is selected</source>
+        <extracomment>Edit &gt; Cut to Clippings without a selection, in an empty paragraph. In Polish: Akapit z kursorem jest pusty, a nic nie jest zaznaczone</extracomment>
+        <translation>Akapit z kursorem jest pusty, a nic nie jest zaznaczone</translation>
+    </message>
+    <message>
+        <source>No book is open</source>
+        <extracomment>Why the clippings&apos; commands are greyed out. In Polish: Żadna książka nie jest otwarta</extracomment>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>The cursor is not in a text of the book or in a working note</source>
+        <extracomment>Why the clippings&apos; commands are greyed out: the keys are in a file outside the book, or not in a text. In Polish: Kursor nie jest w tekście książki ani w notatce roboczej</extracomment>
+        <translation>Kursor nie jest w tekście książki ani w notatce roboczej</translation>
+    </message>
+    <message>
+        <source>This text is a clipping already</source>
+        <extracomment>Why Edit &gt; Cut to Clippings is greyed out. In Polish: Ten tekst jest już wycinkiem</extracomment>
+        <translation>Ten tekst jest już wycinkiem</translation>
+    </message>
+    <message>
+        <source>Select a fragment of the text first. Without a selection the command cuts the paragraph with the cursor when the settings say so.</source>
+        <extracomment>Why Edit &gt; Cut to Clippings is greyed out. In Polish: Najpierw zaznacz fragment tekstu. Bez zaznaczenia polecenie wycina akapit z kursorem, gdy tak mówią Ustawienia.</extracomment>
+        <translation>Najpierw zaznacz fragment tekstu. Bez zaznaczenia polecenie wycina akapit z kursorem, gdy tak mówią Ustawienia.</translation>
+    </message>
+    <message>
+        <source>Not Cut to the Clippings</source>
+        <extracomment>The title of the warnings of Cut to Clippings. In Polish: Nie wycięto do wycinków</extracomment>
+        <translation>Nie wycięto do wycinków</translation>
+    </message>
+    <message>
+        <source>The selection cannot be cut to the clippings</source>
+        <extracomment>In Polish: Zaznaczenia nie da się wyciąć do wycinków</extracomment>
+        <translation>Zaznaczenia nie da się wyciąć do wycinków</translation>
+    </message>
+    <message>
+        <source>The clipping could not be added to the book, so nothing was cut. The program&apos;s log has the details.</source>
+        <extracomment>In Polish: Nie udało się dodać wycinka do książki, dlatego nic nie wycięto. Szczegóły są w dzienniku programu.</extracomment>
+        <translation>Nie udało się dodać wycinka do książki, dlatego nic nie wycięto. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>The fragment cut (%1) is in the clippings as &quot;%2&quot;. %3 takes the cut back.</source>
+        <extracomment>The notice under the text after Cut to Clippings. %1: its words (&quot;12 words&quot;), %2: the title of the clipping, %3: the keys of Undo. In Polish: Wycięty fragment (%1) jest w wycinkach jako „%2”. %3 cofa wycięcie.</extracomment>
+        <translation>Wycięty fragment (%1) jest w wycinkach jako „%2”. %3 cofa wycięcie.</translation>
+    </message>
+    <message>
+        <source>&amp;Undo</source>
+        <extracomment>In Polish: &amp;Cofnij / Cofnij wycięcie: fragment wraca do tekstu
+----------
+In Polish: &amp;Cofnij / Cofnij wstawienie wycinka</extracomment>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>Take the cut back: the fragment comes back to the text</source>
+        <translation>Cofnij wycięcie: fragment wraca do tekstu</translation>
+    </message>
+    <message>
+        <source>This can no longer be undone from the notice: the text changed since.</source>
+        <extracomment>In Polish: Tego nie da się już cofnąć z paska: tekst zmienił się od tamtej pory.</extracomment>
+        <translation>Tego nie da się już cofnąć z paska: tekst zmienił się od tamtej pory.</translation>
+    </message>
+    <message>
+        <source>The book has no clippings yet (Edit &gt; Cut to Clippings)</source>
+        <extracomment>Why Insert &gt; Clipping is greyed out. In Polish: Książka nie ma jeszcze wycinków (Edycja &gt; Wytnij do wycinków)</extracomment>
+        <translation>Książka nie ma jeszcze wycinków (Edycja &gt; Wytnij do wycinków)</translation>
+    </message>
+    <message>
+        <source>The clipping is no longer in the Workshop</source>
+        <extracomment>In Polish: Tego wycinka nie ma już w Warsztacie</extracomment>
+        <translation>Tego wycinka nie ma już w Warsztacie</translation>
+    </message>
+    <message>
+        <source>A clipping cannot be inserted into itself</source>
+        <extracomment>In Polish: Wycinka nie da się wstawić do niego samego</extracomment>
+        <translation>Wycinka nie da się wstawić do niego samego</translation>
+    </message>
+    <message>
+        <source>Clipping Not Inserted</source>
+        <extracomment>The title of the warning. In Polish: Nie wstawiono wycinka</extracomment>
+        <translation>Nie wstawiono wycinka</translation>
+    </message>
+    <message>
+        <source>The changes of this clipping could not be saved to its file, so it was not inserted. The program&apos;s log has the details.</source>
+        <extracomment>In Polish: Nie udało się zapisać w pliku zmian w tym wycinku, dlatego go nie wstawiono. Szczegóły są w dzienniku programu.</extracomment>
+        <translation>Nie udało się zapisać w pliku zmian w tym wycinku, dlatego go nie wstawiono. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>This clipping is empty</source>
+        <extracomment>In Polish: Ten wycinek jest pusty</extracomment>
+        <translation>Ten wycinek jest pusty</translation>
+    </message>
+    <message>
+        <source>This clipping cannot be inserted here</source>
+        <extracomment>In Polish: Tego wycinka nie da się tu wstawić</extracomment>
+        <translation>Tego wycinka nie da się tu wstawić</translation>
+    </message>
+    <message>
+        <source>Clipping &quot;%1&quot; inserted (%2). It stays in the Workshop, marked as inserted. %3 takes the insertion back.</source>
+        <extracomment>The notice under the text after Insert &gt; Clipping. %1: the title of the clipping, %2: its words (&quot;12 words&quot;), %3: the keys of Undo. In Polish: Wstawiono wycinek „%1” (%2). Zostaje w Warsztacie, oznaczony jako wstawiony. %3 cofa wstawienie.</extracomment>
+        <translation>Wstawiono wycinek „%1” (%2). Zostaje w Warsztacie, oznaczony jako wstawiony. %3 cofa wstawienie.</translation>
+    </message>
+    <message>
+        <source>Clipping &quot;%1&quot; inserted (%2) and taken from the Workshop. %3 takes both back.</source>
+        <extracomment>The notice under the text after Insert &gt; Clipping. In Polish: Wstawiono wycinek „%1” (%2) i usunięto go z Warsztatu. %3 cofa jedno i drugie.</extracomment>
+        <translation>Wstawiono wycinek „%1” (%2) i usunięto go z Warsztatu. %3 cofa jedno i drugie.</translation>
+    </message>
+    <message>
+        <source>Take the insertion of the clipping back</source>
+        <translation>Cofnij wstawienie wycinka</translation>
+    </message>
+    <message>
+        <source>The exact place is no longer in the text. The cursor is in the paragraph the fragment came from.</source>
+        <extracomment>The notice under the text of Restore to the Place It Came From. In Polish: Dokładnego miejsca nie ma już w tekście. Kursor jest w akapicie, z którego pochodzi fragment.</extracomment>
+        <translation>Dokładnego miejsca nie ma już w tekście. Kursor jest w akapicie, z którego pochodzi fragment.</translation>
+    </message>
+    <message>
+        <source>&amp;Insert Here</source>
+        <extracomment>In Polish: &amp;Wstaw tutaj / Wstaw wycinek w miejscu kursora</extracomment>
+        <translation>&amp;Wstaw tutaj</translation>
+    </message>
+    <message>
+        <source>Insert the clipping at the cursor</source>
+        <translation>Wstaw wycinek w miejscu kursora</translation>
+    </message>
+    <message>
+        <source>This clipping was added by hand: it has no place it came from</source>
+        <extracomment>In Polish: Ten wycinek dodano ręcznie: nie ma pierwotnego miejsca</extracomment>
+        <translation>Ten wycinek dodano ręcznie: nie ma pierwotnego miejsca</translation>
+    </message>
+    <message>
+        <source>The text this clipping was cut from is no longer in the book</source>
+        <extracomment>In Polish: Tekstu, z którego wycięto ten wycinek, nie ma już w książce</extracomment>
+        <translation>Tekstu, z którego wycięto ten wycinek, nie ma już w książce</translation>
+    </message>
+    <message>
+        <source>The clipping &quot;%1&quot; could not be put back in the Workshop.</source>
+        <extracomment>In Polish: Nie udało się przywrócić wycinka „%1” w Warsztacie.</extracomment>
+        <translation>Nie udało się przywrócić wycinka „%1” w Warsztacie.</translation>
+    </message>
+    <message>
+        <source>The fragment is in the clippings again as &quot;%1&quot;.</source>
+        <translation>Fragment znów jest w wycinkach jako „%1”.</translation>
+    </message>
+    <message>
+        <source>The clipping &quot;%1&quot; is in the Workshop again.</source>
+        <translation>Wycinek „%1” znów jest w Warsztacie.</translation>
+    </message>
+    <message>
+        <source>The clipping &quot;%1&quot; changed since, so it stays in the Workshop.</source>
+        <extracomment>Ctrl+Z or Ctrl+Y changed the text, and the clipping stays. In Polish: Wycinek „%1” zmienił się od tamtej pory, dlatego zostaje w Warsztacie.</extracomment>
+        <translation>Wycinek „%1” zmienił się od tamtej pory, dlatego zostaje w Warsztacie.</translation>
+    </message>
+    <message>
+        <source>The fragment is back in the text, and the clipping &quot;%1&quot; went from the Workshop.</source>
+        <translation>Fragment wrócił do tekstu, a wycinek „%1” zniknął z Warsztatu.</translation>
+    </message>
+    <message>
+        <source>The clipping &quot;%1&quot; is in the text again and went from the Workshop.</source>
+        <translation>Wycinek „%1” znów jest w tekście i zniknął z Warsztatu.</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <extracomment>In Polish: Nie udało się zapisać zmian.</extracomment>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Undo</source>
+        <extracomment>Undo without keys. In Polish: Edycja &gt; Cofnij</extracomment>
+        <translation>Edycja &gt; Cofnij</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorClippingsPage</name>
+    <message>
+        <source>Clippings are fragments cut from the text to the Workshop (%1). They can come back: inserted anywhere (%2) or restored where they came from.</source>
+        <extracomment>The top of Settings &gt; Editor &gt; Clippings. %1, %2: the commands in the menus, with their keys (&quot;Edit &gt; Cut to Clippings, Ctrl+Shift+X&quot;). In Polish: Wycinki to fragmenty wycięte z tekstu do Warsztatu (%1). Można do nich wrócić: wstawić w dowolne miejsce (%2) albo przywrócić tam, skąd pochodzą.</extracomment>
+        <translation>Wycinki to fragmenty wycięte z tekstu do Warsztatu (%1). Można do nich wrócić: wstawić w dowolne miejsce (%2) albo przywrócić tam, skąd pochodzą.</translation>
+    </message>
+    <message>
+        <source>Edit &gt; Cut to Clippings</source>
+        <extracomment>In Polish: Edycja &gt; Wytnij do wycinków</extracomment>
+        <translation>Edycja &gt; Wytnij do wycinków</translation>
+    </message>
+    <message>
+        <source>Insert &gt; Clipping from the Workshop</source>
+        <extracomment>In Polish: Wstaw &gt; Wycinek z Warsztatu</extracomment>
+        <translation>Wstaw &gt; Wycinek z Warsztatu</translation>
+    </message>
+    <message>
+        <source>Cutting</source>
+        <extracomment>A group of Settings &gt; Editor &gt; Clippings. In Polish: Wycinanie</extracomment>
+        <translation>Wycinanie</translation>
+    </message>
+    <message>
+        <source>Cut at &amp;once</source>
+        <extracomment>In Polish: &amp;Wycinaj od razu / Tytuł to pierwsze słowa fragmentu; można go zmienić później, jak tytuł każdego tekstu (F2 w Nawigatorze).</extracomment>
+        <translation>&amp;Wycinaj od razu</translation>
+    </message>
+    <message>
+        <source>The title is the first words of the fragment; it can be changed later, as that of any text (F2 in the Navigator).</source>
+        <translation>Tytuł to pierwsze słowa fragmentu; można go zmienić później, jak tytuł każdego tekstu (F2 w Nawigatorze).</translation>
+    </message>
+    <message>
+        <source>First a s&amp;mall window</source>
+        <extracomment>In Polish: Najpierw &amp;małe okno / Z tytułem i notatką wycinka.</extracomment>
+        <translation>Najpierw &amp;małe okno</translation>
+    </message>
+    <message>
+        <source>With the title and a note of the clipping.</source>
+        <translation>Z tytułem i notatką wycinka.</translation>
+    </message>
+    <message>
+        <source>Without a selection the command:</source>
+        <extracomment>Followed by what the command does. In Polish: Bez zaznaczenia polecenie:</extracomment>
+        <translation>Bez zaznaczenia polecenie:</translation>
+    </message>
+    <message>
+        <source>cuts the &amp;paragraph with the cursor</source>
+        <extracomment>In Polish: wycina &amp;akapit z kursorem</extracomment>
+        <translation>wycina &amp;akapit z kursorem</translation>
+    </message>
+    <message>
+        <source>is &amp;greyed out</source>
+        <extracomment>In Polish: jest &amp;nieaktywne</extracomment>
+        <translation>jest &amp;nieaktywne</translation>
+    </message>
+    <message>
+        <source>Inserting</source>
+        <extracomment>A group of Settings &gt; Editor &gt; Clippings. In Polish: Wstawianie</extracomment>
+        <translation>Wstawianie</translation>
+    </message>
+    <message>
+        <source>The command opens:</source>
+        <extracomment>Followed by what it opens. In Polish: Polecenie otwiera:</extracomment>
+        <translation>Polecenie otwiera:</translation>
+    </message>
+    <message>
+        <source>a &amp;window with the list and the preview</source>
+        <extracomment>In Polish: &amp;okno z listą i podglądem</extracomment>
+        <translation>&amp;okno z listą i podglądem</translation>
+    </message>
+    <message>
+        <source>a &amp;list at the cursor</source>
+        <extracomment>In Polish: &amp;listę przy kursorze / Jak szybkie wstawianie, bez podglądu.</extracomment>
+        <translation>&amp;listę przy kursorze</translation>
+    </message>
+    <message>
+        <source>As quick insert does, without the preview.</source>
+        <translation>Jak szybkie wstawianie, bez podglądu.</translation>
+    </message>
+    <message>
+        <source>A clipping inserted:</source>
+        <extracomment>Followed by what happens to it. In Polish: Wstawiony wycinek:</extracomment>
+        <translation>Wstawiony wycinek:</translation>
+    </message>
+    <message>
+        <source>&amp;stays in the Workshop</source>
+        <extracomment>In Polish: &amp;zostaje w Warsztacie / Oznaczony jako wstawiony.</extracomment>
+        <translation>&amp;zostaje w Warsztacie</translation>
+    </message>
+    <message>
+        <source>Marked as inserted.</source>
+        <translation>Oznaczony jako wstawiony.</translation>
+    </message>
+    <message>
+        <source>goes from the Wor&amp;kshop</source>
+        <extracomment>In Polish: zni&amp;ka z Warsztatu / Cofnięcie usuwa wstawiony tekst, a wycinek wraca do Warsztatu.</extracomment>
+        <translation>zni&amp;ka z Warsztatu</translation>
+    </message>
+    <message>
+        <source>Undo takes the insertion back, and the clipping is in the Workshop again.</source>
+        <translation>Cofnięcie usuwa wstawiony tekst, a wycinek wraca do Warsztatu.</translation>
+    </message>
+    <message>
+        <source>Whether a cut lowers the words of the day is set in Statistics and Goals &gt; Counting.</source>
+        <extracomment>In Polish: Czy wycięcie zmniejsza słowa dnia, ustawia się w Statystyki i cele &gt; Liczenie.</extracomment>
+        <translation>Czy wycięcie zmniejsza słowa dnia, ustawia się w Statystyki i cele &gt; Liczenie.</translation>
+    </message>
+    <message>
+        <source>In the Text</source>
+        <extracomment>A group of Settings &gt; Editor &gt; Clippings. In Polish: W tekście</extracomment>
+        <translation>W tekście</translation>
+    </message>
+    <message>
+        <source>&amp;Draw scissors where a fragment was cut</source>
+        <extracomment>In Polish: &amp;Rysuj nożyczki w miejscach wycięć</extracomment>
+        <translation>&amp;Rysuj nożyczki w miejscach wycięć</translation>
+    </message>
+    <message>
+        <source>As the paperclips of the materials: a click or the menu of the paragraph shows the clipping or restores it there. Drawn in the color of the text.</source>
+        <extracomment>Under &quot;Draw scissors&quot;. In Polish: Jak spinacze materiałów: kliknięcie albo menu akapitu pokazuje wycinek albo przywraca go w tym miejscu. Rysowane w kolorze tekstu.</extracomment>
+        <translation>Jak spinacze materiałów: kliknięcie albo menu akapitu pokazuje wycinek albo przywraca go w tym miejscu. Rysowane w kolorze tekstu.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ClippingListPopup</name>
+    <message>
+        <source>Enter – insert · Alt+P – the place it came from · Alt+O – open · Esc – close</source>
+        <extracomment>The keys of the list at the cursor. In Polish: Enter – wstaw · Alt+P – na pierwotne miejsce · Alt+O – otwórz · Esc – zamknij</extracomment>
+        <translation>Enter – wstaw · Alt+P – na pierwotne miejsce · Alt+O – otwórz · Esc – zamknij</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::CutClippingDialog</name>
+    <message>
+        <source>Cut to Clippings</source>
+        <extracomment>The small window of Edit &gt; Cut to Clippings. In Polish: Wytnij do wycinków</extracomment>
+        <translation>Wytnij do wycinków</translation>
+    </message>
+    <message>
+        <source>The fragment (%1) goes from &quot;%2&quot; to the clippings in the Workshop. It can come back later: Insert &gt; Clipping.</source>
+        <extracomment>%1: &quot;46 words&quot;, %2: the title of the text. In Polish: Fragment (%1) przejdzie z „%2” do wycinków w Warsztacie. Można do niego wrócić: Wstaw &gt; Wycinek.</extracomment>
+        <translation>Fragment (%1) przejdzie z „%2” do wycinków w Warsztacie. Można do niego wrócić: Wstaw &gt; Wycinek.</translation>
+    </message>
+    <message>
+        <source>&amp;Title</source>
+        <extracomment>In Polish: &amp;Tytuł</extracomment>
+        <translation>&amp;Tytuł</translation>
+    </message>
+    <message>
+        <source>E.g. why it was cut, or where it may come back</source>
+        <extracomment>In Polish: Np. dlaczego wycięty albo gdzie może wrócić</extracomment>
+        <translation>Np. dlaczego wycięty albo gdzie może wrócić</translation>
+    </message>
+    <message>
+        <source>&amp;Note (optional)</source>
+        <extracomment>In Polish: &amp;Notatka (nieobowiązkowa)</extracomment>
+        <translation>&amp;Notatka (nieobowiązkowa)</translation>
+    </message>
+    <message>
+        <source>Next time cut at &amp;once</source>
+        <extracomment>In Polish: Następnym razem wycinaj od &amp;razu</extracomment>
+        <translation>Następnym razem wycinaj od &amp;razu</translation>
+    </message>
+    <message>
+        <source>Without this window; the title is the first words of the fragment. The choice is also in the Settings (Editor &gt; Clippings).</source>
+        <extracomment>In Polish: Bez tego okna; tytuł to pierwsze słowa fragmentu. Wybór jest też w Ustawieniach (Edytor &gt; Wycinki).</extracomment>
+        <translation>Bez tego okna; tytuł to pierwsze słowa fragmentu. Wybór jest też w Ustawieniach (Edytor &gt; Wycinki).</translation>
+    </message>
+    <message>
+        <source>Clipping Settings</source>
+        <extracomment>The gear of the window. In Polish: Ustawienia wycinków</extracomment>
+        <translation>Ustawienia wycinków</translation>
+    </message>
+    <message>
+        <source>Cut</source>
+        <extracomment>The button that cuts. In Polish: Wytnij</extracomment>
+        <translation>Wytnij</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::InsertClippingDialog</name>
+    <message>
+        <source>inserted</source>
+        <extracomment>A clipping inserted into a text already, in its row. In Polish: wstawiony</extracomment>
+        <translation>wstawiony</translation>
+    </message>
+    <message>
+        <source>Insert Clipping</source>
+        <extracomment>The window of Insert &gt; Clipping. In Polish: Wstaw wycinek
+----------
+The list of Insert &gt; Clipping at the cursor. In Polish: Wstaw wycinek</extracomment>
+        <translation>Wstaw wycinek</translation>
+    </message>
+    <message>
+        <source>into &quot;%1&quot;, at the cursor</source>
+        <extracomment>%1: the title of the text. In Polish: do „%1”, w miejscu kursora</extracomment>
+        <translation>do „%1”, w miejscu kursora</translation>
+    </message>
+    <message>
+        <source>Search the clippings</source>
+        <extracomment>In Polish: Szukaj w wycinkach</extracomment>
+        <translation>Szukaj w wycinkach</translation>
+    </message>
+    <message>
+        <source>Search in the titles, texts and notes of the clippings</source>
+        <extracomment>In Polish: Szukaj w tytułach, tekstach i notatkach wycinków</extracomment>
+        <translation>Szukaj w tytułach, tekstach i notatkach wycinków</translation>
+    </message>
+    <message>
+        <source>all</source>
+        <extracomment>Where from: all the clippings. In Polish: wszystkie</extracomment>
+        <translation>wszystkie</translation>
+    </message>
+    <message>
+        <source>this text</source>
+        <extracomment>Where from: the clippings of the text the window inserts into. In Polish: ten tekst</extracomment>
+        <translation>ten tekst</translation>
+    </message>
+    <message>
+        <source>&amp;From:</source>
+        <extracomment>In Polish: &amp;Skąd:</extracomment>
+        <translation>&amp;Skąd:</translation>
+    </message>
+    <message>
+        <source>Show &amp;inserted too</source>
+        <extracomment>In Polish: Pokaż &amp;także wstawione</extracomment>
+        <translation>Pokaż &amp;także wstawione</translation>
+    </message>
+    <message>
+        <source>Clippings</source>
+        <extracomment>In Polish: Wycinki</extracomment>
+        <translation>Wycinki</translation>
+    </message>
+    <message>
+        <source>Preview of the clipping, read-only</source>
+        <extracomment>In Polish: Podgląd wycinka, tylko do czytania</extracomment>
+        <translation>Podgląd wycinka, tylko do czytania</translation>
+    </message>
+    <message>
+        <source>The preview of a clipping can only be read</source>
+        <extracomment>In Polish: Podgląd wycinka jest tylko do czytania</extracomment>
+        <translation>Podgląd wycinka jest tylko do czytania</translation>
+    </message>
+    <message>
+        <source>Type to search · ↑ ↓ choose · Enter – insert at the cursor · Alt+P – the place it came from · Esc – close</source>
+        <extracomment>The keys of the window, under the list. In Polish: Pisz, żeby szukać · ↑ ↓ wybór · Enter – wstaw przy kursorze · Alt+P – na pierwotne miejsce · Esc – zamknij</extracomment>
+        <translation>Pisz, żeby szukać · ↑ ↓ wybór · Enter – wstaw przy kursorze · Alt+P – na pierwotne miejsce · Esc – zamknij</translation>
+    </message>
+    <message>
+        <source>&amp;Open</source>
+        <extracomment>In Polish: &amp;Otwórz</extracomment>
+        <translation>&amp;Otwórz</translation>
+    </message>
+    <message>
+        <source>Open the clipping in the editor</source>
+        <extracomment>In Polish: Otwórz wycinek w edytorze</extracomment>
+        <translation>Otwórz wycinek w edytorze</translation>
+    </message>
+    <message>
+        <source>Restore to the &amp;Place It Came From</source>
+        <extracomment>In Polish: &amp;Przywróć na pierwotne miejsce</extracomment>
+        <translation>&amp;Przywróć na pierwotne miejsce</translation>
+    </message>
+    <message>
+        <source>Clipping Settings</source>
+        <extracomment>The gear of the window. In Polish: Ustawienia wycinków</extracomment>
+        <translation>Ustawienia wycinków</translation>
+    </message>
+    <message>
+        <source>&amp;Insert</source>
+        <extracomment>In Polish: &amp;Wstaw</extracomment>
+        <translation>&amp;Wstaw</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <extracomment>In Polish: Zamknij</extracomment>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>The book has no clippings yet.</source>
+        <translation>Książka nie ma jeszcze wycinków.</translation>
+    </message>
+    <message>
+        <source>No clipping matches.</source>
+        <translation>Żaden wycinek nie pasuje.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ClippingOriginBox</name>
+    <message>
+        <source>Origin</source>
+        <extracomment>A group of the Properties panel of a clipping: where it comes from. In Polish: Pochodzenie</extracomment>
+        <translation>Pochodzenie</translation>
+    </message>
+    <message>
+        <source>From:</source>
+        <extracomment>The text a clipping was cut from. In Polish: Skąd:</extracomment>
+        <translation>Skąd:</translation>
+    </message>
+    <message>
+        <source>Place:</source>
+        <extracomment>The paragraph a clipping was cut from. In Polish: Miejsce:</extracomment>
+        <translation>Miejsce:</translation>
+    </message>
+    <message>
+        <source>Cut:</source>
+        <extracomment>When a clipping was cut. In Polish: Wycięto:</extracomment>
+        <translation>Wycięto:</translation>
+    </message>
+    <message>
+        <source>Inserted:</source>
+        <extracomment>When a clipping was inserted into a text last. In Polish: Wstawiony:</extracomment>
+        <translation>Wstawiony:</translation>
+    </message>
+    <message>
+        <source>Go to Its Place</source>
+        <extracomment>Opens the text a clipping was cut from at the place. In Polish: Przejdź do miejsca</extracomment>
+        <translation>Przejdź do miejsca</translation>
+    </message>
+    <message>
+        <source>Restore to Its Place</source>
+        <extracomment>Inserts a clipping where it was cut from. In Polish: Przywróć na miejsce</extracomment>
+        <translation>Przywróć na miejsce</translation>
+    </message>
+    <message>
+        <source>added by hand</source>
+        <extracomment>Where a clipping comes from: none, it was added by hand. In Polish: dodany ręcznie</extracomment>
+        <translation>dodany ręcznie</translation>
+    </message>
+    <message>
+        <source>no</source>
+        <extracomment>A clipping never inserted into a text. In Polish: nie</extracomment>
+        <translation>nie</translation>
+    </message>
+    <message>
+        <source>Open &quot;%1&quot; at the place it was cut from</source>
+        <extracomment>%1: the title of the text. In Polish: Otwórz „%1” w miejscu, z którego go wycięto</extracomment>
+        <translation>Otwórz „%1” w miejscu, z którego go wycięto</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ClippingTexts</name>
+    <message>
+        <source>%1 (deleted)</source>
+        <extracomment>Where a clipping comes from: a text deleted since. %1: its title then. In Polish: %1 (usunięty)</extracomment>
+        <translation>%1 (usunięty)</translation>
+    </message>
+    <message>
+        <source>the start of paragraph %1</source>
+        <extracomment>Where a clipping was cut from: the start of a paragraph. %1: its number. In Polish: początek akapitu %1</extracomment>
+        <translation>początek akapitu %1</translation>
+    </message>
+    <message>
+        <source>paragraph %1, after &quot;%2&quot;</source>
+        <extracomment>Where a clipping was cut from. %1: the number of the paragraph, %2: the last words before the place. In Polish: akapit %1, po słowach „%2”</extracomment>
+        <translation>akapit %1, po słowach „%2”</translation>
+    </message>
+    <message>
+        <source>This clipping was added by hand: it has no place it came from</source>
+        <extracomment>In Polish: Ten wycinek dodano ręcznie: nie ma pierwotnego miejsca</extracomment>
+        <translation>Ten wycinek dodano ręcznie: nie ma pierwotnego miejsca</translation>
+    </message>
+    <message>
+        <source>The text it was cut from is no longer in the book</source>
+        <extracomment>In Polish: Tekstu, z którego go wycięto, nie ma już w książce</extracomment>
+        <translation>Tekstu, z którego go wycięto, nie ma już w książce</translation>
+    </message>
+    <message>
+        <source>Insert it where it was cut from, in &quot;%1&quot;</source>
+        <extracomment>%1: the title of the text. In Polish: Wstaw go tam, skąd go wycięto, w „%1”</extracomment>
+        <translation>Wstaw go tam, skąd go wycięto, w „%1”</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ParagraphMarksCoordinator</name>
+    <message>
+        <source>&quot;%1&quot; (%2, %3)</source>
+        <extracomment>Beside the scissors at a paragraph: a clipping cut from it. %1: its title, %2: its words (&quot;46 words&quot;), %3: when it was cut (&quot;today, 7:42&quot;). In Polish: „%1” (%2, %3)</extracomment>
+        <translation>„%1” (%2, %3)</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; (%2)</source>
+        <extracomment>A clipping without the time of its cut. In Polish: „%1” (%2)</extracomment>
+        <translation>„%1” (%2)</translation>
     </message>
 </context>
 <context>

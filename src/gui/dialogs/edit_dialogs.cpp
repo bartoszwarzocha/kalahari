@@ -56,7 +56,7 @@ constexpr std::array<editor::PasteForm, 5> PASTE_FORMS = {
     editor::PasteForm::Kalahari, editor::PasteForm::Source, editor::PasteForm::Merge,
     editor::PasteForm::Text, editor::PasteForm::Image};
 
-/// A list as high as its lines
+/// A list as high as its lines, never lower: it never scrolls
 class LinesList : public QListWidget {
 public:
     LinesList(int lines, int widthChars, QWidget* parent)
@@ -64,7 +64,6 @@ public:
           m_lines(lines),
           m_widthChars(widthChars)
     {
-        setMinimumHeight(linesHeight());
     }
 
     [[nodiscard]] QSize sizeHint() const override
@@ -73,11 +72,26 @@ public:
                 linesHeight()};
     }
 
+    [[nodiscard]] QSize minimumSizeHint() const override
+    {
+        return {QListWidget::minimumSizeHint().width(), linesHeight()};
+    }
+
 private:
+    /// Each of its rows as high as it is: a letter in another font (one the font of the list
+    /// does not have) makes its row higher than the others; a line it has no row for yet as
+    /// high as the highest one
     [[nodiscard]] int linesHeight() const
     {
-        const int row = sizeHintForRow(0) > 0 ? sizeHintForRow(0) : fontMetrics().lineSpacing();
-        return (row * m_lines) + (2 * frameWidth());
+        int height = 0;
+        int highest = fontMetrics().lineSpacing();
+        for (int row = 0; row < count(); ++row) {
+            const int each = sizeHintForRow(row) > 0 ? sizeHintForRow(row) : highest;
+            highest = std::max(highest, each);
+            height += each;
+        }
+        height += std::max(0, m_lines - count()) * highest;
+        return height + (2 * frameWidth());
     }
 
     int m_lines;

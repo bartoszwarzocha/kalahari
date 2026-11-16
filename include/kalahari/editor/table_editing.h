@@ -120,14 +120,24 @@ void distributeColumns(QTextTable& table, int first, int last);
 /// @brief Make the first @p rows rows the header rows (none: 0)
 void setHeaderRows(QTextTable& table, int rows);
 
+/// @brief The format of the paragraph of a new cell: @p paragraphFormat, but in the style of
+///        a header row in a header row when it is in the style of the other rows
+///        (TABLE_ROW_STYLE_ID)
+QTextBlockFormat cellParagraphFormat(const QTextBlockFormat& paragraphFormat, bool headerRow);
+
+/// @brief The paragraphs of the rows that stopped or started being header rows (from
+///        @p headerRowsBefore to the table's count now) take the style of their rows: those in
+///        the style of a table row the style of a header row, and back; other styles stay
+void restyleHeaderRows(QTextCursor& cursor, const QTextTable& table, int headerRowsBefore);
+
 // =============================================================================
 // Rows and columns
 // =============================================================================
 
 /// @brief Insert @p count rows above or below the row, of the cells of that row: their
 ///        properties and those of the row, a cell spanning the place grows instead; the new
-///        cells hold an empty paragraph of @p paragraphFormat. Rows inserted next to a header
-///        row are header rows too.
+///        cells hold an empty paragraph of @p paragraphFormat (cellParagraphFormat()). Rows
+///        inserted next to a header row are header rows too.
 void insertTableRows(QTextCursor& cursor, QTextTable& table, int row, int count, bool below,
                      const QTextBlockFormat& paragraphFormat);
 
@@ -211,8 +221,9 @@ QChar likeliestSeparator(const QStringList& paragraphs);
 ///        @p columns columns
 ///
 /// The table is as wide as the text with equal columns; the cells keep the paragraphs'
-/// formats. An empty paragraph left next to it that it does not need goes, as for Insert >
-/// Table.
+/// formats, but a paragraph in Normal takes the style of new cells (cellParagraphFormat() of
+/// @p paragraphFormat). An empty paragraph left next to it that it does not need goes, as for
+/// Insert > Table.
 /// @return The table; nullptr when there are no paragraphs
 QTextTable* textToTable(QTextCursor& cursor, int first, int last, QChar separator, int columns,
                         bool headerRow, const QTextBlockFormat& paragraphFormat);
@@ -220,6 +231,8 @@ QTextTable* textToTable(QTextCursor& cursor, int first, int last, QChar separato
 /// @brief Turn a table into paragraphs: each row one, its cells separated by the separator
 ///        (a semicolon and a comma with a space after them) and a cell's paragraphs joined
 ///        by spaces; a null @p separator: each cell's paragraphs as they are, row by row
+///
+/// A paragraph in the style of a table row or a header row is in Normal after it.
 /// @return The number of the block of the first paragraph
 int tableToText(QTextCursor& cursor, QTextTable& table, QChar separator);
 

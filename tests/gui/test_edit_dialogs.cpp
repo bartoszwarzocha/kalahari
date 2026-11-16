@@ -31,6 +31,7 @@
 #include <QListWidget>
 #include <QMimeData>
 #include <QPushButton>
+#include <QScrollBar>
 #include <QTextBlock>
 #include <QToolButton>
 
@@ -385,6 +386,36 @@ TEST_CASE("Go To: Edit > Go To... opens one window over the text that had the ke
     coordinator.open();
     CHECK(coordinator.dialog() == dialog);
     dialog->close();
+}
+
+TEST_CASE("Go To and Paste Special: their lists never scroll, a row higher than the others "
+          "too",
+          "[gui][goto][paste][dialog]") {
+    // A letter the font of the list does not have comes from another font, which can make
+    // its row higher than the others; the window's height is tight as on a small screen
+    const auto checkList = [](QWidget& window) {
+        auto* list = only<QListWidget>(window);
+        QFont larger = list->font();
+        larger.setPointSizeF(larger.pointSizeF() * 1.5);
+        list->item(list->count() - 1)->setFont(larger);
+        list->updateGeometry();
+        layOut(window);
+        window.resize(window.width(), window.minimumSizeHint().height());
+        layOut(window);
+        CHECK(list->minimumSizeHint().height() >= list->sizeHint().height());
+        CHECK(list->verticalScrollBar()->maximum() == 0);
+    };
+
+    auto text = editorWith(QStringLiteral("<kml><h1>One</h1><p>a</p></kml>"));
+    GoToDialog goTo([&text]() { return text.get(); });
+    checkList(goTo);
+
+    PasteSpecialDialog::Data data;
+    data.source = ClipboardSource::Word;
+    data.forms = {PasteForm::Source, PasteForm::Merge, PasteForm::Text};
+    data.chosen = PasteForm::Merge;
+    PasteSpecialDialog paste(data);
+    checkList(paste);
 }
 
 TEST_CASE("Go To and Paste Special: the windows in Polish, their keys, a small screen",

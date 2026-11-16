@@ -511,19 +511,9 @@ bool BookEditor::event(QEvent* event)
             QToolTip::showText(help->globalPos(), tip, this);
             return true;
         }
-        // The mark beside a paragraph: the titles of the materials linked with it
+        // The mark beside a paragraph: the materials linked with it, the clippings cut from it
         if (const std::optional<ParagraphMark> marked = paragraphMarkAt(QPointF(help->pos()))) {
-            //: The tooltip of the paperclip beside a paragraph, over the titles of the
-            //: materials. In Polish: Powiązane materiały
-            QStringList lines{
-                QStringLiteral("<b>%1</b>").arg(tr("Linked materials").toHtmlEscaped())};
-            for (const QString& title : marked->titles) {
-                lines << title.toHtmlEscaped();
-            }
-            QToolTip::showText(help->globalPos(),
-                               QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
-                                   .arg(lines.join(QStringLiteral("<br>"))),
-                               this);
+            QToolTip::showText(help->globalPos(), paragraphMarkToolTip(*marked), this);
             return true;
         }
         // A field: what it shows and how it changes
@@ -1095,6 +1085,7 @@ void BookEditor::replaceWithKml(const QString& kml)
     cursor.setBlockCharFormat(QTextCharFormat());  // nothing left of the old first paragraph
     appendParagraphs(cursor, content);
     cursor.endEditBlock();
+    m_paragraphMarks.clear();
     anchorParagraphMarks(marks);
     syncParagraphMarks();
 
@@ -1217,9 +1208,11 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     // them cannot be redone any more
     m_undoLevel = 0;
     m_pasteLevels.clear();
+    m_movedLevels.clear();
     connect(m_textBuffer.get(), &QTextDocument::undoCommandAdded, this, [this]() {
         const int level = ++m_undoLevel;
         m_pasteLevels.removeIf([level](int paste) { return paste >= level; });
+        m_movedLevels.removeIf([level](int moved) { return moved >= level; });
     });
 
     // The grammar of the paragraphs edited is checked when the writer stops typing (the

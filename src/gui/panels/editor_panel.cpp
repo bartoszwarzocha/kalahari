@@ -138,7 +138,9 @@ EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, 
          registry.getAction(QStringLiteral("edit.copy")),
          registry.getAction(QStringLiteral("edit.paste")),
          registry.getAction(QStringLiteral("edit.selectAll")),
-         registry.getAction(QStringLiteral("insert.link"))});
+         registry.getAction(QStringLiteral("insert.link")),
+         registry.getAction(QStringLiteral("edit.cutToClippings")),
+         registry.getAction(QStringLiteral("insert.clipping"))});
     // The context menu of a cell: the commands of the Table menu, enabled as there
     const auto actions = [&registry](std::initializer_list<const char*> ids) {
         QList<QAction*> found;
@@ -811,13 +813,24 @@ void EditorPanel::moveImagesFolder(const QString& folder) {
     m_bookEditor->moveImagesFolder(folder);
 }
 
-void EditorPanel::showInsertImageDialog() {
+void EditorPanel::showInsertImageDialog(const NewImageCaption& askCaption) {
     if (!m_bookEditor->canInsertImage()) {
         return;
     }
     //: The system window of Insert > Image... In Polish: Wstaw obraz
     const QString path = chooseImageFile(window(), tr("Insert Image"));
-    if (!path.isEmpty() && !m_bookEditor->insertImageFile(path)) {
+    if (path.isEmpty()) {
+        return;
+    }
+    // Its caption, or none, chosen before it goes in (user's test of 16.11)
+    std::optional<editor::ImageCaption> caption;
+    if (askCaption) {
+        caption = askCaption(*m_bookEditor);
+        if (!caption) {
+            return;  // Cancel
+        }
+    }
+    if (!m_bookEditor->insertImageFile(path, caption)) {
         warnImageNotInserted(window(), path);
     }
 }

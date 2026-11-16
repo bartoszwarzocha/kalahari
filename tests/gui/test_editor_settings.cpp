@@ -683,7 +683,7 @@ TEST_CASE("Settings dialog: the words of the notes counted or not, in the open e
         "<kml><p>Two words<footnote id=\"f1\">and three more</footnote>.</p></kml>"));
     REQUIRE(bookEditor->wordCount() == 5);
 
-    // The gear of Insert > Footnote Layout...: the cursor in the option, on Editor > General
+    // The gear of Format > Footnote Layout...: the cursor in the option, on Editor > General
     gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::WORD_COUNT_PAGE)));
     QCheckBox* notes =

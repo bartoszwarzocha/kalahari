@@ -9,6 +9,7 @@
 #include "kalahari/gui/panels/annotation_colors.h"
 
 #include <QDate>
+#include <QDateTime>
 #include <QFontInfo>
 #include <QFontMetricsF>
 #include <QGuiApplication>
@@ -314,8 +315,12 @@ bool AnnotationCards::cutsShort(const QString& id) const {
 // =============================================================================
 
 QFont AnnotationCards::cardFont() const {
-    // The program's font, sized after the text
+    // The family of the text, smaller: the cards look as the text they are under, and their
+    // text is written on them as in the text (user's test of 16.11)
     QFont font = QGuiApplication::font();
+    if (!m_textFont.family().isEmpty()) {
+        font.setFamily(m_textFont.family());
+    }
     const qreal share = std::clamp(m_settings.fontPercent, 50, 200) / 100.0;
     if (m_textFont.pointSizeF() > 0) {
         font.setPointSizeF(m_textFont.pointSizeF() * share);
@@ -324,6 +329,10 @@ QFont AnnotationCards::cardFont() const {
             std::max(1, static_cast<int>(std::lround(m_textFont.pixelSize() * share))));
     }
     return font;
+}
+
+qreal AnnotationCards::lineHeight() const {
+    return metricsOf(cardFont()).lineHeight();
 }
 
 QColor AnnotationCards::kindColor(AnnotationKind kind) const {
@@ -382,6 +391,8 @@ std::vector<AnnotationMark> AnnotationCards::cardMarks(const QTextBlock& block) 
         AnnotationMark writing;
         writing.offset = m_writing->offset;
         writing.kind = m_writing->kind;
+        writing.author = m_writing->author;
+        writing.created = QDateTime::currentDateTime();
         const auto after =
             std::upper_bound(marks.begin(), marks.end(), writing.offset,
                              [](int offset, const AnnotationMark& mark) { return offset < mark.offset; });
@@ -497,7 +508,11 @@ std::vector<AnnotationCardBox> AnnotationCards::cardsOf(const QTextBlock& block,
 
         qreal height = 0.0;
         if (card.writing) {
-            height = m_writing->height;
+            // Its header as it is, its text as high as the text written
+            const qreal text = std::max(m_writing->height, m.lineHeight());
+            height = context.compact
+                         ? 2.0 * COMPACT_PAD * m.em + std::max(text, MENU_HEIGHT * m.em)
+                         : (PAD_TOP + TEXT_GAP + PAD_BOTTOM) * m.em + m.headerHeight() + text;
         } else if (card.collapsed) {
             height = m.lineCardHeight();
         } else {
@@ -552,6 +567,11 @@ std::optional<AnnotationCardHit> AnnotationCards::hitTest(const QTextBlock& bloc
         }
         const int shown = card.shownLines;
         const CardParts parts = partsOf(card.rect, context, shown, shown > 0);
+        // The text: from its first line to the bottom padding, or to "Show all"
+        QRectF text = parts.text;
+        text.setBottom(shown > 0 ? parts.text.top() + shown * m.lineHeight()
+                                 : card.rect.bottom() -
+                                       (context.compact ? COMPACT_PAD : PAD_BOTTOM) * m.em);
         if (parts.menu.contains(point)) {
             hit.part = AnnotationCardPart::Menu;
         } else if (card.mark.kind == AnnotationKind::Todo &&
@@ -560,10 +580,29 @@ std::optional<AnnotationCardHit> AnnotationCards::hitTest(const QTextBlock& bloc
             hit.part = AnnotationCardPart::Done;
         } else if (!parts.showAll.isEmpty() && parts.showAll.contains(point)) {
             hit.part = AnnotationCardPart::ShowAll;
+        } else if (text.contains(point)) {
+            hit.part = AnnotationCardPart::Text;
+            hit.inText = point - text.topLeft();
         }
         return hit;
     }
     return std::nullopt;
+}
+
+QRectF AnnotationCards::writingTextRect(const QTextBlock& block, qreal top, qreal width) const {
+    if (!m_writing) {
+        return {};
+    }
+    const Metrics m = metricsOf(cardFont());
+    const CardContext context{m, m_settings.compact};
+    for (const AnnotationCardBox& card : cardsOf(block, top, width)) {
+        if (card.writing) {
+            QRectF text = partsOf(card.rect, context, 0, false).text;
+            text.setHeight(std::max(m_writing->height, m.lineHeight()));
+            return text;
+        }
+    }
+    return {};
 }
 
 // =============================================================================
@@ -584,9 +623,6 @@ void AnnotationCards::paint(QPainter* painter, const QTextBlock& block, qreal to
     painter->setRenderHint(QPainter::Antialiasing);
     painter->setRenderHint(QPainter::TextAntialiasing);
     for (const AnnotationCardBox& card : cards) {
-        if (card.writing) {
-            continue;  // the frame lies over its room
-        }
         const QColor kind = kindColor(card.mark.kind);
         const QRectF& rect = card.rect;
         const qreal radius = RADIUS * m.em;
@@ -683,9 +719,10 @@ void AnnotationCards::paint(QPainter* painter, const QTextBlock& block, qreal to
         }
         }
 
-        // The "..." button: shown on the card under the mouse and on the one gone to
+        // The "..." button: shown on the card under the mouse and on the one gone to (not on
+        // the one written on)
         const bool hovered = card.mark.id == m_hovered;
-        if (hovered || card.mark.id == m_selected) {
+        if (!card.writing && (hovered || card.mark.id == m_selected)) {
             if (hovered && m_hoveredPart == AnnotationCardPart::Menu) {
                 painter->setPen(Qt::NoPen);
                 painter->setBrush(gui::mixedColor(colors.background, colors.kind, MENU_HOVER));
@@ -726,7 +763,11 @@ void AnnotationCards::paint(QPainter* painter, const QTextBlock& block, qreal to
             }
         }
 
-        // The text, as it was written; a long one cut short, with "Show all" under it
+        // The text, as it was written; a long one cut short, with "Show all" under it. The
+        // one written on has the frame over its text
+        if (card.writing) {
+            continue;
+        }
         QTextLayout layout;
         const int lines = layOutCardText(layout, card.mark, context, parts.text.width(),
                                          colors.secondary);

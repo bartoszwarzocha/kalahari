@@ -16,6 +16,7 @@
 
 namespace kalahari::core {
 class ProjectManager;
+struct ProjectElement;
 }  // namespace kalahari::core
 
 namespace kalahari {
@@ -50,6 +51,8 @@ struct MaterialRow {
     QString heading;                 ///< A row that names a group of the list of the cover,
                                      ///< not a material: its name and number; empty: a
                                      ///< material
+    bool clipping = false;           ///< A clipping (core::ClippingData)
+    bool originLive = false;         ///< Of a clipping: the text it was cut from is in the book
 };
 
 /// @brief The lists of the materials of the book open in @p book: the kinds of the Materials of its
@@ -98,6 +101,10 @@ public:
     static constexpr const char* COVER_SOURCE = "coverSource"; ///< The cover: of an opinion
     static constexpr const char* COVER_DATE = "coverDate";     ///< The cover: of an opinion
     static constexpr const char* COVER_LICENSE = "coverLicense";  ///< The cover: of a picture
+    static constexpr const char* CLIPPING_FROM = "from";  ///< A clipping: the text it was cut from
+    static constexpr const char* CLIPPING_CUT = "cut";    ///< A clipping: when it was cut
+    static constexpr const char* CLIPPING_NOTE = "note";  ///< A clipping: its note
+    static constexpr const char* CLIPPING_INSERTED = "inserted";  ///< A clipping: inserted last
     static constexpr const char* SOURCE_KIND = "sourceKind";        ///< A source: a book...
     static constexpr const char* SOURCE_AUTHORS = "sourceAuthors";  ///< A source: its authors
     static constexpr const char* SOURCE_YEAR = "sourceYear";        ///< A source: its year
@@ -174,8 +181,15 @@ public:
     static QList<MaterialColumn> columnsOf(const core::ProjectManager& book, const QString& list);
 
     /// @brief Column @p list sorts by at first: the quote of the quotes, the kind of All
-    /// Materials, else the title
+    /// Materials, the time of the cut of the clippings, else the title
     static QString firstSortOf(const QString& list);
+
+    /// @brief The order @p list sorts in at first: the clippings the last cut first, the others
+    /// from A to Z
+    static Qt::SortOrder firstSortOrderOf(const QString& list);
+
+    /// @brief Whether @p list is the list of the clippings
+    static bool isClippings(const QString& list);
 
     /// @brief Rows of the materials of @p list in the book open in @p book, in the order of the
     /// Workshop
@@ -218,6 +232,16 @@ public:
     /// of a page or of a picture on the web without a copy, the path of a file, else the title;
     /// in SOURCES the entry of a source in the bibliography of the book (rowsOf())
     static QString copyTextOf(const core::ProjectManager& book, const QString& elementId);
+
+    /// @brief Columns of the list of the clippings: the title, where it comes from, when it
+    /// was cut, the words, the note and when it was inserted (shown when a clipping inserted
+    /// stays in the Workshop), the time of the file and the links
+    static QList<MaterialColumn> clippingColumns();
+
+    /// @brief What clipping @p element of the book open in @p book shows in the columns of its
+    /// list; nothing for an element that is not a clipping
+    static void setClippingTexts(MaterialRow& row, const core::ProjectManager& book,
+                                 const core::ProjectElement& element);
 };
 
 } // namespace gui

@@ -27,6 +27,7 @@
 #include "kalahari/gui/footnote_coordinator.h"
 #include "kalahari/gui/book_search_coordinator.h"
 #include "kalahari/gui/chapter_break_coordinator.h"
+#include "kalahari/gui/clippings_coordinator.h"
 #include "kalahari/gui/field_coordinator.h"
 #include "kalahari/gui/go_to_coordinator.h"
 #include "kalahari/gui/dialogs/edit_dialogs.h"
@@ -806,6 +807,33 @@ MainWindow::MainWindow(QWidget* parent)
             return m_chapterBreakCoordinator->canBreak(text);
         });
 
+    // Edit > Cut to Clippings and Insert > Clipping from the Workshop: fragments to the
+    // Workshop and back, with Undo on the bar under the text and Ctrl+Z in it
+    m_clippingsCoordinator = new ClippingsCoordinator(
+        book(), commands(), m_dockCoordinator->centralTabs(), m_navigatorCoordinator,
+        [this]() { return m_editCoordinator->textWithKeys(); },
+        ClippingsCoordinator::Feedback{
+            .showNotice =
+                [this](EditorPanel* editor, const QString& message, const QString& actionText,
+                       const QString& actionToolTip, std::function<void()> action) {
+                    m_documentCoordinator->showNotice(editor, message, actionText,
+                                                      actionToolTip, std::move(action));
+                },
+            .statusBar = statusBar(),
+            .window = this},
+        this);
+    m_clippingsCoordinator->connectCommands();
+    m_clippingsCoordinator->connectPanels(m_dockCoordinator->propertiesPanel(),
+                                          m_materialListCoordinator);
+    m_clippingsCoordinator->connectMarks(*m_paragraphMarksCoordinator);
+    m_editCoordinator->addTextCommands(
+        {ClippingsCoordinator::CUT_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_clippingsCoordinator->canCut(text);
+        });
+    m_editCoordinator->addTextCommands(
+        {ClippingsCoordinator::INSERT_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_clippingsCoordinator->canInsert(text);
+        });
     // Insert > Date && Time... and the date and the time at once (Alt+Shift+D, Alt+Shift+T):
     // in the book's text with the keys, not in a read-only one; Insert > Field... not in a
     // plain text file either (it keeps no fields). The fields of every open text show the
@@ -1332,10 +1360,13 @@ void MainWindow::registerCommands() {
             editor->showHyperlinkDialog();
         }
     };
-    // Insert > Image...: the system window choosing a picture, of the editor in front
+    // Insert > Image...: the system window choosing a picture, of the editor in front, then
+    // the window of its caption
     callbacks.onInsertImage = [this]() {
         if (EditorPanel* editor = getCurrentEditor()) {
-            editor->showInsertImageDialog();
+            editor->showInsertImageDialog([this](editor::BookEditor& text) {
+                return m_captionCoordinator->askNewImageCaption(text);
+            });
         }
     };
     // Insert > Table...: the window of the new table, of the editor in front

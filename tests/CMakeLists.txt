@@ -12,6 +12,7 @@ set(TEST_SOURCES
     core/test_event_bus.cpp
     core/test_plugin_loading.cpp
     core/test_chapter_document.cpp
+    core/test_clipping.cpp                      # Clippings: titles, places found again, the .klh file
     core/test_chapter_versions.cpp    # Versions of the texts of the chapter files
     core/test_text_diff.cpp           # Differences between two texts, word by word
     core/test_text_statistics.cpp
@@ -214,6 +215,7 @@ set(TEST_SOURCES
     gui/test_edit_dialogs.cpp                    # Edit > Paste Special... and Edit > Go To...
     gui/test_book_search.cpp                     # Find in Book, Replace All in Book, the Search panel
     gui/test_chapter_break.cpp                   # Book > Chapter Break: the new text, its title, Undo
+    gui/test_clippings.cpp                       # Clippings: cut, Undo and Redo, insert, restore
     gui/test_format_dialogs.cpp                  # Format > Font..., Paragraph..., the color submenus
     gui/test_quick_character_palette.cpp         # Insert > Quick Character: the palette at the cursor
     gui/test_formatting_characters.cpp           # Insert > Formatting Character
@@ -271,6 +273,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/source_catalogs.cpp
     ${CMAKE_SOURCE_DIR}/src/core/link_roles.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_project.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/clipping.cpp
     ${CMAKE_SOURCE_DIR}/src/core/old_book_conversion.cpp
     ${CMAKE_SOURCE_DIR}/src/core/package_card.cpp
     ${CMAKE_SOURCE_DIR}/src/core/unicode_paths.cpp
@@ -361,6 +364,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/quick_insert_page.cpp  # Settings > Editor > Quick Insert
     ${CMAKE_SOURCE_DIR}/src/gui/settings/repetitions_page.cpp  # Settings > Editor > Repetitions
     ${CMAKE_SOURCE_DIR}/src/gui/settings/versions_page.cpp  # Settings > Editor > Versions
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/clippings_page.cpp  # Settings > Editor > Clippings
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/navigator_page.cpp  # Settings > Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/settings/cards_page.cpp  # Settings > Cards
@@ -416,6 +420,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/writing_awards_tab.cpp  # The tab Challenges and Badges
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
     ${CMAKE_SOURCE_DIR}/src/gui/paragraph_marks_coordinator.cpp  # Paperclips of linked paragraphs
+    ${CMAKE_SOURCE_DIR}/src/gui/paragraph_marks_clippings.cpp  # Scissors of the clippings
     ${CMAKE_SOURCE_DIR}/src/gui/writing_stats_coordinator.cpp  # The statistics bar and goals
     ${CMAKE_SOURCE_DIR}/src/gui/writing_awards_tracker.cpp  # The badges and challenges won
     ${CMAKE_SOURCE_DIR}/src/gui/writing_stats_model.cpp  # The statistics of writing shown
@@ -432,6 +437,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/image_filter_coordinator.cpp  # One filter for every image of the book
     ${CMAKE_SOURCE_DIR}/src/gui/book_search_coordinator.cpp  # Find in Book and Replace All in Book
     ${CMAKE_SOURCE_DIR}/src/gui/chapter_break_coordinator.cpp  # Book > Chapter Break
+    ${CMAKE_SOURCE_DIR}/src/gui/clippings_coordinator.cpp  # Cut to Clippings, Insert > Clipping
+    ${CMAKE_SOURCE_DIR}/src/gui/clippings_coordinator_steps.cpp  # The undo of the texts, the tabs
     ${CMAKE_SOURCE_DIR}/src/gui/field_coordinator.cpp       # The fields of the open texts, Insert > Field...
     ${CMAKE_SOURCE_DIR}/src/gui/go_to_coordinator.cpp       # Edit > Go To...
     ${CMAKE_SOURCE_DIR}/src/gui/style_coordinator.cpp       # New, changed and deleted styles of the book
@@ -542,7 +549,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/preview_panel.cpp             # A preview of a file
     ${CMAKE_SOURCE_DIR}/src/gui/panels/image_preview_panel.cpp       # The preview of a material's picture
     ${CMAKE_SOURCE_DIR}/src/gui/material_list.cpp                    # The lists of the materials
+    ${CMAKE_SOURCE_DIR}/src/gui/material_list_clippings.cpp          # The columns of the clippings
+    ${CMAKE_SOURCE_DIR}/src/gui/clipping_texts.cpp                   # What the program says of a clipping
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel.cpp       # The list of a kind of materials
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel_clippings.cpp  # The commands of the clippings
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/clipping_origin_box.cpp       # Where a clipping comes from
     ${CMAKE_SOURCE_DIR}/src/gui/version_texts.cpp                    # What the program says of a version
     ${CMAKE_SOURCE_DIR}/src/gui/versions_coordinator.cpp             # Save Version and Version History
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/version_name_dialog.cpp      # The description of a version
@@ -558,6 +569,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/challenge_dialog.cpp         # Add Challenge
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/session_summary_dialog.cpp   # The summary of the session
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/version_history_dialog.cpp   # The versions of a text
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/clipping_dialogs.cpp   # The windows of the clippings
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_item_dialog.cpp          # New Book dialog: the folder of the book
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/sections_field.cpp           # Fields of the sections of a book
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/kind_palette.cpp             # Kinds of elements of all book types
@@ -713,6 +725,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/preview_panel.h  # PreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/clipping_origin_box.h  # ClippingOriginBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/source_lookup.h  # SourceLookup with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
@@ -728,6 +741,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/challenge_dialog.h  # ChallengeDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/session_summary_dialog.h  # SessionSummaryDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/clipping_dialogs.h  # The windows of the clippings with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/versions_coordinator.h  # VersionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/style_coordinator.h  # StyleCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/caption_coordinator.h  # CaptionCoordinator with Q_OBJECT
@@ -736,6 +750,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/image_filter_coordinator.h  # ImageFilterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_search_coordinator.h  # BookSearchCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/chapter_break_coordinator.h  # ChapterBreakCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/clippings_coordinator.h  # ClippingsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/field_coordinator.h  # FieldCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/go_to_coordinator.h  # GoToCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/style_dialog.h  # StyleDialog, StylePreview with Q_OBJECT

@@ -54,6 +54,7 @@
 #include <QElapsedTimer>
 #include <QHash>
 #include <QList>
+#include <QMap>
 #include <QPointer>
 #include <QSet>
 #include <QTextTable>
@@ -94,6 +95,7 @@ class FindReplaceBar;
 class KmlDocumentModel;
 class SpellCheckService;
 class GrammarCheckService;
+class SharedHistory;
 
 /// @brief Custom text editor widget for KML documents
 ///
@@ -495,6 +497,18 @@ public:
     ///        the text comes back, and its words are not written (movingStarted())
     void undoMovedText();
 
+    /// @brief Take the selection away as one undo step, with the annotations anchored in it,
+    ///        and leave the clipboard as it is (Edit > Cut to Clippings: the annotations go with
+    ///        the text to the clipping, as Cut takes them to the clipboard)
+    /// @param moved The words go to another text and are not deleted: the step, its undo and
+    ///        its redo are moving (movingStarted()), as Book > Chapter Break is
+    /// @return false in a read-only text or without a selection
+    bool takeSelection(bool moved);
+
+    /// @brief The level of undo of the text as it is: one for each step undo() takes back
+    ///        (Edit > Cut to Clippings follows its step with it)
+    [[nodiscard]] int undoLevel() const { return m_undoLevel; }
+
     /// @brief Insert a newline, splitting the paragraph at cursor position
     ///
     /// If there is an active selection, it is deleted first.
@@ -573,6 +587,27 @@ public:
 
     /// @brief Redo the last undone command
     void redo();
+
+    /// @brief Whether the writer's Undo (Edit > Undo, its keys) can do something: a step of
+    ///        all the texts it changed (setSharedHistory()) or of this text
+    bool canUndoCommand() const;
+
+    /// @brief Whether the writer's Redo can do something, as canUndoCommand()
+    bool canRedoCommand() const;
+
+    /// @brief The writer's Undo: while the last step of this text is a step of more texts
+    ///        (Replace All in Book), it is undone in all of them; else undo()
+    void undoCommand();
+
+    /// @brief The writer's Redo, as undoCommand()
+    void redoCommand();
+
+    /// @brief The steps of more texts than this one its Undo and Redo do while they are its
+    ///        last (undoCommand()); nullptr: none. It is taken off before it goes
+    void setSharedHistory(SharedHistory* history) { m_sharedHistory = history; }
+
+    /// @brief The history of setSharedHistory()
+    SharedHistory* sharedHistory() const { return m_sharedHistory; }
 
     /// @brief Undo the last step for good: it cannot be redone
     ///
@@ -1089,9 +1124,13 @@ public:
     /// settings (NewImageOptions); a file with more dots per inch at that width than the
     /// settings allow is copied smaller. The image goes in a paragraph of its own, aligned as
     /// the settings say, and is selected.
+    /// @param caption Its caption, as the writer chose it at Insert > Image... (not shown:
+    ///        none); std::nullopt: the numbered caption of the settings
+    ///        (NewImageOptions::captionLabel), or none
     /// @return false when the file could not be copied or is not an image, without a folder
     ///         of images, or in a read-only text (changeRefused())
-    bool insertImageFile(const QString& path);
+    bool insertImageFile(const QString& path,
+                         const std::optional<ImageCaption>& caption = std::nullopt);
 
     /// @brief The width in pixels of the copy of a file inserted at the cursor now: fewer than
     ///        the file's when it has more dots per inch at its width in the text than
@@ -1103,8 +1142,10 @@ public:
     ///        images, as insertImageFile() inserts a file
     bool insertPicture(const QImage& picture);
 
-    /// @brief Insert an image of the book's folder at the cursor, as insertImageFile() does
-    bool insertImage(const ImageProperties& image);
+    /// @brief Insert an image of the book's folder at the cursor, as insertImageFile() does,
+    ///        with its caption as insertImageFile() gives it
+    bool insertImage(const ImageProperties& image,
+                     const std::optional<ImageCaption>& caption = std::nullopt);
 
     /// @brief The image the selection is (exactly one image): its position in the document
     std::optional<int> selectedImage() const;
@@ -1386,18 +1427,24 @@ public:
     /// @return Its id; empty when no mark is there
     QString annotationMarkAt(const QPointF& point) const;
 
-    /// @brief Show marks beside paragraphs, in the left margin of the page: the paperclips
-    /// of the materials linked with them
+    /// @brief Show marks of one kind beside paragraphs, in the left margin of the page: the
+    /// paperclips of the materials linked with them, or the scissors of the clippings cut from
+    /// them
     ///
     /// A mark stays with its paragraph while the text is edited; a new text drops the marks.
-    /// A click on a mark, or its item in the context menu of the paragraph, chooses a
-    /// material it names (paragraphMarkClicked()).
-    /// @param marks The marks; one past the end of the text is left out
+    /// A click on a paperclip, or its item in the context menu of the paragraph, chooses a
+    /// material it names (paragraphMarkClicked()); one on the scissors, or their item in the
+    /// context menu, shows a clipping (paragraphMarkClicked()) or restores it there
+    /// (clippingRestoreRequested()). The marks of the other kind stay; beside a paragraph
+    /// with both, the scissors are left of the paperclip.
+    /// @param marks The marks, all of kind @p kind; one past the end of the text is left out
     /// @param icon What they show, in the color of the text
-    void setParagraphMarks(const QList<ParagraphMark>& marks, const QIcon& icon);
+    /// @param kind What they stand for: the marks of this kind shown before go
+    void setParagraphMarks(const QList<ParagraphMark>& marks, const QIcon& icon,
+                           ParagraphMarkKind kind = ParagraphMarkKind::Materials);
 
     /// @brief The marks beside the paragraphs, with the paragraphs they are at now, in the
-    /// order of the text
+    /// order of the text (beside one paragraph: the paperclip, then the scissors)
     QList<ParagraphMark> paragraphMarks() const;
 
     /// @brief The mark beside a paragraph at a point of the editor
@@ -1460,19 +1507,31 @@ public:
     /// @return Empty when it has no card shown (collapsed to its mark, or no cards)
     QRectF annotationCardRect(const QString& id) const;
 
-    /// @brief An annotation is written in the frame over its card: the card makes room for
-    ///        the frame; a new one's room comes among the cards of the paragraph of its mark,
-    ///        in the order of its place. The room comes into view.
+    /// @brief An annotation is written on its card: the card stays, with its header, and the
+    ///        frame lies over its text, which is as high as the text written; a new one's card
+    ///        comes among the cards of the paragraph of its mark, in the order of its place.
+    ///        The card comes into view.
     /// @param id The annotation; empty: a new one
     /// @param kind Its kind
     /// @param start Where its fragment starts (a position in the document)
     /// @param end Where it ends: its mark
-    /// @param height The frame's height, in pixels of the editor
+    /// @param height The height of the text written, in pixels of the editor
+    /// @param author A new one: who it is by, in its card's header
     void setAnnotationCardWriting(const QString& id, AnnotationKind kind, int start, int end,
-                                  qreal height);
+                                  qreal height, const QString& author = {});
 
-    /// @brief The frame over the card is of another height (pixels of the editor)
+    /// @brief The text written on the card is of another height (pixels of the editor)
     void setAnnotationCardWritingHeight(qreal height);
+
+    /// @brief Where the text of the card written on is in the editor (the frame lies over
+    ///        it); empty: none
+    QRectF annotationCardWritingTextRect() const;
+
+    /// @brief The font of the cards' text as the editor shows it now (zoomed)
+    QFont annotationCardTextFont() const;
+
+    /// @brief The height of a line of the cards' text as the editor shows it now (pixels)
+    qreal annotationCardLineHeight() const;
 
     /// @brief No annotation is written in the frame over its card any more
     void clearAnnotationCardWriting();
@@ -1686,6 +1745,10 @@ public:
         QAction* paste = nullptr;
         QAction* selectAll = nullptr;
         QAction* link = nullptr;  ///< Insert > Link, whose keys Edit Hyperlink of a link shows
+        /// Edit > Cut to Clippings, under Cut, and Insert > Clipping, under Paste: items of
+        /// their own names, with the icons, the keys and the state of the commands
+        QAction* cutToClippings = nullptr;
+        QAction* insertClipping = nullptr;  ///< Insert > Clipping (see cutToClippings)
     };
 
     /// @brief The commands of the Edit menu the text's context menu shows as its editing
@@ -1973,6 +2036,11 @@ public:
 
     /// @brief Whether a turn of the spelling check is due (it runs while the editor is shown)
     bool isSpellCheckPending() const;
+
+    /// @brief A property of the context menu (bool) true while the words to put in place of a
+    ///        misspelled word are being found: they come first in the menu once they are, its
+    ///        first item saying so until then
+    static constexpr const char* SUGGESTIONS_PENDING_PROPERTY = "kalahariSuggestionsPending";
 
     /// @brief What goToNextIssue() did
     enum class IssueSearch {
@@ -2376,6 +2444,13 @@ signals:
     /// @param id The annotation's id
     void annotationEditRequested(const QString& id);
 
+    /// @brief Emitted when the text of an annotation's card is clicked: it is written there,
+    ///        from where it was clicked
+    /// @param id The annotation's id
+    /// @param inText Where it was clicked, from the top left corner of the card's text, in
+    ///        pixels of the editor
+    void annotationCardTextPressed(const QString& id, const QPointF& inText);
+
     /// @brief The writer asks to write a note's text in its frame: a click on its text, a
     /// double click on its number, Edit Footnote in the menu
     void noteEditRequested(const QString& id);
@@ -2403,6 +2478,11 @@ signals:
     /// the mark (a menu first when it names several), or its item in the context menu
     /// @param id What the mark names (ParagraphMark::ids)
     void paragraphMarkClicked(const QString& id);
+
+    /// @brief Emitted when Restore Here is chosen at the scissors beside a paragraph: in the
+    /// menu of a click on them, or in the context menu of the paragraph
+    /// @param id The clipping, cut from the paragraph (ParagraphMark::ids)
+    void clippingRestoreRequested(const QString& id);
 
     /// @brief Emitted when a paragraph is modified (text inserted/deleted)
     /// @param paragraphIndex Index of the modified paragraph
@@ -2639,6 +2719,20 @@ private:
     /// annotations) was made with; for a replacement those before it when it is undone,
     /// the end of the replaced text when it is redone
     void restoreStepCursor();
+
+    /// @brief What an undo level is besides a change of the text
+    struct LevelKind {
+        bool pasting = false;  ///< A paste (m_pasteLevels)
+        bool moving = false;   ///< Words moved, not written (m_movedLevels)
+    };
+
+    /// @brief Announce that undo or redo changes level @p level: pastingStarted() for a paste,
+    ///        movingStarted() for words moved
+    LevelKind announceLevel(int level);
+
+    /// @brief The end of the change of level @p level of @p kind: pastingFinished(),
+    ///        movingFinished()
+    void finishLevel(int level, LevelKind kind);
 
     // The cards of the annotations under the paragraphs (book_editor_cards.cpp)
 
@@ -3067,6 +3161,11 @@ private:
     /// @brief Add a row to the end of a table, as one undo step
     void appendTableRow(QTextTable& table);
 
+    /// @brief The format of the paragraph of a new cell: in the style of a table row when the
+    ///        book has the styles of tables (cellParagraphFormat() gives a header row its
+    ///        own), else Normal
+    [[nodiscard]] QTextBlockFormat tableCellFormat() const;
+
     /// @brief The paragraph Up or Down goes to from the first or the last line of @p block
     ///        where a table is next to it: the cell above or below in the column under
     ///        @p x (layout coordinates), or the paragraph before or after the table
@@ -3415,7 +3514,7 @@ private:
         ParagraphMark mark;
     };
     std::vector<AnchoredMark> m_paragraphMarks;  ///< setParagraphMarks()
-    QIcon m_paragraphMarkIcon;                   ///< What they show
+    QMap<ParagraphMarkKind, QIcon> m_paragraphMarkIcons;  ///< What the marks of each kind show
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
     ContextMenuTableActions m_contextMenuTableActions;  ///< The Table menu's, in a cell
     ContextMenuImageActions m_contextMenuImageActions;  ///< The Image menu's, on an image
@@ -3460,6 +3559,7 @@ private:
     QTextCursor m_selectedCard;         ///< The fragment of the card gone to: its outline goes
                                         ///< when the cursor leaves it
     bool m_readOnly = false;            ///< The text can only be read (isReadOnly())
+    SharedHistory* m_sharedHistory = nullptr;  ///< setSharedHistory()
     QString m_readOnlyReason;           ///< Why (setReadOnlyReason())
 
     // IME composition state (Phase 4.5/4.6/4.7)
@@ -3496,6 +3596,9 @@ private:
     int m_undoLevel = 0;
     /// The levels of undo that pasted or dropped text: undoing and redoing them is pasting too
     QSet<int> m_pasteLevels;
+    /// The levels of undo that took text to another text (takeSelection()): undoing and
+    /// redoing them is moving too
+    QSet<int> m_movedLevels;
 
     /// @brief The last level of undo pasted or dropped text: pastingFinished()
     void finishPasting();
@@ -3614,19 +3717,31 @@ private:
     /// @param fromMouse A right click: outside the selection it puts the cursor at @p pos
     /// @param kind Only a misspelled word or only a grammar issue there (none: either, the
     ///        word first)
-    /// @brief Hold the marks beside the paragraphs at the paragraphs of their numbers
+    /// @brief Hold marks beside the paragraphs at the paragraphs of their numbers, with those
+    /// held already
     void anchorParagraphMarks(const QList<ParagraphMark>& marks);
 
     /// @brief Give the render pipeline the marks at the paragraphs they are at now
     /// @param always Also when they are where they were (a new icon)
     void syncParagraphMarks(bool always = false);
 
-    /// @brief The material a mark beside a paragraph names is chosen: at once when it names
-    /// one, else in a menu at @p globalPos
+    /// @brief The material a paperclip beside a paragraph names is chosen: at once when it
+    /// names one, else in a menu at @p globalPos; the scissors open their menu there
     void openParagraphMark(const ParagraphMark& mark, const QPoint& globalPos);
 
-    /// @brief Add an item to @p menu for each material @p mark names
+    /// @brief Add an item to @p menu for each material @p mark names; for the scissors,
+    /// Show Clipping and Restore Here (in a submenu of each clipping when they are several)
     void addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark);
+
+    /// @brief Add Show Clipping and Restore Here of clipping @p id to @p menu
+    void addClippingItems(QMenu& menu, const QString& id);
+
+    /// @brief Add to the context menu a submenu for each mark beside paragraph @p paragraph:
+    /// Linked Materials, Clippings From Here
+    void addParagraphMarkMenus(QMenu& menu, int paragraph);
+
+    /// @brief The tooltip of mark @p mark: what it names
+    static QString paragraphMarkToolTip(const ParagraphMark& mark);
 
     /// @param inNote A place of a note's text (its number at @p pos): the misspelled word or
     ///        the grammar issue there
@@ -3655,8 +3770,9 @@ private:
                                                       HighlightKind* kind = nullptr) const;
 
     /// @brief Put on the context menu what is offered for a misspelled word: the words to
-    ///        put in its place, Ignore All, Add to Book Dictionary (with the book's dictionary),
-    ///        Add to Your Words (All Books), Add Name... (with the book's dictionary)
+    ///        put in its place (as soon as they are found, SUGGESTIONS_PENDING_PROPERTY),
+    ///        Ignore All, Add to Book Dictionary (with the book's dictionary), Add to Your Words
+    ///        (All Books), Add Name... (with the book's dictionary)
     /// @param replace Puts a word chosen in its place
     void addSpellingActions(QMenu& menu, const QString& word,
                             const std::function<void(const QString&)>& replace);

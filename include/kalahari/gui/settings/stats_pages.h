@@ -40,20 +40,6 @@ public:
     QGroupBox* advancedGroup() const { return m_advancedGroup; }
 
 protected:
-    /// @brief One choice of a setting
-    struct Choice {
-        QString text;          ///< What the radio button says
-        nlohmann::json value;  ///< The value of the setting it stands for
-        QString note;          ///< A note under it; empty: none
-    };
-
-    /// @brief Radio buttons of a setting, under one label of the form, bound to the setting
-    /// @param inRow The buttons side by side (without notes)
-    /// @return The buttons, in the order of @p choices
-    std::vector<QRadioButton*> addChoices(QFormLayout* form, const QString& label,
-                                          const std::string& key, std::vector<Choice> choices,
-                                          bool inRow = false);
-
     /// @brief A check box bound to @p key in @p layout, with a note under it in line with its
     /// text
     QCheckBox* addOption(QLayout* layout, const QString& text, const std::string& key,
@@ -86,6 +72,12 @@ class StatsCountingPage : public StatsSettingsPage {
     Q_OBJECT
 public:
     explicit StatsCountingPage(QWidget* parent = nullptr);
+
+private:
+    /// @brief "Cutting to the clippings is not deleting" (the words of the day stay as they
+    ///        were), under the first of @p goal, the choices of what counts toward the goal
+    ///        (the words added)
+    void addClippingsOption(const std::vector<QRadioButton*>& goal);
 };
 
 /// @brief Settings > Statistics and Goals > Notifications

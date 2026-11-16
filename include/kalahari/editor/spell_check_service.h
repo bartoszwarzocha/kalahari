@@ -6,13 +6,16 @@
 
 #pragma once
 
+#include <QHash>
 #include <QList>
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QStringList>
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -150,9 +153,23 @@ public:
     /// The word typed without its accents, with them put right, comes first. For a word with
     /// a capital first letter the dictionary's suggestions for it written small count too, and
     /// the writer's own words close to the word are among the dictionary's suggestions.
-    /// Takes up to a few tenths of a second for a long word, so it is asked only when the
-    /// writer wants them.
+    /// Takes up to a few seconds for some words (names above all), so it is asked only when
+    /// the writer wants them; a menu asks findSuggestions() instead, which does not wait.
     QStringList suggestions(const QString& word, int maxSuggestions = 5) const;
+
+    /// @brief The suggestions() for a word, found on a thread of their own, so that the window
+    ///        never waits for them
+    ///
+    /// @p done gets them on the window's thread once they are found: at once when they were
+    /// found before (for the same word with the same dictionary), not at all when @p context
+    /// is gone by then. The thread has a copy of the dictionary of its own, made at the first
+    /// question and dropped when no question came for a few minutes.
+    void findSuggestions(const QString& word, int maxSuggestions, QObject* context,
+                         std::function<void(const QStringList&)> done);
+
+    /// @brief The suggestions for a word when they were found before, without waiting
+    [[nodiscard]] std::optional<QStringList> knownSuggestions(const QString& word,
+                                                              int maxSuggestions = 5) const;
 
     /// @brief The base forms of a word as the dictionary gives them ("powiedziała" ->
     ///        "powiedzieć"; "była" -> "była", "były", "być"), for the repetitions of words
@@ -235,6 +252,42 @@ private slots:
 
 private:
     struct OwnWords;  ///< The writer's own words, shared by services (shareOwnWordsWith())
+    class SuggestionWorker;  ///< Finds suggestions on a thread of its own
+
+    /// @brief What the dictionary suggests for a word: for the word itself, and for a word
+    ///        with a capital first letter also for it written small (capitalized again)
+    struct DictionarySuggestions {
+        QStringList found;
+        QStringList small;
+    };
+
+    /// @brief One waiting for the suggestions of a word (findSuggestions())
+    struct WaitingForSuggestions {
+        QPointer<QObject> context;
+        int maxSuggestions = 0;
+        std::function<void(const QStringList&)> done;
+    };
+
+    /// @brief The word as the dictionary is asked about it (the typographic apostrophe as
+    ///        the plain one)
+    [[nodiscard]] static QString askedWord(const QString& word);
+
+    /// @brief What a dictionary suggests for a word (asked: askedWord())
+    [[nodiscard]] static DictionarySuggestions dictionarySuggestions(Hunspell& hunspell,
+                                                                     bool latin1,
+                                                                     const QString& asked);
+
+    /// @brief The suggestions in their order, with the writer's own words among them
+    [[nodiscard]] QStringList finishSuggestions(const QString& asked,
+                                                const DictionarySuggestions& found,
+                                                int maxSuggestions) const;
+
+    /// @brief The thread found the suggestions of a word: those waiting for them get them
+    void onSuggestionsFound(const QString& dictionary, const QString& asked,
+                            const DictionarySuggestions& found);
+
+    /// @brief Stop the thread of the suggestions, waiting for the word it is at
+    void stopSuggestionThread();
 
     /// @brief Load the dictionary wanted in the background, unless it is loaded or loading
     void startLoader();
@@ -290,6 +343,15 @@ private:
     QTimer* m_retireTimer;                             ///< Destroys them a little later
 
     std::shared_ptr<OwnWords> m_ownWords;  ///< The writer's own words
+
+    /// The suggestions found on their thread (findSuggestions()), with its copy of the
+    /// dictionary; dropped after SUGGESTIONS_IDLE_MS without a question
+    QThread* m_suggestionThread = nullptr;
+    SuggestionWorker* m_suggestionWorker = nullptr;
+    QTimer* m_suggestionIdle = nullptr;
+    /// What the dictionary in use suggested for the words asked about
+    mutable QHash<QString, DictionarySuggestions> m_knownSuggestions;
+    QHash<QString, QList<WaitingForSuggestions>> m_waitingForSuggestions;
 
     /// The forms of the words of m_expanderDictionary (relatedForms())
     mutable std::unique_ptr<core::AffixExpander> m_expander;

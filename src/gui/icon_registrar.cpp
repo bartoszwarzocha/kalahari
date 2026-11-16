@@ -60,6 +60,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("edit.undo", "resources/icons/twotone/undo.svg", "Undo");
     iconRegistry.registerIcon("edit.redo", "resources/icons/twotone/redo.svg", "Redo");
     iconRegistry.registerIcon("edit.cut", "resources/icons/twotone/content_cut.svg", "Cut");
+    iconRegistry.registerIcon("edit.cutToClippings", "resources/icons/twotone/move_to_inbox.svg",
+                              "Cut to Clippings");
     iconRegistry.registerIcon("edit.copy", "resources/icons/twotone/content_copy.svg", "Copy");
     iconRegistry.registerIcon("edit.paste", "resources/icons/twotone/content_paste.svg", "Paste");
     // As Word's paste options: a brush keeps the source's look, plain text leaves it
@@ -119,6 +121,12 @@ void registerAllIcons() {
     iconRegistry.registerIcon("insert.specialChar", "resources/icons/twotone/emoji_symbols.svg", "Insert Special Character");
     iconRegistry.registerIcon("insert.quickCharacter", "resources/icons/twotone/bolt.svg", "Quick Character");
     iconRegistry.registerIcon("insert.quickInsert", "resources/icons/twotone/text_snippet.svg", "Quick Insert");
+    iconRegistry.registerIcon("insert.clipping", "resources/icons/twotone/outbox.svg",
+                              "Clipping from the Workshop");
+    iconRegistry.registerIcon("clipping.restore", "resources/icons/twotone/input.svg",
+                              "Restore to Its Place");
+    iconRegistry.registerIcon("clipping.showOrigin", "resources/icons/twotone/place.svg",
+                              "Go to Its Place");
     iconRegistry.registerIcon("insert.dateTime", "resources/icons/twotone/schedule.svg", "Insert Date/Time");
     iconRegistry.registerIcon("insert.field", "resources/icons/twotone/data_object.svg", "Insert Field");
     iconRegistry.registerIcon("insert.date", "resources/icons/twotone/event.svg", "Today's Date as Text");
@@ -360,6 +368,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.panels", "resources/icons/twotone/view_sidebar.svg", "Panels");
     iconRegistry.registerIcon("menu.perspectives", "resources/icons/twotone/view_quilt.svg", "Perspectives");
     iconRegistry.registerIcon("menu.toolbars", "resources/icons/twotone/build.svg", "Toolbars");
+    iconRegistry.registerIcon("menu.toDos", "resources/icons/twotone/check_circle.svg", "To Dos");
 
     // -------------------------------------------------------------------------
     // LOG PANEL TOOLBAR ICONS (OpenSpec #00024)
@@ -410,6 +419,8 @@ void registerAllIcons() {
     // The views of a window: Insert > Special Character...
     iconRegistry.registerIcon("common.gridView", "resources/icons/twotone/grid_view.svg", "Grid");
     iconRegistry.registerIcon("common.listView", "resources/icons/twotone/view_list.svg", "List");
+    // A favorite (the characters of Insert > Special Character...)
+    iconRegistry.registerIcon("common.favorite", "resources/icons/twotone/star.svg", "Favorite");
     // Small "+" and "-" buttons of a list: add a row, take it out
     iconRegistry.registerIcon("common.add", "resources/icons/twotone/add.svg", "Add");
     iconRegistry.registerIcon("common.remove", "resources/icons/twotone/remove.svg", "Remove");
@@ -494,6 +505,11 @@ void registerAllIcons() {
     // The button that puts the tabs in the middle of the window in more rows
     iconRegistry.registerIcon("tabs.rows", "resources/icons/twotone/view_agenda.svg",
                               "Tabs in More Rows");
+    // The button that lists all the tabs in the middle of the window, and Window > Tab List
+    iconRegistry.registerIcon("tabs.list", "resources/icons/twotone/expand_more.svg",
+                              "All Tabs");
+    iconRegistry.registerIcon("window.tabList", "resources/icons/twotone/expand_more.svg",
+                              "Tab List");
 
     // -------------------------------------------------------------------------
     // NEW ITEM DIALOG ICONS (OpenSpec #00033)
@@ -508,6 +524,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("template.mindmap", "resources/icons/twotone/account_tree.svg", "Mind Map");
     iconRegistry.registerIcon("template.timeline", "resources/icons/twotone/timeline.svg", "Timeline");
     iconRegistry.registerIcon("template.note", "resources/icons/twotone/sticky_note_2.svg", "Note");
+    iconRegistry.registerIcon("template.clipping", "resources/icons/twotone/content_cut.svg",
+                              "Clipping");
     iconRegistry.registerIcon("template.character", "resources/icons/twotone/person.svg", "Character");
     iconRegistry.registerIcon("template.location", "resources/icons/twotone/place.svg", "Location");
 

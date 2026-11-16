@@ -30,9 +30,10 @@ to build it on Windows, Linux and macOS.
   writer's computer by default or on a server they choose, the Spelling and Grammar panel,
   and the repetitions of words.
 - **The book**: book types, the Navigator with the book and the Workshop, materials with
-  their card, sources, links and the Cover, versions of the texts, Chapter Break, and
-  annotations (comments, TODOs and notes) in the text, in a panel and as cards under the
-  paragraphs. Books of Kalahari 0.3 are converted on opening.
+  their card, sources, links and the Cover, versions of the texts, Chapter Break, clippings
+  (fragments cut to the Workshop, which can come back), and annotations (comments, TODOs and
+  notes) in the text, in a panel and as cards under the paragraphs. Books of Kalahari 0.3
+  are converted on opening.
 - **Research**: cards of characters, locations and items, the book's own dictionary of
   names and words, sources with their bibliographic description (also from the web by ISBN
   or DOI), the bibliography and quotes, and the preview of PDF files in the program, with
@@ -47,6 +48,36 @@ to build it on Windows, Linux and macOS.
   own, and the program in Polish and English.
 
 ### Added
+
+- **Clippings: fragments cut to the Workshop, which can come back** - 2026-11-15. Edit > Cut
+  to Clippings (Ctrl+Shift+X, also in the text's context menu) takes the selection, or the
+  paragraph with the cursor without one, from a text of the book or a working note to a new
+  clipping of the Workshop (Materials > Clippings), titled with its first words. The clipping
+  keeps where it was cut from: the text, the paragraph and the words around the place
+  (`core::ClippingData`, "clipping" in the .klh file). A notice under the text says where it
+  went, with Undo; Ctrl+Z in the text takes the cut back too – the fragment comes back and
+  the clipping goes, while it has not changed since – and Ctrl+Y cuts it again. Insert >
+  Clipping from the Workshop... (Alt+Shift+X) opens a window with the clippings, the last cut
+  first, a search in their titles, texts and notes, where they come from and the preview of
+  the one chosen; Enter inserts it at the cursor as a paste, Alt+P restores it to the place it
+  came from (found again by its words when the text changed before it; where the words around
+  it changed, the cursor goes near it and the notice offers Insert Here), Alt+O opens it.
+  Settings > Editor > Clippings (the gears of the windows): cut at once or first a small
+  window with the title and a note; without a selection the paragraph or nothing; the window
+  or a list at the cursor, as quick insert; a clipping inserted stays in the Workshop marked
+  as inserted, or goes from it (Ctrl+Z brings it back). Statistics and Goals > Counting:
+  "Cutting to the clippings is not deleting" keeps the words of the day as they were (off:
+  a cut lowers them as a deletion does). The list of Materials > Clippings has the columns
+  From, Cut, Note and Inserted and the button Restore to Its Place; its menu has Go to Its
+  Place too. The Properties panel of a clipping has the group Origin: the text it was cut
+  from (a link to the place), the paragraph and the last words before it, when it was cut and
+  inserted, Go to Its Place and Restore to Its Place (greyed out with the reason without the
+  text, Restore also in a book open read-only). Settings > Editor > Clippings > Draw scissors
+  where a fragment was cut (off at first): scissors beside the paragraph a clipping not
+  inserted since was cut from, left of the paperclip of the materials; a click on them or the
+  context menu of the paragraph shows the clipping or restores it there. The Edit menu had
+  more items than letters for their access keys: Next To Do and Previous To Do went to its
+  submenu To Dos (keys as before), Find Next has X and Cut to Clippings N.
 
 - **The description of a source from the web by its ISBN or DOI** - 2026-11-15. An option,
   off at first (Settings > Materials > Sources > Descriptions from the web by ISBN and
@@ -2112,6 +2143,12 @@ to build it on Windows, Linux and macOS.
 
 ### Changed
 
+- **Menus: Format > Footnote Layout..., and one Settings... in the Edit menu** - 2026-11-15.
+  Footnote Layout... moved from Insert to Format; the Edit menu no longer has Preferences...
+  beside Settings..., which opens the same window (its keys and toolbar button stay); a few
+  access keys changed to make room for the clippings: Find & Replace... has E, Format > Text
+  Effects X, in Polish Wklej z formatowaniem źródła F and Ustawienia przypisów... I.
+
 - **Each book window has its own book and its own commands** - 2026-11-13. Inside the
   program, with nothing changed on the screen: the window owns the book open in it
   (`core::ProjectManager`, no longer one for the whole program) and its commands with their
@@ -2699,6 +2736,21 @@ to build it on Windows, Linux and macOS.
   - Physical `lib/x64-*/bwx_*.{lib,a}` binaries from disk (not tracked in git)
 
 ### Fixed
+
+- **After the test of 16.11** - 2026-11-16. The Special Character window is faster, with its
+  favorites, and the Insert toolbar has its button. Insert > Image asks for the caption, or
+  for none. The numbers on the margin with a left margin of 0 are on the desk beside the
+  page. The badge of the writer's own styles and the gap in the Notes panel are fixed. The
+  menu of a misspelled word opens at once and its suggestions come in at the top while the
+  dictionary looks for them, the names of the book first; the Name window shows the
+  declensions after a pause. The styles of the table header and rows are 10 pt. Annotation
+  cards have a smaller font, and one click writes in place. Undo and Redo after Replace All
+  in Book take back the whole change in all the texts, and its message names the program's
+  keys of Undo. The list of all the tabs is beside the button of the rows of tabs (Alt+Down,
+  Window menu). The menus give access keys also to items added while they are open. The
+  lists of Go To and Paste Special are as high as all their rows. Settings > Images has a
+  shorter label of the question about the caption, so the page fits the narrowest window.
+  Polish translations of these.
 
 - **The default labels of captions in Polish** - 2026-11-16. The labels that new books and
   Settings > Editor > Images start with are "Rysunek", "Fotografia", "Ilustracja", "Mapa" and

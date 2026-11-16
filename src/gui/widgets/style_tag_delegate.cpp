@@ -5,7 +5,9 @@
 /// @brief The names of paragraph styles in a list, with a tag after a name
 
 #include "kalahari/gui/widgets/style_tag_delegate.h"
+#include "kalahari/core/theme_manager.h"
 
+#include <QAbstractItemView>
 #include <QApplication>
 #include <QListWidgetItem>
 #include <QPainter>
@@ -22,6 +24,18 @@ constexpr qreal TAG_FONT_SHARE = 0.85;
 constexpr int TAG_PADDING = 4;
 constexpr int TAG_GAP = 8;
 constexpr qreal TAG_RADIUS = 3.0;
+
+/// Above this lightness of the background of the tag of a style of the writer's own its
+/// letters are black, below it white
+constexpr qreal LIGHT_BACKGROUND = 0.6;
+
+/// @brief The letters on a background: black on a light one, white on a dark one
+QColor lettersOn(const QColor& background) {
+    // The lightness the eye sees (Rec. 709 weights)
+    const qreal seen = 0.2126 * background.redF() + 0.7152 * background.greenF() +
+                       0.0722 * background.blueF();
+    return seen > LIGHT_BACKGROUND ? QColor(Qt::black) : QColor(Qt::white);
+}
 
 }  // namespace
 
@@ -78,32 +92,54 @@ void StyleTagDelegate::paint(QPainter* painter, const QStyleOptionViewItem& opti
     initStyleOption(&item, index);
     const int width = tagWidth(option, tag);
 
-    // The name, cut short before the tag
+    // The tag stays within the item's text and the part of the list in sight: a name in a
+    // large font (the look of the styles) makes the items wider than the list
     const QStyle* style = item.widget != nullptr ? item.widget->style() : QApplication::style();
     const QRect textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &item, item.widget);
-    const int room = std::max(textRect.width() - width, 0);
+    const int textMargin =
+        style->pixelMetric(QStyle::PM_FocusFrameHMargin, nullptr, item.widget) + 1;
+    int right = textRect.right();
+    if (const auto* view = qobject_cast<const QAbstractItemView*>(item.widget)) {
+        right = std::min(right, view->viewport()->rect().right() - textMargin);
+    }
+
+    // The name, cut short before the tag
+    const int room = std::max(right - textRect.left() + 1 - 2 * textMargin - width, 0);
     item.text = item.fontMetrics.elidedText(item.text, item.textElideMode, room);
     style->drawControl(QStyle::CE_ItemViewItem, &item, painter, item.widget);
 
-    // The tag at the right end, in a frame
+    // The tag right after the name, as a badge
     const QFont font = tagFont(option);
     const QFontMetrics metrics(font);
     const int tagHeight = metrics.height() + 2;
-    const QRect frame(textRect.right() - width + TAG_GAP + 1,
-                      textRect.top() + (textRect.height() - tagHeight) / 2, width - TAG_GAP,
+    const int nameRight =
+        textRect.left() + textMargin + item.fontMetrics.horizontalAdvance(item.text);
+    const int left = std::min(nameRight + TAG_GAP, right - (width - TAG_GAP) + 1);
+    const QRect frame(left, textRect.top() + (textRect.height() - tagHeight) / 2, width - TAG_GAP,
                       tagHeight);
+    const QRectF badge = QRectF(frame).adjusted(0.5, 0.5, -0.5, -0.5);
     const bool selected = (option.state & QStyle::State_Selected) != 0;
     const auto origin = static_cast<editor::StyleOrigin>(index.data(ORIGIN_ROLE).toInt());
-    const QColor color =
-        selected ? option.palette.color(QPalette::HighlightedText)
-        : origin == editor::StyleOrigin::Own ? option.palette.color(QPalette::Link)
-                                             : option.palette.color(QPalette::PlaceholderText);
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
     painter->setFont(font);
-    painter->setPen(color);
-    painter->setBrush(Qt::NoBrush);
-    painter->drawRoundedRect(QRectF(frame).adjusted(0.5, 0.5, -0.5, -0.5), TAG_RADIUS, TAG_RADIUS);
+    if (origin == editor::StyleOrigin::Own && !index.data(MISSING_ROLE).toBool()) {
+        // The writer's own: a filled badge in the color of the theme (Settings > Appearance >
+        // Theme), with black or white letters, whichever shows on it
+        const QColor background =
+            core::ThemeManager::getInstance().getCurrentTheme().colors.styleTag;
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(background);
+        painter->drawRoundedRect(badge, TAG_RADIUS, TAG_RADIUS);
+        painter->setPen(lettersOn(background));
+    } else {
+        // Changed, not in this book: a frame in the color of hints
+        const QColor color = selected ? option.palette.color(QPalette::HighlightedText)
+                                      : option.palette.color(QPalette::PlaceholderText);
+        painter->setPen(color);
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRoundedRect(badge, TAG_RADIUS, TAG_RADIUS);
+    }
     painter->drawText(frame, Qt::AlignCenter, tag);
     painter->restore();
 }

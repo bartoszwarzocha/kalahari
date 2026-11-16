@@ -762,9 +762,13 @@ void BookEditor::updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers mo
     if (const std::optional<Qt::CursorShape> cropping = imageCropPointerAt(pos)) {
         shape = *cropping;  // an image being cropped: its marks are dragged
     } else if (hoverAnnotationCard(pos)) {
-        shape = m_annotationCards.hoveredPart() == AnnotationCardPart::Card
-                    ? Qt::ArrowCursor
-                    : Qt::PointingHandCursor;
+        // Its text is written in place: an I-beam over it (an arrow in a read-only text)
+        const std::optional<AnnotationCardPart>& part = m_annotationCards.hoveredPart();
+        if (part == AnnotationCardPart::Text) {
+            shape = m_readOnly ? Qt::ArrowCursor : Qt::IBeamCursor;
+        } else {
+            shape = part == AnnotationCardPart::Card ? Qt::ArrowCursor : Qt::PointingHandCursor;
+        }
     } else if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos) ||
                ((modifiers & Qt::ControlModifier) &&
                 (linkAt(pos).has_value() || captionLinkAt(pos).has_value()))) {
@@ -862,7 +866,8 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
     // A double click on a card edits its annotation; on its buttons it does no more than
     // the first click
     if (const std::optional<AnnotationCardHit> card = annotationCardAt(event->position())) {
-        if (card->part == AnnotationCardPart::Card && card->id == m_pressedCard) {
+        if ((card->part == AnnotationCardPart::Card || card->part == AnnotationCardPart::Text) &&
+            card->id == m_pressedCard) {
             emit annotationEditRequested(card->id);
         }
         m_pressedCard.clear();
@@ -1469,12 +1474,35 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
             menu.addAction(text, this, edit);
         }
     };
+    // A command of the application under a name of its own, which fits the menu of the text:
+    // its icon, its keys only shown, its state and why it is greyed out
+    const auto addCommandItem = [&menu](QAction* command, const QString& text) {
+        if (command == nullptr) {
+            return;
+        }
+        QString shown = text;
+        if (const QKeySequence keys = command->shortcut(); !keys.isEmpty()) {
+            shown += QLatin1Char('\t') + keys.toString(QKeySequence::NativeText);
+        }
+        QAction* item = menu.addAction(command->icon(), shown, command, &QAction::trigger);
+        item->setEnabled(command->isEnabled());
+        item->setToolTip(command->toolTip());
+        item->setStatusTip(command->statusTip());
+    };
     const ContextMenuEditActions& commands = m_contextMenuEditActions;
     if (hasSelection()) {
         addEditItem(commands.cut, tr("Cu&t"), &BookEditor::cut, true);
+    }
+    // Also without a selection: the paragraph with the cursor (the settings)
+    //: The item of the text's context menu under Cut. In Polish: Wytni&j do wycinków
+    addCommandItem(commands.cutToClippings, tr("Cut to C&lippings"));
+    if (hasSelection()) {
         addEditItem(commands.copy, tr("&Copy"), &BookEditor::copy, false);
     }
     addEditItem(commands.paste, tr("&Paste"), &BookEditor::paste, true);
+    //: The item of the text's context menu under Paste: Insert > Clipping from the Workshop.
+    //: In Polish: Wstaw w&ycinek...
+    addCommandItem(commands.insertClipping, tr("&Insert Clipping..."));
 
     // Also without a selection, as in the program's text fields
     menu.addSeparator();
@@ -1493,18 +1521,9 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         menu.addAction(action);
     }
 
-    // The materials linked with the paragraph, whose mark is beside it: from the keyboard too
-    const QList<ParagraphMark> marks = paragraphMarks();
-    const auto marked =
-        std::find_if(marks.cbegin(), marks.cend(),
-                     [&pos](const ParagraphMark& mark) { return mark.paragraph == pos.paragraph; });
-    if (marked != marks.cend()) {
-        menu.addSeparator();
-        //: The submenu of the materials linked with the paragraph. In Polish: Powiązane
-        //: mate&riały
-        addParagraphMarkItems(*menu.addMenu(m_paragraphMarkIcon, tr("Linked Mate&rials")),
-                              *marked);
-    }
+    // The materials linked with the paragraph and the clippings cut from it, whose marks are
+    // beside it: from the keyboard too
+    addParagraphMarkMenus(menu, pos.paragraph);
 
     // Color mode toggle
     menu.addSeparator();

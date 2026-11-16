@@ -336,6 +336,58 @@ TEST_CASE("Insert Caption window: the label and number before the text, below or
     checkFitsSmallScreen(dialog);
 }
 
+TEST_CASE("Insert Caption window: the caption of a new image, or none",
+          "[gui][captions][dialog]") {
+    InsertCaptionDialog::Data data =
+        captionData({true, true, QStringLiteral("Figure"), QString(), false});
+    data.newImage = true;
+    InsertCaptionDialog dialog(data);
+    dialog.show();
+    settle();
+    CHECK(dialog.windowTitle() == QStringLiteral("Caption of the New Image"));
+    CHECK(dialog.acceptButton()->text() == QStringLiteral("Insert"));
+    CHECK(buttonOf<QPushButton>(dialog, QStringLiteral("Remove Capt&ion")) == nullptr);
+    CHECK(showsLabel(dialog, QStringLiteral("Figure 3.")));
+
+    SECTION("Insert: with the caption written") {
+        auto* text = fieldOf<QLineEdit>(dialog, QStringLiteral("&Caption"));
+        REQUIRE(text != nullptr);
+        text->setText(QStringLiteral("The oasis"));
+        dialog.acceptButton()->click();
+        CHECK(dialog.result() == QDialog::Accepted);
+        const ImageCaption expected{true, true, QStringLiteral("Figure"),
+                                    QStringLiteral("The oasis"), false};
+        CHECK(dialog.caption() == expected);
+    }
+
+    SECTION("Insert Without Caption") {
+        QPushButton* without =
+            buttonOf<QPushButton>(dialog, QStringLiteral("Insert With&out Caption"));
+        REQUIRE(without != nullptr);
+        without->click();
+        CHECK(dialog.result() == QDialog::Accepted);
+        CHECK_FALSE(dialog.caption().shown);
+    }
+}
+
+TEST_CASE("Insert Caption window in Polish: the caption of a new image, keys of its own",
+          "[gui][captions][dialog]") {
+    const Polish polish;
+    REQUIRE(polish.loaded());
+    InsertCaptionDialog::Data data =
+        captionData({true, true, QStringLiteral("Figure"), QString(), false});
+    data.newImage = true;
+    data.editNumbering = [](const QString&, QWidget*) { return false; };
+    InsertCaptionDialog dialog(data);
+    dialog.show();
+    settle();
+    CHECK(dialog.windowTitle() == QStringLiteral("Podpis nowego obrazu"));
+    CHECK(buttonOf<QPushButton>(dialog, QStringLiteral("Wstaw be&z podpisu")) != nullptr);
+    CHECK(sameKeys(dialog).isEmpty());
+    CHECK(foreignKeys(dialog).isEmpty());
+    checkFitsSmallScreen(dialog);
+}
+
 TEST_CASE("Insert Caption window: the labels of the book, added and removed",
           "[gui][captions][dialog]") {
     // A caption of a label the book's list does not have keeps it

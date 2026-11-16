@@ -258,7 +258,7 @@ Each assistant has unique personality and communication style, helping you stay 
   Grammar panel
 - ✅ Annotations: comments, TODOs and notes, in a panel and as cards under the paragraphs
 - ✅ Book types and the new structure of a book; the Navigator with the book and the
-  Workshop; materials and the Cover; versions of the texts; Chapter Break
+  Workshop; materials and the Cover; versions of the texts; Chapter Break; clippings
 - ✅ Cards of characters, locations and items, the book dictionary, sources with the
   bibliography and quotes, and the preview of PDF files
 - ✅ Export of the book to Word (DOCX) and Markdown

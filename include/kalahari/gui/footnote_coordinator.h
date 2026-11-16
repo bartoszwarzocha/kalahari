@@ -59,7 +59,7 @@ class NoteFrame;
 /// text). This coordinator gives every open text of the book its context, from the open texts
 /// as their editors have them and the others as saved, and gives it again when a text changes
 /// its notes (shortly after), when a text opens or closes and when the book's settings change
-/// (Insert > Footnote Layout...). A file outside the book is numbered alone: 1, 2, 3 and i,
+/// (Format > Footnote Layout...). A file outside the book is numbered alone: 1, 2, 3 and i,
 /// ii, iii.
 class FootnoteCoordinator : public QObject {
     Q_OBJECT
@@ -95,7 +95,7 @@ public:
     FootnoteCoordinator& operator=(const FootnoteCoordinator&) = delete;
 
     /// @brief Give Insert > Footnote and Endnote their callbacks (their states follow the keys:
-    ///        EditCoordinator::addTextCommands()), and Insert > Footnote Layout... its own
+    ///        EditCoordinator::addTextCommands()), and Format > Footnote Layout... its own
     /// @note Call after the commands are registered
     void connectCommands();
 
@@ -124,7 +124,7 @@ public:
     ///        the book's order of texts changed)
     void refreshSoon();
 
-    /// @brief Insert > Footnote Layout...: the window of the book's numbering of notes
+    /// @brief Format > Footnote Layout...: the window of the book's numbering of notes
     /// @return Whether the settings changed
     bool editSettings();
 

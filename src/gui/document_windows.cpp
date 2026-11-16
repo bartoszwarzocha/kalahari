@@ -93,6 +93,7 @@ void bringToFront(QWidget* window, QTabWidget& tabs) {
 constexpr const char* MOVE_TAB_COMMAND = "window.moveTabToNewWindow";
 constexpr const char* RETURN_TAB_COMMAND = "window.returnTab";
 constexpr const char* NEXT_WINDOW_COMMAND = "window.next";
+constexpr const char* TAB_LIST_COMMAND = "window.tabList";
 constexpr const char* PREVIOUS_WINDOW_COMMAND = "window.previous";
 constexpr const char* SETTINGS_COMMAND = "window.settings";
 constexpr const char* NEW_WINDOW_COMMAND = "window.new";
@@ -729,6 +730,25 @@ int DocumentWindows::registerCommands(CommandRegistry& registry,
             if (DocumentWindows* w = windows()) w->activateNextWindow(-1);
         },
         nullptr);
+    add(TAB_LIST_COMMAND,
+        //: Window menu: the list of all the tabs of the window in front, to choose one (as
+        //: the button with an arrow down after the tabs). In Polish: &Lista kart
+        QT_TR_NOOP("&Tab List"), 50, true, KeyboardShortcut(),
+        [windows]() {
+            DocumentWindows* w = windows();
+            QTabWidget* tabs = w != nullptr ? w->frontTabs() : nullptr;
+            if (auto* central = qobject_cast<CentralTabs*>(tabs)) {
+                central->showTabList();
+            } else if (tabs != nullptr) {
+                const QWidget* bar = tabs->tabBar();
+                CentralTabs::showTabList(*tabs, bar->mapToGlobal(bar->rect().bottomRight()));
+            }
+        },
+        [windows]() {
+            const DocumentWindows* w = windows();
+            const QTabWidget* tabs = w != nullptr ? w->frontTabs() : nullptr;
+            return tabs != nullptr && tabs->count() > 0;
+        });
     add(SETTINGS_COMMAND,
         //: Window menu: Settings > General at the options of the windows. In Polish:
         //: &Ustawienia okien...

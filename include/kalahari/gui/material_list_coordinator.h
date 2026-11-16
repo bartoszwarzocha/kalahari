@@ -88,6 +88,12 @@ signals:
     /// @brief A list asked for the settings of the materials (Settings > Navigator)
     void settingsRequested();
 
+    /// @brief A list asked to restore clipping @p elementId to the place it was cut from
+    void clippingRestoreRequested(const QString& elementId);
+
+    /// @brief A list asked to open the text clipping @p elementId was cut from at its place
+    void clippingOriginRequested(const QString& elementId);
+
 private slots:
     /// @brief What the Materials of the Navigator show changed (NavigatorPanel::
     /// MATERIALS_TREE_SETTING): the Navigator is built again
