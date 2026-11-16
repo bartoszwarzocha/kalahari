@@ -252,7 +252,7 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     m_pdfTab = pdf->parentWidget();
     //: A group of the tab of a PDF: what the file is for. In Polish: Przeznaczenie pliku
     auto* purposeGroup = new QGroupBox(tr("Purpose of the File"), m_pdfTab);
-    auto* purposeLayout = new QVBoxLayout(purposeGroup);
+    auto* purposeLayout = new QVBoxLayout();
     m_purposeButtons = new QButtonGroup(this);
     const std::array<std::pair<editor::PdfPurpose, QString>, 3> purposes = {{
         //: A purpose of a PDF. In Polish: Do &czytania i wysłania: klikalne łącza, spis treści
@@ -280,6 +280,7 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
                                   "needs Qt 6.8 or newer."));
         }
     }
+    purposeGroup->setLayout(purposeLayout);
     pdf->addWidget(purposeGroup, 0, 0, 1, 2);
     //: In Polish: &Zakładki z tytułami części, rozdziałów i nagłówków
     m_bookmarksBox = new QCheckBox(
@@ -316,9 +317,8 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
                              //: At the end of the tab of a PDF. In Polish: Czcionki są w pliku,
                              //: więc wygląda on wszędzie tak samo. Tytuł, autor i język pliku –
                              //: z właściwości książki.
-                             tr("The fonts are in the file, so it looks the same everywhere. The "
-                                "title, the author and the language of the file come from the "
-                                "properties of the book.")),
+                             tr("The fonts are in the file, so it looks the same everywhere. "
+                                "Title, author and language come from the book's properties.")),
                    3, 0, 1, 2);
     endTab(pdf);
 
@@ -522,7 +522,7 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     showFormat();
     showPurpose();
     showCover();
-    contentChanged();
+    ExportBookDialog::contentChanged();
 
     // The name is typed over, without its extension
     m_nameField->setFocus();
@@ -717,7 +717,7 @@ void ExportBookDialog::setFolder(const QString& folder)
     m_folder = ProgramFolders::cleanPath(folder);
     showPath(m_folderField, m_folder);
     dropFailure();
-    updateFields();
+    ExportBookDialog::updateFields();
 }
 
 QString ExportBookDialog::filePath() const
@@ -968,7 +968,7 @@ void ExportBookDialog::showFormat()
     for (auto page = m_formatPages.cbegin(); page != m_formatPages.cend(); ++page) {
         tabs->setTabVisible(tabs->indexOf(page.value()), page.key() == id);
     }
-    contentChanged();
+    ExportBookDialog::contentChanged();
 }
 
 void ExportBookDialog::contentChanged()
@@ -1027,7 +1027,7 @@ void ExportBookDialog::contentChanged()
             m_nameField->setText(wanted);
         }
     }
-    updateFields();
+    ExportBookDialog::updateFields();
 }
 
 void ExportBookDialog::updateFields()

@@ -402,7 +402,7 @@ QGridLayout* BookOutputDialog::addLayoutTab(const QString& title, bool narrow)
     m_fontRow = new QWidget(lookPage);
     auto* fontRowLayout = new QHBoxLayout(m_fontRow);
     fontRowLayout->setContentsMargins(0, 0, 0, 0);
-    fontRowLayout->setSpacing(fontMetrics().averageCharWidth() * 3);
+    fontRowLayout->setSpacing(fontMetrics().averageCharWidth() * 2);
     m_fontBox->setParent(m_fontRow);
     // As wide as a long name of a font, whichever fonts the system has
     m_fontBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
@@ -411,12 +411,12 @@ QGridLayout* BookOutputDialog::addLayoutTab(const QString& title, bool narrow)
     m_runningHeadBox = new QComboBox(m_fontRow);
     //: A running head of the export. In Polish: Bez żywej paginy
     m_runningHeadBox->addItem(tr("No running head"), static_cast<int>(editor::RunningHead::None));
-    //: A running head of the export. In Polish: Autor na lewej stronie, tytuł książki na prawej
-    m_runningHeadBox->addItem(tr("Author on the left page, book title on the right one"),
+    // The running heads in short words: the list beside the font in a small window
+    //: A running head of the export. In Polish: Autor na lewej, tytuł książki na prawej
+    m_runningHeadBox->addItem(tr("Author on the left, book title on the right"),
                               static_cast<int>(editor::RunningHead::AuthorAndTitle));
-    //: A running head of the export. In Polish: Tytuł książki na lewej, tytuł rozdziału na
-    //: prawej
-    m_runningHeadBox->addItem(tr("Book title on the left, chapter title on the right"),
+    //: A running head of the export. In Polish: Tytuł książki na lewej, rozdziału na prawej
+    m_runningHeadBox->addItem(tr("Book title on the left, chapter on the right"),
                               static_cast<int>(editor::RunningHead::TitleAndChapter));
     //: A running head of the export. In Polish: Tytuł rozdziału na obu stronach
     m_runningHeadBox->addItem(tr("Chapter title on both pages"),
@@ -448,11 +448,14 @@ QGridLayout* BookOutputDialog::addLayoutTab(const QString& title, bool narrow)
         //: In Polish: Czcionk&a tekstu:
         addRow(look, tr("Font of the te&xt:"), m_fontRow)->setBuddy(m_fontBox);
     }
-    m_runningHeadNote = addNote(look);
-    //: Under the running head. In Polish: U góry stron, bez stron tytułowych i pierwszych
+    // Where the running head goes: in its tip, not in a line of its own, so the window fits a
+    // small screen
+    //: The tip of the running head. In Polish: U góry stron, bez stron tytułowych i pierwszych
     //: stron rozdziałów.
-    showNote(m_runningHeadNote,
-             tr("At the top of the pages, not on title pages or first pages of chapters."));
+    const QString runningHeadPlace =
+        tr("At the top of the pages, not on title pages or first pages of chapters.");
+    m_runningHeadBox->setToolTip(runningHeadPlace);
+    m_runningHeadBox->setAccessibleDescription(runningHeadPlace);
     m_pageLabel = new QLabel(lookPage);
     m_pageLabel->setTextFormat(Qt::PlainText);
     m_pageLabel->setWordWrap(true);
@@ -499,7 +502,6 @@ void BookOutputDialog::setPagesVisible(bool visible)
     if (m_runningHeadRow != nullptr) {
         setRowVisible(m_runningHeadRow, visible);
     }
-    m_runningHeadNote.widget->setVisible(visible);
     setRowVisible(m_pageLabel, visible);
     m_pageNote.widget->setVisible(visible);
 }

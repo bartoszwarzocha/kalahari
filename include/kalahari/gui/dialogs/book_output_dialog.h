@@ -225,7 +225,6 @@ private:
     QWidget* m_runningHeadRow = nullptr;  ///< The running head in a narrow tab; null: beside
                                           ///< the font
     QComboBox* m_runningHeadBox = nullptr;
-    FieldNote m_runningHeadNote;
     QLabel* m_pageLabel = nullptr;
     FieldNote m_pageNote;
 };

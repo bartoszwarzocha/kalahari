@@ -699,7 +699,7 @@ TEST_CASE("Export Book: a PDF, its purpose and its comments apart from Word's",
     CHECK(onItsTab(dialog.runningHeadBox()));
     CHECK_FALSE(onItsTab(dialog.embedFontBox()));
     CHECK(dialog.runningHeadBox()->currentText() ==
-          QStringLiteral("Author on the left page, book title on the right one"));
+          QStringLiteral("Author on the left, book title on the right"));
 
     // Its own comments, and what it does with the images
     CHECK(onItsTab(dialog.pdfCommentsBox()));

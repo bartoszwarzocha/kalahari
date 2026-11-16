@@ -26080,14 +26080,14 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>Bez żywej paginy</translation>
     </message>
     <message>
-        <source>Author on the left page, book title on the right one</source>
-        <extracomment>A running head of the export. In Polish: Autor na lewej stronie, tytuł książki na prawej</extracomment>
-        <translation>Autor na lewej stronie, tytuł książki na prawej</translation>
+        <source>Author on the left, book title on the right</source>
+        <extracomment>A running head of the export. In Polish: Autor na lewej, tytuł książki na prawej</extracomment>
+        <translation>Autor na lewej, tytuł książki na prawej</translation>
     </message>
     <message>
-        <source>Book title on the left, chapter title on the right</source>
-        <extracomment>A running head of the export. In Polish: Tytuł książki na lewej, tytuł rozdziału na prawej</extracomment>
-        <translation>Tytuł książki na lewej, tytuł rozdziału na prawej</translation>
+        <source>Book title on the left, chapter on the right</source>
+        <extracomment>A running head of the export. In Polish: Tytuł książki na lewej, rozdziału na prawej</extracomment>
+        <translation>Tytuł książki na lewej, rozdziału na prawej</translation>
     </message>
     <message>
         <source>Chapter title on both pages</source>
@@ -26155,7 +26155,7 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
     </message>
     <message>
         <source>At the top of the pages, not on title pages or first pages of chapters.</source>
-        <extracomment>Under the running head. In Polish: U góry stron, bez stron tytułowych i pierwszych stron rozdziałów.</extracomment>
+        <extracomment>The tip of the running head. In Polish: U góry stron, bez stron tytułowych i pierwszych stron rozdziałów.</extracomment>
         <translation>U góry stron, bez stron tytułowych i pierwszych stron rozdziałów.</translation>
     </message>
     <message>
@@ -26487,7 +26487,7 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>Czytnik PDF pokaże pierwszą stronę osobno, a dalej lewą i prawą obok siebie.</translation>
     </message>
     <message>
-        <source>The fonts are in the file, so it looks the same everywhere. The title, the author and the language of the file come from the properties of the book.</source>
+        <source>The fonts are in the file, so it looks the same everywhere. Title, author and language come from the book&apos;s properties.</source>
         <extracomment>At the end of the tab of a PDF. In Polish: Czcionki są w pliku, więc wygląda on wszędzie tak samo. Tytuł, autor i język pliku – z właściwości książki.</extracomment>
         <translation>Czcionki są w pliku, więc wygląda on wszędzie tak samo. Tytuł, autor i język pliku – z właściwości książki.</translation>
     </message>
