@@ -108,7 +108,8 @@ void TimelineAxisView::moveSelectedToLane(int direction) {
         tellResult(tr("This is the outermost lane."), false);
         return;
     }
-    const TimelineLane& lane = lanes.at(to);
+    // A copy: the change lays the scene out again, and its lanes go with it
+    const TimelineLane lane = lanes.at(to);
     const bool done =
         TimelineEdits::moveToLane(m_document, id, from, lane.key, lane.name, &message);
     tellResult(message, done);
