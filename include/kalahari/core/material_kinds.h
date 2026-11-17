@@ -5,14 +5,14 @@
 /// @brief The kinds of materials of the base package, and the kind that the source of a
 /// material gives it
 
-#pragma once
+#ifndef KALAHARI_CORE_MATERIAL_KINDS_H
+#define KALAHARI_CORE_MATERIAL_KINDS_H
 
 #include <QString>
 #include <QStringList>
 #include <QUrl>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Ids of the kinds of materials of the base package (ProjectManager::BASE_PACKAGE),
 /// and the kind that a file or a web address of a material gives it
@@ -60,5 +60,6 @@ struct MaterialKinds {
     static bool isPictureAddress(const QUrl& url);
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_MATERIAL_KINDS_H

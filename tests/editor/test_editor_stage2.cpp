@@ -16,7 +16,7 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/paragraph_styles.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QFontMetricsF>
 #include <QImage>
@@ -74,7 +74,7 @@ struct TypesetDocument {
         cursor.endEditBlock();
     }
 
-    QTextBlock block(int number) const { return doc->findBlockByNumber(number); }
+    [[nodiscard]] QTextBlock block(int number) const { return doc->findBlockByNumber(number); }
 };
 
 /// Extra leading the layout adds to a line of @p height (whole pixels)

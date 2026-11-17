@@ -30,7 +30,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari::core;
 
@@ -141,8 +141,8 @@ struct Installed {
     Installed(const Installed&) = delete;
     Installed& operator=(const Installed&) = delete;
 
-    QString folder() const { return dir.filePath(QStringLiteral("booktypes")); }
-    QString package(const QString& id) const { return QDir(folder()).filePath(id); }
+    [[nodiscard]] QString folder() const { return dir.filePath(QStringLiteral("booktypes")); }
+    [[nodiscard]] QString package(const QString& id) const { return QDir(folder()).filePath(id); }
 
     /// The program loads the packages of the folder, as when it starts
     void load() const {

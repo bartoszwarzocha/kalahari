@@ -4,7 +4,8 @@
 /// @file kalahari_text_document_layout.h
 /// @brief Custom QAbstractTextDocumentLayout without Qt leading gaps (OpenSpec #00043)
 
-#pragma once
+#ifndef KALAHARI_EDITOR_KALAHARI_TEXT_DOCUMENT_LAYOUT_H
+#define KALAHARI_EDITOR_KALAHARI_TEXT_DOCUMENT_LAYOUT_H
 
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/paragraph_format.h>
@@ -22,6 +23,9 @@
 #include <QFont>
 #include <QHash>
 #include <QMarginsF>
+#include <QRectF>
+#include <QSizeF>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -227,6 +231,12 @@ public:
     void setMissingImageColor(const QColor& color);
     const QColor& missingImageColor() const { return m_missingImageColor; }
 
+    /// @brief Draw the text as it is printed (a book exported to PDF or printed): without the
+    ///        line of a page break and the frame of a missing image, which only the screen
+    ///        shows (they say why a page ends there, which image is missing)
+    void setPrinted(bool printed) { m_printed = printed; }
+    bool isPrinted() const { return m_printed; }
+
     // ==========================================================================
     // Captions, cross-references and the list of figures
     // ==========================================================================
@@ -324,6 +334,14 @@ public:
     ///        area, the endnotes placed on it; the painter's origin at the top left of the
     ///        page's text area
     void drawPageNotes(QPainter* painter, int page, const NoteColors& colors) const;
+
+    /// @brief The height the footnotes take at the bottom of a page's text area (page flow),
+    ///        with the line above them; 0: none
+    qreal pageNotesHeight(int page) const;
+
+    /// @brief The bottom of the text with its endnotes (document coordinates), without the
+    ///        space after its last paragraph: where a text after it goes on (page flow)
+    qreal contentBottom() const;
 
     /// @brief The text of a note as shown: its id and its rectangle (document coordinates)
     struct NoteArea {
@@ -541,9 +559,15 @@ public:
     int blockNumberAtY(qreal y) const;
 
     /// @brief Number of the block under a point (document coordinates): in a row of a
-    ///        table, the paragraph of the cell under it (laid out first)
+    ///        table, the paragraph of the cell under it (laid out first); an image the text
+    ///        flows around (or its caption) where its box is
     /// @return -1 for an empty height cache
     int blockNumberAt(const QPointF& point) const;
+
+    /// @brief Number of the first block with something shown at @p y or below it: the first
+    ///        block of the row covering @p y, or the block of an image the text flows around
+    ///        (placed below its block's top) reaching down to @p y
+    int firstBlockShownAtY(qreal y) const;
 
     /// @brief Number of the first block of the row of a table holding the block; the block
     ///        itself outside a table
@@ -644,7 +668,7 @@ protected:
                             const QTextFormat& format) override;
 
     /// @brief Draw an object of the text in the color of the text
-    void drawInlineObject(QPainter* painter, const QRectF& rect, QTextInlineObject object,
+    void drawInlineObject(QPainter* painter, const QRectF& rect, QTextInlineObject item,
                           int posInDocument, const QTextFormat& format) override;
 
 private:
@@ -693,6 +717,20 @@ private:
     /// @return Height of the block, including its spacing above and below
     qreal layoutBlock(const QTextBlock& block, qreal* extent, bool keepGlyphs,
                       qreal* lead = nullptr, const CellPlacement* cell = nullptr) const;
+
+    /// @brief Where the lines of a block lie across: between the margins of its style (in a
+    ///        cell, of the cell's text; without the cell's left), the first one indented
+    struct LineFrame {
+        qreal left = 0.0;         ///< The left edge of the lines
+        qreal right = 0.0;        ///< The right edge of the lines
+        qreal firstIndent = 0.0;  ///< The first line's indent (on its leading side)
+        bool rightToLeft = false;
+        bool empty = false;       ///< An empty paragraph: its line as high as its style's font
+    };
+
+    /// @brief The frame of a block's lines; @p cell: of a block of a table
+    LineFrame lineFrame(const QTextBlock& block, const BlockMetrics& metrics,
+                        const CellPlacement* cell = nullptr) const;
 
     /// @brief Height a block of the given text extent probably gets at the current settings
     /// @param width The width its lines have; negative: the width of the text
@@ -893,8 +931,8 @@ private:
     /// @brief Page flow, per block and kept in step with the document: what the flow needs
     ///        of the block's style, so a long text is placed without asking blockMetrics()
     struct FlowEntry {
-        char flags = 0;                  ///< FLOW_KEEP_WITH_NEXT, FLOW_PAGE_BREAK,
-                                         ///< FLOW_PAGE_BREAK_BEFORE
+        std::uint16_t flags = 0;         ///< FLOW_KEEP_WITH_NEXT, FLOW_PAGE_BREAK,
+                                         ///< FLOW_PAGE_BREAK_BEFORE, ...
         qreal lead = 0;                  ///< The space above with the first line box (estimated while pending)
         qreal spaceBefore = 0;           ///< The style's space above
         qreal spaceAfter = 0;            ///< The style's space below
@@ -905,6 +943,9 @@ private:
                                          ///< the top of its row, without page breaks
         qreal header = 0;                ///< A row's first block: the height of the table's
                                          ///< header rows repeated above it on a new page
+        ImageWrap floatWrap = ImageWrap::Inline;  ///< FLOW_FLOAT: how the text flows around
+                                                  ///< the block's image
+        QSizeF floatSize;                ///< FLOW_FLOAT: the size of the block's image
     };
 
     /// @brief The page flow entry of a block in a style, with @p lead
@@ -1098,6 +1139,138 @@ private:
     /// @brief Number of a laid out block covering @p y (lays out blocks as needed)
     int laidOutBlockAtY(qreal y) const;
 
+    // The images the text flows around (kalahari_text_document_layout_floats.cpp)
+
+    /// @brief The blocks of an image the text flows around (indices of the cache): its
+    ///        caption above it (@p first), the image's, its caption below it (@p last)
+    struct FloatRun {
+        size_t first = 0;
+        size_t image = 0;
+        size_t last = 0;
+    };
+
+    /// @brief An image placed with its caption: its blocks, how the text flows around it
+    ///        and its box (document coordinates)
+    struct FloatPlace {
+        size_t first = 0;
+        size_t image = 0;
+        size_t last = 0;
+        ImageWrap wrap = ImageWrap::SquareLeft;
+        QRectF rect;
+    };
+
+    /// @brief Where a line goes among the images beside the text: its top, the left of its
+    ///        text and its width
+    struct LineRoom {
+        qreal top = 0.0;
+        qreal x = 0.0;
+        qreal width = 1.0;
+    };
+
+    /// @brief What laying out the lines of a block beside the images needs, and gives
+    struct WrapLines;
+
+    /// @brief The flow entry of a block holding an image the text flows around gets
+    ///        FLOW_FLOAT, the image's wrap and size
+    void addFloat(FlowEntry& entry, const QTextBlock& block) const;
+
+    /// @brief The blocks of an image the text flows around starting at block @p index:
+    ///        the image's, or its caption's above it; std::nullopt: none starts there
+    std::optional<FloatRun> floatRunAt(size_t index, const QTextBlock& block) const;
+
+    /// @brief Place an image the text flows around starting at block @p index at @p y, in
+    ///        a box of its own: its blocks take no room in the flow (@p index and @p block go
+    ///        on to its last block); a row of a table and an object go below the images
+    ///        beside the text (@p y moves down)
+    /// @return true when the blocks of an image were placed
+    bool placeFloatsAt(size_t& index, QTextBlock& block, qreal& y) const;
+
+    /// @brief Place the blocks of an image in its box below @p y (on the next page when it
+    ///        does not fit in the rest of its own, below another image on its side)
+    /// @return false when they stay in the flow: their lines wait for layout, or an image
+    ///         above and below the text fits where the text puts it
+    bool placeFloat(const FloatRun& run, const QTextBlock& first, qreal y) const;
+
+    /// @brief The top of the box of an image of @p height and @p wrap placed at @p y
+    qreal floatTop(qreal y, qreal height, ImageWrap wrap) const;
+
+    /// @brief @p top, or the top of the next page's text area when a box of @p height does
+    ///        not fit in the rest of its own (at the top of an area it stays)
+    qreal topOnPage(qreal top, qreal height) const;
+
+    /// @brief The top of the text of a page (below the images above and below the text at
+    ///        its top: reserveTop()), from the top of its text area
+    qreal areaTopOf(qreal page) const;
+
+    /// @brief Whether a box at @p top of @p height is on a page whose top an image takes
+    bool touchesTops(qreal top, qreal height) const;
+
+    /// @brief An image above and below the text at @p top of @p height takes the top of its
+    ///        page: the text goes on below it
+    void reserveTop(qreal top, qreal height) const;
+
+    /// @brief No image is placed (positions are placed again)
+    void resetFloats() const;
+
+    /// @brief The lowest of @p bottom and the bottoms of the images placed
+    qreal floatsBottom(qreal bottom) const;
+
+    /// @brief The images beside the text that end at @p y or above are no longer beside it
+    void pruneFloats(qreal y) const;
+
+    /// @brief Below the images beside the text at @p y
+    qreal belowFloats(qreal y) const;
+
+    /// @brief Lay out a block's lines between the edges of @p frame, as layoutBlock() does
+    /// @return Its height, with its spacing above and below
+    qreal stackLines(const QTextBlock& block, const BlockMetrics& metrics,
+                     const LineFrame& frame) const;
+
+    /// @brief Move every line of a block
+    static void shiftLines(const QTextBlock& block, qreal dx, qreal dy);
+
+    /// @brief Where a line of @p height at @p top goes beside the images: in the room they
+    ///        leave, below them when it is too little
+    LineRoom roomBeside(qreal top, qreal height, const LineFrame& frame, qreal indent) const;
+
+    /// @brief Whether block @p index is laid out again where it is placed: beside images,
+    ///        or laid out beside them before
+    bool wrapsBeside(size_t index) const;
+
+    /// @brief Lay out the lines of a block at @p top beside the images (across the whole
+    ///        width without them)
+    /// @return Its height in the flow
+    qreal wrapBlock(size_t index, const QTextBlock& block, qreal top) const;
+
+    /// @brief Lay out the lines of a block beside the images, each where it goes
+    /// @return Its height in the flow
+    qreal linesBeside(WrapLines& wrap) const;
+
+    /// @brief The room of a line whose box would start at @p boxTop; @p box: its height
+    ///        (in: as the line before, out: its own), @p own: its footnotes
+    LineRoom fitLine(QTextLine& line, const WrapLines& wrap, qreal boxTop, qreal& box,
+                     std::vector<size_t>& own) const;
+
+    /// @brief Where the page flow puts a line's box of @p height at @p top (@p breakBefore:
+    ///        it starts the next text area; @p notes: its footnotes)
+    qreal placedInFlow(const WrapLines& wrap, qreal top, qreal height, bool breakBefore,
+                       const std::vector<size_t>& notes) const;
+
+    /// @brief The footnotes of a line of a block laid out beside the images
+    std::vector<size_t> lineNotes(const WrapLines& wrap, const QTextLine& line) const;
+
+    /// @brief Move lines of a paragraph laid out beside the images to the next page to keep
+    ///        its lines together, as paginateBlock() does
+    /// @return false when nothing more moves
+    bool keepLines(WrapLines& wrap) const;
+
+    /// @brief The block of an image the text flows around, or of its caption, under a point
+    std::optional<int> floatBlockAt(const QPointF& point) const;
+
+    /// @brief The continuous views: each block where the one above ends (with the images the
+    ///        text flows around)
+    void placeContinuously() const;
+
     // View typography used for every block
     LayoutTypography m_typography;
 
@@ -1132,6 +1305,7 @@ private:
     std::shared_ptr<ImageStore> m_imageStore;
     mutable bool m_hasImages = false;
     QColor m_missingImageColor;
+    bool m_printed = false;  ///< setPrinted()
 
     // The fields: what their numbers depend on outside the text, their numbers (counted
     // again when asked for after a change of a field), whether the document has a field or
@@ -1239,8 +1413,19 @@ private:
     };
     mutable std::vector<HeaderRepeat> m_headerRepeats;
 
+    // The images the text flows around: whether the document has one (its blocks are placed
+    // with them), the images placed with the positions, those beside the text where the
+    // blocks are being placed (indices of m_floats), the top of each page's text below the
+    // images above and below the text at its top (by page)
+    mutable bool m_hasFloats = false;
+    mutable std::vector<FloatPlace> m_floats;
+    mutable std::vector<size_t> m_activeFloats;
+    mutable std::vector<qreal> m_pageTops;
+
     // Last size announced through documentSizeChanged()
     QSizeF m_lastReportedSize;
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_KALAHARI_TEXT_DOCUMENT_LAYOUT_H

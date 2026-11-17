@@ -16,6 +16,7 @@
 #include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/panels/book_dictionary_panel.h"
 #include "kalahari/gui/panels/material_page.h"
+#include "kalahari/gui/panels/plot_board_panel.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/utils/tab_focus.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
@@ -56,8 +57,7 @@
 
 Q_DECLARE_METATYPE(kalahari::core::StandaloneFile)
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -2176,16 +2176,18 @@ void DocumentCoordinator::onProjectClosed() {
 
     // The book's chapters close with it; their changes were saved or discarded before (also
     // those in windows of their own, which close with their last tab). So do the previews and
-    // the cards of its materials, the lists of them and the page of its dictionary.
+    // the cards of its materials, the lists of them, the page of its dictionary and its plot
+    // board.
     const QList<QWidget*> pages = DocumentWindows::of(*m_centralTabs).pages();
     for (auto it = pages.crbegin(); it != pages.crend(); ++it) {
         QWidget* widget = *it;
-        if (((qobject_cast<EditorPanel*>(widget) != nullptr ||
-              qobject_cast<PreviewPanel*>(widget) != nullptr ||
-              qobject_cast<MaterialCardPanel*>(widget) != nullptr) &&
-             !widget->property("elementId").toString().isEmpty()) ||
-            qobject_cast<MaterialListPanel*>(widget) != nullptr ||
-            qobject_cast<BookDictionaryPanel*>(widget) != nullptr) {
+        const bool ofElement = qobject_cast<EditorPanel*>(widget) != nullptr ||
+                               qobject_cast<PreviewPanel*>(widget) != nullptr ||
+                               qobject_cast<MaterialCardPanel*>(widget) != nullptr;
+        const bool ofBook = qobject_cast<MaterialListPanel*>(widget) != nullptr ||
+                            qobject_cast<BookDictionaryPanel*>(widget) != nullptr ||
+                            qobject_cast<PlotBoardPanel*>(widget) != nullptr;
+        if ((ofElement && !widget->property("elementId").toString().isEmpty()) || ofBook) {
             DocumentWindows::removePage(widget);
             widget->deleteLater();
         }
@@ -2270,5 +2272,4 @@ void DocumentCoordinator::prepareForProjectClose() {
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

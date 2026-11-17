@@ -11,7 +11,8 @@
 /// badge of its own. The journal keeps the badges won (WritingJournal::badges()), the book the
 /// badges of the book (BookBadges, in its project.db).
 
-#pragma once
+#ifndef KALAHARI_CORE_WRITING_AWARDS_H
+#define KALAHARI_CORE_WRITING_AWARDS_H
 
 #include "kalahari/core/writing_statistics.h"
 
@@ -83,10 +84,10 @@ struct BadgeProgress {
     bool available = true;               ///< It can be won now (a book with a length...)
 
     /// @brief The badges of the kind that the value reaches, 0 to 4
-    int level() const;
+    [[nodiscard]] int level() const;
 
     /// @brief How far the value is to the badge @p level (0 to 3), 0 to 1
-    double share(int level) const;
+    [[nodiscard]] double share(int level) const;
 };
 
 /// @brief What the badges are counted from
@@ -108,11 +109,11 @@ struct AwardsInput {
     int deadlinesKept = 0;           ///< Its deadlines kept
 
     /// @brief The daily goal of @p day: as it was then, or the rules'
-    int dailyGoalOf(const QDate& day) const;
+    [[nodiscard]] int dailyGoalOf(const QDate& day) const;
 
     /// @brief The weekly goal of the week of @p monday: as it was on its last day kept, or
     /// the rules'
-    int weeklyGoalOf(const QDate& monday) const;
+    [[nodiscard]] int weeklyGoalOf(const QDate& monday) const;
 };
 
 /// @brief How far the writer is with each kind, in the order of BADGE_KINDS
@@ -152,7 +153,7 @@ struct BookBadges {
     QList<EarnedBadge> history;   ///< Won before Start Over
     QStringList keptDeadlines;    ///< The deadlines kept (deadlineKey())
 
-    QString toJson() const;
+    [[nodiscard]] QString toJson() const;
     static BookBadges fromJson(const QString& text);
 
     bool operator==(const BookBadges&) const = default;
@@ -194,3 +195,5 @@ ChallengeProgress challengeProgress(const WritingChallenge& challenge,
                                     const WritingStatistics& goals, const QDate& today);
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_WRITING_AWARDS_H

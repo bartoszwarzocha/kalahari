@@ -45,7 +45,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari::gui::dialogs;
 using kalahari::core::BookPlace;
@@ -466,7 +466,7 @@ struct NewBook {
     }
 
     /// The texts of the items of the Sections field
-    std::string items() const {
+    [[nodiscard]] std::string items() const {
         QStringList texts;
         for (int i = 0; i < sections->count(); ++i) {
             texts << sections->itemText(i);
@@ -475,7 +475,7 @@ struct NewBook {
     }
 
     /// The fields of own names: their texts, or their placeholders
-    std::string namesOf(bool placeholders = false) const {
+    [[nodiscard]] std::string namesOf(bool placeholders = false) const {
         QStringList texts;
         for (const QLineEdit* name : names) {
             texts << (placeholders ? name->placeholderText() : name->text());
@@ -484,7 +484,7 @@ struct NewBook {
     }
 
     /// Fill in a title and a new folder, and create the book
-    NewItemResult create(const QTemporaryDir& dir) const {
+    [[nodiscard]] NewItemResult create(const QTemporaryDir& dir) const {
         for (QLineEdit* field : dialog->findChildren<QLineEdit*>()) {
             if (field->placeholderText() == QStringLiteral("Enter book title...")) {
                 field->setText(QStringLiteral("Sections"));

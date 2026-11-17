@@ -4,7 +4,8 @@
 /// @file writing_frame.h
 /// @brief A frame over the editor a text is written in: an annotation's, a note's
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_WRITING_FRAME_H
+#define KALAHARI_GUI_PANELS_WRITING_FRAME_H
 
 #include <kalahari/gui/panels/annotation_colors.h>
 
@@ -81,13 +82,13 @@ public:
     void setTitle(const QString& title);
 
     /// @brief Whether the text can be kept (Ctrl+Enter does nothing otherwise)
-    virtual bool canSave() const { return true; }
+    [[nodiscard]] virtual bool canSave() const { return true; }
 
     /// @brief The frame's colors
     void setColors(const AnnotationCardColors& colors);
 
     /// @brief The colors it is shown in
-    const AnnotationCardColors& colors() const { return m_colors; }
+    [[nodiscard]] const AnnotationCardColors& colors() const { return m_colors; }
 
     /// @brief Follow a place of the text: the frame goes to it again whenever the editor is
     /// painted (scrolled, zoomed, edited) or resized
@@ -134,19 +135,19 @@ protected:
                  const QString& name);
 
     /// @brief Where the text is written
-    QTextEdit* textEdit() const { return m_textEdit; }
+    [[nodiscard]] QTextEdit* textEdit() const { return m_textEdit; }
 
     /// @brief The header: the title, then the X; a frame puts its own parts between them
-    QHBoxLayout* headerLayout() const { return m_header; }
+    [[nodiscard]] QHBoxLayout* headerLayout() const { return m_header; }
 
     /// @brief The footer: what the keys do, then the frame's own parts
-    QHBoxLayout* footerLayout() const { return m_footer; }
+    [[nodiscard]] QHBoxLayout* footerLayout() const { return m_footer; }
 
     /// @brief What the keys do, in the footer
-    QLabel* hintLabel() const { return m_hintLabel; }
+    [[nodiscard]] QLabel* hintLabel() const { return m_hintLabel; }
 
     /// @brief The start of the names of the frame's parts
-    const QString& partName() const { return m_name; }
+    [[nodiscard]] const QString& partName() const { return m_name; }
 
     /// @brief A part of the frame Tab goes to after the text, in the order they are added (a
     ///        button: Enter presses it)
@@ -168,7 +169,7 @@ protected:
 
 
     /// @brief The style sheet of the frame's parts in these colors
-    virtual QString styleSheetFor(const AnnotationCardColors& colors) const;
+    [[nodiscard]] virtual QString styleSheetFor(const AnnotationCardColors& colors) const;
 
     /// @brief The text box as high as its text, between a few lines and a limit (the text of
     ///        a card: as high as its text)
@@ -260,3 +261,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_WRITING_FRAME_H

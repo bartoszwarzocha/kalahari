@@ -7,7 +7,8 @@
 ///
 /// The coordinator of the grammar (GrammarCoordinator) follows the settings by itself.
 
-#pragma once
+#ifndef KALAHARI_GUI_SETTINGS_GRAMMAR_PAGE_H
+#define KALAHARI_GUI_SETTINGS_GRAMMAR_PAGE_H
 
 #include "kalahari/gui/grammar_components.h"
 #include "kalahari/gui/settings/settings_page.h"
@@ -24,7 +25,6 @@ class QLineEdit;
 class QListWidget;
 class QProgressBar;
 class QPushButton;
-class QRadioButton;
 class QSpinBox;
 class QToolButton;
 class QWidget;
@@ -36,7 +36,7 @@ class ProjectManager;
 namespace kalahari {
 namespace editor {
 class GrammarCheckService;
-}
+} // namespace editor
 namespace gui {
 
 class GrammarCoordinator;
@@ -80,8 +80,7 @@ public:
     /// @name The controls, for the tests
     /// @{
     [[nodiscard]] QCheckBox* enabledBox() const { return m_enabled; }
-    [[nodiscard]] QRadioButton* localButton() const { return m_local; }
-    [[nodiscard]] QRadioButton* remoteButton() const { return m_remote; }
+    [[nodiscard]] QComboBox* whereBox() const { return m_where; }
     [[nodiscard]] QPushButton* prepareButton() const { return m_prepare; }
     [[nodiscard]] QLabel* cardTitle() const { return m_cardTitle; }
     [[nodiscard]] QLabel* cardText() const { return m_cardText; }
@@ -106,6 +105,9 @@ public:
     [[nodiscard]] QPushButton* checkServerButton() const { return m_checkServer; }
     [[nodiscard]] QPushButton* removeButton() const { return m_remove; }
     /// @}
+
+    /// @brief Whether the text is checked on a server in the internet (the list's choice)
+    [[nodiscard]] bool remoteChosen() const;
 
     /// @brief Choose where to check without the question of the consent (the tests); in the
     ///        program the writer agrees to the internet in a question
@@ -173,7 +175,7 @@ private:
     GrammarComponents::LanguageToolInfo languageToolInfo(const QString& folder);
 
     /// @brief Whether the settings of the server on this computer differ from those applied
-    bool serverSettingsChanged() const;
+    [[nodiscard]] bool serverSettingsChanged() const;
 
     GrammarCoordinator* m_grammar;
     Card m_card{Card::NotPrepared};
@@ -189,8 +191,7 @@ private:
     QProgressBar* m_cardProgress{nullptr};
     QPushButton* m_prepare{nullptr};
     QPushButton* m_showProgress{nullptr};
-    QRadioButton* m_local{nullptr};
-    QRadioButton* m_remote{nullptr};
+    QComboBox* m_where{nullptr};  ///< This computer, or a server in the internet
 
     // The server in the internet
     QGroupBox* m_remoteGroup{nullptr};
@@ -239,3 +240,5 @@ private:
 
 }  // namespace gui
 }  // namespace kalahari
+
+#endif  // KALAHARI_GUI_SETTINGS_GRAMMAR_PAGE_H

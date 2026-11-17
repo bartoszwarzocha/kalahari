@@ -5,7 +5,8 @@
 /// @brief What the program says of a book open read-only, as the program does not have all the
 /// book types the book uses (core::ProjectManager::isReadOnly())
 
-#pragma once
+#ifndef KALAHARI_GUI_READ_ONLY_BOOK_H
+#define KALAHARI_GUI_READ_ONLY_BOOK_H
 
 #include <QString>
 
@@ -29,3 +30,5 @@ QString readOnlyBookMessage(const core::ProjectManager& book);
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_READ_ONLY_BOOK_H

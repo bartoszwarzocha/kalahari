@@ -5,7 +5,7 @@
 /// @brief Where a material comes from: what comes to the Navigator from outside the program,
 /// the downloads for a material with a web address, and its card for each source
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
@@ -33,7 +33,7 @@
 
 #include <cstdio>
 #include <optional>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 

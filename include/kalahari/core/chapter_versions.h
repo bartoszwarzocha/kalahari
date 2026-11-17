@@ -30,7 +30,8 @@
 /// of the book and added again, keeps them. The files do not change their names when their
 /// elements are moved or renamed (BookProject).
 
-#pragma once
+#ifndef KALAHARI_CORE_CHAPTER_VERSIONS_H
+#define KALAHARI_CORE_CHAPTER_VERSIONS_H
 
 #include <kalahari/core/text_statistics.h>
 
@@ -40,8 +41,7 @@
 
 #include <optional>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Why a version was kept
 enum class VersionOrigin {
@@ -70,7 +70,7 @@ struct ChapterVersion {
     WordTally words = {};      ///< Words of its text, under any rules of counting (tallyWords())
 
     /// @brief Whether the program kept it by itself, so that it goes when there are too many
-    bool isAutomatic() const { return origin != VersionOrigin::Manual; }
+    [[nodiscard]] bool isAutomatic() const { return origin != VersionOrigin::Manual; }
 
     bool operator==(const ChapterVersion& other) const = default;
 };
@@ -120,35 +120,35 @@ public:
     ChapterVersions(const QString& projectDir, const QString& file);
 
     /// @brief Whether the file can have versions: it is inside the folder of the book
-    bool isValid() const { return !m_folder.isEmpty(); }
+    [[nodiscard]] bool isValid() const { return !m_folder.isEmpty(); }
 
     /// @brief Absolute path of the folder of the versions; empty when !isValid()
-    QString folder() const { return m_folder; }
+    [[nodiscard]] QString folder() const { return m_folder; }
 
     /// @brief The file, relative to the folder of the book, as given
-    QString file() const { return m_file; }
+    [[nodiscard]] QString file() const { return m_file; }
 
     /// @brief The versions, newest first
-    QList<ChapterVersion> list() const;
+    [[nodiscard]] QList<ChapterVersion> list() const;
 
     /// @brief Number of the versions
-    qsizetype count() const { return list().size(); }
+    [[nodiscard]] qsizetype count() const { return list().size(); }
 
     /// @brief The newest version; nullopt when there is none
-    std::optional<ChapterVersion> newest() const;
+    [[nodiscard]] std::optional<ChapterVersion> newest() const;
 
     /// @brief The version kept in .kml file @p versionFile; nullopt when there is none
-    std::optional<ChapterVersion> find(const QString& versionFile) const;
+    [[nodiscard]] std::optional<ChapterVersion> find(const QString& versionFile) const;
 
     /// @brief Text (KML) of the version kept in .kml file @p versionFile; nullopt when there is
     /// no such version or its file cannot be read
-    std::optional<QString> text(const QString& versionFile) const;
+    [[nodiscard]] std::optional<QString> text(const QString& versionFile) const;
 
     /// @brief Whether the newest version has text @p kml
-    bool newestHas(const QString& kml) const;
+    [[nodiscard]] bool newestHas(const QString& kml) const;
 
     /// @brief When the newest version of @p origin was kept; nullopt when there is none
-    std::optional<QDateTime> lastCreated(VersionOrigin origin) const;
+    [[nodiscard]] std::optional<QDateTime> lastCreated(VersionOrigin origin) const;
 
     /// @brief Keep @p kml as a new version
     /// @param kml The text
@@ -191,13 +191,13 @@ private:
     };
 
     /// @brief Read index.json; no file: no versions
-    Index read() const;
+    [[nodiscard]] Index read() const;
 
     /// @brief Write index.json with the versions of @p index in one step; no versions: remove
     /// index.json
     /// @return false when it cannot be written, or when it is of a newer format (a newer
     ///         version of the program wrote it, and this one would lose what it added)
-    bool write(const Index& index) const;
+    [[nodiscard]] bool write(const Index& index) const;
 
     /// @brief Remove the folder of the versions when it is empty, and the empty folders above
     /// it (also when it is gone), versions/ too
@@ -205,12 +205,14 @@ private:
 
     /// @brief Name of a new .kml file for a version kept at @p created: its local time, with
     /// _2, _3… when the folder or @p listed has that name already
-    QString newVersionFile(const QDateTime& created, const QList<ChapterVersion>& listed) const;
+    [[nodiscard]] QString newVersionFile(const QDateTime& created,
+                                         const QList<ChapterVersion>& listed) const;
 
     QString m_file;    ///< The file, relative to the folder of the book
     QString m_folder;  ///< Absolute path of the folder of its versions
     QString m_root;    ///< Absolute path of versions/ in the folder of the book
 };
 
-}  // namespace core
-}  // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_CHAPTER_VERSIONS_H

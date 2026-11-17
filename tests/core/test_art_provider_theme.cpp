@@ -39,7 +39,7 @@
 #include <QVariantMap>
 
 #include <string>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using kalahari::core::ArtProvider;
 using kalahari::core::IconRegistry;

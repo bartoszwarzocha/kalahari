@@ -9,9 +9,7 @@
 #include <algorithm>
 #include <set>
 
-namespace kalahari {
-namespace core {
-namespace settings_schema {
+namespace kalahari::core::settings_schema {
 
 namespace {
 
@@ -256,13 +254,69 @@ std::map<std::string, json> buildDefaults() {
         {"navigator.addCommands", "named"},
         // The cards of the Workshop (characters, locations, items): the palette that new cards
         // take their colors from, in order (CardColors::next()), whether the Navigator shows
-        // the color of a card beside its name, and whether it puts a location under the one it
-        // is part of ("tree") or all of them in alphabetical order ("list")
+        // the color of a card beside its name, whether it puts a location under the one it
+        // is part of ("tree") or all of them in alphabetical order ("list"), and what the
+        // Properties panel shows of the cards at the cursor of a text: the card whose name it
+        // is in and the cards of the paragraph ("names"), only those ("paragraphs") or none
+        // ("none"), whether a paragraph linked with cards has the signs of their kinds
+        // beside it, the fields of the cards that new books start with, by the kind of the
+        // cards (card_fields::DEFAULTS_SETTING; none: the fields of the packages), the layout
+        // of the full card (the data beside the description: "columns", or "tabs"), the shape
+        // of the portraits ("square" or "circle") and what a portrait without a picture shows
+        // (the initials on the color of the card, "initials", or the icon of its kind, "icon")
         {"cards.palette", json::array({"#c0504d", "#7e57c2", "#2e9e6a", "#d4a017", "#3a8fc9",
                                        "#8d7b6a", "#b04a8f", "#e07b39", "#4f6fd1", "#6b9e2e",
                                        "#1f9aa5", "#a35d3d"})},
         {"cards.navigatorColorDot", true},
         {"cards.navigatorTree", "tree"},
+        {"cards.atCursor", "names"},
+        {"cards.paragraphMarks", true},
+        {"cards.fields", json::object()},
+        {"cards.fullCardLayout", "columns"},
+        {"cards.portraitShape", "square"},
+        {"cards.portraitWithoutPicture", "initials"},
+
+        // The plot board (gui::PlotBoard): the board of the cards ("board") or the outline
+        // ("outline"), the one shown last, and the one a new tab opens on ("board", "outline"
+        // or "last"); the parts side by side ("columns") or the cards in rows under the titles
+        // of the parts ("grid"); the size of the cards ("small",
+        // "medium", "large"); what colors them: the state ("status"), the point of view
+        // ("pov"), the writer's own colors ("own") or nothing ("none"); whether the board
+        // shows the scenes of the texts (in a grid: with their drawers open) and the outline
+        // their rows; which scenes there are: those of the texts and those in their plans
+        // ("both"), those of the texts ("text") or those in the plans only ("plan"); the color
+        // of a card in a strip at its top ("strip") or as its background ("tint"); the
+        // background of the board: the theme's ("theme"), cork ("cork") or the writer's own
+        // ("own", the color plotBackground of the theme); what the cards show besides their
+        // titles (fields) and the columns of the outline besides the title (outline); whether
+        // the board shows the front and the back section too, as a preview (showSections);
+        // what happens to the numbers in the titles the program gave after a move: offered on
+        // the bar under the board ("ask"), changed at once ("auto") or never ("never")
+        {"plotBoard.view", "board"},
+        {"plotBoard.startView", "last"},
+        {"plotBoard.layout", "columns"},
+        {"plotBoard.cardSize", "medium"},
+        {"plotBoard.colorBy", "status"},
+        {"plotBoard.colorPlace", "strip"},
+        {"plotBoard.background", "theme"},
+        {"plotBoard.showScenes", true},
+        {"plotBoard.scenes", "both"},
+        {"plotBoard.showSections", false},
+        {"plotBoard.renumber", "ask"},
+        {"plotBoard.fields.description", true},
+        {"plotBoard.fields.pov", true},
+        {"plotBoard.fields.place", true},
+        {"plotBoard.fields.time", false},
+        {"plotBoard.fields.words", true},
+        {"plotBoard.fields.status", true},
+        {"plotBoard.fields.scenes", true},
+        {"plotBoard.outline.number", true},
+        {"plotBoard.outline.description", true},
+        {"plotBoard.outline.pov", true},
+        {"plotBoard.outline.place", true},
+        {"plotBoard.outline.time", true},
+        {"plotBoard.outline.words", true},
+        {"plotBoard.outline.status", true},
 
         // New projects
         {"project.defaultAuthor", ""},
@@ -288,27 +342,110 @@ std::map<std::string, json> buildDefaults() {
         {"project.lastFolders.insertImage", ""},
         {"project.lastFolders.saveImage", ""},
         {"project.lastFolders.exportBook", ""},
-        // File > Export > DOCX and Markdown: the writer's last choices of the window. What
-        // goes to the file: "book" (the whole book), "chosen" (the texts chosen in the window)
-        // or "front" (the text in front); the titles of the Navigator as headings; each text
-        // from a new page; page numbers; the font of the text (empty: the editor's); the
-        // annotations as Word's comments; the images copied next to a Markdown file
+        {"project.lastFolders.importText", ""},
+        // File > Export > DOCX, PDF, Markdown and EPUB: the writer's last choices of the
+        // window. What goes to the file: "book" (the whole book), "chosen" (the texts chosen
+        // in the window) or "front" (the text in front); the titles of the Navigator as
+        // headings; each text from a new page; page numbers; the font of the text (empty: the
+        // editor's); the running head ("none", "authorAndTitle", "titleAndChapter",
+        // "chapter"); the annotations as Word's comments; the images copied next to a
+        // Markdown file
         {"export.content", "book"},
         {"export.titles", true},
         {"export.newPage", true},
         {"export.pageNumbers", true},
         {"export.font", ""},
+        {"export.runningHead", "authorAndTitle"},
         {"export.comments", false},
         {"export.copyImages", true},
+        // A PDF: the annotations as its comments; its purpose ("reading", "printShop" for a
+        // print shop, PDF/X-4, "archive", PDF/A-1b); the bookmarks; the pages in pairs; the
+        // shades of gray
+        {"export.pdf.comments", false},
+        {"export.pdf.purpose", "reading"},
+        {"export.pdf.bookmarks", true},
+        {"export.pdf.facingPages", true},
+        {"export.pdf.grayscale", false},
+        // An EPUB: its look ("book", the book's styles, or "simple"); the font of the text in
+        // the file; its cover ("design", the design chosen in the materials of the cover, or
+        // "none")
+        {"export.epub.look", "book"},
+        {"export.epub.embedFont", false},
+        {"export.epub.cover", "design"},
+        // File > Print: the writer's last choices of the window; its layout is the export's
+        // (export.*). What goes to the printer, as export.content ("front" the first time, as
+        // Ctrl+P in the editors of text); the copies whole one after another; the pages on a
+        // sheet ("onePage", "twoPages" side by side, "booklet" folded in half); one page as
+        // large as the sheet allows, else of its own size; the crop marks of a page of its own
+        // size
+        {"print.content", "front"},
+        {"print.collate", true},
+        {"print.sheet.layout", "onePage"},
+        {"print.sheet.fit", true},
+        {"print.sheet.cropMarks", false},
+        // File > Import > DOCX, Markdown and Plain Text: the writer's last choices of the
+        // window. Where the texts go: "book" (the open book), "newBook" or "otherFiles"; more
+        // files each as one text
+        {"import.target", "book"},
+        {"import.wholeFiles", true},
+        // Download the images that Markdown files and Word documents give by Internet
+        // addresses: the program connects to them only when the import starts; off: the
+        // descriptions of the images stay in their places
+        {"import.webImages", false},
+        // Of Word documents: how much of the file's formatting the texts keep, "emphasis"
+        // (bold, italic... and centered or right-aligned paragraphs), "all" or "styles". Of
+        // each format (docx, markdown, text): the heading of a text its title only; the
+        // paragraphs that start with a dash in the style Dialogue; the cleanups of the text
+        // (the typography of autocorrect, double spaces, spaces at the start of a paragraph,
+        // "* * *" as a scene break) and what the empty paragraphs become: "remove", "keep" or
+        // "sceneBreak" (Settings > Files > Import shows them)
+        {"import.docx.formatting", "emphasis"},
+        {"import.docx.headingAsTitle", true},
+        {"import.docx.dialogueStyle", false},
+        {"import.docx.typography", true},
+        {"import.docx.doubleSpaces", true},
+        {"import.docx.leadingSpaces", true},
+        {"import.docx.sceneMarkers", true},
+        {"import.docx.emptyParagraphs", "remove"},
+        // Word's comments as annotations; the tracked changes rejected (false: accepted)
+        {"import.docx.comments", true},
+        {"import.docx.rejectChanges", false},
+        {"import.markdown.headingAsTitle", true},
+        {"import.markdown.dialogueStyle", false},
+        {"import.markdown.typography", true},
+        {"import.markdown.doubleSpaces", true},
+        {"import.markdown.leadingSpaces", true},
+        {"import.markdown.sceneMarkers", true},
+        {"import.markdown.emptyParagraphs", "remove"},
+        {"import.text.headingAsTitle", true},
+        {"import.text.dialogueStyle", false},
+        {"import.text.typography", true},
+        {"import.text.doubleSpaces", true},
+        {"import.text.leadingSpaces", true},
+        {"import.text.sceneMarkers", true},
+        {"import.text.emptyParagraphs", "remove"},
+        // Plain text: where a text starts, "titles", "emptyLines" or "whole"; the pattern of
+        // the titles of the texts ("polish", "english", "number", "capitals", "prefix"; empty:
+        // by the language of the book) and its start for "prefix"; the pattern of the titles
+        // of the parts ("polish", "english", "none"; empty: by the language); how many empty
+        // lines start a text; the style of the paragraphs
+        {"import.text.split", "titles"},
+        {"import.text.titles", ""},
+        {"import.text.prefix", ""},
+        {"import.text.parts", ""},
+        {"import.text.emptyLines", 3},
+        {"import.text.style", "normal"},
         // The writer's last choice of sections for a book type that shows them: a set of
         // names ("sections", "matter", "fragments", "arc"), own names ("custom") or "none"
         {"project.sectionSet", "sections"},
         // The writer's own names of the front, main and back section, for "custom"
         {"project.sectionNames", json::array()},
 
-        // Plugins
-        {"plugins.allowUnsigned", false},
-        {"plugins.trustedKeys", "[]"},
+        // Plugins (only Kalahari's own, signed with its key: no setting loads others)
+        // The ids of the plugins the writer turned off (the others load at the start)
+        {"plugins.disabled", json::array()},
+        // The values of the plugins' own settings: {plugin id: {setting id: value}}
+        {"plugins.settings", json::object()},
 
         // Editor: text
         {"editor.fontFamily", "Georgia"},
@@ -625,11 +762,23 @@ std::map<std::string, json> buildDefaults() {
     };
 }
 
+/// The table of the defaults, with the settings of the modules that addDefaults() added
+std::map<std::string, json>& allDefaults() {
+    static std::map<std::string, json> all = buildDefaults();
+    return all;
+}
+
 } // namespace
 
 const std::map<std::string, nlohmann::json>& defaults() {
-    static const std::map<std::string, json> table = buildDefaults();
-    return table;
+    return allDefaults();
+}
+
+void addDefaults(const std::map<std::string, nlohmann::json>& moduleDefaults) {
+    std::map<std::string, json>& all = allDefaults();
+    for (const auto& [key, value] : moduleDefaults) {
+        all.try_emplace(key, value);
+    }
 }
 
 const nlohmann::json* defaultValue(const std::string& key) {
@@ -650,6 +799,4 @@ bool requiresRestart(const std::string& key) {
     return restartKeys.count(normalized) > 0;
 }
 
-} // namespace settings_schema
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core::settings_schema

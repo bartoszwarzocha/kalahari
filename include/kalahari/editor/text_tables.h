@@ -25,7 +25,8 @@
 /// KML writes a table as <table> with <col width="...%"/>, <tr>, and <th> or <td> cells
 /// with their paragraphs (docs/kml_format.md).
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_TABLES_H
+#define KALAHARI_EDITOR_TEXT_TABLES_H
 
 #include <QColor>
 #include <QString>
@@ -357,8 +358,8 @@ struct TableCellRange {
     int firstColumn = 0;
     int lastColumn = 0;
 
-    int rows() const { return lastRow - firstRow + 1; }
-    int columns() const { return lastColumn - firstColumn + 1; }
+    [[nodiscard]] int rows() const { return lastRow - firstRow + 1; }
+    [[nodiscard]] int columns() const { return lastColumn - firstColumn + 1; }
     bool operator==(const TableCellRange&) const = default;
 };
 
@@ -372,3 +373,5 @@ std::optional<TableCellRange> selectedCells(const QTextDocument& document, int a
 TableCellRange wholeCells(const TableCellRange& range);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_TABLES_H

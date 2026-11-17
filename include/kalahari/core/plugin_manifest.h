@@ -26,14 +26,14 @@
 /// }
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_PLUGIN_MANIFEST_H
+#define KALAHARI_CORE_PLUGIN_MANIFEST_H
 
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 using json = nlohmann::json;
 
@@ -70,18 +70,19 @@ struct PluginManifest {
     /// - All required fields are non-empty
     /// - Version strings are in valid format
     /// - Entry point has correct format (module:class)
-    bool validate() const;
+    [[nodiscard]] bool validate() const;
 
     /// @brief Check if plugin implements a specific extension point
     /// @param point Extension point name to check
     /// @return true if plugin implements this extension point
-    bool implementsExtensionPoint(const std::string& point) const;
+    [[nodiscard]] bool implementsExtensionPoint(const std::string& point) const;
 
     /// @brief Check if plugin requires a specific permission
     /// @param permission Permission name to check
     /// @return true if plugin requires this permission
-    bool requiresPermission(const std::string& permission) const;
+    [[nodiscard]] bool requiresPermission(const std::string& permission) const;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_PLUGIN_MANIFEST_H

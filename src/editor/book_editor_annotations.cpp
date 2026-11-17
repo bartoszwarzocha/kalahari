@@ -7,7 +7,7 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/editor_types.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <QAction>
 #include <QDateTime>
 #include <QMenu>
@@ -105,9 +105,12 @@ QString BookEditor::annotationMarkAt(const QPointF& point) const
 // =============================================================================
 
 void BookEditor::setParagraphMarks(const QList<ParagraphMark>& marks, const QIcon& icon,
-                                   ParagraphMarkKind kind)
+                                   ParagraphMarkKind kind, const QHash<QString, QIcon>& cardIcons)
 {
     m_paragraphMarkIcons.insert(kind, icon);
+    if (kind == ParagraphMarkKind::Materials) {
+        m_paragraphCardIcons = cardIcons;
+    }
     std::erase_if(m_paragraphMarks,
                   [kind](const AnchoredMark& each) { return each.mark.kind == kind; });
     QList<ParagraphMark> ofKind = marks;
@@ -127,11 +130,12 @@ QList<ParagraphMark> BookEditor::paragraphMarks() const
         }
         const int paragraph = each.anchor.block().blockNumber();
         // A paragraph that took in the next one (the text between them deleted) has the
-        // marks of both
+        // marks of both, one for each kind and icon
         const auto same = std::find_if(marks.begin(), marks.end(),
                                        [paragraph, &each](const ParagraphMark& mark) {
                                            return mark.paragraph == paragraph &&
-                                                  mark.kind == each.mark.kind;
+                                                  mark.kind == each.mark.kind &&
+                                                  mark.icon == each.mark.icon;
                                        });
         if (same == marks.end()) {
             ParagraphMark mark = each.mark;
@@ -146,9 +150,13 @@ QList<ParagraphMark> BookEditor::paragraphMarks() const
             }
         }
     }
-    std::sort(marks.begin(), marks.end(), [](const ParagraphMark& a, const ParagraphMark& b) {
-        return a.paragraph != b.paragraph ? a.paragraph < b.paragraph : a.kind < b.kind;
-    });
+    // The marks of one paragraph: the paperclip and the signs of the cards in their order,
+    // then the scissors
+    std::stable_sort(marks.begin(), marks.end(),
+                     [](const ParagraphMark& a, const ParagraphMark& b) {
+                         return a.paragraph != b.paragraph ? a.paragraph < b.paragraph
+                                                           : a.kind < b.kind;
+                     });
     return marks;
 }
 
@@ -179,7 +187,8 @@ void BookEditor::syncParagraphMarks(bool always)
     const QList<ParagraphMark> now = paragraphMarks();
     std::vector<ParagraphMark> marks(now.cbegin(), now.cend());
     if (always || marks != m_renderPipeline->paragraphMarks()) {
-        m_renderPipeline->setParagraphMarks(std::move(marks), m_paragraphMarkIcons);
+        m_renderPipeline->setParagraphMarks(std::move(marks), m_paragraphMarkIcons,
+                                            m_paragraphCardIcons);
     }
 }
 
@@ -196,7 +205,7 @@ void BookEditor::openParagraphMark(const ParagraphMark& mark, const QPoint& glob
 
 void BookEditor::addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark)
 {
-    const QIcon icon = m_paragraphMarkIcons.value(mark.kind);
+    const QIcon icon = paragraphMarkIcon(mark);
     const bool clippings = mark.kind == ParagraphMarkKind::Clippings;
     if (clippings && mark.ids.size() == 1) {
         addClippingItems(menu, mark.ids.first());
@@ -219,6 +228,13 @@ void BookEditor::addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark)
     }
 }
 
+QIcon BookEditor::paragraphMarkIcon(const ParagraphMark& mark) const
+{
+    return mark.kind == ParagraphMarkKind::Materials && !mark.icon.isEmpty()
+               ? m_paragraphCardIcons.value(mark.icon)
+               : m_paragraphMarkIcons.value(mark.kind);
+}
+
 void BookEditor::addClippingItems(QMenu& menu, const QString& id)
 {
     //: The scissors beside a paragraph a clipping was cut from: shows the clipping in the
@@ -235,6 +251,10 @@ void BookEditor::addClippingItems(QMenu& menu, const QString& id)
 
 void BookEditor::addParagraphMarkMenus(QMenu& menu, int paragraph)
 {
+    // From the keyboard too: the materials first, as their paperclip is next to the text, then
+    // the cards, then the clippings
+    QMenu* materials = nullptr;
+    QMenu* cards = nullptr;
     bool separated = false;
     for (const ParagraphMark& mark : paragraphMarks()) {
         if (mark.paragraph != paragraph) {
@@ -244,16 +264,24 @@ void BookEditor::addParagraphMarkMenus(QMenu& menu, int paragraph)
             menu.addSeparator();
             separated = true;
         }
-        //: The submenu of the materials linked with the paragraph. In Polish: Powiązane
-        //: mate&riały
-        const QString materials = tr("Linked Mate&rials");
-        //: The submenu of the clippings cut from the paragraph (the scissors beside it). In
-        //: Polish: Wycinki z tego &miejsca
-        const QString clippings = tr("Clippings &From Here");
-        addParagraphMarkItems(
-            *menu.addMenu(m_paragraphMarkIcons.value(mark.kind),
-                          mark.kind == ParagraphMarkKind::Clippings ? clippings : materials),
-            mark);
+        if (mark.kind == ParagraphMarkKind::Clippings) {
+            //: The submenu of the clippings cut from the paragraph (the scissors beside it). In
+            //: Polish: Wycinki z tego &miejsca
+            addParagraphMarkItems(
+                *menu.addMenu(paragraphMarkIcon(mark), tr("Clippings &From Here")), mark);
+        } else if (!mark.icon.isEmpty()) {
+            //: The submenu of the cards of characters, locations and items linked with the
+            //: paragraph; its key is one the commands of the menu never have. In Polish:
+            //: Powiązane k&arty
+            cards = cards != nullptr ? cards : menu.addMenu(paragraphMarkIcon(mark),
+                                                            tr("Linked Card&s"));
+            addParagraphMarkItems(*cards, mark);
+        } else if (materials == nullptr) {
+            //: The submenu of the materials linked with the paragraph. In Polish: Powiązane
+            //: mate&riały
+            materials = menu.addMenu(paragraphMarkIcon(mark), tr("Linked Mate&rials"));
+            addParagraphMarkItems(*materials, mark);
+        }
     }
 }
 
@@ -263,11 +291,14 @@ QString BookEditor::paragraphMarkToolTip(const ParagraphMark& mark)
     //: The tooltip of the paperclip beside a paragraph, over the titles of the materials. In
     //: Polish: Powiązane materiały
     const QString materials = tr("Linked materials");
+    //: The tooltip of the sign of the cards beside a paragraph, over the names of the cards. In
+    //: Polish: Powiązane karty
+    const QString cards = tr("Linked cards");
     //: The tooltip of the scissors beside a paragraph, over the clippings cut from it. In
     //: Polish: Wycięto tu
     const QString cut = tr("Cut here");
-    QStringList lines{
-        QStringLiteral("<b>%1</b>").arg((clippings ? cut : materials).toHtmlEscaped())};
+    const QString heading = clippings ? cut : (mark.icon.isEmpty() ? materials : cards);
+    QStringList lines{QStringLiteral("<b>%1</b>").arg(heading.toHtmlEscaped())};
     for (const QString& title : mark.titles) {
         lines << title.toHtmlEscaped();
     }

@@ -7,7 +7,7 @@
 ///        in the open and the saved texts, the undo of the last change, and the commands
 
 #include <catch2/catch_test_macros.hpp>
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/paragraph_styles.h"
@@ -22,7 +22,7 @@
 #include <QStringList>
 
 #include <functional>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::StyleCoordinator;

@@ -5,7 +5,8 @@
 /// @brief The summary of the session of writing, when the book or the program closes: the
 /// words of today, a graph of the day, the time of writing, the goal and this session
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_SESSION_SUMMARY_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_SESSION_SUMMARY_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -62,16 +63,16 @@ public:
                              const QString& title);
 
     /// @brief Its lines as text, for Copy
-    QString text() const;
+    [[nodiscard]] QString text() const;
 
     /// @brief Its heading: "Today: 1,240 words"
-    QString heading() const;
+    [[nodiscard]] QString heading() const;
 
     /// @brief The line under the heading: the book, the day and the sessions
-    QString subheading() const;
+    [[nodiscard]] QString subheading() const;
 
     /// @brief Its details: a name and a value each
-    QList<std::pair<QString, QString>> details() const;
+    [[nodiscard]] QList<std::pair<QString, QString>> details() const;
 };
 
 /// @brief The summary of the session, with Copy and OK, and a box that turns it off
@@ -85,10 +86,10 @@ public:
     explicit SessionSummaryDialog(const SessionSummary& summary, QWidget* parent = nullptr);
 
     /// @brief The summary it shows
-    const SessionSummary& summary() const { return m_summary; }
+    [[nodiscard]] const SessionSummary& summary() const { return m_summary; }
 
     /// @brief The box of the setting
-    QCheckBox* showAgainBox() const { return m_showAgain; }
+    [[nodiscard]] QCheckBox* showAgainBox() const { return m_showAgain; }
 
 private:
     SessionSummary m_summary;
@@ -98,3 +99,5 @@ private:
 }  // namespace dialogs
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DIALOGS_SESSION_SUMMARY_DIALOG_H

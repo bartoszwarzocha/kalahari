@@ -7,7 +7,7 @@
 ///        the fragment; Insert > Clipping puts it in at the cursor (it stays marked as inserted,
 ///        or goes), and Restore to the Place It Came From puts it back where it was
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
@@ -31,13 +31,14 @@
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/settings_dialog.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <QAction>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDateTime>
 #include <QFile>
 #include <QJsonDocument>
@@ -50,7 +51,6 @@
 #include <QMenu>
 #include <QPlainTextEdit>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QStringList>
 #include <QTextBlock>
 #include <QTextDocument>
@@ -312,11 +312,24 @@ QLineEdit* searchOf(const gui::dialogs::ClippingListPopup& popup) {
     return search;
 }
 
-/// The choice @p name of a page of the Settings
-QRadioButton* radio(const QWidget& page, const char* name) {
-    auto* found = page.findChild<QRadioButton*>(QString::fromLatin1(name));
+/// The list of choices @p name of a page of the Settings
+QComboBox* choiceList(const QWidget& page, const char* name) {
+    auto* found = page.findChild<QComboBox*>(QString::fromLatin1(name));
     REQUIRE(found != nullptr);
     return found;
+}
+
+/// The value of the item chosen in list @p name of @p page
+std::string shownIn(const QWidget& page, const char* name) {
+    return choiceList(page, name)->currentData().toString().toStdString();
+}
+
+/// Choose the item of value @p value in list @p name of @p page
+void pick(const QWidget& page, const char* name, const char* value) {
+    QComboBox* list = choiceList(page, name);
+    const int index = list->findData(QString::fromLatin1(value));
+    REQUIRE(index >= 0);
+    list->setCurrentIndex(index);
 }
 
 /// Cut to Clippings and Insert > Clipping, alone in @p commands
@@ -1289,16 +1302,16 @@ TEST_CASE("Settings > Editor > Clippings: the choices, written only when changed
     CHECK(intro->text().contains(QStringLiteral("(Insert > Clipping from the Workshop)")));
 
     // The defaults
-    CHECK(radio(page, "clippingsCutAtOnce")->isChecked());
-    CHECK(radio(page, "clippingsNoSelectionParagraph")->isChecked());
-    CHECK(radio(page, "clippingsInsertWindow")->isChecked());
-    CHECK(radio(page, "clippingsAfterInsertKeep")->isChecked());
+    CHECK(shownIn(page, "clippingsCut") == Clippings::CUT_AT_ONCE);
+    CHECK(shownIn(page, "clippingsNoSelection") == Clippings::NO_SELECTION_PARAGRAPH);
+    CHECK(shownIn(page, "clippingsInsert") == Clippings::INSERT_WINDOW);
+    CHECK(shownIn(page, "clippingsAfterInsert") == Clippings::AFTER_INSERT_KEEP);
 
     // The alternatives
-    radio(page, "clippingsCutWithWindow")->setChecked(true);
-    radio(page, "clippingsNoSelectionNothing")->setChecked(true);
-    radio(page, "clippingsInsertList")->setChecked(true);
-    radio(page, "clippingsAfterInsertRemove")->setChecked(true);
+    pick(page, "clippingsCut", Clippings::CUT_WITH_WINDOW);
+    pick(page, "clippingsNoSelection", Clippings::NO_SELECTION_NOTHING);
+    pick(page, "clippingsInsert", Clippings::INSERT_LIST);
+    pick(page, "clippingsAfterInsert", Clippings::AFTER_INSERT_REMOVE);
     CHECK(page.isChanged());
     std::vector<std::string> keys = page.apply();
     std::ranges::sort(keys);
@@ -1321,7 +1334,7 @@ TEST_CASE("Settings > Editor > Clippings: the choices, written only when changed
     choose(Clippings::CUT_SETTING, "unknown");
     gui::EditorClippingsPage other(commands);
     other.load();
-    CHECK(radio(other, "clippingsCutAtOnce")->isChecked());
+    CHECK(shownIn(other, "clippingsCut") == Clippings::CUT_AT_ONCE);
     choose(Clippings::CUT_SETTING, Clippings::CUT_AT_ONCE);
 
     // The scissors beside the paragraphs: off by default, written when turned on

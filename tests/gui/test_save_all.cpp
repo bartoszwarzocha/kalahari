@@ -17,9 +17,9 @@
 #include <kalahari/gui/dialogs/message_dialog.h>
 #include <kalahari/gui/panels/editor_panel.h>
 
-#include "../core/other_program.h"
-#include "../editor/editor_test_utils.h"
-#include "document_window.h"
+#include "kalahari_tests/core/other_program.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -32,7 +32,7 @@
 #include <QTimer>
 
 #include <cmath>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::dialogs::MessageDialog;

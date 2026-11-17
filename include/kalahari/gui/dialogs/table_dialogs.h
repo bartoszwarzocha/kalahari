@@ -5,7 +5,8 @@
 /// @brief The windows of the Table menu: Split Cells..., Sort..., Text to Table..., Table to
 ///        Text... and Table Properties...
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_TABLE_DIALOGS_H
+#define KALAHARI_GUI_DIALOGS_TABLE_DIALOGS_H
 
 #include "kalahari/editor/table_editing.h"
 #include "kalahari/editor/text_sorting.h"
@@ -32,8 +33,7 @@ class QSpinBox;
 class QTabWidget;
 class QToolButton;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class ColorMenu;
 class LengthSpinBox;
@@ -344,5 +344,6 @@ private:
 };
 
 } // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DIALOGS_TABLE_DIALOGS_H

@@ -14,8 +14,7 @@
 
 #include <functional>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 using core::CoverMaterial;
 
@@ -327,5 +326,4 @@ QString CoverNames::printedOpinion(const QString& text, const core::CoverData& c
     return printed;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

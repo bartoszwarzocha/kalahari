@@ -116,6 +116,7 @@ editor::BookEditor::NewImageOptions settingsNewImageOptions() {
                                                : Qt::Alignment(Qt::AlignHCenter);
     const int width = settings.get<int>(IMAGE_WIDTH_KEY, 0);
     options.widthPercent = width > 0 && width <= 100 ? width : 0;
+    options.wrap = imageWrapOfSetting(settings.get<std::string>(IMAGE_LAYOUT_KEY, "inline"));
     if (settings.get<bool>(IMAGE_CAPTION_KEY, true)) {
         const QString label = editor::normalizedLabel(
             QString::fromStdString(settings.get<std::string>(IMAGE_CAPTION_LABEL_KEY, "")));
@@ -126,6 +127,49 @@ editor::BookEditor::NewImageOptions settingsNewImageOptions() {
                                     IMAGE_MAX_MAX_DPI);
     }
     return options;
+}
+
+std::vector<std::pair<editor::ImageWrap, QString>> imageWrapChoices() {
+    using editor::ImageWrap;
+    return {
+        //: How the text flows around an image (Image Properties, Settings > Editor > Images):
+        //: none. In Polish: W tekście, we własnym akapicie
+        {ImageWrap::Inline, QCoreApplication::translate(
+                                "CaptionSettings", "In the text, in a paragraph of its own")},
+        //: In Polish: Obraz z lewej, tekst obok
+        {ImageWrap::SquareLeft,
+         QCoreApplication::translate("CaptionSettings", "Image on the left, text beside it")},
+        //: In Polish: Obraz z prawej, tekst obok
+        {ImageWrap::SquareRight,
+         QCoreApplication::translate("CaptionSettings", "Image on the right, text beside it")},
+        //: In Polish: Tekst nad i pod obrazem
+        {ImageWrap::TopBottom,
+         QCoreApplication::translate("CaptionSettings", "Text above and below the image")}};
+}
+
+std::string imageWrapSetting(editor::ImageWrap wrap) {
+    switch (wrap) {
+    case editor::ImageWrap::SquareLeft:
+        return "left";
+    case editor::ImageWrap::SquareRight:
+        return "right";
+    case editor::ImageWrap::TopBottom:
+        return "topBottom";
+    case editor::ImageWrap::Inline:
+        break;
+    }
+    return "inline";
+}
+
+editor::ImageWrap imageWrapOfSetting(const std::string& value) {
+    for (const editor::ImageWrap wrap :
+         {editor::ImageWrap::SquareLeft, editor::ImageWrap::SquareRight,
+          editor::ImageWrap::TopBottom}) {
+        if (value == imageWrapSetting(wrap)) {
+            return wrap;
+        }
+    }
+    return editor::ImageWrap::Inline;
 }
 
 }  // namespace kalahari::gui

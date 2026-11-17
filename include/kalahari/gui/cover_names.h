@@ -5,7 +5,8 @@
 /// @brief The materials of the cover in the program's words: the names of their parts, places,
 /// states and consents, their icons and the lengths of their texts
 
-#pragma once
+#ifndef KALAHARI_GUI_COVER_NAMES_H
+#define KALAHARI_GUI_COVER_NAMES_H
 
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/cover_material.h"
@@ -96,3 +97,5 @@ public:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_COVER_NAMES_H

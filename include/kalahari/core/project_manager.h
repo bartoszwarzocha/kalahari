@@ -30,10 +30,12 @@
 /// pm.closeProject();
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_PROJECT_MANAGER_H
+#define KALAHARI_CORE_PROJECT_MANAGER_H
 
 #include <QHash>
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QTemporaryDir>
@@ -48,7 +50,10 @@
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/card_field_set.h"
+#include "kalahari/core/card_name_index.h"
 #include "kalahari/core/card_relations.h"
+#include "kalahari/core/chapter_document.h"
 #include "kalahari/core/chapter_versions.h"
 #include "kalahari/core/clipping.h"
 #include "kalahari/core/package_card.h"
@@ -59,8 +64,7 @@
 #include "kalahari/core/backup_manager.h"
 #include "kalahari/core/text_statistics.h"
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Work mode enumeration for application state
 ///
@@ -227,17 +231,17 @@ public:
     bool createProject(const NewProject& project, QStringList* problems = nullptr);
 
     /// @brief Create a new project without opening it: the open project stays open
-    /// @param project The project, as createProject() takes it
+    /// @param request The project, as createProject() takes it
     /// @param problems Gets what is wrong when the project cannot be created, one line each
     /// @return The project's .klh file; empty when the project cannot be created, and then
     ///         nothing of it is left in the folder
-    QString createProjectWithoutOpening(const NewProject& project,
+    QString createProjectWithoutOpening(const NewProject& request,
                                         QStringList* problems = nullptr) const;
 
     /// @brief What keeps @p project from being created: the book has no title, the type is
     /// not installed, the palette is wrong or the folder exists and is not empty
     /// @return One line per problem; empty when the project can be created
-    QStringList newProjectProblems(const NewProject& project) const;
+    [[nodiscard]] QStringList newProjectProblems(const NewProject& project) const;
 
     /// @brief Folder that createProject() makes the project in
     /// @param parentDir Folder of the project, or the folder it is made in (createSubfolder)
@@ -272,7 +276,7 @@ public:
     bool openProject(const QString& manifestPath, QStringList* problems = nullptr);
 
     /// @brief Why the last openProject() did not open the book; None after it opened it
-    OpenFailure lastOpenFailure() const { return m_lastOpenFailure; }
+    [[nodiscard]] OpenFailure lastOpenFailure() const { return m_lastOpenFailure; }
 
     /// @brief Convert the book @p manifestPath, saved by an older version of Kalahari in the
     /// first format (OpenFailure::Older), to the format of this version (OldBookConversion)
@@ -300,7 +304,7 @@ public:
 
     /// @brief Check if a project is currently open
     /// @return true if a project is open (ProjectMode), false otherwise
-    bool isProjectOpen() const;
+    [[nodiscard]] bool isProjectOpen() const;
 
     /// @brief Whether the open book is open read-only: the program does not have a package it
     /// uses (missingPackages())
@@ -308,16 +312,16 @@ public:
     /// The book can be read and exported (exportArchive()), but not changed: the methods that
     /// change it do nothing and report so, and nothing is written into its folder, neither
     /// its .klh file nor its chapters nor the cards of its packages.
-    bool isReadOnly() const;
+    [[nodiscard]] bool isReadOnly() const;
 
     /// @brief Packages of the open book that the program does not have, or has without a kind
     /// the book names (BookProject::missingPackages()), sorted; empty when it has them all or
     /// no book is open
-    const QStringList& missingPackages() const;
+    [[nodiscard]] const QStringList& missingPackages() const;
 
     /// @brief The card of package @p packageId that the open book keeps (package_card.h), or
     /// nullptr when it has none or no book is open
-    const PackageCard* packageCard(const QString& packageId) const;
+    [[nodiscard]] const PackageCard* packageCard(const QString& packageId) const;
 
     // =========================================================================
     // Paths
@@ -325,19 +329,19 @@ public:
 
     /// @brief Get project root path
     /// @return Absolute path to project folder, empty if no project open
-    QString getProjectPath() const;
+    [[nodiscard]] QString getProjectPath() const;
 
     /// @brief Get path to .klh manifest file
     /// @return Absolute path to manifest file, empty if no project open
-    QString getManifestPath() const;
+    [[nodiscard]] QString getManifestPath() const;
 
     /// @brief The book's main folder (absolute): the images of the texts of the book and of
     ///        the Workshop name their files relative to it, and new ones go into its folder of
     ///        images (editor::IMAGES_FOLDER); empty when no project is open
-    QString imagesBaseFolder() const;
+    [[nodiscard]] QString imagesBaseFolder() const;
 
     /// @brief Absolute path of the file of @p element; empty when it has none
-    QString filePathOf(const ProjectElement& element) const;
+    [[nodiscard]] QString filePathOf(const ProjectElement& element) const;
 
     // =========================================================================
     // State Accessors
@@ -345,22 +349,22 @@ public:
 
     /// @brief Get current work mode
     /// @return Current WorkMode (NoDocument, ProjectMode, StandaloneMode)
-    WorkMode getWorkMode() const;
+    [[nodiscard]] WorkMode getWorkMode() const;
 
     /// @brief The open project, or nullptr
     BookProject* project();
-    const BookProject* project() const;
+    [[nodiscard]] const BookProject* project() const;
 
     /// @brief The first book of the open project, or nullptr
     ProjectBook* book();
-    const ProjectBook* book() const;
+    [[nodiscard]] const ProjectBook* book() const;
 
     /// @brief Check if the project's .klh file has unsaved changes
     ///
     /// This tracks the structure and the data of the project ONLY (add/rename/move/delete
     /// of elements and changes of the book's data). It is reset by saveManifest(). Unsaved
     /// text of chapters is tracked per element (getDirtyElements()).
-    bool isDirty() const;
+    [[nodiscard]] bool isDirty() const;
 
     /// @brief Set the dirty state of the .klh file
     /// @param dirty true to mark it as dirty, false to mark it as clean
@@ -375,7 +379,7 @@ public:
     ///
     /// Where the program does not have a package of the book, the book opens read-only
     /// (isReadOnly()) and shows its type and kinds after its cards (packageCard()).
-    const BookTypeRegistry& bookTypes() const;
+    [[nodiscard]] const BookTypeRegistry& bookTypes() const;
 
     /// @brief Packages of book types and kinds installed with the program
     ///
@@ -391,11 +395,11 @@ public:
     static void loadBookTypes(const QStringList& folders);
 
     /// @brief Kind of @p element; none when its package is not installed
-    KindRef kindOf(const ProjectElement& element) const;
+    [[nodiscard]] KindRef kindOf(const ProjectElement& element) const;
 
     /// @brief Form of @p element: of its kind, or, when its package is not installed, a text
     /// element for a chapter file, a group for no file and a window element for other files
-    ElementForm formOf(const ProjectElement& element) const;
+    [[nodiscard]] ElementForm formOf(const ProjectElement& element) const;
 
     /// @brief Status of @p element, "draft" when it has none
     static QString statusOf(const ProjectElement& element);
@@ -408,36 +412,38 @@ public:
     ///
     /// The kinds the project offers there, without those whose elements reached the kind's
     /// limit in the book.
-    QList<KindRef> kindsFor(BookPlace place, const QString& groupId = QString()) const;
+    [[nodiscard]] QList<KindRef> kindsFor(BookPlace place,
+                                          const QString& groupId = QString()) const;
 
     /// @brief Text kinds of kindsFor()
-    QList<KindRef> textKindsFor(BookPlace place, const QString& groupId = QString()) const;
+    [[nodiscard]] QList<KindRef> textKindsFor(BookPlace place,
+                                              const QString& groupId = QString()) const;
 
     /// @brief Kind of a new chapter in @p place, or inside group @p groupId: the main text kind
     /// of the type when it can be there, else the first of textKindsFor()
-    KindRef chapterKindFor(BookPlace place, const QString& groupId = QString()) const;
+    [[nodiscard]] KindRef chapterKindFor(BookPlace place, const QString& groupId = QString()) const;
 
     /// @brief Kind of a new part: the first group kind the project offers in the main part
-    KindRef partKind() const;
+    [[nodiscard]] KindRef partKind() const;
 
     /// @brief The main text kind of the book (chapter, story, poem, act): the main text kind of
     /// its type; in a project without a type, the first text kind it offers in the main part
     ///
     /// The program's sentences name the texts of the book after it ("Stories: 12").
-    KindRef mainTextKind() const;
+    [[nodiscard]] KindRef mainTextKind() const;
 
     /// @brief Title of a new element of @p kind: its default title in the language of the
     /// book, numbered after the elements of the kind the project has
-    QString defaultTitle(const KindRef& kind) const;
+    [[nodiscard]] QString defaultTitle(const KindRef& kind) const;
 
     /// @brief A free chapter file for a new element of @p kind in @p place, relative to the
     /// project: <book folder>/<kind>_001.kchapter, or workshop/<kind>_001.kchapter; the file
     /// that addElement() gives it
-    QString newChapterFile(const KindRef& kind, BookPlace place) const;
+    [[nodiscard]] QString newChapterFile(const KindRef& kind, BookPlace place) const;
 
     /// @brief A free chapter file for a new file of the book outside its text, relative to the
     /// project: <book folder>/file_001.kchapter; the file that addBookFile() gives it
-    QString newBookFile() const;
+    [[nodiscard]] QString newBookFile() const;
 
     // =========================================================================
     // Elements
@@ -445,12 +451,12 @@ public:
 
     /// @brief Element @p elementId of the project, or nullptr
     ProjectElement* findElement(const QString& elementId);
-    const ProjectElement* findElement(const QString& elementId) const;
+    [[nodiscard]] const ProjectElement* findElement(const QString& elementId) const;
 
     /// @brief The element of the project whose file is @p path (absolute), also when the path
     /// names it in another way (another case of letters on Windows, a link); nullptr when no
     /// element has it
-    const ProjectElement* elementWithFile(const QString& path) const;
+    [[nodiscard]] const ProjectElement* elementWithFile(const QString& path) const;
 
     /// @brief Add a new element of @p kind with @p title to @p place of the book, or to group
     /// @p groupId
@@ -459,7 +465,9 @@ public:
     /// else the text of its kind's template, and the status "draft". A group can take elements
     /// of the book inside it, at its end, in the order given: a new part takes the epilogue
     /// from the end of the last part, so that the chapters added to the new part go before it.
-    /// Saves the .klh file.
+    /// An element of a window kind whose editor a module brings gets the file that the module
+    /// writes (IWindowEditorProvider::newFile()) in the Workshop's folder: workshop/mindmap.kmap,
+    /// workshop/mindmap_2.kmap... Saves the .klh file.
     /// @param index Place of the element in its list; -1: the place of its kind, newPlaceOf(),
     ///        which can be in a group of the body of the book
     /// @param takeInside Ids of elements that the new group takes inside it
@@ -467,7 +475,8 @@ public:
     ///        writer adds to the book; none: the text of its kind's template
     /// @param status The status of a text element ("draft", "revision" or "final"); empty:
     ///        "draft"
-    /// @return The new element's id; empty when the kind cannot be there or is a window kind,
+    /// @return The new element's id; empty when the kind cannot be there or is a window kind
+    ///         that no module edits,
     ///         the project has no group @p groupId, @p index is beyond the list, an element of
     ///         @p takeInside cannot be inside the group, @p status is not a status of text
     ///         elements, or a file cannot be written
@@ -477,9 +486,10 @@ public:
                        const std::optional<QString>& text = std::nullopt,
                        const QString& status = QString());
 
-    /// @brief Whether the program can add elements of @p kind: text kinds, group kinds and the
-    /// kinds of materials (ElementKind::isMaterial()); elements of the other kinds that open in
-    /// a window of their own wait until the program has their windows. A retired kind
+    /// @brief Whether the program can add elements of @p kind: text kinds, group kinds, the
+    /// kinds of materials (ElementKind::isMaterial()) and the window kinds whose editor a
+    /// module brings (windowEditorProvider()); elements of the other kinds that open in a
+    /// window of their own wait until the program has their windows. A retired kind
     /// (ElementKind::retired) gets no new elements.
     static bool canAdd(const KindRef& kind);
 
@@ -492,12 +502,13 @@ public:
     /// before it.
     /// @return The place; nullopt when the project has no element @p elementId, it is a file of
     ///         the book outside its text, or @p kind cannot be added to its list
-    std::optional<ElementPlace> newPlaceAfter(const QString& elementId, const KindRef& kind) const;
+    [[nodiscard]] std::optional<ElementPlace> newPlaceAfter(const QString& elementId,
+                                                            const KindRef& kind) const;
 
     /// @brief A free file for a copy of file @p sourcePath in the Workshop, relative to the
     /// project: workshop/<its name>, or workshop/<its base name>_2.<its suffix>, _3... when an
     /// element or a file there has the name; the file that addMaterial() gives the copy
-    QString newMaterialFile(const QString& sourcePath) const;
+    [[nodiscard]] QString newMaterialFile(const QString& sourcePath) const;
 
     /// @brief Add a copy of file @p sourcePath (a picture, a PDF file...) to the Workshop as a
     /// new material of @p kind with @p title
@@ -528,7 +539,7 @@ public:
                          const QString& fileName);
 
     /// @brief Whether @p elementId is a file of the book outside its text (ProjectBook::files)
-    bool isBookFile(const QString& elementId) const;
+    [[nodiscard]] bool isBookFile(const QString& elementId) const;
 
     /// @brief Add an empty text file with @p title to the files of the book outside its text
     ///
@@ -544,7 +555,8 @@ public:
     /// A kind of the start (a prologue) goes first, a kind of the end (an epilogue) last, and
     /// any other kind last before the elements of the kinds of the end: a new chapter goes
     /// before the epilogue.
-    qsizetype newIndexIn(const QList<ProjectElement>& elements, const KindRef& kind) const;
+    [[nodiscard]] qsizetype newIndexIn(const QList<ProjectElement>& elements,
+                                       const KindRef& kind) const;
 
     /// @brief Place that a new element of @p kind takes in @p place of the book, or in group
     /// @p groupId, when the writer does not choose it
@@ -553,8 +565,8 @@ public:
     /// a kind with no position that is not a group goes before the elements that close the
     /// body, also when they are at the end of a part: a new chapter goes before the epilogue
     /// that ends the last part, if the chapter can be in that part.
-    ElementPlace newPlaceOf(const KindRef& kind, BookPlace place,
-                            const QString& groupId = QString()) const;
+    [[nodiscard]] ElementPlace newPlaceOf(const KindRef& kind, BookPlace place,
+                                          const QString& groupId = QString()) const;
 
     /// @brief Add a chapter or text file as a new text element of @p kind
     ///
@@ -581,7 +593,7 @@ public:
 
     /// @brief The labels and the numbering of the book's captions (ProjectBook::captions);
     ///        std::nullopt without a project or while the book has none of its own
-    std::optional<BookCaptions> bookCaptions() const;
+    [[nodiscard]] std::optional<BookCaptions> bookCaptions() const;
 
     /// @brief Give the book its labels and numbering of captions and save the .klh file
     ///        (bookCaptionsChanged())
@@ -592,7 +604,7 @@ public:
     /// @brief How the book numbers its notes and where its endnotes are
     ///        (ProjectBook::footnotes); std::nullopt without a project or while the book has
     ///        none of its own (the defaults)
-    std::optional<BookFootnotes> bookFootnotes() const;
+    [[nodiscard]] std::optional<BookFootnotes> bookFootnotes() const;
 
     /// @brief Give the book its numbering of notes and save the .klh file
     ///        (bookFootnotesChanged())
@@ -621,7 +633,8 @@ public:
     /// save the .klh file
     ///
     /// Their files stay in the project's folder: unassignedFiles() has their chapter files,
-    /// and filesOf() of the element gives them to whoever deletes them.
+    /// and filesOf() of the element gives them to whoever deletes them. The names of removed
+    /// cards stay in the book's dictionary, without the cards (DictionaryName::card).
     /// @return The element; nullopt when the project has no such element or the file cannot be
     ///         written
     std::optional<ProjectElement> removeElement(const QString& elementId);
@@ -631,18 +644,18 @@ public:
     ///
     /// A file that an element outside them also has is left out, so deleting the files
     /// deletes no file of another element.
-    QStringList filesOf(const ProjectElement& element) const;
+    [[nodiscard]] QStringList filesOf(const ProjectElement& element) const;
 
     /// @brief Chapter files (.kchapter) in the folders of the book and of the Workshop that no
     /// element of the project has, by folder and name
     ///
     /// Other files there (pictures, materials) are the writer's, and so are the folders in
     /// them: they are left out.
-    QList<UnassignedFile> unassignedFiles() const;
+    [[nodiscard]] QList<UnassignedFile> unassignedFiles() const;
 
     /// @brief Whether unassignedFiles() lists file @p path (absolute) when no element has it:
     /// a chapter file in the folder of the book or of the Workshop
-    bool listsAsUnassigned(const QString& path) const;
+    [[nodiscard]] bool listsAsUnassigned(const QString& path) const;
 
     /// @brief Add the chapter file @p file, which no element has, as a new text element of
     /// @p kind with @p title in @p place of the book, or in group @p groupId
@@ -667,10 +680,10 @@ public:
     /// @brief Places that element @p elementId can be moved to, in reading order
     /// (BookProject::movePlacesOf()): wherever its kind can be in the book, in the book without
     /// the element; the place it has now is one of them
-    QList<ElementPlace> movePlacesOf(const QString& elementId) const;
+    [[nodiscard]] QList<ElementPlace> movePlacesOf(const QString& elementId) const;
 
     /// @brief Whether element @p elementId can be moved to @p to, one of movePlacesOf()
-    bool canMoveTo(const QString& elementId, const ElementPlace& to) const;
+    [[nodiscard]] bool canMoveTo(const QString& elementId, const ElementPlace& to) const;
 
     /// @brief Move element @p elementId, with the elements inside it, to @p to and save the
     /// .klh file
@@ -688,7 +701,7 @@ public:
     /// an element of a kind that is not of the start goes after the elements of the kinds of
     /// the start, so a chapter moved to the start stays after the prologue.
     /// @return The index; -1 when the project has no such element
-    qsizetype startIndexOf(const QString& elementId) const;
+    [[nodiscard]] qsizetype startIndexOf(const QString& elementId) const;
 
     /// @brief Place in its list that Move to End gives element @p elementId
     ///
@@ -696,7 +709,7 @@ public:
     /// the kinds of the end, so a chapter moved to the end stays before the epilogue. The title
     /// page keeps its place.
     /// @return The index; -1 when the project has no such element
-    qsizetype endIndexOf(const QString& elementId) const;
+    [[nodiscard]] qsizetype endIndexOf(const QString& elementId) const;
 
     /// @brief Set the status of a text element ("draft", "revision" or "final")
     ///
@@ -712,7 +725,7 @@ public:
 
     /// @brief Notes of a text element, from its chapter file; of an element without a chapter
     /// file (a card of the Workshop), its description (ProjectElement::description)
-    QString notes(const QString& elementId) const;
+    [[nodiscard]] QString notes(const QString& elementId) const;
 
     /// @brief Set the notes of a text element and write them to its chapter file; an element
     /// without a chapter file takes them as its description (setDescription())
@@ -724,13 +737,46 @@ public:
 
     /// @brief Whether @p element is a material: a file the writer keeps in the Workshop, of a
     /// kind of materials (ElementKind::isMaterial())
-    bool isMaterial(const ProjectElement& element) const;
+    [[nodiscard]] bool isMaterial(const ProjectElement& element) const;
 
     /// @brief Give element @p elementId the description @p description and save the .klh file;
     /// for a card, its short description, cardChanged() tells of a change
     /// @return false when the project has no such element or the file cannot be written; the
     ///         element keeps its description then
     bool setDescription(const QString& elementId, const QString& description);
+
+    /// @brief Give text element @p elementId of a book its short description on the plot board
+    /// and its plot (point of view, place and time of the action, color of its card), and save
+    /// the .klh file once
+    /// @return false when the project has no such element, it is no text of a book, or the
+    ///         file cannot be written; the element keeps its description and plot then
+    bool setPlot(const QString& elementId, const QString& description, const ElementPlot& plot);
+
+    /// @brief The scenes of text element @p elementId of a book (ChapterDocument::kmlScenes()),
+    /// the first with the plot of the .klh file (ElementPlot::opening)
+    /// @param kml The text with changes its file does not have (an editor's); none: the text
+    ///        of its chapter file
+    /// @return None for another element
+    [[nodiscard]] QList<KmlScene> scenesOf(const QString& elementId,
+                                           const std::optional<QString>& kml = std::nullopt) const;
+
+    /// @brief Give scene @p scene (from 0) of text element @p elementId of a book the plot
+    /// @p plot: the first scene in the .klh file, another in the chapter file, at its break
+    ///
+    /// The text of an open editor changes there (editor::BookEditor), not here: its file
+    /// would lose it when the editor saves its text.
+    /// @return false when the project has no such text or scene, the text has changes its
+    ///         file does not have (setChapterContent()), or a file cannot be written
+    bool setScenePlot(const QString& elementId, int scene, const ScenePlot& plot);
+
+    /// @brief Give text element @p elementId of a book the text and the first scene of
+    /// @p text: its scenes moved, added or deleted (ChapterDocument::withSceneMoved()...); the
+    /// text goes to its chapter file at once, the first scene to the .klh file
+    ///
+    /// The text of an open editor changes there (editor::BookEditor::replaceWithKml()).
+    /// @return false when the project has no such text, the text has changes its file does
+    ///         not have (setChapterContent()), or a file cannot be written
+    bool setSceneText(const QString& elementId, const SceneText& text);
 
     /// @brief Give element @p elementId the writer's own fields @p fields, in this order, and
     /// save the .klh file; for a card, cardChanged() tells of a change
@@ -752,15 +798,30 @@ public:
     /// order: a link it has keeps its role, paragraph and note, a new one is newLink()
     bool setLinks(const QString& elementId, const QStringList& targets);
 
-    /// @brief A new link of element @p elementId with @p target: with the role that the kind
+    /// @brief A new link of element @p linkedId with @p target: with the role that the kind
     /// of a material suggests (LinkRoles::suggestedFor()), or of a card in a chapter
     /// (LinkRoles::suggestedForCard()), else without a role
-    ElementLink newLink(const QString& elementId, const QString& target) const;
+    [[nodiscard]] ElementLink newLink(const QString& linkedId, const QString& target) const;
+
+    /// @brief Link element @p linkedId (a card, a material) with paragraph @p paragraph (from
+    /// 1) of text element @p elementId, whose text is @p paragraphText now, in role @p role
+    ///
+    /// The link it has with the text names the paragraph from then on, its note staying; else
+    /// it gets a new one (newLink()). The excerpt of the link is the beginning of the
+    /// paragraph (LinkRoles::excerptOf()). Saved in the .klh file, as setLinks().
+    /// @return false without such elements or paragraph, or when the file cannot be written
+    bool linkParagraph(const QString& linkedId, const QString& elementId, int paragraph,
+                       const QString& paragraphText, const QString& role);
+
+    /// @brief The link of element @p linkedId with text element @p elementId names no paragraph
+    /// any more: it stays a link with the whole text, with its role and note
+    /// @return false without such a link, or when the .klh file cannot be written
+    bool unlinkParagraph(const QString& linkedId, const QString& elementId);
 
     /// @brief The paragraphs of the text of text element @p elementId, one per entry, as the
     /// editor has them (ChapterDocument::kmlToPlainText()): the text kept with its changes
     /// (setChapterContent()), else that of its chapter file; empty for another element
-    QStringList paragraphsOf(const QString& elementId) const;
+    [[nodiscard]] QStringList paragraphsOf(const QString& elementId) const;
 
     /// @brief Turn the picture of element @p elementId in its preview to @p rotation degrees
     /// clockwise (0, 90, 180 or 270) and save the .klh file
@@ -881,6 +942,60 @@ public:
     bool setCardFieldText(const QString& cardId, const QString& fieldId, const QString& text);
 
     // =========================================================================
+    // Fields of the cards (project_manager_card_fields.cpp)
+    // =========================================================================
+
+    /// @brief The fields of the cards of kind @p kind in the open book, in the order of the
+    /// card: the book's own set (setCardFields()), else the fields of the kind; empty for a
+    /// kind that is no kind of cards
+    ///
+    /// The list stays while the book keeps the set; a new set gives a new list.
+    [[nodiscard]] const QList<CardField>& cardFields(const KindRef& kind) const;
+
+    /// @brief Field @p fieldId of the cards of kind @p kind (cardFields()); nullptr when they
+    /// have none
+    [[nodiscard]] const CardField* cardField(const KindRef& kind, const QString& fieldId) const;
+
+    /// @brief The field whose value stands beside the kind under the name of a card of kind
+    /// @p kind (ElementKind::subtitleField()), while the book shows it somewhere; nullptr: none
+    [[nodiscard]] const CardField* subtitleField(const KindRef& kind) const;
+
+    /// @brief Every field of the cards of kind @p kind, as the window Card Fields changes them
+    /// (card_fields::complete())
+    [[nodiscard]] QList<BookCardField> cardFieldSet(const KindRef& kind) const;
+
+    /// @brief Whether the book has fields of the cards of kind @p kind of its own, not those of
+    /// the package
+    [[nodiscard]] bool hasOwnCardFields(const KindRef& kind) const;
+
+    /// @brief The ids of the fields that the cards of kind @p kind have values of, also of the
+    /// fields that went: a new field of the writer does not take them
+    /// (card_fields::newOwnId())
+    [[nodiscard]] QStringList cardValueIds(const KindRef& kind) const;
+
+    /// @brief Give the cards of kind @p kind the fields @p fields and save the .klh file
+    /// (cardFieldsChanged())
+    ///
+    /// The fields of the package (an empty list, or the same fields shown in the same places)
+    /// leave the book without a set of its own. A field of the writer that names a card gets
+    /// its relation (ownRelation()), named after it; a new name of the field renames the
+    /// relation. The values of the cards stay, also those of the fields that go; a value that
+    /// goes from the list of a field of the writer stays on the cards that have it as its name
+    /// (cardChanged()).
+    /// @return false for a kind that is no kind of cards, or when the file cannot be written
+    bool setCardFields(const KindRef& kind, const QList<BookCardField>& fields);
+
+    /// @brief Make own field @p index of card @p cardId (ProjectElement::fields) a field of all
+    /// the cards of its kind, and save the .klh file
+    ///
+    /// The field of the cards with its name (a text field) takes it, else a new field of the
+    /// writer, shown on the card; each card of the kind gives it the value of its own field
+    /// with that name, which goes, unless the card has a value there already.
+    /// @return The id of the field of the cards; empty when the card has no such field or the
+    ///         file cannot be written
+    QString addFieldToKind(const QString& cardId, int index);
+
+    // =========================================================================
     // Sources, Bookmarks and Quotes
     // =========================================================================
 
@@ -935,13 +1050,18 @@ public:
     /// @brief The language of the text of the book ("pl"); empty without a project
     [[nodiscard]] QString bookLanguage() const;
 
+    /// @brief Give the book the ISBN and the publisher of its e-book (ProjectBook::isbn,
+    /// ProjectBook::publisher; empty: none) and save the .klh file
+    /// @return false when no project is open, it is read-only or the file cannot be written
+    bool setBookPublication(const QString& isbn, const QString& publisher);
+
     // =========================================================================
     // Paragraph Styles of the Books
     // =========================================================================
 
     /// @brief The project's own paragraph styles and the styles of its type it changes
     ///        (BookProject::paragraphStyles); none without a project
-    QList<BookParagraphStyle> paragraphStyles() const;
+    [[nodiscard]] QList<BookParagraphStyle> paragraphStyles() const;
 
     /// @brief Give the project these paragraph styles and save its .klh file; the editors show
     ///        them at once (paragraphStylesChanged())
@@ -970,18 +1090,27 @@ public:
     ///        folder); empty without a book
     [[nodiscard]] QString bookDictionaryPath() const;
 
+    /// @brief Which card a name at a place of a text of the book is: the names of the cards
+    ///        in the book's dictionary in all their forms, as it has them now (made the first
+    ///        time it is asked after a change of the dictionary)
+    [[nodiscard]] const CardNameIndex& cardNames() const;
+
     /// @brief Materials linked with @p link, an element or a section of the book
     /// (BookProject::sectionLink()), in the order of the Workshop
-    QList<const ProjectElement*> materialsLinkedTo(const QString& link) const;
+    [[nodiscard]] QList<const ProjectElement*> materialsLinkedTo(const QString& link) const;
+
+    /// @brief The cards of characters, locations and items linked with @p link, an element of
+    /// the book, in the order of the Workshop (their relations with other cards left out)
+    QList<const ProjectElement*> cardsLinkedTo(const QString& link) const;
 
     /// @brief Names of the writer's own fields of the elements of the project, each once and
     /// sorted, for the names of new fields
-    QStringList fieldNames() const;
+    [[nodiscard]] QStringList fieldNames() const;
 
     /// @brief Words of a text element under the rules of the settings (wordCountRules()):
     /// of its text in the editor while its changes are not saved (setEditorWords()), else of
     /// the text of its chapter file; new rules count at once, without reading the file again
-    int wordCount(const QString& elementId) const;
+    [[nodiscard]] int wordCount(const QString& elementId) const;
 
     /// @brief Words of the text of a text element in its editor, with changes that are not
     /// saved: the counts of the book show them until the text is saved or its changes are
@@ -989,7 +1118,7 @@ public:
     void setEditorWords(const QString& elementId, const WordTally& words);
 
     /// @brief Words and statuses of the text elements of @p elements and of their groups
-    TextStatistics statisticsOf(const QList<ProjectElement>& elements) const;
+    [[nodiscard]] TextStatistics statisticsOf(const QList<ProjectElement>& elements) const;
 
     // =========================================================================
     // Text of Chapters
@@ -1005,12 +1134,12 @@ public:
     /// @brief The ids of the text elements of the project, each with its file: the texts of
     ///        the books in reading order with their files outside the text, then the texts
     ///        of the Workshop
-    QStringList textElementIds() const;
+    [[nodiscard]] QStringList textElementIds() const;
 
     /// @brief The text (KML) of a text element as the program has it: the unsaved text kept
     ///        with setChapterContent(), else the text of its chapter file; it keeps nothing
     /// @return Empty when the element is not a text element or its file cannot be read
-    QString chapterText(const QString& elementId) const;
+    [[nodiscard]] QString chapterText(const QString& elementId) const;
 
     /// @brief Forget the unsaved text of a text element; it is read from its file again
     void discardChapterContent(const QString& elementId);
@@ -1048,7 +1177,7 @@ public:
     /// @brief The versions of the text of element @p elementId: those of its file
     /// @return nullopt when the element is not a text element whose file is in the folder of
     ///         the book
-    std::optional<ChapterVersions> versionsOf(const QString& elementId) const;
+    [[nodiscard]] std::optional<ChapterVersions> versionsOf(const QString& elementId) const;
 
     /// @brief Keep @p kml, the text of element @p elementId, as a version of its file
     ///
@@ -1076,11 +1205,11 @@ public:
 
     /// @brief Number of the versions of all the texts of the book, which its archive takes
     /// (ChapterVersions::countAll()); 0 without a book
-    int versionCount() const;
+    [[nodiscard]] int versionCount() const;
 
     /// @brief Folders of the versions of @p files (absolute paths of files of the book, as
     /// filesOf() gives them) that are on the disk, so that they go with the files
-    QStringList versionFoldersOf(const QStringList& files) const;
+    [[nodiscard]] QStringList versionFoldersOf(const QStringList& files) const;
 
     /// @brief Delete the versions of @p files, which are deleted (absolute paths of files of
     /// the book): to the Trash of the system when @p trash, as the files went, else for good
@@ -1090,7 +1219,7 @@ public:
 
     /// @brief Get all dirty elements
     /// @return IDs of the text elements whose text is not saved
-    std::vector<QString> getDirtyElements() const;
+    [[nodiscard]] std::vector<QString> getDirtyElements() const;
 
     /// @brief Save all dirty elements
     /// @return true if all saved successfully
@@ -1098,11 +1227,11 @@ public:
 
     /// @brief Get text elements whose status is not "final"
     /// @return Pairs (element ID, status), in the reading order of the book
-    std::vector<std::pair<QString, QString>> getIncompleteElements() const;
+    [[nodiscard]] std::vector<std::pair<QString, QString>> getIncompleteElements() const;
 
     /// @brief Get the text elements of the book by status
     /// @return Map of status -> count
-    std::map<QString, int> getStatusStatistics() const;
+    [[nodiscard]] std::map<QString, int> getStatusStatistics() const;
 
     // =========================================================================
     // Archive Operations
@@ -1111,7 +1240,7 @@ public:
     /// @brief The backups of the database of the open project, newest first: those where
     /// the Folders page of the Settings keeps them, and those that stayed in the project's own
     /// .backups folder before a common folder was chosen
-    QStringList databaseBackups() const;
+    [[nodiscard]] QStringList databaseBackups() const;
 
     /// @brief Write the open project to a .klh.zip archive
     ///
@@ -1218,6 +1347,10 @@ signals:
     /// @param dirty true if project has unsaved changes
     void dirtyStateChanged(bool dirty);
 
+    /// @brief The .klh file was saved after a change of the project: its elements, their
+    /// order, titles, states or details may be other than before (saveManifest())
+    void projectChanged();
+
     /// @brief Emitted when the links of elements change (ProjectElement::links): set, added
     /// with a material, taken out with an element, or following the paragraphs of a text that
     /// was saved
@@ -1229,10 +1362,6 @@ signals:
 
     /// @brief The numbering of the book's notes changed (setBookFootnotes())
     void bookFootnotesChanged();
-    /// @brief The dictionary of the book changed (changeBookDictionary()), or another book with
-    ///        its own dictionary opened
-    void bookDictionaryChanged();
-
     /// @brief A bibliographic description, the source of a quote or the style of the book's
     /// bibliography changed (setSource(), setQuoteSource(), setBookBibliographyStyle())
     void sourcesChanged();
@@ -1240,10 +1369,22 @@ signals:
     /// @brief Element @p elementId got another title (renameElement())
     void elementRenamed(const QString& elementId);
 
+    /// @brief Card @p elementId of the Workshop was added (addElement()): the book's dictionary
+    /// can get its name (card_names.h)
+    void cardAdded(const QString& elementId);
+
     /// @brief What card @p elementId has beside its text changed: its short description
     /// (setDescription()), the values of its fields, its color or its portraits (setCard(), or
     /// a picture of a portrait deleted)
     void cardChanged(const QString& elementId);
+
+    /// @brief The fields of the cards of kind @p kind ("kalahari.base:character") changed
+    /// (setCardFields(), addFieldToKind()): what they show, in what order, and where
+    void cardFieldsChanged(const QString& kind);
+
+    /// @brief The dictionary of the book changed (changeBookDictionary()), or another book with
+    ///        its own dictionary opened
+    void bookDictionaryChanged();
 
     /// @brief The versions of the text of element @p elementId changed: one was kept (and the
     /// oldest that the program kept by itself may have gone), renamed or deleted
@@ -1256,6 +1397,7 @@ private:
         bool loaded = false;   ///< content holds the text
         bool dirty = false;    ///< content is not saved
         WordTally words;       ///< Words of the text of the chapter file
+        QList<KmlScene> scenes;  ///< Scenes of the text of the chapter file, with their words
         /// Words of the text in its editor, with changes that are not saved
         std::optional<WordTally> editorWords;
         QString notes;         ///< Notes of the chapter file
@@ -1293,6 +1435,13 @@ private:
     bool changeDetails(const char* what, const QString& elementId,
                        const std::function<void(ProjectElement&)>& change);
 
+    /// @brief Element @p elementId of kind @p kind was added: cardAdded() for a card
+    void sayIfCard(const KindRef& kind, const QString& elementId);
+
+    /// @brief The names of the book's dictionary of the removed elements @p removedIds lose
+    /// their cards (removeElement())
+    void releaseCardNames(const QSet<QString>& removedIds);
+
     /// @brief The links of @p links that element @p elementId keeps (setLinks()): only to what
     /// the project has, not to the element itself, each once (the first); between two cards
     /// each relation once
@@ -1305,12 +1454,17 @@ private:
     ///         written; the project stays as it was then
     bool changeProject(const char* what, const std::function<void(BookProject&)>& change);
 
+    /// @brief Give new project @p project the fields of the cards that the Settings give new
+    /// books (card_fields::defaults()), with the relations of the fields of the writer that
+    /// name cards
+    static void giveDefaultCardFields(BookProject& project);
+
     /// @brief Cards @p cardIds tell of a change of their relations (cardChanged()), and the
     /// links changed (linksChanged())
     void relationsChanged(const QStringList& cardIds);
 
     /// @brief Words of text element @p elementId under @p rules, as wordCount() gives them
-    int wordsUnder(const QString& elementId, const WordCountRules& rules) const;
+    [[nodiscard]] int wordsUnder(const QString& elementId, const WordCountRules& rules) const;
 
     /// @brief Write the title, status and notes of @p element to its chapter file, and
     /// @p kml when given; the file keeps its other data
@@ -1322,10 +1476,10 @@ private:
 
     /// @brief Folders of the files of unassignedFiles(): of the book and of the Workshop, as
     /// absolute paths
-    QStringList unassignedFolders() const;
+    [[nodiscard]] QStringList unassignedFolders() const;
 
     /// @brief Absolute paths of the files of unassignedFiles()
-    QStringList unassignedPaths() const;
+    [[nodiscard]] QStringList unassignedPaths() const;
 
     /// @brief The text a new element of @p kind starts with: its template's, with the title
     /// and the author of @p book in place of "{title}" and "{author}"; empty without a template
@@ -1339,6 +1493,17 @@ private:
     /// says so
     bool refusesChange(const char* what) const;
 
+    /// @brief Text element @p elementId of a book (not of the Workshop); nullptr: none
+    [[nodiscard]] const ProjectElement* bookTextOf(const QString& elementId) const;
+
+    /// @brief Whether @p what can write the chapter file of text @p element: the book is not
+    /// read-only and the text has no changes its file does not have; the log says why not
+    [[nodiscard]] bool canWriteText(const char* what, const ProjectElement& element) const;
+
+    /// @brief Write @p kml to the chapter file of text @p element, and keep it as the text
+    /// loaded
+    bool writeText(const ProjectElement& element, const QString& kml);
+
     /// @brief List that a new element of @p kind goes to: @p place of the book, or group
     /// @p groupId; nullptr, with the reason in the log, when the kind cannot be there
     QList<ProjectElement>* listForNew(const KindRef& kind, BookPlace place,
@@ -1348,17 +1513,26 @@ private:
     // Member Variables
     // =========================================================================
 
-    WorkMode m_workMode;                          ///< Current work mode
-    std::unique_ptr<BookProject> m_project;       ///< Open project
-    QHash<QString, ElementState> m_elementStates; ///< Text element id -> its state
-    std::filesystem::path m_projectPath;          ///< Project root folder path
-    std::filesystem::path m_manifestPath;         ///< Path to .klh manifest file
-    bool m_isDirty;                               ///< The .klh file has unsaved changes
+    WorkMode m_workMode = WorkMode::NoDocument;    ///< Current work mode
+    std::unique_ptr<BookProject> m_project;        ///< Open project
+    QHash<QString, ElementState> m_elementStates;  ///< Text element id -> its state
+    std::filesystem::path m_projectPath;           ///< Project root folder path
+    std::filesystem::path m_manifestPath;          ///< Path to .klh manifest file
+    bool m_isDirty = false;                        ///< The .klh file has unsaved changes
     OpenFailure m_lastOpenFailure = OpenFailure::None;  ///< Of the last openProject()
 
     QStringList m_missingPackages;                ///< Of the open book: it is read-only
     QHash<QString, PackageCard> m_packageCards;   ///< Cards of the open book, by package id
     BookDictionary m_bookDictionary;              ///< Of the open book
+    mutable std::optional<CardNameIndex> m_cardNames;  ///< cardNames() of m_bookDictionary
+
+    /// @brief The fields of the cards of a kind, computed from the set they were computed from
+    struct ShownCardFields {
+        const ElementKind* kind = nullptr;  ///< The kind of the package
+        QList<BookCardField> set;           ///< The set of the book; empty: none
+        QList<CardField> fields;            ///< card_fields::effective()
+    };
+    mutable std::map<QString, ShownCardFields> m_cardFields;  ///< cardFields(), by the kind
     bool m_bookDictionaryRead = false;            ///< Its file was read (or there is none)
 
     // OpenSpec #00041: SQLite Project Database. A book open read-only has no lock and no
@@ -1373,8 +1547,9 @@ public:
     /// @brief Get project database (OpenSpec #00041)
     /// @return Pointer to database, nullptr if no project open
     ProjectDatabase* getDatabase() { return m_database.get(); }
-    const ProjectDatabase* getDatabase() const { return m_database.get(); }
+    [[nodiscard]] const ProjectDatabase* getDatabase() const { return m_database.get(); }
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_PROJECT_MANAGER_H

@@ -8,7 +8,8 @@
 /// for screen reader support. Enables NVDA, JAWS, Narrator, and VoiceOver
 /// to read and navigate document content.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_BOOK_EDITOR_ACCESSIBLE_H
+#define KALAHARI_EDITOR_BOOK_EDITOR_ACCESSIBLE_H
 
 #include <QAccessibleWidget>
 #include <QAccessibleTextInterface>
@@ -180,3 +181,5 @@ private:
 void installBookEditorAccessibility();
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_BOOK_EDITOR_ACCESSIBLE_H

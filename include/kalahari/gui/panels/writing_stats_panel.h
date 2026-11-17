@@ -12,7 +12,8 @@
 /// as fit, and a detail that does not fit beside its name goes under it. At its foot, a box
 /// says whether the text pasted counts in the statistics (the setting stats.countPasted).
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_WRITING_STATS_PANEL_H
+#define KALAHARI_GUI_PANELS_WRITING_STATS_PANEL_H
 
 #include <QWidget>
 
@@ -55,14 +56,14 @@ public:
 
     /// @brief The statistics it shows; nullptr: none (an empty panel)
     void setModel(WritingStatsModel* model);
-    WritingStatsModel* model() const;
+    [[nodiscard]] WritingStatsModel* model() const;
 
     /// @brief The badges and the challenges of the view Achievements; nullptr: none
     void setAwardsTracker(WritingAwardsTracker* tracker);
 
     /// @brief The badge won last, large, in the view Achievements: a click opens the tab
     /// Challenges and Badges
-    QAbstractButton* lastBadgeButton() const;
+    [[nodiscard]] QAbstractButton* lastBadgeButton() const;
 
     /// @brief How the titles of the texts and of the book are found: by the id of a text, and
     /// the title of the book open
@@ -70,35 +71,35 @@ public:
                          std::function<QString()> bookTitle);
 
     /// @brief The view in front
-    View view() const { return m_view; }
+    [[nodiscard]] View view() const { return m_view; }
     /// @brief Bring a view to the front (also when the settings hide it from the list)
     void setView(View view);
 
     /// @brief The views of the list, as the settings say (stats.panel.*)
-    QList<View> listedViews() const;
+    [[nodiscard]] QList<View> listedViews() const;
 
     /// @brief The list of the views
-    QListWidget* viewList() const { return m_list; }
+    [[nodiscard]] QListWidget* viewList() const { return m_list; }
 
     /// @brief The week or the 30 days shown: 0 the present ones, -1 those before, ...
-    int periodOffset() const { return m_offset; }
+    [[nodiscard]] int periodOffset() const { return m_offset; }
     void setPeriodOffset(int offset);
 
     /// @brief What the view in front shows, for the tests and the screen readers: its title,
     /// its subtitle, its numbers ("Words today: 850") and its details ("Written: 972")
-    QString titleText() const;
-    QString subtitleText() const;
-    QStringList numbers() const;
-    QStringList details() const;
+    [[nodiscard]] QString titleText() const;
+    [[nodiscard]] QString subtitleText() const;
+    [[nodiscard]] QStringList numbers() const;
+    [[nodiscard]] QStringList details() const;
     /// @brief The texts of the list of views: "Today: 850 of 1,000 words · 2:35"
-    QStringList listTexts() const;
+    [[nodiscard]] QStringList listTexts() const;
 
     /// @brief The setting of a view in the list ("stats.panel.today")
     static const char* settingOf(View view);
 
     /// @brief The box "Count pasted text in the statistics", which follows the setting
     /// stats.countPasted and changes it
-    QCheckBox* countPastedBox() const { return m_countPasted; }
+    [[nodiscard]] QCheckBox* countPastedBox() const { return m_countPasted; }
 
     /// @brief Take the foot of the panel (the box of the text pasted) out of the panel, to be
     /// put under a panel that scrolls, always in view; until then it is at the panel's foot
@@ -127,7 +128,7 @@ private:
     struct ViewData;
 
     /// @brief What every view counts from, once for each refresh
-    Context context() const;
+    [[nodiscard]] Context context() const;
     /// @brief What a view shows
     void viewOf(View view, const Context& context, ViewData& viewData) const;
     void showToday(const Context& context, ViewData& viewData) const;
@@ -181,3 +182,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_WRITING_STATS_PANEL_H

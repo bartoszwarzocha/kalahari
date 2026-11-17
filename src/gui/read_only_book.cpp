@@ -12,8 +12,7 @@
 #include <QCoreApplication>
 #include <QStringList>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -37,13 +36,13 @@ QString readOnlyReason() {
     return QCoreApplication::translate("ReadOnlyBook", "The book is open read-only");
 }
 
-QString readOnlyBookMessage(const core::ProjectManager& pm) {
-    const core::BookProject* project = pm.project();
-    if (!pm.isProjectOpen() || project == nullptr || !pm.isReadOnly()) {
+QString readOnlyBookMessage(const core::ProjectManager& book) {
+    const core::BookProject* project = book.project();
+    if (!book.isProjectOpen() || project == nullptr || !book.isReadOnly()) {
         return {};
     }
     // The type first: the writer knows the book by it
-    if (project->type && pm.installedBookTypes().package(project->type->id) == nullptr) {
+    if (project->type && book.installedBookTypes().package(project->type->id) == nullptr) {
         //: The message at the bottom of the window over a book open read-only; %1: the name of
         //: its type. In Polish: Książka otwarta tylko do odczytu: typu „%1” nie ma w programie.
         //: Możesz ją czytać i eksportować.
@@ -51,11 +50,11 @@ QString readOnlyBookMessage(const core::ProjectManager& pm) {
                    "ReadOnlyBook",
                    "The book is open read-only: the program does not have its type \"%1\". You "
                    "can read it and export it.")
-            .arg(packageName(pm, project->type->id));
+            .arg(packageName(book, project->type->id));
     }
     QStringList names;
-    for (const QString& id : pm.missingPackages()) {
-        names << packageName(pm, id);
+    for (const QString& id : book.missingPackages()) {
+        names << packageName(book, id);
     }
     //: The message at the bottom of the window over a book open read-only whose type the
     //: program has; %1: the names of the book types the program does not have, or does not
@@ -68,5 +67,4 @@ QString readOnlyBookMessage(const core::ProjectManager& pm) {
         .arg(names.join(QStringLiteral(", ")));
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

@@ -4,15 +4,14 @@
 /// @file about_dialog.h
 /// @brief About dialog for Kalahari Writer's IDE
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_ABOUT_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_ABOUT_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
 class QTabWidget;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief About: the version of the program, its authors, the third-party components and the
 /// license
@@ -31,7 +30,7 @@ public:
     explicit AboutDialog(QWidget* parent = nullptr);
 
     /// @brief The tabs: About, Third-Party Components, License
-    QTabWidget* tabs() const { return m_tabs; }
+    [[nodiscard]] QTabWidget* tabs() const { return m_tabs; }
 
 private:
     /// @brief Creates "About" tab content
@@ -49,6 +48,6 @@ private:
     QTabWidget* m_tabs = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_ABOUT_DIALOG_H

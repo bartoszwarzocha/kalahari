@@ -25,12 +25,12 @@
 /// }
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_UTILS_SVG_CONVERTER_H
+#define KALAHARI_CORE_UTILS_SVG_CONVERTER_H
 
 #include <QString>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Result of SVG conversion
 struct SvgConversionResult {
@@ -120,8 +120,9 @@ private:
     ///
     /// @param elementAttributes Attributes string (e.g., 'fill="currentColor" opacity="0.3"')
     /// @return Opacity value (0.0 - 1.0)
-    double getOpacityFromAttributes(const QString& elementAttributes) const;
+    [[nodiscard]] double getOpacityFromAttributes(const QString& elementAttributes) const;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_UTILS_SVG_CONVERTER_H

@@ -16,9 +16,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -122,6 +120,4 @@ void DeadlineDialog::updateAcceptButton()
     acceptButton()->setEnabled(!m_nameEdit->text().trimmed().isEmpty());
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

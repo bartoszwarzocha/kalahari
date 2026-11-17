@@ -24,7 +24,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari::gui;
 
@@ -71,6 +71,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"file.saveVersion", QStringLiteral("Alt+Shift+S")},
         {"file.versionHistory", QStringLiteral("Alt+Shift+H")},
 #endif
+        {"file.print", QStringLiteral("Ctrl+P")},
 #ifdef Q_OS_MACOS
         {"file.exit", QStringLiteral("Ctrl+Q")},  // Cmd+Q
 #else
@@ -113,6 +114,17 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"edit.previousTodo", QStringLiteral("Alt+Up")},
 #endif
         {"book.addElement", QStringLiteral("Ctrl+Shift+Return")},
+#ifdef Q_OS_MACOS
+        // Option+Shift+Cmd, as the pastes: Option with a letter types a character
+        {"book.linkParagraphCard", QStringLiteral("Ctrl+Alt+Shift+K")},
+        {"book.openCardAtCursor", QStringLiteral("Ctrl+Alt+Shift+O")},
+#else
+        // The cards in the text: Alt+Shift with a letter, free in the program and the systems
+        {"book.linkParagraphCard", QStringLiteral("Alt+Shift+K")},
+        {"book.openCardAtCursor", QStringLiteral("Alt+Shift+O")},
+#endif
+        {"view.plotBoard", QStringLiteral("Ctrl+Shift+T")},
+        {"view.outline", QStringLiteral("Ctrl+Shift+L")},
         {"insert.annotation", QStringLiteral("Ctrl+Shift+M")},
         {"insert.pageBreak", QStringLiteral("Ctrl+Return")},  // and Ctrl with the keypad's Enter
         {"insert.quickCharacter", QStringLiteral("Ctrl+Shift+I")},

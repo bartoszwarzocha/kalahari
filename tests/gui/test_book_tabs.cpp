@@ -19,7 +19,7 @@
 #include <kalahari/gui/panels/properties_panel.h>
 #include <kalahari/gui/utils/document_commands.h>
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <QAction>
 #include <QDir>
@@ -38,7 +38,7 @@
 
 #include <cstdio>
 #include <functional>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::dialogs::MessageDialog;
@@ -566,7 +566,7 @@ private:
     QLocale m_saved;
 };
 
-/// The dialogue dashes count as words or not (Settings > Editor > General > Word Count) until
+/// The dialogue dashes count as words or not (Settings > Editor > Writing > Word Count) until
 /// the test ends; then the choice is as it was
 class DashRule {
 public:

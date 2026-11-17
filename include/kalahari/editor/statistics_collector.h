@@ -12,7 +12,8 @@
 ///
 /// The collector uses an observer pattern to track document changes.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_STATISTICS_COLLECTOR_H
+#define KALAHARI_EDITOR_STATISTICS_COLLECTOR_H
 
 #include <kalahari/core/writing_activity.h>
 
@@ -26,13 +27,13 @@
 // Forward declarations
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::core {
 class ProjectDatabase;
 class WritingJournal;
 struct WritingRules;
-}
+} // namespace kalahari::core
 
 namespace kalahari::editor {
 
@@ -98,7 +99,7 @@ public:
     void setRules(const core::WritingRules& rules);
 
     /// @brief The record of writing not saved yet
-    const QList<core::WritingActivity>& pendingActivity() const;
+    [[nodiscard]] const QList<core::WritingActivity>& pendingActivity() const;
 
     // =========================================================================
     // Real-time Statistics (from current document)
@@ -106,25 +107,25 @@ public:
 
     /// @brief Get the word count of the current document
     /// @return Number of words (0 if no document)
-    int wordCount() const;
+    [[nodiscard]] int wordCount() const;
 
     /// @brief Get the character count including spaces
     /// @return Number of characters, without the paragraph and line breaks (0 if no
     ///         document)
-    int characterCount() const;
+    [[nodiscard]] int characterCount() const;
 
     /// @brief Get the character count excluding spaces
     /// @return Number of characters without spaces (0 if no document)
-    int characterCountNoSpaces() const;
+    [[nodiscard]] int characterCountNoSpaces() const;
 
     /// @brief Get the paragraph count
     /// @return Number of paragraphs with text, as core::countText() counts them (0 if no
     ///         document)
-    int paragraphCount() const;
+    [[nodiscard]] int paragraphCount() const;
 
     /// @brief Get estimated reading time in minutes
     /// @return core::readingMinutes() of the words
-    int estimatedReadingTime() const;
+    [[nodiscard]] int estimatedReadingTime() const;
 
     // =========================================================================
     // Session Tracking
@@ -140,7 +141,7 @@ public:
 
     /// @brief Check if a session is currently active
     /// @return true if session is active
-    bool isSessionActive() const;
+    [[nodiscard]] bool isSessionActive() const;
 
     /// @brief Force flush statistics to database
     /// @note Normally called automatically by timer
@@ -152,27 +153,27 @@ public:
 
     /// @brief Get words written in current session
     /// @return Number of new words added this session
-    int wordsWrittenThisSession() const;
+    [[nodiscard]] int wordsWrittenThisSession() const;
 
     /// @brief Get words deleted in current session
     /// @return Number of words removed this session
-    int wordsDeletedThisSession() const;
+    [[nodiscard]] int wordsDeletedThisSession() const;
 
     /// @brief Words pasted or dropped in the current session, less the pastes undone; they
     /// are kept apart from the words written
-    int wordsPastedThisSession() const;
+    [[nodiscard]] int wordsPastedThisSession() const;
 
     /// @brief Get active editing time in current session
     /// @return Minutes of active editing (excludes idle time)
-    int activeMinutesThisSession() const;
+    [[nodiscard]] int activeMinutesThisSession() const;
 
     /// @brief Time of writing in the current session, without the pauses longer than the idle
     /// time
-    qint64 activeMsThisSession() const;
+    [[nodiscard]] qint64 activeMsThisSession() const;
 
     /// @brief Get session duration in minutes
     /// @return Total minutes since session start
-    int sessionDurationMinutes() const;
+    [[nodiscard]] int sessionDurationMinutes() const;
 
 signals:
     /// @brief Emitted when statistics change
@@ -264,3 +265,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_STATISTICS_COLLECTOR_H

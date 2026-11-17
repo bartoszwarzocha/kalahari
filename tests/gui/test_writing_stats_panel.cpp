@@ -7,7 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/writing_journal.h"
 #include "kalahari/gui/panels/writing_stats_panel.h"

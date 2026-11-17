@@ -11,7 +11,8 @@
 /// says so. Apply and OK save the keys the user changed (keyboard.shortcuts); Import and
 /// Export move them between computers.
 
-#pragma once
+#ifndef KALAHARI_GUI_SETTINGS_SHORTCUTS_PAGE_H
+#define KALAHARI_GUI_SETTINGS_SHORTCUTS_PAGE_H
 
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/settings/settings_page.h"
@@ -36,8 +37,7 @@ class QResizeEvent;
 class QTreeWidget;
 class QTreeWidgetItem;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class ShortcutRecorder;
 
@@ -58,7 +58,7 @@ public:
     /// @brief Give the selected command keys, as when they are pressed in the field
     ///
     /// Refused keys and keys another command has bring a message, as in the field.
-    void assignKeys(QKeyCombination keys);
+    void assignKeys(QKeyCombination pressed);
 
     /// @brief The keys a command has on the page now (with the changes not applied yet)
     [[nodiscard]] KeyboardShortcut shortcutOf(const std::string& commandId) const;
@@ -277,5 +277,6 @@ private:
     QPushButton* m_exportButton = nullptr;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_SETTINGS_SHORTCUTS_PAGE_H

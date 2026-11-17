@@ -25,10 +25,10 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QSpinBox>
 #include <QTimeEdit>
 #include <QToolButton>
+#include <QVBoxLayout>
 
 #include <cmath>
 #include <memory>
@@ -38,6 +38,17 @@ namespace kalahari::gui {
 using json = nlohmann::json;
 
 namespace {
+
+/// @brief The fewest characters a list of choices shows
+constexpr int MIN_CHOICE_CHARACTERS = 14;
+
+/// @brief @p list without the width of its longest choice: the page fits a narrow window
+QComboBox* narrow(QComboBox* list)
+{
+    list->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    list->setMinimumContentsLength(MIN_CHOICE_CHARACTERS);
+    return list;
+}
 
 /// @brief A combo box whose items keep the values of a setting
 QComboBox* valueCombo(const std::vector<std::pair<QString, json>>& items)
@@ -91,7 +102,7 @@ public:
         setAccessibleName(tr("Preview of the colors"));
     }
 
-    QSize sizeHint() const override { return {320, 56}; }
+    [[nodiscard]] QSize sizeHint() const override { return {320, 56}; }
 
 protected:
     void paintEvent(QPaintEvent* /*event*/) override
@@ -181,15 +192,6 @@ QCheckBox* StatsSettingsPage::addOption(QLayout* layout, const QString& text,
     return box;
 }
 
-QLabel* StatsSettingsPage::addFieldNote(QFormLayout* form, const QString& text)
-{
-    auto* holder = new QVBoxLayout();
-    holder->setContentsMargins(0, 0, 0, 0);
-    QLabel* note = addNote(holder, text);
-    form->addRow(QString(), holder);
-    return note;
-}
-
 QLabel* StatsSettingsPage::addIntro(const QString& text)
 {
     return addNote(pageLayout(), text);
@@ -197,26 +199,8 @@ QLabel* StatsSettingsPage::addIntro(const QString& text)
 
 QFormLayout* StatsSettingsPage::addAdvanced(const QString& title)
 {
-    m_advancedToggle = new QToolButton();
-    m_advancedToggle->setText(tr("Ad&vanced Settings"));
-    m_advancedToggle->setCheckable(true);
-    m_advancedToggle->setAutoRaise(true);
-    m_advancedToggle->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    m_advancedToggle->setArrowType(Qt::RightArrow);
-    auto* toggleRow = new QHBoxLayout();
-    toggleRow->addWidget(m_advancedToggle);
-    toggleRow->addStretch();
-    pageLayout()->addLayout(toggleRow);
-
-    m_advancedGroup = new QGroupBox(title);
-    auto* form = new QFormLayout(m_advancedGroup);
-    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-    pageLayout()->addWidget(m_advancedGroup);
-    m_advancedGroup->hide();
-    connect(m_advancedToggle, &QToolButton::toggled, this, [this](bool shown) {
-        m_advancedToggle->setArrowType(shown ? Qt::DownArrow : Qt::RightArrow);
-        m_advancedGroup->setVisible(shown);
-    });
+    QFormLayout* form = addAdvancedGroup(title);
+    m_advancedGroup = qobject_cast<QGroupBox*>(form->parentWidget());
     return form;
 }
 
@@ -236,15 +220,26 @@ StatsBarPage::StatsBarPage(QWidget* parent)
     addOption(bar, tr("&Show the statistics bar"), "stats.bar.show",
               tr("Above the tabs of the texts. The button on the toolbar and the View menu show "
                  "and hide it too."));
-    addChoices(bar, tr("Look:"), "stats.bar.mode",
-               {{tr("&Graph"), "graph", {}}, {tr("&One line"), "line", {}}}, true);
+    //: The look of the statistics bar. In Polish: &Wygląd:
+    addChoice(bar, tr("&Look:"),
+              {{tr("Graph"), QStringLiteral("graph"), {}},
+               //: In Polish: Jeden wiersz
+               {tr("One line"), QStringLiteral("line"), {}}},
+              "stats.bar.mode")
+        ->setObjectName(QStringLiteral("statsBarLook"));
     addFieldNote(bar, tr("The button in the top right corner of the bar switches it too."));
     QSpinBox* height =
         numberBox(WritingStatsBar::MIN_GRAPH_HEIGHT, 300, tr(" px"));
     addField(bar, tr("Graph &height:"), height, "stats.bar.height");
     addFieldNote(bar, tr("At least %1 px.").arg(WritingStatsBar::MIN_GRAPH_HEIGHT));
-    addChoices(bar, tr("Texts on the graph:"), "stats.bar.textSide",
-               {{tr("On the &right"), "right", {}}, {tr("On the &left"), "left", {}}}, true);
+    //: In Polish: T&eksty na wykresie:
+    addChoice(bar, tr("Te&xts on the graph:"),
+              //: In Polish: Po prawej
+              {{tr("On the right"), QStringLiteral("right"), {}},
+               //: In Polish: Po lewej
+               {tr("On the left"), QStringLiteral("left"), {}}},
+              "stats.bar.textSide")
+        ->setObjectName(QStringLiteral("statsBarTextSide"));
     auto* shown = new QWidget();
     auto* shownLayout = new QVBoxLayout(shown);
     shownLayout->setContentsMargins(0, 0, 0, 0);
@@ -334,16 +329,16 @@ StatsBarPage::StatsBarPage(QWidget* parent)
 // Counting
 // =============================================================================
 
-void StatsCountingPage::addClippingsOption(const std::vector<QRadioButton*>& goal)
+void StatsCountingPage::addClippingsOption(QFormLayout* counting, const QComboBox* goal)
 {
-    // Under the words added, which a cut lowers as a deletion: the fragment waits in the
+    // For the words added, which a cut lowers as a deletion: the fragment waits in the
     // Workshop. With all the words written nothing lowers them.
     auto* option = new QWidget();
     option->setObjectName(QStringLiteral("statsClippingsKeepWordsRow"));
     auto* layout = new QVBoxLayout(option);
     layout->setContentsMargins(0, 0, 0, 0);
-    //: Under "Words added" of Settings > Statistics and Goals > Counting. In Polish: Wycięcie
-    //: do wycinków &nie jest usunięciem
+    //: Under the list "Counted" of Settings > Statistics and Goals > Counting. In Polish:
+    //: Wycięcie do wycinków &nie jest usunięciem
     QCheckBox* keepWords = addOption(layout, tr("Cutting to the &clippings is not deleting"),
                                      core::Clippings::KEEP_WORDS_SETTING,
                                      //: In Polish: Wycięte słowa trafiają do Warsztatu, więc
@@ -353,15 +348,12 @@ void StatsCountingPage::addClippingsOption(const std::vector<QRadioButton*>& goa
                                         "day stay as they were. Inserting a clipping back "
                                         "counts as a paste."));
     keepWords->setObjectName(QStringLiteral("statsClippingsKeepWords"));
-    alignWithText(option, goal.front());
-    // Between the words added, with its note, and all the words written
-    if (auto* choices = qobject_cast<QBoxLayout*>(goal.front()->parentWidget()->layout())) {
-        choices->insertWidget(choices->indexOf(goal.back()), option);
-    }
-    const auto sync = [net = goal.front(), keepWords]() {
-        keepWords->setEnabled(net->isChecked());
+    // In line with the list, under the note of the choice
+    counting->addRow(QString(), option);
+    const auto sync = [goal, keepWords]() {
+        keepWords->setEnabled(goal->currentData().toString() == QLatin1String("net"));
     };
-    connect(goal.front(), &QRadioButton::toggled, this, sync);
+    connect(goal, &QComboBox::currentIndexChanged, this, sync);
     whenLoaded(sync);
 }
 
@@ -375,21 +367,27 @@ StatsCountingPage::StatsCountingPage(QWidget* parent)
                 "Deadlines (Tools > Writing Goals and Deadlines)."));
 
     QFormLayout* counting = addGroup(tr("What Counts toward the Goal"));
-    const std::vector<QRadioButton*> goal = addChoices(
-        counting, QString(), "stats.goalCounting",
-        {{.text = tr("&Words added: written minus deleted"),
-          .value = "net",
-          .note = tr("When you delete a paragraph, the words of the day go down.")},
-         {.text = tr("&All the words written"),
-          .value = "written",
-          .note = tr("Deleting does not lower the words of the day.")}});
-    addClippingsOption(goal);
+    //: What counts toward the goal. In Polish: &Liczone:
+    QComboBox* goal = narrow(addChoice(counting, tr("&Counted:"),
+              {{tr("Words added: written minus deleted"), QStringLiteral("net"),
+                tr("When you delete a paragraph, the words of the day go down.")},
+               {tr("All the words written"), QStringLiteral("written"),
+                tr("Deleting does not lower the words of the day.")}},
+              "stats.goalCounting"));
+    goal->setObjectName(QStringLiteral("statsGoalCounting"));
+    addClippingsOption(counting, goal);
 
     QFormLayout* books = addGroup(tr("Daily and Weekly Goal"));
-    addChoices(books, QString(), "stats.dailyGoalAllBooks",
-               {{tr("Words of all the &books"), true,
-                 tr("The goal is your habit of writing, not that of one book.")},
-                {tr("Words of the &open book only"), false, {}}});
+    //: The words of which books count toward the daily and the weekly goal. In Polish:
+    //: &Słowa z:
+    narrow(addChoice(books, tr("Words &from:"),
+              //: In Polish: Wszystkich książek
+              {{tr("All the books"), true,
+                tr("The goal is your habit of writing, not that of one book.")},
+               //: In Polish: Tylko otwartej książki
+               {tr("The open book only"), false, {}}},
+              "stats.dailyGoalAllBooks"))
+        ->setObjectName(QStringLiteral("statsDailyGoalBooks"));
 
     QFormLayout* pasted = addGroup(tr("Pasted Text"));
     //: In Polish: Wliczaj wklejony tekst do statystyk
@@ -403,26 +401,32 @@ StatsCountingPage::StatsCountingPage(QWidget* parent)
                  "panel."));
 
     QFormLayout* streak = addGroup(tr("Days in a Row"));
+    //: In Polish: Dzi&eń się liczy, gdy:
+    QComboBox* rule = narrow(addChoice(
+        streak, tr("A day counts &when you:"),
+        //: In Polish: napiszesz co najmniej tyle słów
+        {{tr("write at least so many words"), QStringLiteral("minimumWords"), {}},
+         //: In Polish: osiągniesz cel dzienny
+         {tr("reach the daily goal"), QStringLiteral("dailyGoal"), {}}},
+        "stats.streakRule"));
+    rule->setObjectName(QStringLiteral("statsStreakRule"));
     auto* minimum = numberBox(1, 100000);
+    minimum->setObjectName(QStringLiteral("statsStreakMinimum"));
     bind(minimum, "stats.streakMinimumWords");
     minimum->setAccessibleName(tr("Words a day"));
-    std::vector<QRadioButton*> rules =
-        addChoices(streak, tr("A day counts when you:"), "stats.streakRule",
-                   {{tr("w&rite at least"), "minimumWords", {}},
-                    {tr("reach the &daily goal"), "dailyGoal", {}}});
-    // The words beside the first choice, in its row
-    if (auto* layout = qobject_cast<QBoxLayout*>(rules.front()->parentWidget()->layout())) {
-        auto* row = rowOf({});
-        auto* rowLayout = static_cast<QHBoxLayout*>(row->layout());
-        layout->removeWidget(rules.front());
-        rowLayout->insertWidget(0, rules.front());
-        rowLayout->insertWidget(1, minimum);
-        rowLayout->insertWidget(2, new QLabel(tr("words")));
-        layout->insertWidget(0, row);
-    }
+    //: The words a day of the days in a row. In Polish: &Co najmniej:
+    auto* minimumLabel = new QLabel(tr("&At least:"));
+    minimumLabel->setBuddy(minimum);
+    streak->addRow(minimumLabel, rowOf({minimum, new QLabel(tr("words"))}));
     addFieldNote(streak, tr("Days off do not break the run."));
-    connect(rules.front(), &QRadioButton::toggled, minimum, &QWidget::setEnabled);
-    whenLoaded([minimum, first = rules.front()]() { minimum->setEnabled(first->isChecked()); });
+    // The words wait while the daily goal decides
+    const auto syncMinimum = [rule, minimum, minimumLabel]() {
+        const bool words = rule->currentData().toString() == QLatin1String("minimumWords");
+        minimum->setEnabled(words);
+        minimumLabel->setEnabled(words);
+    };
+    connect(rule, &QComboBox::currentIndexChanged, this, syncMinimum);
+    whenLoaded(syncMinimum);
 
     QFormLayout* advanced = addAdvanced(tr("Details of Counting"));
     auto* dayEnd = new QTimeEdit();
@@ -457,7 +461,8 @@ StatsCountingPage::StatsCountingPage(QWidget* parent)
     QSpinBox* large = numberBox(50, 100000);
     large->setAccessibleName(tr("Words of a large change"));
     bind(large, "stats.largeChangeWords");
-    advanced->addRow(rowOf({skip, large, new QLabel(tr("words"))}));
+    // The words beside the box, or under it in a narrow window
+    advanced->addRow(skip, rowOf({large, new QLabel(tr("words"))}));
     //: In Polish: Wycięcie, przywrócenie wersji albo „Zamień wszystko” to nie pisanie.
     QLabel* skipNote = addNote(advanced, tr("Cutting, restoring a version or Replace All is not "
                                             "writing."));

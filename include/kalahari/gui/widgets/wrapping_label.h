@@ -4,15 +4,15 @@
 /// @file wrapping_label.h
 /// @brief A label in one line where it has room, which wraps its text where it has less
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_WRAPPING_LABEL_H
+#define KALAHARI_GUI_WIDGETS_WRAPPING_LABEL_H
 
 #include <QLabel>
 #include <QString>
 
 class QWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A label that wraps its text only where its line does not fit
 ///
@@ -31,5 +31,6 @@ public:
     [[nodiscard]] QSize sizeHint() const override;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_WRAPPING_LABEL_H

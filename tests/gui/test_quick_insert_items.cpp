@@ -30,7 +30,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using editor::QuickInsertItem;
@@ -407,6 +407,25 @@ TEST_CASE("Quick insert items: @ offers the names of the book dictionary before 
     CHECK(items.at(0).source == QuickInsertSource::Name);
     CHECK(items.at(3).source == QuickInsertSource::Card);
     CHECK(items.at(3).group == items.at(0).group);
+    CHECK(items.at(0).color.isEmpty());  // the cards have no colors yet
+
+    // The names of a card with its color: by the card the dictionary says, else by the title
+    pm.project()->findElement(QStringLiteral("c1"))->card.color = QStringLiteral("#2e9e6a");
+    pm.project()->findElement(QStringLiteral("c2"))->card.color = QStringLiteral("#7e57c2");
+    QList<QuickInsertItem> colored = gui::quickInsertItems(pm, QLatin1Char('@'));
+    REQUIRE(colored.size() == 4);
+    for (int i = 0; i < 3; ++i) {
+        CHECK(colored.at(i).color == QStringLiteral("#7e57c2"));
+    }
+    CHECK(colored.at(3).color == QStringLiteral("#2e9e6a"));
+    REQUIRE(pm.changeBookDictionary([](core::BookDictionary& dictionary) {
+        core::DictionaryName own = *dictionary.findNameWithText(QStringLiteral("Anna Wolska"));
+        own.card = QStringLiteral("c1");  // another card, whatever its title
+        dictionary.putName(own);
+    }));
+    colored = gui::quickInsertItems(pm, QLatin1Char('@'));
+    REQUIRE(colored.size() == 4);
+    CHECK(colored.at(1).color == QStringLiteral("#2e9e6a"));
 
     // Without the names in the settings of @, none of them
     core::SettingsManager::getInstance().set<json>(keys::AT_SOURCES, json::array({"fragments"}));

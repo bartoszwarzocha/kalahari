@@ -7,7 +7,8 @@
 /// Provides centralized definitions for KML tag to QTextCharFormat mappings,
 /// used by both the KML reader (KmlDocumentModel) and KmlSerializer to ensure consistency.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_KML_FORMAT_REGISTRY_H
+#define KALAHARI_EDITOR_KML_FORMAT_REGISTRY_H
 
 #include <QString>
 #include <QStringList>
@@ -16,8 +17,7 @@
 #include <QVector>
 #include <QXmlStreamAttributes>
 
-namespace kalahari {
-namespace editor {
+namespace kalahari::editor {
 
 /// @brief Custom property IDs for KML metadata in QTextCharFormat
 ///
@@ -174,6 +174,11 @@ bool isInlineTextTag(const QString& tag);
 /// @return Text with &, <, >, ", ' escaped to XML entities
 QString escapeXml(const QString& text);
 
+/// @brief Escape the value of an attribute: as escapeXml(), with the ends of lines and the
+///        tabs as character references, which a reader keeps (it reads a line end in an
+///        attribute as a space)
+QString escapeXmlAttribute(const QString& text);
+
 /// @brief Unescape XML entities
 /// @param text Input text with XML entities
 /// @return Text with entities converted back to characters
@@ -181,5 +186,6 @@ QString unescapeXml(const QString& text);
 
 } // namespace KmlFormatRegistry
 
-} // namespace editor
-} // namespace kalahari
+} // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_KML_FORMAT_REGISTRY_H

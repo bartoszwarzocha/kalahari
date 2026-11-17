@@ -18,9 +18,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 namespace {
 
@@ -203,6 +201,4 @@ void explainGreyedKeys(CommandRegistry& registry, QWidget* window, QStatusBar* s
     }
 }
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils

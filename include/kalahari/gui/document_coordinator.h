@@ -7,7 +7,8 @@
 /// OpenSpec #00038 - Phase 7: Extract Document Operations from MainWindow
 /// This class manages document lifecycle, project operations, and archive import/export.
 
-#pragma once
+#ifndef KALAHARI_GUI_DOCUMENT_COORDINATOR_H
+#define KALAHARI_GUI_DOCUMENT_COORDINATOR_H
 
 #include "kalahari/core/standalone_file.h"
 
@@ -25,20 +26,19 @@ namespace kalahari::core {
 
 class ProjectManager;
 enum class OpenFailure;
-}
+} // namespace kalahari::core
 
 namespace kalahari::editor {
 class StyleResolver;
 class StatisticsCollector;
-}
+} // namespace kalahari::editor
 
 class QMainWindow;
 class QTabWidget;
 class QStatusBar;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class NavigatorPanel;
 class PropertiesPanel;
@@ -309,7 +309,7 @@ public slots:
     /// is opened. It provides paragraph and character style resolution with
     /// inheritance support. When styles change in the database, the resolver
     /// emits stylesChanged() which can be connected to refresh editors.
-    editor::StyleResolver* styleResolver() const { return m_styleResolver.get(); }
+    [[nodiscard]] editor::StyleResolver* styleResolver() const { return m_styleResolver.get(); }
 
     // =========================================================================
     // Statistics Collector Access (OpenSpec #00042 Task 7.7)
@@ -321,7 +321,9 @@ public slots:
     /// The StatisticsCollector tracks writing statistics (words written/deleted,
     /// active time) and saves them to the project database. It automatically
     /// starts a session when a project is opened and ends it when closed.
-    editor::StatisticsCollector* statisticsCollector() const { return m_statisticsCollector.get(); }
+    [[nodiscard]] editor::StatisticsCollector* statisticsCollector() const {
+        return m_statisticsCollector.get();
+    }
 
 signals:
     /// @brief Emitted when a document is opened
@@ -427,11 +429,11 @@ private:
 
     /// @brief Get currently active EditorPanel tab
     /// @return Active EditorPanel or nullptr if not an editor tab
-    EditorPanel* getCurrentEditor() const;
+    [[nodiscard]] EditorPanel* getCurrentEditor() const;
 
     /// @brief Tab of a standalone file, or nullptr when the file is not open
     /// @param path The file, or the key of a new file in the Navigator (openNewFile())
-    EditorPanel* findStandaloneEditor(const QString& path) const;
+    [[nodiscard]] EditorPanel* findStandaloneEditor(const QString& path) const;
 
     /// @brief Show the info bar for the current tab's standalone file, or why the open book is
     /// read-only under any other tab (until the writer closes it), or hide it
@@ -537,5 +539,6 @@ private:
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DOCUMENT_COORDINATOR_H

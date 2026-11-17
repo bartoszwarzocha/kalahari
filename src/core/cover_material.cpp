@@ -9,8 +9,7 @@
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/text_statistics.h>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 bool CoverData::isEmpty() const {
     return part.isEmpty() && place.isEmpty() && state.isEmpty() && author.isEmpty() &&
@@ -106,5 +105,4 @@ int CoverMaterial::lengthOf(QStringView text, bool words) {
     return words ? counts.words : counts.characters;
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

@@ -10,9 +10,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 OpenBookDialog::OpenBookDialog(const QString& openBook, const QString& otherBook,
                                QWidget* parent)
@@ -60,6 +58,4 @@ bool OpenBookDialog::remembersChoice() const
     return m_rememberBox->isChecked();
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

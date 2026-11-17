@@ -56,6 +56,10 @@ enum class ImageCommand {
     Properties,       ///< Image Properties...: its window
     AddCaption,       ///< Insert Caption...: the window of its caption
     AltText,          ///< Alternative Text...: the window on its page Description
+    WrapInline,       ///< Wrap Text > In the Text: no text beside it
+    WrapSquareLeft,   ///< Wrap Text > Image on the Left: the text beside it
+    WrapSquareRight,  ///< Wrap Text > Image on the Right: the text beside it
+    WrapTopBottom,    ///< Wrap Text > Text Above and Below
     RotateRight,      ///< Rotate > Rotate Right 90°
     RotateLeft,       ///< Rotate > Rotate Left 90°
     FlipHorizontal,   ///< Rotate > Flip Horizontally
@@ -200,6 +204,8 @@ struct CommandCallbacks {
     // VIEW COMMANDS
     // =========================================================================
     std::function<void()> onDashboard;          ///< View > Dashboard
+    std::function<void()> onPlotBoard;          ///< Book > Plot Board
+    std::function<void()> onOutline;            ///< Book > Outline
     std::function<void()> onResetLayout;        ///< View > Reset Layout
 
     // View Mode Commands (OpenSpec #00042 Phase 7.3)

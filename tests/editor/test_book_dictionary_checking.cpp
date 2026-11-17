@@ -16,13 +16,18 @@
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/text_source_adapter.h>
 
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QContextMenuEvent>
+#include <QCoreApplication>
+#include <QMenu>
+#include <QPair>
 #include <QTextBlock>
+#include <QTimer>
 
 #include <algorithm>
 #include <memory>
+#include <utility>
 #include <vector>
 
 using kalahari::editor::BookEditor;
@@ -106,7 +111,104 @@ QStringList menuAtCursor(BookEditor& editor, const QString& choice = QString()) 
         choice);
 }
 
+/// The context menu at the cursor as the menu key opens it, with Create Card: the items of
+/// the submenu Create Card while it lives; the one with the text @p choice is chosen
+class CreateCardReader : public QObject {
+public:
+    explicit CreateCardReader(QString choice = QString()) : m_choice(std::move(choice)) {
+        QCoreApplication::instance()->installEventFilter(this);
+    }
+    ~CreateCardReader() override { QCoreApplication::instance()->removeEventFilter(this); }
+    CreateCardReader(const CreateCardReader&) = delete;
+    CreateCardReader& operator=(const CreateCardReader&) = delete;
+    CreateCardReader(CreateCardReader&&) = delete;
+    CreateCardReader& operator=(CreateCardReader&&) = delete;
+
+    /// The menu of @p editor at its cursor: the items of Create Card; none without it
+    QStringList open(BookEditor& editor) {
+        m_items.clear();
+        m_shown = false;
+        QContextMenuEvent event(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+        QCoreApplication::sendEvent(&editor, &event);
+        REQUIRE(m_shown);
+        return m_items;
+    }
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        auto* menu = qobject_cast<QMenu*>(watched);
+        if (menu == nullptr || event->type() != QEvent::Show ||
+            qobject_cast<QMenu*>(menu->parent()) != nullptr) {
+            return QObject::eventFilter(watched, event);
+        }
+        menu->setAttribute(Qt::WA_DontShowOnScreen);
+        m_shown = true;
+        for (const QAction* action : menu->actions()) {
+            if (action->text() != QStringLiteral("C&reate Card") || action->menu() == nullptr) {
+                continue;
+            }
+            for (QAction* item : action->menu()->actions()) {
+                m_items << item->text();
+                if (item->text() == m_choice) {
+                    item->trigger();
+                }
+            }
+        }
+        QTimer::singleShot(0, menu, [menu]() { menu->close(); });
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    QString m_choice;
+    QStringList m_items;
+    bool m_shown = false;
+};
+
 }  // namespace
+
+TEST_CASE("Book dictionary: Create Card on the menu of a misspelled word and of a selection",
+          "[editor][spelling][dictionary][cards]") {
+    auto spelling = englishService();
+    auto editor = shownEditor(kmlOf({QStringLiteral("The qwertz came to the old river.")}),
+                              spelling.get());
+    REQUIRE(checked(*editor));
+    QList<QPair<QString, QString>> asked;
+    QObject::connect(editor.get(), &BookEditor::createCardAsked,
+                     [&asked](const QString& text, const QString& kind) {
+                         asked.append({text, kind});
+                     });
+    editor->setCursorPosition({.paragraph = 0, .offset = 6});  // in "qwertz"
+
+    // No kinds of cards, no Create Card
+    CHECK(CreateCardReader().open(*editor).isEmpty());
+
+    const QString character = QStringLiteral("kalahari.base:character");
+    const QString location = QStringLiteral("kalahari.base:location");
+    editor->setCardKinds({{.kind = character, .text = QStringLiteral("&Character..."), .icon = {}},
+                          {.kind = location, .text = QStringLiteral("&Location..."), .icon = {}}});
+    CHECK(editor->cardKinds().size() == 2);
+    CHECK(CreateCardReader(QStringLiteral("&Location...")).open(*editor) ==
+          QStringList{QStringLiteral("&Character..."), QStringLiteral("&Location...")});
+    CHECK(asked == QList<QPair<QString, QString>>{{QStringLiteral("qwertz"), location}});
+
+    // A selection in a paragraph, of right words, the cursor at its end
+    editor->setCursorPosition({.paragraph = 0, .offset = 32});
+    editor->setSelection({.start = {.paragraph = 0, .offset = 23},
+                          .end = {.paragraph = 0, .offset = 32}});
+    CHECK(CreateCardReader(QStringLiteral("&Character...")).open(*editor).size() == 2);
+    CHECK(asked.last() == QPair<QString, QString>{QStringLiteral("old river"), character});
+
+    // Not for a text open read-only, nor for a selection too long for a name
+    editor->setReadOnly(true);
+    CHECK(CreateCardReader().open(*editor).isEmpty());
+    editor->setReadOnly(false);
+    editor->fromKml(kmlOf({QString(100, QLatin1Char('a')) + QStringLiteral(" river.")}));
+    editor->setCursorPosition({.paragraph = 0, .offset = 106});
+    editor->setSelection({.start = {.paragraph = 0, .offset = 0},
+                          .end = {.paragraph = 0, .offset = 106}});
+    CHECK(CreateCardReader().open(*editor).isEmpty());
+    CHECK(asked.size() == 2);
+}
 
 TEST_CASE("Book dictionary: the spelling service takes the words of a filter for right",
           "[editor][spelling][dictionary]") {

@@ -55,7 +55,7 @@ public:
         }
     }
 
-    std::filesystem::path path() const { return m_path; }
+    [[nodiscard]] std::filesystem::path path() const { return m_path; }
 
     void write(const std::string& content) {
         std::ofstream file(m_path);

@@ -12,7 +12,7 @@
 /// the program's language. The lists are Word's lists, the notes Word's footnotes and
 /// endnotes, the annotations, when the export takes them, Word's comments.
 
-#include "book_export_internal.h"
+#include "kalahari/editor/detail/book_export_internal.h"
 
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>
@@ -30,8 +30,6 @@
 #include <QTextTable>
 #include <QTimeZone>
 
-#include <zip.h>
-
 #include <array>
 #include <cmath>
 #include <deque>
@@ -48,6 +46,32 @@ using namespace exporting;
 // =============================================================================
 
 constexpr double POINTS_PER_MILLIMETRE = 72.0 / 25.4;
+
+/// The room between an image the text flows around and the text: 0.3 cm, as the editor
+/// leaves it (points)
+constexpr double FLOAT_GAP_POINTS = 0.3 * 72.0 / 2.54;
+
+/// The order of the images anchored to their paragraphs, one above another (Word's numbers
+/// start here)
+constexpr qint64 ANCHOR_HEIGHT_BASE = 251658240;
+
+/// Where an image anchored to its paragraph goes across the column: on its side beside the
+/// text, as its paragraph is aligned above and below the text
+QString anchorSide(ImageWrap wrap, Qt::Alignment alignment) {
+    if (wrap == ImageWrap::SquareRight ||
+        (wrap == ImageWrap::TopBottom && (alignment & Qt::AlignRight) != 0)) {
+        return QStringLiteral("right");
+    }
+    if (wrap == ImageWrap::TopBottom && (alignment & Qt::AlignHCenter) != 0) {
+        return QStringLiteral("center");
+    }
+    return QStringLiteral("left");
+}
+
+/// The running head: its letters a share of Normal's size, a little apart (twentieths of a
+/// point), as on the pages of a PDF (BookPages)
+constexpr double RUNNING_HEAD_SCALE = 0.8;
+constexpr int RUNNING_HEAD_SPACING_TWIPS = 16;
 
 /// Twentieths of a point: the lengths of WordprocessingML
 int twips(double points) {
@@ -295,7 +319,7 @@ struct ParagraphProperties {
     }
 
     /// @brief The elements inside <w:pPr>, in the order of the schema
-    QString xml() const {
+    [[nodiscard]] QString xml() const {
         QString result;
         if (!style.isEmpty()) result += valueElement("pStyle", style);
         if (keepNext) result += flagElement("keepNext", *keepNext);
@@ -417,7 +441,7 @@ struct Relationships {
         return id;
     }
 
-    QString xml() const {
+    [[nodiscard]] QString xml() const {
         return XML_HEAD +
                QStringLiteral("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">") +
                entries.join(QString()) + QStringLiteral("</Relationships>");
@@ -464,6 +488,9 @@ private:
     QString numberingXml() const;
     QString settingsXml() const;
     QString footerXml() const;
+    void prepareHeaders();
+    QString headerRelationship(const QString& text);
+    bool evenAndOddHeaders() const;
     QString notesXml(bool endnotes) const;
     QString commentsXml() const;
     QString commentsExtendedXml() const;
@@ -481,7 +508,12 @@ private:
     QString paragraphContent(const ExportText& text, const QTextBlock& block, double lineWidth,
                              Part part);
     QString commentEvents(const ExportText& text, int upTo, Part part);
-    QString drawing(const ImageProperties& image, double lineWidth, Part part);
+    /// @param floating Where the text flows around the image (image.wrap, an image alone in
+    ///        its paragraph outside a table): anchored to its paragraph; else in its line
+    /// @param alignment The paragraph's own alignment: where an image above and below the
+    ///        text goes across the column
+    QString drawing(const ImageProperties& image, double lineWidth, Part part,
+                    bool floating = false, Qt::Alignment alignment = Qt::AlignHCenter);
     QString noteXml(const Footnote& note, int id, bool endnote);
     QString hyperlinkStart(const QString& address, Part part);
     QString listNumbering(size_t item, const ListItem& listItem, int number);
@@ -524,6 +556,12 @@ private:
     QHash<QString, QString> m_imageRels[4];    ///< The relationship of each media file, by part
     QHash<QString, QString> m_linkRels[4];     ///< The relationship of each address, by part
     QString m_footerRelationship;              ///< The footer with the page numbers; empty: none
+    /// The running heads: the parts of the headers (their names and their XML), the header of
+    /// each text, the empty one (the first page of a text, the pages of a part)
+    std::vector<std::pair<QString, QString>> m_headerParts;
+    QHash<QString, QString> m_headerOfText;            ///< The relationship of the header of a text
+    std::vector<std::pair<QString, QString>> m_itemHeaders;  ///< Of each item: right and left pages
+    QString m_emptyHeader;
     QSet<QString> m_extensions;
     int m_nextDrawing = 1;
     int m_images_written = 0;
@@ -602,10 +640,10 @@ void DocxWriter::mapStyles() {
     for (const QString& name : reservedStyleNames()) {
         names.insert(name.toLower());
     }
-    for (const char* id : {"DefaultParagraphFont", "TableNormal", "NoList", "FootnoteReference",
-                           "EndnoteText", "EndnoteReference", "Hyperlink", "Footer", "TOCHeading",
-                           "TOC1", "TOC2", "TOC3", "TableofFigures", "CommentText",
-                           "CommentReference"}) {
+    for (const char* id :
+         {"DefaultParagraphFont", "TableNormal", "NoList", "FootnoteReference", "EndnoteText",
+          "EndnoteReference", "Hyperlink", "Footer", "Header", "TOCHeading", "TOC1", "TOC2", "TOC3",
+          "TableofFigures", "CommentText", "CommentReference"}) {
         ids.insert(QString::fromLatin1(id).toLower());
     }
     for (const BuiltInStyle& style : BUILT_IN_STYLES) {
@@ -768,6 +806,18 @@ QString DocxWriter::stylesXml() const {
                  QStringLiteral("<w:rPr><w:color w:val=\"0563C1\"/><w:u w:val=\"single\"/></w:rPr>"));
     xml += style(QStringLiteral("paragraph"), QStringLiteral("Footer"), QStringLiteral("footer"), normalId, {},
                  hidden, noIndent + QStringLiteral("<w:jc w:val=\"center\"/>"), {});
+    if (m_book.runningHead != RunningHead::None) {
+        // The running head: smaller capitals a little apart, as on the pages of a PDF
+        const QString size = number(halfPoints(RUNNING_HEAD_SCALE * normalSize));
+        xml += style(QStringLiteral("paragraph"), QStringLiteral("Header"),
+                     QStringLiteral("header"), normalId, {}, hidden,
+                     QStringLiteral("<w:spacing w:before=\"0\" w:after=\"0\"/>") + noIndent +
+                         QStringLiteral("<w:jc w:val=\"center\"/>"),
+                     QStringLiteral("<w:rPr><w:caps/>") +
+                         valueElement("spacing", number(RUNNING_HEAD_SPACING_TWIPS)) +
+                         valueElement("sz", size) + valueElement("szCs", size) +
+                         QStringLiteral("</w:rPr>"));
+    }
     const QString headingBase = m_styleIds.contains(headingStyleId(1)) ? QStringLiteral("Heading1") : normalId;
     xml += style(QStringLiteral("paragraph"), QStringLiteral("TOCHeading"), QStringLiteral("TOC Heading"),
                  headingBase, normalId, QStringLiteral("<w:uiPriority w:val=\"39\"/><w:unhideWhenUsed/><w:qFormat/>"),
@@ -918,7 +968,8 @@ QString DocxWriter::hyperlinkStart(const QString& address, Part part) {
     return QStringLiteral("<w:hyperlink") + attribute("r:id", id) + QStringLiteral(" w:history=\"1\">");
 }
 
-QString DocxWriter::drawing(const ImageProperties& image, double lineWidth, Part part) {
+QString DocxWriter::drawing(const ImageProperties& image, double lineWidth, Part part,
+                            bool floating, Qt::Alignment alignment) {
     if (m_book.imagesFolder.isEmpty()) {
         ++m_missingImages;
         return QString();
@@ -964,10 +1015,39 @@ QString DocxWriter::drawing(const ImageProperties& image, double lineWidth, Part
     } else {
         docPr += QStringLiteral("/>");
     }
-    return QStringLiteral("<w:r><w:drawing><wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\">"
-                          "<wp:extent cx=\"%1\" cy=\"%2\"/><wp:effectExtent l=\"0\" t=\"0\" r=\"0\" b=\"0\"/>")
-               .arg(cx, cy) +
-           docPr +
+    // In its line; or anchored to its paragraph, the text flowing around it: beside it on the
+    // other side of the column, or above and below it
+    const QString extent =
+        QStringLiteral("<wp:extent cx=\"%1\" cy=\"%2\"/>"
+                       "<wp:effectExtent l=\"0\" t=\"0\" r=\"0\" b=\"0\"/>")
+            .arg(cx, cy);
+    QString start = QStringLiteral("<w:r><w:drawing>"
+                                   "<wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\">") +
+                    extent;
+    QString end = QStringLiteral("</wp:inline></w:drawing></w:r>");
+    if (floating && image.wrap != ImageWrap::Inline) {
+        const QString wrap =
+            image.wrap == ImageWrap::TopBottom
+                ? QStringLiteral("<wp:wrapTopAndBottom/>")
+                : QStringLiteral("<wp:wrapSquare wrapText=\"%1\"/>")
+                      .arg(image.wrap == ImageWrap::SquareLeft ? QStringLiteral("right")
+                                                               : QStringLiteral("left"));
+        const QString side = anchorSide(image.wrap, alignment);
+        const QString gap = number(emu(FLOAT_GAP_POINTS));
+        start = QStringLiteral("<w:r><w:drawing><wp:anchor distT=\"0\" distB=\"%1\""
+                               " distL=\"%1\" distR=\"%1\" simplePos=\"0\" relativeHeight=\"%2\""
+                               " behindDoc=\"0\" locked=\"0\" layoutInCell=\"1\""
+                               " allowOverlap=\"0\">"
+                               "<wp:simplePos x=\"0\" y=\"0\"/>"
+                               "<wp:positionH relativeFrom=\"column\">"
+                               "<wp:align>%3</wp:align></wp:positionH>"
+                               "<wp:positionV relativeFrom=\"paragraph\">"
+                               "<wp:posOffset>0</wp:posOffset></wp:positionV>")
+                    .arg(gap, number(ANCHOR_HEIGHT_BASE + id), side) +
+                extent + wrap;
+        end = QStringLiteral("</wp:anchor></w:drawing></w:r>");
+    }
+    return start + docPr +
            QStringLiteral("<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect=\"1\"/></wp:cNvGraphicFramePr>"
                           "<a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">"
                           "<pic:pic><pic:nvPicPr><pic:cNvPr id=\"%1\"")
@@ -976,8 +1056,8 @@ QString DocxWriter::drawing(const ImageProperties& image, double lineWidth, Part
            QStringLiteral("/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip") + attribute("r:embed", relationship) +
            QStringLiteral("/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x=\"0\" y=\"0\"/>"
                           "<a:ext cx=\"%1\" cy=\"%2\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>"
-                          "</pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>")
-               .arg(cx, cy);
+                          "</pic:spPr></pic:pic></a:graphicData></a:graphic>") +
+           end;
 }
 
 QString DocxWriter::noteXml(const Footnote& note, int id, bool endnote) {
@@ -1069,6 +1149,8 @@ QString DocxWriter::paragraphContent(const ExportText& text, const QTextBlock& b
             openLink.clear();
         }
     };
+    // An image alone in its paragraph may have the text flowing around it
+    const bool floating = floatingImage(block).has_value();
     for (const Piece& piece : piecesOf(block, text)) {
         const QString events = commentEvents(text, piece.position, part);
         if (!events.isEmpty()) {
@@ -1089,7 +1171,8 @@ QString DocxWriter::paragraphContent(const ExportText& text, const QTextBlock& b
                 content += textRun(piece.text, runProperties(piece.format, style));
                 break;
             case Piece::Kind::Image:
-                content += drawing(piece.image, lineWidth, part);
+                content += drawing(piece.image, lineWidth, part, floating,
+                                   ownAlignment(block.blockFormat()));
                 break;
             case Piece::Kind::Field: {
                 QTextCharFormat format = piece.format;
@@ -1463,9 +1546,30 @@ QString DocxWriter::sectionProperties(size_t index) const {
     const int endnotesIn = index < m_endnotesIn.size() ? m_endnotesIn[index] : 0;
     const ExportPage& page = m_book.page;
     QString xml = QStringLiteral("<w:sectPr>");
-    if (!m_footerRelationship.isEmpty()) {
-        xml += QStringLiteral("<w:footerReference w:type=\"default\"") + attribute("r:id", m_footerRelationship) +
+    // The running heads, each kind of page its own (a section without them would take those
+    // of the section before); the first page of a text without one, with its number
+    const bool heads = index < m_itemHeaders.size();
+    const bool evenAndOdd = evenAndOddHeaders();
+    const auto reference = [](const char* element, const char* type, const QString& relationship) {
+        return QStringLiteral("<w:") + QLatin1String(element) +
+               attribute("w:type", QString::fromLatin1(type)) + attribute("r:id", relationship) +
                QStringLiteral("/>");
+    };
+    if (heads) {
+        xml += reference("headerReference", "default", m_itemHeaders[index].first);
+        if (evenAndOdd) {
+            xml += reference("headerReference", "even", m_itemHeaders[index].second);
+        }
+        xml += reference("headerReference", "first", m_emptyHeader);
+    }
+    if (!m_footerRelationship.isEmpty()) {
+        xml += reference("footerReference", "default", m_footerRelationship);
+        if (heads && evenAndOdd) {
+            xml += reference("footerReference", "even", m_footerRelationship);
+        }
+        if (heads) {
+            xml += reference("footerReference", "first", m_footerRelationship);
+        }
     }
     // The notes numbered as the book numbers them: on from those before in the file, or from
     // the item's own first number (a section without notes of a kind goes on)
@@ -1502,6 +1606,9 @@ QString DocxWriter::sectionProperties(size_t index) const {
            attribute("w:footer", number(twips(std::min(page.bottom, 12.5) * POINTS_PER_MILLIMETRE))) +
            QStringLiteral(" w:gutter=\"0\"/>");
     xml += QStringLiteral("<w:cols w:space=\"708\"/>");
+    if (heads) {
+        xml += QStringLiteral("<w:titlePg/>");
+    }
     return xml + QStringLiteral("</w:sectPr>");
 }
 
@@ -1524,6 +1631,9 @@ QString DocxWriter::settingsXml() const {
         xml += QStringLiteral("<w:mirrorMargins/>");
     }
     xml += QStringLiteral("<w:defaultTabStop w:val=\"708\"/>");
+    if (evenAndOddHeaders()) {
+        xml += QStringLiteral("<w:evenAndOddHeaders/>");
+    }
     bool contents = false;
     for (const ExportItem& item : m_book.items) {
         contents = contents || item.kind == ExportItemKind::Contents;
@@ -1557,6 +1667,61 @@ QString DocxWriter::footerXml() const {
                           "<w:r><w:instrText xml:space=\"preserve\"> PAGE </w:instrText></w:r>"
                           "<w:r><w:fldChar w:fldCharType=\"separate\"/></w:r><w:r><w:t>1</w:t></w:r>"
                           "<w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p></w:ftr>");
+}
+
+bool DocxWriter::evenAndOddHeaders() const {
+    return m_book.runningHead == RunningHead::AuthorAndTitle ||
+           m_book.runningHead == RunningHead::TitleAndChapter;
+}
+
+QString DocxWriter::headerRelationship(const QString& text) {
+    const QString shown = text.simplified();
+    if (const auto found = m_headerOfText.constFind(shown); found != m_headerOfText.constEnd()) {
+        return found.value();
+    }
+    const QString name = QStringLiteral("header%1.xml").arg(m_headerParts.size() + 1);
+    const QString relationship = m_documentRels.add(
+        QStringLiteral(
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header"),
+        name);
+    m_headerParts.emplace_back(
+        name, XML_HEAD + QStringLiteral("<w:hdr") + W_NAMESPACES +
+                  QStringLiteral("><w:p><w:pPr><w:pStyle w:val=\"Header\"/></w:pPr>") +
+                  (shown.isEmpty() ? QString() : textRun(shown, QString())) +
+                  QStringLiteral("</w:p></w:hdr>"));
+    m_headerOfText.insert(shown, relationship);
+    return relationship;
+}
+
+void DocxWriter::prepareHeaders() {
+    // The running heads of the texts with titles (not of a part, not of a title page), as the
+    // pages of a PDF have them
+    m_emptyHeader = headerRelationship(QString());
+    for (const ExportItem& item : m_book.items) {
+        const bool text = item.kind != ExportItemKind::Group && !item.title.trimmed().isEmpty();
+        QString right;
+        QString left;
+        switch (m_book.runningHead) {
+            case RunningHead::None:
+                break;
+            case RunningHead::AuthorAndTitle:
+                right = m_book.title;
+                left = m_book.author;
+                break;
+            case RunningHead::TitleAndChapter:
+                right = item.title;
+                left = m_book.title;
+                break;
+            case RunningHead::Chapter:
+                right = item.title;
+                left = item.title;
+                break;
+        }
+        // In this order: the order of the arguments of a call is not defined
+        const QString rightHeader = headerRelationship(text ? right : QString());
+        const QString leftHeader = headerRelationship(text ? left : QString());
+        m_itemHeaders.emplace_back(rightHeader, leftHeader);
+    }
 }
 
 QString DocxWriter::notesXml(bool endnotes) const {
@@ -1665,6 +1830,9 @@ std::vector<std::pair<QString, QByteArray>> DocxWriter::build(ExportResult* resu
                                QStringLiteral("footer1.xml"));
     }
     const QString& footerRelationship = m_footerRelationship;
+    if (m_book.runningHead != RunningHead::None) {
+        prepareHeaders();
+    }
     for (size_t index = 0; index < count; ++index) {
         writeItem(index);
         report(10 + static_cast<int>(80 * (index + 1) / std::max<size_t>(1, count)));
@@ -1724,6 +1892,9 @@ std::vector<std::pair<QString, QByteArray>> DocxWriter::build(ExportResult* resu
     }
     if (!footerRelationship.isEmpty()) {
         types += override(QStringLiteral("/word/footer1.xml"), wml + QStringLiteral("footer+xml"));
+    }
+    for (const auto& [name, header] : m_headerParts) {
+        types += override(QStringLiteral("/word/") + name, wml + QStringLiteral("header+xml"));
     }
     types += override(QStringLiteral("/docProps/core.xml"),
                       QStringLiteral("application/vnd.openxmlformats-package.core-properties+xml"));
@@ -1790,6 +1961,9 @@ std::vector<std::pair<QString, QByteArray>> DocxWriter::build(ExportResult* resu
     if (!footerRelationship.isEmpty()) {
         files.emplace_back(QStringLiteral("word/footer1.xml"), footerXml().toUtf8());
     }
+    for (const auto& [name, header] : m_headerParts) {
+        files.emplace_back(QStringLiteral("word/") + name, header.toUtf8());
+    }
     for (auto& media : m_media) {
         files.push_back(std::move(media));
     }
@@ -1798,80 +1972,6 @@ std::vector<std::pair<QString, QByteArray>> DocxWriter::build(ExportResult* resu
         result->missingImages = m_missingImages;
     }
     return files;
-}
-
-/// The files packed as a ZIP archive in memory; empty, with what went wrong in @p problem,
-/// when they cannot be
-QByteArray zipped(const std::vector<std::pair<QString, QByteArray>>& files, ExportProblem* problem) {
-    zip_error_t error;
-    zip_error_init(&error);
-    zip_source_t* buffer = zip_source_buffer_create(nullptr, 0, 0, &error);
-    if (!buffer) {
-        problem->kind = ExportProblem::Kind::Other;
-        problem->lines << QString::fromUtf8(zip_error_strerror(&error));
-        zip_error_fini(&error);
-        return {};
-    }
-    zip_source_keep(buffer);
-    zip_t* archive = zip_open_from_source(buffer, ZIP_TRUNCATE, &error);
-    if (!archive) {
-        problem->kind = ExportProblem::Kind::Other;
-        problem->lines << QString::fromUtf8(zip_error_strerror(&error));
-        zip_source_free(buffer);
-        zip_source_free(buffer);
-        zip_error_fini(&error);
-        return {};
-    }
-    bool ok = true;
-    for (const auto& [name, data] : files) {
-        zip_source_t* source = zip_source_buffer(archive, data.constData(), static_cast<zip_uint64_t>(data.size()), 0);
-        const zip_int64_t index =
-            source ? zip_file_add(archive, name.toUtf8().constData(), source, ZIP_FL_ENC_UTF_8 | ZIP_FL_OVERWRITE) : -1;
-        if (index < 0) {
-            if (source) {
-                zip_source_free(source);
-            }
-            problem->lines << QStringLiteral("%1: %2").arg(name, QString::fromUtf8(zip_strerror(archive)));
-            ok = false;
-            break;
-        }
-        const bool packed = name.endsWith(QLatin1String(".png")) || name.endsWith(QLatin1String(".jpeg")) ||
-                            name.endsWith(QLatin1String(".gif"));
-        zip_set_file_compression(archive, static_cast<zip_uint64_t>(index), packed ? ZIP_CM_STORE : ZIP_CM_DEFLATE, 0);
-    }
-    if (!ok) {
-        zip_discard(archive);
-        zip_source_free(buffer);
-        zip_error_fini(&error);
-        problem->kind = ExportProblem::Kind::Other;
-        return {};
-    }
-    if (zip_close(archive) != 0) {
-        problem->kind = ExportProblem::Kind::Other;
-        problem->lines << QString::fromUtf8(zip_strerror(archive));
-        zip_discard(archive);
-        zip_source_free(buffer);
-        zip_error_fini(&error);
-        return {};
-    }
-    QByteArray data;
-    zip_stat_t stat;
-    zip_stat_init(&stat);
-    if (zip_source_stat(buffer, &stat) == 0 && zip_source_open(buffer) == 0) {
-        data.resize(static_cast<qsizetype>(stat.size));
-        const zip_int64_t read = zip_source_read(buffer, data.data(), stat.size);
-        zip_source_close(buffer);
-        if (read != static_cast<zip_int64_t>(stat.size)) {
-            data.clear();
-        }
-    }
-    zip_source_free(buffer);
-    zip_error_fini(&error);
-    if (data.isEmpty()) {
-        problem->kind = ExportProblem::Kind::Other;
-        problem->lines << QStringLiteral("The packed document could not be read from memory.");
-    }
-    return data;
 }
 
 }  // namespace

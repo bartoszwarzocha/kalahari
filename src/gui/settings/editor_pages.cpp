@@ -29,7 +29,6 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QSpinBox>
 #include <QVBoxLayout>
 
@@ -38,8 +37,7 @@
 #include <utility>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -75,7 +73,7 @@ public:
         update();
     }
 
-    QSize sizeHint() const override {
+    [[nodiscard]] QSize sizeHint() const override {
         const QFontMetricsF metrics(m_font);
         return QSize(static_cast<int>(std::ceil(metrics.horizontalAdvance(QLatin1Char('M')) *
                                                 SCENE_BREAK_PREVIEW_EMS)),
@@ -133,7 +131,7 @@ public:
         update();
     }
 
-    QSize sizeHint() const override {
+    [[nodiscard]] QSize sizeHint() const override {
         const QSizeF page = pageSize();
         return QSize(static_cast<int>(std::ceil(page.width() * 2.0)) + 1,
                      static_cast<int>(std::ceil(page.height())) + 1);
@@ -184,7 +182,7 @@ protected:
 
 private:
     /// The size of a page on the screen, in pixels
-    QSizeF pageSize() const {
+    [[nodiscard]] QSizeF pageSize() const {
         const qreal height = std::round(fontMetrics().height() * SPREAD_PREVIEW_PAGE_LINES);
         return QSizeF(std::round(height * m_size.width() / m_size.height()), height);
     }
@@ -247,19 +245,19 @@ public:
         update();
     }
 
-    QSize sizeHint() const override {
+    [[nodiscard]] QSize sizeHint() const override {
         const Geometry geometry = measure();
         return QSize(sideBySideWidth(geometry), rowHeight(geometry));
     }
 
-    QSize minimumSizeHint() const override {
+    [[nodiscard]] QSize minimumSizeHint() const override {
         const Geometry geometry = measure();
         return QSize(static_cast<int>(std::ceil(geometry.box.width())) + 1, rowHeight(geometry));
     }
 
-    bool hasHeightForWidth() const override { return true; }
+    [[nodiscard]] bool hasHeightForWidth() const override { return true; }
 
-    int heightForWidth(int width) const override {
+    [[nodiscard]] int heightForWidth(int width) const override {
         const Geometry geometry = measure();
         const int row = rowHeight(geometry);
         return width >= sideBySideWidth(geometry)
@@ -326,7 +324,7 @@ private:
         qreal caption = 0.0;   ///< Height of the name under a paper
     };
 
-    Geometry measure() const {
+    [[nodiscard]] Geometry measure() const {
         Geometry geometry;
         geometry.textFont = font();
         geometry.textFont.setFamily(m_textFamily);
@@ -364,7 +362,7 @@ private:
     }
 
     /// The number at a line of the preview; none where the interval leaves it out
-    QString numberAt(int line) const {
+    [[nodiscard]] QString numberAt(int line) const {
         const auto atInterval = [this](int from) {
             return (from + m_interval - 1) / m_interval * m_interval;
         };
@@ -401,9 +399,19 @@ private:
 // Editor > General
 // ============================================================================
 
-EditorGeneralPage::EditorGeneralPage(CommandRegistry& commands, QWidget* parent)
+EditorGeneralPage::EditorGeneralPage(CommandRegistry& commands, Part part, QWidget* parent)
     : SettingsPage(parent)
     , m_commands(commands)
+{
+    if (part == Part::Writing) {
+        createWriting();
+    } else {
+        createText();
+    }
+    pageLayout()->addStretch();
+}
+
+void EditorGeneralPage::createText()
 {
     QFormLayout* font = addGroup(tr("Editor Font"));
     auto* family = new QFontComboBox();
@@ -414,6 +422,102 @@ EditorGeneralPage::EditorGeneralPage(CommandRegistry& commands, QWidget* parent)
     size->setSuffix(tr(" pt"));
     addField(font, tr("Font Size:"), size, "editor.fontSize");
 
+    // A view setting: the chapter files are not changed
+    QFormLayout* typography = addGroup(tr("Typography"));
+    auto* lineHeight = new QDoubleSpinBox();
+    lineHeight->setRange(1.0, 3.0);
+    lineHeight->setSingleStep(0.1);
+    lineHeight->setDecimals(1);
+    lineHeight->setToolTip(tr("Multiple of the font's line height (1.0 = single spacing)"));
+    addField(typography, tr("Line Spacing:"), lineHeight, "editor.lineHeight");
+    auto* paragraphSpacing = new LengthSpinBox(LengthUnit::Pixels, 0, 48);
+    addField(typography, tr("Space After Paragraph:"), paragraphSpacing, "editor.paragraphSpacing");
+    auto* indent = new QCheckBox(tr("Indent First Line:"));
+    auto* indentSize = new LengthSpinBox(LengthUnit::Pixels, 0, 96);
+    typography->addRow(indent, indentSize);
+    bind(indent, "editor.firstLineIndent");
+    bind(indentSize, "editor.indentSize");
+    const auto syncIndent = [indent, indentSize]() { indentSize->setEnabled(indent->isChecked()); };
+    connect(indent, &QCheckBox::toggled, this, syncIndent);
+    whenLoaded(syncIndent);
+
+    //: The group of Settings > Editor > General with the tab stops. In Polish: Tabulatory
+    QFormLayout* tabsForm = addGroup(tr("Tabs"));
+    // How far apart the tab stops are: every first-line indent of the paragraph's style, or
+    // every few spaces of its font
+    auto* tabStops = new QComboBox();
+    tabStops->setObjectName(QStringLiteral("tabStops"));
+    tabStops->addItem(tr("Paragraph Indent"), QString::fromLatin1(editor::TAB_STOPS_INDENT));
+    tabStops->addItem(tr("Number of Spaces"), QString::fromLatin1(editor::TAB_STOPS_SPACES));
+    auto* tabSize = new QSpinBox();
+    tabSize->setObjectName(QStringLiteral("tabSize"));
+    tabSize->setRange(1, 16);
+    auto* tabRow = new QWidget();
+    auto* tabLayout = new QHBoxLayout(tabRow);
+    tabLayout->setContentsMargins(0, 0, 0, 0);
+    tabLayout->addWidget(tabStops);
+    tabLayout->addWidget(tabSize);
+    tabLayout->addStretch();
+    auto* tabLabel = new QLabel(tr("Tab Size:"));
+    tabLabel->setBuddy(tabStops);
+    tabsForm->addRow(tabLabel, tabRow);
+    bind(tabStops, "editor.tabStops");
+    bind(tabSize, "editor.tabSize");
+    addFieldNote(tabsForm,
+                 tr("Tab types a tab character, also at the start of a paragraph. With Paragraph "
+                    "Indent the tab stops are as far apart as the first-line indent of the "
+                    "paragraph's style; a style without one, as a heading, has them as far apart "
+                    "as the indent above."));
+    const auto syncTabs = [tabStops, tabSize]() {
+        tabSize->setEnabled(tabStops->currentData().toString() ==
+                            QString::fromLatin1(editor::TAB_STOPS_SPACES));
+        tabSize->setSuffix(tr(" space(s)", nullptr, tabSize->value()));
+    };
+    connect(tabStops, &QComboBox::currentIndexChanged, this, syncTabs);
+    connect(tabSize, &QSpinBox::valueChanged, this, syncTabs);
+    whenLoaded(syncTabs);
+
+    //: The group of Settings > Editor > General with the look of the scene breaks. In Polish:
+    //: Podziały scen
+    QFormLayout* sceneForm = addGroup(tr("Scene Breaks"));
+    // How the scene breaks look, shown next to the choice in the editor's font
+    auto* sceneBreak = new QComboBox();
+    const auto addLook = [sceneBreak](const QString& text, editor::SceneBreakLook look) {
+        sceneBreak->addItem(text, editor::sceneBreakLookName(look));
+    };
+    addLook(tr("* * * (three asterisks)"), editor::SceneBreakLook::Asterisks);
+    addLook(tr("%1 (asterism)").arg(QChar(0x2042)), editor::SceneBreakLook::Asterism);
+    addLook(tr("%1 (fleuron)").arg(QChar(0x2766)), editor::SceneBreakLook::Fleuron);
+    addLook(tr("Short line"), editor::SceneBreakLook::Line);
+    addLook(tr("Blank line"), editor::SceneBreakLook::Blank);
+    auto* preview = new SceneBreakPreview();
+    preview->setObjectName(QStringLiteral("sceneBreakPreview"));
+    auto* sceneBreakRow = new QWidget();
+    auto* sceneBreakLayout = new QHBoxLayout(sceneBreakRow);
+    sceneBreakLayout->setContentsMargins(0, 0, 0, 0);
+    sceneBreakLayout->addWidget(sceneBreak);
+    sceneBreakLayout->addWidget(preview);
+    sceneBreakLayout->addStretch();
+    auto* sceneBreakLabel = new QLabel(tr("Scene Break Look:"));
+    sceneBreakLabel->setBuddy(sceneBreak);
+    sceneForm->addRow(sceneBreakLabel, sceneBreakRow);
+    bind(sceneBreak, "editor.sceneBreak.style");
+    connect(sceneBreak, &QComboBox::currentIndexChanged, preview, [sceneBreak, preview]() {
+        preview->setLook(editor::sceneBreakLookFromName(sceneBreak->currentData().toString()));
+    });
+    connect(family, &QFontComboBox::currentFontChanged, preview,
+            [preview](const QFont& font) { preview->setFamily(font.family()); });
+    whenLoaded([sceneBreak, family, preview]() {
+        preview->setLook(editor::sceneBreakLookFromName(sceneBreak->currentData().toString()));
+        preview->setFamily(family->currentFont().family());
+    });
+    addFieldNote(sceneForm, tr("Choose from: * * *, %1, %2, a short line, a blank line. Changes "
+                               "only the look: the file keeps the scene break.")
+                                .arg(QString(QChar(0x2042)), QString(QChar(0x2766))));
+}
+
+void EditorGeneralPage::createWriting()
+{
     QFormLayout* behavior = addGroup(tr("Editor Behavior"));
     // What Edit > Paste does with text of other programs: their headings, quotes, emphasis and
     // lines in the look of the place it goes to, also their fonts, sizes and colors, or only
@@ -425,7 +529,7 @@ EditorGeneralPage::EditorGeneralPage(CommandRegistry& commands, QWidget* parent)
     pasteMode->addItem(tr("Keep Text Only"), QString::fromLatin1(editor::PASTE_MODE_TEXT));
     addField(behavior, tr("Paste Command:"), pasteMode, editor::PASTE_MODE_KEY);
     pasteMode->setObjectName(QStringLiteral("pasteMode"));  // SettingsDialog::openPage()
-    QLabel* pasteNote = addNote(behavior, QString());
+    QLabel* pasteNote = addFieldNote(behavior, QString());
     // With the keys Paste has now (the user may change them)
     const auto showPasteKeys = [this, pasteNote]() {
         const Command* command = m_commands.getCommand("edit.paste");
@@ -450,104 +554,19 @@ EditorGeneralPage::EditorGeneralPage(CommandRegistry& commands, QWidget* parent)
     QCheckBox* shading =
         addCheckBox(behavior, tr("Gray background of fields"), "editor.fieldShading");
     shading->setObjectName(QStringLiteral("fieldShading"));  // SettingsDialog::openPage()
-    shading->setToolTip(tr("The fields show values that change by themselves: the date, the "
-                        "book's title, the page number, the number of a caption."));
+    const QString shadingNote = tr("The fields show values that change by themselves: the "
+                                   "date, the book's title, the page number, the number of a "
+                                   "caption.");
+    shading->setToolTip(shadingNote);
+    addOptionNote(behavior, shading, shadingNote);
     // A chapter opens where its cursor was when it was closed last, or at its start
     auto* opensAt = new QComboBox();
     opensAt->addItem(tr("Where You Last Edited"),
                      QString::fromLatin1(utils::CHAPTER_OPENS_WHERE_LEFT));
     opensAt->addItem(tr("At the Beginning"), QString::fromLatin1(utils::CHAPTER_OPENS_AT_START));
     addField(behavior, tr("Open a Chapter:"), opensAt, utils::CHAPTER_OPENS_AT_KEY);
-    addNote(behavior, tr("The place of the cursor is kept in the book for every chapter, also "
-                         "after the program is closed."));
-
-    // A view setting: the chapter files are not changed
-    QFormLayout* typography = addGroup(tr("Typography"));
-    auto* lineHeight = new QDoubleSpinBox();
-    lineHeight->setRange(1.0, 3.0);
-    lineHeight->setSingleStep(0.1);
-    lineHeight->setDecimals(1);
-    lineHeight->setToolTip(tr("Multiple of the font's line height (1.0 = single spacing)"));
-    addField(typography, tr("Line Spacing:"), lineHeight, "editor.lineHeight");
-    auto* paragraphSpacing = new LengthSpinBox(LengthUnit::Pixels, 0, 48);
-    addField(typography, tr("Space After Paragraph:"), paragraphSpacing, "editor.paragraphSpacing");
-    auto* indent = new QCheckBox(tr("Indent First Line:"));
-    auto* indentSize = new LengthSpinBox(LengthUnit::Pixels, 0, 96);
-    typography->addRow(indent, indentSize);
-    bind(indent, "editor.firstLineIndent");
-    bind(indentSize, "editor.indentSize");
-    const auto syncIndent = [indent, indentSize]() { indentSize->setEnabled(indent->isChecked()); };
-    connect(indent, &QCheckBox::toggled, this, syncIndent);
-    whenLoaded(syncIndent);
-
-    // How far apart the tab stops are: every first-line indent of the paragraph's style, or
-    // every few spaces of its font
-    auto* tabStops = new QComboBox();
-    tabStops->setObjectName(QStringLiteral("tabStops"));
-    tabStops->addItem(tr("Paragraph Indent"), QString::fromLatin1(editor::TAB_STOPS_INDENT));
-    tabStops->addItem(tr("Number of Spaces"), QString::fromLatin1(editor::TAB_STOPS_SPACES));
-    auto* tabSize = new QSpinBox();
-    tabSize->setObjectName(QStringLiteral("tabSize"));
-    tabSize->setRange(1, 16);
-    auto* tabRow = new QWidget();
-    auto* tabLayout = new QHBoxLayout(tabRow);
-    tabLayout->setContentsMargins(0, 0, 0, 0);
-    tabLayout->addWidget(tabStops);
-    tabLayout->addWidget(tabSize);
-    tabLayout->addStretch();
-    auto* tabLabel = new QLabel(tr("Tab Size:"));
-    tabLabel->setBuddy(tabStops);
-    typography->addRow(tabLabel, tabRow);
-    bind(tabStops, "editor.tabStops");
-    bind(tabSize, "editor.tabSize");
-    addNote(typography,
-            tr("Tab types a tab character, also at the start of a paragraph. With Paragraph "
-               "Indent the tab stops are as far apart as the first-line indent of the "
-               "paragraph's style; a style without one, as a heading, has them as far apart as "
-               "the indent above."));
-    const auto syncTabs = [tabStops, tabSize]() {
-        tabSize->setEnabled(tabStops->currentData().toString() ==
-                            QString::fromLatin1(editor::TAB_STOPS_SPACES));
-        tabSize->setSuffix(tr(" space(s)", nullptr, tabSize->value()));
-    };
-    connect(tabStops, &QComboBox::currentIndexChanged, this, syncTabs);
-    connect(tabSize, &QSpinBox::valueChanged, this, syncTabs);
-    whenLoaded(syncTabs);
-
-    // How the scene breaks look, shown next to the choice in the editor's font
-    auto* sceneBreak = new QComboBox();
-    const auto addLook = [sceneBreak](const QString& text, editor::SceneBreakLook look) {
-        sceneBreak->addItem(text, editor::sceneBreakLookName(look));
-    };
-    addLook(tr("* * * (three asterisks)"), editor::SceneBreakLook::Asterisks);
-    addLook(tr("%1 (asterism)").arg(QChar(0x2042)), editor::SceneBreakLook::Asterism);
-    addLook(tr("%1 (fleuron)").arg(QChar(0x2766)), editor::SceneBreakLook::Fleuron);
-    addLook(tr("Short line"), editor::SceneBreakLook::Line);
-    addLook(tr("Blank line"), editor::SceneBreakLook::Blank);
-    auto* preview = new SceneBreakPreview();
-    preview->setObjectName(QStringLiteral("sceneBreakPreview"));
-    auto* sceneBreakRow = new QWidget();
-    auto* sceneBreakLayout = new QHBoxLayout(sceneBreakRow);
-    sceneBreakLayout->setContentsMargins(0, 0, 0, 0);
-    sceneBreakLayout->addWidget(sceneBreak);
-    sceneBreakLayout->addWidget(preview);
-    sceneBreakLayout->addStretch();
-    auto* sceneBreakLabel = new QLabel(tr("Scene Break Look:"));
-    sceneBreakLabel->setBuddy(sceneBreak);
-    typography->addRow(sceneBreakLabel, sceneBreakRow);
-    bind(sceneBreak, "editor.sceneBreak.style");
-    connect(sceneBreak, &QComboBox::currentIndexChanged, preview, [sceneBreak, preview]() {
-        preview->setLook(editor::sceneBreakLookFromName(sceneBreak->currentData().toString()));
-    });
-    connect(family, &QFontComboBox::currentFontChanged, preview,
-            [preview](const QFont& font) { preview->setFamily(font.family()); });
-    whenLoaded([sceneBreak, family, preview]() {
-        preview->setLook(editor::sceneBreakLookFromName(sceneBreak->currentData().toString()));
-        preview->setFamily(family->currentFont().family());
-    });
-    addNote(typography, tr("Choose from: * * *, %1, %2, a short line, a blank line. Changes only "
-                           "the look: the file keeps the scene break.")
-                            .arg(QString(QChar(0x2042)), QString(QChar(0x2766))));
+    addFieldNote(behavior, tr("The place of the cursor is kept in the book for every chapter, "
+                              "also after the program is closed."));
 
     // Turned on and off with View > Typewriter Scrolling
     QFormLayout* typewriter = addGroup(tr("Typewriter Scrolling"));
@@ -582,17 +601,16 @@ EditorGeneralPage::EditorGeneralPage(CommandRegistry& commands, QWidget* parent)
     // The counts of the whole program: the status bar, the panels, Distraction-Free writing
     QFormLayout* wordCount = addGroup(tr("Word Count"));
     wordCount->parentWidget()->setObjectName(QStringLiteral("wordCountGroup"));  // openPage()
-    addCheckBox(wordCount, tr("Count standalone dashes as words"),
-                "editor.wordCount.dashesAsWords");
-    addNote(wordCount, tr("A dash separated by spaces from the words around it, as at the start "
-                          "of a line of dialogue. Microsoft Word counts it as a word, LibreOffice "
-                          "does not."));
+    QCheckBox* dashes = addCheckBox(wordCount, tr("Count standalone dashes as words"),
+                                    "editor.wordCount.dashesAsWords");
+    addOptionNote(wordCount, dashes,
+                  tr("A dash separated by spaces from the words around it, as at the start of a "
+                     "line of dialogue. Microsoft Word counts it as a word, LibreOffice does "
+                     "not."));
     //: In Polish: Licz słowa w przypisach
     addCheckBox(wordCount, tr("Count the words of footnotes and endnotes"),
                 "editor.wordCount.notes")
         ->setObjectName(QStringLiteral("wordCountNotes"));  // SettingsDialog::openPage()
-
-    pageLayout()->addStretch();
 }
 
 // ============================================================================
@@ -723,11 +741,17 @@ EditorCursorPage::EditorCursorPage(QWidget* parent)
 // Editor > Pages and Margins
 // ============================================================================
 
-EditorPagesPage::EditorPagesPage(QWidget* parent)
+EditorPagesPage::EditorPagesPage(Part part, QWidget* parent)
     : SettingsPage(parent)
 {
-    addNote(pageLayout(), tr("Configure the page format, the page margins, the margin numbering "
-                             "and the text frame border."));
+    if (part == Part::MarginNumbers) {
+        addMarginNumbersGroup();
+        pageLayout()->addStretch();
+        return;
+    }
+    //: The intro of Settings > Editor > Pages and Margins. In Polish: Format stron i ich
+    //: marginesy.
+    addNote(pageLayout(), tr("The format of the pages and their margins."));
 
     // Every view: the continuous views show one endless page
     QFormLayout* page = addGroup(tr("Page"));
@@ -826,9 +850,8 @@ EditorPagesPage::EditorPagesPage(QWidget* parent)
     }
     whenLoaded(syncSpread);
 
-    addMarginNumbersGroup();
-
-    QFormLayout* frame = addGroup(tr("Text Frame Border"));
+    // Seldom changed: a help to see where the margins are
+    QFormLayout* frame = addAdvancedGroup(tr("Text Frame Border"));
     QCheckBox* showFrame = addCheckBox(frame, tr("Show text frame border"), "editor.textFrameBorder.show");
     showFrame->setToolTip(tr("Display a visible border around the text content area.\n"
                              "Useful for visualizing margin boundaries."));
@@ -853,58 +876,45 @@ EditorPagesPage::EditorPagesPage(QWidget* parent)
 
 void EditorPagesPage::addMarginNumbersGroup() {
     // Only on the screen. View > Margin Numbering and the Views toolbar change the same settings
+    addNote(pageLayout(), tr("The numbering buttons on the Views toolbar and the commands of "
+                             "View > Margin Numbering change the same settings as the fields "
+                             "below."));
     QFormLayout* numbers = addGroup(tr("Margin Numbering"));
     numbers->parentWidget()->setObjectName(QStringLiteral("marginNumbersGroup"));
-    const std::vector<std::pair<QRadioButton*, const char*>> choices = {
-        {new QRadioButton(tr("None")), editor::MARGIN_NUMBERING_NONE},
-        {new QRadioButton(tr("Lines")), editor::MARGIN_NUMBERING_LINES},
-        {new QRadioButton(tr("Paragraphs")), editor::MARGIN_NUMBERING_PARAGRAPHS}};
-    auto* choicesRow = new QWidget();
-    auto* choicesLayout = new QHBoxLayout(choicesRow);
-    choicesLayout->setContentsMargins(0, 0, 0, 0);
-    for (const auto& [button, name] : choices) {
-        button->setObjectName(QStringLiteral("marginNumbers_%1").arg(QLatin1String(name)));
-        choicesLayout->addWidget(button);
-    }
-    choicesLayout->addStretch();
-    auto* choicesLabel = new QLabel(tr("Number:"));
-    choicesLabel->setBuddy(choices.front().first);
-    numbers->addRow(choicesLabel, choicesRow);
+    QComboBox* const mode = addChoice(
+        numbers, tr("Number:"),
+        {{tr("None"), QLatin1String(editor::MARGIN_NUMBERING_NONE), QString()},
+         {tr("Lines"), QLatin1String(editor::MARGIN_NUMBERING_LINES), QString()},
+         {tr("Paragraphs"), QLatin1String(editor::MARGIN_NUMBERING_PARAGRAPHS), QString()}},
+        std::string());
+    mode->setObjectName(QStringLiteral("marginNumbersMode"));
 
     auto& settings = core::SettingsManager::getInstance();
-    const auto chosen = [choices]() {
-        for (const auto& [button, name] : choices) {
-            if (button->isChecked()) {
-                return editor::marginNumberingFromName(QLatin1String(name));
-            }
-        }
-        return editor::MarginNumbering::None;
+    const auto chosen = [mode]() {
+        return editor::marginNumberingFromName(mode->currentData().toString());
     };
-    Binding mode;
-    mode.key = []() { return std::string("editor.marginNumbers.mode"); };
-    mode.stored = [&settings]() {
+    Binding modeBinding;
+    modeBinding.key = []() { return std::string("editor.marginNumbers.mode"); };
+    modeBinding.stored = [&settings]() {
         return nlohmann::json(settings.get<std::string>("editor.marginNumbers.mode"));
     };
-    mode.shown = [choices]() {
-        for (const auto& [button, name] : choices) {
-            if (button->isChecked()) {
-                return nlohmann::json(name);
-            }
-        }
-        return nlohmann::json(editor::MARGIN_NUMBERING_NONE);
+    modeBinding.shown = [mode]() {
+        return nlohmann::json(mode->currentData().toString().toStdString());
     };
-    mode.show = [choices](const nlohmann::json& value) {
+    modeBinding.show = [mode](const nlohmann::json& value) {
         // A name the program does not know shows as None, as the editor takes it
         const editor::MarginNumbering numbering = editor::marginNumberingFromName(
             QString::fromStdString(value.is_string() ? value.get<std::string>() : std::string()));
-        for (const auto& [button, name] : choices) {
-            button->setChecked(editor::marginNumberingFromName(QLatin1String(name)) == numbering);
+        for (int index = 0; index < mode->count(); ++index) {
+            if (editor::marginNumberingFromName(mode->itemData(index).toString()) == numbering) {
+                mode->setCurrentIndex(index);
+            }
         }
     };
-    mode.store = [&settings](const nlohmann::json& value) {
+    modeBinding.store = [&settings](const nlohmann::json& value) {
         settings.set<std::string>("editor.marginNumbers.mode", value.get<std::string>());
     };
-    bindCustom(std::move(mode));
+    bindCustom(std::move(modeBinding));
 
     // The fields of the look, which the button Restore Defaults shows again
     std::vector<Binding*> look;
@@ -928,25 +938,29 @@ void EditorPagesPage::addMarginNumbersGroup() {
                   restart);
     numbers->addRow(restartNoteRow);
 
+    // The look of the numbers, with its preview
+    //: The group of Settings > Editor > Margin Numbering. In Polish: Wygląd numerów
+    QFormLayout* numberLook = addGroup(tr("Look of the Numbers"));
+    numberLook->parentWidget()->setObjectName(QStringLiteral("marginNumbersLookGroup"));
     auto* font = new QFontComboBox();
     font->setObjectName(QStringLiteral("marginNumbersFont"));
     font->setFontFilters(QFontComboBox::AllFonts);
-    QLabel* fontLabel = addField(numbers, tr("Font:"), font, "editor.marginNumbers.font");
+    QLabel* fontLabel = addField(numberLook, tr("Font:"), font, "editor.marginNumbers.font");
     look.push_back(&lastBinding());
     auto* size = new QSpinBox();
     size->setObjectName(QStringLiteral("marginNumbersSize"));
     size->setRange(6, 24);
     size->setSuffix(tr(" pt"));
-    QLabel* sizeLabel = addField(numbers, tr("Size:"), size, "editor.marginNumbers.size");
+    QLabel* sizeLabel = addField(numberLook, tr("Size:"), size, "editor.marginNumbers.size");
     look.push_back(&lastBinding());
-    addNote(numbers, tr("At 100% zoom; the numbers grow and shrink with the text."));
+    addFieldNote(numberLook, tr("At 100% zoom; the numbers grow and shrink with the text."));
 
     auto* color = new ColorConfigWidget(tr("Number color"));
     color->setObjectName(QStringLiteral("marginNumbersColor"));
-    numbers->addRow(color);
+    numberLook->addRow(color);
     bind(color, "editor.marginNumbers.color");
     look.push_back(&lastBinding());
-    addNote(numbers, tr("The same on the light and on the dark paper."));
+    addNote(numberLook, tr("The same on the light and on the dark paper."));
 
     auto* preview = new MarginNumbersPreview(
         {tr("Fog settled on the river"), tr("long before dawn")},
@@ -954,18 +968,17 @@ void EditorPagesPage::addMarginNumbersGroup() {
     preview->setObjectName(QStringLiteral("marginNumbersPreview"));
     preview->setAccessibleName(tr("Preview of the margin numbers"));
     auto* previewLabel = new QLabel(tr("Preview:"));
-    numbers->addRow(previewLabel, preview);
+    numberLook->addRow(previewLabel, preview);
 
     auto* restore = new QPushButton(tr("Restore Defaults"));
     restore->setObjectName(QStringLiteral("marginNumbersDefaults"));
     restore->setToolTip(tr("The default interval, font, size and color; the numbering stays "
                            "as chosen. Apply and OK store them."));
+    // Under both groups: it restores the interval too
     auto* restoreRow = new QHBoxLayout();
     restoreRow->addWidget(restore);
     restoreRow->addStretch();
-    numbers->addRow(restoreRow);
-    addNote(numbers, tr("The numbering buttons on the Views toolbar and the commands of "
-                        "View > Margin Numbering change the same settings as the fields above."));
+    pageLayout()->addLayout(restoreRow);
 
     // The preview: the numbers as the fields show them, the text as stored and the papers in
     // the current theme's colors
@@ -1006,9 +1019,7 @@ void EditorPagesPage::addMarginNumbersGroup() {
                                   : tr("1: a number at every line, 5: at every fifth one."));
         showPreview();
     };
-    for (const auto& [button, name] : choices) {
-        connect(button, &QRadioButton::toggled, this, syncNumbers);
-    }
+    connect(mode, &QComboBox::currentIndexChanged, this, syncNumbers);
     whenLoaded(syncNumbers);
     connect(interval, &QSpinBox::valueChanged, this, showPreview);
     connect(font, &QFontComboBox::currentFontChanged, this, showPreview);
@@ -1024,5 +1035,4 @@ void EditorPagesPage::addMarginNumbersGroup() {
     });
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

@@ -16,7 +16,7 @@
 #include <QTreeWidgetItem>
 
 #include <utility>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -188,7 +188,7 @@ public:
         }
         return {};
     }
-    bool isEmpty() const override { return false; }
+    [[nodiscard]] bool isEmpty() const override { return false; }
 };
 
 } // namespace

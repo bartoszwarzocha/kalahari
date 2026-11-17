@@ -14,12 +14,14 @@
 /// 3. LAYOUT    - Calculate block positions (using KalahariTextDocumentLayout)
 /// 4. RENDER    - Draw to painter (text, cursor, selection, overlays)
 
-#pragma once
+#ifndef KALAHARI_EDITOR_EDITOR_RENDER_PIPELINE_H
+#define KALAHARI_EDITOR_EDITOR_RENDER_PIPELINE_H
 
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/render_context.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/text_highlight.h>
+#include <QHash>
 #include <QIcon>
 #include <QMap>
 #include <QObject>
@@ -318,12 +320,15 @@ public:
     /// @return std::nullopt when no mark is there
     std::optional<AnnotationMark> annotationMarkDetailsAt(const QPointF& point) const;
 
-    /// @brief Set the marks beside the paragraphs and the icons the marks of each kind show,
-    ///        drawn in the color of the text (repaint only)
+    /// @brief Set the marks beside the paragraphs and the icons they show, drawn in the color
+    ///        of the text (repaint only)
     /// @param marks The marks; those of one paragraph side by side, the first nearest to the
     ///        text
+    /// @param icons What the marks of each kind show (the paperclips, the scissors)
+    /// @param cardIcons The signs of the cards, by ParagraphMark::icon (marks of the materials)
     void setParagraphMarks(std::vector<ParagraphMark> marks,
-                           const QMap<ParagraphMarkKind, QIcon>& icons);
+                           const QMap<ParagraphMarkKind, QIcon>& icons,
+                           const QHash<QString, QIcon>& cardIcons = {});
 
     /// @brief The marks beside the paragraphs
     const std::vector<ParagraphMark>& paragraphMarks() const { return m_paragraphMarks; }
@@ -335,7 +340,8 @@ public:
     /// @brief Where the mark beside a paragraph is drawn, in widget coordinates: in the left
     ///        margin, beside its first line, left of the numbers on the margin when they are
     ///        shown (empty for a paragraph not laid out)
-    /// @param slot Which of the marks of the paragraph: 0 nearest to the text, 1 left of it
+    /// @param slot Which of the marks of the paragraph: 0 nearest to the text, the next ones
+    ///        further to the left
     QRectF paragraphMarkRect(std::size_t paragraph, std::size_t slot = 0) const;
 
     /// @brief Show where dragged text would be dropped (std::nullopt hides it)
@@ -442,6 +448,15 @@ public:
     /// 6. Render the highlight marks (spelling and grammar waves)
     /// 7. Render cursor
     void render(QPainter* painter, const QRect& clipRect);
+
+    /// @brief Draw a page as it is printed (the page view; a book exported to PDF or printed):
+    ///        its text, its tables with their header rows repeated and its notes (the page
+    ///        decorator), without the desk, the sheet, its number and what only the screen
+    ///        shows (the cursor, the selection, the highlights, the marks of the annotations and
+    ///        the numbers on the margin)
+    /// @param painter Its origin at the top left of the page's sheet, in document units
+    /// @param page The page, from 0
+    void renderPrintedPage(QPainter* painter, int page);
 
     // =========================================================================
     // Dirty Region Tracking
@@ -638,6 +653,12 @@ private:
     /// @brief Draw the marks beside the paragraphs (in the left margin)
     void renderParagraphMarks(QPainter* painter, const QRect& clipRect);
 
+    /// @brief Draw @p mark in @p rect, in the color of the text, for the screen's @p ratio;
+    ///        dimmed beside a paragraph other than that of the cursor while the text has the
+    ///        keys
+    void drawParagraphMark(QPainter& painter, const ParagraphMark& mark, const QRectF& rect,
+                           qreal ratio) const;
+
     /// @brief Render cursor
     void renderCursor(QPainter* painter);
 
@@ -720,9 +741,18 @@ private:
     std::optional<FragmentHighlight> m_fragmentHighlight;  ///< Fragment shown in a color
     ParagraphDecorator m_paragraphDecorator;     ///< Draws the room under the paragraphs
     PageDecorator m_pageDecorator;               ///< Draws on the pages besides their lines
+    /// While renderPrintedPage() draws: the page, the top and the bottom of its text area
+    /// (document units), between which the lines are drawn
+    struct PrintedArea {
+        int page = 0;
+        double top = 0.0;
+        double bottom = 0.0;
+    };
+    std::optional<PrintedArea> m_printedArea;
     std::vector<ParagraphMark> m_paragraphMarks;     ///< Marks beside the paragraphs
     std::vector<size_t> m_paragraphMarkSlots;        ///< The slot of each (paragraphMarkRect())
     QMap<ParagraphMarkKind, QIcon> m_paragraphMarkIcons;  ///< What the marks of each kind show
+    QHash<QString, QIcon> m_paragraphCardIcons;      ///< The signs of the cards
 
     // The numbers on the margin painted last: they went on from what was counted before
     // their first paragraph (marginNumbersOutdated())
@@ -790,3 +820,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_EDITOR_RENDER_PIPELINE_H

@@ -7,9 +7,14 @@
 ///        their following the changes, and Replace All in Book with its versions and Undo
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
-#include "document_window.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/document_window.h"
+#include "kalahari/core/book_dictionary.h"
+#include "kalahari/core/book_type_package.h"
+#include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/card_names.h"
 #include "kalahari/core/chapter_versions.h"
+#include "kalahari/core/name_declension.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/find_replace_bar.h"
@@ -427,6 +432,63 @@ TEST_CASE("Find in Book: the name of a card, as whole words in any letters",
 
     // No name, no search
     search.coordinator.findInBook(QStringLiteral("  "));
+    CHECK(search.panel.searchText() == QStringLiteral("Storm"));
+}
+
+TEST_CASE("Find in Book of a card: its name in all its forms and by its other names",
+          "[gui][search][book][cards]") {
+    const SearchedBook book;
+    Window window;
+    Search search(window);
+    auto& pm = test::book();
+    const core::KindRef item =
+        pm.bookTypes().findKind(QStringLiteral("kalahari.base"), QStringLiteral("item"));
+    REQUIRE(item);
+    const QString card = pm.addElement(item, QStringLiteral("Storm"), core::BookPlace::Workshop);
+    REQUIRE_FALSE(card.isEmpty());
+
+    // The book's dictionary without its name: the name itself, as whole words
+    search.coordinator.findCardInBook(card);
+    search.coordinator.finishSearch();
+    CHECK(search.panel.searchText() == QStringLiteral("Storm"));
+    CHECK(search.panel.options().wholeWord);
+    CHECK_FALSE(search.panel.options().allForms);
+    CHECK(search.foundTexts() == QStringList{QStringLiteral("Foreword 1"),
+                                             QStringLiteral("The Storm 3"),
+                                             QStringLiteral("The Calm 1")});
+
+    // With its name: every form of it and of its other names ("Odm")
+    const core::NameDeclension english(QStringLiteral("en"));
+    core::DictionaryName name = core::nameOfCard(pm.bookDictionary(), card, QStringLiteral("Storm"),
+                                                 core::NameKind::Item, english);
+    core::NameVariant calm;
+    calm.text = QStringLiteral("Calm");
+    core::refreshForms(calm, core::NameKind::Item, english);
+    name.variants.append(calm);
+    REQUIRE(pm.changeBookDictionary(
+        [&name](core::BookDictionary& dictionary) { dictionary.putName(name); }));
+    search.coordinator.findCardInBook(card);
+    search.coordinator.finishSearch();
+    CHECK(search.panel.options().wholeWord);
+    CHECK(search.panel.options().allForms);
+    CHECK(search.foundTexts() == QStringList{QStringLiteral("Foreword 1"),
+                                             QStringLiteral("The Storm 3"),
+                                             QStringLiteral("The Calm 2")});
+
+    // Another text: the forms the option finds for it, not those of the card
+    search.panel.setSearchText(QStringLiteral("Calm"));
+    search.coordinator.search();
+    search.coordinator.finishSearch();
+    CHECK(search.foundTexts() == QStringList{QStringLiteral("The Calm 1")});
+
+    // Find in Book of a name: no forms of the card for it
+    search.coordinator.findInBook(QStringLiteral("Storm"));
+    search.coordinator.finishSearch();
+    CHECK_FALSE(search.panel.options().allForms);
+    CHECK(search.foundTexts().last() == QStringLiteral("The Calm 1"));
+
+    // A card that is not there: nothing changes
+    search.coordinator.findCardInBook(QStringLiteral("missing"));
     CHECK(search.panel.searchText() == QStringLiteral("Storm"));
 }
 

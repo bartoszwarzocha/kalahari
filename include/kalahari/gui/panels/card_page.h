@@ -17,6 +17,8 @@
 #include <QStringList>
 #include <QWidget>
 
+#include <string>
+
 class QDragEnterEvent;
 class QDropEvent;
 class QFormLayout;
@@ -26,6 +28,7 @@ class QLineEdit;
 class QMenu;
 class QPlainTextEdit;
 class QPushButton;
+class QTabWidget;
 class QToolButton;
 class QVBoxLayout;
 
@@ -41,6 +44,7 @@ struct ProjectElement;
 namespace kalahari::gui {
 
 class CardChaptersBox;
+class CardNameBox;
 class LinkedMaterialsBox;
 class OwnFieldsBox;
 class RelationsBox;
@@ -63,10 +67,15 @@ class RelationsBox;
 ///   the name of a card makes the relation of the field with it (CardField::relation).
 /// - Its relations with the other cards (RelationsBox): Enter shows the other card, on the
 ///   short card in the Navigator (requestSelectCard()), on the full card as its full card.
-/// - The full card has a bar with Find in Book (the name of the card in the Search panel),
-///   Relation... and the gear (Settings > Cards) over its data, which scroll: the kind with
-///   that field and the color of the card (a click opens the color window), the fields, the
-///   writer's own fields (OwnFieldsBox) and, beside them, the long description, the text of
+/// - The declension of its name and its other names, as the book's dictionary has them
+///   (CardNameBox): the window "Name" opens for them (requestNameWindow()), and the full card
+///   adds other names (requestOtherName()).
+/// - The full card has a bar with Find in Book (the name of the card, all its forms and its
+///   other names in the Search panel), Relation..., Fields... (the window Card Fields of its
+///   kind) and the gear (Settings > Cards) over its
+///   data, which scroll: the kind with that field and the color of the card (a click opens
+///   the color window), the fields, the declension, the writer's own fields (OwnFieldsBox)
+///   and, beside them, the long description, the text of
 ///   the card (setDescriptionWidget()), the relations, the chapters the card is in
 ///   (CardChaptersBox) and the materials linked with it (LinkedMaterialsBox), where a picture
 ///   has Set as Portrait in its menu.
@@ -87,6 +96,39 @@ public:
     static constexpr int SHORT_PORTRAIT = 96;
     /// @brief Side of the portrait of the full card
     static constexpr int FULL_PORTRAIT = 128;
+
+    /// @brief The setting of the layout of the full card: LAYOUT_COLUMNS (the default), the
+    /// data beside the description, relations, chapters and materials; LAYOUT_TABS, each of
+    /// them on a tab under the header
+    static constexpr const char* LAYOUT_SETTING = "cards.fullCardLayout";
+    static constexpr const char* LAYOUT_COLUMNS = "columns";
+    static constexpr const char* LAYOUT_TABS = "tabs";
+
+    /// @brief The setting of the shape of the portraits: SHAPE_SQUARE (the default) or
+    /// SHAPE_CIRCLE
+    static constexpr const char* SHAPE_SETTING = "cards.portraitShape";
+    static constexpr const char* SHAPE_SQUARE = "square";
+    static constexpr const char* SHAPE_CIRCLE = "circle";
+
+    /// @brief The setting of what a portrait without a picture shows: NO_PICTURE_INITIALS (the
+    /// default), the initials on the color of the card; NO_PICTURE_ICON, the icon of its kind
+    static constexpr const char* NO_PICTURE_SETTING = "cards.portraitWithoutPicture";
+    static constexpr const char* NO_PICTURE_INITIALS = "initials";
+    static constexpr const char* NO_PICTURE_ICON = "icon";
+
+    /// @brief Whether the full cards have tabs (LAYOUT_SETTING)
+    [[nodiscard]] static bool hasTabs();
+
+    /// @brief Whether the portraits are circles (SHAPE_SETTING)
+    [[nodiscard]] static bool roundPortraits();
+
+    /// @brief Whether a portrait without a picture shows the icon of the kind
+    /// (NO_PICTURE_SETTING)
+    [[nodiscard]] static bool kindIconWithoutPicture();
+
+    /// @brief Whether setting @p key changes how the portraits are drawn (SHAPE_SETTING,
+    /// NO_PICTURE_SETTING)
+    [[nodiscard]] static bool isPortraitSetting(const std::string& key);
 
     /// @brief The card; @p full: the full card, else the short one
     /// @param book The book of its window
@@ -131,6 +173,11 @@ public:
     /// @brief The initials of @p title: the first letters of its first two words, in capitals
     [[nodiscard]] static QString initialsOf(const QString& title);
 
+    /// @brief The kind of card @p element of @p book with the value of the field beside it
+    /// ("Character · main"), or the kind alone ("Character")
+    [[nodiscard]] static QString subtitleOf(const core::ProjectManager& book,
+                                            const core::ProjectElement& element);
+
     /// @brief The portrait, a button with its menu
     [[nodiscard]] QToolButton* portraitButton() const { return m_portrait; }
     /// @brief The name
@@ -161,12 +208,19 @@ public:
     [[nodiscard]] RelationsBox* relationsBox() const { return m_relations; }
     /// @brief Relation... of the bar: a new relation; full card
     [[nodiscard]] QToolButton* relationButton() const { return m_relationButton; }
+    /// @brief Fields... of the bar: the window Card Fields of the kind of the card; full card
+    [[nodiscard]] QToolButton* fieldsButton() const { return m_fieldsButton; }
+    /// @brief The tabs of the full card with LAYOUT_TABS: General, Description, Relations,
+    /// Chapters and Materials; nullptr with the columns or on the short card
+    [[nodiscard]] QTabWidget* tabs() const { return m_tabs; }
     /// @brief Find in Book of the bar: the name of the card in the Search panel; full card
     [[nodiscard]] QToolButton* findButton() const { return m_findButton; }
     /// @brief The chapters the card is in; full card
     [[nodiscard]] CardChaptersBox* chaptersBox() const { return m_chapters; }
     /// @brief The materials linked with the card; full card
     [[nodiscard]] LinkedMaterialsBox* materialsBox() const { return m_materials; }
+    /// @brief The declension of the name of the card and its other names
+    [[nodiscard]] CardNameBox* nameBox() const { return m_nameBox; }
 
 public slots:
     /// @brief Make picture material @p imageId the portrait of the card, first of its portraits,
@@ -188,6 +242,10 @@ public slots:
 
     /// @brief Open the color window for the color of the card
     void chooseColor();
+
+    /// @brief Open the window Card Fields at the kind of the card, which saves the fields
+    /// (dialogs::editCardFields())
+    void editFields();
 
 signals:
     /// @brief Open the full card of @p elementId
@@ -220,8 +278,15 @@ signals:
     /// @brief Open material @p elementId, linked with the card
     void requestOpenMaterial(const QString& elementId);
 
-    /// @brief Search the texts of the book for @p text, the name of the card
-    void requestFindInBook(const QString& text);
+    /// @brief Search the texts of the book for the name of card @p elementId: all its forms
+    /// and its other names
+    void requestFindInBook(const QString& elementId);
+
+    /// @brief The window "Name" of the book's dictionary for the name of card @p elementId
+    void requestNameWindow(const QString& elementId);
+
+    /// @brief Another name for card @p elementId
+    void requestOtherName(const QString& elementId);
 
 protected:
     /// @brief The keys of the portrait, the gear at the title of the group, the lines saved
@@ -243,6 +308,21 @@ private:
     /// kind, In short, the fields; the gear at its title, Open Card under it
     void createShortLayout();
 
+    /// @brief The parts of the full card under its header, as LAYOUT_SETTING has them: the
+    /// data beside the description, relations, chapters and materials, or on tabs
+    void placeBody();
+
+    /// @brief The parts of the full card on the tabs General, Description, Relations,
+    /// Chapters and Materials, in m_body
+    void placeOnTabs();
+
+    /// @brief The data of the full card beside its description, the relations, the chapters
+    /// and the materials, in m_body
+    void placeInColumns();
+
+    /// @brief A setting of the cards changed (@p key): the layout, the portrait
+    void takeSetting(const std::string& key);
+
     /// @brief The name, In short, the kind and the color of @p element, or the title of the
     /// group of the short card
     void showHeader(const core::ProjectElement& element);
@@ -250,8 +330,9 @@ private:
     /// @brief The icon of the kind of @p element, beside the kind; full card
     void showKindIcon(const core::ProjectElement& element);
 
-    /// @brief The fields of @p kind in the form, those that this card shows
-    void buildFields(const core::ElementKind& kind);
+    /// @brief The fields of the cards of @p kind in the book (core::ProjectManager::
+    /// cardFields()) in the form, those that this card shows
+    void buildFields(const core::KindRef& kind);
 
     /// @brief No fields: those of another kind go
     void clearFields();
@@ -323,12 +404,6 @@ private:
     /// @brief Give the card the data @p card, saying so when it cannot be saved
     void saveCard(const core::CardData& card);
 
-    /// @brief The kind and the value of the field beside it: "Character · main"
-    [[nodiscard]] QString subtitleOf(const core::ProjectElement& element) const;
-
-    /// @brief The name of the kind of @p element, in capitals: "Character"
-    [[nodiscard]] QString kindNameOf(const core::ProjectElement& element) const;
-
     /// @brief The names of the cards that the line of field @p fieldId, of the type "card",
     /// suggests: the cards of its kind, without this one
     [[nodiscard]] QStringList suggestedCards(const QString& fieldId) const;
@@ -362,9 +437,16 @@ private:
     QWidget* m_description = nullptr;         ///< Full card: the long description, in its group
     RelationsBox* m_relations = nullptr;
     QToolButton* m_relationButton = nullptr;  ///< Full card: Relation... of the bar
+    QToolButton* m_fieldsButton = nullptr;    ///< Full card: Fields... of the bar
+    QWidget* m_body = nullptr;          ///< Full card: the parts under the header
+    QWidget* m_dataColumn = nullptr;    ///< Full card: the data, the declension, own fields
+    QTabWidget* m_tabs = nullptr;       ///< Full card with LAYOUT_TABS: the tabs of the parts
+    bool m_hasTabs = false;             ///< Full card: the parts are on tabs
+    int m_settingsListener = 0;         ///< core::SettingsManager::subscribe() id
     QToolButton* m_findButton = nullptr;      ///< Full card: Find in Book of the bar
     CardChaptersBox* m_chapters = nullptr;    ///< Full card: the chapters of the card
     LinkedMaterialsBox* m_materials = nullptr;  ///< Full card: the materials of the card
+    CardNameBox* m_nameBox = nullptr;         ///< The declension of the name
     core::ProjectManager& m_book;             ///< The book of its window
 };
 

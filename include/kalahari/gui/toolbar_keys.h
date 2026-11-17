@@ -4,7 +4,8 @@
 /// @file toolbar_keys.h
 /// @brief After a command given in a toolbar the keys go back where they were
 
-#pragma once
+#ifndef KALAHARI_GUI_TOOLBAR_KEYS_H
+#define KALAHARI_GUI_TOOLBAR_KEYS_H
 
 #include <QMetaObject>
 #include <QObject>
@@ -90,3 +91,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_TOOLBAR_KEYS_H

@@ -4,7 +4,8 @@
 /// @file paragraph_data.h
 /// @brief Data the editor keeps with each paragraph of its document
 
-#pragma once
+#ifndef KALAHARI_EDITOR_PARAGRAPH_DATA_H
+#define KALAHARI_EDITOR_PARAGRAPH_DATA_H
 
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/grammar_error.h>
@@ -28,7 +29,7 @@ struct ParagraphCheck {
     bool current = false;               ///< Checked since the text or the dictionary changed
 
     /// @brief Issues that apply to a paragraph with @p currentText (none when it changed)
-    const std::vector<TextHighlight>* issuesFor(const QString& currentText) const {
+    [[nodiscard]] const std::vector<TextHighlight>* issuesFor(const QString& currentText) const {
         return !issues.empty() && text == currentText ? &issues : nullptr;
     }
 };
@@ -100,3 +101,5 @@ public:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_PARAGRAPH_DATA_H

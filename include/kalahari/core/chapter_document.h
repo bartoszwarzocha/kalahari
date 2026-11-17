@@ -36,8 +36,10 @@
 ///
 /// OpenSpec #00035: KChapter Document Format
 
-#pragma once
+#ifndef KALAHARI_CORE_CHAPTER_DOCUMENT_H
+#define KALAHARI_CORE_CHAPTER_DOCUMENT_H
 
+#include <kalahari/core/book_project.h>
 #include <kalahari/core/text_statistics.h>
 
 #include <QString>
@@ -45,10 +47,37 @@
 #include <QJsonArray>
 #include <QDateTime>
 #include <QColor>
+#include <QList>
 #include <optional>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
+
+/// @brief A scene of a text: its text from its start or from a scene break (<scene-break/>,
+///        a paragraph of the text) to the next break
+struct KmlScene {
+    ScenePlot plot;   ///< What its break says of it (ScenePlot::toAttributes()); the first
+                      ///< scene has nothing here (ElementPlot::opening)
+    WordTally words;  ///< The words of its text, with the texts of its notes
+
+    bool operator==(const KmlScene&) const = default;
+};
+
+/// @brief A text and what its first scene says: what changes when the plot board moves, adds
+///        or deletes a scene of the text
+struct SceneText {
+    QString kml;        ///< The text (KML)
+    ScenePlot opening;  ///< Its first scene (ElementPlot::opening, in the .klh file)
+
+    bool operator==(const SceneText&) const = default;
+};
+
+/// @brief Two texts after a scene of one of them moved to the other
+struct SceneMove {
+    SceneText from;  ///< The text the scene left
+    SceneText to;    ///< The text it went to
+
+    bool operator==(const SceneMove&) const = default;
+};
 
 /// @brief Chapter document with JSON+KML storage
 ///
@@ -80,11 +109,11 @@ public:
 
     /// @brief Get KML content
     /// @return KML string
-    QString kml() const;
+    [[nodiscard]] QString kml() const;
 
     /// @brief Get plain text content (disaster recovery backup)
     /// @return Plain text string
-    QString plainText() const;
+    [[nodiscard]] QString plainText() const;
 
     /// @brief Set KML content
     /// @param kml KML content string
@@ -100,7 +129,7 @@ public:
 
     /// @brief Check if document has content
     /// @return true if KML is not empty
-    bool hasContent() const;
+    [[nodiscard]] bool hasContent() const;
 
     // =========================================================================
     // Statistics (auto-calculated)
@@ -111,24 +140,24 @@ public:
     ///         of the settings when the text was set, with the texts of the notes of the KML
     ///         when the rules count them: a file read keeps the number it was saved with,
     ///         whatever the rules are now (wordTally() follows them)
-    int wordCount() const;
+    [[nodiscard]] int wordCount() const;
 
     /// @brief The words of the text under any rules of counting (core::tallyWords()),
     ///        counted now, as the editor counts the text of the KML: with the texts of its
     ///        footnotes and endnotes (kmlWordTally())
-    WordTally wordTally() const;
+    [[nodiscard]] WordTally wordTally() const;
 
     /// @brief Get character count
     /// @return Number of characters (excluding whitespace)
-    int characterCount() const;
+    [[nodiscard]] int characterCount() const;
 
     /// @brief Get paragraph count
     /// @return Number of paragraphs containing text, as counted by core::countText()
-    int paragraphCount() const;
+    [[nodiscard]] int paragraphCount() const;
 
     /// @brief Get last modification timestamp
     /// @return QDateTime of last modification
-    QDateTime lastModified() const;
+    [[nodiscard]] QDateTime lastModified() const;
 
     /// @brief Update last modified timestamp to now
     void touch();
@@ -139,7 +168,7 @@ public:
 
     /// @brief Get chapter title
     /// @return Title string
-    QString title() const;
+    [[nodiscard]] QString title() const;
 
     /// @brief Set chapter title
     /// @param title Title string
@@ -147,7 +176,7 @@ public:
 
     /// @brief Get chapter status
     /// @return Status string (e.g., "draft", "revision", "final")
-    QString status() const;
+    [[nodiscard]] QString status() const;
 
     /// @brief Set chapter status
     /// @param status Status string
@@ -155,7 +184,7 @@ public:
 
     /// @brief Get chapter notes
     /// @return Notes string
-    QString notes() const;
+    [[nodiscard]] QString notes() const;
 
     /// @brief Set chapter notes
     /// @param notes Notes string
@@ -163,7 +192,7 @@ public:
 
     /// @brief Get chapter color (for visual organization)
     /// @return Optional color
-    std::optional<QColor> color() const;
+    [[nodiscard]] std::optional<QColor> color() const;
 
     /// @brief Set chapter color
     /// @param color Color value
@@ -178,7 +207,7 @@ public:
 
     /// @brief Get comments array
     /// @return JSON array of comments
-    QJsonArray comments() const;
+    [[nodiscard]] QJsonArray comments() const;
 
     /// @brief Set comments array
     /// @param comments JSON array of comments
@@ -186,7 +215,7 @@ public:
 
     /// @brief Get highlights array
     /// @return JSON array of highlights
-    QJsonArray highlights() const;
+    [[nodiscard]] QJsonArray highlights() const;
 
     /// @brief Set highlights array
     /// @param highlights JSON array of highlights
@@ -198,7 +227,7 @@ public:
 
     /// @brief Serialize to JSON object
     /// @return Complete JSON representation
-    QJsonObject toJson() const;
+    [[nodiscard]] QJsonObject toJson() const;
 
     /// @brief Deserialize from JSON object
     /// @param json JSON object
@@ -220,7 +249,7 @@ public:
     /// the previous file as it was.
     /// @param path File path
     /// @return true if saved successfully
-    bool save(const QString& path) const;
+    [[nodiscard]] bool save(const QString& path) const;
 
     // =========================================================================
     // Migration Helpers
@@ -243,6 +272,49 @@ public:
     ///        them: of its paragraphs (kmlToPlainText()) and of the texts of its footnotes and
     ///        endnotes (WordTally::noteWords)
     static WordTally kmlWordTally(const QString& kml);
+
+    /// @brief The scenes of a text's KML in their order, with their words: the scenes of a
+    ///        text add up to its words (kmlWordTally()); a text without scene breaks is one
+    ///        scene
+    static QList<KmlScene> kmlScenes(const QString& kml);
+
+    /// @brief The KML with the break of scene @p scene (from 1: the first break) saying
+    ///        @p plot of it; the rest of the text as it was
+    /// @return Empty when the text has no such break
+    static QString withScenePlot(const QString& kml, int scene, const ScenePlot& plot);
+
+    /// @name The scenes of a text moved, added and deleted
+    /// A scene goes with its text and what it says: the first scene of the text has no break,
+    /// and what it says is SceneText::opening, so what comes first takes its break off and
+    /// gives what it says to opening, and what was first gets a break. The annotations of the
+    /// text and the headings at its start stay at its start; a scene moved to another text
+    /// takes the annotations anchored in it along.
+    /// @return nullopt for a KML that cannot be read, and for a scene the text does not have
+    /// @{
+
+    /// @brief @p text with scene @p from at place @p to of its scenes without it (from 0)
+    static std::optional<SceneText> withSceneMoved(const SceneText& text, int from, int to);
+
+    /// @brief Scene @p scene of @p from moved to place @p at of the scenes of @p to (0: the
+    ///        first, the number of its scenes: the last), with its text, what it says and the
+    ///        annotations anchored in it; an annotation anchored also in what stays of @p from
+    ///        goes as a copy with a new id
+    /// @return nullopt also for @p from of one scene
+    static std::optional<SceneMove> withSceneMovedTo(const SceneText& from, int scene,
+                                                     const SceneText& to, int at);
+
+    /// @brief @p text with a new scene with an empty paragraph at place @p at of its scenes
+    ///        (0: the first, the number of its scenes: the last), saying @p plot
+    static std::optional<SceneText> withSceneAdded(const SceneText& text, int at,
+                                                   const ScenePlot& plot = {});
+
+    /// @brief @p text without scene @p scene: with its text, or (@p keepText) without its
+    ///        break, its text joined to the scene before it (the first scene: the next one
+    ///        joined to it), what the break said lost
+    /// @return nullopt also for a text of one scene
+    static std::optional<SceneText> withoutScene(const SceneText& text, int scene,
+                                                 bool keepText);
+    /// @}
 
 private:
     /// @brief Recalculate statistics from current content
@@ -273,5 +345,6 @@ private:
     QJsonArray m_highlights;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_CHAPTER_DOCUMENT_H

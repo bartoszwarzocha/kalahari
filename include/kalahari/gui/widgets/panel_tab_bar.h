@@ -5,7 +5,8 @@
 /// @brief The tabs of panels docked one over another, and of the middle of the window in more
 /// rows: icons, names or both, in one row or in as many rows as the width needs
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_PANEL_TAB_BAR_H
+#define KALAHARI_GUI_WIDGETS_PANEL_TAB_BAR_H
 
 #include <QIcon>
 #include <QList>
@@ -17,8 +18,7 @@
 
 class QPainter;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief The tabs of a group of panels docked one over another, in place of Qt's (PanelTabs)
 ///
@@ -261,5 +261,6 @@ private:
     int m_iconSize = 16;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_PANEL_TAB_BAR_H

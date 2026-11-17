@@ -11,7 +11,7 @@
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/statistics_collector.h>
 #include <kalahari/editor/book_editor.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <kalahari/core/project_database.h>
 #include <kalahari/core/writing_journal.h>

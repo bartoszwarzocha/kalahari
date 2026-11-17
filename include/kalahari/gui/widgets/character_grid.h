@@ -5,7 +5,8 @@
 /// @brief The characters of Insert > Special Character... and of the quick palette in cells,
 ///        in the font of the text they go into
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_CHARACTER_GRID_H
+#define KALAHARI_GUI_WIDGETS_CHARACTER_GRID_H
 
 #include "kalahari/gui/special_characters.h"
 
@@ -21,8 +22,7 @@
 
 class QListWidgetItem;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class CharacterCellDelegate;
 
@@ -117,11 +117,12 @@ public:
 private:
     int m_columns;
     int m_rows;
-    int m_minimumColumns;
-    int m_minimumRows;
+    int m_minimumColumns = 1;
+    int m_minimumRows = 1;
     QSize m_cell{32, 32};
     CharacterCellDelegate* m_delegate = nullptr;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_CHARACTER_GRID_H

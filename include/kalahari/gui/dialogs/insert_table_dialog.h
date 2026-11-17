@@ -4,16 +4,15 @@
 /// @file insert_table_dialog.h
 /// @brief Insert > Table...: the columns and rows of a new table
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_INSERT_TABLE_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_INSERT_TABLE_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
 class QCheckBox;
 class QSpinBox;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 class TablePreview;
 
@@ -46,6 +45,6 @@ private:
     TablePreview* m_preview = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_INSERT_TABLE_DIALOG_H

@@ -9,10 +9,15 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/quick_insert.h>
 #include <kalahari/editor/quick_insert_controller.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
+#include <QColor>
 #include <QCoreApplication>
+#include <QIcon>
+#include <QImage>
 #include <QKeyEvent>
+#include <QPixmap>
+#include <QTreeWidget>
 
 #include <memory>
 
@@ -115,7 +120,7 @@ struct Fixture {
         QCoreApplication::sendEvent(editor.get(), &event);
     }
 
-    QStringList shown() const { return namesOf(quick->list()->items()); }
+    [[nodiscard]] QStringList shown() const { return namesOf(quick->list()->items()); }
 };
 
 }  // namespace
@@ -395,4 +400,39 @@ TEST_CASE("Quick insert: without forms Right and Left move the cursor in the tex
     CHECK(f.editor->cursorPosition() == CursorPosition{0, 10});
     CHECK(f.quick->isOpen());
     CHECK(f.shown() == QStringList{QStringLiteral("Anna Wolska"), QStringLiteral("Jan Anioł")});
+}
+
+TEST_CASE("Quick insert: the names of the cards with their colors", "[editor][quickinsert]") {
+    Fixture f({QStringLiteral("zapytał ")});
+    f.cards.first().color = QStringLiteral("#c0504d");
+    f.editor->setCursorPosition({.paragraph = 0, .offset = 8});
+    f.type(QStringLiteral("@"));
+    REQUIRE(f.quick->isOpen());
+    const auto* tree = f.quick->list()->findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    // The rows after the heading of the group: a dot of the color of Anna Wolska, an empty place
+    // of its size for the others, in line with it
+    QList<const QTreeWidgetItem*> rows;
+    for (int i = 0; i < tree->topLevelItemCount(); ++i) {
+        if (tree->topLevelItem(i)->flags() != Qt::NoItemFlags) {
+            rows.append(tree->topLevelItem(i));
+        }
+    }
+    REQUIRE(rows.size() == 3);
+    const QImage dot = rows.at(0)->icon(0).pixmap(tree->iconSize()).toImage();
+    const QImage none = rows.at(1)->icon(0).pixmap(tree->iconSize()).toImage();
+    REQUIRE_FALSE(dot.isNull());
+    REQUIRE_FALSE(none.isNull());
+    const QColor middle = dot.pixelColor(dot.width() / 2, dot.height() / 2);
+    CHECK(middle == QColor(QStringLiteral("#c0504d")));
+    CHECK(none.pixelColor(none.width() / 2, none.height() / 2).alpha() == 0);
+
+    // Without colors, no places for them
+    f.press(Qt::Key_Escape);
+    f.cards.first().color.clear();
+    f.type(QStringLiteral(" @"));
+    REQUIRE(f.quick->isOpen());
+    for (int i = 0; i < tree->topLevelItemCount(); ++i) {
+        CHECK(tree->topLevelItem(i)->icon(0).isNull());
+    }
 }

@@ -21,8 +21,7 @@
 #include <utility>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // Translate technical menu names to display names (i18n), with their access keys: unique
 // among the menus of the menu bar and in each menu (test_menu_access_keys)
@@ -60,6 +59,8 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Select") return QObject::tr("&Select");
     if (technicalName == "Convert") return QObject::tr("&Convert");
     // The Image menu (the image's context menu has the same keys)
+    //: How the text flows around the selected image. In Polish: Opływanie t&ekstem
+    if (technicalName == "Wrap Text") return QObject::tr("&Wrap Text");
     //: In Polish: Ob&róć
     if (technicalName == "Rotate") return QObject::tr("R&otate");
     //: In Polish: &Filtr
@@ -110,6 +111,7 @@ QString MenuBuilder::submenuIconId(const std::string& technicalName) {
         {"Delete", QStringLiteral("menu.tableDelete")},
         {"Select", QStringLiteral("menu.tableSelect")},
         {"Convert", QStringLiteral("menu.tableConvert")},
+        {"Wrap Text", QStringLiteral("menu.imageWrap")},
         {"Rotate", QStringLiteral("menu.imageRotate")},
         {"Filter", QStringLiteral("menu.imageFilter")},
         {"Statistics", QStringLiteral("menu.statistics")},
@@ -349,5 +351,4 @@ QMenu* MenuBuilder::getMenu(const std::string& technicalName) const {
 // CommandRegistry uses ArtProvider::createAction() which connects each
 // action to ArtProvider::resourcesChanged() signal for auto-refresh.
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

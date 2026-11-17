@@ -51,10 +51,10 @@ public:
         }
     }
 
-    QString path() const { return QString::fromStdString(m_path.string()); }
-    fs::path fsPath() const { return m_path; }
+    [[nodiscard]] QString path() const { return QString::fromStdString(m_path.string()); }
+    [[nodiscard]] fs::path fsPath() const { return m_path; }
 
-    QString dbPath() const {
+    [[nodiscard]] QString dbPath() const {
         return QDir(path()).filePath("project.db");
     }
 

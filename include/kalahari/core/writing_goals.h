@@ -9,7 +9,8 @@
 /// settings); the length of a book, its deadline and the deadlines of its parts are the book's
 /// own and are kept in its project.db (the setting BookGoals::SETTING_KEY).
 
-#pragma once
+#ifndef KALAHARI_CORE_WRITING_GOALS_H
+#define KALAHARI_CORE_WRITING_GOALS_H
 
 #include "kalahari/core/writing_statistics.h"
 
@@ -40,20 +41,20 @@ struct BookGoals {
     QList<WritingDeadline> deadlines;   ///< The deadlines of the parts, by date
 
     /// @brief No goal and no deadline
-    bool isEmpty() const;
+    [[nodiscard]] bool isEmpty() const;
 
     /// @brief The deadlines by date; those without a date last
     void sortDeadlines();
 
     /// @brief The index of the first deadline not passed on @p today; -1 when none
-    int nextDeadline(const QDate& today) const;
+    [[nodiscard]] int nextDeadline(const QDate& today) const;
 
     /// @brief The book has a length and a deadline not passed on @p today: the daily goal
     /// can come from them
-    bool hasDeadlineAhead(const QDate& today) const;
+    [[nodiscard]] bool hasDeadlineAhead(const QDate& today) const;
 
     /// @brief As the setting keeps them
-    QString toJson() const;
+    [[nodiscard]] QString toJson() const;
 
     /// @brief From the setting; empty goals from an empty or broken text
     static BookGoals fromJson(const QString& text);
@@ -82,3 +83,5 @@ int dailyGoalForDeadline(const WritingRules& rules, const BookGoals& goals,
                          int wordsAtStartOfToday, const QDate& today);
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_WRITING_GOALS_H

@@ -4,7 +4,8 @@
 /// @file path_label.h
 /// @brief A label with a file path, which wraps where its line ends, whatever the path's names
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_PATH_LABEL_H
+#define KALAHARI_GUI_WIDGETS_PATH_LABEL_H
 
 #include <QLabel>
 #include <QSizeF>
@@ -14,8 +15,7 @@ class QPaintEvent;
 class QTextLayout;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A label with a file path, which wraps after the separators of the path, and inside
 ///        a name of a folder or a file that is longer than the line
@@ -50,5 +50,6 @@ private:
     [[nodiscard]] QSize room() const;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_PATH_LABEL_H

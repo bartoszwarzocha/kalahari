@@ -11,7 +11,8 @@
 /// where a name taken by another file gets a number ("map-2.png") and a file with the same
 /// content is used again.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_IMAGE_STORE_H
+#define KALAHARI_EDITOR_IMAGE_STORE_H
 
 #include <QCache>
 #include <QHash>
@@ -38,18 +39,18 @@ public:
     void setFolder(const QString& folder);
 
     /// @brief The book's main folder; empty: none
-    const QString& folder() const { return m_folder; }
+    [[nodiscard]] const QString& folder() const { return m_folder; }
 
     /// @brief Whether the store has a folder: images can be shown and added
-    bool hasFolder() const { return !m_folder.isEmpty(); }
+    [[nodiscard]] bool hasFolder() const { return !m_folder.isEmpty(); }
 
     /// @brief The file of a source, a path on the disk; empty when the store has no folder
     ///        or the source is not one of the book's folder (isSafeImageSource())
-    QString filePath(const QString& source) const;
+    [[nodiscard]] QString filePath(const QString& source) const;
 
     /// @brief The size of the image of a source in its pixels (an SVG: its own size);
     ///        std::nullopt: the file is missing or is not an image the editor reads
-    std::optional<QSize> pixelSize(const QString& source) const;
+    [[nodiscard]] std::optional<QSize> pixelSize(const QString& source) const;
 
     /// @brief The size of the image of a file in its pixels (an SVG: its own size);
     ///        std::nullopt: it is missing or is not an image the editor reads
@@ -57,16 +58,16 @@ public:
 
     /// @brief The picture of a source in these pixels; null: the file is missing or is not
     ///        an image
-    QImage picture(const QString& source, const QSize& pixels) const;
+    [[nodiscard]] QImage picture(const QString& source, const QSize& pixels) const;
 
     /// @brief The picture of an image as it is shown, in these pixels: its file's picture
     ///        cropped, turned, mirrored and recolored (shownPicture()); null: the file is
     ///        missing or is not an image
-    QImage shownImage(const ImageProperties& image, const QSize& pixels) const;
+    [[nodiscard]] QImage shownImage(const ImageProperties& image, const QSize& pixels) const;
 
     /// @brief The pixels an image has of its own: those of its file cropped and turned;
     ///        std::nullopt: the file is missing or is not an image
-    std::optional<QSize> shownPixelSize(const ImageProperties& image) const;
+    [[nodiscard]] std::optional<QSize> shownPixelSize(const ImageProperties& image) const;
 
     /// @brief Copy a file into the book's folder of images
     /// @param maxWidth A copy of a picture wider than these pixels gets them, in proportion,
@@ -82,6 +83,14 @@ public:
     /// @param baseName Its name without the extension; a taken one gets a number
     /// @return Its source; empty: it could not be saved, or the store has no folder
     QString addPicture(const QImage& picture, const QString& baseName);
+
+    /// @brief Save the file of an image (one of an imported document) in the book's folder of
+    ///        images as it is
+    /// @param fileName The file's name ("image1.png"); a path gives only its name, a taken one
+    ///        gets a number
+    /// @return Its source, the source of a file of the same content when the folder has one;
+    ///         empty: no data, it could not be saved, or the store has no folder
+    QString addData(const QByteArray& data, const QString& fileName);
 
     /// @brief The source in this book of an image of another book's folder: the same one
     ///        when the folders are the same or the file is missing, else that of its copy
@@ -101,3 +110,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_IMAGE_STORE_H

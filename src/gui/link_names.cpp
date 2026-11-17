@@ -13,8 +13,7 @@
 
 #include <QCoreApplication>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -56,46 +55,46 @@ QString cardRoleName(const QString& role) {
     return {};
 }
 
-QString linkTitle(const core::ProjectManager& pm, const QString& link) {
-    const core::BookProject* project = pm.project();
+QString linkTitle(const core::ProjectManager& book, const QString& link) {
+    const core::BookProject* project = book.project();
     if (project == nullptr) {
         return {};
     }
     if (const core::ProjectElement* element = project->findElement(link)) {
         return element->title;
     }
-    for (qsizetype book = 0; book < project->books.size(); ++book) {
-        if (const std::optional<core::BookPlace> place = project->linkedSection(link, book)) {
-            return project->books.at(book).sectionName(*place);
+    for (qsizetype index = 0; index < project->books.size(); ++index) {
+        if (const std::optional<core::BookPlace> place = project->linkedSection(link, index)) {
+            return project->books.at(index).sectionName(*place);
         }
     }
     return {};
 }
 
-QIcon linkIcon(const core::ProjectManager& pm, const QString& link, core::IconContext context) {
-    const core::BookProject* project = pm.project();
+QIcon linkIcon(const core::ProjectManager& book, const QString& link, core::IconContext context) {
+    const core::BookProject* project = book.project();
     if (project == nullptr) {
         return {};
     }
     if (const core::ProjectElement* element = project->findElement(link)) {
-        return NavigatorPanel::iconOf(pm, *element, context);
+        return NavigatorPanel::iconOf(book, *element, context);
     }
-    for (qsizetype book = 0; book < project->books.size(); ++book) {
-        if (const std::optional<core::BookPlace> place = project->linkedSection(link, book)) {
+    for (qsizetype index = 0; index < project->books.size(); ++index) {
+        if (const std::optional<core::BookPlace> place = project->linkedSection(link, index)) {
             return core::ArtProvider::getInstance().getIcon(sectionIconId(*place), context);
         }
     }
     return {};
 }
 
-QString linkPlace(const core::ProjectManager& pm, const QString& link) {
-    const core::BookProject* project = pm.project();
+QString linkPlace(const core::ProjectManager& book, const QString& link) {
+    const core::BookProject* project = book.project();
     if (project == nullptr) {
         return {};
     }
-    for (qsizetype book = 0; book < project->books.size(); ++book) {
-        if (project->linkedSection(link, book)) {
-            return NavigatorPanel::bookName(project->books.at(book));
+    for (qsizetype index = 0; index < project->books.size(); ++index) {
+        if (project->linkedSection(link, index)) {
+            return NavigatorPanel::bookName(project->books.at(index));
         }
     }
     const core::ProjectElement* element = project->findElement(link);
@@ -105,7 +104,7 @@ QString linkPlace(const core::ProjectManager& pm, const QString& link) {
     }
     if (at->place == core::BookPlace::Workshop) {
         return core::fillWords(QStringLiteral("{Kind:plural}"),
-                               {{QStringLiteral("kind"), wordsOf(pm, *element)}});
+                               {{QStringLiteral("kind"), wordsOf(book, *element)}});
     }
     if (!at->groupId.isEmpty()) {
         if (const core::ProjectElement* group = project->findElement(at->groupId)) {
@@ -159,5 +158,4 @@ QString linkDetails(const core::ElementLink& link) {
     return parts.join(QStringLiteral(" · "));
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

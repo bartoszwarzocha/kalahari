@@ -14,11 +14,13 @@
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/text_images.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QApplication>
+#include <QBuffer>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QImage>
 #include <QImageReader>
 #include <QMimeData>
@@ -43,10 +45,11 @@ namespace {
 struct BookFolder {
     QTemporaryDir dir;
 
-    QString path() const { return dir.path(); }
+    [[nodiscard]] QString path() const { return dir.path(); }
 
     /// Save a picture of one color in the folder of images
-    QString addPicture(const QString& name, const QSize& size, const QColor& color) const {
+    // Not const: it writes a file into the folder
+    QString addPicture(const QString& name, const QSize& size, const QColor& color) {
         QDir(dir.path()).mkpath(QStringLiteral("images"));
         QImage picture(size, QImage::Format_RGB32);
         picture.fill(color);
@@ -289,6 +292,16 @@ TEST_CASE("Images: the store copies files into the folder of images", "[editor][
     const QString saved = store.addPicture(pasted, QStringLiteral("image"));
     CHECK(saved == QStringLiteral("images/image.png"));
     CHECK(store.addPicture(pasted, QStringLiteral("image")) == saved);
+
+    // The file of an imported document: only its name, as it is
+    QByteArray png;
+    QBuffer pngBuffer(&png);
+    pngBuffer.open(QIODevice::WriteOnly);
+    REQUIRE(pasted.save(&pngBuffer, "PNG"));
+    CHECK(store.addData(png, QStringLiteral("word/media/image.png")) == saved);  // the same content
+    CHECK(store.addData(QByteArray("other"), QStringLiteral("..\\..\\image.png")) == QStringLiteral("images/image-2.png"));
+    CHECK(QFileInfo::exists(book.path() + QStringLiteral("/images/image-2.png")));
+    CHECK(store.addData(QByteArray(), QStringLiteral("empty.png")).isEmpty());
 
     // Without a folder nothing is added or read
     ImageStore none;

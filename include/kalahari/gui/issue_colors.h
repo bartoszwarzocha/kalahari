@@ -4,7 +4,8 @@
 /// @file issue_colors.h
 /// @brief The colors of the misspelled words and the grammar issues, as the theme gives them
 
-#pragma once
+#ifndef KALAHARI_GUI_ISSUE_COLORS_H
+#define KALAHARI_GUI_ISSUE_COLORS_H
 
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/render_context.h"
@@ -37,3 +38,5 @@ inline QColor issueColorOn(editor::TextIssueKind kind, const QColor& background)
 }
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_ISSUE_COLORS_H

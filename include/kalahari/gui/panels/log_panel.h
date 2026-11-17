@@ -13,7 +13,8 @@
 /// Normal mode: Panel hidden by default, shows only INFO+
 /// Diagnostic mode (--diag/--dev): Panel shown, all log levels
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_LOG_PANEL_H
+#define KALAHARI_GUI_PANELS_LOG_PANEL_H
 
 #include <QWidget>
 #include <QColor>
@@ -25,7 +26,7 @@ class QTextEdit;
 namespace kalahari {
 namespace core {
 class LogPanelSink;
-}
+} // namespace core
 
 namespace gui {
 
@@ -64,20 +65,20 @@ public:
 
     /// @brief Get the log panel sink for registration with spdlog
     /// @return Shared pointer to LogPanelSink
-    std::shared_ptr<core::LogPanelSink> getSink() const { return m_sink; }
+    [[nodiscard]] std::shared_ptr<core::LogPanelSink> getSink() const { return m_sink; }
 
     /// @brief Set diagnostic mode (affects log level filtering)
     /// @param enabled true = show all levels, false = INFO+ only
     void setDiagnosticMode(bool enabled);
 
     /// @brief Check if diagnostic mode is enabled
-    bool isDiagnosticMode() const { return m_diagnosticMode; }
+    [[nodiscard]] bool isDiagnosticMode() const { return m_diagnosticMode; }
 
     /// @brief Get current ring buffer size
-    size_t getBufferSize() const { return m_logBuffer.size(); }
+    [[nodiscard]] size_t getBufferSize() const { return m_logBuffer.size(); }
 
     /// @brief Get maximum ring buffer capacity
-    size_t getMaxBufferSize() const { return m_maxBufferSize; }
+    [[nodiscard]] size_t getMaxBufferSize() const { return m_maxBufferSize; }
 
     /// @brief Set maximum ring buffer capacity
     /// @param size Maximum lines (clamped to 1-1000)
@@ -124,19 +125,20 @@ private:
     /// @brief Get color for log level based on current theme
     /// @param level spdlog level (0-5)
     /// @return Color for the level
-    QColor getColorForLevel(int level) const;
+    [[nodiscard]] QColor getColorForLevel(int level) const;
 
     /// @brief Check if log level should be displayed
     /// @param level spdlog level (0-5)
     /// @return true if level passes current filter
-    bool shouldDisplayLevel(int level) const;
+    [[nodiscard]] bool shouldDisplayLevel(int level) const;
 
     // ========================================================================
     // UI Components
     // ========================================================================
 
-    QTextEdit* m_logEdit;           ///< Log display (rich text for colors)
-    ToolButtonColumns* m_toolBar;   ///< Buttons at the side, wrapping into columns when low
+    QTextEdit* m_logEdit = nullptr;          ///< Log display (rich text for colors)
+    ToolButtonColumns* m_toolBar = nullptr;  ///< Buttons at the side, wrapping into columns when
+                                             ///< low
 
     // ========================================================================
     // Log Sink
@@ -156,7 +158,7 @@ private:
     // ========================================================================
 
     bool m_diagnosticMode;              ///< Show all levels vs INFO+ only
-    bool m_isDarkTheme;                 ///< Current theme (for colors)
+    bool m_isDarkTheme = false;         ///< Current theme (for colors)
 
     // ========================================================================
     // Cached Colors (Task #00027 - performance fix)
@@ -191,3 +193,5 @@ protected:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_PANELS_LOG_PANEL_H

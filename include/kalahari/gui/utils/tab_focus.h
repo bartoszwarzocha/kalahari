@@ -9,9 +9,7 @@
 
 class QTabWidget;
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 /// @brief Give the keyboard focus to the page in front of @p tabs, as a switch of tabs gives it
 ///
@@ -44,8 +42,6 @@ void removeTabKeepingFocus(QTabWidget& tabs, int index);
 /// @param tabs The tabs
 void focusPageOnTabClick(QTabWidget& tabs);
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils
 
 #endif // KALAHARI_GUI_UTILS_TAB_FOCUS_H

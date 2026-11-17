@@ -33,8 +33,7 @@
 #include <shlobj.h>
 #endif
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 namespace {
 
@@ -91,7 +90,7 @@ struct ZipCloser {
 }  // namespace
 
 PluginArchive::PluginArchive(const std::filesystem::path& plugin_path)
-    : m_archive_path(plugin_path), m_is_valid(false) {
+    : m_archive_path(plugin_path) {
     try {
         // Generate unique subdirectory: <timestamp>_<random>_<plugin_filename>
         // The random part keeps directories distinct when the same plugin is extracted
@@ -382,5 +381,4 @@ bool PluginArchive::extractArchive(const std::filesystem::path& archive_path,
     return true;
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

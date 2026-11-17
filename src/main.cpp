@@ -18,6 +18,7 @@
 #include <QThread>
 #include <QTranslator>
 #include "kalahari/gui/main_window.h"
+#include "kalahari/gui/plugin_coordinator.h"
 #include "kalahari/gui/program_instance.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -39,6 +40,8 @@
 #include "kalahari/gui/kalahari_style.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/widget_keys.h"
+#include "kalahari/mindmap/mind_map_module.h"
+#include "kalahari/timeline/timeline_module.h"
 
 namespace {
 
@@ -55,9 +58,9 @@ class DownloadHelper : public QObject {
 
 public:
     DownloadHelper(QObject* parent = nullptr)
-        : QObject(parent), downloadSuccess(false) {}
+        : QObject(parent) {}
 
-    bool downloadSuccess;
+    bool downloadSuccess = false;
     QString downloadedSvg;
     QString expectedTheme;
 
@@ -320,6 +323,18 @@ int main(int argc, char *argv[]) {
     }
     logger.openFile(LOG_FILE);
 
+    // The modules that edit window kinds of the Workshop: the program knows them only by what
+    // they register (core::IWindowEditorProvider), so that each can leave as an add-on
+    kalahari::mindmap::registerMindMapModule();
+    kalahari::timeline::registerTimelineModule();
+
+    // The plugins: Kalahari's own add-ons, signed with its key. Python starts only when one is
+    // turned on; every book window takes their commands and panels
+    kalahari::gui::installPluginHost();
+    if (!benchmarkMode) {
+        kalahari::gui::loadPlugins();
+    }
+
     // The first book window of the program: it opens the file of the command line, or the
     // books of the last work. Each book window closes and is deleted on its own.
     auto* firstWindow = new kalahari::gui::MainWindow;
@@ -496,6 +511,8 @@ int main(int argc, char *argv[]) {
     // The windows still there (closed ones wait for the event loop to delete them) go while
     // the application is
     qDeleteAll(kalahari::gui::MainWindow::windows());
+    // The plugins go after the windows that show their commands and panels
+    kalahari::gui::unloadPlugins();
 
     // Settings that apply only after a restart (UI language) can ask for one:
     // SettingsCoordinator sets this property and closes the main window

@@ -13,14 +13,14 @@
 /// - Platform-specific PYTHONHOME configuration
 /// - Integration with pybind11 for C++/Python interop
 
-#pragma once
+#ifndef KALAHARI_CORE_PYTHON_INTERPRETER_H
+#define KALAHARI_CORE_PYTHON_INTERPRETER_H
 
 #include <string>
 #include <filesystem>
 #include <mutex>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Singleton manager for embedded Python interpreter
 ///
@@ -105,5 +105,6 @@ private:
     mutable std::mutex m_mutex;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_PYTHON_INTERPRETER_H

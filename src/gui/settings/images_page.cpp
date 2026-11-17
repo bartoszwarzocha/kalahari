@@ -18,7 +18,6 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QSpinBox>
 #include <QVBoxLayout>
 
@@ -64,19 +63,16 @@ EditorImagesPage::EditorImagesPage(QWidget* parent)
     // How a new image goes into the text
     //: Settings > Editor > Images. In Polish: Nowy obraz
     QFormLayout* image = addGroup(tr("New Image"));
+    // How the text flows around it (as Image > Wrap Text)
     auto* layout = new QComboBox();
     layout->setObjectName(QStringLiteral("imageLayout"));
-    //: In Polish: W tekście, we własnym akapicie
-    layout->addItem(tr("In the text, in a paragraph of its own"), QStringLiteral("inline"));
-    //: In Polish: Wokół ramki
-    layout->addItem(tr("Square"), QStringLiteral("square"));
-    //: In Polish: Nad i pod
-    layout->addItem(tr("Top and bottom"), QStringLiteral("topBottom"));
+    for (const auto& [wrap, text] : imageWrapChoices()) {
+        layout->addItem(text, QString::fromStdString(imageWrapSetting(wrap)));
+    }
     layout->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     layout->setMinimumContentsLength(MIN_CHOICE_CHARACTERS);
     //: In Polish: Ukła&d:
-    QLabel* layoutLabel = addField(image, tr("&Layout:"), layout, IMAGE_LAYOUT_KEY);
-    markNotUsedYet(layout, layoutLabel);
+    addField(image, tr("&Layout:"), layout, IMAGE_LAYOUT_KEY);
 
     auto* alignment = new QComboBox();
     alignment->setObjectName(QStringLiteral("imageAlignment"));
@@ -283,37 +279,23 @@ EditorImagesPage::EditorImagesPage(QWidget* parent)
     // The manuscript for a publisher
     //: In Polish: Maszynopis dla wydawnictwa
     QFormLayout* manuscript = addGroup(tr("Manuscript for a Publisher"));
-    auto* choices = new QWidget();
-    auto* choicesLayout = new QVBoxLayout(choices);
-    choicesLayout->setContentsMargins(0, 0, 0, 0);
-    //: In Polish: Obrazy w tekście, jak w edytorze
-    auto* inText = new QRadioButton(tr("Images in the text, as in the editor"));
-    //: In Polish: Znaczniki w miejscach obrazów
-    auto* markers = new QRadioButton(tr("Markers in the places of images"));
-    choicesLayout->addWidget(inText);
-    choicesLayout->addWidget(markers);
-    //: In Polish: W tekście „[Tu rysunek 3]”, obrazy w osobnym folderze.
-    alignWithText(addNote(choicesLayout, tr("\"[Figure 3 here]\" in the text, the images in a "
-                                            "folder of their own.")),
-                  markers);
-    manuscript->addRow(choices);
-    Binding inManuscript;
-    inManuscript.key = []() { return std::string(IMAGE_MANUSCRIPT_KEY); };
-    inManuscript.stored = [&settings]() {
-        return json(settings.get<std::string>(IMAGE_MANUSCRIPT_KEY, "inline"));
-    };
-    inManuscript.shown = [markers]() { return json(markers->isChecked() ? "markers" : "inline"); };
-    inManuscript.show = [inText, markers](const json& value) {
-        const bool marked = value.is_string() && value.get<std::string>() == "markers";
-        markers->setChecked(marked);
-        inText->setChecked(!marked);
-    };
-    inManuscript.store = [&settings](const json& value) {
-        settings.set<std::string>(IMAGE_MANUSCRIPT_KEY,
-                                  value.is_string() ? value.get<std::string>() : "inline");
-    };
-    bindCustom(std::move(inManuscript));
-    markNotUsedYet(choices);
+    QComboBox* inManuscript = addChoice(
+        manuscript,
+        //: How the images are in the manuscript for a publisher. In Polish: W &maszynopisie:
+        tr("In the &manuscript:"),
+        //: In Polish: Obrazy w tekście, jak w edytorze
+        {{tr("Images in the text, as in the editor"), QStringLiteral("inline"), {}},
+         //: In Polish: Znaczniki w miejscach obrazów
+         {tr("Markers in the places of images"), QStringLiteral("markers"),
+          //: In Polish: W tekście „[Tu rysunek 3]”, obrazy w osobnym folderze.
+          tr("\"[Figure 3 here]\" in the text, the images in a folder of their own.")}},
+        std::string());
+    inManuscript->setObjectName(QStringLiteral("imageManuscript"));
+    inManuscript->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    inManuscript->setMinimumContentsLength(MIN_CHOICE_CHARACTERS);
+    bindChoice(inManuscript, IMAGE_MANUSCRIPT_KEY, "inline");
+    markNotUsedYet(inManuscript,
+                   qobject_cast<QLabel*>(manuscript->labelForField(inManuscript)));
     addNote(manuscript, tr("Many publishers want the illustrations apart, in full resolution, and "
                            "in the manuscript only the places for them."));
 

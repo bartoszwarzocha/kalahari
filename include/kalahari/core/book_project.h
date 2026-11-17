@@ -84,16 +84,26 @@
 ///   "perChapter": true }, "endnotes": { "format": "i", "perChapter": false, "place": "book" } }.
 ///   A book without it numbers 1, 2, 3 and i, ii, iii anew in each chapter, the endnotes after
 ///   each text.
+/// - "isbn" and "publisher" are the ISBN and the publisher of the book's e-book, as File >
+///   Export > EPUB was given them last: "isbn": "978-83-01-00000-1", "publisher": "Wydmy".
+///   A book without them has none.
 /// - "sections" is the id of a set of names in the language of the book ("sections": Front
 ///   Section, Main Section, Back Section; "matter": Front Matter, Body, Back Matter;
 ///   "fragments"; "arc"), or the writer's own names:
 ///   { "front": "Przedmowa i wstęp", "main": "Opowieść", "back": "Dodatki" }. None: the
 ///   first set. An id this version does not know is saved back and gives the first set.
-/// - The Workshop has the name of its node ("name"), whether it is grouped and its elements.
+/// - The Workshop has the name of its node ("name"), whether it is grouped and its elements,
+///   the relations between cards that the writer named ("relations", OwnRelation) and the
+///   fields of the cards of the kinds the writer changed them in ("cardFields",
+///   BookCardField); a kind without them has the fields of its package.
 /// - An element has an id unique in the project, its kind, a title, a file relative to the
 ///   project folder (if it has one), a status ("draft", "revision" or "final"; groups have
 ///   none) and the elements inside it (groups). The order and nesting of elements are saved
 ///   only here, not in folders.
+/// - A text element of a book can have a short description for the plot board ("description")
+///   and what the board says of its plot ("plot", ElementPlot): its point of view, place and
+///   time of the action, and the color of its card:
+///   { "pov": "Amara", "place": "Oaza Al-Ma", "time": "Dzień 3", "color": "teal" }.
 /// - An element of the Workshop can have a description ("description"), the writer's own fields
 ///   ("fields": a name and a value each, in the writer's order) and what it is about ("links":
 ///   the ids of elements, and of sections as "<book id>/front", "/main" or "/back"). A link is
@@ -120,10 +130,12 @@
 ///   has none.
 /// - Fields this version of Kalahari does not know are kept and saved back.
 
-#pragma once
+#ifndef KALAHARI_CORE_BOOK_PROJECT_H
+#define KALAHARI_CORE_BOOK_PROJECT_H
 
 #include <kalahari/core/book_type_registry.h>
 #include <kalahari/core/card_data.h>
+#include <kalahari/core/card_field_set.h>
 #include <kalahari/core/clipping.h>
 #include <kalahari/core/cover_material.h>
 #include <kalahari/core/source_description.h>
@@ -131,6 +143,7 @@
 #include <QDateTime>
 #include <QJsonObject>
 #include <QList>
+#include <QMap>
 #include <QString>
 #include <QStringList>
 #include <QVariantMap>
@@ -162,12 +175,83 @@ struct ElementLink {
     QJsonObject extra;  ///< Fields this version does not know, saved back
 
     /// @brief Whether it says more than what it links (saved as an object)
-    bool hasDetails() const {
+    [[nodiscard]] bool hasDetails() const {
         return !role.isEmpty() || paragraph > 0 || !excerpt.isEmpty() || !note.isEmpty() ||
                !extra.isEmpty();
     }
 
     bool operator==(const ElementLink&) const = default;
+};
+
+/// @brief What the plot board says of a scene of a text: the card of the scene
+///
+/// A scene is the text of a chapter from its start or from a scene break to the next break. A
+/// break keeps what it says of the scene after it as its attributes in the KML of the text
+/// (toAttributes()), so it goes with its text; the first scene, before any break, has it in the
+/// .klh file (ElementPlot::opening).
+struct ScenePlot {
+    QString title;        ///< Its title; empty: none ("Scene 2" on its card)
+    QString description;  ///< Its short description
+    QString pov;          ///< Point of view
+    QString place;        ///< Place of the action
+    QString time;         ///< Time of the action
+    QString color;        ///< Own color of its card, a name of PlotColors ("blue")
+    QString status;       ///< "draft", "revision" or "final"; empty: as its text
+    QJsonObject extra;    ///< Fields of "opening" (or of a scene in the plan) this version
+                          ///< does not know, saved back
+
+    /// @brief Whether it says nothing
+    [[nodiscard]] bool isEmpty() const {
+        return title.isEmpty() && description.isEmpty() && pov.isEmpty() && place.isEmpty() &&
+               time.isEmpty() && color.isEmpty() && status.isEmpty() && extra.isEmpty();
+    }
+
+    /// @brief Its fields with text by their names: "title", "description", "pov", "place",
+    /// "time", "color", "status" (the attributes of a scene break, the fields of "opening")
+    [[nodiscard]] QMap<QString, QString> toAttributes() const;
+
+    /// @brief The plot of a scene from its fields by their names (toAttributes())
+    static ScenePlot fromAttributes(const QMap<QString, QString>& attributes);
+
+    /// @brief The names of its fields in the order they are written
+    static const QStringList& fieldNames();
+
+    bool operator==(const ScenePlot&) const = default;
+};
+
+/// @brief A scene in the plan of a text: what the writer means to write there, before the text
+/// has it
+///
+/// The plot board shows it among the scenes of the text; once it is written, a scene break
+/// with what it says takes its place in the text.
+struct PlannedScene {
+    ScenePlot plot;  ///< What it says; it has no state ("In the Plan") until it is written
+    int after = 0;   ///< How many scenes of the text come before it: 0 before the first one
+
+    bool operator==(const PlannedScene&) const = default;
+};
+
+/// @brief What the plot board says of a text element of a book: whose eyes the reader sees it
+/// with, where and when it happens, and the color of its card
+///
+/// The texts are the writer's own words: a name of a character or a place of the Workshop, or
+/// anything else ("Dzień 3", "Marzec 1931").
+struct ElementPlot {
+    QString pov;        ///< Point of view; empty: not said
+    QString place;      ///< Place of the action; empty: not said
+    QString time;       ///< Time of the action; empty: not said
+    QString color;      ///< Own color of its card, a name of PlotColors ("blue"); empty: none
+    ScenePlot opening;  ///< Of the first scene of its text, before any scene break ("opening")
+    QList<PlannedScene> planned;  ///< The scenes in its plan ("planned"), in their order
+    QJsonObject extra;  ///< Fields this version does not know, saved back
+
+    /// @brief Whether it says nothing: the file has no "plot"
+    [[nodiscard]] bool isEmpty() const {
+        return pov.isEmpty() && place.isEmpty() && time.isEmpty() && color.isEmpty() &&
+               opening.isEmpty() && planned.isEmpty() && extra.isEmpty();
+    }
+
+    bool operator==(const ElementPlot&) const = default;
 };
 
 /// @brief Element of a book or of the Workshop: a chapter, a part, a character card...
@@ -184,8 +268,9 @@ struct ProjectElement {
                                      ///< the file "firstPage": "left", without it a right page
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
     QString description;             ///< Description of an element of the Workshop without a
-                                     ///< text of its own (a material), or the short one of a
-                                     ///< card ("In short"); empty: none
+                                     ///< text of its own (a material), the short one of a card
+                                     ///< ("In short"), or the short description of a text of a
+                                     ///< book on the plot board; empty: none
     QList<ElementField> fields;      ///< The writer's own fields, in the writer's order
     QList<ElementLink> links;        ///< What it is about: elements and sections, each
                                      ///< once, in the order linked
@@ -197,6 +282,8 @@ struct ProjectElement {
                                      ///< was inserted; empty: none
     CardData card;                   ///< Of a card (a character, a location, an item): the
                                      ///< values of its fields, its color and its portraits;
+                                     ///< empty: none
+    ElementPlot plot;                ///< Of a text of a book: its plot on the plot board;
                                      ///< empty: none
     SourceDescription source;        ///< Of a material that is a source: its bibliographic
                                      ///< description; empty: none
@@ -210,13 +297,13 @@ struct ProjectElement {
 
     /// @brief Whether it has a kind: every element of a book and of the Workshop has one, a
     /// file of a book outside its text (ProjectBook::files) has none
-    bool hasKind() const { return !kind.kindId.isEmpty(); }
+    [[nodiscard]] bool hasKind() const { return !kind.kindId.isEmpty(); }
 
     /// @brief What it is linked with (ElementLink::to), in the order linked
-    QStringList linkTargets() const;
+    [[nodiscard]] QStringList linkTargets() const;
 
     /// @brief Its link with @p target; nullptr when it has none
-    const ElementLink* linkTo(const QString& target) const;
+    [[nodiscard]] const ElementLink* linkTo(const QString& target) const;
 
     /// Not defaulted: a defaulted == would depend on the == of QList<ProjectElement>, which
     /// depends on it, so the compiler would delete it
@@ -241,7 +328,7 @@ struct SectionNameSet {
     LocalizedText back;       ///< Name of the back part: "Back Matter"
 
     /// @brief Name of @p place (Front, Main or Back) in @p language; empty for the Workshop
-    QString name(BookPlace place, const QString& language) const;
+    [[nodiscard]] QString name(BookPlace place, const QString& language) const;
 };
 
 /// @brief Whether the Navigator shows the front, main and back section of a book, and their
@@ -283,7 +370,7 @@ struct BookCaptions {
     bool operator==(const BookCaptions&) const = default;
 
     /// @brief The numbering of @p label; the default one (1, 2, 3 through the book) without one
-    CaptionLabelNumbering numberingOf(const QString& label) const;
+    [[nodiscard]] CaptionLabelNumbering numberingOf(const QString& label) const;
 };
 
 /// @brief How a book numbers its footnotes or its endnotes (Format > Footnote Layout...)
@@ -341,20 +428,22 @@ struct ProjectBook {
     std::optional<BookFootnotes> footnotes;
     /// The style of its bibliography (Bibliography::PN_ISO_690...); empty: the Settings' one
     QString bibliographyStyle;
+    QString isbn;       ///< The ISBN of its e-book (File > Export > EPUB); empty: none
+    QString publisher;  ///< Its publisher; empty: none
     QJsonObject extra;                    ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectBook&) const = default;
 
     /// @brief Name of @p place (Front, Main or Back) in the Navigator: the writer's own name, or
     /// the name of the book's set in the language of the book; empty for the Workshop
-    QString sectionName(BookPlace place) const;
+    [[nodiscard]] QString sectionName(BookPlace place) const;
 
     /// @brief The book's set of names, the first one when it has the writer's own names or a
     /// set this version does not know
-    const SectionNameSet& sectionNameSet() const;
+    [[nodiscard]] const SectionNameSet& sectionNameSet() const;
 
     /// @brief Whether the Navigator shows the book's sections, and their names
-    BookSections sections() const;
+    [[nodiscard]] BookSections sections() const;
 
     /// @brief Show the sections in the Navigator or not, and name them
     ///
@@ -373,6 +462,8 @@ struct ProjectWorkshop {
     bool grouped = false;            ///< Whether cards go to Libraries
     QList<ProjectElement> elements;  ///< Elements, in the order they were added
     QList<OwnRelation> relations;    ///< Relations between cards that the writer named
+    CardFieldSets cardFields;        ///< The fields of the cards of the kinds the writer
+                                     ///< changed them in (BookCardField)
     QJsonObject extra;               ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectWorkshop&) const = default;
@@ -430,39 +521,41 @@ struct BookProject {
     bool operator==(const BookProject&) const = default;
 
     /// @brief The project's entry for paragraph style @p styleId, or nullptr
-    const BookParagraphStyle* findParagraphStyle(const QString& styleId) const;
+    [[nodiscard]] const BookParagraphStyle* findParagraphStyle(const QString& styleId) const;
 
     /// @brief Whether the project has no type: the author chose its kinds from the palette
-    bool isUserProject() const { return !type.has_value(); }
+    [[nodiscard]] bool isUserProject() const { return !type.has_value(); }
 
     // Elements. Pointers to elements and lists stay valid until the project changes.
 
     /// @brief Elements of @p place: of a part of book @p book, or of the Workshop
     QList<ProjectElement>& elementsIn(BookPlace place, qsizetype book = 0);
-    const QList<ProjectElement>& elementsIn(BookPlace place, qsizetype book = 0) const;
+    [[nodiscard]] const QList<ProjectElement>& elementsIn(BookPlace place,
+                                                          qsizetype book = 0) const;
 
     /// @brief Elements of book @p book in reading order, each group before the elements inside it
-    QList<const ProjectElement*> readingOrder(qsizetype book = 0) const;
+    [[nodiscard]] QList<const ProjectElement*> readingOrder(qsizetype book = 0) const;
 
     /// @brief Element @p elementId of a book or of the Workshop, or a file of a book outside
     /// its text, or nullptr
     ProjectElement* findElement(const QString& elementId);
-    const ProjectElement* findElement(const QString& elementId) const;
+    [[nodiscard]] const ProjectElement* findElement(const QString& elementId) const;
 
     /// @brief Whether @p elementId is a file of a book outside its text (ProjectBook::files)
-    bool isBookFile(const QString& elementId) const;
+    [[nodiscard]] bool isBookFile(const QString& elementId) const;
 
     /// @brief Id of section @p place (Front, Main or Back) of book @p book in the links of an
     /// element (ProjectElement::links): "c2a1/main"; empty for the Workshop or a book the
     /// project does not have
-    QString sectionLink(BookPlace place, qsizetype book = 0) const;
+    [[nodiscard]] QString sectionLink(BookPlace place, qsizetype book = 0) const;
 
     /// @brief Section of book @p book that link @p link names (sectionLink()); nullopt when it
     /// names none of them
-    std::optional<BookPlace> linkedSection(const QString& link, qsizetype book = 0) const;
+    [[nodiscard]] std::optional<BookPlace> linkedSection(const QString& link,
+                                                         qsizetype book = 0) const;
 
     /// @brief Whether link @p link names an element of the project or a section of its book
-    bool hasLinkTarget(const QString& link) const;
+    [[nodiscard]] bool hasLinkTarget(const QString& link) const;
 
     /// @brief List that holds element @p elementId: a part of a book, a group, the Workshop or
     /// the files of a book outside its text
@@ -474,7 +567,7 @@ struct BookProject {
 
     /// @brief Place of element @p elementId in its book or in the Workshop, or nullopt when the
     /// project has no such element; a file of a book outside its text has none
-    std::optional<ElementPlace> placeOf(const QString& elementId) const;
+    [[nodiscard]] std::optional<ElementPlace> placeOf(const QString& elementId) const;
 
     /// @brief Take element @p elementId, with the elements inside it, out of the project
     std::optional<ProjectElement> takeElement(const QString& elementId);
@@ -493,8 +586,8 @@ struct BookProject {
     /// whose kind @p registry does not have moves only within its list.
     /// @return The places; empty when the project has no element @p elementId, and for a file
     ///         of a book outside its text
-    QList<ElementPlace> movePlacesOf(const BookTypeRegistry& registry,
-                                     const QString& elementId) const;
+    [[nodiscard]] QList<ElementPlace> movePlacesOf(const BookTypeRegistry& registry,
+                                                   const QString& elementId) const;
 
     /// @brief Move element @p elementId, with the elements inside it, to @p to, one of
     /// movePlacesOf()
@@ -504,21 +597,21 @@ struct BookProject {
 
     /// @brief Whether an element of the project, or a file of a book outside its text, has the
     /// file @p file
-    bool hasFile(const QString& file) const;
+    [[nodiscard]] bool hasFile(const QString& file) const;
 
     /// @brief A new id that no element of the project, and no file of a book outside its text,
     /// has
-    QString newElementId() const;
+    [[nodiscard]] QString newElementId() const;
 
     /// @brief Kinds the project offers in @p place: those of its type, then those it took
     ///
     /// Kinds that @p registry does not have are left out: their elements stay in the book,
     /// but no new ones can be added.
-    QList<KindRef> kindsIn(const BookTypeRegistry& registry, BookPlace place) const;
+    [[nodiscard]] QList<KindRef> kindsIn(const BookTypeRegistry& registry, BookPlace place) const;
 
     /// @brief Kinds the project offers inside a group of kind @p groupKindId
-    QList<KindRef> kindsInside(const BookTypeRegistry& registry,
-                               const QString& groupKindId) const;
+    [[nodiscard]] QList<KindRef> kindsInside(const BookTypeRegistry& registry,
+                                             const QString& groupKindId) const;
 
     /// @brief Kind of @p element, also when the project no longer offers it; none when
     /// @p registry does not have it
@@ -567,14 +660,14 @@ struct BookProject {
 
     /// @brief Ids of the packages the project names: of its type, of the kinds it took and of
     /// the kinds of its elements, each once, in this order
-    QStringList packageIds() const;
+    [[nodiscard]] QStringList packageIds() const;
 
     /// @brief Packages of the type, the kinds and the elements that @p registry does not have,
     /// or has without a kind the project names (another version of the package), sorted
-    QStringList missingPackages(const BookTypeRegistry& registry) const;
+    [[nodiscard]] QStringList missingPackages(const BookTypeRegistry& registry) const;
 
     /// @brief The project as the JSON object of its .klh file
-    QJsonObject toJson() const;
+    [[nodiscard]] QJsonObject toJson() const;
 
     /// @brief Project of the JSON object of a .klh file
     /// @param problems Gets one line per problem: "<field>: <what is wrong>"
@@ -603,7 +696,7 @@ struct BookProject {
 
     /// @brief Save the project to the .klh file @p path, replacing it in one step
     /// @return false, with the reason in the log, when the file cannot be written
-    bool save(const QString& path) const;
+    [[nodiscard]] bool save(const QString& path) const;
 
     /// @brief Read the project of the .klh file @p path
     /// @param problems Gets one line per problem: "<field>: <what is wrong>"
@@ -619,3 +712,5 @@ struct BookProject {
 };
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_BOOK_PROJECT_H

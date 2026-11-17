@@ -4,7 +4,8 @@
 /// @file wrapping_button.h
 /// @brief A button in one line where it has room, which wraps its text where it has less
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_WRAPPING_BUTTON_H
+#define KALAHARI_GUI_WIDGETS_WRAPPING_BUTTON_H
 
 #include <QPushButton>
 #include <QSize>
@@ -14,8 +15,7 @@ class QEvent;
 class QResizeEvent;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A push button that wraps its text only where its line does not fit
 ///
@@ -65,5 +65,6 @@ private:
     QString m_fullText;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_WRAPPING_BUTTON_H

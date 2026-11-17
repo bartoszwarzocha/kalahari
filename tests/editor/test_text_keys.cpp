@@ -10,7 +10,7 @@
 #include <kalahari/editor/book_editor_accessible.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/text_keys.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QApplication>
 #include <QClipboard>

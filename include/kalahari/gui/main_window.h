@@ -11,7 +11,8 @@
 /// OpenSpec #00038 Phase 4: Dock/panel management delegated to DockCoordinator.
 /// OpenSpec #00038 Phase 7: Document operations delegated to DocumentCoordinator.
 
-#pragma once
+#ifndef KALAHARI_GUI_MAIN_WINDOW_H
+#define KALAHARI_GUI_MAIN_WINDOW_H
 
 #include <QMainWindow>
 #include <QAction>
@@ -27,6 +28,7 @@
 #include <optional>
 #include <filesystem>
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/edit_target.h"
 #include "kalahari/gui/toolbar_manager.h"
 
 class QColor;
@@ -41,11 +43,11 @@ namespace kalahari {
 namespace core {
     class ProjectManager;
     struct Theme;  // Forward declaration for Theme (Task #00023)
-}
+} // namespace core
 
 namespace editor {
 class BookEditor;
-}
+} // namespace editor
 
 namespace gui {
 
@@ -64,17 +66,20 @@ class BusyIndicator;    // Reusable spinner overlay
 class StatusBarStatistics;  // Counts of the document in front in the status bar
 class DiagnosticController;  // OpenSpec #00038 - Diagnostic/dev mode controller
 class DockCoordinator;  // OpenSpec #00038 Phase 4 - Dock/panel management
+class PluginCoordinator;  // The commands and panels of the plugins
 class SettingsCoordinator;  // OpenSpec #00038 Phase 5 - Settings management
 class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
 class ParagraphMarksCoordinator;
 class MaterialListCoordinator;
+class PlotBoardCoordinator;
 class EditCoordinator;
 class SpecialCharacterCoordinator;
 class VersionsCoordinator;
 class StyleCoordinator;
 class BookExportCoordinator;
+class BookImportCoordinator;
 class CaptionCoordinator;
 class FootnoteCoordinator;
 class ChapterBreakCoordinator;
@@ -87,13 +92,15 @@ class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
 class BookDictionaryCoordinator;
+class CardNamesCoordinator;
+class CardsInTextCoordinator;
 class RepetitionsCoordinator;
 class DocumentWindows;
 class WritingStatsCoordinator;
 class ColorMenu;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
-}
+} // namespace utils
 
 /// @brief Main application window
 ///
@@ -204,6 +211,16 @@ public:
     /// front (a window of its own of its tabs counts as it); none: no window
     static MainWindow* frontWindow();
 
+    /// @brief File > Export: the texts of the book as the window has them (also for the
+    ///        plugins)
+    [[nodiscard]] BookExportCoordinator* bookExportCoordinator() const
+    {
+        return m_bookExportCoordinator;
+    }
+
+    /// @brief The commands and panels of the plugins in the window
+    [[nodiscard]] PluginCoordinator* pluginCoordinator() const { return m_pluginCoordinator; }
+
     /// @brief Window > New Window: a new book window with the Dashboard, its panels and bars
     /// as in this one, a little lower and to the right; it closes and is deleted on its own
     MainWindow* openNewWindow();
@@ -260,6 +277,13 @@ private:
     /// shows in the Navigator as a new material
     void connectCards();
 
+    /// @brief Open the full card of card @p cardId on a tab, as the Navigator opens it
+    void openCard(const QString& cardId);
+
+    /// @brief Book > Link Paragraph with Card... and Book > Open Card at Cursor
+    ///        (CardsInTextCoordinator), with their states following the text with the keys
+    void createCardsInText();
+
     /// @brief Reset the layout to default: the toolbars (ToolbarManager) and the panels
     /// @note Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void resetLayout();
@@ -273,6 +297,11 @@ private:
     /// and of the Spelling and Grammar panel)
     /// @note Call after the spelling and its panel are made
     void createBookDictionary();
+
+    /// @brief The names of the cards in the book's dictionary (CardNamesCoordinator): Create
+    /// Card of the texts and the declension of the cards
+    /// @note Call after the book's dictionary and the Navigator's coordinator are made
+    void createCardNames();
 
     /// @brief Make the Book menu and the commands of the open book follow it
     ///
@@ -321,6 +350,11 @@ private slots:
 
     /// @brief Slot for Edit > Select All action
     void onSelectAll();
+
+    /// @brief Do @p edit on the element with the keys
+    /// @return Whether the status bar is to say what it did: it did something, and not in a
+    ///         view that says it itself (the plot board)
+    bool editToTell(EditCommand edit);
 
     /// @brief Slot for Edit > Find... (search bar of the current editor)
     void onFind();
@@ -473,10 +507,10 @@ private:
     // All actions are dynamically created from Command structs
 
     // Menus
-    QMenu* m_fileMenu;
-    QMenu* m_editMenu;
-    QMenu* m_viewMenu;
-    QMenu* m_helpMenu;
+    QMenu* m_fileMenu = nullptr;
+    QMenu* m_editMenu = nullptr;
+    QMenu* m_viewMenu = nullptr;
+    QMenu* m_helpMenu = nullptr;
 
     // Toolbars (Task #00019)
     std::unique_ptr<ToolbarManager> m_toolbarManager;
@@ -485,10 +519,10 @@ private:
     std::unique_ptr<MenuBuilder> m_menuBuilder;
 
     // Dock/panel coordinator (OpenSpec #00038 Phase 4)
-    DockCoordinator* m_dockCoordinator;  ///< Manages dock widgets and panels
+    DockCoordinator* m_dockCoordinator = nullptr;  ///< Manages dock widgets and panels
 
     // First show flag (for geometry restore)
-    bool m_firstShow;
+    bool m_firstShow = true;
 
     /// The first window of the program (setFirstWindow())
     bool m_firstWindow = false;
@@ -515,16 +549,20 @@ private:
     QString m_startupFile;
 
     // Diagnostic/Dev mode controller (OpenSpec #00038)
-    DiagnosticController* m_diagnosticController;  ///< Manages diagnostic/dev mode and menus
+    DiagnosticController* m_diagnosticController = nullptr;  ///< Manages diagnostic/dev mode
+                                                             ///< and menus
 
     // Settings coordinator (OpenSpec #00038 Phase 5)
-    SettingsCoordinator* m_settingsCoordinator;  ///< Manages settings dialog and application
+    SettingsCoordinator* m_settingsCoordinator = nullptr;  ///< Manages settings dialog and
+                                                           ///< application
 
     // Navigator coordinator (OpenSpec #00038 Phase 6)
-    NavigatorCoordinator* m_navigatorCoordinator;  ///< Manages navigator panel interactions
+    NavigatorCoordinator* m_navigatorCoordinator = nullptr;  ///< Manages navigator panel
+                                                             ///< interactions
 
     // Document coordinator (OpenSpec #00038 Phase 7)
-    DocumentCoordinator* m_documentCoordinator;  ///< Manages document lifecycle and file operations
+    DocumentCoordinator* m_documentCoordinator = nullptr;  ///< Manages document lifecycle and
+                                                           ///< file operations
 
     /// @brief The annotation commands and the Annotations panel
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
@@ -532,6 +570,8 @@ private:
     ParagraphMarksCoordinator* m_paragraphMarksCoordinator{nullptr};
     /// @brief The lists of the kinds of materials on their tabs
     MaterialListCoordinator* m_materialListCoordinator{nullptr};
+    /// @brief The plot board of the book and its outline on their tab
+    PlotBoardCoordinator* m_plotBoardCoordinator{nullptr};
     /// @brief The statistics bar and the goals of writing
     WritingStatsCoordinator* m_writingStatsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
@@ -544,6 +584,12 @@ private:
 
     /// @brief The book's dictionary on its tab and its windows
     BookDictionaryCoordinator* m_bookDictionaryCoordinator{nullptr};
+
+    /// @brief The names of the cards in the book's dictionary
+    CardNamesCoordinator* m_cardNamesCoordinator{nullptr};
+
+    /// @brief Book > Link Paragraph with Card... and Book > Open Card at Cursor
+    CardsInTextCoordinator* m_cardsInTextCoordinator{nullptr};
 
     /// @brief The Repetitions panel, the marks of the repeated words and Next Repetition
     RepetitionsCoordinator* m_repetitionsCoordinator{nullptr};
@@ -569,6 +615,11 @@ private:
 
     /// @brief File > Export > DOCX and Markdown
     BookExportCoordinator* m_bookExportCoordinator{nullptr};
+    /// @brief File > Import > DOCX, Markdown and Plain Text
+    BookImportCoordinator* m_bookImportCoordinator{nullptr};
+
+    /// @brief The commands and panels of the plugins
+    PluginCoordinator* m_pluginCoordinator{nullptr};
 
     /// @brief Edit > Find in Book... and Replace All in Book, in the Search panel
     BookSearchCoordinator* m_bookSearchCoordinator{nullptr};
@@ -649,3 +700,5 @@ private:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_MAIN_WINDOW_H

@@ -10,8 +10,7 @@
 #include <QRect>
 #include <QTextDocument>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -41,5 +40,4 @@ QSize WrappingLabel::sizeHint() const {
     return QSize(width, heightForWidth(width)).expandedTo(minimumSize());
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

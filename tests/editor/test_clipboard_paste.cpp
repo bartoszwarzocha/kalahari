@@ -15,7 +15,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/gui/panels/editor_panel.h>
 #include <kalahari/gui/settings_dialog.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QClipboard>
 #include <QComboBox>
@@ -32,7 +32,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari::editor;
 using namespace kalahari::test;
@@ -519,7 +519,7 @@ TEST_CASE("Paste: the mode of the setting", "[editor][paste]") {
     CHECK(ClipboardHandler::pasteModeFromId(QStringLiteral("other")) == PasteMode::Merge);
 }
 
-TEST_CASE("Paste: Settings > Editor > General gives the editors the mode",
+TEST_CASE("Paste: Settings > Editor > Writing gives the editors the mode",
           "[gui][settings][paste]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string before = settings.get<std::string>(PASTE_MODE_KEY);
@@ -533,7 +533,7 @@ TEST_CASE("Paste: Settings > Editor > General gives the editors the mode",
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     for (QTreeWidgetItemIterator it(tree); *it; ++it) {
-        if ((*it)->text(0) == QStringLiteral("General") && (*it)->parent() &&
+        if ((*it)->text(0) == QStringLiteral("Writing") && (*it)->parent() &&
             (*it)->parent()->text(0) == QStringLiteral("Editor")) {
             tree->setCurrentItem(*it);
         }

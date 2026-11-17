@@ -15,8 +15,7 @@
 #include <algorithm>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -111,7 +110,7 @@ QSize FlowLayout::minimumSize() const {
 
 void FlowLayout::setGeometry(const QRect& rect) {
     QLayout::setGeometry(rect);
-    arrange(rect, true);
+    static_cast<void>(arrange(rect, true));  // places the items; the height is not needed here
 }
 
 int FlowLayout::arrange(const QRect& rect, bool place) const {
@@ -198,5 +197,4 @@ int FlowLayout::arrange(const QRect& rect, bool place) const {
     return y - area.top() + margins.top() + margins.bottom();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

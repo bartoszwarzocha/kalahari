@@ -4,14 +4,13 @@
 /// @file window_parts.cpp
 /// @brief The book and the commands of the one book window of the tests
 
-#include "window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/recent_books_manager.h>
 #include <kalahari/gui/command_registry.h>
 
-namespace kalahari {
-namespace test {
+namespace kalahari::test {
 
 core::ProjectManager& book() {
     // As the window's: the books it opens go to the recent books
@@ -28,5 +27,4 @@ gui::CommandRegistry& commands() {
     return commands;
 }
 
-}  // namespace test
-}  // namespace kalahari
+} // namespace kalahari::test

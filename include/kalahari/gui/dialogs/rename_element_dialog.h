@@ -4,7 +4,8 @@
 /// @file rename_element_dialog.h
 /// @brief Dialog for a new name of an element or a section of the book in the Navigator
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_RENAME_ELEMENT_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_RENAME_ELEMENT_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -12,9 +13,7 @@
 
 class QLineEdit;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief Dialog for a new name of an element of the book (a chapter, a part, an item) or of
 /// a section of the book
@@ -33,7 +32,7 @@ public:
                                  QWidget* parent = nullptr);
 
     /// @brief The new name, without spaces around it
-    QString name() const;
+    [[nodiscard]] QString name() const;
 
 private:
     /// @brief The dialog can be accepted only with a name
@@ -42,6 +41,6 @@ private:
     QLineEdit* m_nameEdit = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_RENAME_ELEMENT_DIALOG_H

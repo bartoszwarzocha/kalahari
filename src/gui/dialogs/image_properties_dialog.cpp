@@ -9,6 +9,7 @@
 
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/image_store.h"
+#include "kalahari/gui/caption_settings.h"
 #include "kalahari/gui/dialogs/color_palettes.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/settings_dialog.h"
@@ -48,9 +49,7 @@
 #include <cmath>
 #include <iterator>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -59,6 +58,7 @@ using editor::ImageCrop;
 using editor::ImageFilter;
 using editor::ImageProperties;
 using editor::ImageWidthUnit;
+using editor::ImageWrap;
 
 constexpr double POINTS_PER_CENTIMETER = 72.0 / 2.54;
 
@@ -619,8 +619,28 @@ QWidget* ImagePropertiesDialog::createImagePage()
                                    "image inserted from elsewhere goes there as a copy; the "
                                    "original stays as it was."),
                                 page));
+
+    // How the text flows around it: as Image > Wrap Text
+    auto* wrapRow = new QHBoxLayout();
+    m_wrap = new QComboBox(page);
+    m_wrap->setObjectName(QStringLiteral("imageWrap"));
+    for (const auto& [wrap, text] : imageWrapChoices()) {
+        m_wrap->addItem(text, static_cast<int>(wrap));
+    }
+    //: How the text flows around the image. In Polish: Opływanie t&ekstem:
+    auto* wrapLabel = new QLabel(tr("&Wrap text:"), page);
+    wrapLabel->setBuddy(m_wrap);
+    wrapRow->addWidget(wrapLabel);
+    wrapRow->addWidget(m_wrap, 1);
+    column->addSpacing(8);
+    column->addLayout(wrapRow);
     column->addStretch(1);
     layout->addLayout(column, 1);
+    connect(m_wrap, &QComboBox::currentIndexChanged, this, [this]() {
+        if (!m_updating) {
+            m_image.wrap = static_cast<ImageWrap>(m_wrap->currentData().toInt());
+        }
+    });
 
     connect(m_keepSizeAndCrop, &QCheckBox::toggled, this, [](bool keep) {
         core::SettingsManager::getInstance().set<bool>("editor.images.keepSizeOnChange", keep);
@@ -1483,6 +1503,14 @@ void ImagePropertiesDialog::refreshImagePage()
                                   .arg(file.fileName()));
     m_saveButton->setVisible(static_cast<bool>(m_imageSaver));
     m_saveButton->setEnabled(m_data.newFile.isEmpty() && file.isFile());
+    m_wrap->setCurrentIndex(std::max(0, m_wrap->findData(static_cast<int>(m_image.wrap))));
+    // Only an image alone in its paragraph (an inline one may stay inline)
+    m_wrap->setEnabled(m_data.canWrap || m_image.wrap != ImageWrap::Inline);
+    //: Why the wrap of an image is greyed out. In Polish: Tekst opływa tylko obraz, który jest
+    //: sam w swoim akapicie, poza tabelą
+    m_wrap->setToolTip(m_data.canWrap ? QString()
+                                      : tr("The text flows only around an image alone in its "
+                                           "paragraph, outside a table"));
 }
 
 void ImagePropertiesDialog::refreshSizePage()
@@ -1671,6 +1699,4 @@ void ImagePropertiesDialog::refreshCaptionPage()
     m_updating = updating;
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

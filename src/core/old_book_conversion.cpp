@@ -229,7 +229,7 @@ private:
 
     /// The kind of a type of the first format: a text kind of a novel's packages, or of the
     /// package that OLD_TYPES names; none for another type
-    KindRef kindOf(const QString& type) const {
+    [[nodiscard]] KindRef kindOf(const QString& type) const {
         KindRef kind;
         const auto old = std::find_if(OLD_TYPES.cbegin(), OLD_TYPES.cend(),
                                       [&type](const OldType& known) {

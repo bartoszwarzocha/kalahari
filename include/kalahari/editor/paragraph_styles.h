@@ -13,11 +13,15 @@
 /// An object is a block of its own holding one object replacement character (U+FFFC) whose
 /// character format names the kind of object; the layout sizes and draws it.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_PARAGRAPH_STYLES_H
+#define KALAHARI_EDITOR_PARAGRAPH_STYLES_H
 
 #include <QHash>
 #include <QList>
+#include <QMap>
 #include <QString>
+#include <QStringList>
+#include <QTextBlock>
 #include <QTextFormat>
 #include <QVariantMap>
 
@@ -30,7 +34,7 @@ class QTextDocument;
 namespace kalahari::core {
 struct BookParagraphStyle;
 struct PackageParagraphStyle;
-}
+} // namespace kalahari::core
 
 namespace kalahari::editor {
 
@@ -99,6 +103,30 @@ QTextCharFormat objectCharFormat(TextObject object);
 /// A block is an object when it holds nothing but the object replacement character in the
 /// format of an object.
 TextObject blockObject(const QTextBlock& block);
+
+/// @brief What a scene break says of the scene after it, for the plot board: its KML
+///        attributes by name (sceneBreakAttributeNames()), each with text, on the character of
+///        the break (a QVariantMap)
+inline constexpr int SCENE_ATTRIBUTES_PROPERTY = QTextFormat::UserProperty + 220;
+
+/// @brief The KML attributes of a scene break by name, each with text
+using SceneBreakAttributes = QMap<QString, QString>;
+
+/// @brief The attributes a scene break keeps, in the order the editor writes them: "title",
+///        "description", "pov", "place", "time", "color", "status"
+const QStringList& sceneBreakAttributeNames();
+
+/// @brief The attributes of the scene break whose character has format @p format; empty for
+///        a break without them and any other format
+SceneBreakAttributes sceneBreakAttributes(const QTextFormat& format);
+
+/// @brief Give the character of a scene break @p attributes (those of
+///        sceneBreakAttributeNames() with text; none: the format has none)
+void setSceneBreakAttributes(QTextCharFormat& format, const SceneBreakAttributes& attributes);
+
+/// @brief The block of the break of scene @p scene of @p document: from 1, the first scene
+///        break among the paragraphs of the text (not in a table); invalid without one
+QTextBlock sceneBreakBlock(const QTextDocument& document, int scene);
 
 /// @brief How the scene breaks look (Settings > Editor > General, editor.sceneBreak.style)
 enum class SceneBreakLook {
@@ -278,30 +306,30 @@ public:
                                      const QString& language);
 
     /// @brief The styles in the order of their package
-    const QList<ParagraphStyle>& styles() const { return m_styles; }
+    [[nodiscard]] const QList<ParagraphStyle>& styles() const { return m_styles; }
 
     /// @brief The style with this id, or nullptr
-    const ParagraphStyle* find(const QString& id) const;
+    [[nodiscard]] const ParagraphStyle* find(const QString& id) const;
 
     /// @brief Whether the set has a style with this id
-    bool contains(const QString& id) const { return find(id) != nullptr; }
+    [[nodiscard]] bool contains(const QString& id) const { return find(id) != nullptr; }
 
     /// @brief The style Normal
-    const ParagraphStyle& normal() const;
+    [[nodiscard]] const ParagraphStyle& normal() const;
 
     /// @brief The style a paragraph is shown in: its own, or Normal when the set has no style
     ///        of this id (a paragraph pasted from another book keeps its id)
-    const ParagraphStyle& shownStyle(const QString& id) const;
+    [[nodiscard]] const ParagraphStyle& shownStyle(const QString& id) const;
 
     /// @brief Style Enter starts after a paragraph of @p id at its end
-    QString nextStyleOf(const QString& id) const;
+    [[nodiscard]] QString nextStyleOf(const QString& id) const;
 
     /// @brief A property of a style as it is shown (see shownStyle())
-    QVariant property(const QString& id, const QString& name) const;
+    [[nodiscard]] QVariant property(const QString& id, const QString& name) const;
 
     /// @brief Whether the spelling and grammar of paragraphs in the style are checked
     ///        (the property spellCheck; true without it)
-    bool isChecked(const QString& id) const;
+    [[nodiscard]] bool isChecked(const QString& id) const;
 
     bool operator==(const ParagraphStyleSet&) const = default;
 
@@ -347,3 +375,5 @@ QString paragraphStyleIdFor(const QString& name, const QStringList& taken);
 QStringList possibleBaseStyles(const ParagraphStyleSet& styles, const QString& id);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_PARAGRAPH_STYLES_H

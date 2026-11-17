@@ -15,8 +15,7 @@
 #include <QLocale>
 #include <QMimeData>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -164,5 +163,4 @@ QByteArray IncomingMaterials::pngOf(const QImage& picture) {
     return data;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

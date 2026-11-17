@@ -20,8 +20,7 @@
 
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -100,5 +99,4 @@ void setCapsLockForTests(std::function<bool()> turnOff) {
     capsLockForTests() = std::move(turnOff);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

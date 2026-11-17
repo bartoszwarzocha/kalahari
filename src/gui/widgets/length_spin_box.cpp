@@ -11,8 +11,7 @@
 
 #include <string>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -138,5 +137,4 @@ void LengthSpinBox::showStoredValue() {
     m_updating = false;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

@@ -5,7 +5,7 @@
 /// @brief BookEditor: footnotes and endnotes - inserting them, their text, their place
 
 #include <kalahari/editor/book_editor.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/editor_render_pipeline.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
@@ -459,20 +459,20 @@ void BookEditor::scrollToNote(const QString& id)
     scrollToShow(noteRect(id));
 }
 
-void BookEditor::scrollToShow(const QRectF& note)
+void BookEditor::scrollToShow(const QRectF& rect)
 {
-    if (note.isEmpty() || !m_viewportManager || height() <= 0) {
+    if (rect.isEmpty() || !m_viewportManager || height() <= 0) {
         return;
     }
 
     // Its bottom comes into view, then its top; the cursor's line stays in view when both fit
     const qreal topEdge = NOTE_SCROLL_MARGIN + findReplaceBarHeight();
     const qreal bottomEdge = height() - NOTE_SCROLL_MARGIN;
-    qreal delta = std::max<qreal>(0.0, note.bottom() - bottomEdge);
-    delta = std::min(delta, note.top() - topEdge);
+    qreal delta = std::max<qreal>(0.0, rect.bottom() - bottomEdge);
+    delta = std::min(delta, rect.top() - topEdge);
     if (delta > 0.0 && m_renderPipeline) {
         const QRectF caret = m_renderPipeline->cursorRect();
-        if (!caret.isEmpty() && note.bottom() - caret.top() <= bottomEdge - topEdge) {
+        if (!caret.isEmpty() && rect.bottom() - caret.top() <= bottomEdge - topEdge) {
             delta = std::max<qreal>(0.0, std::min(delta, caret.top() - topEdge));
         }
     }

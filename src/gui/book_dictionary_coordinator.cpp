@@ -9,6 +9,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/card_names.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/name_declension.h"
 #include "kalahari/core/project_manager.h"
@@ -246,18 +247,8 @@ bool BookDictionaryCoordinator::editCardName(const QString& cardId, const QStrin
         return false;
     }
     // The card's name, else one without a card of the same name, which the card takes over
-    const core::BookDictionary& dictionary = m_book.bookDictionary();
-    const core::DictionaryName* known = dictionary.findNameOfCard(cardId);
-    if (known == nullptr) {
-        known = dictionary.findNameWithText(cardTitle);
-        known = known != nullptr && known->card.isEmpty() ? known : nullptr;
-    }
-    core::DictionaryName name =
-        known != nullptr ? *known
-                         : core::makeName(cardTitle.simplified(), kind, declension(),
-                                          dictionaryForms());
-    name.card = cardId;
-    return runNameDialog(name);
+    return runNameDialog(core::nameOfCard(m_book.bookDictionary(), cardId, cardTitle, kind,
+                                          declension(), dictionaryForms()));
 }
 
 bool BookDictionaryCoordinator::addRule() {

@@ -136,8 +136,23 @@ the base pack, with the styles `normal`, `heading_1`, `heading_2`, `heading_3`, 
 | `<scene-break/>` | A scene break (Insert > Scene Break, also in the Book menu) |
 | `<page-break/>` | A page break (Insert > Page Break, Ctrl+Enter) |
 
-- Each is a block of its own between paragraphs, not inside one. Its attributes and its
-  content are ignored, and the editor writes the empty element.
+- Each is a block of its own between paragraphs, not inside one. Its content is ignored, and
+  the editor writes the empty element; of a scene break it keeps the attributes below, and
+  ignores the others.
+- A scene break says what the plot board shows of the scene after it: `title`,
+  `description`, `pov` (point of view), `place`, `time` (of the action), `color` (own color
+  of its card: `blue`, `teal`, `green`, `amber`, `rose`, `violet`) and `status` (`draft`,
+  `revision`, `final`; none: the state of its text). The editor writes them in this order,
+  each only with text; a line break in a description is written `&#10;`. The first scene of
+  a text, before any break, keeps the same fields in the `.klh` file (`"plot"` /
+  `"opening"`). The scenes in the plan of a text, not written yet, are only in the `.klh`
+  file (`"plot"` / `"planned"`: a list of the same fields, without `status`, each with
+  `"after"`, how many scenes of the text come before it); Write the Scene on the plot board
+  puts a break with its fields at its place in the text.
+
+  ```xml
+  <scene-break title="Night" pov="Anna" description="The storm comes." status="revision"/>
+  ```
 - In the editor each is one character in a paragraph of its own: the cursor passes it with
   one key press, and Backspace or Delete removes it whole.
 - A scene break looks as the setting `editor.sceneBreak.style` says (three asterisks, an
@@ -339,6 +354,7 @@ it: its first item gets the number it has in the chapter as `value`.
 | `border-color` | `#rrggbb` | The color of the line and the shadow; without it, the color of the text |
 | `border-padding` | A length up to `72pt` | The room between the line (or the shadow) and the picture |
 | `shadow` | `true` | A shadow to the right and down of the picture |
+| `wrap` | `left`, `right`, `top-bottom` | The text flows around the image: the image on the left or the right of the text column, the next paragraphs beside it; or the text above and below it. Without it, the image is a part of its line |
 
 - **An image is a part of its line**, as a large character: it stands on the baseline, the
   paragraph's alignment places it, and the text, the undo, the clipboard and drag and drop take
@@ -362,6 +378,15 @@ it: its first item gets the number it has in the chapter as `value`.
   `border-padding` only with a border or a shadow. Values beyond what an attribute takes are
   taken as the nearest one; a turn as the nearest quarter (`100` as `90`); a crop that would
   leave less than 5% of the picture in a direction is made smaller on both of its sides.
+- **The text around it.** `wrap` takes effect for an image alone in its paragraph (its caption
+  may be above or below it), outside a table; elsewhere the image stays a part of its line and
+  keeps the attribute. Beside the text, the image is as wide as it is (at most the column), with
+  its caption under or above it as wide; the lines of the paragraphs after it go beside it,
+  0.3 cm from it, while it reaches down, and below it where the room beside it is less than
+  2.5 cm. A table, a horizontal line and a break go below it. Two images on the same side go one
+  under the other. Above and below the text with page flow, an image that does not fit in the
+  rest of its page goes on to the top of the next page with its caption, and the text after it
+  fills the rest of the page; in the continuous views it stays where the text puts it.
 - **The file.** `src` names a file in the book's main folder, without `..`, a drive or a
   scheme; any other `src` (`/home/...`, `C:\...`, `https://...`) is never read and is shown as
   a missing file. A text outside a book names its images relative to its own folder. The
@@ -473,15 +498,16 @@ comes back as a break where that format tells it apart from the end of a paragra
 | Plain text files (`.txt`) | A line end | As the plain text of the clipboard |
 | Grammar check (LanguageTool) | A line end | – |
 
-File > Export > DOCX and Markdown write a line break as the table says (see Export to DOCX and
-Markdown below); the other exports and the imports are not written yet and are to keep it so:
+File > Export > DOCX, Markdown, PDF and EPUB, and File > Print write a line break as the table
+says (see Export to DOCX and Markdown, and Export to PDF and EPUB, and the print below); the
+other exports and the imports are not written yet and are to keep it so:
 
 | Format | Export | Import |
 |--------|--------|--------|
 | DOCX | `<w:br/>` in the run | `<w:br/>` without a type or with `w:type="textWrapping"`, and `<w:cr/>`; a page or column break is not a line break |
 | Markdown | A backslash at the end of the line (a hard line break) | A backslash or two spaces at the end of the line |
-| EPUB, MOBI | `<br/>` | – |
-| PDF | A new line of the same paragraph, without the paragraph's spacing and first-line indent | – |
+| EPUB | `<br/>` | – |
+| PDF, the print | A new line of the same paragraph, without the paragraph's spacing and first-line indent | – |
 | InDesign ICML | The character U+2028 (a forced line break) | – |
 | LaTeX | `\\` at the end of the line | – |
 | Scrivener (RTF) | – | `\line` |
@@ -509,13 +535,73 @@ settings `export.*`; the page comes from Settings > Editor > Pages and Margins.
 | A page break | The next paragraph starts a page (`w:pageBreakBefore`) | – |
 | A list | Word's numbering (`numbering.xml`): the level formats and bullets, the indents, an item's own number (`w:startOverride`) | `1.` and `-`, the levels indented; an item of its own number starts another list (`<!-- -->`) |
 | A table | `w:tbl`: its width and its columns' widths, merged cells (`w:gridSpan`, `w:vMerge`), header rows repeated (`w:tblHeader`), borders, cell backgrounds, row heights | A pipe table; a merged cell's text in its first column |
-| An image | An inline picture: the file as it is when the editor shows it so, else drawn with its crop, turn, mirror, filter, border and shadow (PNG, or JPEG for a photo); its alternative text, or decorative | `![alt](path)`, the files copied to "<name> – images" next to the file, or linked in the book's folder |
+| An image | An inline picture: the file as it is when the editor shows it so, else drawn with its crop, turn, mirror, filter, border and shadow (PNG, or JPEG for a photo); its alternative text, or decorative. An image the text flows around is anchored to its paragraph (`wp:anchor`, square on its side or top and bottom) | `![alt](path)`, the files copied to "<name> – images" next to the file, or linked in the book's folder |
 | A caption's number, a cross-reference, the list of figures | The text the editor shows; a cross-reference and a row of the list link to the caption (a bookmark) | The text the editor shows |
 | A footnote, an endnote | Word's footnotes and endnotes, in the book's number formats, numbered anew in each text or through the book; endnotes after each text or at the end of the book | `[^label]`, the notes at the end of the file |
 | An annotation (option) | A Word comment with its author and date (a to-do done: resolved, `w15:done`); a to-do or a note starts with its kind | – |
 | The table of contents (an element of the book) | Word's TOC field (`TOC \o "1-3" \h \z \u`), filled with the headings; Word updates it when the file opens (`w:updateFields`) | A list of the headings with links to them |
 | The book's title, author and language | `docProps/core.xml` and the language of the text | – |
 | Each text (option) | A section of its own from a new page (a right page with mirror margins, unless the text starts on a left one) with the page size, margins and page numbers of the settings | – |
+
+## Import from DOCX, Markdown and plain text
+
+The import reads a file of another program into a book (`include/kalahari/editor/book_import.h`):
+a reader gives the file's document (`readDocx()`, `readMarkdown()`, `readPlainText()`),
+`splitDocument()` divides it into texts and parts, and `importKml()` writes the KML of each text.
+The writer chooses the book's style of each style of the file (`suggestedBookStyle()` suggests
+one), how much of the file's own formatting stays (all of it; the emphasis with the paragraphs
+centered or aligned right, by default; only the styles) and the cleanups. A file the program
+exported comes back with its parts, texts, styles, notes and comments. Tests:
+`tests/editor/test_book_import.cpp`, with files of other programs in `tests/data/import`.
+
+| In the file | DOCX (WordprocessingML) | Markdown (GitHub Flavored) | Plain text | KML |
+|-------------|-------------------------|----------------------------|------------|-----|
+| The texts and parts | The headings of two levels (a part: a heading of the first level that names a part, "Część pierwsza", or one of the program's own `PartTitle`), the page breaks, or none | The headings | The titles the writer chooses: "Rozdział 1", "Chapter One", a number, a line in capitals, one that starts with a prefix or a kind's name alone ("Prolog"); "Część pierwsza" and "Part One" for the parts; or a number of empty lines | A text of the book each, a part a group |
+| A heading | A style of Word's Heading 1–9 (by its outline level or its name in English, Polish, German or French) or a paragraph's own outline level | `#` to `######` | A title | `<h1>`–`<h3>` (a deeper one `<h3>`), or the book's style the writer chooses |
+| A style | Its paragraphs; Word's Normal, Body Text, Quote, Title, Caption, Footnote Text, HTML Preformatted ... to the book's `normal`, `quote`, `heading_1`, `caption`, `footnote`, `code`; a style of the book of the same name | `normal`, the headings, `quote` (`>`) and `code` (a fenced or indented block) | `normal` | `style` |
+| Emphasis | `w:b`, `w:i`, `w:u`, `w:strike`, `w:vertAlign`, those of the character styles | `**`, `*`, `_`, `~~`, `<u>`, `<sub>`, `<sup>` | – | `<b>`, `<i>`, `<u>`, `<s>`, `<sub>`, `<sup>` |
+| Font, size, color, background, capitals, spacing; indents, spacing of paragraphs | `w:rFonts`, `w:sz`, `w:color`, `w:highlight`, `w:shd`, `w:smallCaps`, `w:caps`, `w:spacing`; `w:ind`, `w:spacing`, keep and widow control | – | – | Only with all the formatting kept |
+| A link | `w:hyperlink`, the field HYPERLINK | `[text](address)` | – | `<a href>`, only of web and e-mail addresses |
+| A line break, a tab | `w:br`, `w:cr`, `w:tab` | A backslash or two spaces at a line's end, `<br>` | – | `<br/>`, a tab |
+| A page break | `w:br w:type="page"` (the paragraph of a break alone is the break), `w:pageBreakBefore`, a section from a new page | – | A form feed | `<page-break/>` |
+| A scene break | The program's own short line (a bottom border between drawn-in margins) | A line of asterisks (`* * *`, `***`), `&nbsp;` alone | – | `<scene-break/>`; with the cleanup also a paragraph of "* * *", "***", "#", "⁂", "❦" or "───" alone (the program's own symbol) |
+| A horizontal line | An empty paragraph with a bottom border, Word's and Pandoc's shape of a line (`o:hr`) | `---` | – | `<hr/>` |
+| A list | Word's numbering (`numbering.xml`, also of the style): its formats, bullets, numbers and their starts; a list of another number at a deeper level is inside the item before it | `1.`, `-`, `*`, the task boxes as ☑ and ☐ | – | `<ol>`, `<ul>`, `<li>` |
+| A table | `w:tbl`: its columns' widths, merged cells, header rows, cell backgrounds and vertical alignment, row heights | A pipe table, its first row the header | – | `<table>`; a table in a cell its rows of text |
+| An image | An inline picture (`a:blip`, VML `v:imagedata`): its width, crop, turn, mirror, alternative text and description; EMF and WMF are left out | `![alt](path)`, the file next to the Markdown file; a web address and a missing file as `[alt]` | – | `<img>` of the book's images |
+| A footnote, an endnote | Word's footnotes and endnotes | `[^label]` and its definition | – | `<footnote>`, `<endnote>` |
+| A comment | Word's comment with its author, date, replies and done (`w15:done`); one that starts with a kind's label ("To do:") is that kind | – | – | An annotation (option) |
+| A field | PAGE, NUMPAGES, SECTIONPAGES, NUMWORDS, TITLE, AUTHOR, DATE, TIME, SEQ | – | – | `<field>`, a caption's number |
+| Tracked changes | Accepted or rejected, as the writer chooses | – | – | The text |
+| Title, author, language | `docProps/core.xml` | The YAML header (`title`, `author`, `lang`) | – | The book's |
+| Left out, and counted for the writer | Text boxes (their text after the paragraph), shapes, charts and SmartArt, equations, embedded objects, headers and footers, Word's table of contents, EMF and WMF images | HTML other than `<u>`, `<br>`, `<sub>`, `<sup>` | – | – |
+
+The cleanups, each one the writer can turn off: the quotation marks, apostrophes, dashes and
+ellipses as autocorrect makes them as the text is typed (double quotation marks of another
+language become those of the book's language), two and more spaces as one, no spaces and tabs at
+the start of a paragraph (the style gives the indent), the scene marks as scene breaks, and the
+empty paragraphs left out, kept or made scene breaks. Paragraphs in the style `code` keep their
+text as it is. Word's hidden text is left out. The encodings of plain text: UTF-8, UTF-16 (with
+or without its mark), Windows-1250 and ISO 8859-2, found from the text (`detectTextEncoding()`).
+
+## Export to PDF and EPUB, and the print
+
+File > Export > PDF and EPUB write the same texts as DOCX and Markdown, chosen in the same window.
+A PDF has the pages of the page view: the page and the margins of Settings > Editor > Pages and
+Margins, the colors of the light paper, the page numbers, and the running head of the window (at
+first the author on the left pages and the title of the book on the right ones). A PDF to read
+or to keep (PDF/A-1b) has the links inside the book, bookmarks of the titles and headings, and
+the annotations as its comments (an option); a PDF for a print shop (PDF/X-4, with Qt 6.8 or
+later) has neither links nor comments. An EPUB 3 e-book has a document of XHTML for each item,
+the navigation document with an NCX for the readers of EPUB 2, the look of the book's styles or
+a simple one, the footnotes as notes over the text, the chosen design of the front of the cover
+and description of the materials of the cover, and the ISBN and the publisher the book keeps.
+
+File > Print (Ctrl+P) prints the pages of a PDF without its links, on a printer of the system,
+in the program's own window: a page on a side of a sheet (fitted to it or of its own size, with
+crop marks), two pages side by side, or a booklet to fold in half; on both sides by the printer,
+or by hand (the fronts, then the backs on the turned stack). The window keeps its texts and its
+sheets in the settings `print.*`, its layout with the export (`export.*`).
 
 ## Inline formatting
 
@@ -622,6 +708,11 @@ Copied text carries the annotations anchored in it: the KML on the clipboard has
 `id`, the annotation comes in as a copy with a new `id` – unless the text is pasted inside the
 fragment of that annotation, which it then simply joins. The HTML and the plain text on the
 clipboard, for other programs, have no annotations.
+
+A scene moved to another text on the plot board takes the annotations anchored in it from the
+`<annotations>` section of its text to that of the other text (a section is made, or left out
+once it has no annotations); one anchored also in the text the scene leaves, or with an `id` the
+other text has, goes as a copy with a new `id`.
 
 ## Footnotes and endnotes
 

@@ -16,7 +16,7 @@
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/auto_correct.h>
 #include <kalahari/editor/book_editor.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QCoreApplication>
 #include <QFont>

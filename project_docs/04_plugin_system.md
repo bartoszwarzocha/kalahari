@@ -775,39 +775,37 @@ examples/plugin_templates/
 
 Plugins are verified using **Ed25519 digital signatures** before loading.
 
+The program loads only Kalahari's own add-ons (the user's decision of 16.11.2026: no
+add-ons of other publishers, and no way for others to make them). Every add-on is signed
+with Kalahari's key; an unsigned one, one signed with another key or one changed after it
+was signed is not loaded.
+
 **Components:**
 - `PluginSignature` - Verifies .kplugin.sig files
-- `TrustedKeys` - Manages trusted publisher keys
-- `plugins.allowUnsigned` - Development mode setting
+- `TrustedKeys` - Kalahari's own keys, built into the program (`trusted_keys.cpp`); no file,
+  setting or window adds a publisher. The key of the add-ons is not made yet: until its public
+  half is put there, no plugin is trusted.
 
 **Signature File Format (.kplugin.sig):**
 ```json
 {
   "version": 1,
   "algorithm": "ed25519",
-  "archive_hash": "sha256:<hex-hash>",
-  "signature": "<base64-signature>",
-  "signed_by": "kalahari-official",
-  "signed_at": "2025-01-15T10:30:00Z"
+  "archive_hash": "<hex SHA-256 of the archive's files>",
+  "signature": "<base64 Ed25519 signature of archive_hash>",
+  "signed_by": "kalahari"
 }
 ```
 
 **Verification Flow:**
 1. `discoverPlugins()` finds .kplugin file
-2. Check for corresponding .kplugin.sig file
-3. If no .sig: check `allowUnsigned` setting
-4. If .sig exists: verify against trusted keys
-5. Only load plugins with valid signatures (or unsigned in dev mode)
+2. No .sig next to it: the plugin is not loaded
+3. A .sig: the publisher must be one of the program's, the hash must match the archive and
+   the signature the hash
+4. Only plugins with valid signatures are discovered
 
-**Trusted Publishers:**
-- Built-in keys in `resources/keys/trusted_publishers.json`
-- User keys configurable via settings
-
-**Development Mode:**
-```cpp
-// In settings.json
-"plugins.allowUnsigned": true  // WARNING: Disables signature checks
-```
+The tests sign their plugins with a key of their own (`tests/test_support/plugin_signing.h`,
+`TrustedKeys::addTestKey()`).
 
 ### Thread Safety
 

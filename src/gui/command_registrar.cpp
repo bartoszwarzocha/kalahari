@@ -20,8 +20,7 @@
 #include <string>
 #include <tuple>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // Helper function for tr() - must be in a QObject context
 // We use QCoreApplication::translate() as a workaround.
@@ -261,24 +260,30 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                       IconSet(),
                       nullptr);
 
-    // Import submenu
-    REG_CMD("file.import.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX Document..."), "FILE/Import/DOCX Document...", 80, false, 1);
+    // Import submenu: DOCX, Markdown, Plain Text and Other Formats open the window of the
+    // import (BookImportCoordinator)
+    REG_CMD("file.import.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX Document..."), "FILE/Import/DOCX Document...", 80, false, 0);
+    REG_CMD("file.import.markdown", QT_TRANSLATE_NOOP("CommandRegistrar", "&Markdown..."), "FILE/Import/Markdown...", 84, false, 0);
+    REG_CMD("file.import.text", QT_TRANSLATE_NOOP("CommandRegistrar", "Plain &Text..."), "FILE/Import/Plain Text...", 86, false, 0);
+    // The formats of the plugins (core::IImporter); greyed out while no plugin has one
+    REG_CMD("file.import.plugin", QT_TRANSLATE_NOOP("CommandRegistrar", "&Other Formats..."), "FILE/Import/Other Formats...", 88, true, 0);
     REG_CMD("file.import.pdf", QT_TRANSLATE_NOOP("CommandRegistrar", "&PDF Reference..."), "FILE/Import/PDF Reference...", 90, false, 2);
-    REG_CMD("file.import.text", QT_TRANSLATE_NOOP("CommandRegistrar", "Plain &Text..."), "FILE/Import/Plain Text...", 100, false, 1);
     REG_CMD("file.import.scrivener", QT_TRANSLATE_NOOP("CommandRegistrar", "&Scrivener Project..."), "FILE/Import/Scrivener Project...", 110, false, 2);
 
     // Import Archive (priority 75 in Import submenu)
-    REG_CMD_TOOL_ICON("file.import.archive", QT_TRANSLATE_NOOP("CommandRegistrar", "Project &Archive..."), "FILE/Import/Project Archive...", 75, false, 0,
+    REG_CMD_TOOL_ICON("file.import.archive", QT_TRANSLATE_NOOP("CommandRegistrar", "Project &Archive..."), "FILE/Import/Project Archive...", 75, true, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onImportArchive);
 
-    // Export submenu: DOCX and Markdown open the window of the export (BookExportCoordinator)
+    // Export submenu: DOCX, PDF, Markdown and EPUB open the window of the export
+    // (BookExportCoordinator)
     REG_CMD("file.export.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX..."), "FILE/Export/DOCX", 120, false, 0);
-    REG_CMD("file.export.pdf", QT_TRANSLATE_NOOP("CommandRegistrar", "&PDF"), "FILE/Export/PDF", 130, false, 1);
+    REG_CMD("file.export.pdf", QT_TRANSLATE_NOOP("CommandRegistrar", "&PDF..."), "FILE/Export/PDF",
+            130, false, 0);
     REG_CMD("file.export.markdown", QT_TRANSLATE_NOOP("CommandRegistrar", "&Markdown..."), "FILE/Export/Markdown", 140, true, 0);
-    REG_CMD("file.export.epub", QT_TRANSLATE_NOOP("CommandRegistrar", "&EPUB"), "FILE/Export/EPUB", 150, false, 2);
-    REG_CMD("file.export.mobi", QT_TRANSLATE_NOOP("CommandRegistrar", "M&OBI"), "FILE/Export/MOBI", 160, false, 2);
+    REG_CMD("file.export.epub", QT_TRANSLATE_NOOP("CommandRegistrar", "&EPUB..."),
+            "FILE/Export/EPUB", 150, false, 0);
     REG_CMD("file.export.icml", QT_TRANSLATE_NOOP("CommandRegistrar", "&InDesign ICML"), "FILE/Export/InDesign ICML", 170, false, 3);
     REG_CMD("file.export.latex", QT_TRANSLATE_NOOP("CommandRegistrar", "&LaTeX"), "FILE/Export/LaTeX", 180, false, 3);
     REG_CMD("file.export.settings", QT_TRANSLATE_NOOP("CommandRegistrar", "Export &Settings..."), "FILE/Export/Export Settings...", 190, true, 2);
@@ -288,6 +293,13 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onExportArchive);
+
+    // The window of the print (BookExportCoordinator); Ctrl+P, as in the word processors
+    REG_CMD_TOOL_ICON("file.print", QT_TRANSLATE_NOOP("CommandRegistrar", "&Print..."),
+                      "FILE/Print...", 197, true, 0,
+                      KeyboardShortcut(Qt::Key_P, Qt::ControlModifier),
+                      IconSet(),
+                      nullptr);
 
     // Alt+F4 (Cmd+Q on macOS, see SHORTCUTS): it closes the window on Windows and on Linux
     // desktops anyway; the menu shows it, and it works also where the window manager leaves
@@ -453,6 +465,15 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_CB("book.newTimeline", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Timeline..."), "BOOK/New Timeline...", 70, true, 1,
                newInWorkshop("timeline"));
 
+    // The cards in the text (CardsInTextCoordinator gives them their callbacks): the paragraph
+    // at the cursor linked with a card, and the card whose name the cursor is in, else the
+    // first card of its paragraph, opened. Alt+Shift with a letter, as the other commands of
+    // the text (Option+Shift+Cmd on macOS): free in the program and in the systems
+    REG_CMD_KEY("book.linkParagraphCard", QT_TRANSLATE_NOOP("CommandRegistrar", "Link Paragraph &with Card..."), "BOOK/Link Paragraph with Card...", 75, false, 0,
+                KeyboardShortcut(Qt::Key_K, pasteModifiers));
+    REG_CMD_KEY("book.openCardAtCursor", QT_TRANSLATE_NOOP("CommandRegistrar", "&Open Card at Cursor"), "BOOK/Open Card at Cursor", 76, true, 0,
+                KeyboardShortcut(Qt::Key_O, pasteModifiers));
+
     // The text from the cursor to a new text right after the text in front, named after the
     // texts of the book, as New Chapter... (MainWindow); ChapterBreakCoordinator gives it its
     // callback
@@ -462,6 +483,14 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_CB("book.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Sc&ene Break"), "BOOK/Scene Break", 90, true, 0,
                callbacks.onInsertSceneBreak);
 
+    // The plot board of the book: its texts as cards, or in a table (the outline), on one tab;
+    // in the Book menu, since every letter of the names has a command of the View menu
+    REG_CMD_KEY_CB("view.plotBoard", QT_TRANSLATE_NOOP("CommandRegistrar", "Plot &Board"), "BOOK/Plot Board", 92, false, 0,
+                   KeyboardShortcut(Qt::Key_T, Qt::ControlModifier | Qt::ShiftModifier),
+                   callbacks.onPlotBoard);
+    REG_CMD_KEY_CB("view.outline", QT_TRANSLATE_NOOP("CommandRegistrar", "O&utline"), "BOOK/Outline", 94, true, 0,
+                   KeyboardShortcut(Qt::Key_L, Qt::ControlModifier | Qt::ShiftModifier),
+                   callbacks.onOutline);
     // The book's dictionary on its tab: its names, spelling rules and words (no keys);
     // BookDictionaryCoordinator gives it its callback
     REG_CMD("book.dictionary", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Dictionary..."), "BOOK/Book Dictionary...", 95, false, 0);
@@ -839,6 +868,15 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                image(ImageCommand::AddCaption));
     REG_CMD_CB("image.altText", QT_TRANSLATE_NOOP("CommandRegistrar", "A&lternative Text..."), "IMAGE/Alternative Text...", 30, true, 0,
                image(ImageCommand::AltText));
+    // How the text flows around an image alone in its paragraph (the one checked: MainWindow)
+    REG_CMD_CB("image.wrapInline", QT_TRANSLATE_NOOP("CommandRegistrar", "&In the Text"), "IMAGE/Wrap Text/In the Text", 35, true, 0,
+               image(ImageCommand::WrapInline));
+    REG_CMD_CB("image.wrapSquareLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Image on the &Left, Text Beside It"), "IMAGE/Wrap Text/Image on the Left, Text Beside It", 36, false, 0,
+               image(ImageCommand::WrapSquareLeft));
+    REG_CMD_CB("image.wrapSquareRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Image on the &Right, Text Beside It"), "IMAGE/Wrap Text/Image on the Right, Text Beside It", 37, false, 0,
+               image(ImageCommand::WrapSquareRight));
+    REG_CMD_CB("image.wrapTopBottom", QT_TRANSLATE_NOOP("CommandRegistrar", "Text &Above and Below the Image"), "IMAGE/Wrap Text/Text Above and Below the Image", 38, false, 0,
+               image(ImageCommand::WrapTopBottom));
     REG_CMD_CB("image.rotateRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Rotate &Right 90°"), "IMAGE/Rotate/Rotate Right 90°", 40, false, 0,
                image(ImageCommand::RotateRight));
     REG_CMD_CB("image.rotateLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Rotate &Left 90°"), "IMAGE/Rotate/Rotate Left 90°", 41, false, 0,
@@ -872,9 +910,11 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                image(ImageCommand::Change));
     REG_CMD_CB("image.saveAs", QT_TRANSLATE_NOOP("CommandRegistrar", "Sa&ve as Image..."), "IMAGE/Save as Image...", 90, false, 0,
                image(ImageCommand::SaveAs));
-    // The filter of the selected image is checked (MainWindow)
+    // The filter and the wrap of the selected image are checked (MainWindow)
     for (const char* id : {"image.filterNone", "image.filterGrayscale", "image.filterSepia",
-                           "image.filterBlackWhite", "image.filterWash"}) {
+                           "image.filterBlackWhite", "image.filterWash", "image.wrapInline",
+                           "image.wrapSquareLeft", "image.wrapSquareRight",
+                           "image.wrapTopBottom"}) {
         if (Command* filter = registry.getCommand(id)) {
             filter->isChecked = []() { return false; };
         }
@@ -1151,5 +1191,4 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     return count;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

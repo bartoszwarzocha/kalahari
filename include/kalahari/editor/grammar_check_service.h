@@ -4,7 +4,8 @@
 /// @file grammar_check_service.h
 /// @brief Grammar as you type: texts checked by the LanguageTool server the writer runs
 
-#pragma once
+#ifndef KALAHARI_EDITOR_GRAMMAR_CHECK_SERVICE_H
+#define KALAHARI_EDITOR_GRAMMAR_CHECK_SERVICE_H
 
 #include <kalahari/editor/grammar_error.h>
 
@@ -78,25 +79,25 @@ public:
     void setServer(const QString& server);
 
     /// @brief The address the texts go to, or empty
-    QString endpoint() const;
+    [[nodiscard]] QString endpoint() const;
 
     /// @brief Whether a server is set: an http or https address
-    bool isConfigured() const;
+    [[nodiscard]] bool isConfigured() const;
 
     /// @brief Turn the checking on or off
     void setEnabled(bool enabled);
 
     /// @brief Whether the checking is on (whether or not a server is set)
-    bool isEnabled() const;
+    [[nodiscard]] bool isEnabled() const;
 
     /// @brief Whether texts are sent now: on, with a server, not waiting after a failure
-    bool isActive() const;
+    [[nodiscard]] bool isActive() const;
 
     /// @brief Set the language the texts are in (see languageFor())
     void setLanguage(const QString& language);
 
     /// @brief The language the texts are checked in
-    QString language() const;
+    [[nodiscard]] QString language() const;
 
     /// @brief The account of a server with accounts (LanguageTool Premium): its e-mail
     ///        address and API key; empty: none
@@ -106,7 +107,7 @@ public:
     void setRetryDelay(int ms);
 
     /// @brief Why the server did not check the last text (Failure::None: it checked it)
-    Failure lastFailure() const;
+    [[nodiscard]] Failure lastFailure() const;
 
     // =========================================================================
     // Checking
@@ -121,7 +122,7 @@ public:
     void cancel(quint64 request);
 
     /// @brief How many requests wait or are being checked
-    int pendingChecks() const;
+    [[nodiscard]] int pendingChecks() const;
 
     /// @brief Do not report the issues of a rule any more
     /// @param ruleId The rule
@@ -135,10 +136,10 @@ public:
     void setIgnoredRules(const QMap<QString, QString>& rules);
 
     /// @brief The rules whose issues are not reported: what they look for, by rule
-    QMap<QString, QString> ignoredRules() const;
+    [[nodiscard]] QMap<QString, QString> ignoredRules() const;
 
     /// @brief Whether the issues of a rule are not reported
-    bool isRuleIgnored(const QString& ruleId) const;
+    [[nodiscard]] bool isRuleIgnored(const QString& ruleId) const;
 
 signals:
     /// @brief A text was checked
@@ -180,7 +181,7 @@ private:
     void restart();
 
     /// @brief The issues in an answer of the server, for the text checked
-    QList<GrammarError> parse(const QByteArray& json, const QString& text) const;
+    [[nodiscard]] QList<GrammarError> parse(const QByteArray& json, const QString& text) const;
 
     QNetworkAccessManager* m_network;  ///< Sends the texts
     QTimer* m_retryTimer;              ///< Asks the server again after a failure
@@ -205,3 +206,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_GRAMMAR_CHECK_SERVICE_H

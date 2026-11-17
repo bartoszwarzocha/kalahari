@@ -4,7 +4,8 @@
 /// @file flow_layout.h
 /// @brief A row of items that goes on in the next line where the panel is too narrow
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_FLOW_LAYOUT_H
+#define KALAHARI_GUI_WIDGETS_FLOW_LAYOUT_H
 
 #include <QLayout>
 #include <QList>
@@ -13,8 +14,7 @@ class QLayoutItem;
 class QRect;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Items left to right, in as many lines as the width needs
 ///
@@ -62,11 +62,12 @@ public:
 private:
     /// @brief Place the items in @p rect, or only measure them
     /// @return The height they take, with the margins
-    int arrange(const QRect& rect, bool place) const;
+    [[nodiscard]] int arrange(const QRect& rect, bool place) const;
 
     QList<QLayoutItem*> m_items;
     int m_lineSpacing;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_FLOW_LAYOUT_H

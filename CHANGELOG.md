@@ -9,6 +9,197 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The fields of the cards, and Settings > Cards** - 2026-11-16. Fields... on the bar of a full
+  card opens the window Card Fields of its kind (a list of the kinds above the table chooses
+  another): the fields in the order of the card, Name and In Short first and always there, with
+  the kind of each field and three boxes, On the Card, In Properties and In the List (Space
+  ticks the box of the cell); a hidden field keeps its values. Add Field... (Insert) adds a text,
+  a longer text, a list to choose from (its values in List Values..., in the order of the list)
+  or a card of a kind, which names the relation it keeps with the card it names and the other
+  way; F2 changes a field the writer added, Delete removes it (the cards keep its values, and a
+  value gone from a list stays as text), Move Up and Move Down change the order, and Restore
+  Type Fields goes back to the fields of the book type. The book keeps its fields
+  (`workshop.cardFields` of the book file), so each book can have its own; "Save as defaults for
+  new books" makes them the fields new books start with, which Settings > Cards > Card Fields
+  changes too (Default Fields of New Books...). The context menu of an own field of a card adds
+  it to all the cards of its kind, which take the values of their own fields of that name.
+  Settings > Cards also chooses the layout of the full card (two columns, or the tabs General,
+  Description, Relations, Chapters and Materials under the header, chosen with Alt and their
+  letters) and the portraits: squares or circles, and for a card without a picture its
+  initials on its color or the icon of its kind; the cards, their lists and the card at the
+  cursor change at once.
+- **Cards in the text of the book** - 2026-11-16. Book > Link Paragraph with Card...
+  (Alt+Shift+K; macOS: Cmd+Option+Shift+K) opens the window of the paragraph at the cursor: the
+  chapter, the number and the first words of the paragraph, the cards in the order of their
+  names, filtered by any form of a name, the card whose name the cursor is in chosen first, and
+  the role of the card in the paragraph (point of view, appears, mentioned, the place of the
+  action). A card links with one paragraph of a chapter: linked again, its link moves to the new
+  paragraph. Book > Open Card at Cursor (Alt+Shift+O; macOS: Cmd+Option+Shift+O) opens the card
+  whose name the cursor is in, in any of its forms, else the first card of the paragraph; both
+  are on the context menu of the text too. A paragraph linked with cards has the sign of each of
+  their kinds on the margin, next to the paperclip of the materials; a click opens the card, and
+  the context menu of the paragraph has Linked Cards. The Properties panel, on the page of the
+  text in front or of its chapter, shows the card whose name the cursor is in (Card at the
+  Cursor, with Open Card) and Cards of the Paragraph: the
+  roles and the cards with their colors, "+" or Insert to link one, "-" or Delete to take one off
+  the paragraph (it stays linked with the chapter), Enter or a double-click to open it. Settings >
+  Cards > In the Text chooses what Properties shows at the cursor and whether the signs are on
+  the margin; links name paragraphs while Settings > Navigator allows it. Quick Insert after @
+  shows the names of the cards with dots of their colors.
+- **Lists of the cards** - 2026-11-16. A group of cards clicked in the Navigator (Characters,
+  Locations, Items) opens the list of its cards in the middle of the window, as the lists of the
+  materials: the columns are the fields of the kind (those In the List shown at first), In Short
+  and the numbers of the chapters and the relations; the search finds the forms and the other
+  names of the names in the book's dictionary. F2 edits a cell of a field or of In Short in
+  place; the menu has Edit, Relation..., Rename..., Delete... and Properties; the tiles have the
+  portraits with the colors of the cards; the gear opens Settings > Cards.
+- **The names of the cards declined from the book's dictionary** - 2026-11-16. A card has its
+  name in the book's dictionary: a new card takes over a name of the same text without a card, a
+  new title gives the name the new text, and Delete asks whether the name stays in the
+  dictionary. The short card shows the forms in one line and the other names ("Change..." opens
+  the window Name); the full card shows the forms by case of the name or of another name,
+  corrected right there, with another name added by Insert. Create Card on the context menu of
+  an unknown word and of a selection opens Add Element with the name. The window Relation finds
+  the cards by any form and other name and declines them in its preview; Find in Book of a card
+  finds all its forms and other names.
+
+- **Plot board and outline** - 2026-11-15. Book > Plot Board (Ctrl+Shift+T) shows the texts of
+  the main section of the book (chapters, prologue, epilogue) as cards on a tab of their own:
+  the title, a short description, the point of view, the place and the time of the action, the
+  words and the state. Columns (the parts side by side) or Grid (rows under the titles of the
+  parts), three sizes of the cards, colored by state, by point of view, by the writer's own
+  color or not at all. A card moves with Ctrl and the arrows, Ctrl+X and Ctrl+V or the mouse,
+  to the same places as in the Navigator; F2 edits it over the card (the characters and the
+  places of the Workshop as suggestions), Enter opens its text, Insert adds a text after it,
+  Delete deletes it, Alt+Enter shows its properties, Ctrl+Z and Ctrl+Y undo and redo what was
+  done on the board. Book > Outline (Ctrl+Shift+L) shows the same texts in a table under their
+  parts, edited in the cells. The description and the plot of a text are kept in the `.klh`
+  file (`"description"`, `"plot"`); the colors are in the themes (`editor.plot*`).
+- **The scenes of the texts on the plot board** - 2026-11-15. A text with scene breaks has a
+  card of each scene: under its card in Columns, in a drawer under its row in Grid (Space or
+  a click on "3 scenes" opens and closes it), and a row under its row in the outline (the
+  Scenes switch over the board shows or hides them). A scene has a title, a description, a
+  point of view, a place and time of the action, a state and a color, edited as a text's (F2,
+  the menu, the cells of the outline) and undone with Ctrl+Z; Enter opens the text at the
+  scene. A text without its own point of view shows those of its scenes. What a scene says is
+  kept in the attributes of its scene break (`<scene-break title="..." pov="..."/>`), of the
+  first scene in the `.klh` file (`"plot"` / `"opening"`); an open text takes the change in its
+  editor, to be saved with it.
+- **Scenes moved, added and deleted on the plot board** - 2026-11-15. A scene moves among the
+  scenes of its text with Ctrl and Up or Down in Columns, Left or Right in the drawer of Grid,
+  with Ctrl+X and Ctrl+V or the mouse; Insert adds a scene after it, Alt+Insert one at the end
+  of the text (a text without breaks gets its second scene), Delete asks whether to delete the
+  scene with its text or its break only (its text joins the scene before it). The new scene's
+  card is edited at once; Ctrl+Z undoes each of these. An open text takes the change in its
+  editor, as one step of its own Ctrl+Z.
+- **Scenes in the plan on the plot board** - 2026-11-15. Beside the scenes of a text the board
+  shows the scenes planned for it, not written yet, in a dashed frame ("In the Plan"): Insert
+  adds one after a scene, Alt+Insert one at the end of the text, F2 edits it, Ctrl with the
+  arrows, Ctrl+X and Ctrl+V or the mouse move it among the scenes of its text or to another
+  text, Delete deletes it; Enter writes it: a scene break with its title and description comes
+  at its place in the text, and the text opens there. Each of these is undone with Ctrl+Z. The
+  outline has a row of each. The plan is kept in the `.klh` file (`"plot"` / `"planned"`).
+  Settings > Plot Board (new) chooses the scenes: of the texts and in their plans (the
+  default), of the texts only, or in the plans only, and the colors of the cards.
+- **A scene moved to another text on the plot board** - 2026-11-15. Ctrl with the arrows
+  across the texts (Left and Right in Columns, Up and Down in the drawer of Grid) moves a scene
+  to the end of the text before or the start of the text after; dropped on a scene of another
+  text or on its card, or pasted with Ctrl+V after it, the scene goes there. It takes its text,
+  what it says and the annotations anchored in it along (one anchored also in the text it
+  leaves goes as a copy); into an empty text it comes in place of its empty scene. One Ctrl+Z
+  undoes it in both texts, also when one of them is open in the editor.
+- **The plot board in the Edit menu, the Navigator and the Properties panel** - 2026-11-15.
+  Edit > Undo, Redo, Cut, Paste and Delete work on the board and in the outline as their keys
+  do (Copy in the outline copies the cell); in a field of a card being edited they are the
+  field's. "Show on the Plot Board" in the menu of the book, a part and a text of the main
+  section in the Navigator opens the board with the card of the text, or of the first text of
+  the part, chosen. The Properties panel of a text of the main section has the group "Plot
+  Board": its description, point of view, place, time of the action and card color, with the
+  characters and places of the Workshop suggested; a field keeps what was written when the
+  keys leave it, and a change on the board shows there at once.
+- **Plot board: the front and back sections, the numbers in the titles** - 2026-11-15. Settings
+  > Plot Board can show the texts of the front and the back section too, dimmed, before and
+  after the main section: a preview, whose texts open from the Navigator. When a move leaves
+  the numbers in the titles the program gave ("Chapter 3", also "Chapter 3. Storm") out of the
+  order, the bar under the board offers "Renumber" (a step of its own for Ctrl+Z); Settings >
+  Plot Board can renumber them at once, in the step of the move, or never. Only the number
+  changes, and the writer's own titles stay as they are.
+- **Settings > Plot Board: the view, the cards, the colors and the outline** - 2026-11-15. The
+  page chooses the view a new tab of the board opens on (the board, the outline or the one used
+  last), the layout and the size of the cards, the scenes shown, what the cards show besides
+  their titles (the time of the action is off by default), whether the color of a card is a
+  strip at its top or its background, what is under the cards (the color of the theme, cork or
+  a color of one's own, both kept for each theme) and the columns of the outline, which the
+  button "Table Columns" over the outline chooses too. The gear at the end of the switches over
+  the board and the outline opens this page.
+
+- **Plugin engine** - 2026-11-16. The program loads its add-ons at the start (Python starts
+  only when one is turned on) and puts what they add into every book window: their commands
+  in the menus (Tools > Plugins > the add-on's name, or a menu of the program it names), with
+  their icons and keys (keys the program, the system or another command has are not given to
+  them), greyed out without a book when they need one; their panels as docks on the right,
+  closed until opened, with a toggle in View > Panels and a tab among the panels; their
+  formats in File > Export, with the texts chosen in the window; and the daily goal reached,
+  once a day. An add-on is a Python class with the methods it needs (`get_commands`,
+  `get_panels`, `get_export_formats`/`export_document`, `get_settings`, `on_goal_reached`)
+  and the `kalahari_api` module built into the program (the book, the text in front,
+  messages, its own settings kept within their limits). Add-ons are turned off and on without
+  a restart (`plugins.disabled`), installed into the user's folder in place of an older
+  version and removed from it; each has its own entry module, so two `plugin.py` no longer
+  mix. Only Kalahari's own add-ons load: signed with Kalahari's key, which is built into the
+  program; the user keys, the trust levels and `plugins.allowUnsigned` are gone. The add-on
+  manager window and the add-ons' page in Settings come later.
+
+- **Mind maps and timelines of the Workshop** - 2026-11-16. A mind map or a timeline added to
+  the Workshop opens on a tab of its own. Both are modules of their own (`src/mindmap`,
+  `src/timeline`): the program knows them only by the editors of the window kinds they register
+  (core::IWindowEditorProvider), so that each can leave the program as an add-on. A mind map
+  has the map and the list (an outline): nodes added, changed, moved and deleted with the keys
+  (Tab, Enter, F2, Delete, Ctrl+arrows) and the mouse, its layout (both sides, to the right,
+  down, free), markers, colors of the branches, notes, nodes about elements of the book,
+  connections with labels, loose nodes, Copy as Text and pasting an outline with indents.
+  A timeline has three views: the axis (the events as cards or labels in lanes of threads,
+  characters, places or one lane, on a scale of dates, of days of the story or of the order
+  of the story, long gaps without events drawn short, a tray of the events without a time,
+  dragging in time and between lanes, the zoom), the list (a table edited in place, with the
+  gaps without events) and "Time and the Book" (the chapters top to bottom against the time of
+  their events, flashbacks marked). The window "Event" has all the fields of an event and says
+  at once what it reads in the time typed ("16 kwietnia 1931, wieczorem", "Dzień 3", "marzec
+  1931", "ok. 1925"); a time it does not read stays as typed. "Day One and Threads..." sets the
+  day the days of the story count from and the threads with their colors. Each change is saved
+  at once and has its step of Undo; the bar under the tab says what was done. Settings > Mind
+  Maps and Settings > Timelines (also the gear of each tab) hold the options of new maps and
+  timelines, the look and the colors of each theme; the six colors of the branches and the
+  threads are shared.
+
+- **The text flowing around an image** - 2026-11-16. An image alone in its paragraph can have
+  the text beside it, on its left or right, or above and below it: Image > Wrap Text, the same
+  submenu in the image's context menu, and Wrap text in Image Properties (In the Text, Image on
+  the Left, Text Beside It, Image on the Right, Text Beside It, Text Above and Below the Image).
+  Beside an image the lines of the next paragraphs are shorter by the image and a small room;
+  a table, a line or a break goes below the image. An image with the text above and below it
+  that does not fit at the end of a page goes to the top of the next page and the text after it
+  fills the page, so a tall image no longer leaves an empty end of a page; in the continuous
+  views it stays in the text. Settings > Editor > Images > New Image > Layout sets it for the
+  images inserted next. KML keeps it in the `wrap` attribute of `<img>`; DOCX gets
+  an image anchored to its paragraph with the text around it. An image in a line of text or in
+  a table stays in its line.
+
+### Changed
+
+- **Settings: shorter pages, titled groups and a note under each option** - 2026-11-16. The
+  long pages are split: Editor has General, Writing (the word count and the fields) and Margin
+  Numbering; Annotations has General and Annotation Cards; Navigator has Adding, Material
+  Lists, Material Kinds and Cover. Each page has groups with headings and a short note in plain
+  words under an option; the options seldom changed are under Advanced Settings, shown with a
+  button. A choice of several items is a list with the note of the chosen item under it, in
+  place of the columns of radio buttons, on every page, also on those of Statistics and Goals,
+  Cards, Materials, Images, Auto-correct, Quick Insert, Clippings and Plot Board. A test makes
+  sure that no page has radio buttons and that every page fits the narrowest window, in English
+  and in Polish.
+
 ---
 
 ## [0.4.0-alpha] - 2026-11-17

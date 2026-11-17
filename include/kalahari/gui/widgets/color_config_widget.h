@@ -4,7 +4,8 @@
 /// @file color_config_widget.h
 /// @brief Reusable color configuration widget for settings panels
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_COLOR_CONFIG_WIDGET_H
+#define KALAHARI_GUI_WIDGETS_COLOR_CONFIG_WIDGET_H
 
 #include <QWidget>
 #include <QColor>
@@ -12,8 +13,7 @@
 class QPushButton;
 class QLabel;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A reusable widget for color configuration in settings
 ///
@@ -46,7 +46,7 @@ public:
 
     /// @brief Get the current color
     /// @return The currently selected color
-    QColor color() const;
+    [[nodiscard]] QColor color() const;
 
 signals:
     /// @brief Emitted when the color changes via user interaction
@@ -61,11 +61,12 @@ private:
     /// @brief Update the button and hex label to reflect current color
     void updateColorDisplay();
 
-    QLabel* m_label;            ///< Label showing color name
-    QPushButton* m_colorButton; ///< Button showing color preview
-    QLabel* m_hexLabel;         ///< Label showing hex code (e.g., "#FF0000")
-    QColor m_color;             ///< Current color value
+    QLabel* m_label = nullptr;             ///< Label showing color name
+    QPushButton* m_colorButton = nullptr;  ///< Button showing color preview
+    QLabel* m_hexLabel = nullptr;          ///< Label showing hex code (e.g., "#FF0000")
+    QColor m_color;                        ///< Current color value
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_COLOR_CONFIG_WIDGET_H

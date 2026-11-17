@@ -52,7 +52,7 @@ protected:
     }
 
 private:
-    int glyphSize() const { return std::max(10, fontMetrics().height() * 3 / 4); }
+    [[nodiscard]] int glyphSize() const { return std::max(10, fontMetrics().height() * 3 / 4); }
 
     void updateMargin() { setContentsMargins(glyphSize() + 5, 0, 0, 0); }
 

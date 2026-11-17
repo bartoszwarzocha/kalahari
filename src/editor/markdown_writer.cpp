@@ -9,7 +9,7 @@
 /// sizes, the paragraphs' own spacing, the page breaks, the annotations) stays only in the
 /// book; underlined, raised and lowered text is HTML (<u>, <sup>, <sub>), as GitHub shows it.
 
-#include "book_export_internal.h"
+#include "kalahari/editor/detail/book_export_internal.h"
 
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_tables.h>
@@ -109,7 +109,7 @@ struct Marks {
           superscript(format.verticalAlignment() == QTextCharFormat::AlignSuperScript),
           subscript(format.verticalAlignment() == QTextCharFormat::AlignSubScript) {}
 
-    QString open() const {
+    [[nodiscard]] QString open() const {
         QString result;
         if (bold) result += QStringLiteral("**");
         if (italic) result += QStringLiteral("*");
@@ -120,7 +120,7 @@ struct Marks {
         return result;
     }
 
-    QString close() const {
+    [[nodiscard]] QString close() const {
         QString result;
         if (subscript) result += QStringLiteral("</sub>");
         if (superscript) result += QStringLiteral("</sup>");

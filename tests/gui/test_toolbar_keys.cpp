@@ -7,7 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
@@ -33,7 +33,7 @@
 #include <QWindow>
 
 #include <algorithm>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -165,10 +165,10 @@ struct Desk {
     }
 
     /// The window with the toolbar
-    QWidget* toolbarWindow() const { return toolbar->window(); }
+    [[nodiscard]] QWidget* toolbarWindow() const { return toolbar->window(); }
 
     /// The middle of the size field's arrows, outside its text
-    QPoint sizeArrows() const {
+    [[nodiscard]] QPoint sizeArrows() const {
         const auto* sizeText = size->findChild<QLineEdit*>();
         REQUIRE(sizeText != nullptr);
         const int left = sizeText->geometry().right() + 1;

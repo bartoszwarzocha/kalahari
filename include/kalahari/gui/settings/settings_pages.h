@@ -7,7 +7,8 @@
 /// Each page builds its controls and binds them to setting keys (SettingsPage);
 /// only the theme, icons and diagnostic options add their own steps.
 
-#pragma once
+#ifndef KALAHARI_GUI_SETTINGS_SETTINGS_PAGES_H
+#define KALAHARI_GUI_SETTINGS_SETTINGS_PAGES_H
 
 #include "kalahari/gui/settings/settings_page.h"
 
@@ -23,10 +24,10 @@
 class QCheckBox;
 class QComboBox;
 class QHBoxLayout;
+class QLabel;
 class QLineEdit;
 class QListWidget;
 class QPushButton;
-class QRadioButton;
 class QSpinBox;
 class QTableWidget;
 class QTableWidgetItem;
@@ -44,11 +45,11 @@ class CommandRegistry;
 namespace kalahari {
 namespace core {
 struct Theme;
-}
+} // namespace core
 namespace editor {
 class SpellCheckService;
 struct QuickInsertItem;
-}
+} // namespace editor
 namespace gui {
 
 class ColorConfigWidget;
@@ -159,7 +160,7 @@ private:
     void updatePreview();
 
     QComboBox* m_iconStyle;
-    QHBoxLayout* m_previewLayout;
+    QHBoxLayout* m_previewLayout = nullptr;
     QColor m_primary;
     QColor m_secondary;
 };
@@ -171,13 +172,26 @@ public:
     explicit DashboardPage(QWidget* parent = nullptr);
 };
 
-/// @brief Editor > General: font, typography, typewriter scrolling
+/// @brief Editor > General: the font and the typography; Editor > Writing: pasting, opening a
+/// chapter, typewriter scrolling and the word count
 class EditorGeneralPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorGeneralPage(CommandRegistry& commands, QWidget* parent = nullptr);
+    /// @brief The pages of the general settings of the editor
+    enum class Part {
+        Text,    ///< The font, the spacing, the tabs and the scene breaks
+        Writing  ///< Pasting, the fields, opening a chapter, typewriter scrolling, the word count
+    };
+
+    /// @param commands The commands of its window, whose keys the notes name
+    /// @param part The page
+    explicit EditorGeneralPage(CommandRegistry& commands, Part part = Part::Text,
+                               QWidget* parent = nullptr);
 
 private:
+    void createText();
+    void createWriting();
+
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 
@@ -215,6 +229,9 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    /// @brief The group of the writer's own words, which the page changes in @p spelling
+    void addOwnWords(editor::SpellCheckService* spelling);
+
     /// @brief The group Book Dictionary: the departures from its rules marked, where the
     ///        panel adds a word, and Open Book Dictionary
     void addBookDictionaryGroup(bool bookOpen);
@@ -234,14 +251,20 @@ private:
     QPushButton* m_remove = nullptr;
 };
 
-/// @brief Editor > Pages and Margins
+/// @brief Editor > Pages and Margins, and Editor > Margin Numbering
 class EditorPagesPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorPagesPage(QWidget* parent = nullptr);
+    /// @brief The pages of the pages of the editor
+    enum class Part {
+        Pages,         ///< The page format, the margins, the text frame border
+        MarginNumbers  ///< The working numbers on the left margin
+    };
+
+    explicit EditorPagesPage(Part part = Part::Pages, QWidget* parent = nullptr);
 
 private:
-    /// @brief The group Margin Numbering: the working numbers on the left margin
+    /// @brief The groups of the margin numbering: the working numbers on the left margin
     void addMarginNumbersGroup();
 };
 
@@ -448,11 +471,54 @@ private:
 class AnnotationsPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit AnnotationsPage(QWidget* parent = nullptr);
+    /// @brief The pages of Settings > Annotations
+    enum class Part {
+        General,  ///< The author of new ones, their marks in the text and their colors
+        Cards     ///< Their cards under the paragraphs
+    };
+
+    explicit AnnotationsPage(Part part = Part::General, QWidget* parent = nullptr);
 
 private:
-    /// @brief The group of the cards under the paragraphs
+    /// @brief The groups of the cards under the paragraphs
     void addCardSettings();
+};
+
+/// @brief Plot Board: the view a new tab opens on, the layout and the size of the cards, the
+/// scenes shown and which scenes there are (those of the texts, those in their plans, or
+/// both: PlotBoard::SCENES_VARIANT_SETTING); what the cards show; what colors them, as a strip
+/// or their background, the background of the board and the colors of the theme; the columns
+/// of the outline; the front and back sections shown as a preview; what happens to the numbers
+/// in the titles after a move (PlotBoard::RENUMBER_SETTING)
+class PlotBoardPage : public SettingsPage {
+    Q_OBJECT
+public:
+    /// @brief The page with its fields bound to their settings
+    explicit PlotBoardPage(QWidget* parent = nullptr);
+
+private:
+    /// @brief A list @p label of @p choices (addChoice()) bound to setting @p key, which is its
+    /// object name; a value the program does not know shows as the default of the setting
+    QComboBox* addChoices(QFormLayout* form, const QString& label, const char* key,
+                          const std::vector<Choice>& choices);
+
+    /// @brief A row @p label of check boxes, each with its text and the key of its setting
+    void addChecks(QFormLayout* form, const QString& label,
+                   const std::vector<std::pair<QString, std::string>>& checks);
+
+    /// @brief View: the view a tab opens on, the layout and the size of the cards, the front
+    /// and back sections
+    void addViewGroup();
+    /// @brief Scenes: shown under the texts or not, and which scenes there are
+    void addScenesGroup();
+    /// @brief Cards: what they show besides their titles
+    void addCardsGroup();
+    /// @brief Colors: what colors the cards and where, the background, the theme's colors
+    void addColorsGroup();
+    /// @brief Outline: its columns besides the title
+    void addOutlineGroup();
+    /// @brief Numbers in the Titles: what happens to them after a move
+    void addNumbersGroup();
 };
 
 /// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,
@@ -464,33 +530,41 @@ private:
 class NavigatorPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit NavigatorPage(const core::ProjectManager& book, QWidget* parent = nullptr);
+    /// @brief The pages of Settings > Navigator, each with its own groups
+    enum class Part {
+        Adding,  ///< The menus of the nodes, the Add Element window, dropped and pasted
+        Lists,   ///< What the Materials show, where the list of a kind opens, the links
+        Kinds,   ///< The kinds of materials the Navigator shows
+        Cover    ///< The lengths of the texts of the cover
+    };
+
+    /// @param book The book of its window, whose numbers of materials the kinds show
+    /// @param part The page
+    NavigatorPage(const core::ProjectManager& book, Part part, QWidget* parent = nullptr);
 
 private:
-    QRadioButton* m_named = nullptr;   ///< "Add..." and the commands named after kinds
-    QRadioButton* m_single = nullptr;  ///< "Add..." only
-    QRadioButton* m_sections = nullptr;  ///< A section of the book or the Workshop at a time
-    QRadioButton* m_wholeBook = nullptr;  ///< The whole book or the Workshop
-    QRadioButton* m_place = nullptr;     ///< No choice: the kinds of the place only
-    QRadioButton* m_treeTypes = nullptr;   ///< The Materials show their kinds with numbers
-    QRadioButton* m_treeExpand = nullptr;  ///< The kinds have their materials under them
-    QRadioButton* m_tabsOwn = nullptr;     ///< A kind clicked opens its list on a tab of its own
-    QRadioButton* m_tabsOne = nullptr;     ///< The one tab of the lists shows the kind clicked
-    QRadioButton* m_quickLink = nullptr;    ///< Dropped or pasted: at once, linked with the node
-    QRadioButton* m_quickAdd = nullptr;     ///< At once, without links
-    QRadioButton* m_quickWindow = nullptr;  ///< In the Add Element window
+    void createAdding();
+    void createLists();
+    void createKinds();
+    void createCover();
+
     QList<QCheckBox*> m_kindBoxes;  ///< The kinds of materials shown, with their "kind"
-    QRadioButton* m_unitCharacters = nullptr;  ///< The texts of the cover counted in characters
-    QRadioButton* m_unitWords = nullptr;       ///< In words
+    QComboBox* m_coverUnit = nullptr;  ///< The texts of the cover counted in characters or words
     QList<QSpinBox*> m_characterTargets;  ///< The targets of the texts of the cover in characters
     QList<QSpinBox*> m_wordTargets;       ///< In words
     const core::ProjectManager& m_book;  ///< The book of its window
 };
 
-/// @brief Cards: the colors of the cards of characters, locations and items – the dot of the
-/// color of a card beside its name in the Navigator (core::CardColors::NAVIGATOR_DOT_SETTING)
-/// and the palette that new cards take their colors from (core::CardColors::PALETTE_SETTING);
-/// the locations in the Navigator, in a tree or in a list (NavigatorPanel::CARDS_TREE_SETTING)
+/// @brief Cards: the full card in two columns or on tabs (CardPage::LAYOUT_SETTING); the shape
+/// of the portraits and what a portrait without a picture shows (CardPage::SHAPE_SETTING,
+/// CardPage::NO_PICTURE_SETTING); the colors of the cards of characters, locations and items –
+/// the dot of the color of a card beside its name in the Navigator
+/// (core::CardColors::NAVIGATOR_DOT_SETTING) and the palette that new cards take their colors
+/// from (core::CardColors::PALETTE_SETTING); what the Properties panel shows of the cards at
+/// the cursor of a text (CursorCardBox::SETTING) and the signs beside the linked paragraphs;
+/// the locations in the Navigator, in a tree or in a list (NavigatorPanel::CARDS_TREE_SETTING);
+/// the fields of the cards that new books start with (core::card_fields::DEFAULTS_SETTING), in
+/// the window Card Fields
 class CardsPage : public SettingsPage {
     Q_OBJECT
 public:
@@ -504,19 +578,67 @@ public:
     [[nodiscard]] QPushButton* restorePaletteButton() const { return m_restorePalette; }
 
     /// @brief The locations in the Navigator: in a tree, each under the one it is part of
-    [[nodiscard]] QRadioButton* treeButton() const { return m_tree; }
+    ///        ("tree"), or in alphabetical order ("list")
+    [[nodiscard]] QComboBox* locationsList() const { return m_locations; }
 
-    /// @brief The locations in the Navigator: in alphabetical order
-    [[nodiscard]] QRadioButton* listButton() const { return m_list; }
+    /// @brief Card at the Cursor: what the Properties panel shows of the cards at the cursor
+    ///        (CursorCardBox::SETTING: "names", "paragraphs", "none")
+    [[nodiscard]] QComboBox* atCursorList() const { return m_atCursor; }
+
+    /// @brief The full card: two columns or tabs (CardPage::LAYOUT_SETTING: "columns", "tabs")
+    [[nodiscard]] QComboBox* layoutList() const { return m_cardLayout; }
+
+    /// @brief The shape of the portraits (CardPage::SHAPE_SETTING: "square", "circle")
+    [[nodiscard]] QComboBox* shapeList() const { return m_shape; }
+
+    /// @brief What a portrait without a picture shows (CardPage::NO_PICTURE_SETTING:
+    ///        "initials", "icon")
+    [[nodiscard]] QComboBox* noPictureList() const { return m_noPicture; }
+
+    /// @brief Default Fields of New Books...: the window Card Fields of the fields new books
+    /// start with, which Apply saves
+    [[nodiscard]] QPushButton* defaultFieldsButton() const { return m_defaultFieldsButton; }
+
+    /// @brief What the fields of new books are: those of the book types, or the kinds with
+    /// fields of their own
+    [[nodiscard]] QLabel* defaultFieldsLabel() const { return m_defaultFieldsLabel; }
 
 private:
+    /// @brief The group Full Card: two columns or tabs
+    void addFullCardGroup();
+
+    /// @brief The group Portrait: its shape, and what it shows without a picture
+    void addPortraitGroup();
+
+    /// @brief The group Colors: the dots in the Navigator, the palette of new cards
+    void addColorsGroup();
+
     /// @brief The group Navigator: the locations in a tree or in a list
     void addNavigatorGroup();
 
+    /// @brief The group In the Text: what the Properties panel shows of the cards at the
+    /// cursor
+    void addTextGroup();
+
+    /// @brief The group Card Fields: the fields new books start with
+    void addFieldsGroup();
+
+    /// @brief Open the window Card Fields for the fields new books start with
+    void editDefaultFields();
+
+    /// @brief The sentence of what the fields of new books are
+    void showDefaultFields();
+
     PaletteEdit* m_palette = nullptr;
     QPushButton* m_restorePalette = nullptr;
-    QRadioButton* m_tree = nullptr;
-    QRadioButton* m_list = nullptr;
+    QComboBox* m_locations = nullptr;
+    QComboBox* m_atCursor = nullptr;
+    QComboBox* m_cardLayout = nullptr;
+    QComboBox* m_shape = nullptr;
+    QComboBox* m_noPicture = nullptr;
+    QPushButton* m_defaultFieldsButton = nullptr;
+    QLabel* m_defaultFieldsLabel = nullptr;
+    nlohmann::json m_defaultFields;  ///< The fields of new books as the page shows them
 };
 
 /// @brief Materials: how a picture, a page or a picture on the web and a PDF file open
@@ -537,17 +659,11 @@ signals:
     void colorsPageAsked();
 
 private:
-    /// @brief One choice of a setting: its value, its button and the note under it
-    struct Choice {
-        const char* value = nullptr;     ///< The value of the setting it chooses
-        QRadioButton* button = nullptr;  ///< Its button
-        QString note;                    ///< Empty: none
-    };
-
-    /// @brief A row @p label of @p form with the choices of setting @p key, bound to it; the
-    /// first one is chosen when the setting has none of their values
-    void addChoices(QFormLayout* form, const QString& label, const char* key,
-                    const QList<Choice>& choices);
+    /// @brief A list @p label of @p form with the choices of setting @p key, bound to it, the
+    /// note of the chosen one under it (addChoice()); the first one is chosen when the setting
+    /// has none of their values
+    QComboBox* addChoices(QFormLayout* form, const QString& label, const char* key,
+                          const std::vector<Choice>& choices);
 
     /// @brief The group Opening
     void addOpening();
@@ -562,7 +678,7 @@ private:
     /// of a source has it, and the catalog of an ISBN
     void addLookup(QFormLayout* sources);
 
-    QRadioButton* m_openPdfPreview = nullptr;  ///< A PDF file opens on a preview tab
+    QComboBox* m_openPdf = nullptr;            ///< A PDF file opens on a preview tab or not
     QComboBox* m_pdfZoom = nullptr;            ///< The zoom the preview opens with
     QComboBox* m_pdfSide = nullptr;            ///< The side panel it opens with
     QComboBox* m_style = nullptr;      ///< PN-ISO 690, APA...
@@ -576,11 +692,6 @@ class NetworkMaterialsPage : public SettingsPage {
     Q_OBJECT
 public:
     explicit NetworkMaterialsPage(QWidget* parent = nullptr);
-
-private:
-    QRadioButton* m_ask = nullptr;     ///< The box of the Add Element window, empty each time
-    QRadioButton* m_always = nullptr;  ///< Every new material with an address
-    QRadioButton* m_never = nullptr;   ///< The program does not connect to the addresses
 };
 
 /// @brief Files > Folders: the folders of the books and of the archives, and where and how
@@ -611,9 +722,22 @@ private:
     };
     std::vector<CheckedFolder> m_folders;
 
-    QRadioButton* m_inEachBook = nullptr;   ///< The backups in the folder of each book
-    QRadioButton* m_inOneFolder = nullptr;  ///< The backups in one folder for all books
+    QComboBox* m_backupPlace = nullptr;  ///< The backups in the folder of each book, or in one
     FolderField* m_backupFolder = nullptr;
+};
+
+/// @brief Files > Import: the choices File > Import > DOCX, Markdown and Plain Text start with
+///
+/// The window of the import keeps the choices made in it in the same settings, each format
+/// its own, so the page shows the choices of the last import of each format.
+class ImportPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit ImportPage(QWidget* parent = nullptr);
+
+private:
+    /// @brief The headings, the dialogue and the cleanups of each format, one format at a time
+    void addFormats();
 };
 
 /// @brief Advanced > General: the diagnostic menu (this session only, not stored)
@@ -637,3 +761,5 @@ public:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_SETTINGS_SETTINGS_PAGES_H

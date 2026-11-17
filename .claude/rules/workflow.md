@@ -48,6 +48,13 @@ is never marked as accepted or false positive without the user's consent. The an
 finished build (compile_commands.json and Qt's generated files); `sonar-project.properties`
 defines what is analysed, and C++ goes through the sonar-cxx plugin and clang-tidy.
 
+SonarQube Community Build analyses one branch per project, so the project `kalahari` holds
+main. A branch of a piece of work is checked in a project of its own, after a build of the
+branch: `python scripts/sonar_analysis.py --project kalahari-check --changed-since origin/main`
+(clang-tidy only on the files the branch touches), then
+`python scripts/sonar_new_issues.py --project kalahari-check --base origin/main` lists the
+issues, security hotspots and coverage of the lines the branch adds or changes.
+
 ### When to reach for what
 - **plan mode** — any non-trivial change; approve scope before touching files.
 - **`Workflow` tool** — comprehensive/parallel work (audits, migrations, multi-file sweeps,

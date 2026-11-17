@@ -5,7 +5,8 @@
 /// @brief Preview of a chapter file that no element of the book has: its text, read-only,
 /// and what can be done with the file
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_FILE_PREVIEW_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_FILE_PREVIEW_DIALOG_H
 
 #include "kalahari/core/chapter_document.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
@@ -15,9 +16,7 @@
 class QPushButton;
 class QTextBrowser;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief Preview of a file of "Unassigned Files" in the Navigator
 ///
@@ -45,13 +44,13 @@ public:
                       const QString& projectFolder, QWidget* parent = nullptr);
 
     /// @brief What the writer chose; Close while the window is open
-    Choice choice() const { return m_choice; }
+    [[nodiscard]] Choice choice() const { return m_choice; }
 
     /// @brief The text of the file
-    QTextBrowser* text() const { return m_text; }
+    [[nodiscard]] QTextBrowser* text() const { return m_text; }
 
     /// @brief "Delete File..."
-    QPushButton* deleteButton() const { return m_deleteButton; }
+    [[nodiscard]] QPushButton* deleteButton() const { return m_deleteButton; }
 
 private:
     Choice m_choice = Choice::Close;
@@ -59,6 +58,6 @@ private:
     QPushButton* m_deleteButton = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_FILE_PREVIEW_DIALOG_H

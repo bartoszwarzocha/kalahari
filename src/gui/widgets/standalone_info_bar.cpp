@@ -9,8 +9,7 @@
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/gui/read_only_book.h"
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 StandaloneInfoBar::StandaloneInfoBar(QWidget* parent)
     : InfoBar(parent)
@@ -101,5 +100,4 @@ void StandaloneInfoBar::showNotice(const QString& message, const QString& action
     setActionToolTip(actionToolTip);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

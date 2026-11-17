@@ -140,7 +140,8 @@ public:
         return std::max(28, qRound(QFontMetrics(font).height() * 2.4));
     }
 
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex&) const override
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex&) const override
     {
         return cellSize(option.font);
     }
@@ -320,7 +321,8 @@ public:
         return 6 + metrics.height() + 4 + BAR_HEIGHT + 4 + small.height() + 6 + GAP;
     }
 
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex&) const override
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex&) const override
     {
         return {200, rowHeight(option.font)};
     }
@@ -445,7 +447,7 @@ public:
     }
 
     /// @brief The number of the chosen challenge; 0: none
-    int chosenId() const
+    [[nodiscard]] int chosenId() const
     {
         return currentItem() != nullptr ? currentItem()->data(KindRole).toInt() : 0;
     }
@@ -464,11 +466,11 @@ public:
         setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     }
 
-    QSize sizeHint() const override { return {200, rowHeight()}; }
-    QSize minimumSizeHint() const override { return {80, rowHeight()}; }
+    [[nodiscard]] QSize sizeHint() const override { return {200, rowHeight()}; }
+    [[nodiscard]] QSize minimumSizeHint() const override { return {80, rowHeight()}; }
 
     /// @brief The names, as the screen readers say them
-    QStringList names() const
+    [[nodiscard]] QStringList names() const
     {
         QStringList names;
         for (int level = 0; level < core::BADGE_LEVELS; ++level) {
@@ -505,7 +507,7 @@ protected:
     }
 
 private:
-    int rowHeight() const { return fontMetrics().height() + 4; }
+    [[nodiscard]] int rowHeight() const { return fontMetrics().height() + 4; }
 
     /// @brief Lay the entries out in rows; with @p painter draw them too
     /// @return The height they need

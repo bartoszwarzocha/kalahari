@@ -5,7 +5,8 @@
 /// @brief The Spelling and Grammar panel: the misspelled words and grammar issues of the text
 ///        in front, as cards
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_SPELLING_PANEL_H
+#define KALAHARI_GUI_PANELS_SPELLING_PANEL_H
 
 #include <kalahari/core/kind_words.h>
 #include <kalahari/editor/text_issue.h>
@@ -26,7 +27,7 @@ class QToolButton;
 
 namespace kalahari::core {
 struct Theme;
-}
+} // namespace kalahari::core
 
 namespace kalahari::gui {
 
@@ -67,7 +68,7 @@ public:
     void setContent(Content content);
 
     /// @brief What the panel shows
-    Content content() const { return m_content; }
+    [[nodiscard]] Content content() const { return m_content; }
 
     /// @brief The names of the texts, in the program's language, for what the panel says
     /// @param inFront The kind of the text in front ("No spelling or grammar issues in this
@@ -86,10 +87,10 @@ public:
     void setIssues(std::vector<SpellingPanelIssue> issues);
 
     /// @brief The issues it was given
-    const std::vector<SpellingPanelIssue>& issues() const { return m_issues; }
+    [[nodiscard]] const std::vector<SpellingPanelIssue>& issues() const { return m_issues; }
 
     /// @brief The issues it lists, in their order: those of the kinds checked and shown
-    const std::vector<SpellingPanelIssue>& shownIssues() const;
+    [[nodiscard]] const std::vector<SpellingPanelIssue>& shownIssues() const;
 
     /// @brief Whether a kind is checked now: its button counts its issues and is a filter;
     ///        a kind not checked has "–" on its button, which is off, and none of its issues
@@ -97,13 +98,13 @@ public:
     void setKindChecked(editor::TextIssueKind kind, bool checked);
 
     /// @brief Whether a kind is checked (setKindChecked())
-    bool isKindChecked(editor::TextIssueKind kind) const;
+    [[nodiscard]] bool isKindChecked(editor::TextIssueKind kind) const;
 
     /// @brief Show or hide the issues of a kind (its button)
     void setKindShown(editor::TextIssueKind kind, bool shown);
 
     /// @brief Whether the issues of a kind are shown (its button)
-    bool isKindShown(editor::TextIssueKind kind) const;
+    [[nodiscard]] bool isKindShown(editor::TextIssueKind kind) const;
 
     /// @brief The row under the buttons of the kinds: how far the text is checked, or why
     ///        it is not
@@ -112,7 +113,7 @@ public:
     void setStatus(const QString& text, bool problem);
 
     /// @brief What the row under the buttons of the kinds says
-    QString statusText() const;
+    [[nodiscard]] QString statusText() const;
 
     /// @brief Whether the whole text is checked: an empty list then says there are no issues
     ///        in it, not that none is found yet
@@ -142,32 +143,33 @@ public:
     void selectIssue(const QString& key);
 
     /// @brief The key of the selected issue (empty: none)
-    QString selectedKey() const;
+    [[nodiscard]] QString selectedKey() const;
 
     /// @brief The selected issue, if any
-    std::optional<SpellingPanelIssue> selectedIssue() const;
+    [[nodiscard]] std::optional<SpellingPanelIssue> selectedIssue() const;
 
     /// @brief The first issue listed that starts at or after a place of the text, if any
     /// @param noteStart At a note's number (@p position): the first of its text's issues that
     ///        starts at or after this place of the note's text, else one after the number
-    std::optional<SpellingPanelIssue> issueFrom(int position, int noteStart = -1) const;
+    [[nodiscard]] std::optional<SpellingPanelIssue> issueFrom(int position,
+                                                              int noteStart = -1) const;
 
     /// @brief Give the keys to the panel: to the list, else to the button that turns the
     ///        checking on, else to the panel itself
     void focusList();
 
     /// @brief Whether the keys are in the panel
-    bool hasFocusInside() const;
+    [[nodiscard]] bool hasFocusInside() const;
 
     /// @brief Take colors from a theme: the kinds' colors as shown on the panel (issueColorOn()),
     ///        the cards and the controls
     void applyTheme(const core::Theme& theme);
 
     /// @brief The list of the cards
-    SpellingIssueList* list() const { return m_list; }
+    [[nodiscard]] SpellingIssueList* list() const { return m_list; }
 
     /// @brief The button of a kind (its count and filter)
-    QToolButton* kindButton(editor::TextIssueKind kind) const;
+    [[nodiscard]] QToolButton* kindButton(editor::TextIssueKind kind) const;
 
 signals:
     /// @brief The writer selected an issue: a click on its card, the keys, Previous or Next
@@ -229,7 +231,7 @@ private:
     void updateParts();
 
     /// @brief The text of an empty panel
-    QString emptyText() const;
+    [[nodiscard]] QString emptyText() const;
 
     /// @brief Previous and Next, for the selection
     void updateFootButtons();
@@ -260,7 +262,7 @@ private:
     void onSuggestionChosen(const QString& key, int index);
 
     /// @brief The issue listed with a key, or nullptr
-    const SpellingPanelIssue* shownIssue(const QString& key) const;
+    [[nodiscard]] const SpellingPanelIssue* shownIssue(const QString& key) const;
 
     /// @brief The keys of the panel: they are its own, not the window's shortcuts
     static bool isPanelKey(const QKeyEvent* event);
@@ -295,3 +297,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_SPELLING_PANEL_H

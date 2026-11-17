@@ -11,9 +11,7 @@
 #include <QAction>
 #include <QMetaObject>
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 void followSetting(QAction* action, const std::string& key) {
     if (action == nullptr) {
@@ -71,6 +69,4 @@ std::string chooseSetting(const std::string& key, const std::string& value, cons
     return chosen;
 }
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils

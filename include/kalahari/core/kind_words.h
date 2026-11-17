@@ -21,7 +21,8 @@
 /// noun it speaks of ("kind", "group", "main"), and a translation uses only the nouns of its
 /// source.
 
-#pragma once
+#ifndef KALAHARI_CORE_KIND_WORDS_H
+#define KALAHARI_CORE_KIND_WORDS_H
 
 #include <QHash>
 #include <QMap>
@@ -49,7 +50,7 @@ struct KindWords {
     /// @brief The name in form @p name: the form given, or the one it comes from when it is
     /// not given (a case of the singular: the singular; a case of the plural: the plural; with
     /// an article: the singular); empty for a form that is not one of formNames()
-    QString form(const QString& name) const;
+    [[nodiscard]] QString form(const QString& name) const;
 
     /// @brief Forms a package can give: "singular", "plural", the cases of each ("genitive",
     /// "accusative", "locative"..., "genitivePlural"...) and "indefinite" (with an indefinite
@@ -73,3 +74,5 @@ QString fillWords(const QString& text, const QHash<QString, KindWords>& nouns);
 QStringList wordMarkerProblems(const QString& text, QStringList* nouns = nullptr);
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_KIND_WORDS_H

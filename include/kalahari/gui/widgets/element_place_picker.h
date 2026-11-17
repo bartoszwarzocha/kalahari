@@ -5,7 +5,8 @@
 /// @brief The place of an element in the book: options, and the list of the book with the
 /// element in its place
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_ELEMENT_PLACE_PICKER_H
+#define KALAHARI_GUI_WIDGETS_ELEMENT_PLACE_PICKER_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
@@ -26,8 +27,7 @@ class QTreeWidget;
 class QTreeWidgetItem;
 class QVBoxLayout;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A part of the book (front, main or back) in the list of ElementPlacePicker
 struct PickerSection {
@@ -122,18 +122,18 @@ public:
     void setMovedFrom(const core::ElementPlace& place);
 
     /// @brief Whether the element can be at @p place
-    bool canBeAt(const core::ElementPlace& place) const;
+    [[nodiscard]] bool canBeAt(const core::ElementPlace& place) const;
 
     /// @brief The place of the element; the default ElementPlace when it can be nowhere
-    core::ElementPlace place() const;
+    [[nodiscard]] core::ElementPlace place() const;
 
     /// @brief The places the element can have, in reading order
-    const QList<core::ElementPlace>& places() const { return m_places; }
+    [[nodiscard]] const QList<core::ElementPlace>& places() const { return m_places; }
 
     /// @brief What the chosen place changes, one sentence each: the elements that stop
     /// opening or closing their part of the book, and the element itself when it is not
     /// where its kind goes
-    QStringList warnings() const;
+    [[nodiscard]] QStringList warnings() const;
 
     /// @brief Show only the book with the element in its place
     void setPreview(bool preview);
@@ -162,7 +162,7 @@ private:
                      const QString& groupId, bool here);
 
     /// @brief Whether the element can be inside @p element, a group
-    bool canBeInside(const core::ProjectElement& element) const;
+    [[nodiscard]] bool canBeInside(const core::ProjectElement& element) const;
 
     /// @brief Show the book with the element at its place, the place's option, the buttons
     /// and the warnings
@@ -181,15 +181,15 @@ private:
 
     /// @brief Index of the next place up (@p step -1) or down (@p step 1) that the list shows
     /// apart from the place of the element; -1 when there is none
-    qsizetype nextPlace(int step) const;
+    [[nodiscard]] qsizetype nextPlace(int step) const;
 
     /// @brief Whether the list shows places @p a and @p b at one spot: the end of a part of the
     /// book without a row and the start of the next one, with no elements between them
-    bool looksSame(const core::ElementPlace& a, const core::ElementPlace& b) const;
+    [[nodiscard]] bool looksSame(const core::ElementPlace& a, const core::ElementPlace& b) const;
 
     /// @brief Whether the list shows @p section: a part of the book without a row, or one with
     /// a place for the element
-    bool isShown(const PickerSection& section) const;
+    [[nodiscard]] bool isShown(const PickerSection& section) const;
 
     /// @brief The hint how to choose the place and the tooltip of the list, which name the
     /// element's kind, with the note before the hint
@@ -224,5 +224,6 @@ private:
     QLabel* m_warningText = nullptr;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_ELEMENT_PLACE_PICKER_H

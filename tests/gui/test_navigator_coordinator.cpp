@@ -7,10 +7,15 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/art_provider.h>
+#include <kalahari/core/book_dictionary.h>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/book_type_package.h>
+#include <kalahari/core/card_names.h>
+#include <kalahari/core/card_relations.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/file_trash.h>
 #include <kalahari/core/kind_words.h>
+#include <kalahari/core/name_declension.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/editor/book_editor.h>
@@ -33,7 +38,7 @@
 #include <kalahari/gui/utils/access_keys.h>
 #include <kalahari/gui/utils/file_location.h>
 
-#include "context_menu_reader.h"
+#include "kalahari_tests/gui/context_menu_reader.h"
 
 #include <QAbstractButton>
 #include <QAction>
@@ -82,7 +87,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -458,14 +463,14 @@ struct OpenNovel {
     OpenNovel& operator=(const OpenNovel&) = delete;
 
     /// The book as ProjectManager has it
-    const core::ProjectBook& book() const {
+    [[nodiscard]] const core::ProjectBook& book() const {
         const core::ProjectBook* open = pm.book();
         REQUIRE(open != nullptr);
         return *open;
     }
 
     /// The project as its .klh file has it
-    core::BookProject savedProject() const {
+    [[nodiscard]] core::BookProject savedProject() const {
         QStringList problems;
         const std::optional<core::BookProject> saved = core::BookProject::load(
             QDir(dir.path()).filePath(QStringLiteral("Navigator Test.klh")), problems);
@@ -474,7 +479,7 @@ struct OpenNovel {
     }
 
     /// The book as its .klh file has it
-    core::ProjectBook savedBook() const {
+    [[nodiscard]] core::ProjectBook savedBook() const {
         const core::BookProject saved = savedProject();
         REQUIRE(saved.books.size() == 1);
         return saved.books.first();
@@ -566,7 +571,7 @@ struct Navigator {
     }
 
     /// The item of element @p id in the tree
-    QTreeWidgetItem* item(const QString& id) const {
+    [[nodiscard]] QTreeWidgetItem* item(const QString& id) const {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
         for (QTreeWidgetItemIterator it(tree); *it; ++it) {
@@ -578,7 +583,7 @@ struct Navigator {
     }
 
     /// The element of the current item of the tree; empty: none or not an element
-    QString current() const {
+    [[nodiscard]] QString current() const {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
         return tree->currentItem() ? tree->currentItem()->data(0, Qt::UserRole).toString()
@@ -586,7 +591,7 @@ struct Navigator {
     }
 
     /// The texts of the items under the item of element @p id
-    std::string itemsIn(const QString& id) const {
+    [[nodiscard]] std::string itemsIn(const QString& id) const {
         const QTreeWidgetItem* parent = item(id);
         REQUIRE(parent != nullptr);
         QStringList texts;
@@ -597,7 +602,7 @@ struct Navigator {
     }
 
     /// The item of section @p type ("section_body"); nullptr: none
-    QTreeWidgetItem* section(const QString& type) const {
+    [[nodiscard]] QTreeWidgetItem* section(const QString& type) const {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
         for (QTreeWidgetItemIterator it(tree); *it; ++it) {
@@ -609,7 +614,7 @@ struct Navigator {
     }
 
     /// The item of the project, with the book and the Workshop under it
-    QTreeWidgetItem* projectItem() const {
+    [[nodiscard]] QTreeWidgetItem* projectItem() const {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
         REQUIRE(tree->topLevelItemCount() > 0);
@@ -617,14 +622,14 @@ struct Navigator {
     }
 
     /// The item of the book
-    QTreeWidgetItem* bookItem() const {
+    [[nodiscard]] QTreeWidgetItem* bookItem() const {
         QTreeWidgetItem* book = section(QStringLiteral("book"));
         REQUIRE(book != nullptr);
         return book;
     }
 
     /// The texts of the items under the item of the book
-    std::string itemsInBook() const {
+    [[nodiscard]] std::string itemsInBook() const {
         const QTreeWidgetItem* book = bookItem();
         QStringList texts;
         for (int i = 0; i < book->childCount(); ++i) {
@@ -726,7 +731,7 @@ struct Navigator {
     }
 
     /// The "+" button of the Navigator's bar
-    QToolButton* addButton() const {
+    [[nodiscard]] QToolButton* addButton() const {
         QToolButton* plus = nullptr;
         for (QToolButton* button : panel->findChildren<QToolButton*>()) {
             if (button->toolTip().startsWith(QStringLiteral("Add... ("))) {
@@ -746,7 +751,7 @@ struct Navigator {
     }
 
     /// The texts of the items in section @p type ("section_body")
-    std::string itemsInSection(const QString& type) const {
+    [[nodiscard]] std::string itemsInSection(const QString& type) const {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
         const QTreeWidgetItem* section = nullptr;
@@ -3310,4 +3315,111 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
         REQUIRE(navigator.tabs->count() == 1);
         CHECK(qobject_cast<gui::ImagePreviewPanel*>(navigator.tabs->currentWidget()) != nullptr);
     }
+}
+
+TEST_CASE("Navigator: Create Card opens Add Element with the name, a card deleted asks whether "
+          "its name stays in the book's dictionary",
+          "[gui][navigator][cards][dictionary]") {
+    gui::registerAllIcons();
+    OpenNovel novel;
+    Navigator navigator;
+    auto& pm = novel.pm;
+    const core::KindRef character =
+        pm.bookTypes().findKind(QStringLiteral("kalahari.base"), QStringLiteral("character"));
+    REQUIRE(character);
+    QStringList added;
+    const QObject listener;
+    QObject::connect(&pm, &core::ProjectManager::cardAdded, &listener,
+                     [&added](const QString& elementId) { added << elementId; });
+
+    // Create Card: Add Element with the kind chosen and the name in it
+    QString titleShown;
+    bool made = false;
+    CHECK(answering(
+              [&]() {
+                  made = navigator.coordinator.onRequestAddCard(QStringLiteral(" Jan  Kos "),
+                                                                character);
+              },
+              {[&titleShown](QDialog& dialog) {
+                  auto* window = qobject_cast<gui::dialogs::NewFileDialog*>(&dialog);
+                  if (window == nullptr) {  // no REQUIRE in an event handler
+                      dialog.reject();
+                      return;
+                  }
+                  titleShown = window->titleEdit()->text();
+                  window->acceptButton()->click();
+              }}) == 1);
+    CHECK(made);
+    CHECK(titleShown == QStringLiteral("Jan Kos"));
+    REQUIRE(added.size() == 1);
+    const core::ProjectElement* jan = pm.findElement(added.first());
+    REQUIRE(jan != nullptr);
+    CHECK(jan->title == QStringLiteral("Jan Kos"));
+    CHECK(pm.kindOf(*jan).reference() == character.reference());
+
+    // Its window closed: no card
+    CHECK(answering([&]() {
+              CHECK_FALSE(navigator.coordinator.onRequestAddCard(QStringLiteral("Ewa"), character));
+          }) == 1);
+    CHECK(added.size() == 1);
+
+    // Deleted, a card with a name in the book's dictionary asks whether the name stays
+    const core::NameDeclension english(QStringLiteral("en"));
+    const auto name = [&pm, &english](const QString& cardId, const QString& title) {
+        const core::DictionaryName cardName =
+            core::nameOfCard(pm.bookDictionary(), cardId, title, core::NameKind::Character,
+                             english);
+        QString id;
+        REQUIRE(pm.changeBookDictionary([&cardName, &id](core::BookDictionary& dictionary) {
+            id = dictionary.putName(cardName);
+        }));
+        return id;
+    };
+    const QString janId = jan->id;  // the element moves as others are added
+    const QString janName = name(janId, jan->title);
+    const QString anna = navigator.added(QStringLiteral("character"), core::BookPlace::Workshop);
+    const QString annaName = name(anna, QStringLiteral("Anna"));
+    const auto deleting = [&navigator](const QString& cardId, bool keep, QString* text) {
+        return answering([&navigator, &cardId]() { navigator.coordinator.onRequestDelete(cardId); },
+                         {[keep, text](QDialog& dialog) {
+                             auto* window =
+                                 qobject_cast<gui::dialogs::DeleteFromBookDialog*>(&dialog);
+                             if (window == nullptr) {  // no REQUIRE in an event handler
+                                 dialog.reject();
+                                 return;
+                             }
+                             CHECK_FALSE(window->keepNameBox()->isHidden());
+                             CHECK_FALSE(window->keepNameBox()->isChecked());  // it goes
+                             *text = window->keepNameBox()->text();
+                             window->keepNameBox()->setChecked(keep);
+                             window->acceptButton()->click();
+                         }});
+    };
+    QString asked;
+    CHECK(deleting(janId, true, &asked) == 1);
+    CHECK(asked.contains(QStringLiteral("Jan Kos")));
+    CHECK(pm.findElement(added.first()) == nullptr);
+    const core::DictionaryName* kept = pm.bookDictionary().findName(janName);
+    REQUIRE(kept != nullptr);
+    CHECK(kept->card.isEmpty());
+
+    CHECK(deleting(anna, false, &asked) == 1);
+    CHECK(pm.findElement(anna) == nullptr);
+    CHECK(pm.bookDictionary().findName(annaName) == nullptr);
+
+    // A card without a name in the dictionary does not ask
+    const QString ewa = navigator.added(QStringLiteral("character"), core::BookPlace::Workshop);
+    bool hidden = false;
+    CHECK(answering([&navigator, &ewa]() { navigator.coordinator.onRequestDelete(ewa); },
+                    {[&hidden](QDialog& dialog) {
+                        auto* window = qobject_cast<gui::dialogs::DeleteFromBookDialog*>(&dialog);
+                        if (window == nullptr) {  // no REQUIRE in an event handler
+                            dialog.reject();
+                            return;
+                        }
+                        hidden = window->keepNameBox()->isHidden();
+                        window->acceptButton()->click();
+                    }}) == 1);
+    CHECK(hidden);
+    CHECK(pm.findElement(ewa) == nullptr);
 }

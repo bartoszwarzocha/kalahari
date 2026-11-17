@@ -48,6 +48,9 @@ void MaterialListPanel::updateClippingCommands(const MaterialRow* row) {
     m_restoreButton->setEnabled(clipping && row->originLive && !m_book.isReadOnly());
     m_restoreButton->setToolTip(clipping ? ClippingTexts::restoreToolTip(fromOf(*row))
                                          : m_restoreButton->text());
+    if (m_cards) {
+        return;  // The gear of a list of cards opens Settings > Cards (applyListTexts())
+    }
     //: The gear of the list of the clippings: Settings > Editor > Clippings. In Polish:
     //: Ustawienia wycinków
     const QString clippingSettings = MaterialList::tr("Clipping Settings");

@@ -10,7 +10,8 @@
 ///
 /// OpenSpec #00033: Project File System - Phase C
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_NEW_ITEM_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_NEW_ITEM_DIALOG_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/gui/dialogs/item_templates.h"
@@ -28,9 +29,7 @@
 #include <functional>
 #include <optional>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 // ============================================================================
 // NewItemMode - Dialog mode enumeration
@@ -122,7 +121,7 @@ public:
     /// @brief Get the dialog result data
     /// @return Populated NewItemResult structure
     /// @note Only valid after dialog is accepted
-    NewItemResult result() const;
+    [[nodiscard]] NewItemResult result() const;
 
     /// @brief Ask @p question about the open book before a book of a type is created; without
     /// a question the new book opens. A user project asks in its next window
@@ -212,7 +211,7 @@ private:
     void fillSectionNames();
 
     /// @brief What the Sections field says
-    kalahari::core::BookSections chosenSections() const;
+    [[nodiscard]] kalahari::core::BookSections chosenSections() const;
 
     /// @brief Remember the writer's choice for the next book, for templates that show sections
     void saveSectionsChoice() const;
@@ -252,51 +251,51 @@ private:
     // ========================================================================
 
     /// @brief Large template icon (64x64)
-    QLabel* m_iconLabel;
+    QLabel* m_iconLabel = nullptr;
 
     /// @brief Template name (bold)
-    QLabel* m_titleLabel;
+    QLabel* m_titleLabel = nullptr;
 
     /// @brief Rich text description with features
-    QLabel* m_descriptionLabel;
+    QLabel* m_descriptionLabel = nullptr;
 
     // ========================================================================
     // Template Grid Widgets (RIGHT)
     // ========================================================================
 
     /// @brief Template list with icon mode
-    QListWidget* m_templateList;
+    QListWidget* m_templateList = nullptr;
 
     /// @brief Optional search filter (future use)
-    QLineEdit* m_searchEdit;
+    QLineEdit* m_searchEdit = nullptr;
 
     // ========================================================================
     // Details Group Widgets (BOTTOM)
     // ========================================================================
 
     /// @brief Project title / file name input
-    QLineEdit* m_nameEdit;
+    QLineEdit* m_nameEdit = nullptr;
 
     /// @brief Author input (project mode only)
-    QLineEdit* m_authorEdit;
+    QLineEdit* m_authorEdit = nullptr;
 
     /// @brief Language selection (project mode only)
-    QComboBox* m_languageCombo;
+    QComboBox* m_languageCombo = nullptr;
 
     /// @brief Project location input (project mode only)
-    QLineEdit* m_locationEdit;
+    QLineEdit* m_locationEdit = nullptr;
 
     /// @brief Browse folder button (project mode only)
-    QPushButton* m_browseBtn;
+    QPushButton* m_browseBtn = nullptr;
 
     /// @brief Create subfolder checkbox (project mode only)
-    QCheckBox* m_subfolderCheck;
+    QCheckBox* m_subfolderCheck = nullptr;
 
     /// @brief Label for author row
-    QLabel* m_authorLabel;
+    QLabel* m_authorLabel = nullptr;
 
     /// @brief Label for language row
-    QLabel* m_languageLabel;
+    QLabel* m_languageLabel = nullptr;
 
     /// @brief Sections: a set of names, own names or no sections (project mode only)
     SectionsComboBox* m_sectionsCombo = nullptr;
@@ -308,15 +307,15 @@ private:
     SectionNamesEdit* m_sectionNames = nullptr;
 
     /// @brief Label for location row
-    QLabel* m_locationLabel;
+    QLabel* m_locationLabel = nullptr;
 
     /// @brief Icon of the folder line: a warning when the book cannot be made in the folder
-    QLabel* m_folderIcon;
+    QLabel* m_folderIcon = nullptr;
 
     /// @brief Folder line: the folder the book will be in, or why it cannot be made there
-    QLabel* m_folderLabel;
+    QLabel* m_folderLabel = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_NEW_ITEM_DIALOG_H

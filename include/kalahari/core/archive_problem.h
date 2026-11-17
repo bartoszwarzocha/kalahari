@@ -4,7 +4,8 @@
 /// @file archive_problem.h
 /// @brief Why an archive of a book could not be written, read or unpacked
 
-#pragma once
+#ifndef KALAHARI_CORE_ARCHIVE_PROBLEM_H
+#define KALAHARI_CORE_ARCHIVE_PROBLEM_H
 
 #include <QStringList>
 
@@ -43,3 +44,5 @@ struct ArchiveProblem {
 };
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_ARCHIVE_PROBLEM_H

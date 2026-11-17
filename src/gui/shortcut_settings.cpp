@@ -13,8 +13,7 @@
 
 #include <map>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -195,5 +194,4 @@ std::optional<nlohmann::json> shortcutsOfFile(const nlohmann::json& file) {
     return std::optional<nlohmann::json>(std::in_place, file);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

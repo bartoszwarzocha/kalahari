@@ -7,13 +7,13 @@
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/dialogs/table_dialogs.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -31,7 +31,7 @@
 #include <QTranslator>
 
 #include <map>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::editor;

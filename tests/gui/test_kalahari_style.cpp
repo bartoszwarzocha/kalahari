@@ -6,7 +6,7 @@
 /// than an enabled one
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/kalahari_style.h"
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include <QAction>
 #include <QApplication>
 #include <QColor>

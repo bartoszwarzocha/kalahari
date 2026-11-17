@@ -6,8 +6,8 @@
 /// relation between the kinds of the two cards or one the writer names, and the list of the
 /// relations on the short and the full card with its keys and its menu
 
-#include "document_window.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/gui/document_window.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"

@@ -11,8 +11,7 @@
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/logger.h"
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 void registerAllIcons() {
     auto& logger = core::Logger::getInstance();
@@ -40,19 +39,21 @@ void registerAllIcons() {
     iconRegistry.registerIcon("file.exit", "resources/icons/twotone/logout.svg", "Exit");
     iconRegistry.registerIcon("file.open.file", "resources/icons/twotone/description.svg", "Open File");
     iconRegistry.registerIcon("file.import.docx", "resources/icons/twotone/upload_file.svg", "Import DOCX");
+    iconRegistry.registerIcon("file.import.markdown", "resources/icons/twotone/article.svg", "Import Markdown");
     iconRegistry.registerIcon("file.import.pdf", "resources/icons/twotone/picture_as_pdf.svg", "Import PDF");
     iconRegistry.registerIcon("file.import.text", "resources/icons/twotone/text_snippet.svg", "Import Text");
+    iconRegistry.registerIcon("file.import.plugin", "resources/icons/twotone/extension.svg", "Import Other Formats");
     iconRegistry.registerIcon("file.import.scrivener", "resources/icons/twotone/integration_instructions.svg", "Import Scrivener");
     iconRegistry.registerIcon("file.import.archive", "resources/icons/twotone/folder_open.svg", "Import Project Archive");
     iconRegistry.registerIcon("file.export.docx", "resources/icons/twotone/download.svg", "Export DOCX");
     iconRegistry.registerIcon("file.export.pdf", "resources/icons/twotone/picture_as_pdf.svg", "Export PDF");
     iconRegistry.registerIcon("file.export.markdown", "resources/icons/twotone/code.svg", "Export Markdown");
     iconRegistry.registerIcon("file.export.epub", "resources/icons/twotone/auto_stories.svg", "Export EPUB");
-    iconRegistry.registerIcon("file.export.mobi", "resources/icons/twotone/smartphone.svg", "Export MOBI");
     iconRegistry.registerIcon("file.export.latex", "resources/icons/twotone/functions.svg", "Export LaTeX");
     iconRegistry.registerIcon("file.export.icml", "resources/icons/twotone/view_quilt.svg", "Export InDesign ICML");
     iconRegistry.registerIcon("file.export.settings", "resources/icons/twotone/tune.svg", "Export Settings");
     iconRegistry.registerIcon("file.export.archive", "resources/icons/twotone/drive_file_move.svg", "Export Project Archive");
+    iconRegistry.registerIcon("file.print", "resources/icons/twotone/print.svg", "Print");
 
     // -------------------------------------------------------------------------
     // EDIT MENU ICONS
@@ -97,6 +98,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("book.newItem", "resources/icons/twotone/add_box.svg", "New Item");
     iconRegistry.registerIcon("book.newMindMap", "resources/icons/twotone/account_tree.svg", "New Mind Map");
     iconRegistry.registerIcon("book.newTimeline", "resources/icons/twotone/timeline.svg", "New Timeline");
+    iconRegistry.registerIcon("book.linkParagraphCard", "resources/icons/twotone/link.svg", "Link Paragraph with Card");
+    iconRegistry.registerIcon("book.openCardAtCursor", "resources/icons/twotone/folder_open.svg", "Open Card at Cursor");
     iconRegistry.registerIcon("book.chapterBreak", "resources/icons/twotone/horizontal_split.svg", "Chapter Break");
     iconRegistry.registerIcon("book.sceneBreak", "resources/icons/twotone/more_horiz.svg", "Scene Break");
     iconRegistry.registerIcon("book.dictionary", "resources/icons/twotone/abc.svg", "Book Dictionary");
@@ -220,6 +223,10 @@ void registerAllIcons() {
     iconRegistry.registerIcon("image.properties", "resources/icons/twotone/image.svg", "Image Properties");
     iconRegistry.registerIcon("image.addCaption", "resources/icons/twotone/subtitles.svg", "Insert Caption");
     iconRegistry.registerIcon("image.altText", "resources/icons/twotone/notes.svg", "Alternative Text");
+    iconRegistry.registerIcon("image.wrapInline", "resources/icons/twotone/view_agenda.svg", "In the Text");
+    iconRegistry.registerIcon("image.wrapSquareLeft", "resources/icons/twotone/format_align_right.svg", "Image on the Left");
+    iconRegistry.registerIcon("image.wrapSquareRight", "resources/icons/twotone/format_align_left.svg", "Image on the Right");
+    iconRegistry.registerIcon("image.wrapTopBottom", "resources/icons/twotone/horizontal_split.svg", "Text Above and Below");
     iconRegistry.registerIcon("image.rotateRight", "resources/icons/twotone/rotate_right.svg", "Rotate Right 90°");
     iconRegistry.registerIcon("image.rotateLeft", "resources/icons/twotone/rotate_left.svg", "Rotate Left 90°");
     iconRegistry.registerIcon("image.flipHorizontal", "resources/icons/twotone/swap_horiz.svg", "Flip Horizontally");
@@ -279,6 +286,12 @@ void registerAllIcons() {
     // VIEW MENU ICONS
     // -------------------------------------------------------------------------
     iconRegistry.registerIcon("view.dashboard", "resources/icons/twotone/home.svg", "Dashboard");
+    iconRegistry.registerIcon("view.plotBoard", "resources/icons/twotone/view_module.svg", "Plot Board");
+    iconRegistry.registerIcon("view.outline", "resources/icons/twotone/table_chart.svg", "Outline");
+    // The point of view, the place and the time of the action on the cards of the plot board
+    iconRegistry.registerIcon("plotBoard.pov", "resources/icons/twotone/visibility.svg", "Point of View");
+    iconRegistry.registerIcon("plotBoard.place", "resources/icons/twotone/place.svg", "Place");
+    iconRegistry.registerIcon("plotBoard.time", "resources/icons/twotone/schedule.svg", "Time of the Action");
     iconRegistry.registerIcon("view.navigator", "resources/icons/twotone/import_contacts.svg", "Navigator");
     iconRegistry.registerIcon("view.search", "resources/icons/twotone/search.svg", "Search Panel");
     iconRegistry.registerIcon("view.properties", "resources/icons/twotone/tune.svg", "Properties");
@@ -357,6 +370,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.tableDelete", "resources/icons/twotone/delete.svg", "Delete");
     iconRegistry.registerIcon("menu.tableSelect", "resources/icons/twotone/select_all.svg", "Select");
     iconRegistry.registerIcon("menu.tableConvert", "resources/icons/twotone/swap_horiz.svg", "Convert");
+    iconRegistry.registerIcon("menu.imageWrap", "resources/icons/twotone/wrap_text.svg", "Wrap Text");
     iconRegistry.registerIcon("menu.imageRotate", "resources/icons/twotone/rotate_right.svg", "Rotate");
     iconRegistry.registerIcon("menu.imageFilter", "resources/icons/twotone/palette.svg", "Filter");
     iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
@@ -528,6 +542,8 @@ void registerAllIcons() {
                               "Clipping");
     iconRegistry.registerIcon("template.character", "resources/icons/twotone/person.svg", "Character");
     iconRegistry.registerIcon("template.location", "resources/icons/twotone/place.svg", "Location");
+    // The window Card Fields: the fields of the cards of characters, locations and items
+    iconRegistry.registerIcon("card.fields", "resources/icons/twotone/toc.svg", "Card Fields");
 
     // -------------------------------------------------------------------------
     // STRUCTURE ICONS (OpenSpec #00034)
@@ -565,5 +581,4 @@ void registerAllIcons() {
     logger.debug("Registered {} icons with IconRegistry", 189);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

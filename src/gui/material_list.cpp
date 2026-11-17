@@ -15,6 +15,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/source_description.h"
+#include "kalahari/gui/card_list.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -33,8 +34,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -604,7 +604,7 @@ QString MaterialList::iconIdOf(const QString& list) {
 
 bool MaterialList::hasTiles(const QString& list) {
     const QString kindId = baseKindOf(kindOfList(list));
-    return kindId == QLatin1String(core::MaterialKinds::PICTURE) ||
+    return CardList::isCardList(list) || kindId == QLatin1String(core::MaterialKinds::PICTURE) ||
            kindId == QLatin1String(core::MaterialKinds::COVER) ||
            kindId == QLatin1String(core::MaterialKinds::DOCUMENT) ||
            kindId == QLatin1String(core::MaterialKinds::PUBLICATION);
@@ -612,6 +612,9 @@ bool MaterialList::hasTiles(const QString& list) {
 
 QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
                                               const QString& list) {
+    if (CardList::isCardList(list)) {
+        return CardList::columnsOf(book, list);
+    }
     //: A column of the list of materials. In Polish: Tytuł
     const QString title = tr("Title");
     //: In Polish: Powiązania
@@ -726,9 +729,14 @@ QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
                 << column(ADDRESS, address, false);
     }
 
-    // The fields of the writer's that the materials of the list have
+    appendFieldColumns(columns, elementsOf(book, list));
+    return columns;
+}
+
+void MaterialList::appendFieldColumns(QList<MaterialColumn>& columns,
+                                      const QList<const core::ProjectElement*>& elements) {
     QStringList fields;
-    for (const core::ProjectElement* element : elementsOf(book, list)) {
+    for (const core::ProjectElement* element : elements) {
         for (const core::ElementField& field : element->fields) {
             const QString name = field.name.trimmed();
             if (!name.isEmpty() && !fields.contains(name)) {
@@ -742,7 +750,6 @@ QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
     for (const QString& field : fields) {
         columns << MaterialColumn{QString::fromLatin1(FIELD_PREFIX) + field, field, false, true};
     }
-    return columns;
 }
 
 QString MaterialList::firstSortOf(const QString& list) {
@@ -768,6 +775,9 @@ Qt::SortOrder MaterialList::firstSortOrderOf(const QString& list) {
 }
 
 QList<MaterialRow> MaterialList::rowsOf(const core::ProjectManager& book, const QString& list) {
+    if (CardList::isCardList(list)) {
+        return CardList::rowsOf(book, list);
+    }
     QList<MaterialRow> rows;
     const auto& pm = book;
     // Copy of a source copies its entry in the bibliography of the book
@@ -921,5 +931,4 @@ QString MaterialList::copyTextOf(const core::ProjectManager& book, const QString
     return element->title;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

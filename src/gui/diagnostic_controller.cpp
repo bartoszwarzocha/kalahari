@@ -30,8 +30,7 @@
 
 #include <spdlog/spdlog.h>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 DiagnosticController::DiagnosticController(QMainWindow* mainWindow,
                                            LogPanel* logPanel,
@@ -655,5 +654,4 @@ void DiagnosticController::onDevToolsIconDownloader() {
     logger.info("Icon Downloader dialog closed");
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

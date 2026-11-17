@@ -6,7 +6,7 @@
 ///        characters used last, the keys of a character and a replacement of auto-correct
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/auto_correct_replacements.h"
@@ -41,7 +41,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;

@@ -17,9 +17,7 @@
 #include <optional>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -39,11 +37,11 @@ const core::ProjectElement* findIn(const QList<core::ProjectElement>& elements,
 
 } // anonymous namespace
 
-MoveElementDialog::Book MoveElementDialog::openBook(const core::ProjectManager& pm,
+MoveElementDialog::Book MoveElementDialog::openBook(const core::ProjectManager& projects,
                                                     const QString& elementId) {
     Book book;
-    const core::BookProject* project = pm.project();
-    const core::ProjectBook* projectBook = pm.book();
+    const core::BookProject* project = projects.project();
+    const core::ProjectBook* projectBook = projects.book();
     if (!project || !projectBook) {
         return book;
     }
@@ -234,6 +232,4 @@ void MoveElementDialog::updateAcceptButton()
                                !(m_picker->place() == m_book.from));
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

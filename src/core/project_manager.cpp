@@ -6,11 +6,14 @@
 
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/backup_manager.h>
+#include <kalahari/core/book_dictionary.h>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_package.h>
 #include <kalahari/core/card_data.h>
+#include <kalahari/core/card_name_index.h>
 #include <kalahari/core/card_relations.h>
 #include <kalahari/core/bibliography.h>
+#include <kalahari/core/book_project.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/clipping.h>
 #include <kalahari/core/link_roles.h>
@@ -23,6 +26,8 @@
 #include <kalahari/core/source_description.h>
 #include <kalahari/core/standalone_file.h>
 #include <kalahari/core/text_file.h>
+#include <kalahari/core/text_statistics.h>
+#include <kalahari/core/window_editor_provider.h>
 #include <kalahari/editor/clipboard_handler.h>
 
 #include <QDateTime>
@@ -39,12 +44,12 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <iterator>
 #include <utility>
 
 #include <zip.h>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 namespace {
 
@@ -57,6 +62,15 @@ const QStringList& textStatuses() {
 
 QString toQString(const std::filesystem::path& path) {
     return QString::fromStdWString(path.wstring());
+}
+
+/// The scenes of text @p kml, whose words are @p words: a text without scene breaks is one
+/// scene, whose words need not be counted again
+QList<KmlScene> scenesWith(const QString& kml, const WordTally& words) {
+    if (!kml.contains(QLatin1String("<scene-break"))) {
+        return {KmlScene{.plot = ScenePlot(), .words = words}};
+    }
+    return ChapterDocument::kmlScenes(kml);
 }
 
 /// @p title as a file or folder name: characters that file systems do not allow become "_"
@@ -475,8 +489,6 @@ bool writeWhole(const QString& path, const QByteArray& data) {
 
 ProjectManager::ProjectManager(QObject* parent)
     : QObject(parent)
-    , m_workMode(WorkMode::NoDocument)
-    , m_isDirty(false)
 {
     Logger::getInstance().info("ProjectManager initialized");
 }
@@ -614,6 +626,8 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
     }
     book.folder = QString::fromLatin1(BookProject::BOOK_FOLDER);
     project.books.append(book);
+    // The cards start with the fields that the Settings give new books
+    giveDefaultCardFields(project);
 
     QString manifestPath = QDir(projectDir).filePath(
         safeFileName(request.title) + QLatin1String(BookProject::FILE_EXTENSION));
@@ -1006,6 +1020,7 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
 
     logger.info("Project opened successfully: {}",
                 book() ? book()->title.toStdString() : std::string());
+    m_cardNames.reset();
     emit bookDictionaryChanged();
     emit projectOpened(toQString(m_projectPath));
 
@@ -1145,6 +1160,7 @@ bool ProjectManager::closeProject(bool promptSave) {
     m_isDirty = false;
 
     setWorkMode(WorkMode::NoDocument);
+    m_cardNames.reset();
     emit bookDictionaryChanged();
     emit projectClosed();
 
@@ -1171,6 +1187,7 @@ bool ProjectManager::saveManifest() {
 
     setDirty(false);
     Logger::getInstance().info("Manifest saved successfully");
+    emit projectChanged();
     return true;
 }
 
@@ -1457,7 +1474,11 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     if (!list) {
         return QString();
     }
-    if (kind.kind->form == ElementForm::Window) {
+    // A window kind of a module: the module writes its new file (IWindowEditorProvider)
+    const std::shared_ptr<IWindowEditorProvider> windowEditor =
+        kind.kind->form == ElementForm::Window ? windowEditorProvider(kind.kind->editor)
+                                               : nullptr;
+    if (kind.kind->form == ElementForm::Window && !windowEditor) {
         logger.error("addElement: Elements of {} open in a window that the program does not "
                      "have yet",
                      kind.reference().toStdString());
@@ -1508,6 +1529,16 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
             m_elementStates.remove(element.id);
             return QString();
         }
+    } else if (windowEditor) {
+        element.file =
+            newMaterialFile(kind.kind->id + QLatin1Char('.') + windowEditor->fileSuffix());
+        const QString path = filePathOf(element);
+        if (!QDir().mkpath(QFileInfo(path).absolutePath()) ||
+            !writeWhole(path, windowEditor->newFile())) {
+            logger.error("addElement: Cannot write {}", path.toStdString());
+            QFile::remove(path);
+            return QString();
+        }
     }
 
     const auto restore = [this, &previous, &element]() {
@@ -1551,12 +1582,14 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     logger.info("addElement: Added '{}' ({}, id: {}) with {} elements inside it",
                 title.toStdString(), kind.reference().toStdString(), element.id.toStdString(),
                 takeInside.size());
+    sayIfCard(kind, element.id);
     return element.id;
 }
 
 bool ProjectManager::canAdd(const KindRef& kind) {
     return kind && !kind.kind->retired &&
-           (kind.kind->form != ElementForm::Window || kind.kind->isMaterial());
+           (kind.kind->form != ElementForm::Window || kind.kind->isMaterial() ||
+            windowEditorProvider(kind.kind->editor) != nullptr);
 }
 
 std::optional<ElementPlace> ProjectManager::newPlaceAfter(const QString& elementId,
@@ -2076,6 +2109,7 @@ std::optional<ProjectElement> ProjectManager::removeElement(const QString& eleme
     }
     Logger::getInstance().info("removeElement: Removed '{}' (id: {})",
                                element.title.toStdString(), elementId.toStdString());
+    releaseCardNames(removedIds);
     if (linksGone) {
         emit linksChanged();
     }
@@ -2236,6 +2270,7 @@ QString ProjectManager::addUnassignedFile(const QString& file, const KindRef& ki
     ElementState& state = m_elementStates[element.id];
     state.notes = chapter->notes();
     state.words = chapter->wordTally();
+    state.scenes = scenesWith(chapter->kml(), state.words);
     if (!writeChapterFile(element, std::nullopt)) {
         logger.warn("addUnassignedFile: The title of {} is not in its chapter file",
                     element.id.toStdString());
@@ -2501,6 +2536,118 @@ bool ProjectManager::setDescription(const QString& elementId, const QString& des
     return saved;
 }
 
+bool ProjectManager::setPlot(const QString& elementId, const QString& description,
+                             const ElementPlot& plot) {
+    // Only the texts of a book have a plot: chapters, a prologue, scenes...
+    const ProjectElement* element = findElement(elementId);
+    const std::optional<ElementPlace> place =
+        element != nullptr ? m_project->placeOf(elementId) : std::nullopt;
+    if (element != nullptr && (!place || place->place == BookPlace::Workshop ||
+                               formOf(*element) != ElementForm::Text)) {
+        Logger::getInstance().warn("setPlot: Not a text of a book: {}", elementId.toStdString());
+        return false;
+    }
+    return changeDetails("setPlot", elementId, [&description, &plot](ProjectElement& each) {
+        each.description = description;
+        each.plot = plot;
+    });
+}
+
+QList<KmlScene> ProjectManager::scenesOf(const QString& elementId,
+                                         const std::optional<QString>& kml) const {
+    const ProjectElement* element = findElement(elementId);
+    const std::optional<ElementPlace> place =
+        element != nullptr ? m_project->placeOf(elementId) : std::nullopt;
+    if (!place || place->place == BookPlace::Workshop || formOf(*element) != ElementForm::Text) {
+        return {};
+    }
+    QList<KmlScene> scenes = kml ? ChapterDocument::kmlScenes(*kml)
+                                 : m_elementStates.value(elementId).scenes;
+    if (scenes.isEmpty()) {
+        scenes.append(KmlScene());  // no file yet: one empty scene
+    }
+    scenes.first().plot = element->plot.opening;
+    return scenes;
+}
+
+const ProjectElement* ProjectManager::bookTextOf(const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    if (element == nullptr || formOf(*element) != ElementForm::Text) {
+        return nullptr;
+    }
+    const std::optional<ElementPlace> place = m_project->placeOf(elementId);
+    return place && place->place != BookPlace::Workshop ? element : nullptr;
+}
+
+bool ProjectManager::canWriteText(const char* what, const ProjectElement& element) const {
+    if (refusesChange(what)) {
+        return false;
+    }
+    if (m_elementStates.value(element.id).dirty) {
+        Logger::getInstance().warn("{}: '{}' has changes its file does not have", what,
+                                   element.title.toStdString());
+        return false;
+    }
+    return true;
+}
+
+bool ProjectManager::writeText(const ProjectElement& element, const QString& kml) {
+    if (!writeChapterFile(element, kml)) {
+        return false;
+    }
+    if (ElementState* state = stateOf(element.id); state != nullptr && state->loaded) {
+        state->content = kml;
+    }
+    return true;
+}
+
+bool ProjectManager::setScenePlot(const QString& elementId, int scene, const ScenePlot& plot) {
+    const ProjectElement* element = bookTextOf(elementId);
+    if (element == nullptr || scene < 0) {
+        Logger::getInstance().warn("setScenePlot: No scene {} of a text of a book: {}", scene,
+                                   elementId.toStdString());
+        return false;
+    }
+    if (scene == 0) {
+        ElementPlot changed = element->plot;
+        changed.opening = plot;
+        return changeDetails("setScenePlot", elementId,
+                             [&changed](ProjectElement& each) { each.plot = changed; });
+    }
+    if (!canWriteText("setScenePlot", *element)) {
+        return false;
+    }
+    const QString changed = ChapterDocument::withScenePlot(chapterText(elementId), scene, plot);
+    if (changed.isEmpty()) {
+        Logger::getInstance().warn("setScenePlot: '{}' has no scene {}",
+                                   element->title.toStdString(), scene);
+        return false;
+    }
+    return writeText(*element, changed);
+}
+
+bool ProjectManager::setSceneText(const QString& elementId, const SceneText& text) {
+    const ProjectElement* element = bookTextOf(elementId);
+    if (element == nullptr) {
+        Logger::getInstance().warn("setSceneText: Not a text of a book: {}",
+                                   elementId.toStdString());
+        return false;
+    }
+    if (!canWriteText("setSceneText", *element)) {
+        return false;
+    }
+    if (chapterText(elementId) != text.kml && !writeText(*element, text.kml)) {
+        return false;
+    }
+    if (element->plot.opening == text.opening) {
+        return true;
+    }
+    ElementPlot changed = element->plot;
+    changed.opening = text.opening;
+    return changeDetails("setSceneText", elementId,
+                         [&changed](ProjectElement& each) { each.plot = changed; });
+}
+
 bool ProjectManager::setFields(const QString& elementId, const QList<ElementField>& fields) {
     const ProjectElement* element = findElement(elementId);
     // The own fields of a card are shown with its data
@@ -2549,6 +2696,42 @@ QList<ElementLink> ProjectManager::linksToKeep(const QString& elementId,
     return kept;
 }
 
+bool ProjectManager::linkParagraph(const QString& linkedId, const QString& elementId,
+                                   int paragraph, const QString& paragraphText,
+                                   const QString& role) {
+    const ProjectElement* element = findElement(linkedId);
+    if (element == nullptr || findElement(elementId) == nullptr || paragraph <= 0) {
+        return false;
+    }
+    QList<ElementLink> links = element->links;
+    auto had = std::find_if(links.begin(), links.end(),
+                            [&elementId](const ElementLink& link) { return link.to == elementId; });
+    if (had == links.end()) {
+        links.append(newLink(linkedId, elementId));
+        had = std::prev(links.end());
+    }
+    had->paragraph = paragraph;
+    had->excerpt = LinkRoles::excerptOf(paragraphText);
+    had->role = role;
+    return setLinks(linkedId, links);
+}
+
+bool ProjectManager::unlinkParagraph(const QString& linkedId, const QString& elementId) {
+    const ProjectElement* element = findElement(linkedId);
+    const ElementLink* had = element != nullptr ? element->linkTo(elementId) : nullptr;
+    if (had == nullptr) {
+        return false;
+    }
+    QList<ElementLink> links = element->links;
+    for (ElementLink& link : links) {
+        if (link.to == elementId) {
+            link.paragraph = 0;
+            link.excerpt.clear();
+        }
+    }
+    return setLinks(linkedId, links);
+}
+
 bool ProjectManager::setLinks(const QString& elementId, const QStringList& targets) {
     const ProjectElement* element = findElement(elementId);
     QList<ElementLink> links;
@@ -2559,10 +2742,10 @@ bool ProjectManager::setLinks(const QString& elementId, const QStringList& targe
     return setLinks(elementId, links);
 }
 
-ElementLink ProjectManager::newLink(const QString& elementId, const QString& target) const {
+ElementLink ProjectManager::newLink(const QString& linkedId, const QString& target) const {
     ElementLink link;
     link.to = target;
-    const ProjectElement* element = findElement(elementId);
+    const ProjectElement* element = findElement(linkedId);
     const KindRef kind = element != nullptr ? kindOf(*element) : KindRef();
     const ProjectElement* other = findElement(target);
     if (!kind) {
@@ -2815,7 +2998,7 @@ QString ProjectManager::cardFieldText(const QString& cardId, const QString& fiel
         return {};
     }
     const KindRef kind = kindOf(*card);
-    const CardField* field = kind ? kind.kind->field(fieldId) : nullptr;
+    const CardField* field = cardField(kind, fieldId);
     if (field != nullptr) {
         if (const ProjectElement* named = CardRelations(*this).fieldCard(*card, *field)) {
             return named->title;
@@ -2953,46 +3136,6 @@ bool ProjectManager::setParagraphStyles(const QList<BookParagraphStyle>& styles)
     return true;
 }
 
-const BookDictionary& ProjectManager::bookDictionary() const {
-    return m_bookDictionary;
-}
-
-bool ProjectManager::changeBookDictionary(const std::function<void(BookDictionary&)>& change) {
-    auto& logger = Logger::getInstance();
-    if (!m_project) {
-        logger.warn("changeBookDictionary: No project is open");
-        return false;
-    }
-    if (refusesChange("changeBookDictionary")) {
-        return false;
-    }
-    if (!m_bookDictionaryRead) {
-        logger.warn("changeBookDictionary: The file of the dictionary could not be read, so it "
-                    "is not written over");
-        return false;
-    }
-    BookDictionary changed = m_bookDictionary;
-    change(changed);
-    if (changed.toJson() == m_bookDictionary.toJson()) {
-        return true;
-    }
-    QString problem;
-    if (!changed.save(bookDictionaryPath(), &problem)) {
-        logger.warn("changeBookDictionary: {}", problem.toStdString());
-        return false;
-    }
-    m_bookDictionary = std::move(changed);
-    emit bookDictionaryChanged();
-    return true;
-}
-
-QString ProjectManager::bookDictionaryPath() const {
-    if (!m_project) {
-        return {};
-    }
-    return QDir(toQString(m_projectPath)).filePath(BookDictionary::fileName());
-}
-
 bool ProjectManager::setSource(const QString& elementId, const SourceDescription& source) {
     const ProjectElement* element = findElement(elementId);
     const bool changed = element != nullptr && element->source != source;
@@ -3125,6 +3268,105 @@ QString ProjectManager::bookLanguage() const {
     return current != nullptr ? current->language : QString();
 }
 
+bool ProjectManager::setBookPublication(const QString& isbn, const QString& publisher) {
+    ProjectBook* current = book();
+    if (current == nullptr) {
+        Logger::getInstance().warn("setBookPublication: No project is open");
+        return false;
+    }
+    if (current->isbn == isbn && current->publisher == publisher) {
+        return true;
+    }
+    if (refusesChange("setBookPublication")) {
+        return false;
+    }
+    const QString previousIsbn = current->isbn;
+    const QString previousPublisher = current->publisher;
+    current->isbn = isbn;
+    current->publisher = publisher;
+    if (!saveManifest()) {
+        current->isbn = previousIsbn;
+        current->publisher = previousPublisher;
+        return false;
+    }
+    return true;
+}
+
+const BookDictionary& ProjectManager::bookDictionary() const {
+    return m_bookDictionary;
+}
+
+bool ProjectManager::changeBookDictionary(const std::function<void(BookDictionary&)>& change) {
+    auto& logger = Logger::getInstance();
+    if (!m_project) {
+        logger.warn("changeBookDictionary: No project is open");
+        return false;
+    }
+    if (refusesChange("changeBookDictionary")) {
+        return false;
+    }
+    if (!m_bookDictionaryRead) {
+        logger.warn("changeBookDictionary: The file of the dictionary could not be read, so it "
+                    "is not written over");
+        return false;
+    }
+    BookDictionary changed = m_bookDictionary;
+    change(changed);
+    if (changed.toJson() == m_bookDictionary.toJson()) {
+        return true;
+    }
+    QString problem;
+    if (!changed.save(bookDictionaryPath(), &problem)) {
+        logger.warn("changeBookDictionary: {}", problem.toStdString());
+        return false;
+    }
+    m_bookDictionary = std::move(changed);
+    m_cardNames.reset();
+    emit bookDictionaryChanged();
+    return true;
+}
+
+void ProjectManager::sayIfCard(const KindRef& kind, const QString& elementId) {
+    if (kind && kind.kind->isCard()) {
+        emit cardAdded(elementId);
+    }
+}
+
+void ProjectManager::releaseCardNames(const QSet<QString>& removedIds) {
+    // The names stay in the dictionary, without their cards (a book whose dictionary could not
+    // be read keeps its file)
+    const bool named = std::ranges::any_of(m_bookDictionary.names(),
+                                           [&removedIds](const DictionaryName& name) {
+                                               return removedIds.contains(name.card);
+                                           });
+    if (!named || !m_bookDictionaryRead) {
+        return;
+    }
+    changeBookDictionary([&removedIds](BookDictionary& dictionary) {
+        const QList<DictionaryName> names = dictionary.names();
+        for (DictionaryName name : names) {
+            if (removedIds.contains(name.card)) {
+                name.card.clear();
+                dictionary.putName(std::move(name));
+            }
+        }
+    });
+}
+
+const CardNameIndex& ProjectManager::cardNames() const {
+    if (!m_cardNames) {
+        m_cardNames.emplace(m_bookDictionary);
+    }
+    return *m_cardNames;
+}
+
+QString ProjectManager::bookDictionaryPath() const {
+    if (!m_project) {
+        return {};
+    }
+    return QDir(toQString(m_projectPath)).filePath(BookDictionary::fileName());
+}
+
 QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& link) const {
     QList<const ProjectElement*> linked;
     if (!m_project || link.isEmpty()) {
@@ -3134,6 +3376,22 @@ QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& li
     appendAll(m_project->workshop.elements, workshop);
     for (const ProjectElement* element : workshop) {
         if (element->linkTo(link) != nullptr && isMaterial(*element)) {
+            linked << element;
+        }
+    }
+    return linked;
+}
+
+QList<const ProjectElement*> ProjectManager::cardsLinkedTo(const QString& link) const {
+    QList<const ProjectElement*> linked;
+    const ProjectElement* target = findElement(link);
+    if (!m_project || target == nullptr || isCard(*target)) {
+        return linked;
+    }
+    QList<const ProjectElement*> workshop;
+    appendAll(m_project->workshop.elements, workshop);
+    for (const ProjectElement* element : workshop) {
+        if (element->linkTo(link) != nullptr && isCard(*element)) {
             linked << element;
         }
     }
@@ -3218,6 +3476,7 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
     state.loaded = true;
     state.dirty = false;
     state.words = chapter->wordTally();
+    state.scenes = scenesWith(state.content, state.words);
     state.editorWords.reset();
     state.notes = chapter->notes();
     logger.debug("Loaded .kchapter for element: {} ({} chars)", elementId.toStdString(),
@@ -3690,6 +3949,7 @@ void ProjectManager::loadElementStates() {
                         path.toStdString());
         } else if (std::optional<ChapterDocument> chapter = ChapterDocument::load(path)) {
             state.words = chapter->wordTally();
+            state.scenes = scenesWith(chapter->kml(), state.words);
             state.notes = chapter->notes();
         }
         m_elementStates.insert(element->id, state);
@@ -3746,6 +4006,7 @@ bool ProjectManager::writeChapterFile(const ProjectElement& element,
     // its KML), or the text it had
     ElementState& state = m_elementStates[element.id];
     state.words = kml ? ChapterDocument::kmlWordTally(*kml) : chapter.wordTally();
+    state.scenes = scenesWith(kml ? *kml : chapter.kml(), state.words);
     if (kml) {
         state.editorWords.reset();  // the file has the text of the editor now
     }
@@ -4303,5 +4564,4 @@ QString ProjectManager::archiveProjectName(const QString& archivePath) {
     return name.isEmpty() ? QStringLiteral("project") : name;
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

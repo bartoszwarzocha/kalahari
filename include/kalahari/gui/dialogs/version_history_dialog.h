@@ -5,7 +5,8 @@
 /// @brief The window of File > Version History...: the versions of a text, to read, compare,
 /// bring back or take a fragment from
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_VERSION_HISTORY_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_VERSION_HISTORY_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -35,11 +36,9 @@ class CommandRegistry;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief The versions of a text, newest first, and the text of the one chosen
 ///
@@ -94,28 +93,28 @@ public:
                          SaveVersion saveVersion, QWidget* parent = nullptr);
 
     /// @brief What the writer chose; None while the window is open
-    Choice choice() const { return m_choice; }
+    [[nodiscard]] Choice choice() const { return m_choice; }
 
     /// @brief The version chosen (choice())
-    const core::ChapterVersion& chosenVersion() const { return m_chosen; }
+    [[nodiscard]] const core::ChapterVersion& chosenVersion() const { return m_chosen; }
 
     /// @brief The text chosen: the whole version to restore, or the fragment to insert
-    const QString& chosenKml() const { return m_chosenKml; }
+    [[nodiscard]] const QString& chosenKml() const { return m_chosenKml; }
 
     // Its parts, which the tests use as the writer does
 
     /// @brief The list of the versions
-    QListWidget* versionList() const { return m_list; }
+    [[nodiscard]] QListWidget* versionList() const { return m_list; }
 
     /// @brief The preview of the version chosen
-    editor::BookEditor* preview() const { return m_preview; }
+    [[nodiscard]] editor::BookEditor* preview() const { return m_preview; }
 
     /// @brief "Show the versions saved by the program"
-    QCheckBox* automaticBox() const { return m_automaticBox; }
+    [[nodiscard]] QCheckBox* automaticBox() const { return m_automaticBox; }
 
     /// @brief Whether the preview shows the changes to the text as it is now, else the text of
     /// the version
-    bool showsChanges() const { return m_showsChanges; }
+    [[nodiscard]] bool showsChanges() const { return m_showsChanges; }
 
     /// @brief Show the changes (true) or the text of the version (false)
     void showChanges(bool changes);
@@ -125,13 +124,13 @@ public:
     bool selectVersion(const QString& versionFile);
 
     /// @brief The version chosen in the list; nullopt: none
-    std::optional<core::ChapterVersion> selectedVersion() const;
+    [[nodiscard]] std::optional<core::ChapterVersion> selectedVersion() const;
 
     /// @brief The line over the preview: the words, or which change of how many
-    QString summary() const;
+    [[nodiscard]] QString summary() const;
 
     /// @brief The change the preview shows (from 0); -1: none
-    int currentChange() const { return m_change; }
+    [[nodiscard]] int currentChange() const { return m_change; }
 
     /// @brief Go to the next change (@p next) or the previous one, from the last to the first
     /// and back
@@ -143,11 +142,11 @@ public:
 
     /// @brief Restore This Version, Insert Selected Fragment, Change Description and Delete:
     /// the buttons, for the tests
-    QPushButton* restoreButton() const { return m_restoreButton; }
-    QPushButton* insertButton() const { return m_insertButton; }
-    QPushButton* renameButton() const { return m_renameButton; }
-    QPushButton* deleteButton() const { return m_deleteButton; }
-    QPushButton* saveButton() const { return m_saveButton; }
+    [[nodiscard]] QPushButton* restoreButton() const { return m_restoreButton; }
+    [[nodiscard]] QPushButton* insertButton() const { return m_insertButton; }
+    [[nodiscard]] QPushButton* renameButton() const { return m_renameButton; }
+    [[nodiscard]] QPushButton* deleteButton() const { return m_deleteButton; }
+    [[nodiscard]] QPushButton* saveButton() const { return m_saveButton; }
 
 private:
     /// @brief List the versions that the list shows now (automaticBox())
@@ -170,14 +169,14 @@ private:
     const editor::VersionComparison* comparisonOf(const core::ChapterVersion& version);
 
     /// @brief The colors of the comparison on the paper of the preview
-    editor::ComparisonColors comparisonColors() const;
+    [[nodiscard]] editor::ComparisonColors comparisonColors() const;
 
     /// @brief Show change @p index of the comparison shown: the cursor at its start, in view,
     /// the change marked in its paragraph, and which change of how many over the preview
     void showChange(int index);
 
     /// @brief The text selected in the preview as a fragment of the version (KML); empty: none
-    QString selectedFragment() const;
+    [[nodiscard]] QString selectedFragment() const;
 
     /// @brief Copy the selection of the preview with its formatting: in the changes, the text of
     /// the version (as Insert Selected Fragment takes it), else what the preview shows
@@ -220,6 +219,6 @@ private:
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_VERSION_HISTORY_DIALOG_H

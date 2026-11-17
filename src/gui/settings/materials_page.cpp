@@ -33,20 +33,14 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-#include <QRadioButton>
-#include <QSpacerItem>
-#include <QVBoxLayout>
-
-#include <nlohmann/json_fwd.hpp>
+#include <QStandardItemModel>
 
 #include <string>
-#include <utility>
+#include <vector>
 
 namespace kalahari::gui {
 
 namespace {
-
-using json = nlohmann::json;
 
 /// @brief The values of NavigatorPanel::OPEN_MATERIALS_SETTING and OPEN_PAGES_SETTING
 constexpr const char* CARD = "card";
@@ -83,103 +77,55 @@ MaterialsPage::MaterialsPage(QWidget* parent) : SettingsPage(parent) {
     pageLayout()->addStretch();
 }
 
-void MaterialsPage::addChoices(QFormLayout* form, const QString& label, const char* key,
-                               const QList<Choice>& choices) {
-    auto* box = new QWidget();
-    auto* layout = new QVBoxLayout(box);
-    layout->setContentsMargins(0, 0, 0, 0);
-    for (const Choice& choice : choices) {
-        layout->addWidget(choice.button);
-        if (!choice.note.isEmpty()) {
-            alignWithText(addNote(layout, choice.note), choice.button);
-        }
-    }
-    auto* caption = new QLabel(label);
-    caption->setBuddy(choices.front().button);
-    form->addRow(caption, box);
-    addGap(form);
-
-    Binding binding;
-    binding.key = [setting = std::string(key)]() { return setting; };
-    binding.stored = [setting = std::string(key), fallback = std::string(choices.front().value)]() {
-        return json(core::SettingsManager::getInstance().get<std::string>(setting, fallback));
-    };
-    binding.shown = [choices]() {
-        for (const Choice& choice : choices) {
-            if (choice.button->isChecked()) {
-                return json(choice.value);
-            }
-        }
-        return json(choices.front().value);
-    };
-    binding.show = [choices](const json& value) {
-        QRadioButton* chosen = choices.front().button;
-        for (const Choice& choice : choices) {
-            if (value.is_string() && value.get<std::string>() == choice.value) {
-                chosen = choice.button;
-            }
-        }
-        chosen->setChecked(true);
-    };
-    binding.store = [setting = std::string(key)](const json& value) {
-        core::SettingsManager::getInstance().set<std::string>(setting, value.get<std::string>());
-    };
-    bindCustom(std::move(binding));
+QComboBox* MaterialsPage::addChoices(QFormLayout* form, const QString& label, const char* key,
+                                     const std::vector<Choice>& choices) {
+    QComboBox* list = addChoice(form, label, choices, std::string());
+    // Its longest choice does not widen the page in a narrow window
+    list->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    list->setMinimumContentsLength(MIN_CHOICE_CHARACTERS);
+    bindChoice(list, key, choices.front().value.toString().toStdString());
+    return list;
 }
 
 void MaterialsPage::addOpening() {
     //: The group of the page Materials: how the materials open. In Polish: Otwieranie
     QFormLayout* opening = addGroup(tr("Opening"));
 
-    //: In Polish: Na karcie w programie
-    auto* pictureCard = new QRadioButton(tr("On a tab of the program"));
-    pictureCard->setObjectName(QStringLiteral("materialsOpenPicturesCard"));
-    //: In Polish: W programie systemowym
-    auto* pictureSystem = new QRadioButton(tr("In the system program"));
-    pictureSystem->setObjectName(QStringLiteral("materialsOpenPicturesSystem"));
-    //: In Polish: Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak
-    //: rozdział. Plik, którego program nie pokazuje, otwiera się w programie systemowym,
-    //: a materiał bez pliku i adresu – na swojej karcie.
-    const QString pictureCardNote =
-        tr("A picture, also the copy of one from the web, opens on a preview tab, as a chapter "
-           "does. A file the program does not show opens in the system program, and a material "
-           "without a file and an address on its card.");
-    //: In Polish: Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.
-    const QString pictureSystemNote =
-        tr("The Preview button in the Properties panel then opens the preview tab.");
     //: In Polish: Obrazy:
     addChoices(opening, tr("Pictures:"), NavigatorPanel::OPEN_MATERIALS_SETTING,
-               {{.value = CARD, .button = pictureCard, .note = pictureCardNote},
-                {.value = SYSTEM, .button = pictureSystem, .note = pictureSystemNote}});
+               //: In Polish: Na karcie w programie
+               {{tr("On a tab of the program"), QString::fromLatin1(CARD),
+                 //: In Polish: Obraz, także kopia obrazu z sieci, otwiera się na karcie
+                 //: podglądu, jak rozdział. Plik, którego program nie pokazuje, otwiera się
+                 //: w programie systemowym, a materiał bez pliku i adresu – na swojej karcie.
+                 tr("A picture, also the copy of one from the web, opens on a preview tab, as a "
+                    "chapter does. A file the program does not show opens in the system "
+                    "program, and a material without a file and an address on its card.")},
+                //: In Polish: W programie systemowym
+                {tr("In the system program"), QString::fromLatin1(SYSTEM),
+                 //: In Polish: Kartę podglądu otwiera wtedy przycisk „Podgląd” we
+                 //: Właściwościach.
+                 tr("The Preview button in the Properties panel then opens the preview tab.")}})
+        ->setObjectName(QStringLiteral("materialsOpenPictures"));
 
-    //: In Polish: W przeglądarce
-    auto* pagesBrowser = new QRadioButton(tr("In the browser"));
-    pagesBrowser->setObjectName(QStringLiteral("materialsOpenPagesBrowser"));
-    //: In Polish: Na karcie materiału
-    auto* pagesCard = new QRadioButton(tr("On the card of the material"));
-    pagesCard->setObjectName(QStringLiteral("materialsOpenPagesCard"));
-    //: In Polish: Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału
-    //: na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.
-    const QString pagesBrowserNote =
-        tr("Double-click and Enter open the address in the system's browser. Open Card in the "
-           "menu of the node opens the card of the material in the middle of the window.");
-    //: In Polish: Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk
-    //: „Otwórz w przeglądarce” na tej karcie.
-    const QString pagesCardNote =
-        tr("Double-click and Enter open the card of the material in the middle of the window; "
-           "its Open in Browser button opens the address.");
     //: In Polish: Strony i obrazy z sieci:
     addChoices(opening, tr("Pages and pictures on the web:"), NavigatorPanel::OPEN_PAGES_SETTING,
-               {{.value = BROWSER, .button = pagesBrowser, .note = pagesBrowserNote},
-                {.value = CARD, .button = pagesCard, .note = pagesCardNote}});
+               //: In Polish: W przeglądarce
+               {{tr("In the browser"), QString::fromLatin1(BROWSER),
+                 //: In Polish: Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę
+                 //: materiału na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.
+                 tr("Double-click and Enter open the address in the system's browser. Open Card "
+                    "in the menu of the node opens the card of the material in the middle of the "
+                    "window.")},
+                //: In Polish: Na karcie materiału
+                {tr("On the card of the material"), QString::fromLatin1(CARD),
+                 //: In Polish: Dwuklik i Enter otwierają kartę materiału na środku okna, a adres
+                 //: – przycisk „Otwórz w przeglądarce” na tej karcie.
+                 tr("Double-click and Enter open the card of the material in the middle of the "
+                    "window; its Open in Browser button opens the address.")}})
+        ->setObjectName(QStringLiteral("materialsOpenPages"));
 
     const bool preview = PdfFiles::previewAvailable();
-    //: In Polish: Na karcie podglądu w programie
-    m_openPdfPreview = new QRadioButton(tr("On a preview tab of the program"));
-    m_openPdfPreview->setObjectName(QStringLiteral("materialsOpenPdfPreview"));
-    m_openPdfPreview->setEnabled(preview);
-    auto* pdfSystem = new QRadioButton(tr("In the system program"));
-    pdfSystem->setObjectName(QStringLiteral("materialsOpenPdfSystem"));
     //: In Polish: Strony, zakładki, spis treści i szukanie w pliku; tekst zaznaczony na
     //: stronie daje cytat z numerem strony.
     QString previewNote = tr("The pages, the bookmarks, the contents and the search of the file; "
@@ -196,9 +142,17 @@ void MaterialsPage::addOpening() {
         systemNote.clear();
     }
     //: In Polish: Pliki PDF:
-    addChoices(opening, tr("PDF files:"), PdfFiles::OPEN_SETTING,
-               {{.value = PdfFiles::PREVIEW, .button = m_openPdfPreview, .note = previewNote},
-                {.value = PdfFiles::SYSTEM, .button = pdfSystem, .note = systemNote}});
+    m_openPdf = addChoices(opening, tr("PDF files:"), PdfFiles::OPEN_SETTING,
+                           //: In Polish: Na karcie podglądu w programie
+                           {{tr("On a preview tab of the program"),
+                             QString::fromLatin1(PdfFiles::PREVIEW), previewNote},
+                            {tr("In the system program"), QString::fromLatin1(PdfFiles::SYSTEM),
+                             systemNote}});
+    m_openPdf->setObjectName(QStringLiteral("materialsOpenPdf"));
+    // Without the preview of PDF files they open in the system program, whatever is chosen
+    if (auto* items = qobject_cast<QStandardItemModel*>(m_openPdf->model()); !preview && items) {
+        items->item(0)->setEnabled(false);
+    }
 }
 
 void MaterialsPage::addPdfPreview() {
@@ -207,41 +161,32 @@ void MaterialsPage::addPdfPreview() {
     // Without the preview of PDF files its settings wait
     pdf->parentWidget()->setEnabled(PdfFiles::previewAvailable());
 
-    //: In Polish: Jedna pod drugą
-    auto* continuous = new QRadioButton(tr("One under another"));
-    continuous->setObjectName(QStringLiteral("materialsPdfContinuous"));
-    //: In Polish: Po jednej stronie
-    auto* single = new QRadioButton(tr("One page at a time"));
-    single->setObjectName(QStringLiteral("materialsPdfSingle"));
-    //: In Polish: Dwie obok siebie
-    auto* two = new QRadioButton(tr("Two side by side"));
-    two->setObjectName(QStringLiteral("materialsPdfTwo"));
-    //: In Polish: Przyciski na pasku podglądu zmieniają to samo ustawienie.
-    const QString layoutNote = tr("The buttons on the bar of the preview change the same setting.");
     //: In Polish: Układ stron:
     addChoices(pdf, tr("Page layout:"), PdfFiles::LAYOUT_SETTING,
-               {{.value = PdfFiles::CONTINUOUS, .button = continuous, .note = {}},
-                {.value = PdfFiles::SINGLE, .button = single, .note = {}},
-                {.value = PdfFiles::TWO, .button = two, .note = layoutNote}});
+               //: In Polish: Jedna pod drugą
+               {{tr("One under another"), QString::fromLatin1(PdfFiles::CONTINUOUS), {}},
+                //: In Polish: Po jednej stronie
+                {tr("One page at a time"), QString::fromLatin1(PdfFiles::SINGLE), {}},
+                //: In Polish: Dwie obok siebie
+                {tr("Two side by side"), QString::fromLatin1(PdfFiles::TWO), {}}})
+        ->setObjectName(QStringLiteral("materialsPdfLayout"));
+    //: In Polish: Przyciski na pasku podglądu zmieniają to samo ustawienie.
+    addFieldNote(pdf, tr("The buttons on the bar of the preview change the same setting."));
 
-    //: In Polish: Strony jak w pliku
-    auto* asFile = new QRadioButton(tr("Pages as in the file"));
-    asFile->setObjectName(QStringLiteral("materialsPdfAsFile"));
-    //: In Polish: Strony przyciemnione
-    auto* dimmed = new QRadioButton(tr("Pages dimmed"));
-    dimmed->setObjectName(QStringLiteral("materialsPdfDimmed"));
-    //: In Polish: Odwrócone kolory
-    auto* inverted = new QRadioButton(tr("Inverted colors"));
-    inverted->setObjectName(QStringLiteral("materialsPdfInverted"));
-    //: Under Inverted colors, the last choice of In a dark theme. In Polish: Jasny tekst na
-    //: ciemnym tle. Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.
-    const QString darkNote = tr("Light text on a dark page. Only the look on the screen changes; "
-                                "the file stays as it is.");
     //: In Polish: W ciemnym motywie:
     addChoices(pdf, tr("In a dark theme:"), PdfFiles::DARK_SETTING,
-               {{.value = PdfFiles::AS_FILE, .button = asFile, .note = {}},
-                {.value = PdfFiles::DIMMED, .button = dimmed, .note = {}},
-                {.value = PdfFiles::INVERTED, .button = inverted, .note = darkNote}});
+               //: In Polish: Strony jak w pliku
+               {{tr("Pages as in the file"), QString::fromLatin1(PdfFiles::AS_FILE), {}},
+                //: In Polish: Strony przyciemnione
+                {tr("Pages dimmed"), QString::fromLatin1(PdfFiles::DIMMED), {}},
+                //: In Polish: Odwrócone kolory
+                {tr("Inverted colors"), QString::fromLatin1(PdfFiles::INVERTED),
+                 //: Under the list In a dark theme while Inverted colors is chosen. In Polish:
+                 //: Jasny tekst na ciemnym tle. Zmienia się tylko wygląd na ekranie; plik
+                 //: zostaje bez zmian.
+                 tr("Light text on a dark page. Only the look on the screen changes; the file "
+                    "stays as it is.")}})
+        ->setObjectName(QStringLiteral("materialsPdfDark"));
 
     m_pdfZoom = narrowComboBox();
     m_pdfZoom->setObjectName(QStringLiteral("materialsPdfZoom"));
@@ -269,7 +214,6 @@ void MaterialsPage::addPdfPreview() {
     m_pdfSide->addItem(tr("Hidden"), QString::fromLatin1(PdfFiles::HIDDEN));
     //: In Polish: Panel boczny:
     addField(pdf, tr("Side panel:"), m_pdfSide, PdfFiles::SIDE_SETTING);
-    addGap(pdf);
 
     //: In Polish: Otwieraj na stronie oglądanej ostatnio
     QCheckBox* lastPage =

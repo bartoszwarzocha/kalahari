@@ -315,11 +315,11 @@ void ViewportManager::updateVisibleRange() {
     // (the scroll position is drawn at the top inset)
     const double viewTop = m_scrollY - m_viewTopInset / m_viewScale;
     const double viewBottom = viewTop + visibleDocumentHeight();
-    // (in a row of a table, its first block: paragraphAtY() gives its last)
+    // (in a row of a table, its first block: paragraphAtY() gives its last; an image the text
+    // flows around reaching the top from a block above, that block)
     m_firstVisible = paragraphAtY(viewTop);
     if (const auto* layout = kalahariLayout(m_document)) {
-        m_firstVisible = static_cast<size_t>(
-            std::max(0, layout->firstBlockOfRow(static_cast<int>(m_firstVisible))));
+        m_firstVisible = static_cast<size_t>(std::max(0, layout->firstBlockShownAtY(viewTop)));
     }
     m_lastVisible = std::max(m_firstVisible, paragraphAtY(viewBottom));
 

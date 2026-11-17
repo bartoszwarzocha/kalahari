@@ -5,7 +5,8 @@
 /// @brief What the program takes from the web for a material with an address: the title of
 /// its page, or the copy of its picture
 
-#pragma once
+#ifndef KALAHARI_GUI_MATERIAL_DOWNLOADER_H
+#define KALAHARI_GUI_MATERIAL_DOWNLOADER_H
 
 #include <QByteArray>
 #include <QObject>
@@ -17,8 +18,7 @@ class QNetworkAccessManager;
 class QNetworkReply;
 class QNetworkRequest;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Downloads for the materials with a web address: the title of a page, or a picture
 /// whose copy the material gets
@@ -82,7 +82,9 @@ public:
     void fetchPicture(const QString& elementId, const QUrl& url);
 
     /// @brief Whether a download for material @p elementId is on its way
-    bool isFetching(const QString& elementId) const { return m_fetching.contains(elementId); }
+    [[nodiscard]] bool isFetching(const QString& elementId) const {
+        return m_fetching.contains(elementId);
+    }
 
     /// @brief The title of page @p html: its <title>, with the characters its entities name,
     /// in the charset @p contentType or the page's <meta> gives, else in UTF-8; empty when it
@@ -105,5 +107,6 @@ private:
     QSet<QString> m_fetching;  ///< The materials whose downloads are on their way
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_MATERIAL_DOWNLOADER_H

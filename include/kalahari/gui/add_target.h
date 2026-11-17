@@ -5,7 +5,8 @@
 /// @brief Where the Add Element window adds a new element: the node of the Navigator or the
 /// element in the editor it was opened on
 
-#pragma once
+#ifndef KALAHARI_GUI_ADD_TARGET_H
+#define KALAHARI_GUI_ADD_TARGET_H
 
 #include "kalahari/core/book_type_registry.h"
 
@@ -13,8 +14,7 @@
 #include <QMetaType>
 #include <QString>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Where the Add Element window adds a new element, and which kinds it offers there
 ///
@@ -56,7 +56,8 @@ enum class AddChooser {
     None,      ///< "place": no choice; only the kinds of the place the window was opened on
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
 
 Q_DECLARE_METATYPE(kalahari::gui::AddTarget)
+
+#endif  // KALAHARI_GUI_ADD_TARGET_H

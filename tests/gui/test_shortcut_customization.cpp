@@ -20,7 +20,7 @@
 #include <QStringList>
 
 #include <string>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari::gui;
 using ShortcutMap = CommandRegistry::ShortcutMap;
@@ -249,7 +249,7 @@ TEST_CASE("Custom shortcuts: the texts that name the keys follow them",
     };
 
     DashboardPanel dashboard(kalahari::test::commands());
-    EditorGeneralPage editorPage(kalahari::test::commands());
+    EditorGeneralPage editorPage(kalahari::test::commands(), EditorGeneralPage::Part::Writing);
     const KeyboardShortcut newBook = keysOf("file.new.project");
     const KeyboardShortcut typewriter = keysOf("view.typewriter");
     REQUIRE_FALSE(newBook.isEmpty());

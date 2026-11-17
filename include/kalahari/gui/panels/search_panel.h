@@ -5,7 +5,8 @@
 /// @brief The Search panel: Find in Book, the matches in all the texts of the book grouped by
 ///        text, and Replace All in Book
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_SEARCH_PANEL_H
+#define KALAHARI_GUI_PANELS_SEARCH_PANEL_H
 
 #include <kalahari/editor/search_engine.h>
 
@@ -174,3 +175,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_SEARCH_PANEL_H

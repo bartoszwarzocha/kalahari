@@ -6,7 +6,8 @@
 ///        server in the internet), the preparation of LanguageTool, the language and the
 ///        command
 
-#pragma once
+#ifndef KALAHARI_GUI_GRAMMAR_COORDINATOR_H
+#define KALAHARI_GUI_GRAMMAR_COORDINATOR_H
 
 #include <QMap>
 #include <QObject>
@@ -28,7 +29,7 @@ class CommandRegistry;
 
 namespace kalahari::editor {
 class GrammarCheckService;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -37,7 +38,7 @@ class LanguageToolServer;
 
 namespace dialogs {
 class GrammarSetupDialog;
-}
+} // namespace dialogs
 
 /// @brief Checks the grammar of the documents as they are written
 ///
@@ -108,16 +109,16 @@ public:
     void connectCommands();
 
     /// @brief The checking the editors send their paragraphs to
-    editor::GrammarCheckService* service() const { return m_service; }
+    [[nodiscard]] editor::GrammarCheckService* service() const { return m_service; }
 
     /// @brief The LanguageTool server on this computer, the same for every book window
-    LanguageToolServer* server() const { return m_server; }
+    [[nodiscard]] LanguageToolServer* server() const { return m_server; }
 
     /// @brief The preparation of Java and LanguageTool, the same for every book window
-    GrammarSetup* setup() const { return m_setup; }
+    [[nodiscard]] GrammarSetup* setup() const { return m_setup; }
 
     /// @brief What grammar as you type can do now
-    Readiness readiness() const;
+    [[nodiscard]] Readiness readiness() const;
 
     /// @brief What grammar as you type can do with the values given (those of the settings,
     ///        or those a page of the Settings dialog shows)
@@ -130,13 +131,13 @@ public:
 
     /// @brief Whether the grammar is checked now: on, and ready or on a server in the
     ///        internet
-    bool isChecking() const;
+    [[nodiscard]] bool isChecking() const;
 
     /// @brief Why the grammar is not checked although it is on, as the status bar says it
     ///        (the Spelling and Grammar panel shows it too): LanguageTool not prepared or not
     ///        found, being prepared, starting or started again, failed to start, or a server
     ///        that does not answer; empty while it is checked, and while it is off
-    QString problem() const;
+    [[nodiscard]] QString problem() const;
 
     /// @brief Show the window of the preparation: what is downloaded, or how the
     ///        preparation goes, or how it failed
@@ -172,7 +173,7 @@ private:
     void attachEditors();
 
     /// @brief Whether any document is open
-    bool hasEditors() const;
+    [[nodiscard]] bool hasEditors() const;
 
     /// @brief Start the server on this computer when the checking needs it
     void startServerWhenNeeded();
@@ -203,7 +204,7 @@ private:
     QToolButton* setupButton();
 
     /// @brief The window dialogs are shown over
-    QWidget* mainWindow() const;
+    [[nodiscard]] QWidget* mainWindow() const;
 
     QTabWidget* m_centralTabs;
     QStatusBar* m_statusBar;
@@ -230,3 +231,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_GRAMMAR_COORDINATOR_H

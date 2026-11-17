@@ -12,9 +12,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -90,6 +88,4 @@ void VersionNameDialog::addNameField(const QString& name, const QString& hintTex
     m_nameEdit->setFocus();
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

@@ -15,7 +15,7 @@
 #include <kalahari/editor/spell_check_service.h>
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/text_tables.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QCoreApplication>
 #include <QImage>
@@ -283,10 +283,10 @@ struct TableDocument {
         layout->layoutPendingBlocks();
     }
 
-    int number(int row, int column) const {
+    [[nodiscard]] int number(int row, int column) const {
         return doc->findBlock(table->cellAt(row, column).firstPosition()).blockNumber();
     }
-    QTextBlock block(int number) const { return doc->findBlockByNumber(number); }
+    [[nodiscard]] QTextBlock block(int number) const { return doc->findBlockByNumber(number); }
 };
 
 const QString LONG_TEXT = QStringLiteral(

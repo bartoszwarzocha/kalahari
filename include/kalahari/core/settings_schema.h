@@ -9,15 +9,14 @@
 /// callers do not repeat defaults. Per-theme colors (themes.<name>.*,
 /// icons.themes.<name>.*) are not listed: their defaults come from the theme files.
 
-#pragma once
+#ifndef KALAHARI_CORE_SETTINGS_SCHEMA_H
+#define KALAHARI_CORE_SETTINGS_SCHEMA_H
 
 #include <map>
 #include <string>
 #include <nlohmann/json.hpp>
 
-namespace kalahari {
-namespace core {
-namespace settings_schema {
+namespace kalahari::core::settings_schema {
 
 /// @brief Default value of a setting
 /// @param key Setting key; '.' and '/' both separate levels ("icons.sizes.menu")
@@ -27,10 +26,15 @@ const nlohmann::json* defaultValue(const std::string& key);
 /// @brief All listed settings (key with '.' separators -> default value)
 const std::map<std::string, nlohmann::json>& defaults();
 
+/// @brief List the settings of a module of the program (mind maps, timelines) with their
+/// default values, so that the module keeps its settings itself; a key listed already keeps
+/// its value. A module adds them once, when it is registered, before any window reads them.
+void addDefaults(const std::map<std::string, nlohmann::json>& moduleDefaults);
+
 /// @brief Whether a changed setting takes effect only after restarting Kalahari
 /// @param key Setting key; '.' and '/' both separate levels
 bool requiresRestart(const std::string& key);
 
-} // namespace settings_schema
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core::settings_schema
+
+#endif  // KALAHARI_CORE_SETTINGS_SCHEMA_H

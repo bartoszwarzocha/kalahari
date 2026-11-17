@@ -19,7 +19,7 @@
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/version.h"
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <QApplication>
 #include <QDirIterator>
@@ -37,7 +37,7 @@
 #include <QTimer>
 
 #include <algorithm>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using kalahari::gui::IconDownloaderDialog;
 using kalahari::gui::dialogs::AboutDialog;

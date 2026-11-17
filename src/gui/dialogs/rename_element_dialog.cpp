@@ -10,9 +10,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 RenameElementDialog::RenameElementDialog(const QString& currentName, const QString& iconId,
                                          QWidget* parent)
@@ -42,6 +40,4 @@ void RenameElementDialog::updateAcceptButton()
     acceptButton()->setEnabled(!name().isEmpty());
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

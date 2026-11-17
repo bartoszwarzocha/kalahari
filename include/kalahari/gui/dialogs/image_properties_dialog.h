@@ -5,7 +5,8 @@
 /// @brief Image > Image Properties...: the file, size, crop, border, colors, description and
 ///        caption of the selected image
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_IMAGE_PROPERTIES_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_IMAGE_PROPERTIES_DIALOG_H
 
 #include "kalahari/editor/text_images.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
@@ -32,8 +33,7 @@ class QSlider;
 class QStackedWidget;
 class QToolButton;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class ColorMenu;
 class LengthSpinBox;
@@ -210,6 +210,7 @@ private:
     QPushButton* m_changeButton = nullptr;
     QPushButton* m_saveButton = nullptr;
     QCheckBox* m_keepSizeAndCrop = nullptr;
+    QComboBox* m_wrap = nullptr;  ///< How the text flows around it (ImageWrap)
 
     // Size and Rotation
     QDoubleSpinBox* m_widthPercent = nullptr;
@@ -272,5 +273,6 @@ private:
 };
 
 } // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DIALOGS_IMAGE_PROPERTIES_DIALOG_H

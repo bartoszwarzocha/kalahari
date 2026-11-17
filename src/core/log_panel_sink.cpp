@@ -7,8 +7,7 @@
 #include "kalahari/core/log_panel_sink.h"
 #include <spdlog/pattern_formatter.h>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 LogPanelSink::LogPanelSink(QObject* parent)
     : QObject(parent)
@@ -45,5 +44,4 @@ void LogPanelSink::flush_() {
     // No buffering, nothing to flush
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

@@ -9,7 +9,8 @@
 /// reads them at startup and after Apply in Settings > Keyboard Shortcuts, and gives them
 /// to CommandRegistry::setCustomShortcuts().
 
-#pragma once
+#ifndef KALAHARI_GUI_SHORTCUT_SETTINGS_H
+#define KALAHARI_GUI_SHORTCUT_SETTINGS_H
 
 #include "kalahari/gui/command_registry.h"
 
@@ -21,8 +22,7 @@
 #include <optional>
 #include <string>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class ShortcutRules;
 
@@ -82,5 +82,6 @@ void saveCustomShortcuts(const CommandRegistry::ShortcutMap& custom);
 /// @return The object of command ids and keys, or nothing for another file
 [[nodiscard]] std::optional<nlohmann::json> shortcutsOfFile(const nlohmann::json& file);
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_SHORTCUT_SETTINGS_H

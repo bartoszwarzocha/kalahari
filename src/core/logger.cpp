@@ -14,8 +14,7 @@
 #include <system_error>
 #include <vector>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 namespace {
 
@@ -172,5 +171,4 @@ spdlog::level::level_enum Logger::getLevel() const {
     return spdlog::level::info;  // Default if not initialized
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

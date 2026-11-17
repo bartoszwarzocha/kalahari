@@ -9,7 +9,8 @@
 /// (bronze, silver, gold, platinum); not yet, it is grey with a dashed ring. Under each a bar
 /// shows how far it is. The tooltip of a badge says what it counts and when it was won.
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_WRITING_AWARDS_TAB_H
+#define KALAHARI_GUI_PANELS_WRITING_AWARDS_TAB_H
 
 #include <QString>
 #include <QWidget>
@@ -111,3 +112,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_WRITING_AWARDS_TAB_H

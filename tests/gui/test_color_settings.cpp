@@ -34,7 +34,7 @@
 
 #include <string>
 #include <utility>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari::gui;
 using kalahari::core::SettingsManager;
@@ -298,7 +298,7 @@ TEST_CASE("Settings: the colors of the annotations, on the Annotations page",
     auto& themes = ThemeManager::getInstance();
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    QWidget* page = openPage(dialog, QString(), QStringLiteral("Annotations"));
+    QWidget* page = openPage(dialog, QStringLiteral("Annotations"), QStringLiteral("General"));
     const std::pair<const char*, std::string> colors[] = {
         {"Comment", kalahari::editor::annotationColorKey(AnnotationKind::Comment)},
         {"To-do", kalahari::editor::annotationColorKey(AnnotationKind::Todo)},
@@ -463,7 +463,8 @@ TEST_CASE("Settings: Optimize colors in themes, one setting on three pages",
     QCheckBox* grammar =
         optimizeBox(openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Grammar")));
     CHECK_FALSE(grammar->isChecked());
-    QCheckBox* annotations = optimizeBox(openPage(dialog, QString(), QStringLiteral("Annotations")));
+    QCheckBox* annotations = optimizeBox(
+        openPage(dialog, QStringLiteral("Annotations"), QStringLiteral("General")));
     CHECK_FALSE(annotations->isChecked());
 
     // On again on the last page: on everywhere; off again

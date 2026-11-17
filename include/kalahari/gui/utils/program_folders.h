@@ -4,15 +4,15 @@
 /// @file program_folders.h
 /// @brief The folders of the program and the folders the windows choosing files start in
 
-#pragma once
+#ifndef KALAHARI_GUI_UTILS_PROGRAM_FOLDERS_H
+#define KALAHARI_GUI_UTILS_PROGRAM_FOLDERS_H
 
 #include <QCoreApplication>
 #include <QString>
 
 #include <string>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Where the program keeps books and archives, and where the windows that choose files
 /// and folders start
@@ -39,6 +39,8 @@ public:
         InsertImage,        ///< Insert > Image..., Change Image...: the folder of the image
         SaveImage,          ///< Save as Image...: the folder an image is saved to
         ExportBook,         ///< File > Export > DOCX, Markdown: the folder of the file
+        ImportText,         ///< File > Import > DOCX, Markdown, Plain Text: the folder of the
+                            ///< files
     };
 
     /// @brief Setting of the folder of the books; empty: defaultBooksFolder()
@@ -104,5 +106,6 @@ public:
     static bool samePath(const QString& first, const QString& second);
 };
 
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_UTILS_PROGRAM_FOLDERS_H

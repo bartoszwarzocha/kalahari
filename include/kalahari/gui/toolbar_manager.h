@@ -9,7 +9,8 @@
 /// OpenSpec #00026: Refactored to use ArtProvider::createAction() for
 /// self-updating icons. Icons now refresh automatically when theme changes.
 
-#pragma once
+#ifndef KALAHARI_GUI_TOOLBAR_MANAGER_H
+#define KALAHARI_GUI_TOOLBAR_MANAGER_H
 
 #include <QMainWindow>
 #include <QToolBar>
@@ -27,8 +28,7 @@
 class QFontComboBox;
 class QSpinBox;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // Forward declarations
 class CommandRegistry;
@@ -170,7 +170,7 @@ public:
     /// @brief Get custom toolbar configuration
     /// @param toolbarId Toolbar ID (e.g., "main", "edit", "user_xxx")
     /// @return List of command IDs in toolbar
-    QStringList getToolbarCommands(const QString& toolbarId) const;
+    [[nodiscard]] QStringList getToolbarCommands(const QString& toolbarId) const;
 
     /// @brief Set custom toolbar configuration
     /// @param toolbarId Toolbar ID
@@ -179,17 +179,17 @@ public:
 
     /// @brief Get list of all toolbar IDs
     /// @return List of toolbar IDs (built-in + user-defined)
-    QStringList getToolbarIds() const;
+    [[nodiscard]] QStringList getToolbarIds() const;
 
     /// @brief Get toolbar display name
     /// @param toolbarId Toolbar ID
     /// @return User-visible toolbar name
-    QString getToolbarName(const QString& toolbarId) const;
+    [[nodiscard]] QString getToolbarName(const QString& toolbarId) const;
 
     /// @brief Check if toolbar is user-defined
     /// @param toolbarId Toolbar ID
     /// @return true if user-created toolbar
-    bool isUserToolbar(const QString& toolbarId) const;
+    [[nodiscard]] bool isUserToolbar(const QString& toolbarId) const;
 
     /// @brief Create new user-defined toolbar
     /// @param name Display name for toolbar
@@ -251,7 +251,7 @@ public:
 
     /// @brief Check if toolbars are locked
     /// @return true if toolbars are locked (cannot be moved)
-    bool isToolbarsLocked() const;
+    [[nodiscard]] bool isToolbarsLocked() const;
 
     /// @brief Save toolbar configurations to SettingsManager
     void saveConfigurations();
@@ -437,5 +437,6 @@ private:
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_TOOLBAR_MANAGER_H

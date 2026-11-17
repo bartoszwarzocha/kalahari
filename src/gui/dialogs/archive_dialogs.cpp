@@ -43,9 +43,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -115,6 +113,10 @@ ArchiveDialog::ArchiveDialog(QWidget* parent)
     m_progressBar->setAccessibleName(tr("Progress"));
     m_progressBar->hide();
     contentLayout()->addWidget(m_progressBar);
+    m_progressText = newValue(this);
+    m_progressText->setForegroundRole(QPalette::PlaceholderText);
+    m_progressText->hide();
+    contentLayout()->addWidget(m_progressText);
 
     // The result: its icon, the sentence and Show in Folder, or why the work failed
     m_result = new QWidget(this);
@@ -130,8 +132,9 @@ ArchiveDialog::ArchiveDialog(QWidget* parent)
     m_reasonText = newValue(m_result);
     m_reasonText->hide();
     resultTexts->addWidget(m_reasonText);
-    // Open File and Show in Folder, side by side
+    // The window's own links, Open File and Show in Folder, side by side
     auto* links = new QHBoxLayout();
+    m_links = links;
     links->setContentsMargins(0, 0, 0, 0);
     links->setSpacing(fontMetrics().averageCharWidth() * 3);
     m_openLink = new QLabel(m_result);
@@ -177,6 +180,11 @@ QString ArchiveDialog::reasonText() const
     return m_result->isVisibleTo(this) && m_failed ? m_reasonText->text() : QString();
 }
 
+QString ArchiveDialog::notesText() const
+{
+    return m_result->isVisibleTo(this) && !m_failed ? m_notes.join(QLatin1Char('\n')) : QString();
+}
+
 QString ArchiveDialog::detailsText() const
 {
     return m_result->isVisibleTo(this) && m_failed ? m_details.join(QLatin1Char('\n'))
@@ -191,7 +199,7 @@ QString ArchiveDialog::clipboardText() const
         parts << m_fieldProblem << m_fieldDetails.join(QLatin1Char('\n'));
     }
     if (m_result->isVisibleTo(this)) {
-        QStringList sentences{resultText(), reasonText()};
+        QStringList sentences{resultText(), reasonText(), notesText()};
         sentences.removeAll(QString());
         parts << sentences.join(QLatin1Char('\n')) << detailsText();
     }
@@ -351,6 +359,7 @@ void ArchiveDialog::startWork()
     m_state = State::Working;
     m_failed = false;
     m_details.clear();
+    m_notes.clear();
     m_fields->setEnabled(false);
     acceptButton()->setEnabled(false);
     cancelButton()->setEnabled(false);
@@ -359,6 +368,8 @@ void ArchiveDialog::startWork()
     m_result->hide();
     m_progressBar->setValue(0);
     m_progressBar->show();
+    m_progressText->clear();
+    m_progressText->hide();
     bringIntoView(m_progressBar);
     // The window shows that the work started
     QCoreApplication::processEvents();
@@ -373,16 +384,28 @@ ArchiveDialog::Progress ArchiveDialog::progress()
     };
 }
 
+void ArchiveDialog::setProgressText(const QString& text)
+{
+    m_progressText->setText(text);
+    m_progressText->setVisible(!text.isEmpty() && m_state == State::Working);
+}
+
+QString ArchiveDialog::progressText() const
+{
+    return m_progressText->isHidden() ? QString() : m_progressText->text();
+}
+
 void ArchiveDialog::finishWork(const QString& text, const QString& path, bool withOpenFile)
 {
     m_state = State::Done;
     m_resultPath = path;
     m_progressBar->setValue(100);
+    m_progressText->hide();
     setNoteIcon(m_resultIcon, QStringLiteral("common.checkCircle"));
     m_resultText->setText(text);
     m_reasonText->hide();
-    m_openLink->setVisible(withOpenFile);
-    m_showLink->show();
+    m_openLink->setVisible(withOpenFile && !path.isEmpty());
+    m_showLink->setVisible(!path.isEmpty());
     m_result->show();
 
     // The fields stay as the work used them; the window has only Close
@@ -394,6 +417,29 @@ void ArchiveDialog::finishWork(const QString& text, const QString& path, bool wi
     bringIntoView(m_result);
 }
 
+QLabel* ArchiveDialog::addResultLink(const QString& text, const QString& toolTip)
+{
+    auto* link = new QLabel(m_result);
+    link->setTextFormat(Qt::RichText);
+    link->setText(QStringLiteral("<a href=\"link\">%1</a>").arg(text.toHtmlEscaped()));
+    link->setTextInteractionFlags(Qt::LinksAccessibleByMouse | Qt::LinksAccessibleByKeyboard);
+    link->setToolTip(toolTip);
+    link->hide();
+    // Before Open File and Show in Folder, after the links added before it
+    m_links->insertWidget(m_links->indexOf(m_openLink), link);
+    return link;
+}
+
+void ArchiveDialog::setResultNotes(const QStringList& notes)
+{
+    m_notes = notes;
+    if (!m_failed) {
+        m_reasonText->setText(notes.join(QLatin1Char('\n')));
+        m_reasonText->setVisible(!notes.isEmpty());
+    }
+    updateCopyButton();
+}
+
 void ArchiveDialog::failWork(const QString& text, const QString& reason,
                              const QStringList& details)
 {
@@ -401,6 +447,7 @@ void ArchiveDialog::failWork(const QString& text, const QString& reason,
     m_failed = true;
     m_details = details;
     m_progressBar->hide();
+    m_progressText->hide();
     setNoteIcon(m_resultIcon, QStringLiteral("common.error"));
     m_resultText->setText(text);
     // A cause the window does not name is in the details
@@ -446,7 +493,8 @@ QString ArchiveDialog::copyHint()
 
 void ArchiveDialog::updateCopyButton()
 {
-    m_copyButton->setVisible(m_state == State::Ready && (m_failed || !m_fieldProblem.isEmpty()));
+    m_copyButton->setVisible((m_state == State::Ready && (m_failed || !m_fieldProblem.isEmpty())) ||
+                             (m_state == State::Done && !m_notes.isEmpty()));
 }
 
 bool ArchiveDialog::event(QEvent* event)
@@ -503,20 +551,20 @@ void ArchiveDialog::bringIntoView(QWidget* widget)
 // ExportArchiveDialog
 // =============================================================================
 
-ExportArchiveDialog::Book ExportArchiveDialog::openBook(const core::ProjectManager& pm)
+ExportArchiveDialog::Book ExportArchiveDialog::openBook(const core::ProjectManager& projects)
 {
     Book book;
-    if (const core::ProjectBook* projectBook = pm.book()) {
+    if (const core::ProjectBook* projectBook = projects.book()) {
         book.title = projectBook->title;
     }
-    for (const auto& [id, status] : pm.getIncompleteElements()) {
-        if (const core::ProjectElement* element = pm.findElement(id)) {
+    for (const auto& [id, status] : projects.getIncompleteElements()) {
+        if (const core::ProjectElement* element = projects.findElement(id)) {
             book.unready.append(
-                {element->title, status, NavigatorPanel::iconIdOf(pm.bookTypes(), *element)});
+                {element->title, status, NavigatorPanel::iconIdOf(projects.bookTypes(), *element)});
         }
     }
-    book.backups = static_cast<int>(pm.databaseBackups().size());
-    book.versions = pm.versionCount();
+    book.backups = static_cast<int>(projects.databaseBackups().size());
+    book.versions = projects.versionCount();
     return book;
 }
 
@@ -1287,6 +1335,4 @@ QString ImportArchiveDialog::bookTitle() const
     return core::ProjectManager::archiveProjectName(m_archive);
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

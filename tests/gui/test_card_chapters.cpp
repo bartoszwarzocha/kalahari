@@ -5,8 +5,8 @@
 /// @brief The chapters a card is in and the materials linked with it on the full card, Find in
 /// Book of the card, and the files and pictures dropped on a card
 
-#include "document_window.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/gui/document_window.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
@@ -431,7 +431,7 @@ TEST_CASE("Card: Find in Book, the materials of the card with Set as Portrait, a
     QList<gui::IncomingMaterials> dropped;
     QStringList droppedOn;
     QObject::connect(&page, &gui::CardPage::requestFindInBook,
-                     [&found](const QString& text) { found << text; });
+                     [&found](const QString& cardId) { found << cardId; });
     QObject::connect(&page, &gui::CardPage::requestOpenMaterial,
                      [&openedMaterials](const QString& id) { openedMaterials << id; });
     QObject::connect(&page, &gui::CardPage::materialAdded,
@@ -447,11 +447,11 @@ TEST_CASE("Card: Find in Book, the materials of the card with Set as Portrait, a
     page.show();
     QApplication::processEvents();
 
-    // Find in Book: the name of the card
+    // Find in Book: the name of the card, all its forms and its other names
     REQUIRE(page.findButton() != nullptr);
     CHECK(page.findButton()->text() == QStringLiteral("Find in Book"));
     page.findButton()->click();
-    CHECK(found == QStringList{QStringLiteral("Anna Wolska")});
+    CHECK(found == QStringList{anna});
 
     // The materials of the card, with Set as Portrait for a picture
     gui::LinkedMaterialsBox* materials = page.materialsBox();
@@ -541,7 +541,7 @@ TEST_CASE("Card: on its tab, the chapters open, the dropped files are its materi
     test::Window window;
     QStringList found;
     QObject::connect(&window.navigator, &gui::NavigatorCoordinator::findInBookRequested,
-                     [&found](const QString& text) { found << text; });
+                     [&found](const QString& cardId) { found << cardId; });
 
     window.navigator.onElementSelected(anna, QStringLiteral("Anna"));
     auto* panel = qobject_cast<gui::CardPanel*>(window.tabs->currentWidget());
@@ -566,7 +566,7 @@ TEST_CASE("Card: on its tab, the chapters open, the dropped files are its materi
     CHECK(page->materialsBox()->list()->count() == 1);
 
     page->findButton()->click();
-    CHECK(found == QStringList{QStringLiteral("Anna")});
+    CHECK(found == QStringList{anna});
 }
 
 }  // namespace kalahari

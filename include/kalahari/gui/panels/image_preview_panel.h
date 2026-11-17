@@ -4,7 +4,8 @@
 /// @file image_preview_panel.h
 /// @brief The preview of the picture of a material, on a tab in the center of the window
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_IMAGE_PREVIEW_PANEL_H
+#define KALAHARI_GUI_PANELS_IMAGE_PREVIEW_PANEL_H
 
 #include "kalahari/gui/panels/preview_panel.h"
 
@@ -24,8 +25,7 @@ namespace kalahari::core {
 class ProjectManager;
 }  // namespace kalahari::core
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief The preview of the picture of a material, on a tab beside the chapters
 ///
@@ -53,31 +53,31 @@ public:
                                QWidget* parent = nullptr);
 
     /// @brief Whether it shows a picture; false with the sentence of why it does not
-    bool hasPicture() const { return !m_picture.isNull(); }
+    [[nodiscard]] bool hasPicture() const { return !m_picture.isNull(); }
 
     /// @brief The sentence of why it shows no picture; empty when it shows one
-    QString problem() const;
+    [[nodiscard]] QString problem() const;
 
     /// @brief Zoom: 1 is 100%
     [[nodiscard]] double zoom() const override { return m_zoom; }
 
     /// @brief Whether the picture fits the window, also when the window changes its size
-    bool fitsWindow() const { return m_fit; }
+    [[nodiscard]] bool fitsWindow() const { return m_fit; }
 
     /// @brief Turn of the picture, clockwise: 0, 90, 180 or 270 degrees
-    int rotation() const { return m_rotation; }
+    [[nodiscard]] int rotation() const { return m_rotation; }
 
     /// @brief Whether it shows the negative
-    bool isNegative() const { return m_negative; }
+    [[nodiscard]] bool isNegative() const { return m_negative; }
 
     /// @brief The size of the picture as it is shown, turned, at 100%
-    QSize pictureSize() const;
+    [[nodiscard]] QSize pictureSize() const;
 
     /// @brief The view of the picture, which has the keys
-    QGraphicsView* view() const { return m_view; }
+    [[nodiscard]] QGraphicsView* view() const { return m_view; }
 
     /// @brief The label of the zoom on the bar: "75%"
-    QLabel* zoomLabel() const { return m_zoomLabel; }
+    [[nodiscard]] QLabel* zoomLabel() const { return m_zoomLabel; }
 
 public slots:
     /// @brief Read the file again and show it, keeping the zoom and the negative
@@ -161,5 +161,6 @@ private:
     core::ProjectManager& m_book;  ///< The book of its window
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_IMAGE_PREVIEW_PANEL_H
