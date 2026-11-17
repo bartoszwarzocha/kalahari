@@ -191,7 +191,11 @@ class KalahariSession:
         self.start_ms = round((time.perf_counter() - began) * 1000)
         windows.bring_forward(self.main_hwnd)
         if opened.get("chapter"):
-            self._open_chapter(opened["chapter"])
+            try:
+                self._open_chapter(opened["chapter"])
+            except StepFailed:
+                self._dump("drzewo-po-bledzie.json", self.main_hwnd)
+                raise
         self._calm(self.main_hwnd)
         if self.launches == 1:
             self._dump("drzewo-okna-glownego.json", self.main_hwnd)
@@ -207,7 +211,22 @@ class KalahariSession:
         """The chapter of setup.open, opened as a person does: a double click on its name in
         the book's tree."""
         target = {"name": chapter, "role": "tree_item"}
-        found, _ = uia.wait_until(lambda: self._find_once(target)[0], OPEN_TIMEOUT, 0.2)
+
+        def tree_item():
+            found, _ = self._find_once(target)
+            if found is not None:
+                return found
+            # The tree shows more than the name (a status such as "[Szkic]"): an item whose
+            # text starts with the chapter's name and goes on with a non-letter is the chapter.
+            main = self.ui.from_handle(self.main_hwnd)
+            if main is None:
+                return None
+            for actual, _, offscreen, element in self.ui.snapshot(main, kinds=uia.ROLES["tree_item"]):
+                if not offscreen and _row_matches(actual, chapter):
+                    return element
+            return None
+
+        found, _ = uia.wait_until(tree_item, OPEN_TIMEOUT, 0.2)
         if found is None:
             _, problem = self._find_once(target)
             raise StepFailed(f"rozdział {_q(chapter)} nie pojawił się w drzewie książki: {problem}")
