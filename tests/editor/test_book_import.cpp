@@ -641,7 +641,7 @@ TEST_CASE("Import: the KML of a text", "[import][kml]") {
     }
 
     SECTION("Headings, styles of the book and the choices of the writer") {
-        ImportDocument styled;
+        ImportDocument withStyles;
         ImportStyle heading;
         heading.key = QStringLiteral("H");
         heading.name = QStringLiteral("heading 2");
@@ -649,17 +649,17 @@ TEST_CASE("Import: the KML of a text", "[import][kml]") {
         ImportStyle mine;
         mine.key = QStringLiteral("M");
         mine.name = QStringLiteral("Motto");
-        styled.styles = {heading, mine};
-        styled.blocks = {paragraph(QStringLiteral("Tytuł"), QStringLiteral("H")),
-                         paragraph(QStringLiteral("Motto"), QStringLiteral("M")),
-                         paragraph(QStringLiteral("Zarys"), QStringLiteral("Normal"), 4),
-                         paragraph(QStringLiteral("Ręczny"), QStringLiteral("M"))};
-        styled.blocks[3].style = QStringLiteral("X");
+        withStyles.styles = {heading, mine};
+        withStyles.blocks = {paragraph(QStringLiteral("Tytuł"), QStringLiteral("H")),
+                             paragraph(QStringLiteral("Motto"), QStringLiteral("M")),
+                             paragraph(QStringLiteral("Zarys"), QStringLiteral("Normal"), 4),
+                             paragraph(QStringLiteral("Ręczny"), QStringLiteral("M"))};
+        withStyles.blocks[3].style = QStringLiteral("X");
         ImportKmlOptions options = plainOptions();
-        CHECK(wholeKml(styled, options) == QStringLiteral("<kml><h2>Tytuł</h2><p style=\"motto\">Motto</p><h3>Zarys</h3><p>Ręczny</p></kml>"));
+        CHECK(wholeKml(withStyles, options) == QStringLiteral("<kml><h2>Tytuł</h2><p style=\"motto\">Motto</p><h3>Zarys</h3><p>Ręczny</p></kml>"));
         options.styles.insert(QStringLiteral("H"), QStringLiteral("chapter_title"));
         options.styles.insert(QStringLiteral("M"), QStringLiteral("quote"));
-        CHECK(wholeKml(styled, options) ==
+        CHECK(wholeKml(withStyles, options) ==
               QStringLiteral("<kml><p style=\"chapter_title\">Tytuł</p><p style=\"quote\">Motto</p><h3>Zarys</h3><p>Ręczny</p></kml>"));
     }
 
