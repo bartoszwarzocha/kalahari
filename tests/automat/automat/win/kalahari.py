@@ -634,17 +634,33 @@ class KalahariSession:
         self._launch()
         return time.perf_counter(), None
 
+    @staticmethod
+    def _menu_bars(root) -> list:
+        """The window's menu bars without the system menu of its title bar (Windows puts a
+        menu bar with the single item "System" there)."""
+        titles = [t.rect for t in root.find_all(kinds=("TitleBar",))]
+
+        def in_title(rect):
+            # By height only: the system menu starts left of the title bar's own rectangle.
+            return any(t[1] <= rect[1] and rect[3] <= t[3] for t in titles)
+
+        return [bar for bar in root.find_all(kinds=("MenuBar",)) if not in_title(bar.rect)]
+
     def _do_menu(self, step):
         path = [str(p) for p in step["path"]]
         roots, tops = self._windows_for(step.get("window", "*Kalahari"))
         if not roots:
             raise StepFailed(f"nie ma okna {_q(step.get('window'))}; otwarte okna: {_quote_list([w['title'] for w in tops])}")
-        bars = roots[0].find_all(kinds=("MenuBar",))
+        bars = self._menu_bars(roots[0])
         if not bars:
             raise StepFailed(f"okno {_q(roots[0].name)} nie ma paska menu")
-        first = [e for e in self._named(bars[0], path[0], ("MenuItem",)) if e.visible()]
+        first = []
+        for bar in bars:
+            first = [e for e in self._named(bar, path[0], ("MenuItem",)) if e.visible()]
+            if first:
+                break
         if not first:
-            names = self._names_under([bars[0]], ("MenuItem",))
+            names = self._names_under(bars, ("MenuItem",))
             raise StepFailed(f"w pasku menu nie ma {_q(path[0])}; są: {_quote_list(names)}")
         moment = self._click_element({"name": path[0], "role": "menu_item"}, first[0])
         element = first[0]
