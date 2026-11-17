@@ -15,6 +15,8 @@
 #include <QString>
 
 class QLabel;
+class QMenu;
+class QPoint;
 class QTableWidget;
 class QToolButton;
 
@@ -27,8 +29,10 @@ namespace kalahari::gui {
 /// @brief The group "Own Fields": a name and a value each, in the writer's order
 ///
 /// "+" or Insert adds one with the keys in its name, Tab goes to its value, F2 edits a cell,
-/// "-" or Delete takes it out (asking when it has a value). The names of the fields of the
-/// other elements of the book are suggested. A new field left without a name and a value goes.
+/// "-" or Delete takes it out (asking when it has a value); the menu of the table has the
+/// commands too, and on a card Add to All Cards of This Kind (setAddToKind()). The names of
+/// the fields of the other elements of the book are suggested. A new field left without a name
+/// and a value goes.
 /// Every change is saved at once in the .klh file (core::ProjectManager::setFields()); a book
 /// open read-only shows the fields and changes nothing.
 class OwnFieldsBox : public QGroupBox {
@@ -58,12 +62,24 @@ public:
     /// @brief "-": the current field goes
     [[nodiscard]] QToolButton* removeButton() const { return m_removeButton; }
 
+    /// @brief The menu of the table, filled when it opens
+    [[nodiscard]] QMenu* menu() const { return m_menu; }
+
+    /// @brief Whether the menu of the table has Add to All Cards of This Kind: the fields of a
+    /// card (by default it has not)
+    void setAddToKind(bool on) { m_addToKind = on; }
+
 public slots:
     /// @brief Add a field at the end, with the keys in its name
     void addField();
 
     /// @brief Take out the current field, asking when it has a value
     void removeField();
+
+    /// @brief Make the current field a field of all the cards of the kind of the card, which
+    /// take the values of their own fields of its name
+    /// (core::ProjectManager::addFieldToKind())
+    void addToKind();
 
 signals:
     /// @brief The fields of the element were saved
@@ -87,15 +103,20 @@ private:
     /// @brief The table as high as its rows, or the sentence without rows
     void fitTable();
 
+    /// @brief Fill the menu of the table and open it at @p pos, in the table's viewport
+    void showMenu(const QPoint& pos);
+
     core::ProjectManager& m_book;
     QString m_elementId;
     QList<core::ElementField> m_fields;  ///< The fields of the rows, with what the table hides
     QList<core::ElementField> m_saved;   ///< The fields of the book, as shown or saved last
     bool m_updating = false;             ///< The table is being filled: no saving
+    bool m_addToKind = false;            ///< The menu has Add to All Cards of This Kind
     QTableWidget* m_table = nullptr;
     QLabel* m_emptyLabel = nullptr;
     QToolButton* m_addButton = nullptr;
     QToolButton* m_removeButton = nullptr;
+    QMenu* m_menu = nullptr;
 };
 
 }  // namespace kalahari::gui

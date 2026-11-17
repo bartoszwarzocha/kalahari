@@ -83,6 +83,8 @@ constexpr float CURRENT_REPETITION_ALPHA = 0.45F;
 constexpr double PARAGRAPH_MARK_SHARE = 0.8;
 constexpr double PARAGRAPH_MARK_MINIMUM = 10.0;
 constexpr double PARAGRAPH_MARK_GAP_SHARE = 0.6;
+/// Space between the marks of one paragraph, as a share of their size
+constexpr double PARAGRAPH_MARKS_SPACING_SHARE = 0.25;
 constexpr double PARAGRAPH_MARK_OPACITY = 0.6;
 
 /// The line a place is on: of the character before it for a place after text (the end of
@@ -885,9 +887,11 @@ void EditorRenderPipeline::renderAnnotationMarks(QPainter* painter, const QRect&
 }
 
 void EditorRenderPipeline::setParagraphMarks(std::vector<ParagraphMark> marks,
-                                             const QMap<ParagraphMarkKind, QIcon>& icons) {
+                                             const QMap<ParagraphMarkKind, QIcon>& icons,
+                                             const QHash<QString, QIcon>& cardIcons) {
     m_paragraphMarks = std::move(marks);
     m_paragraphMarkIcons = icons;
+    m_paragraphCardIcons = cardIcons;
     // A mark goes left of those of its paragraph before it
     m_paragraphMarkSlots.assign(m_paragraphMarks.size(), 0);
     for (size_t i = 0; i < m_paragraphMarks.size(); ++i) {
@@ -936,8 +940,8 @@ QRectF EditorRenderPipeline::paragraphMarkRect(size_t paragraph, size_t slot) co
     const double besides = m_context.marginNumbers.numbering == MarginNumbering::None
                                ? textLeft
                                : marginNumbersLeft(lineY);
-    const double x =
-        besides - (size * (1.0 + PARAGRAPH_MARK_GAP_SHARE) * (1.0 + static_cast<double>(slot)));
+    const double x = besides - size * (1.0 + PARAGRAPH_MARK_GAP_SHARE) -
+                     static_cast<double>(slot) * size * (1.0 + PARAGRAPH_MARKS_SPACING_SHARE);
     const double middle = paragraphWidgetY(paragraph) + (line.y() + line.height() / 2.0) * scale;
     return QRectF(x, middle - size / 2.0, size, size);
 }
@@ -954,27 +958,36 @@ void EditorRenderPipeline::renderParagraphMarks(QPainter* painter, const QRect& 
     for (size_t i = 0; i < m_paragraphMarks.size(); ++i) {
         const ParagraphMark& mark = m_paragraphMarks[i];
         const auto paragraph = static_cast<size_t>(std::max(mark.paragraph, 0));
-        const QIcon icon = m_paragraphMarkIcons.value(mark.kind);
-        if (paragraph < first || paragraph > last || icon.isNull()) {
-            continue;
-        }
+        if (paragraph < first || paragraph > last) continue;
         const QRectF rect = paragraphMarkRect(paragraph, m_paragraphMarkSlots[i]);
-        if (rect.isEmpty() || !rect.intersects(clipRect)) continue;
-
-        // The icon in the color of the text, whatever the colors of the program's icons:
-        // it is read on the paper
-        QPixmap pixmap = icon.pixmap(rect.size().toSize(), ratio);
-        {
-            QPainter tint(&pixmap);
-            tint.setCompositionMode(QPainter::CompositionMode_SourceIn);
-            tint.fillRect(QRectF(QPointF(0.0, 0.0), pixmap.deviceIndependentSize()),
-                          m_context.colors.text);
+        if (!rect.isEmpty() && rect.intersects(clipRect)) {
+            drawParagraphMark(*painter, mark, rect, ratio);
         }
-        const bool dimmed = m_context.focus && mark.paragraph != m_cursorPosition.paragraph;
-        painter->setOpacity(PARAGRAPH_MARK_OPACITY * (dimmed ? DIMMED_MARK_OPACITY : 1.0));
-        painter->drawPixmap(rect, pixmap, QRectF(pixmap.rect()));
     }
     painter->restore();
+}
+
+void EditorRenderPipeline::drawParagraphMark(QPainter& painter, const ParagraphMark& mark,
+                                             const QRectF& rect, qreal ratio) const {
+    // The sign of its cards, else the icon of its kind (the paperclip, the scissors)
+    const QIcon icon = mark.kind == ParagraphMarkKind::Materials && !mark.icon.isEmpty()
+                           ? m_paragraphCardIcons.value(mark.icon)
+                           : m_paragraphMarkIcons.value(mark.kind);
+    if (icon.isNull()) {
+        return;
+    }
+    // The icon in the color of the text, whatever the colors of the program's icons: it is
+    // read on the paper
+    QPixmap pixmap = icon.pixmap(rect.size().toSize(), ratio);
+    {
+        QPainter tint(&pixmap);
+        tint.setCompositionMode(QPainter::CompositionMode_SourceIn);
+        tint.fillRect(QRectF(QPointF(0.0, 0.0), pixmap.deviceIndependentSize()),
+                      m_context.colors.text);
+    }
+    const bool dimmed = m_context.focus && mark.paragraph != m_cursorPosition.paragraph;
+    painter.setOpacity(PARAGRAPH_MARK_OPACITY * (dimmed ? DIMMED_MARK_OPACITY : 1.0));
+    painter.drawPixmap(rect, pixmap, QRectF(pixmap.rect()));
 }
 
 // =============================================================================

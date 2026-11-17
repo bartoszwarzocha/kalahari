@@ -7,13 +7,18 @@
 
 #include "../editor/editor_test_utils.h"
 #include "document_window.h"
+#include "kalahari_tests/changed_setting.h"
+#include "kalahari_tests/polish.h"
 #include "test_support/window_parts.h"
 
+#include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/card_data.h"
+#include "kalahari/core/card_names.h"
 #include "kalahari/core/material_kinds.h"
+#include "kalahari/core/name_declension.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/dialogs/color_dialog.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
@@ -25,10 +30,14 @@
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/card_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/cursor_card_box.h"
+#include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/widgets/card_chapters_box.h"
+#include "kalahari/gui/widgets/card_name_box.h"
+#include "kalahari/gui/widgets/name_forms_table.h"
 #include "kalahari/gui/widgets/own_fields_box.h"
 #include "kalahari/gui/widgets/palette_edit.h"
 #include "kalahari/gui/widgets/relations_box.h"
@@ -60,7 +69,6 @@
 #include <QTableWidget>
 #include <QTimer>
 #include <QToolButton>
-#include <QTranslator>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
@@ -303,32 +311,7 @@ QTreeWidgetItem* navigatorItem(QTreeWidget* tree, const QString& id) {
     return nullptr;
 }
 
-/// A setting changed for a test, and set back afterwards
-template <typename T>
-class ChangedSetting {
-public:
-    ChangedSetting(std::string key, const T& value)
-        : m_key(std::move(key)), m_saved(core::SettingsManager::getInstance().get<T>(m_key, value)) {
-        core::SettingsManager::getInstance().set<T>(m_key, value);
-    }
-    ~ChangedSetting() {
-        try {
-            core::SettingsManager::getInstance().set<T>(m_key, m_saved);
-        } catch (...) {
-            // A destructor may not throw: the later tests then find the setting of this one
-            static_cast<void>(
-                std::fputs("ChangedSetting: the setting of the test stays\n", stderr));
-        }
-    }
-    ChangedSetting(const ChangedSetting&) = delete;
-    ChangedSetting& operator=(const ChangedSetting&) = delete;
-    ChangedSetting(ChangedSetting&&) = delete;
-    ChangedSetting& operator=(ChangedSetting&&) = delete;
-
-private:
-    std::string m_key;
-    T m_saved;
-};
+using test::ChangedSetting;
 
 /// The recent colors of the color window, as they were before the test
 class RecentColors {
@@ -355,32 +338,7 @@ private:
     std::vector<std::string> m_saved;
 };
 
-/// The program in Polish while it lives: the translation it ships and the names of the kinds
-class Polish {
-public:
-    Polish() : m_before(gui::programLanguage()) {
-        m_loaded = m_translator.load(QStringLiteral(":/i18n/kalahari_pl.qm"));
-        if (m_loaded) {
-            QCoreApplication::installTranslator(&m_translator);
-        }
-        gui::setProgramLanguage(QStringLiteral("pl"));
-    }
-    ~Polish() {
-        QCoreApplication::removeTranslator(&m_translator);
-        gui::setProgramLanguage(m_before);
-    }
-    Polish(const Polish&) = delete;
-    Polish& operator=(const Polish&) = delete;
-    Polish(Polish&&) = delete;
-    Polish& operator=(Polish&&) = delete;
-
-    [[nodiscard]] bool loaded() const { return m_loaded; }
-
-private:
-    QTranslator m_translator;
-    QString m_before;
-    bool m_loaded = false;
-};
+using test::Polish;
 
 /// Folder @p from copied to @p to, with what it has
 void copyFolder(const QString& from, const QString& to) {
@@ -414,6 +372,15 @@ struct ReadOnlyNovel {
         REQUIRE(pm.setDescription(anna, QStringLiteral("A cartographer.")));
         jan = addCard(pm, "character", QStringLiteral("Jan"));
         REQUIRE(pm.addRelation(anna, jan, QStringLiteral("friend"), QStringLiteral("old")));
+        // The name of Anna in the book's dictionary, with another name
+        core::DictionaryName name = core::nameOfCard(
+            pm.bookDictionary(), anna, QStringLiteral("Anna"), core::NameKind::Character,
+            core::NameDeclension(QStringLiteral("en")));
+        core::NameVariant ania;
+        ania.text = QStringLiteral("Ania");
+        name.variants.append(ania);
+        REQUIRE(pm.changeBookDictionary(
+            [&name](core::BookDictionary& dictionary) { dictionary.putName(name); }));
         const QString manifest = pm.getManifestPath();
         REQUIRE(pm.closeProject(false));
 
@@ -533,7 +500,8 @@ TEST_CASE("Card: the short card shows the fields of its kind marked for the Prop
     CHECK(tabChain(page.settingsButton()) ==
           QList<QWidget*>{page.settingsButton(), page.portraitButton(), page.nameEdit(), role,
                           page.shortEdit(), age, occupation, goal,
-                          page.relationsBox()->addButton(), page.openButton()});
+                          page.nameBox()->nameButton(), page.relationsBox()->addButton(),
+                          page.openButton()});
 
     // A value chosen is saved at once in the .klh file
     role->setCurrentIndex(1);
@@ -814,17 +782,21 @@ TEST_CASE("Card: the full card has the kind with the role, the color, the data, 
     CHECK(choosing([&page]() { page.chooseColor(); }, QColor(QStringLiteral("#123456"))) == 1);
     CHECK(pm.findElement(anna)->card.color == QStringLiteral("#123456"));
 
-    // The keys go through the bar and the header, then the data, the own fields, the
-    // description and the relations
+    // The keys go through the bar and the header, then the data, the declension, the own
+    // fields, the description and the relations
     const QList<QWidget*> chain = tabChain(page.settingsButton());
     REQUIRE(chain.size() > 6);
     CHECK(chain.mid(0, 6) == QList<QWidget*>{page.settingsButton(), page.portraitButton(),
                                              page.nameEdit(), page.colorButton(),
                                              page.shortEdit(), role});
-    CHECK(chain.indexOf(goal) < chain.indexOf(page.ownFields()->addButton()));
+    CHECK(chain.indexOf(goal) < chain.indexOf(page.nameBox()->nameButton()));
+    CHECK(chain.indexOf(page.nameBox()->nameButton()) <
+          chain.indexOf(page.ownFields()->addButton()));
     CHECK(chain.indexOf(page.ownFields()->table()) < chain.indexOf(description));
     CHECK(chain.indexOf(description) < chain.indexOf(page.relationsBox()->addButton()));
-    CHECK(chain.last() == page.relationButton());
+    REQUIRE(chain.size() > 2);
+    CHECK(chain.at(chain.size() - 2) == page.relationButton());
+    CHECK(chain.last() == page.fieldsButton());
 }
 
 TEST_CASE("Card: the portrait is a picture of the materials, from a file, or the initials on "
@@ -1119,6 +1091,22 @@ TEST_CASE("Card: a book open read-only shows its cards and changes nothing", "[g
     CHECK_FALSE(full.dropMaterials(dropped, QPoint(1, 1)));
     CHECK(full.findButton()->isEnabled());
 
+    // The declension is shown, and changes nothing: no window Name, no other name, no form
+    CHECK(brief.nameBox()->formsLabel()->text() == QStringLiteral("The name does not change."));
+    CHECK(brief.nameBox()->otherNamesLabel()->text() == QStringLiteral("Other names: Ania"));
+    CHECK_FALSE(brief.nameBox()->nameButton()->isEnabled());
+    gui::CardNameBox* declension = full.nameBox();
+    REQUIRE(declension->variantButtons().size() == 2);
+    CHECK(declension->variantButtons().at(1)->isEnabled());  // the forms of each are shown
+    CHECK_FALSE(declension->nameButton()->isEnabled());
+    CHECK_FALSE(declension->addButton()->isEnabled());
+    REQUIRE(declension->formsTable() != nullptr);
+    CHECK_FALSE(declension->formsTable()->item(0, 1)->flags().testFlag(Qt::ItemIsEditable));
+    int others = 0;
+    QObject::connect(&full, &gui::CardPage::requestOtherName, [&others]() { ++others; });
+    press(declension->formsTable(), Qt::Key_Insert);
+    CHECK(others == 0);
+
     // Nor does the window Relation save or make a card
     const gui::dialogs::RelationDialog dialog(kalahari::test::book(), novel.anna, std::nullopt);
     CHECK_FALSE(dialog.acceptButton()->isEnabled());
@@ -1271,6 +1259,8 @@ TEST_CASE("Card: the Navigator puts a location under the one it is part of, or a
     test::OpenNovel novel(QStringLiteral("Rain"));
     auto& pm = novel.pm;
     const ChangedSetting<std::string> trees(gui::NavigatorPanel::CARDS_TREE_SETTING, "tree");
+    const ChangedSetting<std::string> atCursor(gui::CursorCardBox::SETTING,
+                                               gui::CursorCardBox::NAMES);
     const QString parent = QStringLiteral("parent");
     const QString warsaw = addCard(pm, "location", QStringLiteral("Warsaw"));
     const QString zoliborz = addCard(pm, "location", QStringLiteral("Zoliborz"));
@@ -1416,6 +1406,9 @@ TEST_CASE("Settings > Cards: the dots in the Navigator and the palette of new ca
                                        json::array({"#111111", "#222222"}));
     const ChangedSetting<bool> dots(core::CardColors::NAVIGATOR_DOT_SETTING, true);
     const ChangedSetting<std::string> trees(gui::NavigatorPanel::CARDS_TREE_SETTING, "tree");
+    const ChangedSetting<std::string> atCursor(gui::CursorCardBox::SETTING,
+                                               gui::CursorCardBox::NAMES);
+    const ChangedSetting<bool> marks(gui::ParagraphMarksCoordinator::CARD_MARKS_SETTING, true);
 
     gui::CardsPage page;
     page.load();
@@ -1463,6 +1456,36 @@ TEST_CASE("Settings > Cards: the dots in the Navigator and the palette of new ca
     page.treeButton()->setChecked(true);
     page.apply();
     CHECK(gui::NavigatorPanel::cardsInTrees());
+
+    // The cards at the cursor of a text: the names and the paragraphs, only the paragraphs, none
+    using gui::CursorCardBox;
+    for (const char* value : {CursorCardBox::NAMES, CursorCardBox::PARAGRAPHS,
+                              CursorCardBox::NONE}) {
+        REQUIRE(page.atCursorButton(value) != nullptr);
+    }
+    CHECK(page.atCursorButton("other") == nullptr);
+    CHECK(page.atCursorButton(CursorCardBox::NAMES)->isChecked());
+    for (const char* value : {CursorCardBox::PARAGRAPHS, CursorCardBox::NONE,
+                              CursorCardBox::NAMES}) {
+        page.atCursorButton(value)->setChecked(true);
+        CHECK(page.isChanged());
+        page.apply();
+        CHECK(core::SettingsManager::getInstance().get<std::string>(CursorCardBox::SETTING,
+                                                                    "") == value);
+        CHECK_FALSE(page.isChanged());
+    }
+
+    // The signs of the cards beside the linked paragraphs
+    auto* signs = page.findChild<QCheckBox*>(QStringLiteral("cardsParagraphMarks"));
+    REQUIRE(signs != nullptr);
+    CHECK(signs->isChecked());
+    signs->setChecked(false);
+    CHECK(page.isChanged());
+    page.apply();
+    CHECK_FALSE(gui::ParagraphMarksCoordinator::cardMarksShown());
+    signs->setChecked(true);
+    page.apply();
+    CHECK(gui::ParagraphMarksCoordinator::cardMarksShown());
 }
 
 }  // namespace kalahari

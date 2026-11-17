@@ -133,6 +133,12 @@ struct LocalizedText {
     QString text(const QString& language) const;
 
     bool isEmpty() const { return values.isEmpty(); }
+
+    /// @brief Text @p text in every language: a name the writer gave, such as of a field of
+    /// the cards (English is the text of the languages it has no text for)
+    [[nodiscard]] static LocalizedText plain(const QString& text);
+
+    bool operator==(const LocalizedText&) const = default;
 };
 
 /// @brief Place of an element in a book project
@@ -210,6 +216,8 @@ enum class CardFieldType {
 struct CardFieldChoice {
     QString id;          ///< Saved in the cards: "main"
     LocalizedText name;  ///< Shown: "Main", "Główna"
+
+    bool operator==(const CardFieldChoice&) const = default;
 };
 
 /// @brief A field of the cards of a kind (character, location, item): its name, what it holds

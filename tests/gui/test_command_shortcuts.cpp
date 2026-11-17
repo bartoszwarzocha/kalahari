@@ -114,6 +114,15 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"edit.previousTodo", QStringLiteral("Alt+Up")},
 #endif
         {"book.addElement", QStringLiteral("Ctrl+Shift+Return")},
+#ifdef Q_OS_MACOS
+        // Option+Shift+Cmd, as the pastes: Option with a letter types a character
+        {"book.linkParagraphCard", QStringLiteral("Ctrl+Alt+Shift+K")},
+        {"book.openCardAtCursor", QStringLiteral("Ctrl+Alt+Shift+O")},
+#else
+        // The cards in the text: Alt+Shift with a letter, free in the program and the systems
+        {"book.linkParagraphCard", QStringLiteral("Alt+Shift+K")},
+        {"book.openCardAtCursor", QStringLiteral("Alt+Shift+O")},
+#endif
         {"view.plotBoard", QStringLiteral("Ctrl+Shift+T")},
         {"view.outline", QStringLiteral("Ctrl+Shift+L")},
         {"insert.annotation", QStringLiteral("Ctrl+Shift+M")},

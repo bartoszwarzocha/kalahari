@@ -1216,6 +1216,12 @@ void NewFileDialog::setMaterialLinks(const QStringList& links)
     m_materialLinks = links;
 }
 
+void NewFileDialog::setTitle(const QString& title)
+{
+    m_titleEdit->setText(title.simplified());
+    m_titleChanged = !m_titleEdit->text().isEmpty();
+}
+
 void NewFileDialog::changeEvent(QEvent* event)
 {
     KalahariDialog::changeEvent(event);

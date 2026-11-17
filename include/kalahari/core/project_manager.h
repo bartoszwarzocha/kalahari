@@ -34,6 +34,7 @@
 
 #include <QHash>
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QTemporaryDir>
@@ -48,6 +49,8 @@
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/card_field_set.h"
+#include "kalahari/core/card_name_index.h"
 #include "kalahari/core/card_relations.h"
 #include "kalahari/core/chapter_document.h"
 #include "kalahari/core/chapter_versions.h"
@@ -626,7 +629,8 @@ public:
     /// save the .klh file
     ///
     /// Their files stay in the project's folder: unassignedFiles() has their chapter files,
-    /// and filesOf() of the element gives them to whoever deletes them.
+    /// and filesOf() of the element gives them to whoever deletes them. The names of removed
+    /// cards stay in the book's dictionary, without the cards (DictionaryName::card).
     /// @return The element; nullopt when the project has no such element or the file cannot be
     ///         written
     std::optional<ProjectElement> removeElement(const QString& elementId);
@@ -790,10 +794,25 @@ public:
     /// order: a link it has keeps its role, paragraph and note, a new one is newLink()
     bool setLinks(const QString& elementId, const QStringList& targets);
 
-    /// @brief A new link of element @p elementId with @p target: with the role that the kind
+    /// @brief A new link of element @p linkedId with @p target: with the role that the kind
     /// of a material suggests (LinkRoles::suggestedFor()), or of a card in a chapter
     /// (LinkRoles::suggestedForCard()), else without a role
-    ElementLink newLink(const QString& elementId, const QString& target) const;
+    ElementLink newLink(const QString& linkedId, const QString& target) const;
+
+    /// @brief Link element @p linkedId (a card, a material) with paragraph @p paragraph (from
+    /// 1) of text element @p elementId, whose text is @p paragraphText now, in role @p role
+    ///
+    /// The link it has with the text names the paragraph from then on, its note staying; else
+    /// it gets a new one (newLink()). The excerpt of the link is the beginning of the
+    /// paragraph (LinkRoles::excerptOf()). Saved in the .klh file, as setLinks().
+    /// @return false without such elements or paragraph, or when the file cannot be written
+    bool linkParagraph(const QString& linkedId, const QString& elementId, int paragraph,
+                       const QString& paragraphText, const QString& role);
+
+    /// @brief The link of element @p linkedId with text element @p elementId names no paragraph
+    /// any more: it stays a link with the whole text, with its role and note
+    /// @return false without such a link, or when the .klh file cannot be written
+    bool unlinkParagraph(const QString& linkedId, const QString& elementId);
 
     /// @brief The paragraphs of the text of text element @p elementId, one per entry, as the
     /// editor has them (ChapterDocument::kmlToPlainText()): the text kept with its changes
@@ -919,6 +938,60 @@ public:
     bool setCardFieldText(const QString& cardId, const QString& fieldId, const QString& text);
 
     // =========================================================================
+    // Fields of the cards (project_manager_card_fields.cpp)
+    // =========================================================================
+
+    /// @brief The fields of the cards of kind @p kind in the open book, in the order of the
+    /// card: the book's own set (setCardFields()), else the fields of the kind; empty for a
+    /// kind that is no kind of cards
+    ///
+    /// The list stays while the book keeps the set; a new set gives a new list.
+    [[nodiscard]] const QList<CardField>& cardFields(const KindRef& kind) const;
+
+    /// @brief Field @p fieldId of the cards of kind @p kind (cardFields()); nullptr when they
+    /// have none
+    [[nodiscard]] const CardField* cardField(const KindRef& kind, const QString& fieldId) const;
+
+    /// @brief The field whose value stands beside the kind under the name of a card of kind
+    /// @p kind (ElementKind::subtitleField()), while the book shows it somewhere; nullptr: none
+    [[nodiscard]] const CardField* subtitleField(const KindRef& kind) const;
+
+    /// @brief Every field of the cards of kind @p kind, as the window Card Fields changes them
+    /// (card_fields::complete())
+    [[nodiscard]] QList<BookCardField> cardFieldSet(const KindRef& kind) const;
+
+    /// @brief Whether the book has fields of the cards of kind @p kind of its own, not those of
+    /// the package
+    [[nodiscard]] bool hasOwnCardFields(const KindRef& kind) const;
+
+    /// @brief The ids of the fields that the cards of kind @p kind have values of, also of the
+    /// fields that went: a new field of the writer does not take them
+    /// (card_fields::newOwnId())
+    [[nodiscard]] QStringList cardValueIds(const KindRef& kind) const;
+
+    /// @brief Give the cards of kind @p kind the fields @p fields and save the .klh file
+    /// (cardFieldsChanged())
+    ///
+    /// The fields of the package (an empty list, or the same fields shown in the same places)
+    /// leave the book without a set of its own. A field of the writer that names a card gets
+    /// its relation (ownRelation()), named after it; a new name of the field renames the
+    /// relation. The values of the cards stay, also those of the fields that go; a value that
+    /// goes from the list of a field of the writer stays on the cards that have it as its name
+    /// (cardChanged()).
+    /// @return false for a kind that is no kind of cards, or when the file cannot be written
+    bool setCardFields(const KindRef& kind, const QList<BookCardField>& fields);
+
+    /// @brief Make own field @p index of card @p cardId (ProjectElement::fields) a field of all
+    /// the cards of its kind, and save the .klh file
+    ///
+    /// The field of the cards with its name (a text field) takes it, else a new field of the
+    /// writer, shown on the card; each card of the kind gives it the value of its own field
+    /// with that name, which goes, unless the card has a value there already.
+    /// @return The id of the field of the cards; empty when the card has no such field or the
+    ///         file cannot be written
+    QString addFieldToKind(const QString& cardId, int index);
+
+    // =========================================================================
     // Sources, Bookmarks and Quotes
     // =========================================================================
 
@@ -1013,9 +1086,18 @@ public:
     ///        folder); empty without a book
     [[nodiscard]] QString bookDictionaryPath() const;
 
+    /// @brief Which card a name at a place of a text of the book is: the names of the cards
+    ///        in the book's dictionary in all their forms, as it has them now (made the first
+    ///        time it is asked after a change of the dictionary)
+    [[nodiscard]] const CardNameIndex& cardNames() const;
+
     /// @brief Materials linked with @p link, an element or a section of the book
     /// (BookProject::sectionLink()), in the order of the Workshop
     QList<const ProjectElement*> materialsLinkedTo(const QString& link) const;
+
+    /// @brief The cards of characters, locations and items linked with @p link, an element of
+    /// the book, in the order of the Workshop (their relations with other cards left out)
+    QList<const ProjectElement*> cardsLinkedTo(const QString& link) const;
 
     /// @brief Names of the writer's own fields of the elements of the project, each once and
     /// sorted, for the names of new fields
@@ -1276,10 +1358,6 @@ signals:
 
     /// @brief The numbering of the book's notes changed (setBookFootnotes())
     void bookFootnotesChanged();
-    /// @brief The dictionary of the book changed (changeBookDictionary()), or another book with
-    ///        its own dictionary opened
-    void bookDictionaryChanged();
-
     /// @brief A bibliographic description, the source of a quote or the style of the book's
     /// bibliography changed (setSource(), setQuoteSource(), setBookBibliographyStyle())
     void sourcesChanged();
@@ -1287,10 +1365,22 @@ signals:
     /// @brief Element @p elementId got another title (renameElement())
     void elementRenamed(const QString& elementId);
 
+    /// @brief Card @p elementId of the Workshop was added (addElement()): the book's dictionary
+    /// can get its name (card_names.h)
+    void cardAdded(const QString& elementId);
+
     /// @brief What card @p elementId has beside its text changed: its short description
     /// (setDescription()), the values of its fields, its color or its portraits (setCard(), or
     /// a picture of a portrait deleted)
     void cardChanged(const QString& elementId);
+
+    /// @brief The fields of the cards of kind @p kind ("kalahari.base:character") changed
+    /// (setCardFields(), addFieldToKind()): what they show, in what order, and where
+    void cardFieldsChanged(const QString& kind);
+
+    /// @brief The dictionary of the book changed (changeBookDictionary()), or another book with
+    ///        its own dictionary opened
+    void bookDictionaryChanged();
 
     /// @brief The versions of the text of element @p elementId changed: one was kept (and the
     /// oldest that the program kept by itself may have gone), renamed or deleted
@@ -1341,6 +1431,13 @@ private:
     bool changeDetails(const char* what, const QString& elementId,
                        const std::function<void(ProjectElement&)>& change);
 
+    /// @brief Element @p elementId of kind @p kind was added: cardAdded() for a card
+    void sayIfCard(const KindRef& kind, const QString& elementId);
+
+    /// @brief The names of the book's dictionary of the removed elements @p removedIds lose
+    /// their cards (removeElement())
+    void releaseCardNames(const QSet<QString>& removedIds);
+
     /// @brief The links of @p links that element @p elementId keeps (setLinks()): only to what
     /// the project has, not to the element itself, each once (the first); between two cards
     /// each relation once
@@ -1352,6 +1449,11 @@ private:
     /// @return false when no project is open, the book is open read-only or the file cannot be
     ///         written; the project stays as it was then
     bool changeProject(const char* what, const std::function<void(BookProject&)>& change);
+
+    /// @brief Give new project @p project the fields of the cards that the Settings give new
+    /// books (card_fields::defaults()), with the relations of the fields of the writer that
+    /// name cards
+    static void giveDefaultCardFields(BookProject& project);
 
     /// @brief Cards @p cardIds tell of a change of their relations (cardChanged()), and the
     /// links changed (linksChanged())
@@ -1418,6 +1520,15 @@ private:
     QStringList m_missingPackages;                ///< Of the open book: it is read-only
     QHash<QString, PackageCard> m_packageCards;   ///< Cards of the open book, by package id
     BookDictionary m_bookDictionary;              ///< Of the open book
+    mutable std::optional<CardNameIndex> m_cardNames;  ///< cardNames() of m_bookDictionary
+
+    /// @brief The fields of the cards of a kind, computed from the set they were computed from
+    struct ShownCardFields {
+        const ElementKind* kind = nullptr;  ///< The kind of the package
+        QList<BookCardField> set;           ///< The set of the book; empty: none
+        QList<CardField> fields;            ///< card_fields::effective()
+    };
+    mutable std::map<QString, ShownCardFields> m_cardFields;  ///< cardFields(), by the kind
     bool m_bookDictionaryRead = false;            ///< Its file was read (or there is none)
 
     // OpenSpec #00041: SQLite Project Database. A book open read-only has no lock and no

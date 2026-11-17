@@ -1343,6 +1343,14 @@
         <translation>Słownik &amp;książki...</translation>
     </message>
     <message>
+        <source>Link Paragraph &amp;with Card...</source>
+        <translation>Powiąż akap&amp;it z kartą...</translation>
+    </message>
+    <message>
+        <source>&amp;Open Card at Cursor</source>
+        <translation>Otwórz kartę przy k&amp;ursorze</translation>
+    </message>
+    <message>
         <source>Date &amp;&amp; &amp;Time...</source>
         <translation>Data i &amp;godzina...</translation>
     </message>
@@ -4163,6 +4171,21 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>&amp;Edit Rule...</source>
         <extracomment>Opens the window of the spelling rule of the book. In Polish: Zmień z&amp;asadę…</extracomment>
         <translation>Zmień z&amp;asadę...</translation>
+    </message>
+    <message>
+        <source>C&amp;reate Card</source>
+        <extracomment>The submenu of the context menu of a word or a selection with the kinds of cards: a new card named after them. In Polish: &amp;Utwórz kartę</extracomment>
+        <translation>&amp;Utwórz kartę</translation>
+    </message>
+    <message>
+        <source>Linked cards</source>
+        <extracomment>The tooltip of the sign of the cards beside a paragraph, over the names of the cards. In Polish: Powiązane karty</extracomment>
+        <translation>Powiązane karty</translation>
+    </message>
+    <message>
+        <source>Linked Card&amp;s</source>
+        <extracomment>The submenu of the cards of characters, locations and items linked with the paragraph; its key is one the commands of the menu never have. In Polish: Powiązane k&amp;arty</extracomment>
+        <translation>Powiązane k&amp;arty</translation>
     </message>
     <message>
         <source>&amp;Edit Field...</source>
@@ -17614,6 +17637,11 @@ Harmonogram projektu:
         <source>The file will be gone for good: files in this folder cannot go to the {bin}.</source>
         <extracomment>In Polish: Plik zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</extracomment>
         <translation>Plik zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</translation>
+    </message>
+    <message>
+        <source>&amp;Keep the name %1 in the book&apos;s dictionary – its forms stay right in the book</source>
+        <extracomment>%1: the name of the card in quotes. In Polish: &amp;Zostaw imię lub nazwę %1 w słowniku książki – jej formy będą nadal poprawne</extracomment>
+        <translation>&amp;Zostaw imię lub nazwę %1 w słowniku książki – jej formy będą nadal poprawne</translation>
     </message>
 </context>
 <context>
@@ -32388,11 +32416,6 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
         <translation>Znajdź w książce</translation>
     </message>
     <message>
-        <source>Searches all the texts of the book for the name of the card (the Search panel)</source>
-        <extracomment>In Polish: Szuka nazwy karty we wszystkich tekstach książki (panel „Wyszukiwanie”)</extracomment>
-        <translation>Szuka nazwy karty we wszystkich tekstach książki (panel „Wyszukiwanie”)</translation>
-    </message>
-    <message>
         <source>Relation...</source>
         <extracomment>The button of the bar of a full card that opens the window Relation. In Polish: Relacja...</extracomment>
         <translation>Relacja...</translation>
@@ -32411,6 +32434,41 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
         <source>Set as &amp;Portrait</source>
         <extracomment>In the menu of a picture linked with a card. In Polish: Ustaw jako &amp;portret</extracomment>
         <translation>Ustaw jako &amp;portret</translation>
+    </message>
+    <message>
+        <source>Searches all the texts of the book for the name of the card, in all its forms and by its other names (the Search panel)</source>
+        <extracomment>In Polish: Szuka nazwy karty we wszystkich tekstach książki, w każdej formie i pod innymi imionami (panel „Wyszukiwanie”)</extracomment>
+        <translation>Szuka nazwy karty we wszystkich tekstach książki, w każdej formie i pod innymi imionami (panel „Wyszukiwanie”)</translation>
+    </message>
+    <message>
+        <source>Fields...</source>
+        <extracomment>The button of the bar of a full card that opens the window Card Fields. In Polish: Pola...</extracomment>
+        <translation>Pola...</translation>
+    </message>
+    <message>
+        <source>The fields of the cards of this kind: their order and where each is shown</source>
+        <extracomment>In Polish: Pola kart tego rodzaju: kolejność i to, gdzie widać każde pole</extracomment>
+        <translation>Pola kart tego rodzaju: kolejność i to, gdzie widać każde pole</translation>
+    </message>
+    <message>
+        <source>&amp;General</source>
+        <extracomment>A tab of the full card: the data, the declension and the own fields. In Polish: &amp;Ogólne</extracomment>
+        <translation>&amp;Ogólne</translation>
+    </message>
+    <message>
+        <source>&amp;Description</source>
+        <extracomment>A tab of the full card: the long description. In Polish: O&amp;pis</extracomment>
+        <translation>O&amp;pis</translation>
+    </message>
+    <message>
+        <source>&amp;Relations</source>
+        <extracomment>A tab of the full card: the relations with the other cards. In Polish: &amp;Relacje</extracomment>
+        <translation>&amp;Relacje</translation>
+    </message>
+    <message>
+        <source>Chapters and &amp;Materials</source>
+        <extracomment>A tab of the full card: the chapters the card is in and its materials. In Polish: Rozdziały i &amp;materiały</extracomment>
+        <translation>Rozdziały i &amp;materiały</translation>
     </message>
 </context>
 <context>
@@ -32478,6 +32536,131 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
         <extracomment>The label of the choice between a tree and a list of the locations. In Polish: Miejsca w Nawigatorze:</extracomment>
         <translation>Miejsca w Nawigatorze:</translation>
     </message>
+    <message>
+        <source>In the Text</source>
+        <extracomment>Settings &gt; Cards: the group of the cards in the texts of the book. In Polish: W tekście</extracomment>
+        <translation>W tekście</translation>
+    </message>
+    <message>
+        <source>Names of the cards and linked paragraphs</source>
+        <extracomment>The Properties panel shows the card whose name the cursor is in and the cards linked with the paragraph. In Polish: Imiona i nazwy z kart oraz powiązane akapity</extracomment>
+        <translation>Imiona i nazwy z kart oraz powiązane akapity</translation>
+    </message>
+    <message>
+        <source>Only linked paragraphs</source>
+        <extracomment>In Polish: Tylko powiązane akapity</extracomment>
+        <translation>Tylko powiązane akapity</translation>
+    </message>
+    <message>
+        <source>Do not show</source>
+        <extracomment>In Polish: Nie pokazuj</extracomment>
+        <translation>Nie pokazuj</translation>
+    </message>
+    <message>
+        <source>When the cursor is in the name of a card, in any of its forms, the Properties panel shows the card under the data of the text. The book&apos;s dictionary knows the forms.</source>
+        <extracomment>In Polish: Gdy kursor jest w imieniu lub nazwie z karty, w dowolnej formie, panel „Właściwości” pokazuje tę kartę pod danymi tekstu. Formy zna słownik książki.</extracomment>
+        <translation>Gdy kursor jest w imieniu lub nazwie z karty, w dowolnej formie, panel „Właściwości” pokazuje tę kartę pod danymi tekstu. Formy zna słownik książki.</translation>
+    </message>
+    <message>
+        <source>Card at the cursor:</source>
+        <extracomment>The label of the choice of what the Properties panel shows of the cards at the cursor. In Polish: Karta przy kursorze:</extracomment>
+        <translation>Karta przy kursorze:</translation>
+    </message>
+    <message>
+        <source>Card signs beside linked paragraphs</source>
+        <extracomment>The signs of the kinds of the cards beside a paragraph linked with them, like the paperclip of a material; keep it short, as the narrowest window of the settings has room for about 38 characters. In Polish: Znaki kart przy powiązanych akapitach</extracomment>
+        <translation>Znaki kart przy powiązanych akapitach</translation>
+    </message>
+    <message>
+        <source>A click on a sign opens the card. Without the signs, the Properties panel still names the cards of the paragraph.</source>
+        <extracomment>In Polish: Kliknięcie znaku otwiera kartę. Bez znaków panel „Właściwości” nadal wymienia karty akapitu.</extracomment>
+        <translation>Kliknięcie znaku otwiera kartę. Bez znaków panel „Właściwości” nadal wymienia karty akapitu.</translation>
+    </message>
+    <message>
+        <source>Full Card</source>
+        <extracomment>Settings &gt; Cards: the group of the full card of a character, a location or an item. In Polish: Pełna karta</extracomment>
+        <translation>Pełna karta</translation>
+    </message>
+    <message>
+        <source>Two columns</source>
+        <extracomment>The data of the full card beside its description. In Polish: Dwie kolumny</extracomment>
+        <translation>Dwie kolumny</translation>
+    </message>
+    <message>
+        <source>Tabs</source>
+        <extracomment>In Polish: Zakładki</extracomment>
+        <translation>Zakładki</translation>
+    </message>
+    <message>
+        <source>The data, the declension and the own fields at the left; the description, the relations, the chapters and the materials at the right.</source>
+        <extracomment>In Polish: Dane, odmiana i własne pola po lewej; opis, relacje, rozdziały i materiały po prawej.</extracomment>
+        <translation>Dane, odmiana i własne pola po lewej; opis, relacje, rozdziały i materiały po prawej.</translation>
+    </message>
+    <message>
+        <source>General, Description, Relations, Chapters and Materials – under the header; Alt and the underlined letter choose a tab.</source>
+        <extracomment>In Polish: Ogólne, Opis, Relacje, Rozdziały i materiały – pod wspólnym nagłówkiem; Alt i podkreślona litera wybiera zakładkę.</extracomment>
+        <translation>Ogólne, Opis, Relacje, Rozdziały i materiały – pod wspólnym nagłówkiem; Alt z podkreśloną literą wybiera zakładkę.</translation>
+    </message>
+    <message>
+        <source>Layout:</source>
+        <extracomment>The label of the choice of the layout of the full card. In Polish: Układ:</extracomment>
+        <translation>Układ:</translation>
+    </message>
+    <message>
+        <source>Portrait</source>
+        <extracomment>Settings &gt; Cards: the group of the portraits of the cards. In Polish: Portret</extracomment>
+        <translation>Portret</translation>
+    </message>
+    <message>
+        <source>Square</source>
+        <extracomment>The shape of the portraits. In Polish: Kwadrat</extracomment>
+        <translation>Kwadrat</translation>
+    </message>
+    <message>
+        <source>Circle</source>
+        <extracomment>In Polish: Koło</extracomment>
+        <translation>Koło</translation>
+    </message>
+    <message>
+        <source>Shape:</source>
+        <extracomment>In Polish: Kształt:</extracomment>
+        <translation>Kształt:</translation>
+    </message>
+    <message>
+        <source>Initials on the color of the card</source>
+        <extracomment>What a portrait without a picture shows. In Polish: Inicjały na kolorze karty</extracomment>
+        <translation>Inicjały na kolorze karty</translation>
+    </message>
+    <message>
+        <source>Icon of the kind</source>
+        <extracomment>In Polish: Ikona rodzaju</extracomment>
+        <translation>Ikona rodzaju</translation>
+    </message>
+    <message>
+        <source>Without a picture:</source>
+        <extracomment>In Polish: Bez obrazu:</extracomment>
+        <translation>Bez obrazu:</translation>
+    </message>
+    <message>
+        <source>Card Fields</source>
+        <extracomment>Settings &gt; Cards: the group of the fields of the cards. In Polish: Pola kart</extracomment>
+        <translation>Pola kart</translation>
+    </message>
+    <message>
+        <source>Default Fields of New Books...</source>
+        <extracomment>Opens the window Card Fields for the fields that new books start with. In Polish: Domyślne pola nowych książek...</extracomment>
+        <translation>Domyślne pola nowych książek...</translation>
+    </message>
+    <message>
+        <source>New books have the fields of the book types. Fields... on the full card changes the fields of one book.</source>
+        <extracomment>In Polish: Nowe książki mają pola z typów książek. Przycisk „Pola...” na pełnej karcie zmienia pola jednej książki.</extracomment>
+        <translation>Nowe książki mają pola z typów książek. Przycisk „Pola...” na pełnej karcie zmienia pola jednej książki.</translation>
+    </message>
+    <message>
+        <source>Fields of their own in new books: %1. Fields... on the full card changes the fields of one book.</source>
+        <extracomment>%1: the kinds with fields of their own, such as &quot;Postacie, Przedmioty&quot;. In Polish: Własne pola w nowych książkach: %1. Przycisk „Pola...” na pełnej karcie zmienia pola jednej książki.</extracomment>
+        <translation>Własne pola w nowych książkach: %1. Przycisk „Pola...” na pełnej karcie zmienia pola jednej książki.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::OwnFieldsBox</name>
@@ -32534,6 +32717,21 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
         <source>&amp;Delete</source>
         <extracomment>In Polish: &amp;Usuń</extracomment>
         <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>&amp;Add Field</source>
+        <extracomment>The menu of the own fields. In Polish: &amp;Dodaj pole</extracomment>
+        <translation>&amp;Dodaj pole</translation>
+    </message>
+    <message>
+        <source>&amp;Delete Field</source>
+        <extracomment>In Polish: &amp;Usuń pole</extracomment>
+        <translation>&amp;Usuń pole</translation>
+    </message>
+    <message>
+        <source>Add to &amp;All Cards of This Kind</source>
+        <extracomment>Makes an own field of a card a field of all the cards of its kind, which take the values of their own fields of that name. In Polish: Dodaj do &amp;wszystkich kart tego rodzaju</extracomment>
+        <translation>Dodaj do &amp;wszystkich kart tego rodzaju</translation>
     </message>
 </context>
 <context>
@@ -32791,6 +32989,656 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
         <source>Relation Not Saved</source>
         <extracomment>In Polish: Nie zapisano relacji</extracomment>
         <translation>Nie zapisano relacji</translation>
+    </message>
+    <message>
+        <source>On the card of %1: &lt;b&gt;%2&lt;/b&gt; – %3</source>
+        <extracomment>How a card shows a relation, in the window Relation, when the program speaks the language of the book: %1 the name of the card in the genitive, as the book&apos;s dictionary declines it (&quot;Jana Wolskiego&quot;), %2 the name of the relation, %3 the other card. Keep &lt;b&gt; and &lt;/b&gt;. In Polish: Na karcie %1: &lt;b&gt;%2&lt;/b&gt; – %3</extracomment>
+        <translation>Na karcie %1: &lt;b&gt;%2&lt;/b&gt; – %3</translation>
+    </message>
+    <message>
+        <source>On the card of %1:</source>
+        <extracomment>The name of a relation the writer names, as a card shows it, when the program speaks the language of the book: %1 the name of the card in the genitive (&quot;Jana Wolskiego&quot;). In Polish: Na karcie %1:</extracomment>
+        <translation>Na karcie %1:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardNameBox</name>
+    <message>
+        <source>Declension</source>
+        <extracomment>The group of a card with the forms of its name and its other names, which the book&apos;s dictionary has. In Polish: Odmiana</extracomment>
+        <translation>Odmiana</translation>
+    </message>
+    <message>
+        <source>Change...</source>
+        <extracomment>The button of the group Declension of the short card that opens the window Name of the book&apos;s dictionary. In Polish: Zmień...</extracomment>
+        <translation>Zmień...</translation>
+    </message>
+    <message>
+        <source>The forms, the other names, the plural and the models of declension in the window Name</source>
+        <extracomment>In Polish: Formy, inne imiona, liczba mnoga i wzory odmiany w oknie „Imię lub nazwa”</extracomment>
+        <translation>Formy, inne imiona, liczba mnoga i wzory odmiany w oknie „Imię lub nazwa”</translation>
+    </message>
+    <message>
+        <source>Forms of:</source>
+        <extracomment>Before the buttons of the name of a card and of its other names, which choose whose forms the table shows. In Polish: Formy:</extracomment>
+        <translation>Formy:</translation>
+    </message>
+    <message>
+        <source>Another Name... (Insert)</source>
+        <extracomment>In Polish: Inne imię lub nazwa... (Insert)</extracomment>
+        <translation>Inne imię lub nazwa... (Insert)</translation>
+    </message>
+    <message>
+        <source>Name Window...</source>
+        <extracomment>The button of the group Declension of the full card: the window Name of the book&apos;s dictionary, where the plural and the models of declension change. In Polish: Okno „Imię lub nazwa”...</extracomment>
+        <translation>Okno „Imię lub nazwa”...</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary does not have this name and its forms yet. The window Name adds them.</source>
+        <extracomment>A card whose name the book&apos;s dictionary does not have. In Polish: Słownik książki nie ma jeszcze tej nazwy ani jej form. Doda je okno „Imię lub nazwa”.</extracomment>
+        <translation>Słownik książki nie ma jeszcze tej nazwy ani jej form. Doda je okno „Imię lub nazwa”.</translation>
+    </message>
+    <message>
+        <source>The name does not change.</source>
+        <extracomment>The short card of a name whose forms are all the same (a name of a language without cases). In Polish: Nazwa się nie odmienia.</extracomment>
+        <translation>Nazwa się nie odmienia.</translation>
+    </message>
+    <message>
+        <source>Other names: %1</source>
+        <comment>character</comment>
+        <translation>Inne imiona: %1</translation>
+    </message>
+    <message>
+        <source>Other names: %1</source>
+        <comment>place or item</comment>
+        <translation>Inne nazwy: %1</translation>
+    </message>
+    <message>
+        <source>Declined as: %1</source>
+        <extracomment>%1: the sample words of the models of declension of the words of a name, each declined as its sample: &quot;Anna + Kowalska&quot;. In Polish: Odmienia się jak: %1</extracomment>
+        <translation>Odmienia się jak: %1</translation>
+    </message>
+    <message>
+        <source>The name itself</source>
+        <extracomment>The button of the name of the card itself, among its other names. In Polish: Nazwa karty</extracomment>
+        <translation>Nazwa karty</translation>
+    </message>
+    <message>
+        <source>Added by the program</source>
+        <translation>Dodał program</translation>
+    </message>
+    <message>
+        <source>Added by the author</source>
+        <translation>Dodał autor</translation>
+    </message>
+    <message>
+        <source>Forms by case</source>
+        <extracomment>In Polish: Formy według przypadków</extracomment>
+        <translation>Formy według przypadków</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardNamesCoordinator</name>
+    <message>
+        <source>Other Name</source>
+        <extracomment>The window of a new other name of a card: a diminutive, a nickname, a surname alone. In Polish: Inne imię lub nazwa</extracomment>
+        <translation>Inne imię lub nazwa</translation>
+    </message>
+    <message>
+        <source>Another name of %1 (a diminutive, a nickname)</source>
+        <extracomment>%1: the name of the card in quotes. In Polish: Inne imię lub inna nazwa karty %1 (zdrobnienie, przydomek)</extracomment>
+        <translation>Inne imię lub inna nazwa karty %1 (zdrobnienie, przydomek)</translation>
+    </message>
+    <message>
+        <source>&amp;Add</source>
+        <translation>&amp;Dodaj</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardList</name>
+    <message>
+        <source>Name</source>
+        <extracomment>The column of the names of the cards in the list of cards. In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>In Short</source>
+        <extracomment>The column of the short description of a card: who a character is, what a location is. In Polish: W skrócie</extracomment>
+        <translation>W skrócie</translation>
+    </message>
+    <message>
+        <source>Chapters</source>
+        <extracomment>How many chapters a card is in. In Polish: Rozdziały</extracomment>
+        <translation>Rozdziały</translation>
+    </message>
+    <message>
+        <source>Relations</source>
+        <extracomment>How many relations a card has with the other cards. In Polish: Relacje</extracomment>
+        <translation>Relacje</translation>
+    </message>
+    <message>
+        <source>Enter saves, Shift+Enter starts a new line</source>
+        <extracomment>The editor of a longer text of a card in the list of cards, empty. In Polish: Enter zapisuje, Shift+Enter zaczyna nowy wiersz</extracomment>
+        <translation>Enter zapisuje, Shift+Enter zaczyna nowy wiersz</translation>
+    </message>
+    <message>
+        <source>Card Not Saved</source>
+        <extracomment>In Polish: Nie zapisano karty</extracomment>
+        <translation>Nie zapisano karty</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Re&amp;lation...</source>
+        <extracomment>Adds a relation of a card with another card in the window Relation. In Polish: Re&amp;lacja...</extracomment>
+        <translation>Re&amp;lacja...</translation>
+    </message>
+    <message>
+        <source>Open the full card (%1)</source>
+        <extracomment>The button Edit of a list of cards; %1: the keys. In Polish: Otwórz pełną kartę (%1)</extracomment>
+        <translation>Otwórz pełną kartę (%1)</translation>
+    </message>
+    <message>
+        <source>Relation...</source>
+        <extracomment>Adds a relation of the card chosen with another card. In Polish: Relacja...</extracomment>
+        <translation>Relacja...</translation>
+    </message>
+    <message>
+        <source>Card Settings</source>
+        <extracomment>The gear of a list of cards: Settings &gt; Cards. In Polish: Ustawienia kart</extracomment>
+        <translation>Ustawienia kart</translation>
+    </message>
+    <message>
+        <source>Search in the cards</source>
+        <extracomment>In Polish: Szukaj w kartach</extracomment>
+        <translation>Szukaj w kartach</translation>
+    </message>
+    <message>
+        <source>List of cards</source>
+        <extracomment>In Polish: Lista kart</extracomment>
+        <translation>Lista kart</translation>
+    </message>
+    <message>
+        <source>%1: nothing yet. Add (%2) adds a card.</source>
+        <extracomment>A list of cards without any; %1: its name, &quot;Characters&quot;; %2: the keys of Add. In Polish: %1: na razie pusto. „Dodaj” (%2) dodaje nową kartę.</extracomment>
+        <translation>%1: na razie pusto. „Dodaj” (%2) dodaje nową kartę.</translation>
+    </message>
+    <message>
+        <source>No card matches the filters.</source>
+        <extracomment>In Polish: Żadna karta nie pasuje do filtrów.</extracomment>
+        <translation>Żadna karta nie pasuje do filtrów.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardsInTextCoordinator</name>
+    <message>
+        <source>No book is open</source>
+        <extracomment>Why Book &gt; Link Paragraph with Card... is greyed out. In Polish: Żadna książka nie jest otwarta
+----------
+Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie jest otwarta</extracomment>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>The cursor is not in a text of the book</source>
+        <extracomment>In Polish: Kursor nie jest w tekście książki</extracomment>
+        <translation>Kursor nie jest w tekście książki</translation>
+    </message>
+    <message>
+        <source>Links name no paragraphs (Settings &gt; Navigator)</source>
+        <extracomment>The setting of Settings &gt; Navigator &gt; Materials is off. In Polish: Powiązania nie wskazują akapitów (Ustawienia &gt; Nawigator)</extracomment>
+        <translation>Powiązania nie wskazują akapitów (Ustawienia &gt; Nawigator)</translation>
+    </message>
+    <message>
+        <source>The book has no cards yet</source>
+        <extracomment>The book has no cards of characters, locations or items. In Polish: Książka nie ma jeszcze kart</extracomment>
+        <translation>Książka nie ma jeszcze kart</translation>
+    </message>
+    <message>
+        <source>The paragraph at the cursor is empty</source>
+        <extracomment>In Polish: Akapit przy kursorze jest pusty</extracomment>
+        <translation>Akapit przy kursorze jest pusty</translation>
+    </message>
+    <message>
+        <source>The cursor is in no name of a card, and its paragraph has no cards</source>
+        <extracomment>In Polish: Kursor nie jest w imieniu ani nazwie z karty, a jego akapit nie ma kart</extracomment>
+        <translation>Kursor nie jest w imieniu ani nazwie z karty, a jego akapit nie ma kart</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CursorCardBox</name>
+    <message>
+        <source>Card at the Cursor</source>
+        <extracomment>The group of the Properties panel with the card whose name the cursor of the text is in. In Polish: Karta przy kursorze</extracomment>
+        <translation>Karta przy kursorze</translation>
+    </message>
+    <message>
+        <source>Card Settings</source>
+        <extracomment>The gear of the card at the cursor: Settings &gt; Cards. In Polish: Ustawienia kart</extracomment>
+        <translation>Ustawienia kart</translation>
+    </message>
+    <message>
+        <source>Open Card</source>
+        <extracomment>The button of the card at the cursor in the Properties panel, which opens its full card. In Polish: Otwórz kartę</extracomment>
+        <translation>Otwórz kartę</translation>
+    </message>
+    <message>
+        <source>Open the full card beside the chapters</source>
+        <extracomment>In Polish: Otwórz pełną kartę obok rozdziałów</extracomment>
+        <translation>Otwórz pełną kartę obok rozdziałów</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ParagraphCardsBox</name>
+    <message>
+        <source>Cards of the Paragraph</source>
+        <extracomment>The group of the Properties panel with the cards of characters, locations and items linked with the paragraph at the cursor. In Polish: Karty akapitu</extracomment>
+        <translation>Karty akapitu</translation>
+    </message>
+    <message>
+        <source>Link Paragraph with Card... (Insert)</source>
+        <extracomment>In Polish: Powiąż akapit z kartą... (Insert)</extracomment>
+        <translation>Powiąż akapit z kartą... (Insert)</translation>
+    </message>
+    <message>
+        <source>Take the Card off the Paragraph (Delete)</source>
+        <extracomment>The card stays linked with the chapter. In Polish: Odłącz kartę od akapitu (Delete)</extracomment>
+        <translation>Odłącz kartę od akapitu (Delete)</translation>
+    </message>
+    <message>
+        <source>Cards of the paragraph</source>
+        <extracomment>In Polish: Karty akapitu</extracomment>
+        <translation>Karty akapitu</translation>
+    </message>
+    <message>
+        <source>This paragraph has no cards yet.</source>
+        <extracomment>In Polish: Ten akapit nie ma jeszcze kart.</extracomment>
+        <translation>Ten akapit nie ma jeszcze kart.</translation>
+    </message>
+    <message>
+        <source>Change Not Saved</source>
+        <extracomment>In Polish: Nie zapisano zmiany</extracomment>
+        <translation>Nie zapisano zmiany</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ParagraphCardDialog</name>
+    <message>
+        <source>Link Paragraph with Card</source>
+        <extracomment>The window that links a paragraph of a chapter with a card of a character, a location or an item. In Polish: Powiąż akapit z kartą</extracomment>
+        <translation>Powiąż akapit z kartą</translation>
+    </message>
+    <message>
+        <source>%1, paragraph %2: &quot;%3&quot;</source>
+        <extracomment>The chapter, the number of the paragraph and its first words. In Polish: %1, akapit %2: „%3”</extracomment>
+        <translation>%1, akapit %2: „%3”</translation>
+    </message>
+    <message>
+        <source>&amp;Link</source>
+        <extracomment>The button of the window Link Paragraph with Card. In Polish: &amp;Powiąż</extracomment>
+        <translation>&amp;Powiąż</translation>
+    </message>
+    <message>
+        <source>Type to filter...</source>
+        <extracomment>In Polish: Pisz, żeby filtrować...</extracomment>
+        <translation>Pisz, żeby filtrować...</translation>
+    </message>
+    <message>
+        <source>Filter of the cards</source>
+        <extracomment>In Polish: Filtr kart</extracomment>
+        <translation>Filtr kart</translation>
+    </message>
+    <message>
+        <source>Cards</source>
+        <extracomment>In Polish: Karty</extracomment>
+        <translation>Karty</translation>
+    </message>
+    <message>
+        <source>Role in the paragraph</source>
+        <extracomment>In Polish: Rola w akapicie</extracomment>
+        <translation>Rola w akapicie</translation>
+    </message>
+    <message>
+        <source>&amp;Card:</source>
+        <extracomment>In Polish: &amp;Karta:</extracomment>
+        <translation>&amp;Karta:</translation>
+    </message>
+    <message>
+        <source>&amp;Role in the paragraph:</source>
+        <extracomment>In Polish: &amp;Rola w akapicie:</extracomment>
+        <translation>&amp;Rola w akapicie:</translation>
+    </message>
+    <message>
+        <source>Enter saves, Esc closes</source>
+        <extracomment>The keys of the window Link Paragraph with Card, beside its buttons. In Polish: Enter zapisuje, Esc zamyka</extracomment>
+        <translation>Enter zapisuje, Esc zamyka</translation>
+    </message>
+    <message>
+        <source>The card is linked with this paragraph already. Its role changes.</source>
+        <extracomment>In Polish: Karta jest już powiązana z tym akapitem. Zmieni się jej rola.</extracomment>
+        <translation>Karta jest już powiązana z tym akapitem. Zmieni się jej rola.</translation>
+    </message>
+    <message>
+        <source>The card is linked with paragraph %1 of this chapter. The link moves to this paragraph.</source>
+        <extracomment>A card links with one paragraph of a chapter. In Polish: Karta jest powiązana z akapitem %1 tego rozdziału. Powiązanie przejdzie na ten akapit.</extracomment>
+        <translation>Karta jest powiązana z akapitem %1 tego rozdziału. Powiązanie przejdzie na ten akapit.</translation>
+    </message>
+    <message>
+        <source>Paragraph Not Linked</source>
+        <extracomment>In Polish: Nie powiązano akapitu</extracomment>
+        <translation>Nie powiązano akapitu</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::CardChoicesDialog</name>
+    <message>
+        <source>List Values: %1</source>
+        <extracomment>The window of the values of a list of a field of the cards; %1 is the field. In Polish: Wartości listy: %1</extracomment>
+        <translation>Wartości listy: %1</translation>
+    </message>
+    <message>
+        <source>The order here is the order of the list of the card. A card with a value that goes from the list keeps it as text.</source>
+        <extracomment>In Polish: Kolejność tu to kolejność na liście karty. Karta z wartością, która znika z listy, zachowuje ją jako tekst.</extracomment>
+        <translation>Kolejność tutaj to kolejność listy na karcie. Karta z wartością usuniętą z listy zachowuje ją jako tekst.</translation>
+    </message>
+    <message>
+        <source>&amp;Save</source>
+        <extracomment>In Polish: &amp;Zapisz</extracomment>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>List values</source>
+        <extracomment>For screen readers. In Polish: Wartości listy</extracomment>
+        <translation>Wartości listy</translation>
+    </message>
+    <message>
+        <source>&amp;Add</source>
+        <extracomment>Adds a value to the list. In Polish: &amp;Dodaj</extracomment>
+        <translation>Dod&amp;aj</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Move &amp;Up</source>
+        <extracomment>In Polish: W &amp;górę</extracomment>
+        <translation>W &amp;górę</translation>
+    </message>
+    <message>
+        <source>Move &amp;Down</source>
+        <extracomment>In Polish: W &amp;dół</extracomment>
+        <translation>W &amp;dół</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::CardFieldDialog</name>
+    <message>
+        <source>Longer text</source>
+        <extracomment>A kind of field of a card: several lines. In Polish: Dłuższy tekst</extracomment>
+        <translation>Dłuższy tekst</translation>
+    </message>
+    <message>
+        <source>List to choose from</source>
+        <extracomment>A kind of field of a card: values to choose from. In Polish: Lista do wyboru</extracomment>
+        <translation>Lista do wyboru</translation>
+    </message>
+    <message>
+        <source>Card</source>
+        <extracomment>A kind of field of a card: the name of another card. In Polish: Karta</extracomment>
+        <translation>Karta</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <extracomment>A kind of field of a card: one line. In Polish: Tekst</extracomment>
+        <translation>Tekst</translation>
+    </message>
+    <message>
+        <source>New Card Field</source>
+        <extracomment>The window that adds a field to the cards of a kind. In Polish: Nowe pole kart</extracomment>
+        <translation>Nowe pole kart</translation>
+    </message>
+    <message>
+        <source>Card Field</source>
+        <extracomment>The window that changes a field the writer added. In Polish: Pole kart</extracomment>
+        <translation>Pole kart</translation>
+    </message>
+    <message>
+        <source>All the cards of this kind have the field.</source>
+        <extracomment>In Polish: To pole mają wszystkie karty tego rodzaju.</extracomment>
+        <translation>To pole mają wszystkie karty tego rodzaju.</translation>
+    </message>
+    <message>
+        <source>&amp;Add</source>
+        <extracomment>Adds the new field. In Polish: &amp;Dodaj</extracomment>
+        <translation>&amp;Dodaj</translation>
+    </message>
+    <message>
+        <source>&amp;Save</source>
+        <extracomment>In Polish: &amp;Zapisz</extracomment>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>the same both ways</source>
+        <extracomment>The name of the relation the named card has, when it is empty. In Polish: tak samo w obie strony</extracomment>
+        <translation>tak samo w obie strony</translation>
+    </message>
+    <message>
+        <source>Field &amp;name:</source>
+        <extracomment>In Polish: &amp;Nazwa pola:</extracomment>
+        <translation>&amp;Nazwa pola:</translation>
+    </message>
+    <message>
+        <source>&amp;Kind of field:</source>
+        <extracomment>In Polish: &amp;Rodzaj pola:</extracomment>
+        <translation>&amp;Rodzaj pola:</translation>
+    </message>
+    <message>
+        <source>&amp;Card of:</source>
+        <extracomment>The kind of the cards a field of the kind Card names. In Polish: &amp;Karta:</extracomment>
+        <translation>&amp;Karta:</translation>
+    </message>
+    <message>
+        <source>The &amp;other way:</source>
+        <extracomment>What the card is to the card the field names: &quot;Uczeń&quot; for &quot;Mentor&quot;. In Polish: &amp;W drugą stronę:</extracomment>
+        <translation>&amp;W drugą stronę:</translation>
+    </message>
+    <message>
+        <source>The cards have a field of this name already. A hidden field is shown in the window Card Fields.</source>
+        <extracomment>In Polish: Karty mają już pole o tej nazwie. Pole ukryte włącza się w oknie „Pola kart”.</extracomment>
+        <translation>Karty mają już pole o tej nazwie. Ukryte pole można pokazać w oknie „Pola kart”.</translation>
+    </message>
+    <message>
+        <source>The field suggests the names of the cards and keeps the relation &quot;%1&quot; with the card it names; it takes any other text too.</source>
+        <extracomment>%1 is the name of the field. In Polish: Pole podpowiada nazwy kart i zapisuje relację „%1” z kartą, którą nazywa; przyjmuje też każdy inny tekst.</extracomment>
+        <translation>Pole podpowiada nazwy kart i zapisuje relację „%1” z kartą, którą wskazuje; przyjmuje też każdy inny tekst.</translation>
+    </message>
+    <message>
+        <source>The values of the list are set with List Values... in the window Card Fields.</source>
+        <extracomment>In Polish: Wartości listy ustala „Wartości listy...” w oknie „Pola kart”.</extracomment>
+        <translation>Wartości listy ustala się przyciskiem „Wartości listy...” w oknie „Pola kart”.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::CardFieldsDialog</name>
+    <message>
+        <source> · writer&apos;s</source>
+        <extracomment>After the name of a field the writer added, in the window Card Fields. In Polish: · autora</extracomment>
+        <translation> · autora</translation>
+    </message>
+    <message>
+        <source>&amp;Kind of cards:</source>
+        <extracomment>The kind of the cards whose fields the window Card Fields shows. In Polish: &amp;Rodzaj kart:</extracomment>
+        <translation>&amp;Rodzaj kart:</translation>
+    </message>
+    <message>
+        <source>Fields of the cards</source>
+        <extracomment>The table of the fields of the cards, for screen readers. In Polish: Pola kart</extracomment>
+        <translation>Pola kart</translation>
+    </message>
+    <message>
+        <source>Field</source>
+        <extracomment>The column of the names of the fields. In Polish: Pole</extracomment>
+        <translation>Pole</translation>
+    </message>
+    <message>
+        <source>Kind of Field</source>
+        <extracomment>The column of what each field holds: a text, a list, a card. In Polish: Rodzaj pola</extracomment>
+        <translation>Rodzaj pola</translation>
+    </message>
+    <message>
+        <source>On the Card</source>
+        <extracomment>The column: the field is shown on the full card. In Polish: Na karcie</extracomment>
+        <translation>Na karcie</translation>
+    </message>
+    <message>
+        <source>In Properties</source>
+        <extracomment>The column: the field is shown on the short card of the Properties panel. In Polish: We Właściwościach</extracomment>
+        <translation>We Właściwościach</translation>
+    </message>
+    <message>
+        <source>In the List</source>
+        <extracomment>The column: the field is a column of the list of cards. In Polish: Na liście</extracomment>
+        <translation>Na liście</translation>
+    </message>
+    <message>
+        <source>The fields a new book starts with; the books there are already keep theirs.</source>
+        <extracomment>Under the table of the fields of new books (Settings &gt; Cards). In Polish: Pola, od których zaczyna nowa książka; książki, które już są, mają swoje.</extracomment>
+        <translation>Pola, od których zaczyna nowa książka; istniejące książki zachowują swoje.</translation>
+    </message>
+    <message>
+        <source>Save as defaults for &amp;new books</source>
+        <extracomment>The fields of this book become those that new books start with. In Polish: Zapisz jako domyślne dla &amp;nowych książek</extracomment>
+        <translation>Zapisz jako domyślne dla &amp;nowych książek</translation>
+    </message>
+    <message>
+        <source>The fields of this book – &quot;%1&quot;</source>
+        <extracomment>Beside Save as defaults for new books; %1 is the title of the book. In Polish: Pola tej książki – „%1”</extracomment>
+        <translation>Pola tej książki – „%1”</translation>
+    </message>
+    <message>
+        <source>Own fields of one card: the menu of the field &gt; &quot;Add to All Cards of This Kind&quot;</source>
+        <extracomment>Beside the buttons of the window Card Fields. In Polish: Własne pola jednej karty: menu pola &gt; „Dodaj do wszystkich kart tego rodzaju”</extracomment>
+        <translation>Własne pola jednej karty: menu pola &gt; „Dodaj do wszystkich kart tego rodzaju”</translation>
+    </message>
+    <message>
+        <source>Add &amp;Field...</source>
+        <extracomment>In Polish: Dodaj &amp;pole...</extracomment>
+        <translation>Dodaj &amp;pole...</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <extracomment>Takes a field the writer added out of the cards; they keep its values. In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Move &amp;Up</source>
+        <extracomment>In Polish: W &amp;górę</extracomment>
+        <translation>W &amp;górę</translation>
+    </message>
+    <message>
+        <source>Move &amp;Down</source>
+        <extracomment>In Polish: W &amp;dół</extracomment>
+        <translation>W &amp;dół</translation>
+    </message>
+    <message>
+        <source>List &amp;Values...</source>
+        <extracomment>The values of the list of a field the writer added. In Polish: &amp;Wartości listy...</extracomment>
+        <translation>&amp;Wartości listy...</translation>
+    </message>
+    <message>
+        <source>Restore &amp;Type Fields</source>
+        <extracomment>Back to the fields of the book type, where it shows them; the cards keep the values. In Polish: Przywróć pola &amp;typu</extracomment>
+        <translation>Przywróć pola &amp;typu</translation>
+    </message>
+    <message>
+        <source>Default Fields of New Books</source>
+        <extracomment>The window Card Fields opened in Settings &gt; Cards. In Polish: Domyślne pola nowych książek</extracomment>
+        <translation>Domyślne pola nowych książek</translation>
+    </message>
+    <message>
+        <source>Tick where each field is shown. The order of the list is the order of the card.</source>
+        <extracomment>In Polish: Zaznacz, gdzie widać każde pole. Kolejność na liście to kolejność na karcie.</extracomment>
+        <translation>Zaznacz, gdzie widać każde pole. Kolejność na liście to kolejność na karcie.</translation>
+    </message>
+    <message>
+        <source>Card Fields: {kind:plural}</source>
+        <extracomment>The window of the fields of the cards of a kind: {kind:plural} is the kind, such as &quot;postacie&quot;. In Polish: Pola kart: {kind:plural}</extracomment>
+        <translation>Pola kart: {kind:plural}</translation>
+    </message>
+    <message>
+        <source>longer text</source>
+        <extracomment>A field that holds a text of several lines. In Polish: dłuższy tekst</extracomment>
+        <translation>dłuższy tekst</translation>
+    </message>
+    <message>
+        <source>list without values</source>
+        <extracomment>A field with a list to choose from that has no values yet. In Polish: lista bez wartości</extracomment>
+        <translation>lista bez wartości</translation>
+    </message>
+    <message>
+        <source>list: %1</source>
+        <extracomment>A field with a list of values to choose from; %1 the values. In Polish: lista: %1</extracomment>
+        <translation>lista: %1</translation>
+    </message>
+    <message>
+        <source>card: {kind}</source>
+        <extracomment>A field that names a card; {kind} is its kind, such as &quot;miejsce&quot;. In Polish: karta: {kind}</extracomment>
+        <translation>karta: {kind}</translation>
+    </message>
+    <message>
+        <source>text</source>
+        <extracomment>A field that holds a line of text. In Polish: tekst</extracomment>
+        <translation>tekst</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The name of a card, a field that every card has. In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>In Short</source>
+        <extracomment>In Polish: W skrócie</extracomment>
+        <translation>W skrócie</translation>
+    </message>
+    <message>
+        <source>always there</source>
+        <extracomment>The kind of the name and In Short, which every card has. In Polish: stałe</extracomment>
+        <translation>stałe</translation>
+    </message>
+    <message>
+        <source>A field of the writer; F2 or a double-click changes it</source>
+        <extracomment>The tooltip of a field the writer added. In Polish: Pole autora; F2 albo dwuklik je zmienia</extracomment>
+        <translation>Pole autora; F2 albo dwuklik je zmienia</translation>
+    </message>
+    <message>
+        <source>%1, a field of the writer</source>
+        <extracomment>For screen readers: the name of a field the writer added. In Polish: %1, pole autora</extracomment>
+        <translation>%1, pole autora</translation>
+    </message>
+    <message>
+        <source>&amp;Change Field...</source>
+        <extracomment>The menu of the table of the window Card Fields: changes a field the writer added. In Polish: &amp;Zmień pole...</extracomment>
+        <translation>&amp;Zmień pole...</translation>
+    </message>
+    <message>
+        <source>Card Fields Not Saved</source>
+        <extracomment>In Polish: Nie zapisano pól kart</extracomment>
+        <translation>Nie zapisano pól kart</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
     </message>
 </context>
 <context>

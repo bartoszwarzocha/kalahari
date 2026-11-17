@@ -7,6 +7,9 @@
 
 #include "kalahari/gui/book_search_coordinator.h"
 
+#include "kalahari/core/book_dictionary.h"
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/card_names.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/theme_manager.h"
@@ -221,6 +224,7 @@ void BookSearchCoordinator::findInBook() {
     if (m_panel == nullptr) {
         return;
     }
+    m_card.reset();
     if (m_showPanel) {
         m_showPanel();
     }
@@ -243,6 +247,20 @@ void BookSearchCoordinator::findInBook() {
 }
 
 void BookSearchCoordinator::findInBook(const QString& text) {
+    m_card.reset();
+    findName(text, false);
+}
+
+void BookSearchCoordinator::findCardInBook(const QString& cardId) {
+    const core::ProjectElement* card = m_book.findElement(cardId);
+    if (card == nullptr) {
+        return;
+    }
+    m_card = CardQuery{card->title.trimmed(), cardId};
+    findName(card->title, m_book.bookDictionary().findNameOfCard(cardId) != nullptr);
+}
+
+void BookSearchCoordinator::findName(const QString& text, bool allForms) {
     if (m_panel == nullptr || text.trimmed().isEmpty()) {
         return;
     }
@@ -252,9 +270,20 @@ void BookSearchCoordinator::findInBook(const QString& text) {
     m_panel->setSearchText(text.trimmed());
     editor::SearchOptions options;
     options.wholeWord = true;
+    options.allForms = allForms;
     m_panel->setOptions(options);
     m_panel->focusSearchField();
     search();
+}
+
+QStringList BookSearchCoordinator::formsToFind(const QString& text) const {
+    if (m_card && m_card->text == text) {
+        if (const core::DictionaryName* name =
+                m_book.bookDictionary().findNameOfCard(m_card->cardId)) {
+            return core::cardForms(*name);
+        }
+    }
+    return m_formsOf ? m_formsOf(text) : QStringList();
 }
 
 void BookSearchCoordinator::search() {
@@ -272,8 +301,8 @@ void BookSearchCoordinator::search() {
         return;
     }
     m_query = Query{text, m_panel->options()};
-    if (m_query->options.allForms && m_formsOf) {
-        m_query->options.forms = m_formsOf(text);
+    if (m_query->options.allForms) {
+        m_query->options.forms = formsToFind(text);
     }
     m_engine.setSearchText(text);
     m_engine.setOptions(m_query->options);

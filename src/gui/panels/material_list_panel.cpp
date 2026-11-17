@@ -13,11 +13,15 @@
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/kind_words.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/card_list.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/link_names.h"
 #include "kalahari/gui/material_file.h"
+#include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/shortcut_rules.h"
+#include "kalahari/gui/widgets/card_cell_delegate.h"
 #include "kalahari/gui/widgets/cover_plan.h"
 
 #include <QAbstractTableModel>
@@ -53,12 +57,15 @@
 #include <QStyle>
 #include <QStyledItemDelegate>
 #include <QTableView>
+#include <QTextLayout>
 #include <QToolButton>
 #include <QVBoxLayout>
 
 #include <algorithm>
 #include <functional>
 #include <optional>
+#include <string>
+#include <utility>
 
 namespace kalahari {
 namespace gui {
@@ -72,6 +79,10 @@ const QString NONE = QStringLiteral("–");
 constexpr int THUMBNAIL_WIDTH = 48;
 constexpr int THUMBNAIL_HEIGHT = 36;
 constexpr int THUMBNAIL_ROW = 40;
+/// The room a row of text has over and under its letters
+constexpr int TEXT_ROW_PADDING = 8;
+/// The side of the icons of the rows of text
+constexpr int ROW_ICON = 16;
 
 /// Size of a tile and of its picture
 constexpr int TILE_WIDTH = 150;
@@ -81,8 +92,56 @@ constexpr int TILE_ICON = 48;  ///< The icon of a material without a picture
 constexpr int TILE_MARGIN = 6;
 constexpr int TILE_SPACING = 8;
 
+/// A card: the width of its tile, the stripe of its color there, the lines of In Short there
+/// and its portrait beside its name in the table
+constexpr int CARD_TILE_WIDTH = 180;
+constexpr int CARD_STRIPE = 4;
+constexpr int CARD_SUMMARY_LINES = 2;
+constexpr int CARD_ICON = 24;
+
 /// Characters of a text from which its tooltip wraps it in lines
 constexpr int LONG_TIP = 60;
+
+/// The size of the tile of a card in @p font: its portrait, its name, its kind and In Short
+QSize cardTileSize(const QFont& font) {
+    QFont bold = font;
+    bold.setBold(true);
+    const int line = QFontMetrics(font).height();
+    return {CARD_TILE_WIDTH, (2 * TILE_MARGIN) + TILE_PICTURE_HEIGHT + 4 +
+                                 QFontMetrics(bold).height() + 2 + line + 2 +
+                                 (CARD_SUMMARY_LINES * line)};
+}
+
+/// @p text in @p font in at most @p count lines of @p width, the last one cut short with "…"
+QStringList linesOf(const QString& text, const QFont& font, int width, int count) {
+    QStringList lines;
+    QTextLayout layout(text, font);
+    layout.beginLayout();
+    int lastStart = 0;
+    int next = 0;
+    while (lines.size() < count) {
+        QTextLine line = layout.createLine();
+        if (!line.isValid()) {
+            break;
+        }
+        line.setLineWidth(width);
+        lastStart = line.textStart();
+        next = lastStart + line.textLength();
+        lines << text.mid(lastStart, line.textLength()).trimmed();
+    }
+    layout.endLayout();
+    // The rest of the text in the last line, cut short
+    if (!lines.isEmpty() && next < text.size()) {
+        lines.last() = QFontMetrics(font).elidedText(text.mid(lastStart).simplified(),
+                                                     Qt::ElideRight, width);
+    }
+    return lines;
+}
+
+/// @p text with @p keys at its right in a menu
+QString withKeys(const QString& text, const QKeyCombination& keys) {
+    return text + QLatin1Char('\t') + ShortcutRules::keysText(keys);
+}
 
 /// Width of a column at first, by its id; the others fit their header
 int widthOf(const QString& id) {
@@ -215,9 +274,19 @@ public:
                const QModelIndex& index) const override {
         QStyleOptionViewItem item = option;
         initStyleOption(&item, index);
+        // The style marks only where the text of an item chosen would be: here the whole tile,
+        // as its texts are in the colors of the choice
+        item.state &= ~QStyle::State_Selected;
         const QWidget* widget = option.widget;
         QStyle* style = widget != nullptr ? widget->style() : QApplication::style();
         style->drawPrimitive(QStyle::PE_PanelItemViewItem, &item, painter, widget);
+        if ((option.state & QStyle::State_Selected) != 0) {
+            painter->fillRect(option.rect, option.palette.brush(groupOf(option), QPalette::Highlight));
+        }
+        if (index.data(MaterialListPanel::CARD_ROLE).toBool()) {
+            paintCard(painter, option, index);
+            return;
+        }
 
         const QRect area = option.rect.adjusted(TILE_MARGIN, TILE_MARGIN, -TILE_MARGIN,
                                                 -TILE_MARGIN);
@@ -232,8 +301,7 @@ public:
         }
 
         const bool selected = (option.state & QStyle::State_Selected) != 0;
-        const QPalette::ColorGroup group =
-            (option.state & QStyle::State_Enabled) != 0 ? QPalette::Normal : QPalette::Disabled;
+        const QPalette::ColorGroup group = groupOf(option);
         const QColor text = option.palette.color(
             group, selected ? QPalette::HighlightedText : QPalette::Text);
         QFont titleFont = option.font;
@@ -260,9 +328,79 @@ public:
     }
 
     QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
-        Q_UNUSED(option);
-        Q_UNUSED(index);
+        if (index.data(MaterialListPanel::CARD_ROLE).toBool()) {
+            return cardTileSize(option.font);
+        }
         return {TILE_WIDTH, TILE_HEIGHT};
+    }
+
+private:
+    /// The colors of a tile: of a list that has the keys, of one that has not, or disabled
+    static QPalette::ColorGroup groupOf(const QStyleOptionViewItem& option) {
+        if ((option.state & QStyle::State_Enabled) == 0) {
+            return QPalette::Disabled;
+        }
+        return (option.state & QStyle::State_Active) != 0 ? QPalette::Active : QPalette::Inactive;
+    }
+
+    /// The tile of a card: its portrait on a stripe of its color, its name, its kind and In
+    /// Short
+    static void paintCard(QPainter* painter, const QStyleOptionViewItem& option,
+                          const QModelIndex& index) {
+        const QRect area = option.rect.adjusted(TILE_MARGIN, TILE_MARGIN, -TILE_MARGIN,
+                                                -TILE_MARGIN);
+        const QRect pictureArea(area.left(), area.top(), area.width(), TILE_PICTURE_HEIGHT);
+        painter->fillRect(pictureArea, option.palette.color(QPalette::AlternateBase));
+        const auto portrait = index.data(MaterialListPanel::TILE_ROLE).value<QPixmap>();
+        if (!portrait.isNull()) {
+            const QSize shown = portrait.deviceIndependentSize().toSize();
+            painter->drawPixmap(
+                QRect(pictureArea.left() + ((pictureArea.width() - shown.width()) / 2),
+                      pictureArea.top() + ((pictureArea.height() - shown.height()) / 2),
+                      shown.width(), shown.height()),
+                portrait);
+        }
+        if (const auto color = index.data(MaterialListPanel::COLOR_ROLE).value<QColor>();
+            color.isValid()) {
+            painter->fillRect(QRect(pictureArea.left(), pictureArea.top(), CARD_STRIPE,
+                                    pictureArea.height()),
+                              color);
+        }
+
+        const bool selected = (option.state & QStyle::State_Selected) != 0;
+        const QPalette::ColorGroup group = groupOf(option);
+        const QColor text = option.palette.color(
+            group, selected ? QPalette::HighlightedText : QPalette::Text);
+        const QColor grey =
+            selected ? text : option.palette.color(group, QPalette::PlaceholderText);
+        QFont titleFont = option.font;
+        titleFont.setBold(true);
+        const QFontMetrics titleMetrics(titleFont);
+        const QFontMetrics metrics(option.font);
+        const int left = area.left() + CARD_STRIPE;
+        const int width = area.width() - CARD_STRIPE;
+        const QRect titleArea(left, pictureArea.bottom() + 4, width, titleMetrics.height());
+        const QRect detailArea(left, titleArea.bottom() + 2, width, metrics.height());
+        painter->save();
+        painter->setFont(titleFont);
+        painter->setPen(text);
+        painter->drawText(titleArea, Qt::AlignLeft | Qt::AlignVCenter,
+                          titleMetrics.elidedText(index.data(Qt::DisplayRole).toString(),
+                                                  Qt::ElideRight, width));
+        painter->setFont(option.font);
+        painter->setPen(grey);
+        painter->drawText(detailArea, Qt::AlignLeft | Qt::AlignVCenter,
+                          metrics.elidedText(index.data(MaterialListPanel::DETAIL_ROLE).toString(),
+                                             Qt::ElideRight, width));
+        int top = detailArea.bottom() + 2;
+        for (const QString& line :
+             linesOf(index.data(MaterialListPanel::SUMMARY_ROLE).toString(), option.font, width,
+                     CARD_SUMMARY_LINES)) {
+            painter->drawText(QRect(left, top, width, metrics.height()),
+                              Qt::AlignLeft | Qt::AlignVCenter, line);
+            top += metrics.height();
+        }
+        painter->restore();
     }
 };
 
@@ -310,11 +448,17 @@ class MaterialListModel : public QAbstractTableModel {
 public:
     using QAbstractTableModel::QAbstractTableModel;
 
+    /// What gives the portraits of the cards: the card and the side in pixels
+    using PortraitSource = std::function<QPixmap(const QString& cardId, int side)>;
+
+    void setPortraits(PortraitSource source) { m_portraitOf = std::move(source); }
+
     void setContents(const QList<MaterialColumn>& columns, const QList<MaterialRow>& rows,
                      bool leadIcon, bool groups) {
         beginResetModel();
         m_columns = columns;
         m_rows = rows;
+        m_portraits.clear();
         m_materials = static_cast<int>(rows.size());
         // The list of the cover has a row that names each group of its materials
         if (groups) {
@@ -360,6 +504,7 @@ public:
 
     /// The icons again (another theme)
     void refreshIcons() {
+        m_portraits.clear();
         if (!m_rows.isEmpty() && !m_columns.isEmpty()) {
             emit dataChanged(index(0, 0), index(rowCount() - 1, columnCount() - 1),
                              {Qt::DecorationRole});
@@ -385,7 +530,10 @@ public:
         if (row != nullptr && !row->heading.isEmpty()) {
             return Qt::NoItemFlags;
         }
-        return QAbstractTableModel::flags(index);
+        // The fields of a card and its In Short are edited in the table
+        const bool editable = row != nullptr && index.column() < m_columns.size() &&
+                              m_columns.at(index.column()).editable;
+        return QAbstractTableModel::flags(index) | (editable ? Qt::ItemIsEditable : Qt::NoItemFlags);
     }
 
     QString columnId(int column) const {
@@ -456,19 +604,7 @@ public:
         case Qt::ToolTipRole:
             return text.isEmpty() ? QVariant() : QVariant(tipOf(text));
         case Qt::DecorationRole:
-            if (thumbnail) {
-                if (!row->picture.isEmpty()) {
-                    return thumbnailOf(row->picture, row->rotation,
-                                       {THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT});
-                }
-                return core::ArtProvider::getInstance().getIcon(row->iconId,
-                                                                core::IconContext::TreeView);
-            }
-            if (index.column() == m_leadColumn) {
-                return core::ArtProvider::getInstance().getIcon(row->iconId,
-                                                                core::IconContext::TreeView);
-            }
-            return {};
+            return decorationOf(*row, index.column(), thumbnail);
         case Qt::AccessibleTextRole:
             return text.isEmpty() ? m_columns.at(index.column()).title : text;
         case MaterialListPanel::ID_ROLE:
@@ -478,20 +614,61 @@ public:
         case MaterialListPanel::DETAIL_ROLE:
             return detailOf(*row);
         case MaterialListPanel::TILE_ROLE:
-            // A material without a picture has its icon on its tile
-            if (row->picture.isEmpty()) {
-                const QIcon icon = core::ArtProvider::getInstance().getIcon(
-                    row->iconId, core::IconContext::TreeView);
-                return icon.pixmap(QSize(TILE_ICON, TILE_ICON), qApp->devicePixelRatio());
-            }
-            return thumbnailOf(row->picture, row->rotation,
-                               {TILE_WIDTH - 2 * TILE_MARGIN, TILE_PICTURE_HEIGHT});
+            return tileOf(*row);
+        case MaterialListPanel::CARD_ROLE:
+            return row->card;
+        case MaterialListPanel::COLOR_ROLE:
+            return row->color.isEmpty() ? QColor() : QColor(row->color);
+        case MaterialListPanel::SUMMARY_ROLE:
+            return row->summary;
         default:
             return {};
         }
     }
 
 private:
+    /// The icon of @p row in column @p column: the thumbnail of a picture, the portrait of a
+    /// card beside its name, else the icon of its kind beside its kind or its title
+    QVariant decorationOf(const MaterialRow& row, int column, bool thumbnail) const {
+        if (thumbnail && !row.picture.isEmpty()) {
+            return thumbnailOf(row.picture, row.rotation, {THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT});
+        }
+        if (column == m_leadColumn && row.card) {
+            return portraitOf(row.id, CARD_ICON);
+        }
+        if (thumbnail || column == m_leadColumn) {
+            return core::ArtProvider::getInstance().getIcon(row.iconId,
+                                                            core::IconContext::TreeView);
+        }
+        return {};
+    }
+
+    /// The picture of the tile of @p row: that of a picture, the portrait of a card, else the
+    /// icon of its kind
+    QPixmap tileOf(const MaterialRow& row) const {
+        if (row.card) {
+            return portraitOf(row.id, TILE_PICTURE_HEIGHT);
+        }
+        if (row.picture.isEmpty()) {
+            const QIcon icon = core::ArtProvider::getInstance().getIcon(
+                row.iconId, core::IconContext::TreeView);
+            return icon.pixmap(QSize(TILE_ICON, TILE_ICON), qApp->devicePixelRatio());
+        }
+        return thumbnailOf(row.picture, row.rotation,
+                           {TILE_WIDTH - (2 * TILE_MARGIN), TILE_PICTURE_HEIGHT});
+    }
+
+    /// The portrait of card @p cardId at @p side pixels, kept while the list has its rows
+    QPixmap portraitOf(const QString& cardId, int side) const {
+        const QString key = cardId + QLatin1Char('|') + QString::number(side);
+        if (const auto found = m_portraits.constFind(key); found != m_portraits.constEnd()) {
+            return *found;
+        }
+        const QPixmap portrait = m_portraitOf ? m_portraitOf(cardId, side) : QPixmap();
+        m_portraits.insert(key, portrait);
+        return portrait;
+    }
+
     /// The line of a tile under its title: what a material of the kind is told by at once
     static QString detailOf(const MaterialRow& row) {
         QStringList parts;
@@ -508,6 +685,8 @@ private:
 
     QList<MaterialColumn> m_columns;
     QList<MaterialRow> m_rows;  ///< The materials, then the rows that name the groups
+    PortraitSource m_portraitOf;
+    mutable QHash<QString, QPixmap> m_portraits;  ///< By the card and the side
     int m_materials = 0;
     int m_leadColumn = -1;
     int m_titleColumn = -1;
@@ -771,15 +950,30 @@ MaterialListPanel::MaterialListPanel(core::ProjectManager& book, const QString& 
     m_model = new MaterialListModel(this);
     m_filter = new MaterialListFilter(this);
     m_filter->setSourceModel(m_model);
+    m_model->setPortraits([this](const QString& cardId, int side) {
+        const core::ProjectElement* card = m_book.findElement(cardId);
+        return card != nullptr ? CardPage::portraitOf(m_book, *card, side, devicePixelRatioF())
+                               : QPixmap();
+    });
     createLayout();
     createCommands();
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &MaterialListPanel::refreshIcons);
+    // The portraits of the cards drawn as Settings > Cards has them; the listener runs on the
+    // thread that changes them, the list changes on its own
+    m_settingsListener =
+        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
+            if (CardPage::isPortraitSetting(key)) {
+                QMetaObject::invokeMethod(
+                    this, [this]() { m_model->refreshIcons(); }, Qt::QueuedConnection);
+            }
+        });
     load();
     restoreState();
 }
 
 MaterialListPanel::~MaterialListPanel() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
     // What the views do while they are destroyed (the current row cleared) does not reach the
     // panel
     m_table->selectionModel()->disconnect(this);
@@ -875,8 +1069,6 @@ void MaterialListPanel::createLayout() {
     m_search->setPlaceholderText(
         MaterialList::tr("Search (%1)")
             .arg(ShortcutRules::keysText(QKeyCombination(Qt::ControlModifier, Qt::Key_F))));
-    //: In Polish: Szukaj w materiałach
-    m_search->setAccessibleName(MaterialList::tr("Search in the materials"));
     m_search->setMinimumWidth(180);
     m_search->installEventFilter(this);
     //: The filter of the list of the cover by what its materials are. In Polish: Rodzaj:
@@ -935,11 +1127,11 @@ void MaterialListPanel::createLayout() {
     m_table->setTextElideMode(Qt::ElideRight);
     m_table->verticalHeader()->hide();
     m_table->setShowGrid(false);
-    m_table->setItemDelegate(new TableDelegate(m_table));
+    m_rowDelegate = new TableDelegate(m_table);
+    m_cardDelegate = new CardCellDelegate(m_book, m_table);
+    m_table->setItemDelegate(m_rowDelegate);
     m_table->setContextMenuPolicy(Qt::CustomContextMenu);
     m_header->setContextMenuPolicy(Qt::CustomContextMenu);
-    //: In Polish: Lista materiałów
-    m_table->setAccessibleName(MaterialList::tr("List of materials"));
     auto* tiles = new ListTiles(m_stack);
     m_tiles = tiles;
     m_tiles->setObjectName(QStringLiteral("materialListTiles"));
@@ -955,7 +1147,6 @@ void MaterialListPanel::createLayout() {
     m_tiles->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_tiles->setItemDelegate(new TileDelegate(m_tiles));
     m_tiles->setContextMenuPolicy(Qt::CustomContextMenu);
-    m_tiles->setAccessibleName(MaterialList::tr("List of materials"));
     m_stack->addWidget(m_table);
     m_stack->addWidget(m_tiles);
     // The plan of the cover
@@ -1083,13 +1274,6 @@ void MaterialListPanel::createCommands() {
     //: Edits the material chosen: its card in the middle of the window, or the editor of a
     //: working note. In Polish: Edytuj
     m_editButton->setText(MaterialList::tr("Edit"));
-    //: %1: the keys. In Polish: Edytuj materiał na jego karcie, a notatkę roboczą w edytorze
-    //: (%1)
-    m_editButton->setToolTip(
-        MaterialList::tr("Edit the material on its card; a working note in the editor (%1)")
-            .arg(ShortcutRules::keysText(QKeyCombination(Qt::NoModifier, Qt::Key_Return))));
-    //: In Polish: Powiąż...
-    m_linkButton->setToolTip(MaterialList::tr("Link..."));
     //: %1: the keys. In Polish: Kopiuj (%1)
     m_copyButton->setToolTip(MaterialList::tr("Copy (%1)").arg(
         ShortcutRules::keysText(QKeyCombination(Qt::ControlModifier, Qt::Key_C))));
@@ -1108,8 +1292,6 @@ void MaterialListPanel::createCommands() {
     //: Shows the materials of the cover in groups by what they are. In Polish: Grupuj według
     //: rodzaju
     m_groupsButton->setText(MaterialList::tr("Group by Kind"));
-    //: The gear of a list of materials: Settings > Navigator. In Polish: Ustawienia materiałów
-    m_settingsButton->setToolTip(MaterialList::tr("Material Settings"));
     m_searchIcon = m_search->addAction(QIcon(), QLineEdit::LeadingPosition);
 
     connect(m_addButton, &QToolButton::clicked, this, [this]() { emit requestAdd(m_list); });
@@ -1217,8 +1399,8 @@ bool MaterialListPanel::selectMaterial(const QString& elementId) {
             continue;
         }
         QAbstractItemView* shown = view();
-        const QModelIndex target =
-            shown == m_tiles ? index.siblingAtColumn(m_tiles->modelColumn()) : index;
+        const QModelIndex target = index.siblingAtColumn(
+            shown == m_tiles ? m_tiles->modelColumn() : tableColumn());
         shown->selectionModel()->setCurrentIndex(
             target, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
         shown->scrollTo(target);
@@ -1400,10 +1582,9 @@ void MaterialListPanel::fillMenu(QMenu& menu) {
     const QModelIndex current = view()->currentIndex();
     const MaterialRow* row = m_model->materialAt(m_filter->mapToSource(current).row());
     const bool changing = !pm.isReadOnly();
-    const auto withKeys = [](const QString& text, const QKeyCombination& keys) {
-        return text + QLatin1Char('\t') + ShortcutRules::keysText(keys);
-    };
-    if (row != nullptr) {
+    if (row != nullptr && row->card) {
+        fillCardMenu(menu, *row);
+    } else if (row != nullptr) {
         const QString id = row->id;
         const bool quote = editsText(*row);
         //: Edits a material: its card in the middle of the window, or the editor of a working
@@ -1434,33 +1615,7 @@ void MaterialListPanel::fillMenu(QMenu& menu) {
         }
         // A material of the cover is chosen for it, rejected, or a draft again
         if (MaterialList::isCover(m_list) || !row->group.isEmpty()) {
-            using core::CoverMaterial;
-            const QString state = row->state;
-            //: Chooses a material for the cover; a description, a tagline or a design of the
-            //: same place is no longer chosen. In Polish: &Wybierz na okładkę
-            QAction* choose = menu.addAction(
-                art.getIcon(QStringLiteral("cover.choose"), core::IconContext::Menu),
-                MaterialList::tr("C&hoose for the Cover"));
-            choose->setEnabled(changing && state != QLatin1String(CoverMaterial::CHOSEN));
-            connect(choose, &QAction::triggered, this, [this, id]() {
-                emit requestCoverState(id, QString::fromLatin1(core::CoverMaterial::CHOSEN));
-            });
-            //: Rejects a material of the cover; it stays in the list. In Polish: O&drzuć
-            QAction* reject = menu.addAction(
-                art.getIcon(QStringLiteral("cover.reject"), core::IconContext::Menu),
-                MaterialList::tr("Re&ject"));
-            reject->setEnabled(changing && state != QLatin1String(CoverMaterial::REJECTED));
-            connect(reject, &QAction::triggered, this, [this, id]() {
-                emit requestCoverState(id, QString::fromLatin1(core::CoverMaterial::REJECTED));
-            });
-            if (!state.isEmpty()) {
-                //: Makes a material of the cover chosen or rejected a draft again. In Polish:
-                //: Przywróć jako &roboczy
-                QAction* draft = menu.addAction(MaterialList::tr("&Back to Draft"));
-                draft->setEnabled(changing);
-                connect(draft, &QAction::triggered, this,
-                        [this, id]() { emit requestCoverState(id, QString()); });
-            }
+            addCoverActions(menu, *row);
         }
         addClippingItems(menu, *row);
         menu.addSeparator();
@@ -1503,6 +1658,81 @@ void MaterialListPanel::fillMenu(QMenu& menu) {
                                            QKeyCombination(Qt::NoModifier, Qt::Key_Insert)));
     add->setEnabled(m_addButton->isEnabled());
     connect(add, &QAction::triggered, this, [this]() { emit requestAdd(m_list); });
+}
+
+void MaterialListPanel::addCoverActions(QMenu& menu, const MaterialRow& row) {
+    auto& art = core::ArtProvider::getInstance();
+    const bool changing = !m_book.isReadOnly();
+    const QString id = row.id;
+    using core::CoverMaterial;
+    const QString state = row.state;
+    //: Chooses a material for the cover; a description, a tagline or a design of the
+    //: same place is no longer chosen. In Polish: &Wybierz na okładkę
+    QAction* choose = menu.addAction(
+        art.getIcon(QStringLiteral("cover.choose"), core::IconContext::Menu),
+        MaterialList::tr("C&hoose for the Cover"));
+    choose->setEnabled(changing && state != QLatin1String(CoverMaterial::CHOSEN));
+    connect(choose, &QAction::triggered, this, [this, id]() {
+        emit requestCoverState(id, QString::fromLatin1(core::CoverMaterial::CHOSEN));
+    });
+    //: Rejects a material of the cover; it stays in the list. In Polish: O&drzuć
+    QAction* reject = menu.addAction(
+        art.getIcon(QStringLiteral("cover.reject"), core::IconContext::Menu),
+        MaterialList::tr("Re&ject"));
+    reject->setEnabled(changing && state != QLatin1String(CoverMaterial::REJECTED));
+    connect(reject, &QAction::triggered, this, [this, id]() {
+        emit requestCoverState(id, QString::fromLatin1(core::CoverMaterial::REJECTED));
+    });
+    if (!state.isEmpty()) {
+        //: Makes a material of the cover chosen or rejected a draft again. In Polish:
+        //: Przywróć jako &roboczy
+        QAction* draft = menu.addAction(MaterialList::tr("&Back to Draft"));
+        draft->setEnabled(changing);
+        connect(draft, &QAction::triggered, this,
+                [this, id]() { emit requestCoverState(id, QString()); });
+    }
+}
+
+void MaterialListPanel::fillCardMenu(QMenu& menu, const MaterialRow& row) {
+    auto& art = core::ArtProvider::getInstance();
+    const bool changing = !m_book.isReadOnly();
+    const QString id = row.id;
+    //: Opens the full card of a character, a location or an item. In Polish: &Edytuj
+    QAction* edit = menu.addAction(
+        art.getIcon(QStringLiteral("edit.rename"), core::IconContext::Menu),
+        withKeys(MaterialList::tr("&Edit"), QKeyCombination(Qt::NoModifier, Qt::Key_Return)));
+    QFont bold = edit->font();
+    bold.setBold(true);
+    edit->setFont(bold);
+    connect(edit, &QAction::triggered, this, [this, id]() { emit requestEdit(id, false); });
+    //: Adds a relation of a card with another card in the window Relation. In Polish:
+    //: Re&lacja...
+    QAction* relation = menu.addAction(
+        art.getIcon(QStringLiteral("common.link"), core::IconContext::Menu),
+        CardList::tr("Re&lation..."));
+    relation->setEnabled(changing);
+    connect(relation, &QAction::triggered, this, [this, id]() { emit requestLink(id); });
+    //: In Polish: Zmień &nazwę...
+    QAction* rename = menu.addAction(MaterialList::tr("Rena&me..."));
+    rename->setEnabled(changing);
+    connect(rename, &QAction::triggered, this, [this, id]() { emit requestRename(id); });
+    //: In Polish: &Kopiuj
+    QAction* copy = menu.addAction(
+        art.getIcon(QStringLiteral("edit.copy"), core::IconContext::Menu),
+        withKeys(MaterialList::tr("&Copy"), QKeyCombination(Qt::ControlModifier, Qt::Key_C)));
+    connect(copy, &QAction::triggered, this, &MaterialListPanel::copyCurrent);
+    menu.addSeparator();
+    //: In Polish: &Usuń...
+    QAction* remove = menu.addAction(
+        art.getIcon(QStringLiteral("edit.delete"), core::IconContext::Menu),
+        withKeys(MaterialList::tr("&Delete..."), QKeyCombination(Qt::NoModifier, Qt::Key_Delete)));
+    remove->setEnabled(changing);
+    connect(remove, &QAction::triggered, this, [this, id]() { emit requestDelete(id); });
+    //: In Polish: Właś&ciwości
+    QAction* properties = menu.addAction(withKeys(
+        MaterialList::tr("P&roperties"), QKeyCombination(Qt::AltModifier, Qt::Key_Return)));
+    connect(properties, &QAction::triggered, this, [this, id]() { emit requestProperties(id); });
+    menu.addSeparator();
 }
 
 void MaterialListPanel::copyCurrent() {
@@ -1600,7 +1830,6 @@ bool MaterialListPanel::handleKey(QAbstractItemView* view, QKeyEvent* key) {
     if (row == nullptr) {
         return true;
     }
-    const bool changing = !m_book.isReadOnly();
     switch (what) {
     case ListKey::Edit:
         emit requestEdit(row->id, editsText(*row));
@@ -1609,12 +1838,10 @@ bool MaterialListPanel::handleKey(QAbstractItemView* view, QKeyEvent* key) {
         emit requestProperties(row->id);
         break;
     case ListKey::Rename:
-        if (changing) {
-            emit requestRename(row->id);
-        }
+        renameFromKeys(view, row->id);
         break;
     case ListKey::Delete:
-        if (changing) {
+        if (!m_book.isReadOnly()) {
             emit requestDelete(row->id);
         }
         break;
@@ -1627,6 +1854,12 @@ bool MaterialListPanel::handleKey(QAbstractItemView* view, QKeyEvent* key) {
     return true;
 }
 
+void MaterialListPanel::renameFromKeys(QAbstractItemView* view, const QString& id) {
+    if (!m_book.isReadOnly() && !editCell(view)) {
+        emit requestRename(id);
+    }
+}
+
 void MaterialListPanel::load() {
     const bool loading = m_loading;
     m_loading = true;
@@ -1637,10 +1870,17 @@ void MaterialListPanel::load() {
                                                  QLatin1String(MaterialList::THUMBNAIL);
                                       });
     const bool cover = MaterialList::isCover(m_list);
+    m_cards = CardList::isCardList(m_list);
     m_model->setContents(m_columns, MaterialList::rowsOf(m_book, m_list), !pictures, cover);
-    m_table->verticalHeader()->setDefaultSectionSize(
-        pictures ? THUMBNAIL_ROW : m_table->fontMetrics().height() + 8);
-    m_table->setIconSize(pictures ? QSize(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT) : QSize(16, 16));
+    applyRowSizes(pictures);
+    // The cells of the cards are edited in the table
+    QStringList columnIds;
+    for (const MaterialColumn& column : std::as_const(m_columns)) {
+        columnIds << column.id;
+    }
+    m_cardDelegate->setColumns(columnIds);
+    m_table->setItemDelegate(m_cards ? static_cast<QAbstractItemDelegate*>(m_cardDelegate)
+                                     : m_rowDelegate);
     m_tiles->setModelColumn(std::max(0, m_model->titleColumn()));
     m_header->setColumns(m_columns, [this](const QString& id, const QString& text) {
         m_states[m_list].columnFilter.insert(id, text);
@@ -1651,21 +1891,7 @@ void MaterialListPanel::load() {
     }
     applyColumns();
     fillLinkedWith();
-
-    // The empty list says why
-    QString empty;
-    if (m_model->materialCount() == 0) {
-        //: A list of materials without any; %1: its name, "Quotes"; %2: the keys of Add. In
-        //: Polish: %1: na razie pusto. „Dodaj” (%2) dodaje nowy materiał.
-        empty = MaterialList::tr("%1: nothing yet. Add (%2) adds one.")
-                    .arg(MaterialList::nameOf(m_list),
-                         ShortcutRules::keysText(QKeyCombination(Qt::NoModifier, Qt::Key_Insert)));
-    } else {
-        //: In Polish: Żaden materiał nie pasuje do filtrów.
-        empty = MaterialList::tr("No material matches the filters.");
-    }
-    static_cast<ListTable*>(m_table)->setEmptyText(empty);
-    static_cast<ListTiles*>(m_tiles)->setEmptyText(empty);
+    applyListTexts();
 
     const bool tiles = MaterialList::hasTiles(m_list);
     m_tableButton->setVisible(tiles);
@@ -1697,9 +1923,83 @@ void MaterialListPanel::load() {
     m_loading = loading;
 }
 
+void MaterialListPanel::applyRowSizes(bool pictures) {
+    int rowHeight = m_table->fontMetrics().height() + TEXT_ROW_PADDING;
+    QSize iconSize(ROW_ICON, ROW_ICON);
+    if (pictures) {
+        rowHeight = THUMBNAIL_ROW;
+        iconSize = QSize(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
+    } else if (m_cards) {
+        // The portraits beside the names
+        rowHeight = std::max(rowHeight, CARD_ICON + 4);
+        iconSize = QSize(CARD_ICON, CARD_ICON);
+    }
+    m_table->verticalHeader()->setDefaultSectionSize(rowHeight);
+    m_table->setIconSize(iconSize);
+    m_tiles->setGridSize(m_cards ? cardTileSize(m_tiles->font()) + QSize(TILE_SPACING, TILE_SPACING)
+                                 : QSize(TILE_WIDTH + TILE_SPACING, TILE_HEIGHT + TILE_SPACING));
+}
+
+void MaterialListPanel::applyListTexts() {
+    const QString enter = ShortcutRules::keysText(QKeyCombination(Qt::NoModifier, Qt::Key_Return));
+    const QString insert = ShortcutRules::keysText(QKeyCombination(Qt::NoModifier, Qt::Key_Insert));
+    const bool none = m_model->materialCount() == 0;
+    // The empty list says why
+    QString empty;
+    if (m_cards) {
+        //: The button Edit of a list of cards; %1: the keys. In Polish: Otwórz pełną kartę (%1)
+        m_editButton->setToolTip(CardList::tr("Open the full card (%1)").arg(enter));
+        //: Adds a relation of the card chosen with another card. In Polish: Relacja...
+        m_linkButton->setToolTip(CardList::tr("Relation..."));
+        //: The gear of a list of cards: Settings > Cards. In Polish: Ustawienia kart
+        m_settingsButton->setToolTip(CardList::tr("Card Settings"));
+        //: In Polish: Szukaj w kartach
+        m_search->setAccessibleName(CardList::tr("Search in the cards"));
+        //: In Polish: Lista kart
+        m_table->setAccessibleName(CardList::tr("List of cards"));
+        if (none) {
+            //: A list of cards without any; %1: its name, "Characters"; %2: the keys of Add.
+            //: In Polish: %1: na razie pusto. „Dodaj” (%2) dodaje nową kartę.
+            empty = CardList::tr("%1: nothing yet. Add (%2) adds a card.")
+                        .arg(MaterialList::nameOf(m_list), insert);
+        } else {
+            //: In Polish: Żadna karta nie pasuje do filtrów.
+            empty = CardList::tr("No card matches the filters.");
+        }
+    } else {
+        //: %1: the keys. In Polish: Edytuj materiał na jego karcie, a notatkę roboczą w edytorze
+        //: (%1)
+        m_editButton->setToolTip(
+            MaterialList::tr("Edit the material on its card; a working note in the editor (%1)")
+                .arg(enter));
+        //: In Polish: Powiąż...
+        m_linkButton->setToolTip(MaterialList::tr("Link..."));
+        //: The gear of a list of materials: Settings > Navigator. In Polish: Ustawienia
+        //: materiałów
+        m_settingsButton->setToolTip(MaterialList::tr("Material Settings"));
+        //: In Polish: Szukaj w materiałach
+        m_search->setAccessibleName(MaterialList::tr("Search in the materials"));
+        //: In Polish: Lista materiałów
+        m_table->setAccessibleName(MaterialList::tr("List of materials"));
+        if (none) {
+            //: A list of materials without any; %1: its name, "Quotes"; %2: the keys of Add.
+            //: In Polish: %1: na razie pusto. „Dodaj” (%2) dodaje nowy materiał.
+            empty = MaterialList::tr("%1: nothing yet. Add (%2) adds one.")
+                        .arg(MaterialList::nameOf(m_list), insert);
+        } else {
+            //: In Polish: Żaden materiał nie pasuje do filtrów.
+            empty = MaterialList::tr("No material matches the filters.");
+        }
+    }
+    m_tiles->setAccessibleName(m_table->accessibleName());
+    static_cast<ListTable*>(m_table)->setEmptyText(empty);
+    static_cast<ListTiles*>(m_tiles)->setEmptyText(empty);
+}
+
 void MaterialListPanel::keepState() {
     State& state = m_states[m_list];
     state.kept = true;
+    state.column = m_model->columnId(m_table->currentIndex().column());
     state.search = m_search->text();
     state.linkedWith = m_linkedWith->currentData().toString();
     state.withoutLinks = m_withoutLinks->isChecked();
@@ -1993,6 +2293,22 @@ void MaterialListPanel::onCurrentChanged(QAbstractItemView* view, const QModelIn
         m_states[m_list].current = idAt(current);
         emit materialChosen(idAt(current));
     }
+}
+
+bool MaterialListPanel::editCell(QAbstractItemView* view) {
+    const QModelIndex index = view->currentIndex();
+    if (!m_cards || view != m_table || !index.flags().testFlag(Qt::ItemIsEditable)) {
+        return false;
+    }
+    m_table->edit(index);
+    return true;
+}
+
+int MaterialListPanel::tableColumn() const {
+    const QModelIndex current = m_table->currentIndex();
+    const int column = current.isValid() ? current.column()
+                                         : columnOf(m_states.value(m_list).column);
+    return column >= 0 && !m_header->isSectionHidden(column) ? column : 0;
 }
 
 QString MaterialListPanel::idAt(const QModelIndex& index) const {

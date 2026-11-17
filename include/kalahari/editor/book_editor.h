@@ -1452,23 +1452,28 @@ public:
     QString annotationMarkAt(const QPointF& point) const;
 
     /// @brief Show marks of one kind beside paragraphs, in the left margin of the page: the
-    /// paperclips of the materials linked with them, or the scissors of the clippings cut from
-    /// them
+    /// paperclips of the materials linked with them and the signs of the kinds of the cards
+    /// linked with them, or the scissors of the clippings cut from them
     ///
     /// A mark stays with its paragraph while the text is edited; a new text drops the marks.
-    /// A click on a paperclip, or its item in the context menu of the paragraph, chooses a
-    /// material it names (paragraphMarkClicked()); one on the scissors, or their item in the
-    /// context menu, shows a clipping (paragraphMarkClicked()) or restores it there
-    /// (clippingRestoreRequested()). The marks of the other kind stay; beside a paragraph
-    /// with both, the scissors are left of the paperclip.
+    /// A click on a paperclip or a sign of cards, or its item in the context menu of the
+    /// paragraph, chooses a material or a card it names (paragraphMarkClicked()); one on the
+    /// scissors, or their item in the context menu, shows a clipping (paragraphMarkClicked())
+    /// or restores it there (clippingRestoreRequested()). The marks of the other kind stay.
+    /// The marks of one paragraph go from the text to the left: the paperclip and the signs of
+    /// the cards in their order, then the scissors.
     /// @param marks The marks, all of kind @p kind; one past the end of the text is left out
-    /// @param icon What they show, in the color of the text
+    /// @param icon What they show (the paperclips, the scissors), in the color of the text
     /// @param kind What they stand for: the marks of this kind shown before go
+    /// @param cardIcons Of the materials: the signs of the cards, by ParagraphMark::icon, in
+    ///        the color of the text too
     void setParagraphMarks(const QList<ParagraphMark>& marks, const QIcon& icon,
-                           ParagraphMarkKind kind = ParagraphMarkKind::Materials);
+                           ParagraphMarkKind kind = ParagraphMarkKind::Materials,
+                           const QHash<QString, QIcon>& cardIcons = {});
 
     /// @brief The marks beside the paragraphs, with the paragraphs they are at now, in the
-    /// order of the text (beside one paragraph: the paperclip, then the scissors)
+    /// order of the text: beside one paragraph the paperclip, one for each sign of the cards,
+    /// then the scissors
     QList<ParagraphMark> paragraphMarks() const;
 
     /// @brief The mark beside a paragraph at a point of the editor
@@ -1760,6 +1765,31 @@ public:
     /// The application's commands, e.g. adding a comment; the editor only shows them.
     /// Null entries are left out.
     void setContextMenuActions(const QList<QAction*>& actions);
+
+    /// @brief A kind of card that Create Card on the context menu offers (setCardKinds())
+    struct CardKindChoice {
+        QString kind;  ///< What createCardAsked() gives for it: "kalahari.base:character"
+        QString text;  ///< Its item, with its access key: "&Character..."
+        QIcon icon;    ///< Its icon
+    };
+
+    /// @brief The kinds of cards Create Card offers on the context menu of a misspelled word
+    ///        and of a selection in one paragraph (createCardAsked()); none: no Create Card
+    void setCardKinds(const QList<CardKindChoice>& kinds);
+
+    /// @brief The kinds of cards Create Card offers (setCardKinds())
+    [[nodiscard]] const QList<CardKindChoice>& cardKinds() const { return m_cardKinds; }
+
+    /// @brief The application's commands of the cards in the text (setContextMenuCardActions())
+    struct ContextMenuCardActions {
+        QAction* link = nullptr;  ///< Book > Link Paragraph with Card...: also greyed out
+        QAction* open = nullptr;  ///< Book > Open Card at Cursor: only while it can work
+    };
+
+    /// @brief The commands of the cards the context menu shows after Create Card, with their
+    ///        icons and keys: Link Paragraph with Card... always, enabled as in the Book menu,
+    ///        and Open Card at Cursor where it can open a card; none: neither of them
+    void setContextMenuCardActions(const ContextMenuCardActions& actions);
 
     /// @brief The application's Cut, Copy, Paste and Select All, and its Insert > Link
     ///        (setContextMenuEditActions())
@@ -2419,6 +2449,11 @@ signals:
     ///        word is to be a name of the book's dictionary (setBookDictionary())
     void addNameAsked(const QString& word);
 
+    /// @brief The writer chose a kind of Create Card on the context menu of a misspelled word
+    ///        or of a selection (setCardKinds()): @p text is to be the name of a new card of
+    ///        kind @p kind
+    void createCardAsked(const QString& text, const QString& kind);
+
     /// @brief The writer chose Edit Rule... on the context menu of a place breaking a spelling
     ///        rule of the book (setBookDictionary())
     void editBookRuleAsked(const QString& ruleId);
@@ -2499,8 +2534,9 @@ signals:
     /// @param shown Whether they are shown now
     void annotationCardsShownChanged(bool shown);
 
-    /// @brief Emitted when a material is chosen at the mark beside a paragraph: a click on
-    /// the mark (a menu first when it names several), or its item in the context menu
+    /// @brief Emitted when a material or a card is chosen at the mark beside a paragraph: a
+    /// click on the mark (a menu first when it names several), or its item in the context
+    /// menu
     /// @param id What the mark names (ParagraphMark::ids)
     void paragraphMarkClicked(const QString& id);
 
@@ -3531,6 +3567,8 @@ private:
     bool m_autoScrollForDrop = false;   ///< Scrolling for dragged text (else: for a mouse selection)
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
     QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
+    QList<CardKindChoice> m_cardKinds;     ///< What Create Card offers in the context menu
+    ContextMenuCardActions m_contextMenuCardActions;  ///< The commands of the cards in it
 
     /// @brief A mark beside a paragraph, held by a cursor at the start of the paragraph: it
     /// moves with the text
@@ -3540,6 +3578,7 @@ private:
     };
     std::vector<AnchoredMark> m_paragraphMarks;  ///< setParagraphMarks()
     QMap<ParagraphMarkKind, QIcon> m_paragraphMarkIcons;  ///< What the marks of each kind show
+    QHash<QString, QIcon> m_paragraphCardIcons;  ///< The signs of the cards
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
     ContextMenuTableActions m_contextMenuTableActions;  ///< The Table menu's, in a cell
     ContextMenuImageActions m_contextMenuImageActions;  ///< The Image menu's, on an image
@@ -3750,23 +3789,28 @@ private:
     /// @param always Also when they are where they were (a new icon)
     void syncParagraphMarks(bool always = false);
 
-    /// @brief The material a paperclip beside a paragraph names is chosen: at once when it
-    /// names one, else in a menu at @p globalPos; the scissors open their menu there
+    /// @brief The material or the card a paperclip or a sign of cards beside a paragraph names
+    /// is chosen: at once when it names one, else in a menu at @p globalPos; the scissors open
+    /// their menu there
     void openParagraphMark(const ParagraphMark& mark, const QPoint& globalPos);
 
-    /// @brief Add an item to @p menu for each material @p mark names; for the scissors,
-    /// Show Clipping and Restore Here (in a submenu of each clipping when they are several)
+    /// @brief Add an item to @p menu for each material or card @p mark names; for the
+    /// scissors, Show Clipping and Restore Here (in a submenu of each clipping when they are
+    /// several)
     void addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark);
+
+    /// @brief The icon @p mark shows: the paperclip, the sign of its cards or the scissors
+    [[nodiscard]] QIcon paragraphMarkIcon(const ParagraphMark& mark) const;
 
     /// @brief Add Show Clipping and Restore Here of clipping @p id to @p menu
     void addClippingItems(QMenu& menu, const QString& id);
 
-    /// @brief Add to the context menu a submenu for each mark beside paragraph @p paragraph:
-    /// Linked Materials, Clippings From Here
+    /// @brief Add to the context menu @p menu of paragraph @p paragraph a submenu of what the
+    /// marks beside it name: Linked Materials, Linked Cards, Clippings From Here
     void addParagraphMarkMenus(QMenu& menu, int paragraph);
 
     /// @brief The tooltip of mark @p mark: what it names
-    static QString paragraphMarkToolTip(const ParagraphMark& mark);
+    [[nodiscard]] static QString paragraphMarkToolTip(const ParagraphMark& mark);
 
     /// @param inNote A place of a note's text (its number at @p pos): the misspelled word or
     ///        the grammar issue there
@@ -3797,10 +3841,23 @@ private:
     /// @brief Put on the context menu what is offered for a misspelled word: the words to
     ///        put in its place (as soon as they are found, SUGGESTIONS_PENDING_PROPERTY),
     ///        Ignore All, Add to Book Dictionary (with the book's dictionary), Add to Your Words
-    ///        (All Books), Add Name... (with the book's dictionary)
+    ///        (All Books), Add Name... (with the book's dictionary), then Create Card
+    ///        (addCreateCardMenu()), which addCardMenus() goes on after
     /// @param replace Puts a word chosen in its place
     void addSpellingActions(QMenu& menu, const QString& word,
                             const std::function<void(const QString&)>& replace);
+
+    /// @brief Put Create Card on the context menu, with the kinds of setCardKinds(), for
+    ///        @p text as the name of a new card; nothing without kinds, for a text open
+    ///        read-only, or for a text too long for a name
+    /// @return Whether it is on the menu
+    bool addCreateCardMenu(QMenu& menu, const QString& text);
+
+    /// @brief The cards on the context menu: Create Card for the selection in one paragraph,
+    ///        as a name, unless the menu is of misspelled word @p word (addSpellingActions()
+    ///        has it), then the commands of the cards (setContextMenuCardActions()), and a line
+    ///        after them
+    void addCardMenus(QMenu& menu, const QString& word);
 
     /// @brief Put on the context menu what is offered for a place breaking a spelling rule of
     ///        the book: the rule's form, the rule and its note, Ignore All, Edit Rule...,

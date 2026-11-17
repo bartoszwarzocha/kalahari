@@ -14,6 +14,7 @@
 #include <QString>
 #include <QWidget>
 
+class QAbstractItemDelegate;
 class QAbstractItemView;
 class QAction;
 class QCheckBox;
@@ -40,6 +41,7 @@ class MaterialListModel;
 class MaterialListFilter;
 class FilterHeader;
 class CoverPlan;
+class CardCellDelegate;
 
 /// @brief The list of a kind of materials of the open book (MaterialList), on a tab in the
 /// middle of the window
@@ -63,6 +65,12 @@ class CoverPlan;
 /// cover (CoverPlan), and the menu of a row chooses a material for the cover or rejects it.
 /// A kind hidden in the Navigator (MaterialList::HIDDEN_SETTING) shows a page that says so,
 /// with a button that shows it again. The gear opens the settings of the materials.
+///
+/// A list of a kind of cards (characters, locations, items; CardList) has a small portrait
+/// beside each name, and tiles with the portraits, a stripe in the color of each card, its kind
+/// and In Short. F2 edits the cell of a field or of In Short in the table (CardCellDelegate),
+/// and renames the card in the column of the names; Relation... adds a relation with another
+/// card, and the gear opens the settings of the cards.
 class MaterialListPanel : public QWidget {
     Q_OBJECT
 
@@ -74,6 +82,9 @@ public:
     /// The name and the number of the group of a row that names one; none for a material
     static constexpr int HEADING_ROLE = Qt::UserRole + 5;
     static constexpr int STATE_ROLE = Qt::UserRole + 6;  ///< The state of a material of the cover
+    static constexpr int CARD_ROLE = Qt::UserRole + 7;   ///< Whether the row is a card (bool)
+    static constexpr int COLOR_ROLE = Qt::UserRole + 8;  ///< The color of a card (QColor)
+    static constexpr int SUMMARY_ROLE = Qt::UserRole + 9;  ///< In Short of a card, on its tile
 
     /// @brief The list @p list (MaterialList::kinds(), MaterialList::ALL)
     explicit MaterialListPanel(core::ProjectManager& book, const QString& list,
@@ -254,6 +265,7 @@ private:
         bool columnFilters = false;
         QHash<QString, QString> columnFilter;  ///< Column -> its filter
         QString current;                       ///< The material chosen
+        QString column;                        ///< The column of the current cell of the table
         QString sortColumn;                    ///< Empty: MaterialList::firstSortOf()
         QString part;                          ///< The filter Kind of the cover; empty: all
         Qt::SortOrder sortOrder = Qt::AscendingOrder;
@@ -281,6 +293,9 @@ private:
     void onCurrentChanged(QAbstractItemView* view, const QModelIndex& current);
     /// @brief A key of the list: true when it did something with it
     bool handleKey(QAbstractItemView* view, QKeyEvent* key);
+    /// @brief Rename... of material @p id from the keys of @p view: a list of cards edits the
+    /// cell of a field, a name is renamed; nothing in a book open read-only
+    void renameFromKeys(QAbstractItemView* view, const QString& id);
     QString idAt(const QModelIndex& index) const;
     int columnOf(const QString& columnId) const;
     /// @brief The plan of the cover from the rows shown
@@ -294,6 +309,21 @@ private:
     int shownMaterials() const;
     /// @brief The choices of Kind and the menu of Add of the list of the cover
     void fillCoverChoices();
+    /// @brief The texts of the list that say what it has: the materials or the cards
+    void applyListTexts();
+    /// @brief The height of the rows of the table, the size of its icons and of the tiles
+    /// @param pictures The list has the thumbnails of its pictures
+    void applyRowSizes(bool pictures);
+    /// @brief The commands of a material of the cover in its menu: choose, reject, a draft
+    void addCoverActions(QMenu& menu, const MaterialRow& row);
+    /// @brief The menu of card @p row: Edit, Relation..., Rename..., Delete..., Properties
+    void fillCardMenu(QMenu& menu, const MaterialRow& row);
+    /// @brief Edit the current cell of the table of a list of cards, which F2 edits; false
+    /// when it is no such cell
+    bool editCell(QAbstractItemView* view);
+    /// @brief The column of the table to choose a row in: that of the current cell, also when
+    /// the list was filled again; the first one when it is hidden
+    [[nodiscard]] int tableColumn() const;
 
     /// @brief The text and what Restore to Its Place of the list of the clippings does
     void createClippingCommands();
@@ -355,7 +385,11 @@ private:
     QLabel* m_footer = nullptr;
     QLabel* m_sorting = nullptr;
 
+    QAbstractItemDelegate* m_rowDelegate = nullptr;  ///< Paints the rows of the materials
+    CardCellDelegate* m_cardDelegate = nullptr;      ///< Edits the cells of the cards (F2)
+    bool m_cards = false;    ///< The list is one of the cards (CardList::isCardList())
     bool m_loading = false;  ///< The list is being filled: no material is chosen by the writer
+    int m_settingsListener = 0;    ///< core::SettingsManager::subscribe() id: the portraits
     core::ProjectManager& m_book;  ///< The book of its window
 };
 

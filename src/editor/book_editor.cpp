@@ -511,7 +511,8 @@ bool BookEditor::event(QEvent* event)
             QToolTip::showText(help->globalPos(), tip, this);
             return true;
         }
-        // The mark beside a paragraph: the materials linked with it, the clippings cut from it
+        // The mark beside a paragraph: the materials or the cards linked with it, the clippings
+        // cut from it
         if (const std::optional<ParagraphMark> marked = paragraphMarkAt(QPointF(help->pos()))) {
             QToolTip::showText(help->globalPos(), paragraphMarkToolTip(*marked), this);
             return true;

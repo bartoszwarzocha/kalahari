@@ -43,6 +43,8 @@
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/spelling_panel_coordinator.h"
 #include "kalahari/gui/book_dictionary_coordinator.h"
+#include "kalahari/gui/card_names_coordinator.h"
+#include "kalahari/gui/cards_in_text_coordinator.h"
 #include "kalahari/gui/repetitions_coordinator.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
 #include "kalahari/gui/writing_awards_tracker.h"
@@ -514,7 +516,8 @@ MainWindow::MainWindow(QWidget* parent)
             });
 
     // The paperclips beside the paragraphs that materials are linked with: one chosen shows
-    // its material in the Properties panel, brought to the front
+    // its material in the Properties panel, brought to the front; a card chosen at the sign of
+    // its kind opens
     m_paragraphMarksCoordinator = new ParagraphMarksCoordinator(
         *m_book, m_dockCoordinator->centralTabs(),
         [this](const QString& materialId) {
@@ -526,7 +529,7 @@ MainWindow::MainWindow(QWidget* parent)
                 dock->activateWindow();
             }
         },
-        this);
+        [this](const QString& cardId) { openCard(cardId); }, this);
 
     // The lists of the kinds of materials on their tabs: a kind of the Materials clicked in
     // the Navigator, or Materials itself. A material chosen in a list shows in the Properties
@@ -904,6 +907,9 @@ MainWindow::MainWindow(QWidget* parent)
         {ClippingsCoordinator::INSERT_COMMAND}, [this](const editor::BookEditor& text) {
             return m_clippingsCoordinator->canInsert(text);
         });
+
+    createCardsInText();
+
     // Insert > Date && Time... and the date and the time at once (Alt+Shift+D, Alt+Shift+T):
     // in the book's text with the keys, not in a read-only one; Insert > Field... not in a
     // plain text file either (it keeps no fields). The fields of every open text show the
@@ -1068,6 +1074,7 @@ MainWindow::MainWindow(QWidget* parent)
         *m_book, *m_commands, m_dockCoordinator->spellingPanel(), m_dockCoordinator->spellingDock(),
         m_dockCoordinator->centralTabs(), m_spellingCoordinator, m_grammarCoordinator, this);
     createBookDictionary();
+    createCardNames();
 
     // The Repetitions panel, the marks of the repeated words and Next Repetition; a chapter
     // is opened as from the Navigator
@@ -2061,10 +2068,25 @@ void MainWindow::createBookDictionary() {
             });
 }
 
+void MainWindow::createCardNames() {
+    m_cardNamesCoordinator = new CardNamesCoordinator(*m_book, *m_bookDictionaryCoordinator,
+                                                      m_dockCoordinator->centralTabs(), this);
+    // Create Card of the texts: Add Element with the kind chosen and the name
+    connect(m_cardNamesCoordinator, &CardNamesCoordinator::addCardRequested,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddCard);
+    // The declension of the cards: the window "Name", another name of the full card
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestCardNameWindow,
+            m_cardNamesCoordinator, &CardNamesCoordinator::editName);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::nameWindowRequested,
+            m_cardNamesCoordinator, &CardNamesCoordinator::editName);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::otherNameRequested,
+            m_cardNamesCoordinator, &CardNamesCoordinator::addOtherName);
+}
+
 void MainWindow::onFind() {
     core::Logger::getInstance().info("Action triggered: Find");
 
-    // A list of materials or the book's dictionary in front: its search
+    // A list of materials, a preview or the book's dictionary in front: its search
     if (MaterialListPanel* list = m_materialListCoordinator != nullptr
                                       ? m_materialListCoordinator->currentList()
                                       : nullptr) {
@@ -2841,15 +2863,32 @@ void MainWindow::onAbout() {
 
 // Dock management - OpenSpec #00038 Phase 4: Delegated to DockCoordinator
 
+void MainWindow::openCard(const QString& cardId) {
+    if (const core::ProjectElement* element = book().findElement(cardId); element != nullptr) {
+        m_navigatorCoordinator->onElementSelected(cardId, element->title);
+    }
+}
+
+void MainWindow::createCardsInText() {
+    // In the text with the keys, also on its context menu
+    m_cardsInTextCoordinator = new CardsInTextCoordinator(
+        book(), commands(), m_dockCoordinator->centralTabs(),
+        [this]() { return m_editCoordinator->textWithKeys(); },
+        [this](const QString& cardId) { openCard(cardId); }, this, this);
+    m_cardsInTextCoordinator->connectCommands();
+    m_editCoordinator->addTextCommands(
+        {CardsInTextCoordinator::LINK_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_cardsInTextCoordinator->canLink(text);
+        });
+    m_editCoordinator->addTextCommands(
+        {CardsInTextCoordinator::OPEN_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_cardsInTextCoordinator->canOpen(text);
+        });
+}
+
 void MainWindow::connectCards() {
     PropertiesPanel* properties = m_dockCoordinator->propertiesPanel();
-    connect(properties, &PropertiesPanel::requestOpenCard, this,
-            [this](const QString& elementId) {
-                if (const core::ProjectElement* element = book().findElement(elementId);
-                    element != nullptr) {
-                    m_navigatorCoordinator->onElementSelected(elementId, element->title);
-                }
-            });
+    connect(properties, &PropertiesPanel::requestOpenCard, this, &MainWindow::openCard);
     const auto openCardSettings = [this]() {
         if (m_settingsCoordinator != nullptr) {
             m_settingsCoordinator->openSettingsPage(
@@ -2857,7 +2896,16 @@ void MainWindow::connectCards() {
         }
     };
     connect(properties, &PropertiesPanel::requestCardSettings, this, openCardSettings);
+    // "+" of the cards of the paragraph: the paragraph at the cursor of the text in front
+    connect(properties, &PropertiesPanel::requestLinkParagraphCard, this, [this]() {
+        EditorPanel* editor = getCurrentEditor();
+        if (m_cardsInTextCoordinator != nullptr && editor != nullptr) {
+            m_cardsInTextCoordinator->linkParagraph(editor->getBookEditor());
+        }
+    });
     connect(m_navigatorCoordinator, &NavigatorCoordinator::cardSettingsRequested, this,
+            openCardSettings);
+    connect(m_materialListCoordinator, &MaterialListCoordinator::cardSettingsRequested, this,
             openCardSettings);
     // The gear of a mind map or a timeline: the page of its module
     connect(m_navigatorCoordinator, &NavigatorCoordinator::windowEditorSettingsRequested, this,
@@ -2877,9 +2925,9 @@ void MainWindow::connectCards() {
     connect(properties, &PropertiesPanel::requestAddCardMaterials, m_navigatorCoordinator,
             &NavigatorCoordinator::onRequestAddMaterials);
     connect(m_navigatorCoordinator, &NavigatorCoordinator::findInBookRequested, this,
-            [this](const QString& text) {
+            [this](const QString& cardId) {
                 if (m_bookSearchCoordinator != nullptr) {
-                    m_bookSearchCoordinator->findInBook(text);
+                    m_bookSearchCoordinator->findCardInBook(cardId);
                 }
             });
 }

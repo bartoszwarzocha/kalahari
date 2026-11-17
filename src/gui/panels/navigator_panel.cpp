@@ -11,6 +11,17 @@
 /// OpenSpec #00034 Phase F: Added expansion state persistence between sessions.
 
 #include "kalahari/gui/panels/navigator_panel.h"
+
+#include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/card_data.h"
+#include "kalahari/core/card_relations.h"
+#include "kalahari/core/logger.h"
+#include "kalahari/core/package_card.h"
+#include "kalahari/core/project_manager.h"
+#include "kalahari/core/settings_manager.h"
+#include "kalahari/core/theme_manager.h"
+#include "kalahari/gui/card_list.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -21,49 +32,42 @@
 #include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/utils/file_location.h"
-#include "kalahari/core/logger.h"
-#include "kalahari/core/book_project.h"
-#include "kalahari/core/card_data.h"
-#include "kalahari/core/card_relations.h"
-#include "kalahari/core/project_manager.h"
-#include "kalahari/core/art_provider.h"
-#include "kalahari/core/package_card.h"
-#include "kalahari/core/theme_manager.h"
-#include "kalahari/core/settings_manager.h"
-#include <QTreeWidget>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QTreeWidgetItem>
-#include <QTreeWidgetItemIterator>
-#include <QDir>
-#include <QFileInfo>
-#include <QLineEdit>
-#include <QToolButton>
-#include <QComboBox>
-#include <QTimer>
-#include <QMenu>
+
 #include <QActionGroup>
-#include <QPalette>
 #include <QApplication>
-#include <QBrush>
-#include <QDropEvent>
 #include <QBasicTimer>
+#include <QBrush>
 #include <QClipboard>
 #include <QCollator>
+#include <QComboBox>
 #include <QCoreApplication>
+#include <QDir>
+#include <QDropEvent>
+#include <QFileInfo>
 #include <QFont>
 #include <QGuiApplication>
+#include <QHBoxLayout>
 #include <QKeyEvent>
+#include <QLineEdit>
 #include <QLocale>
+#include <QMenu>
 #include <QMimeData>
 #include <QMimeDatabase>
 #include <QPainter>
+#include <QPalette>
 #include <QPen>
 #include <QPersistentModelIndex>
 #include <QScrollBar>
 #include <QSignalBlocker>
 #include <QStyledItemDelegate>
+#include <QTimer>
 #include <QTimerEvent>
+#include <QToolButton>
+#include <QTreeWidget>
+#include <QTreeWidgetItem>
+#include <QTreeWidgetItemIterator>
+#include <QVBoxLayout>
+
 #include <algorithm>
 #include <functional>
 #include <utility>
@@ -2608,8 +2612,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         }
 
     } else if (elementType == "workshop_shelf" || elementType == "workshop_group") {
-        // Materials and its kinds show their lists on tabs
-        if (const std::optional<QString> list = materialListOf(item)) {
+        // Materials, its kinds and the groups of the cards show their lists on tabs
+        if (const std::optional<QString> list = listOf(item)) {
             //: Shows the list of the materials of a kind on a tab in the middle of the window.
             //: In Polish: &Otwórz listę
             QAction* openAction = menu.addAction(
@@ -3046,12 +3050,25 @@ std::optional<QString> NavigatorPanel::materialListOf(const QTreeWidgetItem* ite
     return std::nullopt;
 }
 
+std::optional<QString> NavigatorPanel::cardListOf(const QTreeWidgetItem* item) {
+    if (item == nullptr || typeOf(item) != QLatin1String("workshop_group")) {
+        return std::nullopt;
+    }
+    const QString list = item->data(0, KIND_ROLE).toString();
+    return CardList::isCardList(list) ? std::optional<QString>(list) : std::nullopt;
+}
+
+std::optional<QString> NavigatorPanel::listOf(const QTreeWidgetItem* item) {
+    const std::optional<QString> list = materialListOf(item);
+    return list ? list : cardListOf(item);
+}
+
 bool NavigatorPanel::requestPageOf(const QTreeWidgetItem* item, bool keys) {
     if (item != nullptr && typeOf(item) == QLatin1String(BOOK_DICTIONARY_TYPE)) {
         emit requestOpenBookDictionary(keys);
         return true;
     }
-    if (const std::optional<QString> list = materialListOf(item)) {
+    if (const std::optional<QString> list = listOf(item)) {
         emit requestOpenMaterialList(*list, keys);
         return true;
     }

@@ -38,6 +38,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/package_card.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/material_kinds.h"
@@ -143,6 +144,25 @@ QString linkName(const core::ProjectManager& book, const QString& link) {
     const std::optional<core::BookPlace> section =
         project ? project->linkedSection(link) : std::nullopt;
     return section && pm.book() ? pm.book()->sectionName(*section) : link;
+}
+
+/// The name of card @p cardId in the book's dictionary; an empty one when it has none
+core::DictionaryName dictionaryNameOf(const core::ProjectManager& book, const QString& cardId) {
+    const core::DictionaryName* name = book.bookDictionary().findNameOfCard(cardId);
+    return name != nullptr ? *name : core::DictionaryName{};
+}
+
+/// The name @p nameId of a deleted card goes from the book's dictionary, unless the writer
+/// keeps it there (@p keep)
+void forgetName(core::ProjectManager& book, const QString& nameId, bool keep) {
+    if (keep || nameId.isEmpty()) {
+        return;
+    }
+    if (!book.changeBookDictionary(
+            [&nameId](core::BookDictionary& dictionary) { dictionary.removeName(nameId); })) {
+        core::Logger::getInstance().warn("NavigatorCoordinator: The name of a deleted card "
+                                         "stays in the book's dictionary");
+    }
 }
 
 }  // namespace
@@ -535,6 +555,12 @@ CardPanel* NavigatorCoordinator::createCardPanel(const QString& elementId) {
             &NavigatorCoordinator::onRequestAddMaterials);
     connect(page, &CardPage::requestFindInBook, this,
             &NavigatorCoordinator::findInBookRequested);
+    // The declension of its name: the window "Name", another name
+    connect(page, &CardPage::requestNameWindow, this,
+            &NavigatorCoordinator::nameWindowRequested);
+    connect(page, &CardPage::requestOtherName, this, [this, page](const QString& cardId) {
+        emit otherNameRequested(cardId, page->window());
+    });
     return panel;
 }
 
@@ -625,6 +651,9 @@ void NavigatorCoordinator::onRequestDelete(const QString& elementId) {
     content.unassigned =
         std::all_of(content.files.cbegin(), content.files.cend(),
                     [&pm](const QString& file) { return pm.listsAsUnassigned(file); });
+    // A card's name in the book's dictionary goes with it, unless the writer keeps it there
+    const core::DictionaryName cardName = dictionaryNameOf(pm, elementId);
+    content.dictionaryName = cardName.text();
     dialogs::DeleteFromBookDialog dialog(content, pm.bookTypes(), window);
     if (dialog.exec() != QDialog::Accepted) {
         return;
@@ -677,6 +706,7 @@ void NavigatorCoordinator::onRequestDelete(const QString& elementId) {
         return;
     }
     logger.info("NavigatorCoordinator: Deleted element: {}", elementId.toStdString());
+    forgetName(pm, cardName.id, dialog.keepName());
     closeTabsOf(*removed);
 
     // The files go to the Trash, or for good from a folder without one; those that stay are
@@ -1196,6 +1226,14 @@ void NavigatorCoordinator::moveElementTo(const QString& elementId,
 
 void NavigatorCoordinator::onRequestAdd(const AddTarget& target) {
     addWithWindow(target);
+}
+
+bool NavigatorCoordinator::onRequestAddCard(const QString& title, const core::KindRef& kind) {
+    AddTarget target;
+    target.scope = AddTarget::Scope::Workshop;
+    target.kind = kind;
+    return addWithWindow(target,
+                         [&title](dialogs::NewFileDialog& dialog) { dialog.setTitle(title); });
 }
 
 bool NavigatorCoordinator::addWithWindow(

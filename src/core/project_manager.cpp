@@ -6,9 +6,11 @@
 
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/backup_manager.h>
+#include <kalahari/core/book_dictionary.h>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_package.h>
 #include <kalahari/core/card_data.h>
+#include <kalahari/core/card_name_index.h>
 #include <kalahari/core/card_relations.h>
 #include <kalahari/core/bibliography.h>
 #include <kalahari/core/book_project.h>
@@ -42,6 +44,7 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <iterator>
 #include <utility>
 
 #include <zip.h>
@@ -626,6 +629,8 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
     }
     book.folder = QString::fromLatin1(BookProject::BOOK_FOLDER);
     project.books.append(book);
+    // The cards start with the fields that the Settings give new books
+    giveDefaultCardFields(project);
 
     QString manifestPath = QDir(projectDir).filePath(
         safeFileName(request.title) + QLatin1String(BookProject::FILE_EXTENSION));
@@ -1018,6 +1023,7 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
 
     logger.info("Project opened successfully: {}",
                 book() ? book()->title.toStdString() : std::string());
+    m_cardNames.reset();
     emit bookDictionaryChanged();
     emit projectOpened(toQString(m_projectPath));
 
@@ -1157,6 +1163,7 @@ bool ProjectManager::closeProject(bool promptSave) {
     m_isDirty = false;
 
     setWorkMode(WorkMode::NoDocument);
+    m_cardNames.reset();
     emit bookDictionaryChanged();
     emit projectClosed();
 
@@ -1578,6 +1585,7 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     logger.info("addElement: Added '{}' ({}, id: {}) with {} elements inside it",
                 title.toStdString(), kind.reference().toStdString(), element.id.toStdString(),
                 takeInside.size());
+    sayIfCard(kind, element.id);
     return element.id;
 }
 
@@ -2104,6 +2112,7 @@ std::optional<ProjectElement> ProjectManager::removeElement(const QString& eleme
     }
     Logger::getInstance().info("removeElement: Removed '{}' (id: {})",
                                element.title.toStdString(), elementId.toStdString());
+    releaseCardNames(removedIds);
     if (linksGone) {
         emit linksChanged();
     }
@@ -2690,6 +2699,42 @@ QList<ElementLink> ProjectManager::linksToKeep(const QString& elementId,
     return kept;
 }
 
+bool ProjectManager::linkParagraph(const QString& linkedId, const QString& elementId,
+                                   int paragraph, const QString& paragraphText,
+                                   const QString& role) {
+    const ProjectElement* element = findElement(linkedId);
+    if (element == nullptr || findElement(elementId) == nullptr || paragraph <= 0) {
+        return false;
+    }
+    QList<ElementLink> links = element->links;
+    auto had = std::find_if(links.begin(), links.end(),
+                            [&elementId](const ElementLink& link) { return link.to == elementId; });
+    if (had == links.end()) {
+        links.append(newLink(linkedId, elementId));
+        had = std::prev(links.end());
+    }
+    had->paragraph = paragraph;
+    had->excerpt = LinkRoles::excerptOf(paragraphText);
+    had->role = role;
+    return setLinks(linkedId, links);
+}
+
+bool ProjectManager::unlinkParagraph(const QString& linkedId, const QString& elementId) {
+    const ProjectElement* element = findElement(linkedId);
+    const ElementLink* had = element != nullptr ? element->linkTo(elementId) : nullptr;
+    if (had == nullptr) {
+        return false;
+    }
+    QList<ElementLink> links = element->links;
+    for (ElementLink& link : links) {
+        if (link.to == elementId) {
+            link.paragraph = 0;
+            link.excerpt.clear();
+        }
+    }
+    return setLinks(linkedId, links);
+}
+
 bool ProjectManager::setLinks(const QString& elementId, const QStringList& targets) {
     const ProjectElement* element = findElement(elementId);
     QList<ElementLink> links;
@@ -2700,10 +2745,10 @@ bool ProjectManager::setLinks(const QString& elementId, const QStringList& targe
     return setLinks(elementId, links);
 }
 
-ElementLink ProjectManager::newLink(const QString& elementId, const QString& target) const {
+ElementLink ProjectManager::newLink(const QString& linkedId, const QString& target) const {
     ElementLink link;
     link.to = target;
-    const ProjectElement* element = findElement(elementId);
+    const ProjectElement* element = findElement(linkedId);
     const KindRef kind = element != nullptr ? kindOf(*element) : KindRef();
     const ProjectElement* other = findElement(target);
     if (!kind) {
@@ -2956,7 +3001,7 @@ QString ProjectManager::cardFieldText(const QString& cardId, const QString& fiel
         return {};
     }
     const KindRef kind = kindOf(*card);
-    const CardField* field = kind ? kind.kind->field(fieldId) : nullptr;
+    const CardField* field = cardField(kind, fieldId);
     if (field != nullptr) {
         if (const ProjectElement* named = CardRelations(*this).fieldCard(*card, *field)) {
             return named->title;
@@ -3092,46 +3137,6 @@ bool ProjectManager::setParagraphStyles(const QList<BookParagraphStyle>& styles)
     }
     emit paragraphStylesChanged();
     return true;
-}
-
-const BookDictionary& ProjectManager::bookDictionary() const {
-    return m_bookDictionary;
-}
-
-bool ProjectManager::changeBookDictionary(const std::function<void(BookDictionary&)>& change) {
-    auto& logger = Logger::getInstance();
-    if (!m_project) {
-        logger.warn("changeBookDictionary: No project is open");
-        return false;
-    }
-    if (refusesChange("changeBookDictionary")) {
-        return false;
-    }
-    if (!m_bookDictionaryRead) {
-        logger.warn("changeBookDictionary: The file of the dictionary could not be read, so it "
-                    "is not written over");
-        return false;
-    }
-    BookDictionary changed = m_bookDictionary;
-    change(changed);
-    if (changed.toJson() == m_bookDictionary.toJson()) {
-        return true;
-    }
-    QString problem;
-    if (!changed.save(bookDictionaryPath(), &problem)) {
-        logger.warn("changeBookDictionary: {}", problem.toStdString());
-        return false;
-    }
-    m_bookDictionary = std::move(changed);
-    emit bookDictionaryChanged();
-    return true;
-}
-
-QString ProjectManager::bookDictionaryPath() const {
-    if (!m_project) {
-        return {};
-    }
-    return QDir(toQString(m_projectPath)).filePath(BookDictionary::fileName());
 }
 
 bool ProjectManager::setSource(const QString& elementId, const SourceDescription& source) {
@@ -3290,6 +3295,81 @@ bool ProjectManager::setBookPublication(const QString& isbn, const QString& publ
     return true;
 }
 
+const BookDictionary& ProjectManager::bookDictionary() const {
+    return m_bookDictionary;
+}
+
+bool ProjectManager::changeBookDictionary(const std::function<void(BookDictionary&)>& change) {
+    auto& logger = Logger::getInstance();
+    if (!m_project) {
+        logger.warn("changeBookDictionary: No project is open");
+        return false;
+    }
+    if (refusesChange("changeBookDictionary")) {
+        return false;
+    }
+    if (!m_bookDictionaryRead) {
+        logger.warn("changeBookDictionary: The file of the dictionary could not be read, so it "
+                    "is not written over");
+        return false;
+    }
+    BookDictionary changed = m_bookDictionary;
+    change(changed);
+    if (changed.toJson() == m_bookDictionary.toJson()) {
+        return true;
+    }
+    QString problem;
+    if (!changed.save(bookDictionaryPath(), &problem)) {
+        logger.warn("changeBookDictionary: {}", problem.toStdString());
+        return false;
+    }
+    m_bookDictionary = std::move(changed);
+    m_cardNames.reset();
+    emit bookDictionaryChanged();
+    return true;
+}
+
+void ProjectManager::sayIfCard(const KindRef& kind, const QString& elementId) {
+    if (kind && kind.kind->isCard()) {
+        emit cardAdded(elementId);
+    }
+}
+
+void ProjectManager::releaseCardNames(const QSet<QString>& removedIds) {
+    // The names stay in the dictionary, without their cards (a book whose dictionary could not
+    // be read keeps its file)
+    const bool named = std::ranges::any_of(m_bookDictionary.names(),
+                                           [&removedIds](const DictionaryName& name) {
+                                               return removedIds.contains(name.card);
+                                           });
+    if (!named || !m_bookDictionaryRead) {
+        return;
+    }
+    changeBookDictionary([&removedIds](BookDictionary& dictionary) {
+        const QList<DictionaryName> names = dictionary.names();
+        for (DictionaryName name : names) {
+            if (removedIds.contains(name.card)) {
+                name.card.clear();
+                dictionary.putName(std::move(name));
+            }
+        }
+    });
+}
+
+const CardNameIndex& ProjectManager::cardNames() const {
+    if (!m_cardNames) {
+        m_cardNames.emplace(m_bookDictionary);
+    }
+    return *m_cardNames;
+}
+
+QString ProjectManager::bookDictionaryPath() const {
+    if (!m_project) {
+        return {};
+    }
+    return QDir(toQString(m_projectPath)).filePath(BookDictionary::fileName());
+}
+
 QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& link) const {
     QList<const ProjectElement*> linked;
     if (!m_project || link.isEmpty()) {
@@ -3299,6 +3379,22 @@ QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& li
     appendAll(m_project->workshop.elements, workshop);
     for (const ProjectElement* element : workshop) {
         if (element->linkTo(link) != nullptr && isMaterial(*element)) {
+            linked << element;
+        }
+    }
+    return linked;
+}
+
+QList<const ProjectElement*> ProjectManager::cardsLinkedTo(const QString& link) const {
+    QList<const ProjectElement*> linked;
+    const ProjectElement* target = findElement(link);
+    if (!m_project || target == nullptr || isCard(*target)) {
+        return linked;
+    }
+    QList<const ProjectElement*> workshop;
+    appendAll(m_project->workshop.elements, workshop);
+    for (const ProjectElement* element : workshop) {
+        if (element->linkTo(link) != nullptr && isCard(*element)) {
             linked << element;
         }
     }

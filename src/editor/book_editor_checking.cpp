@@ -1141,7 +1141,10 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word,
         disableWhileReadOnly(addName);
         connect(addName, &QAction::triggered, this, [this, word]() { emit addNameAsked(word); });
     }
+    // The word as the name of a new card, which takes its forms to the book's dictionary; the
+    // commands of the cards follow it (addCardMenus())
     menu.addSeparator();
+    addCreateCardMenu(menu, word);
 }
 
 std::optional<core::RuleDeviation> BookEditor::bookRuleDeviation(const QString& text) const

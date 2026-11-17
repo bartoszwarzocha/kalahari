@@ -640,6 +640,12 @@ QString LocalizedText::text(const QString& language) const {
     return values.value(QStringLiteral("en"));
 }
 
+LocalizedText LocalizedText::plain(const QString& text) {
+    LocalizedText plain;
+    plain.values.insert(QStringLiteral("en"), text);
+    return plain;
+}
+
 QString bookPlaceName(BookPlace place) {
     return QLatin1String(PLACE_NAMES[static_cast<int>(place)]);
 }

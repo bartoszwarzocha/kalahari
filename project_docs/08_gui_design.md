@@ -1567,6 +1567,8 @@ Rules for a new shortcut:
 | Edit > Next To Do | Alt+Down |
 | Edit > Previous To Do | Alt+Up |
 | Book > Add... | Ctrl+Shift+Enter |
+| Book > Link Paragraph with Card... | Alt+Shift+K (macOS: Cmd+Option+Shift+K) |
+| Book > Open Card at Cursor | Alt+Shift+O (macOS: Cmd+Option+Shift+O) |
 | Book > Plot Board | Ctrl+Shift+T |
 | Book > Outline | Ctrl+Shift+L |
 | Insert > Add Annotation... | Ctrl+Shift+M |

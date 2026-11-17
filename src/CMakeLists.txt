@@ -70,6 +70,9 @@ set(KALAHARI_CORE_SOURCES
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
     core/package_json.cpp       # The parts of booktype.json that its readers share
     core/card_package.cpp       # The fields of the kinds of cards and the relations of a package
+    core/card_field_set.cpp     # The fields of the cards as a book has them
+    core/card_names.cpp         # The names of the cards in the book's dictionary
+    core/card_name_index.cpp    # Which card a name at a place of a text is
     core/book_type_registry.cpp # Book type packages loaded from folders
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/affix_expander.cpp     # The forms a Hunspell dictionary gives its words
@@ -187,6 +190,7 @@ set(KALAHARI_SOURCES
     core/recent_books_manager.cpp # RecentBooksManager - Recent files management (OpenSpec #00030)
     core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
     core/card_relations.cpp # The relations between the cards of a book (uses ProjectManager)
+    core/project_manager_card_fields.cpp # ProjectManager: the fields of the cards of the book
     core/package_card.cpp   # Cards of the packages a book uses: names and icons (IconRegistry)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus
@@ -242,6 +246,9 @@ set(KALAHARI_SOURCES
     gui/dialogs/character_dialogs.cpp  # The keys of a character, a replacement of auto-correct
     gui/dialogs/link_dialog.cpp  # LinkDialog - what a material is about, or the materials of an element
     gui/dialogs/relation_dialog.cpp  # RelationDialog - a relation of a card with another card
+    gui/dialogs/paragraph_card_dialog.cpp  # ParagraphCardDialog - a paragraph linked with a card
+    gui/dialogs/card_fields_dialog.cpp  # CardFieldsDialog - the fields of the cards of each kind
+    gui/dialogs/card_field_dialogs.cpp  # CardFieldDialog, CardChoicesDialog - a field of the writer, its list
     gui/material_file.cpp  # MaterialFile - the file of a material: its name, format, size and picture
     gui/material_source.cpp  # MaterialSource - a file, a web page, a picture on the web or none
     gui/material_downloader.cpp  # MaterialDownloader - the title of a page, the copy of a picture
@@ -250,6 +257,7 @@ set(KALAHARI_SOURCES
     gui/material_list.cpp  # MaterialList - the lists of the materials: their kinds, columns and rows
     gui/material_list_clippings.cpp  # MaterialList - the columns of the clippings
     gui/clipping_texts.cpp  # What the program says of a clipping
+    gui/card_list.cpp  # CardList - the lists of the cards: their columns and rows
     gui/version_texts.cpp  # What the program says of a version of a text
     gui/versions_coordinator.cpp  # VersionsCoordinator - Save Version and Version History
     gui/dialogs/version_name_dialog.cpp  # VersionNameDialog - the description of a version
@@ -308,6 +316,7 @@ set(KALAHARI_SOURCES
     gui/chapter_break_coordinator.cpp  # ChapterBreakCoordinator - Book > Chapter Break with Undo
     gui/clippings_coordinator.cpp  # ClippingsCoordinator - Cut to Clippings and Insert > Clipping
     gui/clippings_coordinator_steps.cpp  # ClippingsCoordinator - the undo of the texts, the tabs
+    gui/cards_in_text_coordinator.cpp  # CardsInTextCoordinator - the cards in the texts
     gui/field_coordinator.cpp  # FieldCoordinator - the fields of the open texts, Insert > Field...
     gui/go_to_coordinator.cpp  # GoToCoordinator - Edit > Go To..., the window of the places of the text
     gui/dialogs/style_dialog.cpp  # StyleDialog - New Style and Modify Style, in two variants
@@ -319,6 +328,7 @@ set(KALAHARI_SOURCES
     gui/grammar_coordinator.cpp  # GrammarCoordinator - grammar as you type: the editors' LanguageTool server
     gui/spelling_panel_coordinator.cpp  # SpellingPanelCoordinator - the Spelling and Grammar panel and the text in front
     gui/book_dictionary_coordinator.cpp  # BookDictionaryCoordinator - the book dictionary on its tab and its windows
+    gui/card_names_coordinator.cpp  # CardNamesCoordinator - the names of the cards in the book's dictionary
     gui/repetitions_coordinator.cpp  # RepetitionsCoordinator - the Repetitions panel, the marks in the text, Next Repetition
     gui/grammar_components.cpp  # GrammarComponents - Java and LanguageTool on this computer
     gui/language_tool_server.cpp  # LanguageToolServer - the LanguageTool server the program starts
@@ -386,6 +396,7 @@ set(KALAHARI_SOURCES
     gui/widgets/kind_palette.cpp  # KindPalette - the kinds of elements of all book types
     gui/widgets/folder_field.cpp  # FolderField - the path of a folder, Browse... and Restore Default
     gui/widgets/name_forms_table.cpp  # NameFormsTable - the forms of a name by case and number
+    gui/widgets/card_name_box.cpp  # CardNameBox - the declension of the name of a card
     gui/toolbar_manager.cpp
     gui/widgets/status_bar_statistics.cpp  # Counts of the document in front in the status bar
     gui/widgets/stats_painter.cpp  # Colors and drawing of the statistics graphs
@@ -411,8 +422,11 @@ set(KALAHARI_SOURCES
     gui/widgets/own_fields_box.cpp  # OwnFieldsBox - the writer's own fields of a material or a card
     gui/widgets/relations_box.cpp  # RelationsBox - the relations of a card with the other cards
     gui/widgets/card_chapters_box.cpp  # CardChaptersBox - the chapters a card is in
+    gui/widgets/card_cell_delegate.cpp  # CardCellDelegate - the cells of a list of cards that F2 edits
     gui/widgets/palette_edit.cpp  # PaletteEdit - a palette of colors to change in the Settings
     gui/panels/card_page.cpp      # CardPage - the card of a character, a location or an item
+    gui/panels/cursor_card_box.cpp  # CursorCardBox - the card at the cursor in the Properties panel
+    gui/panels/paragraph_cards_box.cpp  # ParagraphCardsBox - the cards of the paragraph at the cursor
     gui/panels/card_panel.cpp     # CardPanel - the full card on a tab beside the chapters
     gui/panels/card_parts.cpp  # The small parts of the cards of the materials
     gui/panels/source_boxes.cpp  # The groups of the card of a source and of a quote
@@ -555,6 +569,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/relation_dialog.h  # RelationDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_card_dialog.h  # ParagraphCardDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/card_fields_dialog.h  # CardFieldsDialog, CardFieldDialog, CardChoicesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/quick_insert_item_dialog.h  # QuickInsertItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/name_dialog.h  # NameDialog with Q_OBJECT
@@ -577,6 +593,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_search_coordinator.h  # BookSearchCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/chapter_break_coordinator.h  # ChapterBreakCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/clippings_coordinator.h  # ClippingsCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/cards_in_text_coordinator.h  # CardsInTextCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/field_coordinator.h  # FieldCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/go_to_coordinator.h  # GoToCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/style_dialog.h  # StyleDialog, StylePreview with Q_OBJECT
@@ -603,6 +620,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_panel_coordinator.h  # SpellingPanelCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_dictionary_coordinator.h  # BookDictionaryCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/card_names_coordinator.h  # CardNamesCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/repetitions_coordinator.h  # RepetitionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/language_tool_server.h  # LanguageToolServer with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_setup.h  # GrammarSetup with Q_OBJECT
@@ -629,6 +647,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/kind_palette.h  # KindPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/folder_field.h  # FolderField with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/name_forms_table.h  # NameFormsTable with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/card_name_box.h  # CardNameBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h  # StatusBarStatistics with Q_OBJECT
@@ -653,6 +672,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/relations_box.h  # RelationsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/card_chapters_box.h  # CardChaptersBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_page.h  # CardPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/cursor_card_box.h  # CursorCardBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_cards_box.h  # ParagraphCardsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_panel.h  # CardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/palette_edit.h  # PaletteEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/source_boxes.h  # The groups of the card of a source with Q_OBJECT

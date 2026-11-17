@@ -466,6 +466,15 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_CB("book.newTimeline", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Timeline..."), "BOOK/New Timeline...", 70, true, 1,
                newInWorkshop("timeline"));
 
+    // The cards in the text (CardsInTextCoordinator gives them their callbacks): the paragraph
+    // at the cursor linked with a card, and the card whose name the cursor is in, else the
+    // first card of its paragraph, opened. Alt+Shift with a letter, as the other commands of
+    // the text (Option+Shift+Cmd on macOS): free in the program and in the systems
+    REG_CMD_KEY("book.linkParagraphCard", QT_TRANSLATE_NOOP("CommandRegistrar", "Link Paragraph &with Card..."), "BOOK/Link Paragraph with Card...", 75, false, 0,
+                KeyboardShortcut(Qt::Key_K, pasteModifiers));
+    REG_CMD_KEY("book.openCardAtCursor", QT_TRANSLATE_NOOP("CommandRegistrar", "&Open Card at Cursor"), "BOOK/Open Card at Cursor", 76, true, 0,
+                KeyboardShortcut(Qt::Key_O, pasteModifiers));
+
     // The text from the cursor to a new text right after the text in front, named after the
     // texts of the book, as New Chapter... (MainWindow); ChapterBreakCoordinator gives it its
     // callback

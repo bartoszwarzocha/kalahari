@@ -256,13 +256,27 @@ std::map<std::string, json> buildDefaults() {
         {"navigator.addCommands", "named"},
         // The cards of the Workshop (characters, locations, items): the palette that new cards
         // take their colors from, in order (CardColors::next()), whether the Navigator shows
-        // the color of a card beside its name, and whether it puts a location under the one it
-        // is part of ("tree") or all of them in alphabetical order ("list")
+        // the color of a card beside its name, whether it puts a location under the one it
+        // is part of ("tree") or all of them in alphabetical order ("list"), and what the
+        // Properties panel shows of the cards at the cursor of a text: the card whose name it
+        // is in and the cards of the paragraph ("names"), only those ("paragraphs") or none
+        // ("none"), whether a paragraph linked with cards has the signs of their kinds
+        // beside it, the fields of the cards that new books start with, by the kind of the
+        // cards (card_fields::DEFAULTS_SETTING; none: the fields of the packages), the layout
+        // of the full card (the data beside the description: "columns", or "tabs"), the shape
+        // of the portraits ("square" or "circle") and what a portrait without a picture shows
+        // (the initials on the color of the card, "initials", or the icon of its kind, "icon")
         {"cards.palette", json::array({"#c0504d", "#7e57c2", "#2e9e6a", "#d4a017", "#3a8fc9",
                                        "#8d7b6a", "#b04a8f", "#e07b39", "#4f6fd1", "#6b9e2e",
                                        "#1f9aa5", "#a35d3d"})},
         {"cards.navigatorColorDot", true},
         {"cards.navigatorTree", "tree"},
+        {"cards.atCursor", "names"},
+        {"cards.paragraphMarks", true},
+        {"cards.fields", json::object()},
+        {"cards.fullCardLayout", "columns"},
+        {"cards.portraitShape", "square"},
+        {"cards.portraitWithoutPicture", "initials"},
 
         // The plot board (gui::PlotBoard): the board of the cards ("board") or the outline
         // ("outline"), the one shown last, and the one a new tab opens on ("board", "outline"

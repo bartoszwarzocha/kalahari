@@ -11,6 +11,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The fields of the cards, and Settings > Cards** - 2026-11-16. Fields... on the bar of a full
+  card opens the window Card Fields of its kind (a list of the kinds above the table chooses
+  another): the fields in the order of the card, Name and In Short first and always there, with
+  the kind of each field and three boxes, On the Card, In Properties and In the List (Space
+  ticks the box of the cell); a hidden field keeps its values. Add Field... (Insert) adds a text,
+  a longer text, a list to choose from (its values in List Values..., in the order of the list)
+  or a card of a kind, which names the relation it keeps with the card it names and the other
+  way; F2 changes a field the writer added, Delete removes it (the cards keep its values, and a
+  value gone from a list stays as text), Move Up and Move Down change the order, and Restore
+  Type Fields goes back to the fields of the book type. The book keeps its fields
+  (`workshop.cardFields` of the book file), so each book can have its own; "Save as defaults for
+  new books" makes them the fields new books start with, which Settings > Cards > Card Fields
+  changes too (Default Fields of New Books...). The context menu of an own field of a card adds
+  it to all the cards of its kind, which take the values of their own fields of that name.
+  Settings > Cards also chooses the layout of the full card (two columns, or the tabs General,
+  Description, Relations, Chapters and Materials under the header, chosen with Alt and their
+  letters) and the portraits: squares or circles, and for a card without a picture its
+  initials on its color or the icon of its kind; the cards, their lists and the card at the
+  cursor change at once.
+- **Cards in the text of the book** - 2026-11-16. Book > Link Paragraph with Card...
+  (Alt+Shift+K; macOS: Cmd+Option+Shift+K) opens the window of the paragraph at the cursor: the
+  chapter, the number and the first words of the paragraph, the cards in the order of their
+  names, filtered by any form of a name, the card whose name the cursor is in chosen first, and
+  the role of the card in the paragraph (point of view, appears, mentioned, the place of the
+  action). A card links with one paragraph of a chapter: linked again, its link moves to the new
+  paragraph. Book > Open Card at Cursor (Alt+Shift+O; macOS: Cmd+Option+Shift+O) opens the card
+  whose name the cursor is in, in any of its forms, else the first card of the paragraph; both
+  are on the context menu of the text too. A paragraph linked with cards has the sign of each of
+  their kinds on the margin, next to the paperclip of the materials; a click opens the card, and
+  the context menu of the paragraph has Linked Cards. The Properties panel, on the page of the
+  text in front or of its chapter, shows the card whose name the cursor is in (Card at the
+  Cursor, with Open Card) and Cards of the Paragraph: the
+  roles and the cards with their colors, "+" or Insert to link one, "-" or Delete to take one off
+  the paragraph (it stays linked with the chapter), Enter or a double-click to open it. Settings >
+  Cards > In the Text chooses what Properties shows at the cursor and whether the signs are on
+  the margin; links name paragraphs while Settings > Navigator allows it. Quick Insert after @
+  shows the names of the cards with dots of their colors.
+- **Lists of the cards** - 2026-11-16. A group of cards clicked in the Navigator (Characters,
+  Locations, Items) opens the list of its cards in the middle of the window, as the lists of the
+  materials: the columns are the fields of the kind (those In the List shown at first), In Short
+  and the numbers of the chapters and the relations; the search finds the forms and the other
+  names of the names in the book's dictionary. F2 edits a cell of a field or of In Short in
+  place; the menu has Edit, Relation..., Rename..., Delete... and Properties; the tiles have the
+  portraits with the colors of the cards; the gear opens Settings > Cards.
+- **The names of the cards declined from the book's dictionary** - 2026-11-16. A card has its
+  name in the book's dictionary: a new card takes over a name of the same text without a card, a
+  new title gives the name the new text, and Delete asks whether the name stays in the
+  dictionary. The short card shows the forms in one line and the other names ("Change..." opens
+  the window Name); the full card shows the forms by case of the name or of another name,
+  corrected right there, with another name added by Insert. Create Card on the context menu of
+  an unknown word and of a selection opens Add Element with the name. The window Relation finds
+  the cards by any form and other name and declines them in its preview; Find in Book of a card
+  finds all its forms and other names.
+
 - **Plot board and outline** - 2026-11-15. Book > Plot Board (Ctrl+Shift+T) shows the texts of
   the main section of the book (chapters, prologue, epilogue) as cards on a tab of their own:
   the title, a short description, the point of view, the place and the time of the action, the

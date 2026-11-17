@@ -23,6 +23,7 @@
 class QCheckBox;
 class QComboBox;
 class QHBoxLayout;
+class QLabel;
 class QLineEdit;
 class QListWidget;
 class QPushButton;
@@ -531,10 +532,16 @@ private:
     const core::ProjectManager& m_book;  ///< The book of its window
 };
 
-/// @brief Cards: the colors of the cards of characters, locations and items – the dot of the
-/// color of a card beside its name in the Navigator (core::CardColors::NAVIGATOR_DOT_SETTING)
-/// and the palette that new cards take their colors from (core::CardColors::PALETTE_SETTING);
-/// the locations in the Navigator, in a tree or in a list (NavigatorPanel::CARDS_TREE_SETTING)
+/// @brief Cards: the full card in two columns or on tabs (CardPage::LAYOUT_SETTING); the shape
+/// of the portraits and what a portrait without a picture shows (CardPage::SHAPE_SETTING,
+/// CardPage::NO_PICTURE_SETTING); the colors of the cards of characters, locations and items –
+/// the dot of the color of a card beside its name in the Navigator
+/// (core::CardColors::NAVIGATOR_DOT_SETTING) and the palette that new cards take their colors
+/// from (core::CardColors::PALETTE_SETTING); what the Properties panel shows of the cards at
+/// the cursor of a text (CursorCardBox::SETTING) and the signs beside the linked paragraphs;
+/// the locations in the Navigator, in a tree or in a list (NavigatorPanel::CARDS_TREE_SETTING);
+/// the fields of the cards that new books start with (core::card_fields::DEFAULTS_SETTING), in
+/// the window Card Fields
 class CardsPage : public SettingsPage {
     Q_OBJECT
 public:
@@ -553,14 +560,75 @@ public:
     /// @brief The locations in the Navigator: in alphabetical order
     [[nodiscard]] QRadioButton* listButton() const { return m_list; }
 
+    /// @brief Card at the Cursor: the choice of value @p value of CursorCardBox::SETTING
+    /// ("names", "paragraphs", "none"); nullptr for another value
+    [[nodiscard]] QRadioButton* atCursorButton(const char* value) const;
+
+    /// @brief The full card: the choice of value @p value of CardPage::LAYOUT_SETTING
+    /// ("columns", "tabs"); nullptr for another value
+    [[nodiscard]] QRadioButton* layoutButton(const char* value) const;
+
+    /// @brief The portraits: the choice of value @p value of CardPage::SHAPE_SETTING ("square",
+    /// "circle") or of CardPage::NO_PICTURE_SETTING ("initials", "icon"); nullptr for another
+    /// value
+    [[nodiscard]] QRadioButton* portraitButton(const char* value) const;
+
+    /// @brief Default Fields of New Books...: the window Card Fields of the fields new books
+    /// start with, which Apply saves
+    [[nodiscard]] QPushButton* defaultFieldsButton() const { return m_defaultFieldsButton; }
+
+    /// @brief What the fields of new books are: those of the book types, or the kinds with
+    /// fields of their own
+    [[nodiscard]] QLabel* defaultFieldsLabel() const { return m_defaultFieldsLabel; }
+
 private:
+    /// @brief The buttons of the values of a setting: each with the value it stands for
+    using Choices = std::vector<std::pair<QRadioButton*, const char*>>;
+
+    /// @brief Bind setting @p key, @p fallback when it has no value, to @p choices
+    void bindChoices(const char* key, const char* fallback, const Choices& choices);
+
+    /// @brief The group Full Card: two columns or tabs
+    void addFullCardGroup();
+
+    /// @brief The group Portrait: its shape, and what it shows without a picture
+    void addPortraitGroup();
+
+    /// @brief The group Colors: the dots in the Navigator, the palette of new cards
+    void addColorsGroup();
+
     /// @brief The group Navigator: the locations in a tree or in a list
     void addNavigatorGroup();
+
+    /// @brief The group In the Text: what the Properties panel shows of the cards at the
+    /// cursor
+    void addTextGroup();
+
+    /// @brief The group Card Fields: the fields new books start with
+    void addFieldsGroup();
+
+    /// @brief Open the window Card Fields for the fields new books start with
+    void editDefaultFields();
+
+    /// @brief The sentence of what the fields of new books are
+    void showDefaultFields();
 
     PaletteEdit* m_palette = nullptr;
     QPushButton* m_restorePalette = nullptr;
     QRadioButton* m_tree = nullptr;
     QRadioButton* m_list = nullptr;
+    QRadioButton* m_atCursorNames = nullptr;
+    QRadioButton* m_atCursorParagraphs = nullptr;
+    QRadioButton* m_atCursorNone = nullptr;
+    QRadioButton* m_columns = nullptr;
+    QRadioButton* m_tabs = nullptr;
+    QRadioButton* m_square = nullptr;
+    QRadioButton* m_circle = nullptr;
+    QRadioButton* m_initials = nullptr;
+    QRadioButton* m_kindIcon = nullptr;
+    QPushButton* m_defaultFieldsButton = nullptr;
+    QLabel* m_defaultFieldsLabel = nullptr;
+    nlohmann::json m_defaultFields;  ///< The fields of new books as the page shows them
 };
 
 /// @brief Materials: how a picture, a page or a picture on the web and a PDF file open

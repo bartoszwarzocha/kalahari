@@ -7,10 +7,15 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/art_provider.h>
+#include <kalahari/core/book_dictionary.h>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/book_type_package.h>
+#include <kalahari/core/card_names.h>
+#include <kalahari/core/card_relations.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/file_trash.h>
 #include <kalahari/core/kind_words.h>
+#include <kalahari/core/name_declension.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/editor/book_editor.h>
@@ -3310,4 +3315,111 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
         REQUIRE(navigator.tabs->count() == 1);
         CHECK(qobject_cast<gui::ImagePreviewPanel*>(navigator.tabs->currentWidget()) != nullptr);
     }
+}
+
+TEST_CASE("Navigator: Create Card opens Add Element with the name, a card deleted asks whether "
+          "its name stays in the book's dictionary",
+          "[gui][navigator][cards][dictionary]") {
+    gui::registerAllIcons();
+    OpenNovel novel;
+    Navigator navigator;
+    auto& pm = novel.pm;
+    const core::KindRef character =
+        pm.bookTypes().findKind(QStringLiteral("kalahari.base"), QStringLiteral("character"));
+    REQUIRE(character);
+    QStringList added;
+    const QObject listener;
+    QObject::connect(&pm, &core::ProjectManager::cardAdded, &listener,
+                     [&added](const QString& elementId) { added << elementId; });
+
+    // Create Card: Add Element with the kind chosen and the name in it
+    QString titleShown;
+    bool made = false;
+    CHECK(answering(
+              [&]() {
+                  made = navigator.coordinator.onRequestAddCard(QStringLiteral(" Jan  Kos "),
+                                                                character);
+              },
+              {[&titleShown](QDialog& dialog) {
+                  auto* window = qobject_cast<gui::dialogs::NewFileDialog*>(&dialog);
+                  if (window == nullptr) {  // no REQUIRE in an event handler
+                      dialog.reject();
+                      return;
+                  }
+                  titleShown = window->titleEdit()->text();
+                  window->acceptButton()->click();
+              }}) == 1);
+    CHECK(made);
+    CHECK(titleShown == QStringLiteral("Jan Kos"));
+    REQUIRE(added.size() == 1);
+    const core::ProjectElement* jan = pm.findElement(added.first());
+    REQUIRE(jan != nullptr);
+    CHECK(jan->title == QStringLiteral("Jan Kos"));
+    CHECK(pm.kindOf(*jan).reference() == character.reference());
+
+    // Its window closed: no card
+    CHECK(answering([&]() {
+              CHECK_FALSE(navigator.coordinator.onRequestAddCard(QStringLiteral("Ewa"), character));
+          }) == 1);
+    CHECK(added.size() == 1);
+
+    // Deleted, a card with a name in the book's dictionary asks whether the name stays
+    const core::NameDeclension english(QStringLiteral("en"));
+    const auto name = [&pm, &english](const QString& cardId, const QString& title) {
+        const core::DictionaryName cardName =
+            core::nameOfCard(pm.bookDictionary(), cardId, title, core::NameKind::Character,
+                             english);
+        QString id;
+        REQUIRE(pm.changeBookDictionary([&cardName, &id](core::BookDictionary& dictionary) {
+            id = dictionary.putName(cardName);
+        }));
+        return id;
+    };
+    const QString janId = jan->id;  // the element moves as others are added
+    const QString janName = name(janId, jan->title);
+    const QString anna = navigator.added(QStringLiteral("character"), core::BookPlace::Workshop);
+    const QString annaName = name(anna, QStringLiteral("Anna"));
+    const auto deleting = [&navigator](const QString& cardId, bool keep, QString* text) {
+        return answering([&navigator, &cardId]() { navigator.coordinator.onRequestDelete(cardId); },
+                         {[keep, text](QDialog& dialog) {
+                             auto* window =
+                                 qobject_cast<gui::dialogs::DeleteFromBookDialog*>(&dialog);
+                             if (window == nullptr) {  // no REQUIRE in an event handler
+                                 dialog.reject();
+                                 return;
+                             }
+                             CHECK_FALSE(window->keepNameBox()->isHidden());
+                             CHECK_FALSE(window->keepNameBox()->isChecked());  // it goes
+                             *text = window->keepNameBox()->text();
+                             window->keepNameBox()->setChecked(keep);
+                             window->acceptButton()->click();
+                         }});
+    };
+    QString asked;
+    CHECK(deleting(janId, true, &asked) == 1);
+    CHECK(asked.contains(QStringLiteral("Jan Kos")));
+    CHECK(pm.findElement(added.first()) == nullptr);
+    const core::DictionaryName* kept = pm.bookDictionary().findName(janName);
+    REQUIRE(kept != nullptr);
+    CHECK(kept->card.isEmpty());
+
+    CHECK(deleting(anna, false, &asked) == 1);
+    CHECK(pm.findElement(anna) == nullptr);
+    CHECK(pm.bookDictionary().findName(annaName) == nullptr);
+
+    // A card without a name in the dictionary does not ask
+    const QString ewa = navigator.added(QStringLiteral("character"), core::BookPlace::Workshop);
+    bool hidden = false;
+    CHECK(answering([&navigator, &ewa]() { navigator.coordinator.onRequestDelete(ewa); },
+                    {[&hidden](QDialog& dialog) {
+                        auto* window = qobject_cast<gui::dialogs::DeleteFromBookDialog*>(&dialog);
+                        if (window == nullptr) {  // no REQUIRE in an event handler
+                            dialog.reject();
+                            return;
+                        }
+                        hidden = window->keepNameBox()->isHidden();
+                        window->acceptButton()->click();
+                    }}) == 1);
+    CHECK(hidden);
+    CHECK(pm.findElement(ewa) == nullptr);
 }

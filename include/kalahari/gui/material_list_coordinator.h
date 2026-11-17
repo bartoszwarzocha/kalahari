@@ -37,7 +37,8 @@ class NavigatorCoordinator;
 ///
 /// The commands of a list are those of the Navigator (NavigatorCoordinator): a material's card,
 /// the editor of a working note, Open, Rename, Delete, Add; Link... opens the Link window, and
-/// a material chosen shows in the Properties panel.
+/// a material chosen shows in the Properties panel. Relation... of a card opens the window
+/// Relation, and a list of cards is filled again when a card or the book's dictionary changes.
 class MaterialListCoordinator : public QObject {
     Q_OBJECT
 
@@ -93,6 +94,9 @@ signals:
 
     /// @brief A list asked to open the text clipping @p elementId was cut from at its place
     void clippingOriginRequested(const QString& elementId);
+
+    /// @brief A list of cards asked for the settings of the cards (Settings > Cards)
+    void cardSettingsRequested();
 
 private slots:
     /// @brief What the Materials of the Navigator show changed (NavigatorPanel::

@@ -47,8 +47,10 @@ namespace gui {
 
 class CardPage;
 class ClippingOriginBox;
+class CursorCardBox;
 class EditorPanel;
 class LinkedMaterialsBox;
+class ParagraphCardsBox;
 class PlotFieldsBox;
 class MaterialPage;
 class SectionNamesEdit;
@@ -98,6 +100,14 @@ public:
 
     /// @brief The short card of a character, a location or an item
     [[nodiscard]] CardPage* cardPage() const { return m_cardPage; }
+
+    /// @brief The card at the cursor of a text of the book, on the Editor page or the Chapter
+    ///        page of the text in front
+    [[nodiscard]] CursorCardBox* cursorCard() const { return m_cursorCard; }
+
+    /// @brief The cards of the paragraph at the cursor of a chapter, on the Editor page or the
+    ///        Chapter page of the text in front
+    [[nodiscard]] ParagraphCardsBox* paragraphCards() const { return m_paragraphCards; }
 
     /// @brief The materials of the element of the chapter page, of the section and of the part
     LinkedMaterialsBox* chapterMaterials() const { return m_chapterMaterials; }
@@ -225,6 +235,11 @@ private slots:
     /// @brief The group of the versions again, when the page with it is shown
     void refreshVersions();
 
+    /// @brief The card whose name the cursor of the text in front is in and the cards of its
+    /// paragraph, on the Editor page or on the Chapter page of its chapter, as Settings >
+    /// Cards shows them (CursorCardBox::cardsAtCursor())
+    void updateCursorCard();
+
 protected:
     /// @brief Event filter for handling focus events
     /// @param obj Object that received the event
@@ -288,6 +303,14 @@ signals:
 
     /// @brief The gear of the short card: Settings > Cards
     void requestCardSettings();
+
+    /// @brief "+" of the cards of the paragraph: the window Link Paragraph with Card for the
+    /// paragraph at the cursor of the text in front
+    void requestLinkParagraphCard();
+
+    /// @brief Change... of the declension of the short card: the window "Name" of the book's
+    /// dictionary for the name of card @p elementId
+    void requestCardNameWindow(const QString& elementId);
 
     /// @brief Material @p materialId was added on the short card (a portrait from a file): the
     /// Navigator shows it
@@ -386,9 +409,18 @@ private:
     /// @brief Update editor statistics from current BookEditor
     void updateEditorStatistics();
 
-    /// @brief Put the group of the versions on the page of @p layout (of the Chapter page or
-    ///        the Editor page): the one group follows the page shown
-    void placeVersionsGroup(QVBoxLayout* layout);
+    /// @brief Put the group of the versions, the card at the cursor and the cards of its
+    ///        paragraph on the page of @p layout (of the Chapter page or the Editor page): the
+    ///        one set of them follows the page shown
+    void placeTextGroups(QVBoxLayout* layout);
+
+    /// @brief The element of the book whose text is in front, when the page shown describes
+    ///        it: the Editor page, or the Chapter page of its chapter; empty for none
+    [[nodiscard]] QString describedTextId() const;
+
+    /// @brief The cards of the paragraph at the cursor of @p text, the text of element
+    ///        @p elementId: shown for a chapter of the book (nullptr: none shown)
+    void showParagraphCards(const editor::BookEditor* text, const QString& elementId);
 
     /// @brief Populate project fields from current project
     void populateProjectFields();
@@ -513,6 +545,8 @@ private:
     // The card of a material
     MaterialPage* m_materialPage = nullptr;
     CardPage* m_cardPage = nullptr;  ///< The short card of a character, a location or an item
+    CursorCardBox* m_cursorCard = nullptr;  ///< The card at the cursor (placeTextGroups())
+    ParagraphCardsBox* m_paragraphCards = nullptr;  ///< The paragraph's cards (placeTextGroups())
 
     // Editor Page widgets (OpenSpec #00042 Task 7.4)
     QLabel* m_editorTitleLabel;           ///< "Selection" or "Document"
@@ -535,7 +569,7 @@ private:
     QTimer* m_cursorDebounceTimer{nullptr};     ///< Debounce rapid cursor changes
 
     int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting,
-                                ///< versions turned on or off
+                                ///< versions turned on or off, the cards at the cursor
     core::ProjectManager& m_book;  ///< The book of its window
 };
 
