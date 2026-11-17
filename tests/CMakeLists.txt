@@ -234,6 +234,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/settings_schema.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cmd_line_parser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/extension_points.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/window_editor_provider.cpp
     ${CMAKE_SOURCE_DIR}/src/core/event_bus.cpp
     ${CMAKE_SOURCE_DIR}/src/core/plugin_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/plugin_manifest.cpp
@@ -559,6 +560,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/version_texts.cpp                    # What the program says of a version
     ${CMAKE_SOURCE_DIR}/src/gui/versions_coordinator.cpp             # Save Version and Version History
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/version_name_dialog.cpp      # The description of a version
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/element_choice_dialog.cpp    # Choose an element of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/quick_insert_item_dialog.cpp  # A fragment or a character of quick insert
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/name_dialog.cpp              # A name of the book dictionary
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rule_dialog.cpp              # A spelling rule of the book dictionary
@@ -731,6 +733,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/source_lookup.h  # SourceLookup with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/element_choice_dialog.h  # ElementChoiceDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/quick_insert_item_dialog.h  # QuickInsertItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/name_dialog.h  # NameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rule_dialog.h  # RuleDialog with Q_OBJECT
@@ -793,6 +796,19 @@ if(KALAHARI_PDF_AVAILABLE)
         gui/test_pdf_preview.cpp  # The preview of a PDF: pages, side panel, search, selection
     )
 endif()
+
+# The modules of the Workshop's tools, with their own tests
+include(${CMAKE_SOURCE_DIR}/src/mindmap/module.cmake)
+include(${CMAKE_SOURCE_DIR}/src/timeline/module.cmake)
+list(APPEND TEST_SOURCES
+    ${KALAHARI_MINDMAP_SOURCES} ${KALAHARI_MINDMAP_GUI_SOURCES}
+    ${KALAHARI_TIMELINE_SOURCES} ${KALAHARI_TIMELINE_GUI_SOURCES}
+    mindmap/test_mind_map.cpp     # Mind maps: the tree and its changes, file, outlines, layouts
+    mindmap/test_mind_map_editor.cpp  # Mind maps: Undo, the drawing, the keys, the module
+    timeline/test_story_time.cpp  # The time of the story: dates and days read and written
+    timeline/test_timeline.cpp    # Timelines: events, order, file, and the axis with its gaps
+    timeline/test_timeline_editor.cpp  # Timelines: Undo, the axis, the list, the book, the module
+)
 
 # Create test executable
 add_executable(kalahari-tests ${TEST_SOURCES})

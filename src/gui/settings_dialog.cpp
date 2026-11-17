@@ -15,6 +15,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/core/window_editor_provider.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -175,6 +176,16 @@ void SettingsDialog::createNavigationTree() {
                     [this]() { openPage(QString::fromLatin1(EDITOR_COLORS_PAGE)); });
             return materialsPage;
         });
+    // The pages of the modules that edit window kinds: Mind Maps, Timelines; openPage() opens
+    // each by the id of its editor ("mindmap")
+    for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+         core::windowEditorProviders()) {
+        if (!provider->settingsTitle().isEmpty()) {
+            m_pageItems[provider->editorId()] = addPage(
+                nullptr, provider->settingsTitle(),
+                [provider]() { return provider->createSettingsPage(); });
+        }
+    }
     //: Settings > Statistics and Goals: the statistics bar, the panel, the counting of the words
     //: and the colors. In Polish: Statystyki i cele
     QTreeWidgetItem* statistics = category(tr("Statistics and Goals"));

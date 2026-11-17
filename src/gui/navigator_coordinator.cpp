@@ -42,6 +42,7 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/window_editor_provider.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QTabWidget>
@@ -355,6 +356,14 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         }
     }
 
+    // An element of a window kind opens on the tab of the module that edits it
+    if (const core::ProjectElement* element = pm.findElement(elementId);
+        element != nullptr && pm.formOf(*element) == core::ElementForm::Window &&
+        !pm.isMaterial(*element)) {
+        openWindowEditor(*element);
+        return;
+    }
+
     // Switching chapters does NOT prompt to save. The current chapter's tab stays
     // open with its "*" modified indicator (tab + navigator tree), and any unsaved
     // changes are reported once at application close. This avoids nagging on every
@@ -449,6 +458,44 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         const core::KindWords kind = element ? wordsOf(m_book, *element) : mainWords(m_book);
         EditorPanel::warnDamagedChapter(m_centralTabs->window(), elementTitle, &kind);
     }
+}
+
+void NavigatorCoordinator::openWindowEditor(const core::ProjectElement& element) {
+    const core::KindRef kind = m_book.kindOf(element);
+    const std::shared_ptr<core::IWindowEditorProvider> provider =
+        kind ? core::windowEditorProvider(kind.kind->editor) : nullptr;
+    if (!provider) {
+        core::Logger::getInstance().warn("NavigatorCoordinator: No editor of {} for {}",
+                                         kind ? kind.kind->editor.toStdString() : std::string(),
+                                         element.id.toStdString());
+        //: The status bar, when an element of the Workshop has no editor in the program. In
+        //: Polish: Program nie ma jeszcze edytora {kind:genitive}.
+        m_statusBar->showMessage(
+            core::fillWords(tr("The program does not have an editor for the {kind} yet."),
+                            {{QStringLiteral("kind"), wordsOf(m_book, element)}}),
+            5000);
+        return;
+    }
+    const QString elementId = element.id;
+    const core::WindowEditorContext context{
+        m_book, m_commands, elementId,
+        [this, editorId = provider->editorId()]() {
+            emit windowEditorSettingsRequested(editorId);
+        },
+        [this](const QString& otherId) { onRequestOpenLink(otherId); }};
+    QWidget* page = provider->createEditor(context, m_centralTabs);
+    if (page == nullptr) {
+        return;
+    }
+    const QString iconId = NavigatorPanel::iconIdOf(m_book.bookTypes(), element, nullptr);
+    page->setProperty("elementId", elementId);
+    page->setProperty("tabIconId", iconId);
+    const int index = m_centralTabs->addTab(
+        page, core::ArtProvider::getInstance().getIcon(iconId), element.title);
+    m_centralTabs->setCurrentIndex(index);
+    page->setFocus(Qt::OtherFocusReason);
+    m_currentElementId = elementId;
+    m_statusBar->showMessage(tr("Opened: %1").arg(element.title), 2000);
 }
 
 EditorPanel* NavigatorCoordinator::createEditorPanel(const core::ProjectElement* element,
@@ -1320,6 +1367,11 @@ void NavigatorCoordinator::showAdded(const QString& elementId, const QString& ti
     refreshNavigator();
     m_navigatorPanel->revealElement(elementId);
     const core::ProjectElement* element = pm.findElement(elementId);
+    if (element != nullptr && pm.formOf(*element) == core::ElementForm::Window &&
+        !pm.isMaterial(*element)) {
+        onElementSelected(elementId, title);  // a mind map, a timeline: on its tab
+        return;
+    }
     if (!element || pm.formOf(*element) != core::ElementForm::Text) {
         return;
     }
@@ -2101,9 +2153,10 @@ void NavigatorCoordinator::onRequestOpenLink(const QString& link) {
         onRequestOpenMaterial(link);
         return;
     }
-    // Shown where it is in the book; a text opens in the editor too
+    // Shown where it is in the book; a text opens in the editor too, an element of a module
+    // on its tab
     m_navigatorPanel->revealElement(link);
-    if (pm.formOf(*element) == core::ElementForm::Text) {
+    if (pm.formOf(*element) != core::ElementForm::Group) {
         onElementSelected(link, element->title);
     }
 }

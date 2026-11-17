@@ -2971,9 +2971,10 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
         return;
     }
 
-    // Only text elements and the files of the book open in the editor; sections, groups and
-    // window elements do not. A material of the Workshop opens as the settings say
-    // (NavigatorCoordinator::onRequestOpenMaterial()).
+    // Only text elements and the files of the book open in the editor; sections and groups
+    // do not. A material of the Workshop opens as the settings say
+    // (NavigatorCoordinator::onRequestOpenMaterial()), another window element on the tab of
+    // the module that edits it (a mind map, a timeline).
     if (elementType == "text_element" || elementType == "book_file") {
         emit elementSelected(elementId, item->data(0, TITLE_ROLE).toString());
     } else if (elementType == "window_element" && isWorkshopItem(item)) {
@@ -2982,6 +2983,8 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
         const core::KindRef kind = element ? pm.kindOf(*element) : core::KindRef{};
         if (kind && kind.kind->isMaterial()) {
             emit requestOpenMaterial(elementId);
+        } else if (kind) {
+            emit elementSelected(elementId, item->data(0, TITLE_ROLE).toString());
         }
     }
 }

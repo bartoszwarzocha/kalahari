@@ -625,11 +625,23 @@ std::map<std::string, json> buildDefaults() {
     };
 }
 
+/// The table of the defaults, with the settings of the modules that addDefaults() added
+std::map<std::string, json>& allDefaults() {
+    static std::map<std::string, json> all = buildDefaults();
+    return all;
+}
+
 } // namespace
 
 const std::map<std::string, nlohmann::json>& defaults() {
-    static const std::map<std::string, json> table = buildDefaults();
-    return table;
+    return allDefaults();
+}
+
+void addDefaults(const std::map<std::string, nlohmann::json>& moduleDefaults) {
+    std::map<std::string, json>& all = allDefaults();
+    for (const auto& [key, value] : moduleDefaults) {
+        all.try_emplace(key, value);
+    }
 }
 
 const nlohmann::json* defaultValue(const std::string& key) {

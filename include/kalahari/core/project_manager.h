@@ -459,7 +459,9 @@ public:
     /// else the text of its kind's template, and the status "draft". A group can take elements
     /// of the book inside it, at its end, in the order given: a new part takes the epilogue
     /// from the end of the last part, so that the chapters added to the new part go before it.
-    /// Saves the .klh file.
+    /// An element of a window kind whose editor a module brings gets the file that the module
+    /// writes (IWindowEditorProvider::newFile()) in the Workshop's folder: workshop/mindmap.kmap,
+    /// workshop/mindmap_2.kmap... Saves the .klh file.
     /// @param index Place of the element in its list; -1: the place of its kind, newPlaceOf(),
     ///        which can be in a group of the body of the book
     /// @param takeInside Ids of elements that the new group takes inside it
@@ -467,7 +469,8 @@ public:
     ///        writer adds to the book; none: the text of its kind's template
     /// @param status The status of a text element ("draft", "revision" or "final"); empty:
     ///        "draft"
-    /// @return The new element's id; empty when the kind cannot be there or is a window kind,
+    /// @return The new element's id; empty when the kind cannot be there or is a window kind
+    ///         that no module edits,
     ///         the project has no group @p groupId, @p index is beyond the list, an element of
     ///         @p takeInside cannot be inside the group, @p status is not a status of text
     ///         elements, or a file cannot be written
@@ -477,9 +480,10 @@ public:
                        const std::optional<QString>& text = std::nullopt,
                        const QString& status = QString());
 
-    /// @brief Whether the program can add elements of @p kind: text kinds, group kinds and the
-    /// kinds of materials (ElementKind::isMaterial()); elements of the other kinds that open in
-    /// a window of their own wait until the program has their windows. A retired kind
+    /// @brief Whether the program can add elements of @p kind: text kinds, group kinds, the
+    /// kinds of materials (ElementKind::isMaterial()) and the window kinds whose editor a
+    /// module brings (windowEditorProvider()); elements of the other kinds that open in a
+    /// window of their own wait until the program has their windows. A retired kind
     /// (ElementKind::retired) gets no new elements.
     static bool canAdd(const KindRef& kind);
 

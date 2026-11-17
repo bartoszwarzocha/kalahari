@@ -2777,6 +2777,13 @@ void MainWindow::connectCards() {
     connect(properties, &PropertiesPanel::requestCardSettings, this, openCardSettings);
     connect(m_navigatorCoordinator, &NavigatorCoordinator::cardSettingsRequested, this,
             openCardSettings);
+    // The gear of a mind map or a timeline: the page of its module
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::windowEditorSettingsRequested, this,
+            [this](const QString& editorId) {
+                if (m_settingsCoordinator != nullptr) {
+                    m_settingsCoordinator->openSettingsPage(editorId);
+                }
+            });
     connect(properties, &PropertiesPanel::cardMaterialAdded, m_navigatorCoordinator,
             &NavigatorCoordinator::refreshNavigator);
     // The other card of a relation, and a card made with a relation

@@ -405,6 +405,10 @@ signals:
 
     /// @brief The gear of a full card of a character, a location or an item: Settings > Cards
     void cardSettingsRequested();
+
+    /// @brief The gear of the tab of a module (a mind map, a timeline): its page of Settings,
+    /// which SettingsDialog::openPage() opens by @p editorId
+    void windowEditorSettingsRequested(const QString& editorId);
     /// @brief Find in Book of a full card: the texts of the book searched for @p text, its name
     void findInBookRequested(const QString& text);
     /// @brief The gear of the entry of a source on a card, or of the preview of a PDF file:
@@ -474,6 +478,10 @@ private:
     /// @brief The full card of character, location or item @p elementId, for its tab: its
     /// name shows on the tab and in the Navigator, its gear opens Settings > Cards
     CardPanel* createCardPanel(const QString& elementId);
+
+    /// @brief Element @p element of a window kind on a new tab of the module that edits it
+    /// (core::IWindowEditorProvider), in front; the status bar says when no module edits it
+    void openWindowEditor(const core::ProjectElement& element);
     /// @brief The previews of the materials, in the book window and in windows of their own
     [[nodiscard]] QList<PreviewPanel*> previews() const;
 
