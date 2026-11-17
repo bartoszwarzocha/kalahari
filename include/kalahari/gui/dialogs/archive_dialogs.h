@@ -28,6 +28,7 @@ class QCheckBox;
 class QEvent;
 class QGridLayout;
 class QGroupBox;
+class QHBoxLayout;
 class QLabel;
 class QLineEdit;
 class QProgressBar;
@@ -86,6 +87,9 @@ public:
     /// @brief What Copy puts on the clipboard: the title of the window, what the window says
     /// went wrong, and how, as the log has it
     QString clipboardText() const;
+
+    /// @brief What the work that is done left out, as the window says it under its result
+    QString notesText() const;
 
     /// @brief Whether the work is done: the window shows its result, and Close
     bool isDone() const { return m_state == State::Done; }
@@ -167,8 +171,17 @@ protected:
     Progress progress();
 
     /// @brief The work is done: the result, Show in Folder for @p path, and Close
+    /// @param path The file or the folder of the result; empty: no Show in Folder
     /// @param withOpenFile Open File too: @p path is a file the system opens (a document)
     void finishWork(const QString& text, const QString& path, bool withOpenFile = false);
+
+    /// @brief A link of the window's own under the result, before Open File; hidden until the
+    /// window shows it
+    QLabel* addResultLink(const QString& text, const QString& toolTip);
+
+    /// @brief What the work that is done left out, one sentence a line, under its result, and
+    /// Copy, which puts them on the clipboard; none: nothing
+    void setResultNotes(const QStringList& notes);
 
     /// @brief The work failed: sentence @p text, why it failed (@p reason), Copy, and the
     /// fields for another try; @p details, how it failed, go only to the clipboard
@@ -227,6 +240,8 @@ private:
     QString m_resultPath;
     bool m_failed = false;          ///< The result is a failure
     QStringList m_details;          ///< How the work failed, for Copy
+    QStringList m_notes;            ///< What the work that is done left out
+    QHBoxLayout* m_links = nullptr;  ///< The links under the result
     QString m_fieldProblem;         ///< What went wrong with a field, as its line says it
     QStringList m_fieldDetails;     ///< How, for Copy
 };

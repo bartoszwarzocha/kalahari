@@ -147,7 +147,8 @@ void SettingsDialog::createNavigationTree() {
             return spellingPage;
         });
     addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_book, m_grammar); });
-    addPage(editor, tr("Auto-correct"), [this]() { return new EditorAutoCorrectPage(m_commands); });
+    m_pageItems[AUTO_CORRECT_PAGE] = addPage(
+        editor, tr("Auto-correct"), [this]() { return new EditorAutoCorrectPage(m_commands); });
     //: Settings > Editor > Quick Insert: @ and # in the text. In Polish: Szybkie wstawianie
     addPage(editor, tr("Quick Insert"), [this]() { return new EditorQuickInsertPage(m_commands); });
     //: Settings > Editor > Repetitions: the words that come back too close. In Polish: Powtórzenia
@@ -206,6 +207,8 @@ void SettingsDialog::createNavigationTree() {
 
     QTreeWidgetItem* files = category(tr("Files"));
     addPage(files, tr("Folders"), []() { return new FoldersPage(); });
+    //: The page of the choices the window of the import starts with. In Polish: Import
+    m_pageItems[IMPORT_PAGE] = addPage(files, tr("Import"), []() { return new ImportPage(); });
     addPlannedPage(files, tr("Backup"),
                    tr("Planned features:\n"
                       "- Automatic backup frequency\n"

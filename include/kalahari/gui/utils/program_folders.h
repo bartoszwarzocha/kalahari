@@ -39,6 +39,8 @@ public:
         InsertImage,        ///< Insert > Image..., Change Image...: the folder of the image
         SaveImage,          ///< Save as Image...: the folder an image is saved to
         ExportBook,         ///< File > Export > DOCX, Markdown: the folder of the file
+        ImportText,         ///< File > Import > DOCX, Markdown, Plain Text: the folder of the
+                            ///< files
     };
 
     /// @brief Setting of the folder of the books; empty: defaultBooksFolder()

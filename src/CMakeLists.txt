@@ -29,6 +29,12 @@ set(KALAHARI_CORE_SOURCES
     editor/book_export.cpp             # Export of a book: the texts read as the editor reads them
     editor/docx_writer.cpp             # Export of a book to a Word document (DOCX)
     editor/markdown_writer.cpp         # Export of a book to Markdown (GitHub Flavored)
+    editor/book_import.cpp             # Import of a file into a book: texts, parts, kinds, styles
+    editor/auto_correct.cpp            # Autocorrect: the changes of the text as it is typed
+    editor/book_import_kml.cpp         # Import of a file into a book: the KML of a text, cleanups
+    editor/docx_reader.cpp             # Import of a Word document (DOCX)
+    editor/markdown_reader.cpp         # Import of Markdown
+    editor/text_reader.cpp             # Import of plain text: encodings, paragraphs, titles
     core/database_schema_manager.cpp
     core/project_lock.cpp
     core/backup_manager.cpp
@@ -203,6 +209,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/dialog_parts.cpp  # Parts of the own dialogs: a list as high as its rows, a note, Copy
     gui/dialogs/archive_dialogs.cpp  # ExportArchiveDialog, ImportArchiveDialog - one window each
     gui/dialogs/export_book_dialog.cpp  # ExportBookDialog - File > Export > DOCX and Markdown
+    gui/dialogs/import_book_dialog.cpp  # ImportBookDialog - File > Import > DOCX, Markdown and Plain Text
     gui/dialogs/file_preview_dialog.cpp  # FilePreviewDialog - the text of a file no element has
     gui/dialogs/user_project_dialog.cpp  # UserProjectDialog - the kinds of elements of a user project
     gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
@@ -281,6 +288,9 @@ set(KALAHARI_SOURCES
     gui/caption_coordinator.cpp  # CaptionCoordinator - the numbered captions of the book
     gui/book_export_coordinator.cpp  # BookExportCoordinator - the export of the book to DOCX and Markdown
     gui/plugin_coordinator.cpp  # The commands and panels of the plugins in a book window
+    gui/book_import_texts.cpp  # The texts of an imported file added to the book, and Undo import
+    gui/book_import_plan.cpp  # The plan of an import: the files read, the texts, their kinds and styles
+    gui/book_import_coordinator.cpp  # BookImportCoordinator - the import of DOCX, Markdown and plain text
     gui/footnote_coordinator.cpp  # FootnoteCoordinator - Insert > Footnote, Endnote and the frame of a note
     gui/image_filter_coordinator.cpp  # ImageFilterCoordinator - one filter for every image of the book
     gui/book_search_coordinator.cpp  # BookSearchCoordinator - Find in Book and Replace All in Book
@@ -325,6 +335,7 @@ set(KALAHARI_SOURCES
     gui/settings/materials_page.cpp  # Settings > Materials
     gui/settings/network_page.cpp  # Settings > Network > Materials
     gui/settings/folders_page.cpp
+    gui/settings/import_page.cpp
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     gui/settings/stats_pages.cpp  # Settings > Statistics and Goals
     gui/shortcut_rules.cpp  # Which keys a command can have
@@ -445,7 +456,6 @@ set(KALAHARI_SOURCES
     editor/book_editor_accessible.cpp  # Task 7.16: Accessibility interface
     editor/buffer_commands.cpp  # Cursor position helpers
     editor/text_keys.cpp  # The keys of the text on each system
-    editor/auto_correct.cpp  # Autocorrect: the changes of the text as it is typed
     editor/split_editor_panel.cpp  # Phase 5.8: Split view panel
     editor/statistics_collector.cpp  # Phase 6.10-6.13: Statistics collector
     editor/style_resolver.cpp        # Phase 6.1-6.3: Style resolver with inheritance
@@ -499,6 +509,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/export_book_dialog.h  # ExportBookDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/import_book_dialog.h  # ImportBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
@@ -534,6 +545,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/caption_coordinator.h  # CaptionCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_export_coordinator.h  # BookExportCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plugin_coordinator.h  # PluginCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_import_coordinator.h  # BookImportCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnote_coordinator.h  # FootnoteCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/image_filter_coordinator.h  # ImageFilterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_search_coordinator.h  # BookSearchCoordinator with Q_OBJECT

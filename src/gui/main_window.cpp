@@ -23,6 +23,7 @@
 #include "kalahari/gui/versions_coordinator.h"
 #include "kalahari/gui/style_coordinator.h"
 #include "kalahari/gui/book_export_coordinator.h"
+#include "kalahari/gui/book_import_coordinator.h"
 #include "kalahari/gui/caption_coordinator.h"
 #include "kalahari/gui/footnote_coordinator.h"
 #include "kalahari/gui/book_search_coordinator.h"
@@ -775,6 +776,28 @@ MainWindow::MainWindow(QWidget* parent)
     // The commands of the plugins in the menus (Tools > Plugins by default) and their panels
     // in docks on the right, closed until opened; they follow the plugins turned on and off
     m_pluginCoordinator = new PluginCoordinator(book(), commands(), this, m_dockCoordinator, this);
+
+    // File > Import > DOCX, Markdown and Plain Text: the texts at their places in the book, or
+    // in a new book, which opens as one of File > Open Book when the window of the import closes
+    BookImportCoordinator::Window importWindow;
+    importWindow.refresh = [this]() { m_navigatorCoordinator->refreshNavigator(); };
+    importWindow.showElement = [this](const QString& elementId) {
+        QDockWidget* dock = m_dockCoordinator->navigatorDock();
+        dock->show();
+        dock->raise();
+        m_dockCoordinator->navigatorPanel()->revealElement(elementId);
+    };
+    importWindow.openElement = [this](const QString& elementId) {
+        if (const core::ProjectElement* element = book().findElement(elementId)) {
+            m_navigatorCoordinator->onElementSelected(elementId, element->title);
+        }
+    };
+    importWindow.openBook = [this](const QString& manifest) {
+        m_documentCoordinator->onOpenRecentFile(manifest);
+    };
+    m_bookImportCoordinator =
+        new BookImportCoordinator(book(), commands(), std::move(importWindow), this);
+    m_bookImportCoordinator->connectCommands();
 
     // Edit > Find in Book... and the Search panel: all the texts of the book; a match of a
     // text not open opens it, as from the Navigator, and the bar under the text says how many

@@ -288,6 +288,7 @@ std::map<std::string, json> buildDefaults() {
         {"project.lastFolders.insertImage", ""},
         {"project.lastFolders.saveImage", ""},
         {"project.lastFolders.exportBook", ""},
+        {"project.lastFolders.importText", ""},
         // File > Export > DOCX and Markdown: the writer's last choices of the window. What
         // goes to the file: "book" (the whole book), "chosen" (the texts chosen in the window)
         // or "front" (the text in front); the titles of the Navigator as headings; each text
@@ -300,6 +301,58 @@ std::map<std::string, json> buildDefaults() {
         {"export.font", ""},
         {"export.comments", false},
         {"export.copyImages", true},
+        // File > Import > DOCX, Markdown and Plain Text: the writer's last choices of the
+        // window. Where the texts go: "book" (the open book), "newBook" or "otherFiles"; more
+        // files each as one text
+        {"import.target", "book"},
+        {"import.wholeFiles", true},
+        // Download the images that Markdown files and Word documents give by Internet
+        // addresses: the program connects to them only when the import starts; off: the
+        // descriptions of the images stay in their places
+        {"import.webImages", false},
+        // Of Word documents: how much of the file's formatting the texts keep, "emphasis"
+        // (bold, italic... and centered or right-aligned paragraphs), "all" or "styles". Of
+        // each format (docx, markdown, text): the heading of a text its title only; the
+        // paragraphs that start with a dash in the style Dialogue; the cleanups of the text
+        // (the typography of autocorrect, double spaces, spaces at the start of a paragraph,
+        // "* * *" as a scene break) and what the empty paragraphs become: "remove", "keep" or
+        // "sceneBreak" (Settings > Files > Import shows them)
+        {"import.docx.formatting", "emphasis"},
+        {"import.docx.headingAsTitle", true},
+        {"import.docx.dialogueStyle", false},
+        {"import.docx.typography", true},
+        {"import.docx.doubleSpaces", true},
+        {"import.docx.leadingSpaces", true},
+        {"import.docx.sceneMarkers", true},
+        {"import.docx.emptyParagraphs", "remove"},
+        // Word's comments as annotations; the tracked changes rejected (false: accepted)
+        {"import.docx.comments", true},
+        {"import.docx.rejectChanges", false},
+        {"import.markdown.headingAsTitle", true},
+        {"import.markdown.dialogueStyle", false},
+        {"import.markdown.typography", true},
+        {"import.markdown.doubleSpaces", true},
+        {"import.markdown.leadingSpaces", true},
+        {"import.markdown.sceneMarkers", true},
+        {"import.markdown.emptyParagraphs", "remove"},
+        {"import.text.headingAsTitle", true},
+        {"import.text.dialogueStyle", false},
+        {"import.text.typography", true},
+        {"import.text.doubleSpaces", true},
+        {"import.text.leadingSpaces", true},
+        {"import.text.sceneMarkers", true},
+        {"import.text.emptyParagraphs", "remove"},
+        // Plain text: where a text starts, "titles", "emptyLines" or "whole"; the pattern of
+        // the titles of the texts ("polish", "english", "number", "capitals", "prefix"; empty:
+        // by the language of the book) and its start for "prefix"; the pattern of the titles
+        // of the parts ("polish", "english", "none"; empty: by the language); how many empty
+        // lines start a text; the style of the paragraphs
+        {"import.text.split", "titles"},
+        {"import.text.titles", ""},
+        {"import.text.prefix", ""},
+        {"import.text.parts", ""},
+        {"import.text.emptyLines", 3},
+        {"import.text.style", "normal"},
         // The writer's last choice of sections for a book type that shows them: a set of
         // names ("sections", "matter", "fragments", "arc"), own names ("custom") or "none"
         {"project.sectionSet", "sections"},

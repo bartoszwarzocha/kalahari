@@ -17,8 +17,10 @@
 #include "editor_test_utils.h"
 
 #include <QApplication>
+#include <QBuffer>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QImage>
 #include <QImageReader>
 #include <QMimeData>
@@ -289,6 +291,16 @@ TEST_CASE("Images: the store copies files into the folder of images", "[editor][
     const QString saved = store.addPicture(pasted, QStringLiteral("image"));
     CHECK(saved == QStringLiteral("images/image.png"));
     CHECK(store.addPicture(pasted, QStringLiteral("image")) == saved);
+
+    // The file of an imported document: only its name, as it is
+    QByteArray png;
+    QBuffer pngBuffer(&png);
+    pngBuffer.open(QIODevice::WriteOnly);
+    REQUIRE(pasted.save(&pngBuffer, "PNG"));
+    CHECK(store.addData(png, QStringLiteral("word/media/image.png")) == saved);  // the same content
+    CHECK(store.addData(QByteArray("other"), QStringLiteral("..\\..\\image.png")) == QStringLiteral("images/image-2.png"));
+    CHECK(QFileInfo::exists(book.path() + QStringLiteral("/images/image-2.png")));
+    CHECK(store.addData(QByteArray(), QStringLiteral("empty.png")).isEmpty());
 
     // Without a folder nothing is added or read
     ImageStore none;

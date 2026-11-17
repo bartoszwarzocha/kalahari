@@ -50,3 +50,7 @@ LICENSE text eol=lf
 # Hunspell dictionaries: kept byte for byte
 *.aff -text
 *.dic -text
+
+# Files of other programs for the tests of the import: kept byte for byte (encodings, line ends)
+tests/data/** binary
+*.docx binary

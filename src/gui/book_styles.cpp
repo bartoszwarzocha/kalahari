@@ -25,6 +25,15 @@ QList<core::PackageParagraphStyle> bookTypeStyles(const core::ProjectManager& bo
     return styles.isEmpty() ? baseStyles() : styles;
 }
 
+editor::ParagraphStyleSet newBookParagraphStyles(const QString& typeId) {
+    QList<core::PackageParagraphStyle> styles =
+        core::ProjectManager::installedBookTypes().paragraphStyles(typeId);
+    if (styles.isEmpty()) {
+        styles = baseStyles();
+    }
+    return editor::ParagraphStyleSet::forBook(styles, {}, programLanguage());
+}
+
 editor::ParagraphStyleSet bookParagraphStyles(const core::ProjectManager& book) {
     const core::BookProject* project = book.project();
     return bookParagraphStyles(book, project != nullptr ? project->paragraphStyles

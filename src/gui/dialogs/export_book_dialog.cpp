@@ -60,52 +60,6 @@ constexpr int WIDTH_IN_LETTERS = 140;
 /// 1366x768 at 150% (911 pixels)
 constexpr int MAX_START_WIDTH = 880;
 
-/// The width of @p letters letters of a text in the font of @p metrics. Not
-/// averageCharWidth(): fonts give it differently (DejaVu Sans 6 pixels, Inter 8, for text
-/// that takes 5.8 and 5.5), and the window would wrap its sentences into more lines in one
-/// font than in another
-int widthOfLetters(const QFontMetrics& metrics, int letters) {
-    const QString text = QStringLiteral("the quick brown fox jumps over the lazy dog ");
-    return qRound(metrics.horizontalAdvance(text) * static_cast<qreal>(letters) /
-                  static_cast<qreal>(text.size()));
-}
-
-/// Tabs as high as their highest page at the width they have: a page of wrapped sentences
-/// asks for the lines its sentences take there, whichever page is in front. A plain
-/// QTabWidget asks so only for the page in front, and for the others takes their own hints,
-/// which wrap the sentences at a narrower width into more lines.
-class FittingTabs : public QTabWidget {
-public:
-    using QTabWidget::QTabWidget;
-
-    [[nodiscard]] bool hasHeightForWidth() const override { return true; }
-
-    [[nodiscard]] int heightForWidth(int width) const override {
-        // The frame around the pages, as QTabWidget measures it
-        QStyleOption option(0);
-        option.initFrom(this);
-        option.state = QStyle::State_None;
-        const QSize frame =
-            style()->sizeFromContents(QStyle::CT_TabWidget, &option, QSize(0, 0), this);
-        const int pageWidth = width - frame.width();
-        int pages = 0;
-        for (int i = 0; i < count(); ++i) {
-            if (!isTabVisible(i)) {
-                continue;  // the options of a format that is not chosen
-            }
-            const QWidget* page = widget(i);
-            const int height = page->hasHeightForWidth() ? page->heightForWidth(pageWidth) : -1;
-            pages = std::max(pages, height >= 0 ? height : page->sizeHint().height());
-        }
-        return frame.height() + tabBar()->sizeHint().height() + pages;
-    }
-
-    [[nodiscard]] QSize sizeHint() const override {
-        const QSize plain = QTabWidget::sizeHint();
-        return {plain.width(), heightForWidth(plain.width())};
-    }
-};
-
 /// The fonts a Word document is often written in, offered first after the editor's
 const QStringList& commonFonts() {
     static const QStringList fonts = {QStringLiteral("Times New Roman"), QStringLiteral("Georgia"),
@@ -125,48 +79,6 @@ QString safeName(const QString& title) {
     QString name = title.simplified();
     name.replace(invalid, QStringLiteral("_"));
     return name;
-}
-
-/// @p text in the label of a button: an '&' shows as itself, not as an access key
-QString literal(QString text) {
-    return text.replace(QLatin1Char('&'), QStringLiteral("&&"));
-}
-
-/// A grey sentence under an option or a list
-QLabel* newRemark(QWidget* parent, const QString& text) {
-    auto* label = new QLabel(text, parent);
-    label->setTextFormat(Qt::PlainText);
-    label->setWordWrap(true);
-    label->setForegroundRole(QPalette::PlaceholderText);
-    return label;
-}
-
-/// Check box @p box with @p remark right under it, in line with its text; @p beside, when
-/// given, on the line of the box after it (an option of its own, which saves a line)
-QWidget* withRemark(QCheckBox* box, QLabel* remark, QWidget* beside = nullptr) {
-    auto* option = new QWidget(box->parentWidget());
-    auto* layout = new QVBoxLayout(option);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(0);
-    box->setParent(option);
-    remark->setParent(option);
-    const QStyle* style = box->style();
-    remark->setContentsMargins(style->pixelMetric(QStyle::PM_IndicatorWidth, nullptr, box) +
-                                   style->pixelMetric(QStyle::PM_CheckBoxLabelSpacing, nullptr, box),
-                               0, 0, 0);
-    if (beside != nullptr) {
-        beside->setParent(option);
-        auto* line = new QHBoxLayout();
-        line->setSpacing(box->fontMetrics().averageCharWidth() * 3);
-        line->addWidget(box);
-        line->addWidget(beside);
-        line->addStretch(1);
-        layout->addLayout(line);
-    } else {
-        layout->addWidget(box);
-    }
-    layout->addWidget(remark);
-    return option;
 }
 
 /// The content as the settings keep it

@@ -72,6 +72,9 @@ public:
     static constexpr const char* MARGIN_NUMBERING_PAGE = "editor.pages.marginNumbering";
     static constexpr const char* IMAGES_PAGE = "editor.images";      ///< Editor > Images
     static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
+    /// Editor > Auto-correct (the gear of File > Import: the cleanups of the text follow it)
+    static constexpr const char* AUTO_CORRECT_PAGE = "editor.autoCorrect";
+    static constexpr const char* IMPORT_PAGE = "files.import";  ///< Files > Import
     static constexpr const char* REPETITIONS_PAGE = "editor.repetitions";  ///< Editor > Repetitions
     static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* CLIPPINGS_PAGE = "editor.clippings";  ///< Editor > Clippings

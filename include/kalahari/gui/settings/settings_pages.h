@@ -616,6 +616,20 @@ private:
     FolderField* m_backupFolder = nullptr;
 };
 
+/// @brief Files > Import: the choices File > Import > DOCX, Markdown and Plain Text start with
+///
+/// The window of the import keeps the choices made in it in the same settings, each format
+/// its own, so the page shows the choices of the last import of each format.
+class ImportPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit ImportPage(QWidget* parent = nullptr);
+
+private:
+    /// @brief The headings, the dialogue and the cleanups of each format, one format at a time
+    void addFormats();
+};
+
 /// @brief Advanced > General: the diagnostic menu (this session only, not stored)
 class AdvancedGeneralPage : public SettingsPage {
     Q_OBJECT

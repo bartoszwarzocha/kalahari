@@ -83,6 +83,14 @@ public:
     /// @return Its source; empty: it could not be saved, or the store has no folder
     QString addPicture(const QImage& picture, const QString& baseName);
 
+    /// @brief Save the file of an image (one of an imported document) in the book's folder of
+    ///        images as it is
+    /// @param fileName The file's name ("image1.png"); a path gives only its name, a taken one
+    ///        gets a number
+    /// @return Its source, the source of a file of the same content when the folder has one;
+    ///         empty: no data, it could not be saved, or the store has no folder
+    QString addData(const QByteArray& data, const QString& fileName);
+
     /// @brief The source in this book of an image of another book's folder: the same one
     ///        when the folders are the same or the file is missing, else that of its copy
     QString adoptSource(const QString& otherFolder, const QString& source);

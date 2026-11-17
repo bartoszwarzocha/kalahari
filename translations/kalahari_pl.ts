@@ -408,7 +408,7 @@
     </message>
     <message>
         <source>&amp;PDF Reference...</source>
-        <translation>&amp;Materiał źródłowy PDF...</translation>
+        <translation>Materiał źródłowy &amp;PDF...</translation>
     </message>
     <message>
         <source>Plain &amp;Text...</source>
@@ -1357,6 +1357,10 @@
     <message>
         <source>S&amp;ettings...</source>
         <translation>Ustawi&amp;enia...</translation>
+    </message>
+    <message>
+        <source>&amp;Other Formats...</source>
+        <translation>&amp;Inne formaty...</translation>
     </message>
     <message>
         <source>&amp;In the Text</source>
@@ -8837,6 +8841,164 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     </message>
 </context>
 <context>
+    <name>kalahari::gui::ImportPage</name>
+    <message>
+        <source>Window of the Import</source>
+        <extracomment>A group of Settings &gt; Files &gt; Import. In Polish: Okno importu</extracomment>
+        <translation>Okno importu</translation>
+    </message>
+    <message>
+        <source>File › Import › DOCX Document, Markdown and Plain Text start with these choices. What you choose in the window of the import stays here for the next import.</source>
+        <extracomment>In Polish: Polecenia Plik › Importuj › Dokument DOCX, Markdown i Zwykły tekst zaczynają od tych ustawień. To, co wybierzesz w oknie importu, zostaje tutaj na następny import.</extracomment>
+        <translation>Polecenia Plik › Importuj › Dokument DOCX, Markdown i Zwykły tekst zaczynają od tych ustawień. To, co wybierzesz w oknie importu, zostaje tutaj na następny import.</translation>
+    </message>
+    <message>
+        <source>&amp;More files: each file as one text</source>
+        <extracomment>In Polish: &amp;Kilka plików: każdy plik jako jeden tekst</extracomment>
+        <translation>&amp;Kilka plików: każdy plik jako jeden tekst</translation>
+    </message>
+    <message>
+        <source>Word Documents</source>
+        <extracomment>A group of Settings &gt; Files &gt; Import. In Polish: Dokumenty Worda</extracomment>
+        <translation>Dokumenty Worda</translation>
+    </message>
+    <message>
+        <source>all the formatting</source>
+        <extracomment>How much of the formatting of the file the texts keep. In Polish: całe formatowanie</extracomment>
+        <translation>całe formatowanie</translation>
+    </message>
+    <message>
+        <source>emphasis and alignment</source>
+        <extracomment>In Polish: wyróżnienia i wyrównanie</extracomment>
+        <translation>wyróżnienia i wyrównanie</translation>
+    </message>
+    <message>
+        <source>only the styles</source>
+        <extracomment>In Polish: tylko style</extracomment>
+        <translation>tylko style</translation>
+    </message>
+    <message>
+        <source>Fo&amp;rmatting of the file:</source>
+        <extracomment>In Polish: Formatowanie z &amp;pliku:</extracomment>
+        <translation>Formatowanie z &amp;pliku:</translation>
+    </message>
+    <message>
+        <source>The emphasis is italics, bold, underline and strikethrough; the styles of the book give the rest of the look.</source>
+        <extracomment>In Polish: Wyróżnienia to kursywa, pogrubienie, podkreślenie i przekreślenie; resztę wyglądu dają style książki.</extracomment>
+        <translation>Wyróżnienia to kursywa, pogrubienie, podkreślenie i przekreślenie; resztę wyglądu dają style książki.</translation>
+    </message>
+    <message>
+        <source>Word &amp;comments as annotations</source>
+        <extracomment>In Polish: Komentarze Worda jako &amp;uwagi</extracomment>
+        <translation>Komentarze Worda jako &amp;uwagi</translation>
+    </message>
+    <message>
+        <source>accept all</source>
+        <extracomment>The tracked changes of Word. In Polish: przyjmij wszystkie</extracomment>
+        <translation>przyjmij wszystkie</translation>
+    </message>
+    <message>
+        <source>reject all</source>
+        <extracomment>In Polish: odrzuć wszystkie</extracomment>
+        <translation>odrzuć wszystkie</translation>
+    </message>
+    <message>
+        <source>&amp;Tracked changes:</source>
+        <extracomment>In Polish: &amp;Zmiany śledzone:</extracomment>
+        <translation>&amp;Zmiany śledzone:</translation>
+    </message>
+    <message>
+        <source>Division, Styles and Cleanups</source>
+        <extracomment>A group of Settings &gt; Files &gt; Import, as the tabs of the window of the import. In Polish: Podział, style i porządki</extracomment>
+        <translation>Podział, style i porządki</translation>
+    </message>
+    <message>
+        <source>Word documents</source>
+        <extracomment>The formats of the import. In Polish: dokumenty Worda</extracomment>
+        <translation>dokumenty Worda</translation>
+    </message>
+    <message>
+        <source>Markdown</source>
+        <extracomment>In Polish: Markdown</extracomment>
+        <translation>Markdown</translation>
+    </message>
+    <message>
+        <source>plain text</source>
+        <extracomment>In Polish: zwykły tekst</extracomment>
+        <translation>zwykły tekst</translation>
+    </message>
+    <message>
+        <source>&amp;Format:</source>
+        <extracomment>The format whose options the page shows. In Polish: &amp;Format:</extracomment>
+        <translation>&amp;Format:</translation>
+    </message>
+    <message>
+        <source>&amp;Heading as the title, not in the text</source>
+        <extracomment>As the tab Division of the window of the import. In Polish: &amp;Nagłówek jako tytuł, nie w tekście</extracomment>
+        <translation>&amp;Nagłówek jako tytuł, nie w tekście</translation>
+    </message>
+    <message>
+        <source>Paragraphs with a dash in the style Dia&amp;logue</source>
+        <extracomment>As the tab Styles of the window of the import; when the book has the style. In Polish: Akapity zaczynające się pauzą w stylu Dia&amp;log</extracomment>
+        <translation>Akapity zaczynające się pauzą w stylu Dia&amp;log</translation>
+    </message>
+    <message>
+        <source>Typographic &amp;quotation marks and dashes</source>
+        <extracomment>The cleanups. In Polish: Typograficzne &amp;cudzysłowy i pauzy</extracomment>
+        <translation>Typograficzne &amp;cudzysłowy i pauzy</translation>
+    </message>
+    <message>
+        <source>&amp;Double spaces as one</source>
+        <extracomment>In Polish: Po&amp;dwójne spacje jako jedna</extracomment>
+        <translation>Po&amp;dwójne spacje jako jedna</translation>
+    </message>
+    <message>
+        <source>No &amp;spaces at the start of a paragraph</source>
+        <extracomment>Spaces and tabs. In Polish: Bez spacji na począ&amp;tku akapitu</extracomment>
+        <translation>Bez spacji na począ&amp;tku akapitu</translation>
+    </message>
+    <message>
+        <source>&quot;* * *&quot; and the like as scene &amp;breaks</source>
+        <extracomment>In Polish: „* * *” i podobne jako podział &amp;sceny</extracomment>
+        <translation>„* * *” i podobne jako podział &amp;sceny</translation>
+    </message>
+    <message>
+        <source>remove</source>
+        <extracomment>What the empty paragraphs become. In Polish: usuń</extracomment>
+        <translation>usuń</translation>
+    </message>
+    <message>
+        <source>keep</source>
+        <extracomment>In Polish: zostaw</extracomment>
+        <translation>zostaw</translation>
+    </message>
+    <message>
+        <source>scene break</source>
+        <extracomment>In Polish: podział sceny</extracomment>
+        <translation>podział sceny</translation>
+    </message>
+    <message>
+        <source>&amp;Empty paragraphs:</source>
+        <extracomment>In Polish: Pust&amp;e akapity:</extracomment>
+        <translation>Pust&amp;e akapity:</translation>
+    </message>
+    <message>
+        <source>The quotation marks, apostrophes, dashes and ellipses depend on the language of the book and Settings › Editor › Auto-correct. The paragraphs &quot;* * *&quot;, &quot;***&quot;, &quot;#&quot;, &quot;⁂&quot; and &quot;❦&quot; become scene breaks. The style Dialogue is used only in a book that has it. The cleanups do not change the paragraphs in the style Code.</source>
+        <extracomment>Under the cleanups. In Polish: Cudzysłowy, apostrofy, pauzy i wielokropki zależą od języka książki i Ustawień › Edytor › Autokorekta. Podziałem sceny stają się akapity „* * *”, „***”, „#”, „⁂” i „❦”. Styl Dialog działa tylko w książce, która go ma. Porządki nie zmieniają akapitów w stylu Kod.</extracomment>
+        <translation>Cudzysłowy, apostrofy, pauzy i wielokropki zależą od języka książki i Ustawień › Edytor › Autokorekta. Podziałem sceny stają się akapity „* * *”, „***”, „#”, „⁂” i „❦”. Styl Dialog działa tylko w książce, która go ma. Porządki nie zmieniają akapitów w stylu Kod.</translation>
+    </message>
+    <message>
+        <source>Download the &amp;images of Internet addresses</source>
+        <extracomment>In Polish: Pobierz obrazy z adresów &amp;internetowych</extracomment>
+        <translation>Pobierz obrazy z adresów &amp;internetowych</translation>
+    </message>
+    <message>
+        <source>The images that Markdown files and Word documents give by Internet addresses; the program connects to the addresses only when the import starts. Without it, the descriptions of the images stay in their places.</source>
+        <extracomment>In Polish: Obrazy, które pliki Markdown i dokumenty Worda wskazują adresem internetowym; program łączy się z tymi adresami dopiero wtedy, gdy import się zacznie. Bez tej opcji w miejscu obrazów zostaje ich opis.</extracomment>
+        <translation>Obrazy, które pliki Markdown i dokumenty Worda wskazują adresem internetowym; program łączy się z tymi adresami dopiero wtedy, gdy import się zacznie. Bez tej opcji w miejscu obrazów zostaje ich opis.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::GeneralPage</name>
     <message>
         <source>Startup</source>
@@ -11726,6 +11888,11 @@ Szczegóły są w dzienniku programu.</translation>
     <message>
         <source>Folders</source>
         <translation>Foldery</translation>
+    </message>
+    <message>
+        <source>Import</source>
+        <extracomment>The page of the choices the window of the import starts with. In Polish: Import</extracomment>
+        <translation>Import</translation>
     </message>
     <message>
         <source>Planned features:
@@ -27088,6 +27255,1035 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Saves the book &quot;%1&quot; in the format %2.</source>
         <extracomment>The format of a plugin; %1: the title of the book, %2: the format with its extension. In Polish: Zapisuje książkę „%1” w formacie %2.</extracomment>
         <translation>Zapisuje książkę „%1” w formacie %2.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::BookImportCoordinator</name>
+    <message>
+        <source>Kalahari cannot add the new styles to the book.</source>
+        <extracomment>In Polish: Kalahari nie może dodać nowych stylów do książki.</extracomment>
+        <translation>Kalahari nie może dodać nowych stylów do książki.</translation>
+    </message>
+    <message>
+        <source>Kalahari could not add every text to the book, so it took out those it had added. A kind of text the book cannot have there, or a file that cannot be written, stops the import.</source>
+        <extracomment>In Polish: Nie udało się dodać do książki wszystkich tekstów, więc to, co import dodał, zostało usunięte. Import przerywa rodzaj tekstu, którego książka nie może mieć w tym miejscu, albo plik, którego nie można zapisać.</extracomment>
+        <translation>Nie udało się dodać do książki wszystkich tekstów, więc to, co import dodał, zostało usunięte. Import przerywa rodzaj tekstu, którego książka nie może mieć w tym miejscu, albo plik, którego nie można zapisać.</translation>
+    </message>
+    <message>
+        <source>Word documents</source>
+        <extracomment>The files of the system window of File &gt; Import &gt; DOCX. In Polish: Dokumenty Worda</extracomment>
+        <translation>Dokumenty Worda</translation>
+    </message>
+    <message>
+        <source>Markdown files</source>
+        <extracomment>The files of the system window of File &gt; Import &gt; Markdown. In Polish: Pliki Markdown</extracomment>
+        <translation>Pliki Markdown</translation>
+    </message>
+    <message>
+        <source>Plain text files</source>
+        <extracomment>The files of the system window of File &gt; Import &gt; Plain Text. In Polish: Pliki zwykłego tekstu</extracomment>
+        <translation>Pliki zwykłego tekstu</translation>
+    </message>
+    <message>
+        <source>Files to Import</source>
+        <extracomment>The title of the system window that chooses the files of the import. In Polish: Pliki do importu</extracomment>
+        <translation>Pliki do importu</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <extracomment>The title of a book without one. In Polish: Książka</extracomment>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>No book is open for changes.</source>
+        <extracomment>In Polish: Żadna książka nie jest otwarta do zmian.</extracomment>
+        <translation>Żadna książka nie jest otwarta do zmian.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot make the book &quot;%1&quot;.</source>
+        <extracomment>%1: the title of the new book. In Polish: Kalahari nie może utworzyć książki „%1”.</extracomment>
+        <translation>Kalahari nie może utworzyć książki „%1”.</translation>
+    </message>
+    <message>
+        <source>The book was made in the folder %1 without them.</source>
+        <extracomment>After the texts that could not be added to a new book; %1: its folder. In Polish: Książka powstała w folderze %1 bez tych tekstów.</extracomment>
+        <translation>Książka powstała w folderze %1 bez tych tekstów.</translation>
+    </message>
+    <message>
+        <source>No plugin imports other formats.</source>
+        <extracomment>Why File &gt; Import &gt; Other Formats is greyed out. In Polish: Żadna wtyczka nie importuje innych formatów.</extracomment>
+        <translation>Żadna wtyczka nie importuje innych formatów.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ImportBookDialog</name>
+    <message>
+        <source>Windows-1250 (Central European)</source>
+        <extracomment>An encoding of plain text. In Polish: Windows-1250 (środkowoeuropejskie)</extracomment>
+        <translation>Windows-1250 (środkowoeuropejskie)</translation>
+    </message>
+    <message>
+        <source>English</source>
+        <translation>angielski</translation>
+    </message>
+    <message>
+        <source>Polish</source>
+        <translation>polski</translation>
+    </message>
+    <message>
+        <source>German</source>
+        <translation>niemiecki</translation>
+    </message>
+    <message>
+        <source>French</source>
+        <translation>francuski</translation>
+    </message>
+    <message>
+        <source>Spanish</source>
+        <translation>hiszpański</translation>
+    </message>
+    <message>
+        <source>Italian</source>
+        <translation>włoski</translation>
+    </message>
+    <message>
+        <source>Portuguese</source>
+        <translation>portugalski</translation>
+    </message>
+    <message>
+        <source>Russian</source>
+        <translation>rosyjski</translation>
+    </message>
+    <message>
+        <source>Czech</source>
+        <translation>czeski</translation>
+    </message>
+    <message>
+        <source>Ukrainian</source>
+        <translation>ukraiński</translation>
+    </message>
+    <message>
+        <source>Heading %1 (%2)</source>
+        <extracomment>A level of the headings of the file, %1: its number, %2: how many headings it has. In Polish: Nagłówek %1 (%2)</extracomment>
+        <translation>Nagłówek %1 (%2)</translation>
+    </message>
+    <message>
+        <source>Import Text</source>
+        <extracomment>The title of the window of File &gt; Import &gt; DOCX, Markdown and Plain Text. In Polish: Importuj tekst</extracomment>
+        <translation>Importuj tekst</translation>
+    </message>
+    <message>
+        <source>Import Settings</source>
+        <extracomment>The tooltip of the gear of the window of the import. In Polish: Ustawienia importu</extracomment>
+        <translation>Ustawienia importu</translation>
+    </message>
+    <message>
+        <source>Show in Navigator</source>
+        <extracomment>A link under the result of the import. In Polish: Pokaż w Nawigatorze</extracomment>
+        <translation>Pokaż w Nawigatorze</translation>
+    </message>
+    <message>
+        <source>Show the imported texts in the Navigator</source>
+        <translation>Pokaż zaimportowane teksty w Nawigatorze</translation>
+    </message>
+    <message>
+        <source>Open First Text</source>
+        <extracomment>A link under the result of the import. In Polish: Otwórz pierwszy tekst</extracomment>
+        <translation>Otwórz pierwszy tekst</translation>
+    </message>
+    <message>
+        <source>Open the first imported text</source>
+        <translation>Otwórz pierwszy zaimportowany tekst</translation>
+    </message>
+    <message>
+        <source>Undo Import</source>
+        <extracomment>A link under the result of the import. In Polish: Cofnij import</extracomment>
+        <translation>Cofnij import</translation>
+    </message>
+    <message>
+        <source>Take out of the book everything the import added, also the new styles</source>
+        <extracomment>The tooltip of Undo Import. In Polish: Usuń z książki wszystko, co import dodał, także nowe style</extracomment>
+        <translation>Usuń z książki wszystko, co import dodał, także nowe style</translation>
+    </message>
+    <message>
+        <source>The progress and the result will show here.</source>
+        <extracomment>In Polish: Postęp i wynik pokażą się tutaj.</extracomment>
+        <translation>Postęp i wynik pokażą się tutaj.</translation>
+    </message>
+    <message>
+        <source>Import</source>
+        <extracomment>The button that imports the texts. In Polish: Importuj</extracomment>
+        <translation>Importuj</translation>
+    </message>
+    <message>
+        <source>The open book is read-only: the import makes a new book.</source>
+        <extracomment>In the place of the import into a book open read-only. In Polish: Otwarta książka jest tylko do odczytu: import tworzy nową książkę.</extracomment>
+        <translation>Otwarta książka jest tylko do odczytu: import tworzy nową książkę.</translation>
+    </message>
+    <message>
+        <source>&amp;File</source>
+        <extracomment>A tab of the window of the import: the format and the files. In Polish: &amp;Plik</extracomment>
+        <translation>&amp;Plik</translation>
+    </message>
+    <message>
+        <source>Word document (.docx)</source>
+        <extracomment>A format of the window of the import. In Polish: Dokument Worda (.docx)</extracomment>
+        <translation>Dokument Worda (.docx)</translation>
+    </message>
+    <message>
+        <source>Markdown (.md)</source>
+        <extracomment>A format of the window of the import. In Polish: Markdown (.md)</extracomment>
+        <translation>Markdown (.md)</translation>
+    </message>
+    <message>
+        <source>Plain text (.txt)</source>
+        <extracomment>A format of the window of the import. In Polish: Zwykły tekst (.txt)</extracomment>
+        <translation>Zwykły tekst (.txt)</translation>
+    </message>
+    <message>
+        <source>F&amp;ormat:</source>
+        <extracomment>In Polish: F&amp;ormat:</extracomment>
+        <translation>F&amp;ormat:</translation>
+    </message>
+    <message>
+        <source>Files of the import</source>
+        <extracomment>The name of the list of the files for screen readers. In Polish: Pliki importu</extracomment>
+        <translation>Pliki importu</translation>
+    </message>
+    <message>
+        <source>&amp;Add...</source>
+        <extracomment>Adds files to the list of the import. In Polish: Dod&amp;aj…</extracomment>
+        <translation>Dod&amp;aj…</translation>
+    </message>
+    <message>
+        <source>Move &amp;Up</source>
+        <extracomment>Moves the file up in the list. In Polish: W &amp;górę</extracomment>
+        <translation>W &amp;górę</translation>
+    </message>
+    <message>
+        <source>Move Do&amp;wn</source>
+        <extracomment>Moves the file down in the list. In Polish: &amp;W dół</extracomment>
+        <translation>&amp;W dół</translation>
+    </message>
+    <message>
+        <source>&amp;Remove from List</source>
+        <extracomment>Takes the file out of the list of the import. In Polish: &amp;Usuń z listy</extracomment>
+        <translation>&amp;Usuń z listy</translation>
+    </message>
+    <message>
+        <source>The order of the files is the order of the texts in the book, the numbers in order (&quot;Chapter 2&quot; before &quot;Chapter 10&quot;).</source>
+        <extracomment>Beside the list of the files. In Polish: Kolejność plików to kolejność tekstów w książce, z liczbami po kolei („Rozdział 2” przed „Rozdział 10”).</extracomment>
+        <translation>Kolejność plików to kolejność tekstów w książce, z liczbami po kolei („Rozdział 2” przed „Rozdział 10”).</translation>
+    </message>
+    <message>
+        <source>F&amp;iles:</source>
+        <extracomment>In Polish: Pl&amp;iki:</extracomment>
+        <translation>Pl&amp;iki:</translation>
+    </message>
+    <message>
+        <source>E&amp;ncoding:</source>
+        <extracomment>In Polish: &amp;Kodowanie:</extracomment>
+        <translation>&amp;Kodowanie:</translation>
+    </message>
+    <message>
+        <source>In the file:</source>
+        <extracomment>In Polish: W pliku:</extracomment>
+        <translation>W pliku:</translation>
+    </message>
+    <message>
+        <source>&amp;Place</source>
+        <extracomment>A tab of the window of the import: where the texts go. In Polish: &amp;Miejsce</extracomment>
+        <translation>&amp;Miejsce</translation>
+    </message>
+    <message>
+        <source>To the &amp;book &quot;%1&quot;</source>
+        <extracomment>%1: the title of the open book. In Polish: Do &amp;książki „%1”</extracomment>
+        <translation>Do &amp;książki „%1”</translation>
+    </message>
+    <message>
+        <source>To a &amp;new book</source>
+        <extracomment>In Polish: Do &amp;nowej książki</extracomment>
+        <translation>Do &amp;nowej książki</translation>
+    </message>
+    <message>
+        <source>To the group &quot;&amp;Other Files&quot;</source>
+        <extracomment>In Polish: Do grupy „&amp;Inne pliki”</extracomment>
+        <translation>Do grupy „&amp;Inne pliki”</translation>
+    </message>
+    <message>
+        <source>No book is open: the import makes a new book.</source>
+        <extracomment>In the place of the import without a book. In Polish: Żadna książka nie jest otwarta: import tworzy nową książkę.</extracomment>
+        <translation>Żadna książka nie jest otwarta: import tworzy nową książkę.</translation>
+    </message>
+    <message>
+        <source>The texts go here one after another; those of kinds with places of their own go there: a prologue to the start of the main text, acknowledgments to the back matter.</source>
+        <extracomment>Under the list of the place. In Polish: Teksty pójdą tu jeden po drugim; te o rodzajach z własnym miejscem pójdą tam same: prolog na początek tekstu głównego, podziękowania do stron końcowych.</extracomment>
+        <translation>Teksty pójdą tu jeden po drugim; te o rodzajach z własnym miejscem pójdą tam same: prolog na początek tekstu głównego, podziękowania do stron końcowych.</translation>
+    </message>
+    <message>
+        <source>Choose the folder in the system window</source>
+        <translation>Wybierz folder w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>&amp;Title:</source>
+        <extracomment>In Polish: &amp;Tytuł:</extracomment>
+        <translation>&amp;Tytuł:</translation>
+    </message>
+    <message>
+        <source>A&amp;uthor:</source>
+        <extracomment>In Polish: A&amp;utor:</extracomment>
+        <translation>A&amp;utor:</translation>
+    </message>
+    <message>
+        <source>&amp;Language:</source>
+        <extracomment>In Polish: &amp;Język:</extracomment>
+        <translation>&amp;Język:</translation>
+    </message>
+    <message>
+        <source>Book t&amp;ype:</source>
+        <extracomment>In Polish: T&amp;yp książki:</extracomment>
+        <translation>T&amp;yp książki:</translation>
+    </message>
+    <message>
+        <source>Folder:</source>
+        <extracomment>In Polish: Folder:</extracomment>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Each text of the file becomes a file of its own in the group &quot;Other Files&quot; of the Navigator: in the book, but outside its text, as notes or a text pasted from elsewhere. The titles of the parts do not go.</source>
+        <extracomment>The place Other Files. In Polish: Każdy tekst z pliku stanie się osobnym plikiem w grupie „Inne pliki” w Nawigatorze: jest w książce, ale poza jej treścią, tak jak notatki albo tekst wklejony skądinąd. Tytuły części nie przechodzą.</extracomment>
+        <translation>Każdy tekst z pliku stanie się osobnym plikiem w grupie „Inne pliki” w Nawigatorze: jest w książce, ale poza jej treścią, tak jak notatki albo tekst wklejony skądinąd. Tytuły części nie przechodzą.</translation>
+    </message>
+    <message>
+        <source>&amp;Division</source>
+        <extracomment>A tab of the window of the import: the texts the file becomes. In Polish: Po&amp;dział</extracomment>
+        <translation>Po&amp;dział</translation>
+    </message>
+    <message>
+        <source>The whole file as &amp;one text</source>
+        <extracomment>In Polish: Cały plik jako &amp;jeden tekst</extracomment>
+        <translation>Cały plik jako &amp;jeden tekst</translation>
+    </message>
+    <message>
+        <source>A pa&amp;rt starts at:</source>
+        <extracomment>In Polish: &amp;Część zaczyna:</extracomment>
+        <translation>&amp;Część zaczyna:</translation>
+    </message>
+    <message>
+        <source>A te&amp;xt starts at:</source>
+        <extracomment>In Polish: &amp;Tekst zaczyna:</extracomment>
+        <translation>&amp;Tekst zaczyna:</translation>
+    </message>
+    <message>
+        <source>Rozdział 1, I, pierwszy</source>
+        <extracomment>A pattern of the titles of plain text. In Polish: Rozdział 1, I, pierwszy</extracomment>
+        <translation>Rozdział 1, I, pierwszy</translation>
+    </message>
+    <message>
+        <source>Chapter 1, I, One</source>
+        <extracomment>A pattern of the titles of plain text. In Polish: Chapter 1, I, One</extracomment>
+        <translation>Chapter 1, I, One</translation>
+    </message>
+    <message>
+        <source>A number alone: 1, 1., I, I.</source>
+        <extracomment>A pattern of the titles of plain text. In Polish: Sam numer: 1, 1., I, I.</extracomment>
+        <translation>Sam numer: 1, 1., I, I.</translation>
+    </message>
+    <message>
+        <source>A line in capitals</source>
+        <extracomment>A pattern of the titles of plain text. In Polish: Wiersz wielkimi literami</extracomment>
+        <translation>Wiersz wielkimi literami</translation>
+    </message>
+    <message>
+        <source>A line that starts with...</source>
+        <extracomment>A pattern of the titles of plain text. In Polish: Wiersz zaczynający się od…</extracomment>
+        <translation>Wiersz zaczynający się od…</translation>
+    </message>
+    <message>
+        <source>Start of the title lines</source>
+        <extracomment>The start of the lines of the titles. In Polish: Początek wiersza tytułu</extracomment>
+        <translation>Początek wiersza tytułu</translation>
+    </message>
+    <message>
+        <source>Część pierwsza, I</source>
+        <extracomment>A pattern of the titles of the parts of plain text. In Polish: Część pierwsza, I</extracomment>
+        <translation>Część pierwsza, I</translation>
+    </message>
+    <message>
+        <source>Part One, I</source>
+        <extracomment>A pattern of the titles of the parts of plain text. In Polish: Part One, I</extracomment>
+        <translation>Part One, I</translation>
+    </message>
+    <message>
+        <source>– no parts –</source>
+        <extracomment>No parts in plain text. In Polish: – bez części –
+----------
+No parts in the file. In Polish: – bez części –</extracomment>
+        <translation>– bez części –</translation>
+    </message>
+    <message>
+        <source>Text t&amp;itle:</source>
+        <extracomment>In Polish: Tytuł te&amp;kstu:</extracomment>
+        <translation>Tytuł te&amp;kstu:</translation>
+    </message>
+    <message>
+        <source>Pa&amp;rt:</source>
+        <extracomment>In Polish: &amp;Część:</extracomment>
+        <translation>&amp;Część:</translation>
+    </message>
+    <message>
+        <source>A ne&amp;w text after at least</source>
+        <extracomment>Before the number of empty lines. In Polish: Nowy tekst po co najmn&amp;iej</extracomment>
+        <translation>Nowy tekst po co najmn&amp;iej</translation>
+    </message>
+    <message>
+        <source>empty lines</source>
+        <extracomment>After the number of empty lines. In Polish: pustych wierszach</extracomment>
+        <translation>pustych wierszach</translation>
+    </message>
+    <message>
+        <source>Each fi&amp;le as one text</source>
+        <extracomment>In Polish: Każdy p&amp;lik jako jeden tekst</extracomment>
+        <translation>Każdy p&amp;lik jako jeden tekst</translation>
+    </message>
+    <message>
+        <source>The heading beco&amp;mes the title in the Navigator and leaves the text</source>
+        <extracomment>In Polish: N&amp;agłówek staje się tytułem w Nawigatorze i nie zostaje w tekście</extracomment>
+        <translation>N&amp;agłówek staje się tytułem w Nawigatorze i nie zostaje w tekście</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <extracomment>The columns of the list of the texts. In Polish: Tytuł</extracomment>
+        <translation>Tytuł</translation>
+    </message>
+    <message>
+        <source>Kind</source>
+        <extracomment>In Polish: Rodzaj</extracomment>
+        <translation>Rodzaj</translation>
+    </message>
+    <message>
+        <source>Words</source>
+        <extracomment>In Polish: Słowa</extracomment>
+        <translation>Słowa</translation>
+    </message>
+    <message>
+        <source>Texts of the import</source>
+        <extracomment>The name of the list of the texts for screen readers. In Polish: Teksty importu</extracomment>
+        <translation>Teksty importu</translation>
+    </message>
+    <message>
+        <source>Check &amp;All</source>
+        <extracomment>Checks every text of the list. In Polish: Zaznacz wszystki&amp;e</extracomment>
+        <translation>Zaznacz wszystki&amp;e</translation>
+    </message>
+    <message>
+        <source>&amp;Uncheck All</source>
+        <extracomment>Unchecks every text of the list. In Polish: &amp;Odznacz wszystkie</extracomment>
+        <translation>&amp;Odznacz wszystkie</translation>
+    </message>
+    <message>
+        <source>Re&amp;name</source>
+        <extracomment>Changes the title of the text chosen in the list (F2). In Polish: Zmień tyt&amp;uł</extracomment>
+        <translation>Zmień tyt&amp;uł</translation>
+    </message>
+    <message>
+        <source>Kind of the text</source>
+        <extracomment>The kind of the text chosen in the list (F4). In Polish: Rodzaj tekstu</extracomment>
+        <translation>Rodzaj tekstu</translation>
+    </message>
+    <message>
+        <source>The kind of the text chosen in the list (F4)</source>
+        <translation>Rodzaj tekstu wybranego na liście (F4)</translation>
+    </message>
+    <message>
+        <source>&amp;Styles</source>
+        <extracomment>A tab of the window of the import: the styles. In Polish: &amp;Style</extracomment>
+        <translation>&amp;Style</translation>
+    </message>
+    <message>
+        <source>All the formatting</source>
+        <extracomment>How much of the formatting of the file the texts keep. In Polish: Całe formatowanie</extracomment>
+        <translation>Całe formatowanie</translation>
+    </message>
+    <message>
+        <source>Emphasis and alignment</source>
+        <extracomment>In Polish: Wyróżnienia i wyrównanie</extracomment>
+        <translation>Wyróżnienia i wyrównanie</translation>
+    </message>
+    <message>
+        <source>Only the styles</source>
+        <extracomment>In Polish: Tylko style</extracomment>
+        <translation>Tylko style</translation>
+    </message>
+    <message>
+        <source>Fo&amp;rmatting of the file:</source>
+        <extracomment>In Polish: &amp;Formatowanie z pliku:</extracomment>
+        <translation>&amp;Formatowanie z pliku:</translation>
+    </message>
+    <message>
+        <source>Style of the file</source>
+        <extracomment>The columns of the list of the styles. In Polish: Styl w pliku</extracomment>
+        <translation>Styl w pliku</translation>
+    </message>
+    <message>
+        <source>Style of the book</source>
+        <extracomment>In Polish: Styl w książce</extracomment>
+        <translation>Styl w książce</translation>
+    </message>
+    <message>
+        <source>Styles of the file</source>
+        <extracomment>The name of the list of the styles for screen readers. In Polish: Style pliku</extracomment>
+        <translation>Style pliku</translation>
+    </message>
+    <message>
+        <source>Each &amp;line is a paragraph</source>
+        <extracomment>In Polish: Każdy &amp;wiersz to akapit</extracomment>
+        <translation>Każdy &amp;wiersz to akapit</translation>
+    </message>
+    <message>
+        <source>An &amp;empty line separates the paragraphs</source>
+        <extracomment>In Polish: Akapity &amp;oddziela pusty wiersz</extracomment>
+        <translation>Akapity &amp;oddziela pusty wiersz</translation>
+    </message>
+    <message>
+        <source>Paragraph st&amp;yle:</source>
+        <extracomment>In Polish: St&amp;yl akapitów:</extracomment>
+        <translation>St&amp;yl akapitów:</translation>
+    </message>
+    <message>
+        <source>Paragraphs that start &amp;with a dash in the style Dialogue</source>
+        <extracomment>In Polish: Akapity zaczynające się od pauzy albo półpauzy w stylu Dia&amp;log</extracomment>
+        <translation>Akapity zaczynające się od pauzy albo półpauzy w stylu Dia&amp;log</translation>
+    </message>
+    <message>
+        <source>&amp;Cleanup</source>
+        <extracomment>A tab of the window of the import: the cleanups of the text. In Polish: Por&amp;ządki</extracomment>
+        <translation>Por&amp;ządki</translation>
+    </message>
+    <message>
+        <source>Quotation marks, apostrophes, dashes and ellipses as in &amp;auto-correct</source>
+        <extracomment>In Polish: Cudzysłowy, apostrofy, półpauzy i wielokropki jak w &amp;autokorekcie</extracomment>
+        <translation>Cudzysłowy, apostrofy, półpauzy i wielokropki jak w &amp;autokorekcie</translation>
+    </message>
+    <message>
+        <source>By the language of the book and the dialogue dash of Settings › Editor › Auto-correct.</source>
+        <extracomment>Under the typography. In Polish: Według języka książki i rodzaju pauzy dialogowej z Ustawień › Edytor › Autokorekta.</extracomment>
+        <translation>Według języka książki i rodzaju pauzy dialogowej z Ustawień › Edytor › Autokorekta.</translation>
+    </message>
+    <message>
+        <source>Double spaces as &amp;one</source>
+        <extracomment>In Polish: Podwójne spacje jako &amp;jedna</extracomment>
+        <translation>Podwójne spacje jako &amp;jedna</translation>
+    </message>
+    <message>
+        <source>No spaces and tabs at the s&amp;tart of a paragraph</source>
+        <extracomment>In Polish: Bez spacji i tabulatorów na początku a&amp;kapitu</extracomment>
+        <translation>Bez spacji i tabulatorów na początku a&amp;kapitu</translation>
+    </message>
+    <message>
+        <source>The style of the paragraph gives the indent of its first line.</source>
+        <extracomment>Under the spaces at the start. In Polish: Wcięcie pierwszego wiersza daje styl akapitu.</extracomment>
+        <translation>Wcięcie pierwszego wiersza daje styl akapitu.</translation>
+    </message>
+    <message>
+        <source>Paragraphs &quot;* * *&quot;, &quot;***&quot;, &quot;#&quot;, &quot;⁂&quot; and &quot;❦&quot; as scene brea&amp;ks</source>
+        <extracomment>In Polish: Akapity „* * *”, „***”, „#”, „⁂” i „❦” jako podział sce&amp;ny</extracomment>
+        <translation>Akapity „* * *”, „***”, „#”, „⁂” i „❦” jako podział sce&amp;ny</translation>
+    </message>
+    <message>
+        <source>remove</source>
+        <extracomment>What the empty paragraphs become. In Polish: usuń</extracomment>
+        <translation>usuń</translation>
+    </message>
+    <message>
+        <source>keep</source>
+        <extracomment>In Polish: zostaw</extracomment>
+        <translation>zostaw</translation>
+    </message>
+    <message>
+        <source>as a scene break</source>
+        <extracomment>In Polish: jako podział sceny</extracomment>
+        <translation>jako podział sceny</translation>
+    </message>
+    <message>
+        <source>E&amp;mpty paragraphs:</source>
+        <extracomment>In Polish: P&amp;uste akapity:</extracomment>
+        <translation>P&amp;uste akapity:</translation>
+    </message>
+    <message>
+        <source>The cleanups do not change the paragraphs in the style Code, as auto-correct does not.</source>
+        <extracomment>Under the cleanups. In Polish: Porządki nie zmieniają akapitów w stylu Kod, tak jak autokorekta.</extracomment>
+        <translation>Porządki nie zmieniają akapitów w stylu Kod, tak jak autokorekta.</translation>
+    </message>
+    <message>
+        <source>Annotations and Ima&amp;ges</source>
+        <extracomment>A tab of the window of the import: the annotations and the images. In Polish: Uwagi i o&amp;brazy</extracomment>
+        <translation>Uwagi i o&amp;brazy</translation>
+    </message>
+    <message>
+        <source>Annotations</source>
+        <extracomment>A group of the window of the import. In Polish: Uwagi</extracomment>
+        <translation>Uwagi</translation>
+    </message>
+    <message>
+        <source>With the author, the date and whether it is resolved. A comment that starts with &quot;To do:&quot; or &quot;Note:&quot; (as the export of Kalahari writes them) becomes a to-do or a note. The replies go to the text of the annotation.</source>
+        <extracomment>Under the comments as annotations. In Polish: Z autorem, datą i rozwiązaniem. Komentarz zaczynający się od „Do zrobienia:” albo „Notatka:” (tak zapisuje je eksport Kalahari) staje się zadaniem albo notatką. Odpowiedzi trafiają do treści uwagi.</extracomment>
+        <translation>Z autorem, datą i rozwiązaniem. Komentarz zaczynający się od „Do zrobienia:” albo „Notatka:” (tak zapisuje je eksport Kalahari) staje się zadaniem albo notatką. Odpowiedzi trafiają do treści uwagi.</translation>
+    </message>
+    <message>
+        <source>Markdown has no comments; the program leaves out the comments of HTML (&lt;!-- --&gt;).</source>
+        <extracomment>In the group of the annotations, for Markdown. In Polish: Markdown nie ma komentarzy; komentarze HTML (&lt;!-- --&gt;) program pomija.</extracomment>
+        <translation>Markdown nie ma komentarzy; komentarze HTML (&lt;!-- --&gt;) program pomija.</translation>
+    </message>
+    <message>
+        <source>Accept &amp;all</source>
+        <extracomment>In Polish: Przyjmij &amp;wszystkie</extracomment>
+        <translation>Przyjmij &amp;wszystkie</translation>
+    </message>
+    <message>
+        <source>&amp;Reject all</source>
+        <extracomment>In Polish: &amp;Odrzuć wszystkie</extracomment>
+        <translation>&amp;Odrzuć wszystkie</translation>
+    </message>
+    <message>
+        <source>Images and Notes</source>
+        <extracomment>A group of the window of the import. In Polish: Obrazy i przypisy</extracomment>
+        <translation>Obrazy i przypisy</translation>
+    </message>
+    <message>
+        <source>To do</source>
+        <extracomment>The word a comment of Word starts with that makes it a to-do. In Polish: Do zrobienia</extracomment>
+        <translation>Do zrobienia</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>The word a comment of Word starts with that makes it a note. In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>Detect (found: %1)</source>
+        <extracomment>The first encoding of the list; %1: the encoding found in the file. In Polish: Wykryj samo (wykryto: %1)</extracomment>
+        <translation>Wykryj samo (wykryto: %1)</translation>
+    </message>
+    <message>
+        <source>Detect</source>
+        <extracomment>The first encoding of the list. In Polish: Wykryj samo</extracomment>
+        <translation>Wykryj samo</translation>
+    </message>
+    <message>
+        <source>Found: empty lines separate the paragraphs, so the lines of a paragraph are joined.</source>
+        <extracomment>Under the paragraphs of plain text. In Polish: Wykryto: puste wiersze oddzielają akapity, więc wiersze jednego akapitu się łączą.</extracomment>
+        <translation>Wykryto: puste wiersze oddzielają akapity, więc wiersze jednego akapitu się łączą.</translation>
+    </message>
+    <message>
+        <source>Found: no empty lines between the paragraphs, so each line is a paragraph. The other choice joins the lines broken by hand in the file.</source>
+        <translation>Wykryto: nie ma pustych wierszy między akapitami, więc każdy wiersz to akapit. Drugi wariant łączy wiersze złamane w pliku ręcznie.</translation>
+    </message>
+    <message>
+        <source>cannot be read</source>
+        <extracomment>Beside a file that could not be read. In Polish: nie można odczytać</extracomment>
+        <translation>nie można odczytać</translation>
+    </message>
+    <message>
+        <source>The file &quot;%1&quot; is not a Word document (DOCX).</source>
+        <extracomment>%1: the name of the file. In Polish: Plik „%1” nie jest dokumentem Worda (DOCX).</extracomment>
+        <translation>Plik „%1” nie jest dokumentem Worda (DOCX).</translation>
+    </message>
+    <message>
+        <source>A part of the file &quot;%1&quot; cannot be read: the file is damaged.</source>
+        <extracomment>%1: the name of the file. In Polish: Części pliku „%1” nie można odczytać: plik jest uszkodzony.</extracomment>
+        <translation>Części pliku „%1” nie można odczytać: plik jest uszkodzony.</translation>
+    </message>
+    <message>
+        <source>The file &quot;%1&quot; cannot be opened.</source>
+        <extracomment>%1: the name of the file. In Polish: Nie można otworzyć pliku „%1”.</extracomment>
+        <translation>Nie można otworzyć pliku „%1”.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n paragraphs</source>
+        <extracomment>What is in the files. In Polish: %n akapit / akapity / akapitów</extracomment>
+        <translation>
+            <numerusform>%n akapit</numerusform>
+            <numerusform>%n akapity</numerusform>
+            <numerusform>%n akapitów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n headings %1</source>
+        <extracomment>What is in the files; %1: the level. In Polish: %n nagłówek %1 / nagłówki %1 / nagłówków %1</extracomment>
+        <translation>
+            <numerusform>%n nagłówek %1</numerusform>
+            <numerusform>%n nagłówki %1</numerusform>
+            <numerusform>%n nagłówków %1</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n images</source>
+        <extracomment>In Polish: %n obraz / obrazy / obrazów</extracomment>
+        <translation>
+            <numerusform>%n obraz</numerusform>
+            <numerusform>%n obrazy</numerusform>
+            <numerusform>%n obrazów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n notes</source>
+        <extracomment>In Polish: %n przypis / przypisy / przypisów</extracomment>
+        <translation>
+            <numerusform>%n przypis</numerusform>
+            <numerusform>%n przypisy</numerusform>
+            <numerusform>%n przypisów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n comments</source>
+        <extracomment>In Polish: %n komentarz / komentarze / komentarzy</extracomment>
+        <translation>
+            <numerusform>%n komentarz</numerusform>
+            <numerusform>%n komentarze</numerusform>
+            <numerusform>%n komentarzy</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n tracked changes</source>
+        <extracomment>In Polish: %n zmiana śledzona / zmiany śledzone / zmian śledzonych</extracomment>
+        <translation>
+            <numerusform>%n zmiana śledzona</numerusform>
+            <numerusform>%n zmiany śledzone</numerusform>
+            <numerusform>%n zmian śledzonych</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>From its properties: the title &quot;%1&quot;, the author %2.</source>
+        <extracomment>After what is in the file; %1: its title, %2: its author. In Polish: Z właściwości pliku: tytuł „%1”, autor %2.</extracomment>
+        <translation>Z właściwości pliku: tytuł „%1”, autor %2.</translation>
+    </message>
+    <message>
+        <source>From its properties: the title &quot;%1&quot;.</source>
+        <extracomment>After what is in the file; %1: its title. In Polish: Z właściwości pliku: tytuł „%1”.</extracomment>
+        <translation>Z właściwości pliku: tytuł „%1”.</translation>
+    </message>
+    <message>
+        <source>No files.</source>
+        <translation>Brak plików.</translation>
+    </message>
+    <message>
+        <source>Files to Import</source>
+        <extracomment>The title of the system window that chooses the files of the import. In Polish: Pliki do importu</extracomment>
+        <translation>Pliki do importu</translation>
+    </message>
+    <message>
+        <source>Folder of the New Book</source>
+        <extracomment>The title of the system window that chooses the folder of the new book. In Polish: Folder nowej książki</extracomment>
+        <translation>Folder nowej książki</translation>
+    </message>
+    <message>
+        <source>At the &amp;titles</source>
+        <extracomment>The division of plain text. In Polish: Przy t&amp;ytułach</extracomment>
+        <translation>Przy t&amp;ytułach</translation>
+    </message>
+    <message>
+        <source>After &amp;empty lines</source>
+        <extracomment>The division of plain text. In Polish: Po pustych &amp;wierszach</extracomment>
+        <translation>Po pustych &amp;wierszach</translation>
+    </message>
+    <message>
+        <source>At the &amp;headings</source>
+        <extracomment>The division of a file. In Polish: Przy &amp;nagłówkach</extracomment>
+        <translation>Przy &amp;nagłówkach</translation>
+    </message>
+    <message>
+        <source>At the page &amp;breaks</source>
+        <extracomment>The division of a file. In Polish: Przy podziałach st&amp;rony</extracomment>
+        <translation>Przy podziałach st&amp;rony</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>A style of the file in the list of the styles; %1: its name, %2: its paragraphs. In Polish: %1 (%2)</extracomment>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>Style of the book for &quot;%1&quot;</source>
+        <extracomment>The name of the choice of the book&apos;s style for screen readers; %1: the file&apos;s style. In Polish: Styl w książce dla „%1”</extracomment>
+        <translation>Styl w książce dla „%1”</translation>
+    </message>
+    <message>
+        <source>New book style &quot;%1&quot;</source>
+        <extracomment>A choice of the list of the styles: a new style of the book; %1: the style of the file. In Polish: Nowy styl książki „%1”</extracomment>
+        <translation>Nowy styl książki „%1”</translation>
+    </message>
+    <message numerus="yes">
+        <source>&amp;Word comments as annotations (%n)</source>
+        <extracomment>%n: the comments of the files. In Polish: &amp;Komentarze Worda jako uwagi (%n)</extracomment>
+        <translation>
+            <numerusform>&amp;Komentarze Worda jako uwagi (%n)</numerusform>
+            <numerusform>&amp;Komentarze Worda jako uwagi (%n)</numerusform>
+            <numerusform>&amp;Komentarze Worda jako uwagi (%n)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Tracked changes (%n):</source>
+        <extracomment>%n: the tracked changes of the files. In Polish: Zmiany śledzone (%n):</extracomment>
+        <translation>
+            <numerusform>Zmiany śledzone (%n):</numerusform>
+            <numerusform>Zmiany śledzone (%n):</numerusform>
+            <numerusform>Zmiany śledzone (%n):</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>The images of the file (%n) go to the images of the book, in their size of Word, with their crop and their alternative text.</source>
+        <extracomment>The images of a Word document. In Polish: Obrazy z pliku (%n) trafią do obrazów książki, w rozmiarze z Worda, z przycięciem i tekstem alternatywnym.</extracomment>
+        <translation>
+            <numerusform>Obrazy z pliku (%n) trafią do obrazów książki, w rozmiarze z Worda, z przycięciem i tekstem alternatywnym.</numerusform>
+            <numerusform>Obrazy z pliku (%n) trafią do obrazów książki, w rozmiarze z Worda, z przycięciem i tekstem alternatywnym.</numerusform>
+            <numerusform>Obrazy z pliku (%n) trafią do obrazów książki, w rozmiarze z Worda, z przycięciem i tekstem alternatywnym.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The file has no images.</source>
+        <extracomment>In Polish: Plik nie ma obrazów.</extracomment>
+        <translation>Plik nie ma obrazów.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The images of the files next to the Markdown file (%n) go to the images of the book.</source>
+        <extracomment>The images next to a Markdown file. In Polish: Obrazy z plików obok pliku Markdown (%n) trafią do obrazów książki.</extracomment>
+        <translation>
+            <numerusform>Obrazy z plików obok pliku Markdown (%n) trafią do obrazów książki.</numerusform>
+            <numerusform>Obrazy z plików obok pliku Markdown (%n) trafią do obrazów książki.</numerusform>
+            <numerusform>Obrazy z plików obok pliku Markdown (%n) trafią do obrazów książki.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>The files of %n images are missing: %1. Their descriptions stay in their places.</source>
+        <extracomment>%1: the names of the missing files. In Polish: Brakuje plików obrazów (%n): %1. W ich miejscu zostanie ich opis.</extracomment>
+        <translation>
+            <numerusform>Brakuje plików obrazów (%n): %1. W ich miejscu zostanie ich opis.</numerusform>
+            <numerusform>Brakuje plików obrazów (%n): %1. W ich miejscu zostanie ich opis.</numerusform>
+            <numerusform>Brakuje plików obrazów (%n): %1. W ich miejscu zostanie ich opis.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The footnotes (%1) and the endnotes (%2) stay notes, and Kalahari numbers them.</source>
+        <extracomment>In Polish: Przypisy dolne (%1) i końcowe (%2) zostają przypisami, a numery nadaje im Kalahari.</extracomment>
+        <translation>Przypisy dolne (%1) i końcowe (%2) zostają przypisami, a numery nadaje im Kalahari.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 of %n texts go to the book (%2 words).</source>
+        <extracomment>Under the list of the texts; %1: how many are checked, %n: how many there are, %2: their words. In Polish: Do książki trafią teksty: %1 z %n (słowa: %2).</extracomment>
+        <translation>
+            <numerusform>Do książki trafią teksty: %1 z %n (słowa: %2).</numerusform>
+            <numerusform>Do książki trafią teksty: %1 z %n (słowa: %2).</numerusform>
+            <numerusform>Do książki trafią teksty: %1 z %n (słowa: %2).</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The book cannot have more texts of the kind &quot;%1&quot;: uncheck them or change their kind.</source>
+        <extracomment>A kind the book cannot have more of; %1: its name. In Polish: Książka nie może mieć więcej tekstów rodzaju „%1”: odznacz je albo zmień ich rodzaj.</extracomment>
+        <translation>Książka nie może mieć więcej tekstów rodzaju „%1”: odznacz je albo zmień ich rodzaj.</translation>
+    </message>
+    <message>
+        <source>The texts of a kind the book cannot have more of are unchecked; change their kind to add them.</source>
+        <extracomment>Under the list of the texts. In Polish: Teksty rodzaju, którego książka nie może mieć więcej, są odznaczone; zmień ich rodzaj, żeby je dodać.</extracomment>
+        <translation>Teksty rodzaju, którego książka nie może mieć więcej, są odznaczone; zmień ich rodzaj, żeby je dodać.</translation>
+    </message>
+    <message>
+        <source>Type the title of the book.</source>
+        <extracomment>Under the folder of a new book without a title. In Polish: Wpisz tytuł książki.</extracomment>
+        <translation>Wpisz tytuł książki.</translation>
+    </message>
+    <message>
+        <source>The folder %1 exists and is not empty. Change the title or choose another folder.</source>
+        <extracomment>%1: the folder of the new book. In Polish: Folder %1 już istnieje i nie jest pusty. Zmień tytuł albo wybierz inny folder.</extracomment>
+        <translation>Folder %1 już istnieje i nie jest pusty. Zmień tytuł albo wybierz inny folder.</translation>
+    </message>
+    <message>
+        <source>The book is made in the folder %1.</source>
+        <extracomment>%1: the folder of the new book. In Polish: Książka powstanie w folderze %1.</extracomment>
+        <translation>Książka powstanie w folderze %1.</translation>
+    </message>
+    <message>
+        <source>The texts could not be imported.</source>
+        <extracomment>In Polish: Nie udało się zaimportować tekstów.</extracomment>
+        <translation>Nie udało się zaimportować tekstów.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Added %n texts in %1 parts to the book &quot;%2&quot; (%3 words).</source>
+        <translation>
+            <numerusform>Do książki „%2” dodano %n tekst w częściach: %1 (słowa: %3).</numerusform>
+            <numerusform>Do książki „%2” dodano %n teksty w częściach: %1 (słowa: %3).</numerusform>
+            <numerusform>Do książki „%2” dodano %n tekstów w częściach: %1 (słowa: %3).</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Added %n texts to the book &quot;%1&quot; (%2 words).</source>
+        <extracomment>%n: the texts, %1: the title of the book, %2: the words. In Polish: Do książki „%1” dodano %n tekst / teksty / tekstów (słowa: %2).</extracomment>
+        <translation>
+            <numerusform>Do książki „%1” dodano %n tekst (słowa: %2).</numerusform>
+            <numerusform>Do książki „%1” dodano %n teksty (słowa: %2).</numerusform>
+            <numerusform>Do książki „%1” dodano %n tekstów (słowa: %2).</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Added %n files to the group &quot;Other Files&quot;.</source>
+        <extracomment>%n: the files. In Polish: Do grupy „Inne pliki” dodano %n plik / pliki / plików.</extracomment>
+        <translation>
+            <numerusform>Do grupy „Inne pliki” dodano %n plik.</numerusform>
+            <numerusform>Do grupy „Inne pliki” dodano %n pliki.</numerusform>
+            <numerusform>Do grupy „Inne pliki” dodano %n plików.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Made the book &quot;%1&quot; of %n texts in the folder %2. It opens when this window closes.</source>
+        <extracomment>%1: the title of the book, %n: its texts, %2: its folder. In Polish: Utworzono książkę „%1” z tekstami (%n) w folderze %2. Otworzy się po zamknięciu tego okna.</extracomment>
+        <translation>
+            <numerusform>Utworzono książkę „%1” z tekstami (%n) w folderze %2. Otworzy się po zamknięciu tego okna.</numerusform>
+            <numerusform>Utworzono książkę „%1” z tekstami (%n) w folderze %2. Otworzy się po zamknięciu tego okna.</numerusform>
+            <numerusform>Utworzono książkę „%1” z tekstami (%n) w folderze %2. Otworzy się po zamknięciu tego okna.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>The images (%n) are in the images of the book.</source>
+        <extracomment>After the result of the import. In Polish: Obrazy (%n) są w obrazach książki.</extracomment>
+        <translation>
+            <numerusform>Obrazy (%n) są w obrazach książki.</numerusform>
+            <numerusform>Obrazy (%n) są w obrazach książki.</numerusform>
+            <numerusform>Obrazy (%n) są w obrazach książki.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>The book has new styles (%n).</source>
+        <extracomment>After the result of the import. In Polish: Książka ma nowe style (%n).</extracomment>
+        <translation>
+            <numerusform>Książka ma nowe style (%n).</numerusform>
+            <numerusform>Książka ma nowe style (%n).</numerusform>
+            <numerusform>Książka ma nowe style (%n).</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>– text boxes (%n): their text is after their paragraph</source>
+        <extracomment>What the import left out. In Polish: – pola tekstowe (%n): ich tekst jest za akapitem, w którym były</extracomment>
+        <translation>
+            <numerusform>– pola tekstowe (%n): ich tekst jest za akapitem, w którym były</numerusform>
+            <numerusform>– pola tekstowe (%n): ich tekst jest za akapitem, w którym były</numerusform>
+            <numerusform>– pola tekstowe (%n): ich tekst jest za akapitem, w którym były</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>– shapes (%n)</source>
+        <extracomment>In Polish: – kształty (%n)</extracomment>
+        <translation>
+            <numerusform>– kształty (%n)</numerusform>
+            <numerusform>– kształty (%n)</numerusform>
+            <numerusform>– kształty (%n)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>– charts and diagrams (%n)</source>
+        <extracomment>In Polish: – wykresy i diagramy (%n)</extracomment>
+        <translation>
+            <numerusform>– wykresy i diagramy (%n)</numerusform>
+            <numerusform>– wykresy i diagramy (%n)</numerusform>
+            <numerusform>– wykresy i diagramy (%n)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>– equations (%n)</source>
+        <extracomment>In Polish: – równania (%n)</extracomment>
+        <translation>
+            <numerusform>– równania (%n)</numerusform>
+            <numerusform>– równania (%n)</numerusform>
+            <numerusform>– równania (%n)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>– embedded objects (%n)</source>
+        <extracomment>In Polish: – osadzone obiekty (%n)</extracomment>
+        <translation>
+            <numerusform>– osadzone obiekty (%n)</numerusform>
+            <numerusform>– osadzone obiekty (%n)</numerusform>
+            <numerusform>– osadzone obiekty (%n)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>– the headers and footers of the pages</source>
+        <extracomment>In Polish: – nagłówki i stopki stron</extracomment>
+        <translation>– nagłówki i stopki stron</translation>
+    </message>
+    <message>
+        <source>– the table of contents of Word: the book has its own</source>
+        <extracomment>In Polish: – spis treści Worda: książka ma własny</extracomment>
+        <translation>– spis treści Worda: książka ma własny</translation>
+    </message>
+    <message numerus="yes">
+        <source>– images in formats the program does not read (EMF, WMF, TIFF) (%n)</source>
+        <extracomment>In Polish: – obrazy w formatach, których program nie odczytuje (EMF, WMF, TIFF) (%n)</extracomment>
+        <translation>
+            <numerusform>– obrazy w formatach, których program nie odczytuje (EMF, WMF, TIFF) (%n)</numerusform>
+            <numerusform>– obrazy w formatach, których program nie odczytuje (EMF, WMF, TIFF) (%n)</numerusform>
+            <numerusform>– obrazy w formatach, których program nie odczytuje (EMF, WMF, TIFF) (%n)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>– HTML tags (%n)</source>
+        <extracomment>In Polish: – znaczniki HTML (%n)</extracomment>
+        <translation>
+            <numerusform>– znaczniki HTML (%n)</numerusform>
+            <numerusform>– znaczniki HTML (%n)</numerusform>
+            <numerusform>– znaczniki HTML (%n)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The import left out:</source>
+        <extracomment>Before what the import left out. In Polish: Import pominął:</extracomment>
+        <translation>Import pominął:</translation>
+    </message>
+    <message>
+        <source>The import is undone: the book is as it was before it.</source>
+        <extracomment>After Undo Import. In Polish: Cofnięto import: książka jest taka jak przed nim.</extracomment>
+        <translation>Cofnięto import: książka jest taka jak przed nim.</translation>
+    </message>
+    <message>
+        <source>The import is undone, but not every file could be deleted.</source>
+        <translation>Cofnięto import, ale nie wszystkie pliki udało się usunąć.</translation>
+    </message>
+    <message>
+        <source>%1 (%2) – plugin</source>
+        <extracomment>A format of a plugin in the list of the formats; %1: its name, %2: the extensions of its files. In Polish: %1 (%2) – wtyczka</extracomment>
+        <translation>%1 (%2) – wtyczka</translation>
+    </message>
+    <message>
+        <source>The plugin gives the texts and their titles; change the kind of each text in the list.</source>
+        <extracomment>The division of a format of a plugin. In Polish: Teksty i ich tytuły daje wtyczka; rodzaj każdego tekstu zmienisz na liście.</extracomment>
+        <translation>Teksty i ich tytuły daje wtyczka; rodzaj każdego tekstu zmienisz na liście.</translation>
+    </message>
+    <message>
+        <source>The plugin could not read the file &quot;%1&quot;.</source>
+        <extracomment>%1: the name of the file; what the plugin said follows under Details. In Polish: Wtyczka nie odczytała pliku „%1”.</extracomment>
+        <translation>Wtyczka nie odczytała pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>– %1: %2</source>
+        <extracomment>A line of the images that could not be downloaded; %1: the address, %2: why. In Polish: – %1: %2</extracomment>
+        <translation>– %1: %2</translation>
+    </message>
+    <message>
+        <source>When the import starts, the program connects to the addresses in the files and downloads the images (each up to %1). Without it, or when an image cannot be downloaded, its description stays in its place.</source>
+        <extracomment>Under the download of the images of Internet addresses; %1: the most of an image, e.g. 50 MB. In Polish: Gdy import się zacznie, program połączy się z adresami podanymi w plikach i pobierze obrazy (każdy do %1). Bez tej opcji, a także gdy obrazu nie uda się pobrać, w jego miejscu zostanie opis.</extracomment>
+        <translation>Gdy import się zacznie, program połączy się z adresami podanymi w plikach i pobierze obrazy (każdy do %1). Bez tej opcji, a także gdy obrazu nie uda się pobrać, w jego miejscu zostanie opis.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Download the &amp;images of Internet addresses (%n)</source>
+        <extracomment>%n: the images of Internet addresses of the files. In Polish: Pobierz obrazy z adresów &amp;internetowych (%n)</extracomment>
+        <translation>
+            <numerusform>Pobierz obrazy z adresów &amp;internetowych (%n)</numerusform>
+            <numerusform>Pobierz obrazy z adresów &amp;internetowych (%n)</numerusform>
+            <numerusform>Pobierz obrazy z adresów &amp;internetowych (%n)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>These images could not be downloaded; their descriptions are in their places:</source>
+        <extracomment>Before the images of Internet addresses that did not come. In Polish: Nie udało się pobrać tych obrazów; w ich miejscu jest opis:</extracomment>
+        <translation>Nie udało się pobrać tych obrazów; w ich miejscu jest opis:</translation>
     </message>
 </context>
 <context>

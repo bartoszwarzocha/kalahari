@@ -76,6 +76,7 @@ class SpecialCharacterCoordinator;
 class VersionsCoordinator;
 class StyleCoordinator;
 class BookExportCoordinator;
+class BookImportCoordinator;
 class CaptionCoordinator;
 class FootnoteCoordinator;
 class ChapterBreakCoordinator;
@@ -580,6 +581,8 @@ private:
 
     /// @brief File > Export > DOCX and Markdown
     BookExportCoordinator* m_bookExportCoordinator{nullptr};
+    /// @brief File > Import > DOCX, Markdown and Plain Text
+    BookImportCoordinator* m_bookImportCoordinator{nullptr};
 
     /// @brief The commands and panels of the plugins
     PluginCoordinator* m_pluginCoordinator{nullptr};
