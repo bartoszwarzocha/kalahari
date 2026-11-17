@@ -309,7 +309,7 @@ class Runner:
         record["action"] = {"ok": True, "element": action.get("element"), "note": action.get("note")}
         self._emit("log", text=f"{say}{(' – ' + action['note']) if action.get('note') else ''}")
         checks = session.observe(step.get("expect", []), action) if step.get("expect") else []
-        for check, outcome in zip(step.get("expect", []), checks):
+        for check, outcome in zip(step.get("expect", []), checks, strict=True):
             outcome.setdefault("say", check_sentence(check))
             outcome.setdefault("check", check.get("check"))
             outcome.setdefault("limit_ms", limit_of(check, run["limits"]))

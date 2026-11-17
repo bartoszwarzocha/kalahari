@@ -857,7 +857,7 @@ class KalahariSession:
                         rgb = tuple(int(wanted[i:i + 2], 16) for i in (0, 2, 4))
                     except ValueError:
                         return False, f"zły kolor {_q(check.get('equals'))}", None
-                    ok = max(abs(a - b) for a, b in zip(mean, rgb)) <= int(check.get("tolerance", 24))
+                    ok = max(abs(a - b) for a, b in zip(mean, rgb, strict=False)) <= int(check.get("tolerance", 24))
                 return ok, f"średni kolor {hex_color}, jasność {light:.2f}", None
             color.close = shots.close
             return color

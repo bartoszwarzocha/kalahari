@@ -7,7 +7,6 @@ The texts are Polish because the program runs in Polish during the tests.
 """
 
 import json
-import unicodedata
 import uuid
 from pathlib import Path
 from xml.sax.saxutils import escape
