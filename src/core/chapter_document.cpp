@@ -17,6 +17,8 @@
 #include <QSaveFile>
 #include <QXmlStreamReader>
 
+#include <optional>
+
 namespace kalahari {
 namespace core {
 

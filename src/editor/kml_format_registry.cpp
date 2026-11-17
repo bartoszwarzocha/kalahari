@@ -417,6 +417,16 @@ QString escapeXml(const QString& text)
     return result;
 }
 
+QString escapeXmlAttribute(const QString& text)
+{
+    QString result = escapeXml(text);
+    result.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
+    result.replace(QLatin1Char('\n'), QStringLiteral("&#10;"));
+    result.replace(QLatin1Char('\r'), QStringLiteral("&#10;"));
+    result.replace(QLatin1Char('\t'), QStringLiteral("&#9;"));
+    return result;
+}
+
 QString unescapeXml(const QString& text)
 {
     QString result = text;

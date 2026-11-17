@@ -20,6 +20,7 @@
 #include <QTextCharFormat>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QTextTable>
 #include <algorithm>
 #include <optional>
 #include <utility>
@@ -168,6 +169,55 @@ TextObject textObjectOfElement(const QString& element) {
         return TextObject::FigureList;
     }
     return TextObject::None;
+}
+
+const QStringList& sceneBreakAttributeNames() {
+    static const QStringList NAMES{QStringLiteral("title"), QStringLiteral("description"),
+                                   QStringLiteral("pov"),   QStringLiteral("place"),
+                                   QStringLiteral("time"),  QStringLiteral("color"),
+                                   QStringLiteral("status")};
+    return NAMES;
+}
+
+SceneBreakAttributes sceneBreakAttributes(const QTextFormat& format) {
+    SceneBreakAttributes attributes;
+    if (textObjectOf(format) != TextObject::SceneBreak ||
+        !format.hasProperty(SCENE_ATTRIBUTES_PROPERTY)) {
+        return attributes;
+    }
+    const QVariantMap stored = format.property(SCENE_ATTRIBUTES_PROPERTY).toMap();
+    for (const QString& name : sceneBreakAttributeNames()) {
+        if (const QString value = stored.value(name).toString(); !value.isEmpty()) {
+            attributes.insert(name, value);
+        }
+    }
+    return attributes;
+}
+
+QTextBlock sceneBreakBlock(const QTextDocument& document, int scene) {
+    int breaks = 0;
+    for (QTextBlock block = document.begin(); block.isValid() && scene > 0;
+         block = block.next()) {
+        if (blockObject(block) == TextObject::SceneBreak &&
+            QTextCursor(block).currentTable() == nullptr && ++breaks == scene) {
+            return block;
+        }
+    }
+    return {};
+}
+
+void setSceneBreakAttributes(QTextCharFormat& format, const SceneBreakAttributes& attributes) {
+    QVariantMap stored;
+    for (const QString& name : sceneBreakAttributeNames()) {
+        if (const QString value = attributes.value(name); !value.isEmpty()) {
+            stored.insert(name, value);
+        }
+    }
+    if (stored.isEmpty()) {
+        format.clearProperty(SCENE_ATTRIBUTES_PROPERTY);
+    } else {
+        format.setProperty(SCENE_ATTRIBUTES_PROPERTY, stored);
+    }
 }
 
 // =============================================================================

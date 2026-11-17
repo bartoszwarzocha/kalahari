@@ -735,6 +735,58 @@ bool BookEditor::takeSelection(bool moved)
     return taken;
 }
 
+SceneBreakAttributes BookEditor::sceneAttributes(int scene) const
+{
+    if (!m_textBuffer) {
+        return {};
+    }
+    const QTextBlock block = sceneBreakBlock(*m_textBuffer, scene);
+    return block.isValid() ? sceneBreakAttributes(block.begin().fragment().charFormat())
+                           : SceneBreakAttributes();
+}
+
+bool BookEditor::setSceneAttributes(int scene, const SceneBreakAttributes& attributes)
+{
+    if (refusesChange() || !m_textBuffer) {
+        return false;
+    }
+    const QTextBlock block = sceneBreakBlock(*m_textBuffer, scene);
+    if (!block.isValid()) {
+        return false;
+    }
+    QTextCharFormat format = block.begin().fragment().charFormat();
+    if (sceneBreakAttributes(format) == attributes) {
+        return true;
+    }
+    setSceneBreakAttributes(format, attributes);
+    QTextCursor cursor(m_textBuffer.get());
+    cursor.setPosition(block.position());
+    cursor.setPosition(block.position() + 1, QTextCursor::KeepAnchor);
+    cursor.setCharFormat(format);
+    update();
+    emit contentChanged();
+    return true;
+}
+
+bool BookEditor::goToScene(int scene)
+{
+    ensureDocument();
+    if (!m_textBuffer || scene < 0) {
+        return false;
+    }
+    int paragraph = 0;
+    if (scene > 0) {
+        const QTextBlock block = sceneBreakBlock(*m_textBuffer, scene);
+        if (!block.isValid()) {
+            return false;
+        }
+        paragraph = block.next().isValid() ? block.blockNumber() + 1 : block.blockNumber();
+    }
+    setCursorPosition({.paragraph = paragraph, .offset = 0});
+    centerCursorInView();
+    return true;
+}
+
 void BookEditor::undoMovedText()
 {
     // The text comes back from another text: its words are not written

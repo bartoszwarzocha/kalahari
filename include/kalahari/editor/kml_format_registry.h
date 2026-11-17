@@ -174,6 +174,11 @@ bool isInlineTextTag(const QString& tag);
 /// @return Text with &, <, >, ", ' escaped to XML entities
 QString escapeXml(const QString& text);
 
+/// @brief Escape the value of an attribute: as escapeXml(), with the ends of lines and the
+///        tabs as character references, which a reader keeps (it reads a line end in an
+///        attribute as a space)
+QString escapeXmlAttribute(const QString& text);
+
 /// @brief Unescape XML entities
 /// @param text Input text with XML entities
 /// @return Text with entities converted back to characters

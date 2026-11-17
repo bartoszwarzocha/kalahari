@@ -15,11 +15,14 @@
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/material_list_coordinator.h"
+#include "kalahari/gui/plot_board.h"
+#include "kalahari/gui/plot_board_coordinator.h"
 #include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/panels/book_dictionary_panel.h"
 #include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/special_character_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
+#include "kalahari/gui/edit_target.h"
 #include "kalahari/gui/versions_coordinator.h"
 #include "kalahari/gui/style_coordinator.h"
 #include "kalahari/gui/book_export_coordinator.h"
@@ -544,6 +547,32 @@ MainWindow::MainWindow(QWidget* parent)
         this);
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterialList,
             m_materialListCoordinator, &MaterialListCoordinator::openList);
+    // The plot board and the outline of the book on their tab (Book > Plot Board, Outline);
+    // Alt+Enter on a card shows it in the Properties panel with the keys
+    m_plotBoardCoordinator = new PlotBoardCoordinator(
+        *m_book, m_dockCoordinator->centralTabs(), m_navigatorCoordinator, statusBar(),
+        [this](bool keys) {
+            QDockWidget* dock = m_dockCoordinator->propertiesDock();
+            dock->show();
+            dock->raise();
+            if (keys) {
+                if (dock->isFloating()) {
+                    dock->activateWindow();
+                }
+                m_dockCoordinator->propertiesPanel()->focusFirstField();
+            }
+        },
+        this);
+    // Show on the Plot Board in the menu of the book, a part and a text of the Navigator
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowOnPlotBoard,
+            m_plotBoardCoordinator, &PlotBoardCoordinator::showOnBoard);
+    // The gear over the board: Settings > Plot Board
+    connect(m_plotBoardCoordinator, &PlotBoardCoordinator::settingsRequested, this, [this]() {
+        if (m_settingsCoordinator != nullptr) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::PLOT_BOARD_PAGE));
+        }
+    });
     // Hide Kind in the menu of a kind of the Navigator; Kind Settings... there and the gear of
     // a list: the materials in Settings > Navigator
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestHideKind,
@@ -1549,6 +1578,17 @@ void MainWindow::registerCommands() {
         onEditor(&editor::BookEditor::zoomToWholePage, &PreviewPanel::zoomToWholePage);
 
     // View commands
+    // The plot board of the book with its cards, or with the outline, the keys in it
+    callbacks.onPlotBoard = [this]() {
+        if (m_plotBoardCoordinator) {
+            m_plotBoardCoordinator->openBoard(QString::fromLatin1(PlotBoard::VIEW_BOARD), true);
+        }
+    };
+    callbacks.onOutline = [this]() {
+        if (m_plotBoardCoordinator) {
+            m_plotBoardCoordinator->openBoard(QString::fromLatin1(PlotBoard::VIEW_OUTLINE), true);
+        }
+    };
     callbacks.onDashboard = [this]() {
         // Check if Dashboard tab already exists
         QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
@@ -1937,21 +1977,21 @@ void MainWindow::onExit() {
 
 void MainWindow::onUndo() {
     core::Logger::getInstance().info("Action triggered: Undo");
-    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Undo)) {
+    if (editToTell(EditCoordinator::Edit::Undo)) {
         statusBar()->showMessage(tr("Undo performed"), 2000);
     }
 }
 
 void MainWindow::onRedo() {
     core::Logger::getInstance().info("Action triggered: Redo");
-    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Redo)) {
+    if (editToTell(EditCoordinator::Edit::Redo)) {
         statusBar()->showMessage(tr("Redo performed"), 2000);
     }
 }
 
 void MainWindow::onCut() {
     core::Logger::getInstance().info("Action triggered: Cut");
-    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Cut)) {
+    if (editToTell(EditCoordinator::Edit::Cut)) {
         statusBar()->showMessage(tr("Cut to clipboard"), 2000);
     }
 }
@@ -1965,9 +2005,17 @@ void MainWindow::onCopy() {
 
 void MainWindow::onPaste() {
     core::Logger::getInstance().info("Action triggered: Paste");
-    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Paste)) {
+    if (editToTell(EditCoordinator::Edit::Paste)) {
         statusBar()->showMessage(tr("Pasted from clipboard"), 2000);
     }
+}
+
+bool MainWindow::editToTell(EditCommand edit) {
+    if (m_editCoordinator == nullptr) {
+        return false;
+    }
+    const bool saysItself = m_editCoordinator->saysItself(edit);
+    return m_editCoordinator->execute(edit) && !saysItself;
 }
 
 void MainWindow::onSelectAll() {

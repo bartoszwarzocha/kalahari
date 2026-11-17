@@ -34,6 +34,7 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QRegularExpression>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QAbstractButton>
@@ -444,6 +445,126 @@ TEST_CASE("Settings dialog: the Annotations page has the author and the size of 
     for (const QSpinBox* spin : stack->currentWidget()->findChildren<QSpinBox*>()) {
         CHECK(spin->suffix() != QStringLiteral(" %"));
     }
+}
+
+TEST_CASE("Settings dialog: the Plot Board page chooses the scenes of the board",
+          "[gui][settings][plotboard]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const auto before = settings.get<std::string>("plotBoard.scenes", "both");
+    settings.set<std::string>("plotBoard.scenes", "both");
+
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(dialog, QString(), QStringLiteral("Plot Board"));
+    auto* scenes = dialog.findChild<QComboBox*>(QStringLiteral("plotBoardScenes"));
+    REQUIRE(scenes != nullptr);
+    CHECK(scenes->currentData().toString() == QStringLiteral("both"));
+    CHECK(scenes->count() == 3);
+    CHECK_FALSE(dialog.hasChanges());
+
+    scenes->setCurrentIndex(scenes->findData(QStringLiteral("plan")));
+    CHECK(dialog.hasChanges());
+    CHECK(dialog.applyChanges() == QStringList{QStringLiteral("plotBoard.scenes")});
+    CHECK(settings.get<std::string>("plotBoard.scenes") == "plan");
+    // The colors of the cards and the backgrounds of the board are those of the theme
+    auto* stack = dialog.findChild<QStackedWidget*>();
+    REQUIRE(stack != nullptr);
+    CHECK(stack->currentWidget()->findChildren<kalahari::gui::ColorConfigWidget*>().size() == 12);
+
+    settings.set<std::string>("plotBoard.scenes", before);
+}
+
+TEST_CASE("Settings dialog: the Plot Board page chooses the view, the cards and the outline",
+          "[gui][settings][plotboard]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const auto startView = settings.get<std::string>("plotBoard.startView", "last");
+    const auto background = settings.get<std::string>("plotBoard.background", "theme");
+    const bool time = settings.get<bool>("plotBoard.fields.time", false);
+    const bool words = settings.get<bool>("plotBoard.outline.words", true);
+    settings.set<std::string>("plotBoard.startView", "last");
+    settings.set<std::string>("plotBoard.background", "parquet");  // unknown: the theme's
+    settings.set<bool>("plotBoard.fields.time", false);
+    settings.set<bool>("plotBoard.outline.words", true);
+
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(dialog, QString(), QStringLiteral("Plot Board"));
+    auto* last = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_startLast"));
+    auto* outline = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_startOutline"));
+    auto* theme = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_backgroundTheme"));
+    auto* cork = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_backgroundCork"));
+    auto* timeField = dialog.findChild<QCheckBox*>(QStringLiteral("plotBoard.fields.time"));
+    auto* wordsColumn = dialog.findChild<QCheckBox*>(QStringLiteral("plotBoard.outline.words"));
+    REQUIRE(last != nullptr);
+    REQUIRE(outline != nullptr);
+    REQUIRE(theme != nullptr);
+    REQUIRE(cork != nullptr);
+    REQUIRE(timeField != nullptr);
+    REQUIRE(wordsColumn != nullptr);
+    CHECK(last->isChecked());
+    CHECK(theme->isChecked());
+    CHECK_FALSE(timeField->isChecked());
+    CHECK(wordsColumn->isChecked());
+    // Seven fields of the cards, seven columns of the outline besides the title
+    CHECK(dialog.findChildren<QCheckBox*>(QRegularExpression(
+                                              QStringLiteral("^plotBoard\\.fields\\.")))
+              .size() == 7);
+    CHECK(dialog.findChildren<QCheckBox*>(QRegularExpression(
+                                              QStringLiteral("^plotBoard\\.outline\\.")))
+              .size() == 7);
+    CHECK_FALSE(dialog.hasChanges());
+
+    outline->click();
+    cork->click();
+    timeField->click();
+    wordsColumn->click();
+    CHECK(dialog.hasChanges());
+    const QStringList applied = dialog.applyChanges();
+    CHECK(applied.contains(QStringLiteral("plotBoard.startView")));
+    CHECK(applied.contains(QStringLiteral("plotBoard.background")));
+    CHECK(applied.contains(QStringLiteral("plotBoard.fields.time")));
+    CHECK(applied.contains(QStringLiteral("plotBoard.outline.words")));
+    CHECK(settings.get<std::string>("plotBoard.startView") == "outline");
+    CHECK(settings.get<std::string>("plotBoard.background") == "cork");
+    CHECK(settings.get<bool>("plotBoard.fields.time"));
+    CHECK_FALSE(settings.get<bool>("plotBoard.outline.words"));
+
+    settings.set<std::string>("plotBoard.startView", startView);
+    settings.set<std::string>("plotBoard.background", background);
+    settings.set<bool>("plotBoard.fields.time", time);
+    settings.set<bool>("plotBoard.outline.words", words);
+}
+
+TEST_CASE("Settings dialog: the Plot Board page shows the sections and renumbers the titles",
+          "[gui][settings][plotboard]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const bool sections = settings.get<bool>("plotBoard.showSections", false);
+    const auto renumber = settings.get<std::string>("plotBoard.renumber", "ask");
+    settings.set<bool>("plotBoard.showSections", false);
+    settings.set<std::string>("plotBoard.renumber", "sometimes");  // unknown: offered on the bar
+
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(dialog, QString(), QStringLiteral("Plot Board"));
+    auto* shown = dialog.findChild<QCheckBox*>(QStringLiteral("plotBoard.showSections"));
+    auto* ask = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_renumberAsk"));
+    auto* now = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_renumberAuto"));
+    auto* never = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_renumberNever"));
+    REQUIRE(shown != nullptr);
+    REQUIRE(ask != nullptr);
+    REQUIRE(now != nullptr);
+    REQUIRE(never != nullptr);
+    CHECK_FALSE(shown->isChecked());
+    CHECK(ask->isChecked());
+    CHECK_FALSE(dialog.hasChanges());
+
+    shown->click();
+    now->click();
+    const QStringList applied = dialog.applyChanges();
+    CHECK(applied.contains(QStringLiteral("plotBoard.showSections")));
+    CHECK(applied.contains(QStringLiteral("plotBoard.renumber")));
+    CHECK(settings.get<bool>("plotBoard.showSections"));
+    CHECK(settings.get<std::string>("plotBoard.renumber") == "auto");
+
+    settings.set<bool>("plotBoard.showSections", sections);
+    settings.set<std::string>("plotBoard.renumber", renumber);
 }
 
 TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in the menus",

@@ -177,6 +177,10 @@ void SettingsDialog::createNavigationTree() {
                     [this]() { openPage(QString::fromLatin1(EDITOR_COLORS_PAGE)); });
             return materialsPage;
         });
+    //: Settings > Plot Board: the scenes on the board, the colors of the cards. In Polish:
+    //: Tablica fabuły
+    m_pageItems[PLOT_BOARD_PAGE] =
+        addPage(nullptr, tr("Plot Board"), []() { return new PlotBoardPage(); });
     // The pages of the modules that edit window kinds: Mind Maps, Timelines; openPage() opens
     // each by the id of its editor ("mindmap")
     for (const std::shared_ptr<core::IWindowEditorProvider>& provider :

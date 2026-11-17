@@ -55,6 +55,7 @@ set(KALAHARI_CORE_SOURCES
     core/window_editor_provider.cpp # The editors of the window kinds that modules bring
     core/event_bus.cpp
     core/chapter_document.cpp
+    core/chapter_scenes.cpp     # The scenes of a text: what their breaks say, moved, added, deleted
     core/chapter_versions.cpp   # Versions of the texts of the chapter files
     core/text_diff.cpp          # Differences between two texts, word by word
     core/text_statistics.cpp    # Word/character counting shared by the whole application
@@ -281,6 +282,13 @@ set(KALAHARI_SOURCES
     gui/writing_awards_tracker.cpp  # WritingAwardsTracker - the badges and challenges won
     gui/writing_stats_model.cpp  # WritingStatsModel - the statistics of writing shown
     gui/material_list_coordinator.cpp  # MaterialListCoordinator - the lists of the materials on tabs
+    gui/plot_board.cpp  # PlotBoard - what the plot board shows of the book, where its cards move
+    gui/plot_board_titles.cpp  # PlotBoard - the numbers in the titles after a move
+    gui/plot_board_coordinator.cpp  # PlotBoardCoordinator - the plot board on its tab, its changes
+    gui/plot_board_coordinator_arrange.cpp  # PlotBoardCoordinator - cards moved, added, cut
+    gui/plot_board_coordinator_plan.cpp  # PlotBoardCoordinator - the scenes moved, the plans
+    gui/plot_board_coordinator_scenes.cpp  # PlotBoardCoordinator - the scenes changed
+    gui/plot_outline_model.cpp  # PlotOutlineModel - the outline: the texts of the book in a table
     gui/edit_coordinator.cpp  # EditCoordinator - clipboard and undo on the element with the keys
     gui/paragraph_style_menu.cpp  # ParagraphStyleMenu - Format > Text Style shows the text's styles
     gui/book_styles.cpp  # The paragraph styles of the open book: its type's and its own
@@ -336,6 +344,7 @@ set(KALAHARI_SOURCES
     gui/settings/navigator_page.cpp  # Settings > Navigator
     gui/settings/cards_page.cpp  # Settings > Cards
     gui/settings/materials_page.cpp  # Settings > Materials
+    gui/settings/plot_board_page.cpp  # Settings > Plot Board
     gui/settings/network_page.cpp  # Settings > Network > Materials
     gui/settings/folders_page.cpp
     gui/settings/import_page.cpp
@@ -354,6 +363,11 @@ set(KALAHARI_SOURCES
     gui/widgets/length_spin_box.cpp
     gui/widgets/color_menu.cpp             # The submenus Font Color and Highlight Color
     gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
+    gui/widgets/plot_board_view.cpp  # PlotBoardView - the cards of the texts of the book
+    gui/widgets/plot_board_view_input.cpp  # PlotBoardView - its keys, the mouse, a card dragged
+    gui/widgets/plot_board_view_layout.cpp  # PlotBoardView - where the cards are
+    gui/widgets/plot_board_view_paint.cpp  # PlotBoardView - the cards painted
+    gui/widgets/plot_card_editor.cpp  # PlotCardEditor - a card of the plot board edited (F2)
     gui/widgets/cover_plan.cpp  # CoverPlan - the plan of the cover with its materials in their places
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
     gui/widgets/wrapping_button.cpp  # A button that wraps its text only where it does not fit
@@ -392,6 +406,7 @@ set(KALAHARI_SOURCES
     gui/panels/log_panel.cpp
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
+    gui/panels/plot_fields_box.cpp   # PlotFieldsBox - the plot of a text in the Properties panel
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
     gui/widgets/own_fields_box.cpp  # OwnFieldsBox - the writer's own fields of a material or a card
     gui/widgets/relations_box.cpp  # RelationsBox - the relations of a card with the other cards
@@ -408,6 +423,8 @@ set(KALAHARI_SOURCES
     gui/panels/material_list_panel_clippings.cpp  # MaterialListPanel - the commands of the clippings
     gui/panels/clipping_origin_box.cpp  # ClippingOriginBox - where a clipping comes from, in the Properties
     gui/panels/book_dictionary_panel.cpp  # BookDictionaryPanel - the book dictionary on a tab
+    gui/panels/plot_board_panel.cpp  # PlotBoardPanel - the tab of the plot board and the outline
+    gui/panels/plot_board_panel_header.cpp  # PlotBoardPanel - its switches and look from the settings
     gui/panels/paragraph_panel.cpp
     gui/panels/search_panel.cpp
     gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards, made only in view
@@ -576,6 +593,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_awards_tracker.h  # WritingAwardsTracker with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_model.h  # WritingStatsModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plot_board_coordinator.h  # PlotBoardCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plot_outline_model.h  # PlotOutlineModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/special_character_coordinator.h  # SpecialCharacterCoordinator with Q_OBJECT
@@ -597,6 +616,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_menu.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h  # InfoBar with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_board_view.h  # PlotBoardView with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_card_editor.h  # PlotCardEditor with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/cover_plan.h  # CoverPlan with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
@@ -626,6 +647,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_fields_box.h  # PlotFieldsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/own_fields_box.h  # OwnFieldsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/relations_box.h  # RelationsBox with Q_OBJECT
@@ -639,6 +661,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/clipping_origin_box.h  # ClippingOriginBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/book_dictionary_panel.h  # BookDictionaryPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_board_panel.h  # PlotBoardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/source_lookup.h  # SourceLookup with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h

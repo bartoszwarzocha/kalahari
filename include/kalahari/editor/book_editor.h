@@ -509,6 +509,20 @@ public:
     ///        (Edit > Cut to Clippings follows its step with it)
     [[nodiscard]] int undoLevel() const { return m_undoLevel; }
 
+    /// @brief What the break of scene @p scene (from 1: the first scene break of the text) says
+    ///        of its scene: its title, description... (sceneBreakAttributeNames())
+    /// @return None for a break without them, or when the text has no such break
+    [[nodiscard]] SceneBreakAttributes sceneAttributes(int scene) const;
+
+    /// @brief Give the break of scene @p scene (from 1) @p attributes, as one undo step
+    /// @return false in a read-only text, or when the text has no such break
+    bool setSceneAttributes(int scene, const SceneBreakAttributes& attributes);
+
+    /// @brief Put the cursor at the start of scene @p scene and show its line in the middle of
+    ///        the view: 0 is the start of the text, from 1 the paragraph after a scene break
+    /// @return false when the text has no such scene
+    bool goToScene(int scene);
+
     /// @brief Insert a newline, splitting the paragraph at cursor position
     ///
     /// If there is an active selection, it is deleted first.

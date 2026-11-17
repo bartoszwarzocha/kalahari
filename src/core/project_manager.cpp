@@ -11,6 +11,7 @@
 #include <kalahari/core/card_data.h>
 #include <kalahari/core/card_relations.h>
 #include <kalahari/core/bibliography.h>
+#include <kalahari/core/book_project.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/clipping.h>
 #include <kalahari/core/link_roles.h>
@@ -23,6 +24,7 @@
 #include <kalahari/core/source_description.h>
 #include <kalahari/core/standalone_file.h>
 #include <kalahari/core/text_file.h>
+#include <kalahari/core/text_statistics.h>
 #include <kalahari/core/window_editor_provider.h>
 #include <kalahari/editor/clipboard_handler.h>
 
@@ -58,6 +60,15 @@ const QStringList& textStatuses() {
 
 QString toQString(const std::filesystem::path& path) {
     return QString::fromStdWString(path.wstring());
+}
+
+/// The scenes of text @p kml, whose words are @p words: a text without scene breaks is one
+/// scene, whose words need not be counted again
+QList<KmlScene> scenesWith(const QString& kml, const WordTally& words) {
+    if (!kml.contains(QLatin1String("<scene-break"))) {
+        return {KmlScene{.plot = ScenePlot(), .words = words}};
+    }
+    return ChapterDocument::kmlScenes(kml);
 }
 
 /// @p title as a file or folder name: characters that file systems do not allow become "_"
@@ -1172,6 +1183,7 @@ bool ProjectManager::saveManifest() {
 
     setDirty(false);
     Logger::getInstance().info("Manifest saved successfully");
+    emit projectChanged();
     return true;
 }
 
@@ -2252,6 +2264,7 @@ QString ProjectManager::addUnassignedFile(const QString& file, const KindRef& ki
     ElementState& state = m_elementStates[element.id];
     state.notes = chapter->notes();
     state.words = chapter->wordTally();
+    state.scenes = scenesWith(chapter->kml(), state.words);
     if (!writeChapterFile(element, std::nullopt)) {
         logger.warn("addUnassignedFile: The title of {} is not in its chapter file",
                     element.id.toStdString());
@@ -2515,6 +2528,118 @@ bool ProjectManager::setDescription(const QString& elementId, const QString& des
         emit cardChanged(elementId);
     }
     return saved;
+}
+
+bool ProjectManager::setPlot(const QString& elementId, const QString& description,
+                             const ElementPlot& plot) {
+    // Only the texts of a book have a plot: chapters, a prologue, scenes...
+    const ProjectElement* element = findElement(elementId);
+    const std::optional<ElementPlace> place =
+        element != nullptr ? m_project->placeOf(elementId) : std::nullopt;
+    if (element != nullptr && (!place || place->place == BookPlace::Workshop ||
+                               formOf(*element) != ElementForm::Text)) {
+        Logger::getInstance().warn("setPlot: Not a text of a book: {}", elementId.toStdString());
+        return false;
+    }
+    return changeDetails("setPlot", elementId, [&description, &plot](ProjectElement& each) {
+        each.description = description;
+        each.plot = plot;
+    });
+}
+
+QList<KmlScene> ProjectManager::scenesOf(const QString& elementId,
+                                         const std::optional<QString>& kml) const {
+    const ProjectElement* element = findElement(elementId);
+    const std::optional<ElementPlace> place =
+        element != nullptr ? m_project->placeOf(elementId) : std::nullopt;
+    if (!place || place->place == BookPlace::Workshop || formOf(*element) != ElementForm::Text) {
+        return {};
+    }
+    QList<KmlScene> scenes = kml ? ChapterDocument::kmlScenes(*kml)
+                                 : m_elementStates.value(elementId).scenes;
+    if (scenes.isEmpty()) {
+        scenes.append(KmlScene());  // no file yet: one empty scene
+    }
+    scenes.first().plot = element->plot.opening;
+    return scenes;
+}
+
+const ProjectElement* ProjectManager::bookTextOf(const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    if (element == nullptr || formOf(*element) != ElementForm::Text) {
+        return nullptr;
+    }
+    const std::optional<ElementPlace> place = m_project->placeOf(elementId);
+    return place && place->place != BookPlace::Workshop ? element : nullptr;
+}
+
+bool ProjectManager::canWriteText(const char* what, const ProjectElement& element) const {
+    if (refusesChange(what)) {
+        return false;
+    }
+    if (m_elementStates.value(element.id).dirty) {
+        Logger::getInstance().warn("{}: '{}' has changes its file does not have", what,
+                                   element.title.toStdString());
+        return false;
+    }
+    return true;
+}
+
+bool ProjectManager::writeText(const ProjectElement& element, const QString& kml) {
+    if (!writeChapterFile(element, kml)) {
+        return false;
+    }
+    if (ElementState* state = stateOf(element.id); state != nullptr && state->loaded) {
+        state->content = kml;
+    }
+    return true;
+}
+
+bool ProjectManager::setScenePlot(const QString& elementId, int scene, const ScenePlot& plot) {
+    const ProjectElement* element = bookTextOf(elementId);
+    if (element == nullptr || scene < 0) {
+        Logger::getInstance().warn("setScenePlot: No scene {} of a text of a book: {}", scene,
+                                   elementId.toStdString());
+        return false;
+    }
+    if (scene == 0) {
+        ElementPlot changed = element->plot;
+        changed.opening = plot;
+        return changeDetails("setScenePlot", elementId,
+                             [&changed](ProjectElement& each) { each.plot = changed; });
+    }
+    if (!canWriteText("setScenePlot", *element)) {
+        return false;
+    }
+    const QString changed = ChapterDocument::withScenePlot(chapterText(elementId), scene, plot);
+    if (changed.isEmpty()) {
+        Logger::getInstance().warn("setScenePlot: '{}' has no scene {}",
+                                   element->title.toStdString(), scene);
+        return false;
+    }
+    return writeText(*element, changed);
+}
+
+bool ProjectManager::setSceneText(const QString& elementId, const SceneText& text) {
+    const ProjectElement* element = bookTextOf(elementId);
+    if (element == nullptr) {
+        Logger::getInstance().warn("setSceneText: Not a text of a book: {}",
+                                   elementId.toStdString());
+        return false;
+    }
+    if (!canWriteText("setSceneText", *element)) {
+        return false;
+    }
+    if (chapterText(elementId) != text.kml && !writeText(*element, text.kml)) {
+        return false;
+    }
+    if (element->plot.opening == text.opening) {
+        return true;
+    }
+    ElementPlot changed = element->plot;
+    changed.opening = text.opening;
+    return changeDetails("setSceneText", elementId,
+                         [&changed](ProjectElement& each) { each.plot = changed; });
 }
 
 bool ProjectManager::setFields(const QString& elementId, const QList<ElementField>& fields) {
@@ -3258,6 +3383,7 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
     state.loaded = true;
     state.dirty = false;
     state.words = chapter->wordTally();
+    state.scenes = scenesWith(state.content, state.words);
     state.editorWords.reset();
     state.notes = chapter->notes();
     logger.debug("Loaded .kchapter for element: {} ({} chars)", elementId.toStdString(),
@@ -3730,6 +3856,7 @@ void ProjectManager::loadElementStates() {
                         path.toStdString());
         } else if (std::optional<ChapterDocument> chapter = ChapterDocument::load(path)) {
             state.words = chapter->wordTally();
+            state.scenes = scenesWith(chapter->kml(), state.words);
             state.notes = chapter->notes();
         }
         m_elementStates.insert(element->id, state);
@@ -3786,6 +3913,7 @@ bool ProjectManager::writeChapterFile(const ProjectElement& element,
     // its KML), or the text it had
     ElementState& state = m_elementStates[element.id];
     state.words = kml ? ChapterDocument::kmlWordTally(*kml) : chapter.wordTally();
+    state.scenes = scenesWith(kml ? *kml : chapter.kml(), state.words);
     if (kml) {
         state.editorWords.reset();  // the file has the text of the editor now
     }

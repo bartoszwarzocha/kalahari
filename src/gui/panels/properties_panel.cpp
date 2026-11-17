@@ -13,6 +13,7 @@
 #include "kalahari/gui/panels/clipping_origin_box.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/material_page.h"
+#include "kalahari/gui/panels/plot_fields_box.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -459,6 +460,10 @@ QWidget* PropertiesPanel::createChapterPage() {
     connect(m_clippingOrigin, &ClippingOriginBox::requestShowOrigin, this,
             &PropertiesPanel::requestClippingOrigin);
     layout->addWidget(m_clippingOrigin);
+
+    // What the plot board says of a text of the main section (populateChapterFields())
+    m_chapterPlot = new PlotFieldsBox(m_book, scrollContent);
+    layout->addWidget(m_chapterPlot);
 
     // Notes group
     QGroupBox* notesGroup = new QGroupBox(tr("Notes"), scrollContent);
@@ -1712,6 +1717,7 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     m_chapterStatusCombo->setEnabled(!readOnly);
     m_chapterFirstPageLeft->setEnabled(!readOnly);
     m_chapterNotesEdit->setReadOnly(readOnly);
+    m_chapterPlot->showElement(elementId);
     showVersions(elementId);
 
     m_isUpdating = false;

@@ -83,6 +83,7 @@ public:
     static constexpr const char* NAVIGATOR_PAGE = "navigator";       ///< Navigator
     static constexpr const char* CARDS_PAGE = "cards";               ///< Cards
     static constexpr const char* MATERIALS_PAGE = "materials";       ///< Materials
+    static constexpr const char* PLOT_BOARD_PAGE = "plotBoard";      ///< Plot Board
     static constexpr const char* STATS_BAR_PAGE = "stats.bar";       ///< Statistics > Bar and Panel
     static constexpr const char* STATS_COUNTING_PAGE = "stats.counting";  ///< Statistics > Counting
     static constexpr const char* STATS_NOTIFICATIONS_PAGE = "stats.notifications";  ///< > Notifications

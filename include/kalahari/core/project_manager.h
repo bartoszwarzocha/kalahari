@@ -49,6 +49,7 @@
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/card_relations.h"
+#include "kalahari/core/chapter_document.h"
 #include "kalahari/core/chapter_versions.h"
 #include "kalahari/core/clipping.h"
 #include "kalahari/core/package_card.h"
@@ -736,6 +737,39 @@ public:
     ///         element keeps its description then
     bool setDescription(const QString& elementId, const QString& description);
 
+    /// @brief Give text element @p elementId of a book its short description on the plot board
+    /// and its plot (point of view, place and time of the action, color of its card), and save
+    /// the .klh file once
+    /// @return false when the project has no such element, it is no text of a book, or the
+    ///         file cannot be written; the element keeps its description and plot then
+    bool setPlot(const QString& elementId, const QString& description, const ElementPlot& plot);
+
+    /// @brief The scenes of text element @p elementId of a book (ChapterDocument::kmlScenes()),
+    /// the first with the plot of the .klh file (ElementPlot::opening)
+    /// @param kml The text with changes its file does not have (an editor's); none: the text
+    ///        of its chapter file
+    /// @return None for another element
+    [[nodiscard]] QList<KmlScene> scenesOf(const QString& elementId,
+                                           const std::optional<QString>& kml = std::nullopt) const;
+
+    /// @brief Give scene @p scene (from 0) of text element @p elementId of a book the plot
+    /// @p plot: the first scene in the .klh file, another in the chapter file, at its break
+    ///
+    /// The text of an open editor changes there (editor::BookEditor), not here: its file
+    /// would lose it when the editor saves its text.
+    /// @return false when the project has no such text or scene, the text has changes its
+    ///         file does not have (setChapterContent()), or a file cannot be written
+    bool setScenePlot(const QString& elementId, int scene, const ScenePlot& plot);
+
+    /// @brief Give text element @p elementId of a book the text and the first scene of
+    /// @p text: its scenes moved, added or deleted (ChapterDocument::withSceneMoved()...); the
+    /// text goes to its chapter file at once, the first scene to the .klh file
+    ///
+    /// The text of an open editor changes there (editor::BookEditor::replaceWithKml()).
+    /// @return false when the project has no such text, the text has changes its file does
+    ///         not have (setChapterContent()), or a file cannot be written
+    bool setSceneText(const QString& elementId, const SceneText& text);
+
     /// @brief Give element @p elementId the writer's own fields @p fields, in this order, and
     /// save the .klh file; for a card, cardChanged() tells of a change
     /// @return false when the project has no such element or the file cannot be written; the
@@ -1227,6 +1261,10 @@ signals:
     /// @param dirty true if project has unsaved changes
     void dirtyStateChanged(bool dirty);
 
+    /// @brief The .klh file was saved after a change of the project: its elements, their
+    /// order, titles, states or details may be other than before (saveManifest())
+    void projectChanged();
+
     /// @brief Emitted when the links of elements change (ProjectElement::links): set, added
     /// with a material, taken out with an element, or following the paragraphs of a text that
     /// was saved
@@ -1265,6 +1303,7 @@ private:
         bool loaded = false;   ///< content holds the text
         bool dirty = false;    ///< content is not saved
         WordTally words;       ///< Words of the text of the chapter file
+        QList<KmlScene> scenes;  ///< Scenes of the text of the chapter file, with their words
         /// Words of the text in its editor, with changes that are not saved
         std::optional<WordTally> editorWords;
         QString notes;         ///< Notes of the chapter file
@@ -1347,6 +1386,17 @@ private:
     /// @brief Whether the open book is read-only, so that @p what does not change it; the log
     /// says so
     bool refusesChange(const char* what) const;
+
+    /// @brief Text element @p elementId of a book (not of the Workshop); nullptr: none
+    [[nodiscard]] const ProjectElement* bookTextOf(const QString& elementId) const;
+
+    /// @brief Whether @p what can write the chapter file of text @p element: the book is not
+    /// read-only and the text has no changes its file does not have; the log says why not
+    [[nodiscard]] bool canWriteText(const char* what, const ProjectElement& element) const;
+
+    /// @brief Write @p kml to the chapter file of text @p element, and keep it as the text
+    /// loaded
+    bool writeText(const ProjectElement& element, const QString& kml);
 
     /// @brief List that a new element of @p kind goes to: @p place of the book, or group
     /// @p groupId; nullptr, with the reason in the log, when the kind cannot be there

@@ -239,12 +239,17 @@ jobs:
       if: always()
       run: |
         mkdir -p build/coverage
+        # GCC 13 sometimes numbers the lines of a header one too low in a source file that
+        # includes it (the preprocessor of that file says so too), so an inline function of
+        # the header has two lines among the files: gcovr counts it once, at the higher line
         gcovr --root . build --filter 'src/' --exclude-throw-branches \
+          --merge-mode-functions=merge-use-line-max \
           --txt-summary --txt build/coverage.txt \
           --html-details build/coverage/index.html
         # The same measurement for SonarQube (generic coverage format, paths relative to the
         # repository root), headers included; scripts/sonar_analysis.py downloads it
         gcovr --root . build --filter 'src/' --filter 'include/' --exclude-throw-branches \
+          --merge-mode-functions=merge-use-line-max \
           --sonarqube build/coverage/sonarqube.xml
         echo '### Line coverage (files compiled into tests)' >> "$GITHUB_STEP_SUMMARY"
         echo '```' >> "$GITHUB_STEP_SUMMARY"

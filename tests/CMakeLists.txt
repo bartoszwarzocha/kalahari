@@ -196,6 +196,7 @@ set(TEST_SOURCES
     gui/test_relation_dialog.cpp                 # The window Relation and the relations of a card
     gui/test_card_chapters.cpp                   # The chapters and the materials of a card, what is dropped on it
     gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs
+    gui/test_plot_board.cpp                      # The plot board and the outline of the book
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
     gui/test_source_cards.cpp                    # The cards of the sources and quotes, the list Sources
@@ -261,6 +262,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/python_plugin.cpp
     ${CMAKE_SOURCE_DIR}/src/core/python_interpreter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/chapter_document.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/chapter_scenes.cpp
     ${CMAKE_SOURCE_DIR}/src/core/chapter_versions.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_diff.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_statistics.cpp
@@ -367,6 +369,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/menu_builder.cpp            # The menus of the commands: the File menu, the titles and order for the shortcuts list
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # Navigator commands on the open project
     ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Properties panel of the Navigator commands
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/plot_fields_box.cpp  # Its group of the plot of a text
     ${CMAKE_SOURCE_DIR}/src/gui/panels/paragraph_panel.cpp  # Paragraph and Styles panel
     # GUI dependencies for FindReplaceBar and the GUI tests
     ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
@@ -390,6 +393,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/navigator_page.cpp  # Settings > Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/settings/cards_page.cpp  # Settings > Cards
     ${CMAKE_SOURCE_DIR}/src/gui/settings/materials_page.cpp  # Settings > Materials
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/plot_board_page.cpp  # Settings > Plot Board
     ${CMAKE_SOURCE_DIR}/src/gui/settings/network_page.cpp  # Settings > Network > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/folders_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/import_page.cpp
@@ -447,6 +451,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/writing_awards_tracker.cpp  # The badges and challenges won
     ${CMAKE_SOURCE_DIR}/src/gui/writing_stats_model.cpp  # The statistics of writing shown
     ${CMAKE_SOURCE_DIR}/src/gui/material_list_coordinator.cpp  # The lists of the materials on tabs
+    ${CMAKE_SOURCE_DIR}/src/gui/plot_board_coordinator.cpp  # The plot board on its tab
+    ${CMAKE_SOURCE_DIR}/src/gui/plot_board_coordinator_arrange.cpp  # Cards moved, added, cut
+    ${CMAKE_SOURCE_DIR}/src/gui/plot_board_coordinator_plan.cpp  # The scenes moved, the plans
+    ${CMAKE_SOURCE_DIR}/src/gui/plot_board_coordinator_scenes.cpp  # The scenes changed
     ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
     ${CMAKE_SOURCE_DIR}/src/gui/paragraph_style_menu.cpp    # Format > Text Style: the text's styles
     ${CMAKE_SOURCE_DIR}/src/gui/book_styles.cpp             # The paragraph styles of the open book
@@ -583,6 +591,16 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel.cpp       # The list of a kind of materials
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel_clippings.cpp  # The commands of the clippings
     ${CMAKE_SOURCE_DIR}/src/gui/panels/clipping_origin_box.cpp       # Where a clipping comes from
+    ${CMAKE_SOURCE_DIR}/src/gui/plot_board.cpp                       # What the plot board shows
+    ${CMAKE_SOURCE_DIR}/src/gui/plot_board_titles.cpp                # The numbers in the titles
+    ${CMAKE_SOURCE_DIR}/src/gui/plot_outline_model.cpp               # The outline of the book
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/plot_board_panel.cpp          # The tab of the plot board
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/plot_board_panel_header.cpp   # Its switches and look
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_board_view.cpp          # The cards of the texts
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_board_view_input.cpp    # Its keys and the mouse
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_board_view_layout.cpp   # Where the cards are
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_board_view_paint.cpp    # The cards painted
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_card_editor.cpp         # A card edited (F2)
     ${CMAKE_SOURCE_DIR}/src/gui/version_texts.cpp                    # What the program says of a version
     ${CMAKE_SOURCE_DIR}/src/gui/versions_coordinator.cpp             # Save Version and Version History
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/version_name_dialog.cpp      # The description of a version
@@ -663,6 +681,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/program_instance.h  # ProgramInstance with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h  # PropertiesPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_fields_box.h  # PlotFieldsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
@@ -688,6 +707,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_awards_tracker.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_model.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plot_board_coordinator.h  # PlotBoardCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plot_outline_model.h  # PlotOutlineModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/special_character_coordinator.h  # SpecialCharacterCoordinator with Q_OBJECT
@@ -768,6 +789,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/clipping_origin_box.h  # ClippingOriginBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_board_panel.h  # PlotBoardPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_board_view.h  # PlotBoardView with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_card_editor.h  # PlotCardEditor with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/source_lookup.h  # SourceLookup with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT

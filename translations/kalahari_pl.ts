@@ -779,6 +779,14 @@
         <translation>&amp;Pulpit</translation>
     </message>
     <message>
+        <source>&amp;Outline</source>
+        <translation>Konsp&amp;ekt</translation>
+    </message>
+    <message>
+        <source>Plot &amp;Board</source>
+        <translation>Tablica &amp;fabuły</translation>
+    </message>
+    <message>
         <source>&amp;Navigator</source>
         <translation>&amp;Nawigator</translation>
     </message>
@@ -1896,6 +1904,106 @@
     <message>
         <source>Chinese</source>
         <translation>chiński</translation>
+    </message>
+</context>
+<context>
+    <name>PlotBoard</name>
+    <message>
+        <source>Draft</source>
+        <extracomment>The state of a text on the plot board. In Polish: Szkic</extracomment>
+        <translation>Szkic</translation>
+    </message>
+    <message>
+        <source>Revision</source>
+        <extracomment>In Polish: Poprawki</extracomment>
+        <translation>Poprawki</translation>
+    </message>
+    <message>
+        <source>Final</source>
+        <extracomment>In Polish: Gotowy</extracomment>
+        <translation>Gotowy</translation>
+    </message>
+    <message>
+        <source>1 word</source>
+        <extracomment>The words of a text on the plot board. In Polish: 1 słowo</extracomment>
+        <translation>1 słowo</translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln words</source>
+        <extracomment>The words of a text or of a part on the plot board; %Ln the number with the separators of thousands. In Polish: %Ln słowo / słowa / słów</extracomment>
+        <translation>
+            <numerusform>%Ln słowo</numerusform>
+            <numerusform>%Ln słowa</numerusform>
+            <numerusform>%Ln słów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 text</source>
+        <extracomment>The texts of a part or of the book on the plot board. In Polish: 1 tekst</extracomment>
+        <translation>1 tekst</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n texts</source>
+        <extracomment>The texts of a part or of the book on the plot board. In Polish: %n tekst / teksty / tekstów</extracomment>
+        <translation>
+            <numerusform>%n tekst</numerusform>
+            <numerusform>%n teksty</numerusform>
+            <numerusform>%n tekstów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Blue</source>
+        <extracomment>An own color of a card of the plot board. In Polish: Niebieski</extracomment>
+        <translation>Niebieski</translation>
+    </message>
+    <message>
+        <source>Teal</source>
+        <extracomment>In Polish: Morski</extracomment>
+        <translation>Morski</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <extracomment>In Polish: Zielony</extracomment>
+        <translation>Zielony</translation>
+    </message>
+    <message>
+        <source>Amber</source>
+        <extracomment>In Polish: Bursztynowy</extracomment>
+        <translation>Bursztynowy</translation>
+    </message>
+    <message>
+        <source>Rose</source>
+        <extracomment>In Polish: Różowy</extracomment>
+        <translation>Różowy</translation>
+    </message>
+    <message>
+        <source>Violet</source>
+        <extracomment>In Polish: Fioletowy</extracomment>
+        <translation>Fioletowy</translation>
+    </message>
+    <message>
+        <source>Scene %1</source>
+        <extracomment>The kind of a card of a scene on the plot board; %1 its number in its text. In Polish: Scena %1</extracomment>
+        <translation>Scena %1</translation>
+    </message>
+    <message>
+        <source>1 scene</source>
+        <extracomment>The scenes of a text on its card on the plot board. In Polish: 1 scena</extracomment>
+        <translation>1 scena</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n scenes</source>
+        <extracomment>In Polish: %n scena / sceny / scen</extracomment>
+        <translation>
+            <numerusform>%n scena</numerusform>
+            <numerusform>%n sceny</numerusform>
+            <numerusform>%n scen</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>In the Plan</source>
+        <extracomment>The kind and the state of a card of a scene in the plan of its text, on the plot board and in the outline. In Polish: W planie</extracomment>
+        <translation>W planie</translation>
     </message>
 </context>
 <context>
@@ -10793,6 +10901,11 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>Opens Settings &gt; Materials at the sources. In Polish: &amp;Ustawienia źródeł...</extracomment>
         <translation>&amp;Ustawienia źródeł...</translation>
     </message>
+    <message>
+        <source>Show on the Plot &amp;Board</source>
+        <extracomment>The command of the book, a part and a text of the main section in the Navigator: the plot board with its card chosen. In Polish: Pokaż na &amp;tablicy fabuły</extracomment>
+        <translation>Pokaż na &amp;tablicy fabuły</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::CentralTabs</name>
@@ -11081,6 +11194,1000 @@ Szczegóły są w dzienniku programu.</translation>
     <message>
         <source>List of Figures</source>
         <translation>Spis ilustracji</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PlotBoardCoordinator</name>
+    <message>
+        <source>The plot board shows the texts of an open book.</source>
+        <extracomment>The status bar after Book &gt; Plot Board without a book. In Polish: Tablica fabuły pokazuje teksty otwartej książki.</extracomment>
+        <translation>Tablica fabuły pokazuje teksty otwartej książki.</translation>
+    </message>
+    <message>
+        <source>Plot Board</source>
+        <extracomment>The tab of the cards of the texts of the book. In Polish: Tablica fabuły</extracomment>
+        <translation>Tablica fabuły</translation>
+    </message>
+    <message>
+        <source>The card &quot;%1&quot; changed.</source>
+        <extracomment>Under the plot board after a card was edited; %1 the title. In Polish: Zmieniono kartę „%1”.</extracomment>
+        <translation>Zmieniono kartę „%1”.</translation>
+    </message>
+    <message>
+        <source>change of the card &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title. In Polish: zmiana karty „%1”</extracomment>
+        <translation>zmiana karty „%1”</translation>
+    </message>
+    <message>
+        <source>the state of &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title. In Polish: stan „%1”</extracomment>
+        <translation>stan „%1”</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is now in the state: %2.</source>
+        <extracomment>Under the plot board after the state of a text was changed; %1 its title, %2 the state (&quot;Draft&quot;). In Polish: „%1” ma teraz stan: %2.</extracomment>
+        <translation>„%1” ma teraz stan: %2.</translation>
+    </message>
+    <message>
+        <source>The card &quot;%1&quot; has no color now.</source>
+        <extracomment>Under the plot board; %1 the title. In Polish: Karta „%1” nie ma już koloru.</extracomment>
+        <translation>Karta „%1” nie ma już koloru.</translation>
+    </message>
+    <message>
+        <source>The card &quot;%1&quot; is now: %2.</source>
+        <extracomment>Under the plot board; %1 the title, %2 the color (&quot;Blue&quot;). In Polish: Karta „%1” ma teraz kolor: %2.</extracomment>
+        <translation>Karta „%1” ma teraz kolor: %2.</translation>
+    </message>
+    <message>
+        <source>the color of the card &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title. In Polish: kolor karty „%1”</extracomment>
+        <translation>kolor karty „%1”</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; cannot move further.</source>
+        <extracomment>Under the plot board: a card at the start or the end of the book; %1 its title. In Polish: „%1” nie przesunie się dalej.</extracomment>
+        <translation>„%1” nie przesunie się dalej.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; cannot be there.</source>
+        <extracomment>Under the plot board: a card dropped where its kind cannot be; %1 its title. In Polish: „%1” nie może się tam znaleźć.</extracomment>
+        <translation>„%1” nie może się tam znaleźć.</translation>
+    </message>
+    <message>
+        <source>Added &quot;%1&quot; after &quot;%2&quot;.</source>
+        <extracomment>Under the plot board after Insert; %1 the title of the new text, %2 the card it is after. In Polish: Dodano „%1” za „%2”.</extracomment>
+        <translation>Dodano „%1” za „%2”.</translation>
+    </message>
+    <message>
+        <source>Added &quot;%1&quot; at the end of the book.</source>
+        <translation>Dodano „%1” na końcu książki.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; waits to move: choose a card and press Ctrl+V to put it after that card; Esc leaves it.</source>
+        <extracomment>Under the plot board after Ctrl+X; %1 the title. In Polish: „%1” czeka na przeniesienie: wybierz kartę i naciśnij Ctrl+V, by wstawić ją za nią; Esc rezygnuje.</extracomment>
+        <translation>„%1” czeka na przeniesienie: wybierz kartę i naciśnij Ctrl+V, by wstawić ją za nią; Esc rezygnuje.</translation>
+    </message>
+    <message>
+        <source>The numbers in the titles follow the order.</source>
+        <extracomment>Under the plot board after Renumber, when nothing had to change. In Polish: Numery w tytułach zgadzają się z kolejnością.</extracomment>
+        <translation>Numery w tytułach zgadzają się z kolejnością.</translation>
+    </message>
+    <message>
+        <source>renumbering the titles</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;. In Polish: ponumerowanie tytułów od nowa</extracomment>
+        <translation>ponumerowanie tytułów od nowa</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n titles renumbered; only the numbers changed.</source>
+        <extracomment>Under the plot board after Renumber; %n the titles changed. In Polish: Ponumerowano od nowa %n tytuł / tytuły / tytułów; zmieniły się tylko numery.</extracomment>
+        <translation>
+            <numerusform>Ponumerowano od nowa %n tytuł; zmienił się tylko numer.</numerusform>
+            <numerusform>Ponumerowano od nowa %n tytuły; zmieniły się tylko numery.</numerusform>
+            <numerusform>Ponumerowano od nowa %n tytułów; zmieniły się tylko numery.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 title renumbered; only its number changed.</source>
+        <extracomment>Under the plot board after Renumber. In Polish: Ponumerowano od nowa 1 tytuł; zmienił się tylko numer.</extracomment>
+        <translation>Ponumerowano od nowa 1 tytuł; zmienił się tylko numer.</translation>
+    </message>
+    <message>
+        <source>%1 The titles were renumbered.</source>
+        <extracomment>Added under the plot board after a move that renumbered the titles at once (&quot;Chapter 3&quot;). In Polish: Tytuły ponumerowano od nowa.</extracomment>
+        <translation>%1 Tytuły ponumerowano od nowa.</translation>
+    </message>
+    <message>
+        <source>%1 The numbers in the titles no longer follow the order.</source>
+        <extracomment>Added under the plot board after a move, with the button Renumber. In Polish: Numery w tytułach nie zgadzają się już z kolejnością.</extracomment>
+        <translation>%1 Numery w tytułach nie zgadzają się już z kolejnością.</translation>
+    </message>
+    <message>
+        <source>Nothing to undo on the board.</source>
+        <extracomment>Under the plot board after Ctrl+Z with nothing to undo. In Polish: Na tablicy nie ma nic do cofnięcia.</extracomment>
+        <translation>Na tablicy nie ma nic do cofnięcia.</translation>
+    </message>
+    <message>
+        <source>Undone: %1.</source>
+        <extracomment>Under the plot board after Ctrl+Z; %1 what was undone (&quot;moving &quot;Chapter 3&quot;&quot;). In Polish: Cofnięto: %1.</extracomment>
+        <translation>Cofnięto: %1.</translation>
+    </message>
+    <message>
+        <source>Nothing to redo on the board.</source>
+        <extracomment>Under the plot board after Ctrl+Y with nothing to do again. In Polish: Na tablicy nie ma nic do przywrócenia.</extracomment>
+        <translation>Na tablicy nie ma nic do przywrócenia.</translation>
+    </message>
+    <message>
+        <source>Redone: %1.</source>
+        <extracomment>Under the plot board after Ctrl+Y; %1 what was done again. In Polish: Przywrócono: %1.</extracomment>
+        <translation>Przywrócono: %1.</translation>
+    </message>
+    <message>
+        <source>moving &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title. In Polish: przeniesienie „%1”</extracomment>
+        <translation>przeniesienie „%1”</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; moved.</source>
+        <extracomment>Under the plot board after a card was moved; %1 its title. In Polish: Przeniesiono „%1”.</extracomment>
+        <translation>Przeniesiono „%1”.</translation>
+    </message>
+    <message>
+        <source>Change Not Saved</source>
+        <extracomment>In Polish: Nie zapisano zmiany</extracomment>
+        <translation>Nie zapisano zmiany</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <extracomment>In Polish: Nie udało się zapisać zmian.</extracomment>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>%1, %2</source>
+        <extracomment>A scene without a title in what is said under the plot board; %1 the title of its text, %2 "Scene 2". In Polish: %1, %2</extracomment>
+        <translation>%1, %2</translation>
+    </message>
+    <message>
+        <source>The scene changed in the editor: the board cannot undo that.</source>
+        <extracomment>Under the plot board after Ctrl+Z or Ctrl+Y on a scene changed in the editor since. In Polish: Scena zmieniła się w edytorze: tablica tego nie cofnie.</extracomment>
+        <translation>Scena zmieniła się w edytorze: tablica tego nie cofnie.</translation>
+    </message>
+    <message>
+        <source>Added a scene after &quot;%1&quot;.</source>
+        <extracomment>Under the plot board after Insert on a scene; %1 the scene. In Polish: Dodano scenę za „%1”.</extracomment>
+        <translation>Dodano scenę za „%1”.</translation>
+    </message>
+    <message>
+        <source>Added a scene at the end of &quot;%1&quot;.</source>
+        <extracomment>Under the plot board after Alt+Insert; %1 the title of the text. In Polish: Dodano scenę na końcu „%1”.</extracomment>
+        <translation>Dodano scenę na końcu „%1”.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is the first scene of its text.</source>
+        <extracomment>Under the plot board: a scene at the start of its text moved back; %1 the scene. In Polish: „%1” to pierwsza scena tekstu.</extracomment>
+        <translation>„%1” to pierwsza scena tekstu.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is the last scene of its text.</source>
+        <extracomment>In Polish: „%1” to ostatnia scena tekstu.</extracomment>
+        <translation>„%1” to ostatnia scena tekstu.</translation>
+    </message>
+    <message>
+        <source>adding a scene to &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title of the text. In Polish: dodanie sceny do „%1”</extracomment>
+        <translation>dodanie sceny do „%1”</translation>
+    </message>
+    <message>
+        <source>Delete Scene</source>
+        <extracomment>The title of the question. In Polish: Usuń scenę</extracomment>
+        <translation>Usuń scenę</translation>
+    </message>
+    <message>
+        <source>Delete the scene &quot;%1&quot; with its text? Ctrl+Z on the board brings it back.
+
+Keep the Text removes only the scene break: the next scene joins this one.</source>
+        <extracomment>%1 the scene. In Polish: Usunąć scenę „%1” razem z jej tekstem? Ctrl+Z na tablicy ją przywróci. (new paragraph) Zachowaj tekst usuwa tylko podział sceny: następna scena dołączy do tej.</extracomment>
+        <translation>Usunąć scenę „%1” razem z jej tekstem? Ctrl+Z na tablicy ją przywróci.
+
+Zachowaj tekst usuwa tylko podział sceny: następna scena dołączy do tej.</translation>
+    </message>
+    <message>
+        <source>Delete the scene &quot;%1&quot; with its text? Ctrl+Z on the board brings it back.
+
+Keep the Text removes only the scene break: its text joins the scene before it.</source>
+        <extracomment>%1 the scene. In Polish: Usunąć scenę „%1” razem z jej tekstem? Ctrl+Z na tablicy ją przywróci. (new paragraph) Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sceny.</extracomment>
+        <translation>Usunąć scenę „%1” razem z jej tekstem? Ctrl+Z na tablicy ją przywróci.
+
+Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sceny.</translation>
+    </message>
+    <message>
+        <source>&amp;Delete with Text</source>
+        <extracomment>In Polish: &amp;Usuń z tekstem</extracomment>
+        <translation>&amp;Usuń z tekstem</translation>
+    </message>
+    <message>
+        <source>&amp;Keep the Text</source>
+        <extracomment>In Polish: &amp;Zachowaj tekst</extracomment>
+        <translation>&amp;Zachowaj tekst</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is joined with the scene beside it.</source>
+        <extracomment>Under the plot board; %1 the scene. In Polish: „%1” połączono ze sceną obok.</extracomment>
+        <translation>„%1” połączono ze sceną obok.</translation>
+    </message>
+    <message>
+        <source>Deleted &quot;%1&quot;.</source>
+        <extracomment>Under the plot board; %1 the scene. In Polish: Usunięto „%1”.</extracomment>
+        <translation>Usunięto „%1”.</translation>
+    </message>
+    <message>
+        <source>joining &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;. In Polish: połączenie „%1”</extracomment>
+        <translation>połączenie „%1”</translation>
+    </message>
+    <message>
+        <source>deleting &quot;%1&quot;</source>
+        <extracomment>In Polish: usunięcie „%1”</extracomment>
+        <translation>usunięcie „%1”</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is in the plan: it gets a state once it is written.</source>
+        <extracomment>Under the plot board after a state was given to a scene in the plan; %1 the scene. In Polish: „%1” jest w planie: stan dostanie po napisaniu.</extracomment>
+        <translation>„%1” jest w planie: stan dostanie po napisaniu.</translation>
+    </message>
+    <message>
+        <source>Added a scene in the plan after &quot;%1&quot;.</source>
+        <extracomment>Under the plot board after Insert on a scene; %1 the scene. In Polish: Dodano scenę w planie za „%1”.</extracomment>
+        <translation>Dodano scenę w planie za „%1”.</translation>
+    </message>
+    <message>
+        <source>Added a scene in the plan at the end of &quot;%1&quot;.</source>
+        <extracomment>Under the plot board after Alt+Insert; %1 the title of the text. In Polish: Dodano scenę w planie na końcu „%1”.</extracomment>
+        <translation>Dodano scenę w planie na końcu „%1”.</translation>
+    </message>
+    <message>
+        <source>a scene in the plan</source>
+        <extracomment>A scene in the plan without a title in what is said under the plot board, after the title of its text (&quot;The Storm, a scene in the plan&quot;). In Polish: scena w planie</extracomment>
+        <translation>scena w planie</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is a scene of the text now.</source>
+        <extracomment>Under the plot board after Enter on a scene in the plan; %1 the scene. In Polish: „%1” jest teraz sceną tekstu.</extracomment>
+        <translation>„%1” jest teraz sceną tekstu.</translation>
+    </message>
+    <message>
+        <source>writing &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the scene. In Polish: napisanie „%1”</extracomment>
+        <translation>napisanie „%1”</translation>
+    </message>
+    <message>
+        <source>adding a scene to the plan of &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title of the text. In Polish: dodanie sceny do planu „%1”</extracomment>
+        <translation>dodanie sceny do planu „%1”</translation>
+    </message>
+    <message>
+        <source>Deleted &quot;%1&quot; from the plan.</source>
+        <extracomment>Under the plot board after Delete on a scene in the plan; %1 the scene. In Polish: Usunięto „%1” z planu.</extracomment>
+        <translation>Usunięto „%1” z planu.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; moved to &quot;%2&quot;.</source>
+        <extracomment>Under the plot board after a scene moved to another text; %1 the scene, %2 the title of the text. In Polish: „%1” przeniesiono do „%2”.</extracomment>
+        <translation>„%1” przeniesiono do „%2”.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is in the first text of the board.</source>
+        <extracomment>Under the plot board: a scene of the first text moved back; %1 the scene. In Polish: „%1” jest w pierwszym tekście tablicy.</extracomment>
+        <translation>„%1” jest w pierwszym tekście tablicy.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is in the last text of the board.</source>
+        <extracomment>In Polish: „%1” jest w ostatnim tekście tablicy.</extracomment>
+        <translation>„%1” jest w ostatnim tekście tablicy.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is the only scene of its text.</source>
+        <extracomment>Under the plot board: the only scene of a text was to move to another text; %1 the scene. In Polish: „%1” to jedyna scena tekstu.</extracomment>
+        <translation>„%1” to jedyna scena tekstu.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PlotBoardPage</name>
+    <message>
+        <source>description</source>
+        <extracomment>A field of the cards and a column of the outline in Settings &gt; Plot Board. In Polish: opis</extracomment>
+        <translation>opis</translation>
+    </message>
+    <message>
+        <source>point of view</source>
+        <extracomment>In Polish: punkt widzenia</extracomment>
+        <translation>punkt widzenia</translation>
+    </message>
+    <message>
+        <source>place</source>
+        <extracomment>In Polish: miejsce</extracomment>
+        <translation>miejsce</translation>
+    </message>
+    <message>
+        <source>time of the action</source>
+        <extracomment>In Polish: czas akcji</extracomment>
+        <translation>czas akcji</translation>
+    </message>
+    <message>
+        <source>state</source>
+        <extracomment>In Polish: stan</extracomment>
+        <translation>stan</translation>
+    </message>
+    <message>
+        <source>View</source>
+        <extracomment>A group of Settings &gt; Plot Board. In Polish: Widok</extracomment>
+        <translation>Widok</translation>
+    </message>
+    <message>
+        <source>Open on:</source>
+        <extracomment>The view a new tab of the plot board opens on. In Polish: Otwieraj na:</extracomment>
+        <translation>Otwieraj na:</translation>
+    </message>
+    <message>
+        <source>the board</source>
+        <extracomment>In Polish: tablicy</extracomment>
+        <translation>tablicy</translation>
+    </message>
+    <message>
+        <source>the outline</source>
+        <extracomment>In Polish: konspekcie</extracomment>
+        <translation>konspekcie</translation>
+    </message>
+    <message>
+        <source>the view used last</source>
+        <extracomment>In Polish: ostatnio używanym</extracomment>
+        <translation>ostatnio używanym</translation>
+    </message>
+    <message>
+        <source>Book &gt; Plot Board and Book &gt; Outline open their own views; this is how the tab opens from Show on the Plot Board in the Navigator.</source>
+        <extracomment>The note under the view a tab opens on. In Polish: Książka &gt; Tablica fabuły i Książka &gt; Konspekt otwierają swój widok; tak otwiera się karta z polecenia „Pokaż na tablicy fabuły” w Nawigatorze.</extracomment>
+        <translation>Książka &gt; Tablica fabuły i Książka &gt; Konspekt otwierają swój widok; tak otwiera się karta z polecenia „Pokaż na tablicy fabuły” w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>Layout of the board:</source>
+        <extracomment>In Polish: Układ tablicy:</extracomment>
+        <translation>Układ tablicy:</translation>
+    </message>
+    <message>
+        <source>columns</source>
+        <extracomment>The parts side by side. In Polish: kolumny</extracomment>
+        <translation>kolumny</translation>
+    </message>
+    <message>
+        <source>grid</source>
+        <extracomment>The cards in rows. In Polish: siatka</extracomment>
+        <translation>siatka</translation>
+    </message>
+    <message>
+        <source>Size of the cards:</source>
+        <extracomment>In Polish: Rozmiar kart:</extracomment>
+        <translation>Rozmiar kart:</translation>
+    </message>
+    <message>
+        <source>small</source>
+        <extracomment>In Polish: małe</extracomment>
+        <translation>małe</translation>
+    </message>
+    <message>
+        <source>medium</source>
+        <extracomment>In Polish: średnie</extracomment>
+        <translation>średnie</translation>
+    </message>
+    <message>
+        <source>large</source>
+        <extracomment>In Polish: duże</extracomment>
+        <translation>duże</translation>
+    </message>
+    <message>
+        <source>Show on the board:</source>
+        <extracomment>What the plot board shows besides the main section. In Polish: Pokazuj na tablicy:</extracomment>
+        <translation>Pokazuj na tablicy:</translation>
+    </message>
+    <message>
+        <source>the front and back sections (a preview only)</source>
+        <extracomment>In Polish: sekcję początkową i końcową (tylko podgląd)</extracomment>
+        <translation>sekcję początkową i końcową (tylko podgląd)</translation>
+    </message>
+    <message>
+        <source>Scenes</source>
+        <extracomment>A group of Settings &gt; Plot Board. In Polish: Sceny</extracomment>
+        <translation>Sceny</translation>
+    </message>
+    <message>
+        <source>Show the scenes under the texts</source>
+        <extracomment>In Polish: Pokazuj sceny pod tekstami</extracomment>
+        <translation>Pokazuj sceny pod tekstami</translation>
+    </message>
+    <message>
+        <source>In the grid: in the drawers under the rows of the cards, open.</source>
+        <extracomment>The note under Show the scenes under the texts. In Polish: W siatce – w otwartych szufladach pod rzędami kart.</extracomment>
+        <translation>W siatce – w otwartych szufladach pod rzędami kart.</translation>
+    </message>
+    <message>
+        <source>of the texts and in their plans</source>
+        <extracomment>Which scenes the plot board shows. In Polish: tekstów i w ich planach</extracomment>
+        <translation>tekstów i w ich planach</translation>
+    </message>
+    <message>
+        <source>of the texts only</source>
+        <extracomment>In Polish: tylko tekstów</extracomment>
+        <translation>tylko tekstów</translation>
+    </message>
+    <message>
+        <source>in the plans only</source>
+        <extracomment>In Polish: tylko w planach</extracomment>
+        <translation>tylko w planach</translation>
+    </message>
+    <message>
+        <source>Scenes on the board:</source>
+        <extracomment>In Polish: Sceny na tablicy:</extracomment>
+        <translation>Sceny na tablicy:</translation>
+    </message>
+    <message>
+        <source>The scenes of a text are its parts between the scene breaks (Insert &gt; Scene Break): moving a card moves the text of the scene. The scenes in the plan are only in the file of the book, in a dashed frame: they have no text, no words and no state, and Enter on such a card beside the scenes of the text puts a scene break with its description at its place and opens the text there.</source>
+        <extracomment>The note under the choice of the scenes. In Polish: Sceny tekstu to jego fragmenty między podziałami sceny (Wstaw &gt; Podział sceny): przeniesienie karty przenosi tekst sceny. Sceny w planie są tylko w pliku książki, w przerywanej ramce: nie mają tekstu, słów ani stanu, a Enter na takiej karcie obok scen tekstu wstawia w jej miejscu podział sceny z jej opisem i otwiera tam tekst.</extracomment>
+        <translation>Sceny tekstu to jego fragmenty między podziałami sceny (Wstaw &gt; Podział sceny): przeniesienie karty przenosi tekst sceny. Sceny w planie są tylko w pliku książki, w przerywanej ramce: nie mają tekstu, słów ani stanu, a Enter na takiej karcie obok scen tekstu wstawia w jej miejscu podział sceny z jej opisem i otwiera tam tekst.</translation>
+    </message>
+    <message>
+        <source>Cards</source>
+        <extracomment>A group of Settings &gt; Plot Board. In Polish: Karty</extracomment>
+        <translation>Karty</translation>
+    </message>
+    <message>
+        <source>number of words</source>
+        <extracomment>In Polish: liczbę słów</extracomment>
+        <translation>liczbę słów</translation>
+    </message>
+    <message>
+        <source>number of scenes</source>
+        <extracomment>In Polish: liczbę scen</extracomment>
+        <translation>liczbę scen</translation>
+    </message>
+    <message>
+        <source>The cards show:</source>
+        <extracomment>What the cards of the plot board show besides their titles. In Polish: Na kartach widać:</extracomment>
+        <translation>Na kartach widać:</translation>
+    </message>
+    <message>
+        <source>How many lines of the description a card holds depends on its size. The number of scenes is on the card of a text whose scenes are not shown under it; in the grid it opens and closes their drawer (also Space).</source>
+        <extracomment>In Polish: Ile linii opisu mieści karta, zależy od jej rozmiaru. Liczba scen jest na karcie tekstu, którego scen nie widać pod nim; w siatce otwiera i zamyka ich szufladę (także Spacja).</extracomment>
+        <translation>Ile linii opisu mieści karta, zależy od jej rozmiaru. Liczba scen jest na karcie tekstu, którego scen nie widać pod nim; w siatce otwiera i zamyka ich szufladę (także Spacja).</translation>
+    </message>
+    <message>
+        <source>Colors</source>
+        <extracomment>A group of Settings &gt; Plot Board. In Polish: Kolory</extracomment>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>Color the cards:</source>
+        <extracomment>In Polish: Koloruj karty:</extracomment>
+        <translation>Koloruj karty:</translation>
+    </message>
+    <message>
+        <source>by state</source>
+        <extracomment>In Polish: według stanu</extracomment>
+        <translation>według stanu</translation>
+    </message>
+    <message>
+        <source>by point of view</source>
+        <extracomment>In Polish: według punktu widzenia</extracomment>
+        <translation>według punktu widzenia</translation>
+    </message>
+    <message>
+        <source>by the own color of the card</source>
+        <extracomment>In Polish: własnym kolorem karty</extracomment>
+        <translation>własnym kolorem karty</translation>
+    </message>
+    <message>
+        <source>without colors</source>
+        <extracomment>In Polish: bez kolorów</extracomment>
+        <translation>bez kolorów</translation>
+    </message>
+    <message>
+        <source>Color on the card:</source>
+        <extracomment>Where the color of a card is. In Polish: Kolor na karcie:</extracomment>
+        <translation>Kolor na karcie:</translation>
+    </message>
+    <message>
+        <source>a strip at the top</source>
+        <extracomment>In Polish: pasek u góry</extracomment>
+        <translation>pasek u góry</translation>
+    </message>
+    <message>
+        <source>the background of the card</source>
+        <extracomment>In Polish: tło karty</extracomment>
+        <translation>tło karty</translation>
+    </message>
+    <message>
+        <source>Background of the board:</source>
+        <extracomment>What is under the cards. In Polish: Tło tablicy:</extracomment>
+        <translation>Tło tablicy:</translation>
+    </message>
+    <message>
+        <source>the color of the theme</source>
+        <extracomment>In Polish: kolor motywu</extracomment>
+        <translation>kolor motywu</translation>
+    </message>
+    <message>
+        <source>cork</source>
+        <extracomment>In Polish: korek</extracomment>
+        <translation>korek</translation>
+    </message>
+    <message>
+        <source>own color</source>
+        <extracomment>In Polish: własny kolor</extracomment>
+        <translation>własny kolor</translation>
+    </message>
+    <message>
+        <source>Cork</source>
+        <extracomment>The color of the cork under the cards. In Polish: Korek</extracomment>
+        <translation>Korek</translation>
+    </message>
+    <message>
+        <source>Own Background</source>
+        <extracomment>The writer's own background of the board. In Polish: Własne tło</extracomment>
+        <translation>Własne tło</translation>
+    </message>
+    <message>
+        <source>Outline</source>
+        <extracomment>A group of Settings &gt; Plot Board. In Polish: Konspekt</extracomment>
+        <translation>Konspekt</translation>
+    </message>
+    <message>
+        <source>number</source>
+        <extracomment>A column of the outline: the number of the text. In Polish: numer</extracomment>
+        <translation>numer</translation>
+    </message>
+    <message>
+        <source>words</source>
+        <extracomment>A column of the outline. In Polish: słowa</extracomment>
+        <translation>słowa</translation>
+    </message>
+    <message>
+        <source>Columns:</source>
+        <extracomment>The columns the outline shows. In Polish: Kolumny:</extracomment>
+        <translation>Kolumny:</translation>
+    </message>
+    <message>
+        <source>The title is always shown. The button Table Columns over the outline chooses the columns too.</source>
+        <extracomment>In Polish: Tytuł widać zawsze. Kolumny wybiera też przycisk „Kolumny” nad konspektem.</extracomment>
+        <translation>Tytuł widać zawsze. Kolumny wybiera też przycisk „Kolumny” nad konspektem.</translation>
+    </message>
+    <message>
+        <source>Numbers in the Titles</source>
+        <extracomment>A group of Settings &gt; Plot Board: the numbers in the titles of the texts (&quot;Chapter 3&quot;). In Polish: Numery w tytułach</extracomment>
+        <translation>Numery w tytułach</translation>
+    </message>
+    <message>
+        <source>After the chapters are rearranged:</source>
+        <extracomment>In Polish: Po przestawieniu rozdziałów:</extracomment>
+        <translation>Po przestawieniu rozdziałów:</translation>
+    </message>
+    <message>
+        <source>offer it on the bar</source>
+        <extracomment>In Polish: zaproponuj na pasku</extracomment>
+        <translation>zaproponuj na pasku</translation>
+    </message>
+    <message>
+        <source>renumber at once</source>
+        <extracomment>In Polish: ponumeruj od razu</extracomment>
+        <translation>ponumeruj od razu</translation>
+    </message>
+    <message>
+        <source>do not change</source>
+        <extracomment>In Polish: nie zmieniaj</extracomment>
+        <translation>nie zmieniaj</translation>
+    </message>
+    <message>
+        <source>For the titles the program gave (&quot;Chapter 3&quot;, also with more, as in &quot;Chapter 3. Storm&quot;); only the number changes.</source>
+        <extracomment>In Polish: Dotyczy tytułów nadanych przez program („Rozdział 3”, także z dalszym ciągiem, np. „Rozdział 3. Burza”); zmienia się tylko numer.</extracomment>
+        <translation>Dotyczy tytułów nadanych przez program („Rozdział 3”, także z dalszym ciągiem, np. „Rozdział 3. Burza”); zmienia się tylko numer.</translation>
+    </message>
+    <message>
+        <source>The colors of the states of the texts, of the scenes in the plan and the own colors of the cards. Each theme has its own colors: these are the colors of the current theme.</source>
+        <extracomment>In Polish: Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma swoje kolory: to są kolory bieżącego motywu.</extracomment>
+        <translation>Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma swoje kolory: to są kolory bieżącego motywu.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PlotBoardPanel</name>
+    <message>
+        <source>Outline</source>
+        <extracomment>The outline of the book, for the screen reader. In Polish: Konspekt
+----------
+The switch: the table of the texts. In Polish: Konspekt</extracomment>
+        <translation>Konspekt</translation>
+    </message>
+    <message>
+        <source>&amp;Renumber</source>
+        <extracomment>The button of the bar under the plot board that renumbers the titles of the texts after a move (&quot;Chapter 3&quot;). In Polish: Ponume&amp;ruj od nowa</extracomment>
+        <translation>Ponume&amp;ruj od nowa</translation>
+    </message>
+    <message>
+        <source>Board</source>
+        <extracomment>The switch of the tab of the plot board: the cards. In Polish: Tablica</extracomment>
+        <translation>Tablica</translation>
+    </message>
+    <message>
+        <source>Layout:</source>
+        <extracomment>How the cards of the plot board are arranged. In Polish: Układ:</extracomment>
+        <translation>Układ:</translation>
+    </message>
+    <message>
+        <source>Columns</source>
+        <extracomment>The parts side by side, each over its texts. In Polish: Kolumny</extracomment>
+        <translation>Kolumny</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <extracomment>The texts in rows under the titles of their parts. In Polish: Siatka</extracomment>
+        <translation>Siatka</translation>
+    </message>
+    <message>
+        <source>Cards:</source>
+        <extracomment>The size of the cards of the plot board. In Polish: Karty:</extracomment>
+        <translation>Karty:</translation>
+    </message>
+    <message>
+        <source>Small</source>
+        <extracomment>In Polish: Małe</extracomment>
+        <translation>Małe</translation>
+    </message>
+    <message>
+        <source>Medium</source>
+        <extracomment>In Polish: Średnie</extracomment>
+        <translation>Średnie</translation>
+    </message>
+    <message>
+        <source>Large</source>
+        <extracomment>In Polish: Duże</extracomment>
+        <translation>Duże</translation>
+    </message>
+    <message>
+        <source>&amp;Colors:</source>
+        <extracomment>What colors the cards of the plot board. In Polish: &amp;Kolory:</extracomment>
+        <translation>&amp;Kolory:</translation>
+    </message>
+    <message>
+        <source>by state</source>
+        <extracomment>In Polish: według stanu</extracomment>
+        <translation>według stanu</translation>
+    </message>
+    <message>
+        <source>by point of view</source>
+        <extracomment>In Polish: według punktu widzenia</extracomment>
+        <translation>według punktu widzenia</translation>
+    </message>
+    <message>
+        <source>own colors of the cards</source>
+        <extracomment>In Polish: własne kolory kart</extracomment>
+        <translation>własne kolory kart</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <extracomment>In Polish: bez kolorów</extracomment>
+        <translation>bez kolorów</translation>
+    </message>
+    <message>
+        <source>Table Columns</source>
+        <extracomment>The button over the outline with the columns it shows. In Polish: Kolumny</extracomment>
+        <translation>Kolumny</translation>
+    </message>
+    <message>
+        <source>&amp;Undo</source>
+        <extracomment>The button of the bar under the plot board that undoes what it says. In Polish: &amp;Cofnij</extracomment>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>Plot Board Settings</source>
+        <extracomment>The gear over the plot board and the outline: Settings &gt; Plot Board. In Polish: Ustawienia tablicy fabuły</extracomment>
+        <translation>Ustawienia tablicy fabuły</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <extracomment>The texts and the words of the book over the plot board; %1 the texts (&quot;7 texts&quot;), %2 the words. In Polish: %1 · %2</extracomment>
+        <translation>%1 · %2</translation>
+    </message>
+    <message>
+        <source>&amp;Open</source>
+        <extracomment>The menu of a card of the plot board. In Polish: &amp;Otwórz</extracomment>
+        <translation>&amp;Otwórz</translation>
+    </message>
+    <message>
+        <source>&amp;Edit Card</source>
+        <extracomment>In Polish: &amp;Edytuj kartę</extracomment>
+        <translation>&amp;Edytuj kartę</translation>
+    </message>
+    <message>
+        <source>&amp;New Card After It</source>
+        <extracomment>A new text of the same kind right after the card. In Polish: &amp;Nowa karta za nią</extracomment>
+        <translation>&amp;Nowa karta za nią</translation>
+    </message>
+    <message>
+        <source>Cu&amp;t</source>
+        <extracomment>In Polish: Wy&amp;tnij</extracomment>
+        <translation>Wy&amp;tnij</translation>
+    </message>
+    <message>
+        <source>&amp;Paste After It</source>
+        <extracomment>In Polish: Wklej &amp;za nią</extracomment>
+        <translation>Wklej &amp;za nią</translation>
+    </message>
+    <message>
+        <source>&amp;State</source>
+        <extracomment>In Polish: &amp;Stan</extracomment>
+        <translation>&amp;Stan</translation>
+    </message>
+    <message>
+        <source>Card &amp;Color</source>
+        <extracomment>In Polish: &amp;Kolor karty</extracomment>
+        <translation>&amp;Kolor karty</translation>
+    </message>
+    <message>
+        <source>No Color</source>
+        <extracomment>A card without an own color. In Polish: Bez koloru</extracomment>
+        <translation>Bez koloru</translation>
+    </message>
+    <message>
+        <source>&amp;Delete from Book...</source>
+        <extracomment>In Polish: &amp;Usuń z książki…</extracomment>
+        <translation>&amp;Usuń z książki…</translation>
+    </message>
+    <message>
+        <source>P&amp;roperties</source>
+        <extracomment>In Polish: &amp;Właściwości</extracomment>
+        <translation>&amp;Właściwości</translation>
+    </message>
+    <message>
+        <source>Scenes</source>
+        <extracomment>The switch over the plot board: the scenes of the texts shown or not. In Polish: Sceny</extracomment>
+        <translation>Sceny</translation>
+    </message>
+    <message>
+        <source>The scenes of the texts: under their cards, in the drawers of the grid and in rows of the outline</source>
+        <extracomment>In Polish: Sceny tekstów: pod ich kartami, w szufladach siatki i w wierszach konspektu</extracomment>
+        <translation>Sceny tekstów: pod ich kartami, w szufladach siatki i w wierszach konspektu</translation>
+    </message>
+    <message>
+        <source>&amp;New Scene After It</source>
+        <extracomment>A new scene right after the card of a scene. In Polish: &amp;Nowa scena za nią</extracomment>
+        <translation>&amp;Nowa scena za nią</translation>
+    </message>
+    <message>
+        <source>New Scene &amp;at the End of the Text</source>
+        <extracomment>A new scene at the end of the text of the card. In Polish: Nowa scena n&amp;a końcu tekstu</extracomment>
+        <translation>Nowa scena n&amp;a końcu tekstu</translation>
+    </message>
+    <message>
+        <source>&amp;Delete Scene...</source>
+        <extracomment>The menu of the card of a scene. In Polish: &amp;Usuń scenę…</extracomment>
+        <translation>&amp;Usuń scenę…</translation>
+    </message>
+    <message>
+        <source>&amp;New Scene in the Plan After It</source>
+        <extracomment>A new scene in the plan of the text, right after the card of a scene. In Polish: &amp;Nowa scena w planie za nią</extracomment>
+        <translation>&amp;Nowa scena w planie za nią</translation>
+    </message>
+    <message>
+        <source>New Scene in the Plan &amp;at the End of the Text</source>
+        <extracomment>A new scene at the end of the plan of the text of the card. In Polish: Nowa scena w planie n&amp;a końcu tekstu</extracomment>
+        <translation>Nowa scena w planie n&amp;a końcu tekstu</translation>
+    </message>
+    <message>
+        <source>&amp;Write the Scene</source>
+        <extracomment>The menu of a card of a scene in the plan: a scene break with what it says at its place in the text. In Polish: Na&amp;pisz scenę</extracomment>
+        <translation>Na&amp;pisz scenę</translation>
+    </message>
+    <message>
+        <source>&amp;Delete from the Plan</source>
+        <extracomment>The menu of the card of a scene in the plan. In Polish: &amp;Usuń z planu</extracomment>
+        <translation>&amp;Usuń z planu</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PlotBoardView</name>
+    <message>
+        <source>Plot Board</source>
+        <extracomment>The cards of the texts of the book on the plot board, for the screen reader. In Polish: Tablica fabuły</extracomment>
+        <translation>Tablica fabuły</translation>
+    </message>
+    <message>
+        <source>Point of view: %1</source>
+        <extracomment>Read by the screen reader on a card of the plot board. In Polish: Punkt widzenia: %1</extracomment>
+        <translation>Punkt widzenia: %1</translation>
+    </message>
+    <message>
+        <source>Place: %1</source>
+        <extracomment>In Polish: Miejsce: %1</extracomment>
+        <translation>Miejsce: %1</translation>
+    </message>
+    <message>
+        <source>Time of the action: %1</source>
+        <extracomment>In Polish: Czas akcji: %1</extracomment>
+        <translation>Czas akcji: %1</translation>
+    </message>
+    <message>
+        <source>Cut – Ctrl+V puts it after the current card</source>
+        <extracomment>A card marked to move with Ctrl+X. In Polish: Wycięta – Ctrl+V wstawia ją za bieżącą kartą</extracomment>
+        <translation>Wycięta – Ctrl+V wstawia ją za bieżącą kartą</translation>
+    </message>
+    <message>
+        <source>A text of the section – it opens from the Navigator.</source>
+        <extracomment>The tooltip of a text of the front or the back section on the plot board, after its title. In Polish: Tekst sekcji – otwiera się z Nawigatora.</extracomment>
+        <translation>Tekst sekcji – otwiera się z Nawigatora.</translation>
+    </message>
+    <message>
+        <source>The main section of the book has no texts yet. Insert adds a chapter.</source>
+        <extracomment>The plot board of a book without texts in its main section (Body). In Polish: W tekście głównym książki nie ma jeszcze rozdziałów. Insert dodaje rozdział.</extracomment>
+        <translation>W tekście głównym książki nie ma jeszcze rozdziałów. Insert dodaje rozdział.</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <extracomment>The texts and the words of a part on the plot board; %1 the texts (&quot;3 texts&quot;), %2 the words. In Polish: %1 · %2</extracomment>
+        <translation>%1 · %2</translation>
+    </message>
+    <message>
+        <source>Empty part</source>
+        <extracomment>A part without texts on the plot board. In Polish: Pusta część</extracomment>
+        <translation>Pusta część</translation>
+    </message>
+    <message>
+        <source>No description – F2</source>
+        <extracomment>A card of the plot board without a description. In Polish: Bez opisu – F2</extracomment>
+        <translation>Bez opisu – F2</translation>
+    </message>
+    <message>
+        <source>Scenes – %1</source>
+        <extracomment>Over the scenes of a text in its drawer on the plot board; %1 the title of the text. In Polish: Sceny – %1</extracomment>
+        <translation>Sceny – %1</translation>
+    </message>
+    <message>
+        <source>Enter writes it in the text</source>
+        <extracomment>Read by the screen reader on a card of a scene in the plan beside the scenes of its text, after &quot;In the Plan: The Storm&quot;. In Polish: Enter wpisuje ją do tekstu</extracomment>
+        <translation>Enter wpisuje ją do tekstu</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PlotCardEditor</name>
+    <message>
+        <source>Card Editor</source>
+        <extracomment>The frame that edits a card on the plot board, for the screen reader. In Polish: Edycja karty</extracomment>
+        <translation>Edycja karty</translation>
+    </message>
+    <message>
+        <source>&amp;Title</source>
+        <extracomment>A field of a card edited on the plot board. In Polish: &amp;Tytuł</extracomment>
+        <translation>&amp;Tytuł</translation>
+    </message>
+    <message>
+        <source>&amp;Description</source>
+        <extracomment>In Polish: &amp;Opis</extracomment>
+        <translation>&amp;Opis</translation>
+    </message>
+    <message>
+        <source>Point of &amp;view</source>
+        <extracomment>In Polish: &amp;Punkt widzenia</extracomment>
+        <translation>&amp;Punkt widzenia</translation>
+    </message>
+    <message>
+        <source>&amp;Place</source>
+        <extracomment>In Polish: &amp;Miejsce</extracomment>
+        <translation>&amp;Miejsce</translation>
+    </message>
+    <message>
+        <source>Ti&amp;me of the action</source>
+        <extracomment>In Polish: &amp;Czas akcji</extracomment>
+        <translation>&amp;Czas akcji</translation>
+    </message>
+    <message>
+        <source>Ctrl+Enter keeps it, Esc leaves it</source>
+        <extracomment>The keys of a card edited on the plot board. In Polish: Ctrl+Enter zachowuje, Esc porzuca</extracomment>
+        <translation>Ctrl+Enter zachowuje, Esc porzuca</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <extracomment>In Polish: Zachowaj</extracomment>
+        <translation>Zachowaj</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <extracomment>In Polish: Anuluj</extracomment>
+        <translation>Anuluj</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PlotFieldsBox</name>
+    <message>
+        <source>Plot Board</source>
+        <extracomment>The group of the Properties panel with what the plot board says of a text. In Polish: Tablica fabuły</extracomment>
+        <translation>Tablica fabuły</translation>
+    </message>
+    <message>
+        <source>Description:</source>
+        <extracomment>The short description of a text on its card of the plot board. In Polish: Opis:</extracomment>
+        <translation>Opis:</translation>
+    </message>
+    <message>
+        <source>Point of view:</source>
+        <extracomment>In Polish: Punkt widzenia:</extracomment>
+        <translation>Punkt widzenia:</translation>
+    </message>
+    <message>
+        <source>Place:</source>
+        <extracomment>In Polish: Miejsce:</extracomment>
+        <translation>Miejsce:</translation>
+    </message>
+    <message>
+        <source>Suggestions from the character and place cards of the Workshop; any text can be written.</source>
+        <extracomment>The note under the point of view and the place. In Polish: Podpowiedzi z kart postaci i miejsc w Warsztacie; można wpisać dowolny tekst.</extracomment>
+        <translation>Podpowiedzi z kart postaci i miejsc w Warsztacie; można wpisać dowolny tekst.</translation>
+    </message>
+    <message>
+        <source>e.g. Day 3, dawn</source>
+        <extracomment>An example of the time of the action. In Polish: np. Dzień 3, świt</extracomment>
+        <translation>np. Dzień 3, świt</translation>
+    </message>
+    <message>
+        <source>Time of the action:</source>
+        <extracomment>In Polish: Czas akcji:</extracomment>
+        <translation>Czas akcji:</translation>
+    </message>
+    <message>
+        <source>Card color:</source>
+        <extracomment>The own color of the card of a text on the plot board. In Polish: Kolor karty:</extracomment>
+        <translation>Kolor karty:</translation>
+    </message>
+    <message>
+        <source>No Color</source>
+        <extracomment>A card without an own color. In Polish: Bez koloru</extracomment>
+        <translation>Bez koloru</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PlotOutlineModel</name>
+    <message>
+        <source>No.</source>
+        <extracomment>A column of the outline: the number of the text. In Polish: Nr</extracomment>
+        <translation>Nr</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <extracomment>In Polish: Tytuł</extracomment>
+        <translation>Tytuł</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <extracomment>In Polish: Opis</extracomment>
+        <translation>Opis</translation>
+    </message>
+    <message>
+        <source>Point of View</source>
+        <extracomment>In Polish: Punkt widzenia</extracomment>
+        <translation>Punkt widzenia</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <extracomment>In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Time of the Action</source>
+        <extracomment>In Polish: Czas akcji</extracomment>
+        <translation>Czas akcji</translation>
+    </message>
+    <message>
+        <source>Words</source>
+        <extracomment>In Polish: Słowa</extracomment>
+        <translation>Słowa</translation>
+    </message>
+    <message>
+        <source>State</source>
+        <extracomment>In Polish: Stan</extracomment>
+        <translation>Stan</translation>
     </message>
 </context>
 <context>
@@ -11960,6 +13067,11 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <source>Images</source>
         <extracomment>Settings &gt; Editor &gt; Images: new images, the captions of new books. In Polish: Obrazy</extracomment>
         <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>Plot Board</source>
+        <extracomment>Settings &gt; Plot Board: the scenes on the board, the colors of the cards. In Polish: Tablica fabuły</extracomment>
+        <translation>Tablica fabuły</translation>
     </message>
     <message>
         <source>Clippings</source>

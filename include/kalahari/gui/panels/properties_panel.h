@@ -49,6 +49,7 @@ class CardPage;
 class ClippingOriginBox;
 class EditorPanel;
 class LinkedMaterialsBox;
+class PlotFieldsBox;
 class MaterialPage;
 class SectionNamesEdit;
 class SectionsComboBox;
@@ -478,6 +479,7 @@ private:
     QTextEdit* m_chapterNotesEdit;
     LinkedMaterialsBox* m_chapterMaterials = nullptr;  ///< The materials of the element
     ClippingOriginBox* m_clippingOrigin = nullptr;     ///< Where a clipping comes from
+    PlotFieldsBox* m_chapterPlot = nullptr;  ///< What the plot board says of a text
     QGroupBox* m_chapterVersionsGroup = nullptr;  ///< The versions of the text (showVersions())
     QLabel* m_versionsCountLabel = nullptr;       ///< How many, and when the last one was kept
     QLabel* m_versionsLastLabel = nullptr;        ///< The description of the last one

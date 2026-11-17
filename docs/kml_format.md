@@ -136,8 +136,23 @@ the base pack, with the styles `normal`, `heading_1`, `heading_2`, `heading_3`, 
 | `<scene-break/>` | A scene break (Insert > Scene Break, also in the Book menu) |
 | `<page-break/>` | A page break (Insert > Page Break, Ctrl+Enter) |
 
-- Each is a block of its own between paragraphs, not inside one. Its attributes and its
-  content are ignored, and the editor writes the empty element.
+- Each is a block of its own between paragraphs, not inside one. Its content is ignored, and
+  the editor writes the empty element; of a scene break it keeps the attributes below, and
+  ignores the others.
+- A scene break says what the plot board shows of the scene after it: `title`,
+  `description`, `pov` (point of view), `place`, `time` (of the action), `color` (own color
+  of its card: `blue`, `teal`, `green`, `amber`, `rose`, `violet`) and `status` (`draft`,
+  `revision`, `final`; none: the state of its text). The editor writes them in this order,
+  each only with text; a line break in a description is written `&#10;`. The first scene of
+  a text, before any break, keeps the same fields in the `.klh` file (`"plot"` /
+  `"opening"`). The scenes in the plan of a text, not written yet, are only in the `.klh`
+  file (`"plot"` / `"planned"`: a list of the same fields, without `status`, each with
+  `"after"`, how many scenes of the text come before it); Write the Scene on the plot board
+  puts a break with its fields at its place in the text.
+
+  ```xml
+  <scene-break title="Night" pov="Anna" description="The storm comes." status="revision"/>
+  ```
 - In the editor each is one character in a paragraph of its own: the cursor passes it with
   one key press, and Backspace or Delete removes it whole.
 - A scene break looks as the setting `editor.sceneBreak.style` says (three asterisks, an
@@ -693,6 +708,11 @@ Copied text carries the annotations anchored in it: the KML on the clipboard has
 `id`, the annotation comes in as a copy with a new `id` – unless the text is pasted inside the
 fragment of that annotation, which it then simply joins. The HTML and the plain text on the
 clipboard, for other programs, have no annotations.
+
+A scene moved to another text on the plot board takes the annotations anchored in it from the
+`<annotations>` section of its text to that of the other text (a section is made, or left out
+once it has no annotations); one anchored also in the text the scene leaves, or with an `id` the
+other text has, goes as a copy with a new `id`.
 
 ## Footnotes and endnotes
 

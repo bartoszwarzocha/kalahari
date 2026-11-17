@@ -17,7 +17,10 @@
 
 #include <QHash>
 #include <QList>
+#include <QMap>
 #include <QString>
+#include <QStringList>
+#include <QTextBlock>
 #include <QTextFormat>
 #include <QVariantMap>
 
@@ -99,6 +102,30 @@ QTextCharFormat objectCharFormat(TextObject object);
 /// A block is an object when it holds nothing but the object replacement character in the
 /// format of an object.
 TextObject blockObject(const QTextBlock& block);
+
+/// @brief What a scene break says of the scene after it, for the plot board: its KML
+///        attributes by name (sceneBreakAttributeNames()), each with text, on the character of
+///        the break (a QVariantMap)
+inline constexpr int SCENE_ATTRIBUTES_PROPERTY = QTextFormat::UserProperty + 220;
+
+/// @brief The KML attributes of a scene break by name, each with text
+using SceneBreakAttributes = QMap<QString, QString>;
+
+/// @brief The attributes a scene break keeps, in the order the editor writes them: "title",
+///        "description", "pov", "place", "time", "color", "status"
+const QStringList& sceneBreakAttributeNames();
+
+/// @brief The attributes of the scene break whose character has format @p format; empty for
+///        a break without them and any other format
+SceneBreakAttributes sceneBreakAttributes(const QTextFormat& format);
+
+/// @brief Give the character of a scene break @p attributes (those of
+///        sceneBreakAttributeNames() with text; none: the format has none)
+void setSceneBreakAttributes(QTextCharFormat& format, const SceneBreakAttributes& attributes);
+
+/// @brief The block of the break of scene @p scene of @p document: from 1, the first scene
+///        break among the paragraphs of the text (not in a table); invalid without one
+QTextBlock sceneBreakBlock(const QTextDocument& document, int scene);
 
 /// @brief How the scene breaks look (Settings > Editor > General, editor.sceneBreak.style)
 enum class SceneBreakLook {

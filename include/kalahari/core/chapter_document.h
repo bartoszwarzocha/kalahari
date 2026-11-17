@@ -38,6 +38,7 @@
 
 #pragma once
 
+#include <kalahari/core/book_project.h>
 #include <kalahari/core/text_statistics.h>
 
 #include <QString>
@@ -45,10 +46,38 @@
 #include <QJsonArray>
 #include <QDateTime>
 #include <QColor>
+#include <QList>
 #include <optional>
 
 namespace kalahari {
 namespace core {
+
+/// @brief A scene of a text: its text from its start or from a scene break (<scene-break/>,
+///        a paragraph of the text) to the next break
+struct KmlScene {
+    ScenePlot plot;   ///< What its break says of it (ScenePlot::toAttributes()); the first
+                      ///< scene has nothing here (ElementPlot::opening)
+    WordTally words;  ///< The words of its text, with the texts of its notes
+
+    bool operator==(const KmlScene&) const = default;
+};
+
+/// @brief A text and what its first scene says: what changes when the plot board moves, adds
+///        or deletes a scene of the text
+struct SceneText {
+    QString kml;        ///< The text (KML)
+    ScenePlot opening;  ///< Its first scene (ElementPlot::opening, in the .klh file)
+
+    bool operator==(const SceneText&) const = default;
+};
+
+/// @brief Two texts after a scene of one of them moved to the other
+struct SceneMove {
+    SceneText from;  ///< The text the scene left
+    SceneText to;    ///< The text it went to
+
+    bool operator==(const SceneMove&) const = default;
+};
 
 /// @brief Chapter document with JSON+KML storage
 ///
@@ -243,6 +272,49 @@ public:
     ///        them: of its paragraphs (kmlToPlainText()) and of the texts of its footnotes and
     ///        endnotes (WordTally::noteWords)
     static WordTally kmlWordTally(const QString& kml);
+
+    /// @brief The scenes of a text's KML in their order, with their words: the scenes of a
+    ///        text add up to its words (kmlWordTally()); a text without scene breaks is one
+    ///        scene
+    static QList<KmlScene> kmlScenes(const QString& kml);
+
+    /// @brief The KML with the break of scene @p scene (from 1: the first break) saying
+    ///        @p plot of it; the rest of the text as it was
+    /// @return Empty when the text has no such break
+    static QString withScenePlot(const QString& kml, int scene, const ScenePlot& plot);
+
+    /// @name The scenes of a text moved, added and deleted
+    /// A scene goes with its text and what it says: the first scene of the text has no break,
+    /// and what it says is SceneText::opening, so what comes first takes its break off and
+    /// gives what it says to opening, and what was first gets a break. The annotations of the
+    /// text and the headings at its start stay at its start; a scene moved to another text
+    /// takes the annotations anchored in it along.
+    /// @return nullopt for a KML that cannot be read, and for a scene the text does not have
+    /// @{
+
+    /// @brief @p text with scene @p from at place @p to of its scenes without it (from 0)
+    static std::optional<SceneText> withSceneMoved(const SceneText& text, int from, int to);
+
+    /// @brief Scene @p scene of @p from moved to place @p at of the scenes of @p to (0: the
+    ///        first, the number of its scenes: the last), with its text, what it says and the
+    ///        annotations anchored in it; an annotation anchored also in what stays of @p from
+    ///        goes as a copy with a new id
+    /// @return nullopt also for @p from of one scene
+    static std::optional<SceneMove> withSceneMovedTo(const SceneText& from, int scene,
+                                                     const SceneText& to, int at);
+
+    /// @brief @p text with a new scene with an empty paragraph at place @p at of its scenes
+    ///        (0: the first, the number of its scenes: the last), saying @p plot
+    static std::optional<SceneText> withSceneAdded(const SceneText& text, int at,
+                                                   const ScenePlot& plot = {});
+
+    /// @brief @p text without scene @p scene: with its text, or (@p keepText) without its
+    ///        break, its text joined to the scene before it (the first scene: the next one
+    ///        joined to it), what the break said lost
+    /// @return nullopt also for a text of one scene
+    static std::optional<SceneText> withoutScene(const SceneText& text, int scene,
+                                                 bool keepText);
+    /// @}
 
 private:
     /// @brief Recalculate statistics from current content

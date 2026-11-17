@@ -1567,6 +1567,8 @@ Rules for a new shortcut:
 | Edit > Next To Do | Alt+Down |
 | Edit > Previous To Do | Alt+Up |
 | Book > Add... | Ctrl+Shift+Enter |
+| Book > Plot Board | Ctrl+Shift+T |
+| Book > Outline | Ctrl+Shift+L |
 | Insert > Add Annotation... | Ctrl+Shift+M |
 | Insert > Quick Insert... | Ctrl+Shift+W |
 | Insert > Caption... | Ctrl+Shift+G (also with the cursor just after the image) |
@@ -1635,6 +1637,32 @@ may have them too.
 - **Navigator:** Insert or Ctrl+Shift+Enter – Add... on the node, Enter – open the element,
   F2 – rename the node, Delete – delete the element, Alt+Shift+H – the version history of
   the selected text (in the tree only, before the commands with these keys).
+- **Plot board** (Book > Plot Board): the arrows, Home and End – choose a card; Ctrl with
+  Left and Right – move it a place back or on, in Grid with Up and Down – a row; Enter – open
+  its text, F2 – edit the card over it (Ctrl+Enter – keep, Esc – leave), Insert – a new text
+  after it, Delete – delete it, Ctrl+X and Ctrl+V – mark it and move it after another card,
+  Ctrl+Z and Ctrl+Y – undo and redo on the board, Alt+Enter – the Properties panel, the Menu
+  key or Shift+F10 – its menu. The cards of the scenes of a text (Scenes over the board) are
+  under its card in Columns, and in a drawer under its row in Grid, which Space opens and
+  closes; the arrows go to them, Enter opens the text at the scene, F2, the state and the
+  color change the scene; Ctrl with Up and Down in Columns, with Left and Right in the drawer
+  – move the scene among the scenes of its text, with the other arrows to the text beside, with
+  its annotations (Ctrl+X and Ctrl+V, the mouse too), Insert –
+  a new scene after it, Alt+Insert – a new scene at the end of the text (also on the card of
+  a text), Delete – delete it with its text or its break only. With the scenes in the plan
+  (Settings > Plot Board, the default), Insert and Alt+Insert add a scene in the plan, Enter on
+  a scene in the plan writes it in the text and opens the text there, Ctrl with the arrows
+  across the texts moves it to another text, Delete deletes it at once (Ctrl+Z brings it
+  back). In the outline (Book > Outline) the same keys where a table allows
+  them; F2 or typing edits a cell (in the board and the outline only, before the commands
+  with these keys). Edit > Undo, Redo, Cut, Paste and Delete do there what their keys do;
+  "Show on the Plot Board" in the Navigator (the book, a part, a text) chooses the card. The
+  button "Table Columns" over the outline (Tab to it, Space) chooses the columns it shows, as
+  Settings > Plot Board does with the rest of the look of the board; the gear at the end of
+  the switches (Tab to it, Space) opens that page. The front and back sections shown on the
+  board (Settings > Plot Board) are a preview: the keys pass them by.
+  After a move that leaves the numbers in the titles out of the order, the button Renumber of
+  the bar under the board (its underlined letter with Alt) renumbers them; Ctrl+Z undoes it.
 - **Annotations panel:** Up and Down, Home and End – select an annotation, Enter or F2 –
   edit, Space – done or resolved, Delete – delete, the Menu key or Shift+F10 – its menu,
   Esc – back to the text.

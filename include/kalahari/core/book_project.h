@@ -97,6 +97,10 @@
 ///   project folder (if it has one), a status ("draft", "revision" or "final"; groups have
 ///   none) and the elements inside it (groups). The order and nesting of elements are saved
 ///   only here, not in folders.
+/// - A text element of a book can have a short description for the plot board ("description")
+///   and what the board says of its plot ("plot", ElementPlot): its point of view, place and
+///   time of the action, and the color of its card:
+///   { "pov": "Amara", "place": "Oaza Al-Ma", "time": "Dzień 3", "color": "teal" }.
 /// - An element of the Workshop can have a description ("description"), the writer's own fields
 ///   ("fields": a name and a value each, in the writer's order) and what it is about ("links":
 ///   the ids of elements, and of sections as "<book id>/front", "/main" or "/back"). A link is
@@ -134,6 +138,7 @@
 #include <QDateTime>
 #include <QJsonObject>
 #include <QList>
+#include <QMap>
 #include <QString>
 #include <QStringList>
 #include <QVariantMap>
@@ -173,6 +178,77 @@ struct ElementLink {
     bool operator==(const ElementLink&) const = default;
 };
 
+/// @brief What the plot board says of a scene of a text: the card of the scene
+///
+/// A scene is the text of a chapter from its start or from a scene break to the next break. A
+/// break keeps what it says of the scene after it as its attributes in the KML of the text
+/// (toAttributes()), so it goes with its text; the first scene, before any break, has it in the
+/// .klh file (ElementPlot::opening).
+struct ScenePlot {
+    QString title;        ///< Its title; empty: none ("Scene 2" on its card)
+    QString description;  ///< Its short description
+    QString pov;          ///< Point of view
+    QString place;        ///< Place of the action
+    QString time;         ///< Time of the action
+    QString color;        ///< Own color of its card, a name of PlotColors ("blue")
+    QString status;       ///< "draft", "revision" or "final"; empty: as its text
+    QJsonObject extra;    ///< Fields of "opening" (or of a scene in the plan) this version
+                          ///< does not know, saved back
+
+    /// @brief Whether it says nothing
+    [[nodiscard]] bool isEmpty() const {
+        return title.isEmpty() && description.isEmpty() && pov.isEmpty() && place.isEmpty() &&
+               time.isEmpty() && color.isEmpty() && status.isEmpty() && extra.isEmpty();
+    }
+
+    /// @brief Its fields with text by their names: "title", "description", "pov", "place",
+    /// "time", "color", "status" (the attributes of a scene break, the fields of "opening")
+    [[nodiscard]] QMap<QString, QString> toAttributes() const;
+
+    /// @brief The plot of a scene from its fields by their names (toAttributes())
+    static ScenePlot fromAttributes(const QMap<QString, QString>& attributes);
+
+    /// @brief The names of its fields in the order they are written
+    static const QStringList& fieldNames();
+
+    bool operator==(const ScenePlot&) const = default;
+};
+
+/// @brief A scene in the plan of a text: what the writer means to write there, before the text
+/// has it
+///
+/// The plot board shows it among the scenes of the text; once it is written, a scene break
+/// with what it says takes its place in the text.
+struct PlannedScene {
+    ScenePlot plot;  ///< What it says; it has no state ("In the Plan") until it is written
+    int after = 0;   ///< How many scenes of the text come before it: 0 before the first one
+
+    bool operator==(const PlannedScene&) const = default;
+};
+
+/// @brief What the plot board says of a text element of a book: whose eyes the reader sees it
+/// with, where and when it happens, and the color of its card
+///
+/// The texts are the writer's own words: a name of a character or a place of the Workshop, or
+/// anything else ("Dzień 3", "Marzec 1931").
+struct ElementPlot {
+    QString pov;        ///< Point of view; empty: not said
+    QString place;      ///< Place of the action; empty: not said
+    QString time;       ///< Time of the action; empty: not said
+    QString color;      ///< Own color of its card, a name of PlotColors ("blue"); empty: none
+    ScenePlot opening;  ///< Of the first scene of its text, before any scene break ("opening")
+    QList<PlannedScene> planned;  ///< The scenes in its plan ("planned"), in their order
+    QJsonObject extra;  ///< Fields this version does not know, saved back
+
+    /// @brief Whether it says nothing: the file has no "plot"
+    [[nodiscard]] bool isEmpty() const {
+        return pov.isEmpty() && place.isEmpty() && time.isEmpty() && color.isEmpty() &&
+               opening.isEmpty() && planned.isEmpty() && extra.isEmpty();
+    }
+
+    bool operator==(const ElementPlot&) const = default;
+};
+
 /// @brief Element of a book or of the Workshop: a chapter, a part, a character card...
 struct ProjectElement {
     QString id;                      ///< Unique in the project
@@ -187,8 +263,9 @@ struct ProjectElement {
                                      ///< the file "firstPage": "left", without it a right page
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
     QString description;             ///< Description of an element of the Workshop without a
-                                     ///< text of its own (a material), or the short one of a
-                                     ///< card ("In short"); empty: none
+                                     ///< text of its own (a material), the short one of a card
+                                     ///< ("In short"), or the short description of a text of a
+                                     ///< book on the plot board; empty: none
     QList<ElementField> fields;      ///< The writer's own fields, in the writer's order
     QList<ElementLink> links;        ///< What it is about: elements and sections, each
                                      ///< once, in the order linked
@@ -200,6 +277,8 @@ struct ProjectElement {
                                      ///< was inserted; empty: none
     CardData card;                   ///< Of a card (a character, a location, an item): the
                                      ///< values of its fields, its color and its portraits;
+                                     ///< empty: none
+    ElementPlot plot;                ///< Of a text of a book: its plot on the plot board;
                                      ///< empty: none
     SourceDescription source;        ///< Of a material that is a source: its bibliographic
                                      ///< description; empty: none

@@ -264,6 +264,48 @@ std::map<std::string, json> buildDefaults() {
         {"cards.navigatorColorDot", true},
         {"cards.navigatorTree", "tree"},
 
+        // The plot board (gui::PlotBoard): the board of the cards ("board") or the outline
+        // ("outline"), the one shown last, and the one a new tab opens on ("board", "outline"
+        // or "last"); the parts side by side ("columns") or the cards in rows under the titles
+        // of the parts ("grid"); the size of the cards ("small",
+        // "medium", "large"); what colors them: the state ("status"), the point of view
+        // ("pov"), the writer's own colors ("own") or nothing ("none"); whether the board
+        // shows the scenes of the texts (in a grid: with their drawers open) and the outline
+        // their rows; which scenes there are: those of the texts and those in their plans
+        // ("both"), those of the texts ("text") or those in the plans only ("plan"); the color
+        // of a card in a strip at its top ("strip") or as its background ("tint"); the
+        // background of the board: the theme's ("theme"), cork ("cork") or the writer's own
+        // ("own", the color plotBackground of the theme); what the cards show besides their
+        // titles (fields) and the columns of the outline besides the title (outline); whether
+        // the board shows the front and the back section too, as a preview (showSections);
+        // what happens to the numbers in the titles the program gave after a move: offered on
+        // the bar under the board ("ask"), changed at once ("auto") or never ("never")
+        {"plotBoard.view", "board"},
+        {"plotBoard.startView", "last"},
+        {"plotBoard.layout", "columns"},
+        {"plotBoard.cardSize", "medium"},
+        {"plotBoard.colorBy", "status"},
+        {"plotBoard.colorPlace", "strip"},
+        {"plotBoard.background", "theme"},
+        {"plotBoard.showScenes", true},
+        {"plotBoard.scenes", "both"},
+        {"plotBoard.showSections", false},
+        {"plotBoard.renumber", "ask"},
+        {"plotBoard.fields.description", true},
+        {"plotBoard.fields.pov", true},
+        {"plotBoard.fields.place", true},
+        {"plotBoard.fields.time", false},
+        {"plotBoard.fields.words", true},
+        {"plotBoard.fields.status", true},
+        {"plotBoard.fields.scenes", true},
+        {"plotBoard.outline.number", true},
+        {"plotBoard.outline.description", true},
+        {"plotBoard.outline.pov", true},
+        {"plotBoard.outline.place", true},
+        {"plotBoard.outline.time", true},
+        {"plotBoard.outline.words", true},
+        {"plotBoard.outline.status", true},
+
         // New projects
         {"project.defaultAuthor", ""},
         // Language of new books ("pl"); empty: the language of the program

@@ -11,6 +11,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Plot board and outline** - 2026-11-15. Book > Plot Board (Ctrl+Shift+T) shows the texts of
+  the main section of the book (chapters, prologue, epilogue) as cards on a tab of their own:
+  the title, a short description, the point of view, the place and the time of the action, the
+  words and the state. Columns (the parts side by side) or Grid (rows under the titles of the
+  parts), three sizes of the cards, colored by state, by point of view, by the writer's own
+  color or not at all. A card moves with Ctrl and the arrows, Ctrl+X and Ctrl+V or the mouse,
+  to the same places as in the Navigator; F2 edits it over the card (the characters and the
+  places of the Workshop as suggestions), Enter opens its text, Insert adds a text after it,
+  Delete deletes it, Alt+Enter shows its properties, Ctrl+Z and Ctrl+Y undo and redo what was
+  done on the board. Book > Outline (Ctrl+Shift+L) shows the same texts in a table under their
+  parts, edited in the cells. The description and the plot of a text are kept in the `.klh`
+  file (`"description"`, `"plot"`); the colors are in the themes (`editor.plot*`).
+- **The scenes of the texts on the plot board** - 2026-11-15. A text with scene breaks has a
+  card of each scene: under its card in Columns, in a drawer under its row in Grid (Space or
+  a click on "3 scenes" opens and closes it), and a row under its row in the outline (the
+  Scenes switch over the board shows or hides them). A scene has a title, a description, a
+  point of view, a place and time of the action, a state and a color, edited as a text's (F2,
+  the menu, the cells of the outline) and undone with Ctrl+Z; Enter opens the text at the
+  scene. A text without its own point of view shows those of its scenes. What a scene says is
+  kept in the attributes of its scene break (`<scene-break title="..." pov="..."/>`), of the
+  first scene in the `.klh` file (`"plot"` / `"opening"`); an open text takes the change in its
+  editor, to be saved with it.
+- **Scenes moved, added and deleted on the plot board** - 2026-11-15. A scene moves among the
+  scenes of its text with Ctrl and Up or Down in Columns, Left or Right in the drawer of Grid,
+  with Ctrl+X and Ctrl+V or the mouse; Insert adds a scene after it, Alt+Insert one at the end
+  of the text (a text without breaks gets its second scene), Delete asks whether to delete the
+  scene with its text or its break only (its text joins the scene before it). The new scene's
+  card is edited at once; Ctrl+Z undoes each of these. An open text takes the change in its
+  editor, as one step of its own Ctrl+Z.
+- **Scenes in the plan on the plot board** - 2026-11-15. Beside the scenes of a text the board
+  shows the scenes planned for it, not written yet, in a dashed frame ("In the Plan"): Insert
+  adds one after a scene, Alt+Insert one at the end of the text, F2 edits it, Ctrl with the
+  arrows, Ctrl+X and Ctrl+V or the mouse move it among the scenes of its text or to another
+  text, Delete deletes it; Enter writes it: a scene break with its title and description comes
+  at its place in the text, and the text opens there. Each of these is undone with Ctrl+Z. The
+  outline has a row of each. The plan is kept in the `.klh` file (`"plot"` / `"planned"`).
+  Settings > Plot Board (new) chooses the scenes: of the texts and in their plans (the
+  default), of the texts only, or in the plans only, and the colors of the cards.
+- **A scene moved to another text on the plot board** - 2026-11-15. Ctrl with the arrows
+  across the texts (Left and Right in Columns, Up and Down in the drawer of Grid) moves a scene
+  to the end of the text before or the start of the text after; dropped on a scene of another
+  text or on its card, or pasted with Ctrl+V after it, the scene goes there. It takes its text,
+  what it says and the annotations anchored in it along (one anchored also in the text it
+  leaves goes as a copy); into an empty text it comes in place of its empty scene. One Ctrl+Z
+  undoes it in both texts, also when one of them is open in the editor.
+- **The plot board in the Edit menu, the Navigator and the Properties panel** - 2026-11-15.
+  Edit > Undo, Redo, Cut, Paste and Delete work on the board and in the outline as their keys
+  do (Copy in the outline copies the cell); in a field of a card being edited they are the
+  field's. "Show on the Plot Board" in the menu of the book, a part and a text of the main
+  section in the Navigator opens the board with the card of the text, or of the first text of
+  the part, chosen. The Properties panel of a text of the main section has the group "Plot
+  Board": its description, point of view, place, time of the action and card color, with the
+  characters and places of the Workshop suggested; a field keeps what was written when the
+  keys leave it, and a change on the board shows there at once.
+- **Plot board: the front and back sections, the numbers in the titles** - 2026-11-15. Settings
+  > Plot Board can show the texts of the front and the back section too, dimmed, before and
+  after the main section: a preview, whose texts open from the Navigator. When a move leaves
+  the numbers in the titles the program gave ("Chapter 3", also "Chapter 3. Storm") out of the
+  order, the bar under the board offers "Renumber" (a step of its own for Ctrl+Z); Settings >
+  Plot Board can renumber them at once, in the step of the move, or never. Only the number
+  changes, and the writer's own titles stay as they are.
+- **Settings > Plot Board: the view, the cards, the colors and the outline** - 2026-11-15. The
+  page chooses the view a new tab of the board opens on (the board, the outline or the one used
+  last), the layout and the size of the cards, the scenes shown, what the cards show besides
+  their titles (the time of the action is off by default), whether the color of a card is a
+  strip at its top or its background, what is under the cards (the color of the theme, cork or
+  a color of one's own, both kept for each theme) and the columns of the outline, which the
+  button "Table Columns" over the outline chooses too. The gear at the end of the switches over
+  the board and the outline opens this page.
+
 - **Plugin engine** - 2026-11-16. The program loads its add-ons at the start (Python starts
   only when one is turned on) and puts what they add into every book window: their commands
   in the menus (Tools > Plugins > the add-on's name, or a menu of the program it names), with
