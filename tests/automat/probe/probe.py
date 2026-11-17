@@ -128,6 +128,9 @@ class Probe:
             self.report["window_events"] = hook_events
             self.report["app_events"] = [dict(line, t_ms=round((line["qpc"] + self.offset - launched) * 1000, 1))
                                          for line in self.app_lines]
+            print("ZDARZENIA OKIEN:", json.dumps(hook_events, ensure_ascii=False), flush=True)
+            print("ZDARZENIA PROGRAMU:", json.dumps(self.report["app_events"], ensure_ascii=False), flush=True)
+            print("BŁĘDY:", json.dumps(self.report["errors"][:20], ensure_ascii=False), flush=True)
         (self.out / "raport.json").write_text(json.dumps(self.report, ensure_ascii=False, indent=1),
                                               encoding="utf-8")
         self.summary()
@@ -204,9 +207,9 @@ class Probe:
         if self.check("przycisk „Lista” znaleziony", bool(lista), f"{lista}"):
             before = lista[0].toggle_state()
             inp.click(*lista[0].center)
-            state, _ = uia.wait_until(lambda: lista[0].toggle_state() == "on" and "on", 1)
-            self.check("klik myszą zaznacza „Lista” (wzorzec Toggle)", state == "on",
-                       f"przed: {before}, po: {lista[0].toggle_state()}")
+            state, _ = uia.wait_until(lambda: (lista[0].toggle_state() == "on" or lista[0].is_selected()) and "on", 1)
+            self.check("klik myszą zaznacza „Lista” (wzorce Toggle albo SelectionItem)", state == "on",
+                       f"{lista[0].control_type}; przed: {before}/{lista[0].is_selected()}, po: {lista[0].toggle_state()}")
 
         # Typing into the search field.
         search = dialog.find_all(name="Szukaj znaku", kinds=uia.ROLES["edit"])
@@ -245,10 +248,16 @@ class Probe:
                 self.shot("04-gwiazdka", scr)
 
         # Esc closes the dialog.
+        self.where_input_goes(ui, "przed Esc")
         t0 = inp.press("Esc")
         closed = hook.wait_closed("Znak specjalny", t0, 3)
         self.check("Esc zamyka okno (zdarzenie systemowe)", closed is not None,
-                   "" if closed is None else f"{(closed.time - t0) * 1000:.0f} ms")
+                   ("" if closed is None else f"{(closed.time - t0) * 1000:.0f} ms; ")
+                   + f"okno widoczne: {bool(events.user32.IsWindowVisible(shown.hwnd))}")
+        if closed is None:
+            self.where_input_goes(ui, "po Esc")
+            self.shot("04b-po-esc", scr)
+            self.close_dialog(ui, scr, hook, shown.hwnd, "Znak specjalny")
 
         # A shortcut, five times: the spread of the measurement.
         shown_ms, paint_ms, diffs = [], [], []
@@ -291,7 +300,8 @@ class Probe:
         # Polish text in the editor, read back by UI Automation and through the clipboard.
         editor = main.find_all(name="Tekst", kinds=uia.ROLES["edit"])
         if self.check("pole tekstu znalezione", bool(editor)):
-            inp.click(*editor[0].center)
+            left, top, right, bottom = editor[0].rect
+            inp.click(left + 30, bottom - 30)
             inp.type_text(PL_TEXT, interval=0.01)
             time.sleep(0.3)
             text = editor[0].value()
@@ -308,15 +318,27 @@ class Probe:
             self.timing("schowek: HTML Format dostępny", clipboard.html() is not None)
             self.shot("05-tekst", scr)
 
-        # dxcam (Desktop Duplication) - optional.
-        try:
-            import dxcam  # noqa: PLC0415
-            camera = dxcam.create()
-            frame = camera.grab()
-            self.timing("dxcam: klatka", None if frame is None else list(frame.shape))
-            del camera
-        except Exception as error:  # noqa: BLE001
-            self.timing("dxcam: klatka", f"niedostępny: {error}")
+    def where_input_goes(self, ui, label: str) -> None:
+        foreground = events.user32.GetForegroundWindow()
+        focused = ui.focused()
+        info = {"okno na wierzchu": events.window_title(foreground) if foreground else None,
+                "fokus": None if focused is None else focused.describe()}
+        self.report.setdefault("input", {})[label] = info
+        print(f"      wejście {label}: {info}", flush=True)
+
+    def close_dialog(self, ui, scr, hook, hwnd, title) -> None:
+        """Close a window with the mouse: the close button of its title bar."""
+        window = ui.from_handle(hwnd)
+        buttons = [b for b in window.find_all(kinds=("Button",)) if b.automation_id == "Close"
+                   or b.name in ("Zamknij", "Close")]
+        if buttons:
+            t0 = inp.click(*buttons[0].center)
+            closed = hook.wait_closed(title, t0, 3)
+            self.check(f"okno „{title}” zamknięte przyciskiem na pasku tytułu", closed is not None,
+                       f"przyciski: {buttons}")
+        else:
+            self.check(f"przycisk zamknięcia okna „{title}”", False,
+                       f"{[b.describe() for b in window.find_all(kinds=('Button',))]}")
 
     def _find_anywhere(self, ui, name, kinds):
         for window in ui.top_windows(self.proc.pid):

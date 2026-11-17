@@ -11,7 +11,7 @@ import json
 import sys
 import time
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
                                QPlainTextEdit, QPushButton, QTableWidget, QTableWidgetItem,
@@ -37,6 +37,16 @@ def busy(seconds: float) -> None:
     end = time.perf_counter() + seconds
     while time.perf_counter() < end:
         pass
+
+
+class KeyLog(QObject):
+    """Notes every key press the program receives, with the widget that has the focus."""
+
+    def eventFilter(self, watched, event):
+        if event.type() == QEvent.KeyPress and watched is QApplication.focusWidget():
+            note("key", key=event.key(), text=event.text(), modifiers=int(event.modifiers().value),
+                 widget=type(watched).__name__, window=watched.window().windowTitle())
+        return False
 
 
 class CharDialog(QDialog):
@@ -85,6 +95,10 @@ class CharDialog(QDialog):
         note("dialog_show_event", title=self.windowTitle())
         self._painted = False
 
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        note("dialog_hide_event", title=self.windowTitle())
+
     def paintEvent(self, event):
         super().paintEvent(event)
         if not self._painted:
@@ -124,6 +138,7 @@ class Main(QMainWindow):
         note("menu_action")
         if self.chars is None:
             self.chars = CharDialog(self)
+            note("dialog_constructed")
         self.chars.show()
         self.chars.raise_()
         self.chars.activateWindow()
@@ -140,6 +155,8 @@ class Main(QMainWindow):
 
 def main() -> int:
     app = QApplication(sys.argv)
+    keys = KeyLog()
+    app.installEventFilter(keys)
     window = Main()
     window.show()
     QTimer.singleShot(0, lambda: note("ready"))

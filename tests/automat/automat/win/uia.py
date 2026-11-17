@@ -59,7 +59,10 @@ _TYPE_IDS = {v: k for k, v in CONTROL_TYPES.items()}
 
 # The roles a scenario may name, and the UI Automation kinds each one covers.
 ROLES = {
-    "button": ("Button", "SplitButton"),
+    # A checkable button is a check box for UI Automation, and an exclusive one (one of a
+    # group) a radio button (qtbase 6.9 simplewidgets.cpp, QAccessibleButton::role); for a
+    # person all of them are buttons.
+    "button": ("Button", "SplitButton", "CheckBox", "RadioButton"),
     "check_box": ("CheckBox",),
     "radio": ("RadioButton",),
     "combo_box": ("ComboBox",),
