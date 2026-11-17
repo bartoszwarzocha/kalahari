@@ -34,7 +34,9 @@ jobs:
   build:
     name: Linux Build & Test
     runs-on: ubuntu-24.04
-    timeout-minutes: 45  # System packages, no vcpkg: the build takes 19 to 28 minutes on the runner
+    # System packages, no vcpkg. The build took 21 minutes on the runner for main at 0.4.0-alpha
+    # and 37 minutes after the nine features merged in November 2026; the whole job took 40
+    timeout-minutes: 60
 
     strategy:
       matrix:
