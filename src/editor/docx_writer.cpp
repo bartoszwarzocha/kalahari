@@ -49,6 +49,27 @@ using namespace exporting;
 
 constexpr double POINTS_PER_MILLIMETRE = 72.0 / 25.4;
 
+/// The room between an image the text flows around and the text: 0.3 cm, as the editor
+/// leaves it (points)
+constexpr double FLOAT_GAP_POINTS = 0.3 * 72.0 / 2.54;
+
+/// The order of the images anchored to their paragraphs, one above another (Word's numbers
+/// start here)
+constexpr qint64 ANCHOR_HEIGHT_BASE = 251658240;
+
+/// Where an image anchored to its paragraph goes across the column: on its side beside the
+/// text, as its paragraph is aligned above and below the text
+QString anchorSide(ImageWrap wrap, Qt::Alignment alignment) {
+    if (wrap == ImageWrap::SquareRight ||
+        (wrap == ImageWrap::TopBottom && (alignment & Qt::AlignRight) != 0)) {
+        return QStringLiteral("right");
+    }
+    if (wrap == ImageWrap::TopBottom && (alignment & Qt::AlignHCenter) != 0) {
+        return QStringLiteral("center");
+    }
+    return QStringLiteral("left");
+}
+
 /// Twentieths of a point: the lengths of WordprocessingML
 int twips(double points) {
     return static_cast<int>(std::lround(points * 20.0));
@@ -481,7 +502,12 @@ private:
     QString paragraphContent(const ExportText& text, const QTextBlock& block, double lineWidth,
                              Part part);
     QString commentEvents(const ExportText& text, int upTo, Part part);
-    QString drawing(const ImageProperties& image, double lineWidth, Part part);
+    /// @param floating Where the text flows around the image (image.wrap, an image alone in
+    ///        its paragraph outside a table): anchored to its paragraph; else in its line
+    /// @param alignment The paragraph's own alignment: where an image above and below the
+    ///        text goes across the column
+    QString drawing(const ImageProperties& image, double lineWidth, Part part,
+                    bool floating = false, Qt::Alignment alignment = Qt::AlignHCenter);
     QString noteXml(const Footnote& note, int id, bool endnote);
     QString hyperlinkStart(const QString& address, Part part);
     QString listNumbering(size_t item, const ListItem& listItem, int number);
@@ -918,7 +944,8 @@ QString DocxWriter::hyperlinkStart(const QString& address, Part part) {
     return QStringLiteral("<w:hyperlink") + attribute("r:id", id) + QStringLiteral(" w:history=\"1\">");
 }
 
-QString DocxWriter::drawing(const ImageProperties& image, double lineWidth, Part part) {
+QString DocxWriter::drawing(const ImageProperties& image, double lineWidth, Part part,
+                            bool floating, Qt::Alignment alignment) {
     if (m_book.imagesFolder.isEmpty()) {
         ++m_missingImages;
         return QString();
@@ -964,10 +991,39 @@ QString DocxWriter::drawing(const ImageProperties& image, double lineWidth, Part
     } else {
         docPr += QStringLiteral("/>");
     }
-    return QStringLiteral("<w:r><w:drawing><wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\">"
-                          "<wp:extent cx=\"%1\" cy=\"%2\"/><wp:effectExtent l=\"0\" t=\"0\" r=\"0\" b=\"0\"/>")
-               .arg(cx, cy) +
-           docPr +
+    // In its line; or anchored to its paragraph, the text flowing around it: beside it on the
+    // other side of the column, or above and below it
+    const QString extent =
+        QStringLiteral("<wp:extent cx=\"%1\" cy=\"%2\"/>"
+                       "<wp:effectExtent l=\"0\" t=\"0\" r=\"0\" b=\"0\"/>")
+            .arg(cx, cy);
+    QString start = QStringLiteral("<w:r><w:drawing>"
+                                   "<wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\">") +
+                    extent;
+    QString end = QStringLiteral("</wp:inline></w:drawing></w:r>");
+    if (floating && image.wrap != ImageWrap::Inline) {
+        const QString wrap =
+            image.wrap == ImageWrap::TopBottom
+                ? QStringLiteral("<wp:wrapTopAndBottom/>")
+                : QStringLiteral("<wp:wrapSquare wrapText=\"%1\"/>")
+                      .arg(image.wrap == ImageWrap::SquareLeft ? QStringLiteral("right")
+                                                               : QStringLiteral("left"));
+        const QString side = anchorSide(image.wrap, alignment);
+        const QString gap = number(emu(FLOAT_GAP_POINTS));
+        start = QStringLiteral("<w:r><w:drawing><wp:anchor distT=\"0\" distB=\"%1\""
+                               " distL=\"%1\" distR=\"%1\" simplePos=\"0\" relativeHeight=\"%2\""
+                               " behindDoc=\"0\" locked=\"0\" layoutInCell=\"1\""
+                               " allowOverlap=\"0\">"
+                               "<wp:simplePos x=\"0\" y=\"0\"/>"
+                               "<wp:positionH relativeFrom=\"column\">"
+                               "<wp:align>%3</wp:align></wp:positionH>"
+                               "<wp:positionV relativeFrom=\"paragraph\">"
+                               "<wp:posOffset>0</wp:posOffset></wp:positionV>")
+                    .arg(gap, number(ANCHOR_HEIGHT_BASE + id), side) +
+                extent + wrap;
+        end = QStringLiteral("</wp:anchor></w:drawing></w:r>");
+    }
+    return start + docPr +
            QStringLiteral("<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect=\"1\"/></wp:cNvGraphicFramePr>"
                           "<a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">"
                           "<pic:pic><pic:nvPicPr><pic:cNvPr id=\"%1\"")
@@ -976,8 +1032,8 @@ QString DocxWriter::drawing(const ImageProperties& image, double lineWidth, Part
            QStringLiteral("/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip") + attribute("r:embed", relationship) +
            QStringLiteral("/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x=\"0\" y=\"0\"/>"
                           "<a:ext cx=\"%1\" cy=\"%2\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>"
-                          "</pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>")
-               .arg(cx, cy);
+                          "</pic:spPr></pic:pic></a:graphicData></a:graphic>") +
+           end;
 }
 
 QString DocxWriter::noteXml(const Footnote& note, int id, bool endnote) {
@@ -1069,6 +1125,8 @@ QString DocxWriter::paragraphContent(const ExportText& text, const QTextBlock& b
             openLink.clear();
         }
     };
+    // An image alone in its paragraph may have the text flowing around it
+    const bool floating = floatingImage(block).has_value();
     for (const Piece& piece : piecesOf(block, text)) {
         const QString events = commentEvents(text, piece.position, part);
         if (!events.isEmpty()) {
@@ -1089,7 +1147,8 @@ QString DocxWriter::paragraphContent(const ExportText& text, const QTextBlock& b
                 content += textRun(piece.text, runProperties(piece.format, style));
                 break;
             case Piece::Kind::Image:
-                content += drawing(piece.image, lineWidth, part);
+                content += drawing(piece.image, lineWidth, part, floating,
+                                   ownAlignment(block.blockFormat()));
                 break;
             case Piece::Kind::Field: {
                 QTextCharFormat format = piece.format;

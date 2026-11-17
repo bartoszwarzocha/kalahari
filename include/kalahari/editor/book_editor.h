@@ -1184,6 +1184,14 @@ public:
     /// @brief Image > Filter: the filter of the image at a position, as one undo step
     bool setImageFilter(int position, ImageFilter filter);
 
+    /// @brief Whether the text can flow around the image at a position: it is alone in its
+    ///        paragraph, outside a table (holdsImageAlone())
+    bool canWrapImage(int position) const;
+
+    /// @brief Image > Wrap Text: how the text flows around the image at a position, as one
+    ///        undo step (canWrapImage(); ImageWrap::Inline any image)
+    bool setImageWrap(int position, ImageWrap wrap);
+
     /// @brief Image > Filter > Same Filter for All Images...: every image of the text in a
     ///        filter (with Black and White its threshold), as one undo step
     /// @return How many images changed; 0 also in a read-only text
@@ -1251,6 +1259,8 @@ public:
     ///        of its own, never into a paragraph's text
     struct NewImageOptions {
         Qt::Alignment alignment = Qt::AlignHCenter;  ///< Of its paragraph
+        ImageWrap wrap = ImageWrap::Inline;  ///< How the text flows around it (unless it has
+                                             ///< a wrap of its own)
         int widthPercent = 0;  ///< Of the width of its lines; 0: its file's own (at most theirs)
         QString captionLabel;  ///< A numbered caption of this label under it; empty: none
         /// The copy of a file with more dots per inch at the image's width in the text is made
@@ -1781,12 +1791,13 @@ public:
         QList<QAction*> rotate;  ///< The submenu Rotate; a null: a line
         QList<QAction*> filter;  ///< The submenu Filter; a null: a line
         QList<QAction*> bottom;  ///< Crop... Save as Image...; a null: a line
+        QList<QAction*> wrap;    ///< The submenu Wrap Text (after top); a null: a line
     };
 
     /// @brief The commands of the Image menu the context menu of an image shows above its
-    ///        editing items, Rotate and Filter as its own submenus, enabled as in the Image
-    ///        menu (the click selects the image they work on); without them the menu has the
-    ///        editor's own items of an image
+    ///        editing items, Wrap Text, Rotate and Filter as its own submenus, enabled as in
+    ///        the Image menu (the click selects the image they work on); without them the menu
+    ///        has the editor's own items of an image
     void setContextMenuImageActions(const ContextMenuImageActions& actions);
 
     /// @brief Show the text's context menu under the cursor, as the menu key and Shift+F10

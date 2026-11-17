@@ -12,6 +12,7 @@
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_tables.h>
+#include "layout_flow_internal.h"
 #include "layout_notes_internal.h"
 #include <QElapsedTimer>
 #include <QFileInfo>
@@ -39,9 +40,6 @@ namespace kalahari::editor {
 
 namespace {
 
-/// Line width used when the document has no text width (no wrapping)
-constexpr qreal UNWRAPPED_LINE_WIDTH = 10000.0;
-
 /// Extent Qt itself uses for an "everything" update rect
 constexpr qreal UNBOUNDED_EXTENT = 1000000000.0;
 
@@ -63,34 +61,6 @@ constexpr qint64 BACKGROUND_STEP_MS = 4;
 /// Share of the line width that wrapped text fills on average (estimates)
 constexpr qreal AVERAGE_LINE_FILL = 0.95;
 
-/// Page flow offset of a block whose lines follow its own top (not placed on a page)
-constexpr qreal FLOW_UNPLACED = -1.0;
-
-/// Page flow: the lines of a block (or a row of a table) were placed on a page with notes,
-/// which may take another part of it the next time: they are placed again
-constexpr qreal FLOW_PLACE_AGAIN = -2.0;
-
-/// Tolerance of page flow comparisons (its lengths are whole pixels)
-constexpr qreal FLOW_EPSILON = 0.01;
-
-/// Page flow flags of a block: kept on the page of the next block; a page break; starts on a
-/// new page
-constexpr char FLOW_KEEP_WITH_NEXT = 1;
-constexpr char FLOW_PAGE_BREAK = 2;
-constexpr char FLOW_PAGE_BREAK_BEFORE = 4;
-
-/// Page flow flags of a block of a table, and of the first block of a row of a table (the
-/// row is placed as a whole)
-constexpr char FLOW_TABLE = 8;
-constexpr char FLOW_ROW_START = 16;
-
-/// Page flow flag of the first block of a row of a table that may be split between pages
-constexpr char FLOW_ROW_SPLIT = 32;
-
-/// Page flow flag of a block with notes: placed again whenever the blocks are (the notes
-/// take the bottom of the pages)
-constexpr char FLOW_NOTES = 64;
-
 /// The narrowest a table gets: so many paddings of its cells for each column (pixels)
 constexpr qreal MIN_COLUMN_PADDINGS = 3.0;
 
@@ -99,11 +69,6 @@ constexpr qreal CELL_PADDING_LINES = 0.25;
 
 /// The least space between the edges of a cell and its text (pixels)
 constexpr qreal MIN_CELL_PADDING = 2.0;
-
-/// Rounds of moving lines of a paragraph to the next page to keep its first or last lines
-/// together (a three-line paragraph takes two: its last two lines, then all three; a long
-/// one at most three: its last two lines, all of it, its last two lines again)
-constexpr int KEEP_LINES_ROUNDS = 4;
 
 constexpr qreal POINTS_PER_INCH = 72.0;
 
@@ -964,6 +929,7 @@ void KalahariTextDocumentLayout::storeFlowEntries(int number, const QTextBlock& 
     if (hasNotes(block)) {
         entry.flags |= FLOW_NOTES;
     }
+    addFloat(entry, block);
 }
 
 // =============================================================================
@@ -1052,8 +1018,9 @@ int KalahariTextDocumentLayout::layOutPending(int first, int last, qint64 budget
     }
 
     // With page flow, the new lines are placed on the pages with the positions; whether
-    // that moves the blocks below is known only then
-    heightChanged |= m_pageFlow.enabled;
+    // that moves the blocks below is known only then. The lines of a paragraph beside an
+    // image the text flows around are placed beside it with the positions too.
+    heightChanged |= m_pageFlow.enabled || m_hasFloats;
     if (heightChanged) {
         m_positionsDirty = true;
     }
@@ -1116,6 +1083,7 @@ void KalahariTextDocumentLayout::invalidateAll() {
         m_blockHeights.resize(count);
     }
     m_blockFlowEntries.assign(count, FlowEntry());
+    m_hasFloats = false;  // until a block has an image the text flows around (addFloat())
     m_blockSpaceBelow.assign(count, 0.0);
     m_blockNotesBelow.assign(count, 0.0);
     m_noteBoxes.clear();
@@ -1506,6 +1474,7 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         if (hasNotes(block)) {
             flowEntries.back().flags |= FLOW_NOTES;
         }
+        addFloat(flowEntries.back(), block);
         block = block.next();
     }
     const std::vector<char> pending(heights.size(), layOutNow ? 0 : 1);
@@ -1552,8 +1521,9 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         setTableHeader(rows.first, rows.last, rows.header);
     }
     // With page flow, the range's new lines are placed on the pages with the positions;
-    // whether that moves the blocks below is known only then
-    geometryChanged |= m_pageFlow.enabled;
+    // whether that moves the blocks below is known only then. The lines beside an image the
+    // text flows around are placed with the positions too.
+    geometryChanged |= m_pageFlow.enabled || m_hasFloats;
     if (geometryChanged) {
         m_positionsDirty = true;
     }
@@ -1589,12 +1559,12 @@ bool KalahariTextDocumentLayout::layOutBlock(int number, const QTextBlock& block
     m_blockHeights[index] = height;
     m_blockExtents[index] = extent;
     m_blockFlowOffsets[index] = FLOW_UNPLACED;  // the new lines follow the block's top
-    if (m_pageFlow.enabled) {
+    storeFlowEntries(number, block, lead);
+    if (m_pageFlow.enabled || m_hasFloats) {
         // and go on the pages again, also when the block is as high as before (a line moved
-        // to the next page would stay at the end of its own)
+        // to the next page would stay at the end of its own), or beside an image again
         m_positionsDirty = true;
     }
-    storeFlowEntries(number, block, lead);
     if (m_blockPending[index] != 0) {
         m_blockPending[index] = 0;
         --m_pendingCount;
@@ -1706,27 +1676,12 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* ex
     // paragraph again. Justified lines come out the same either way (tested).
     layout->setCacheEnabled(keepGlyphs);
 
-    // The lines lie between the margins of the style, in a cell between those of its text
-    const qreal documentWidth = document()->textWidth();
-    const qreal width = cell != nullptr ? cell->width
-                                        : (documentWidth > 0 ? documentWidth : UNWRAPPED_LINE_WIDTH);
-    const qreal lineWidth = std::max<qreal>(1.0, width - metrics.leftMargin - metrics.rightMargin);
+    // The lines lie between the margins of the style, in a cell between those of its text,
+    // the first one indented (lineFrame()). Right-to-left lines keep x at the margin: the
+    // shorter line already leaves the indent on their leading (right) side.
+    const LineFrame frame = lineFrame(block, metrics, cell);
+    const qreal lineWidth = frame.right - frame.left;
     const QPointF cellOffset = cell != nullptr ? QPointF(cell->left, cell->top) : QPointF();
-
-    // The first-line indent belongs to paragraphs whose lines start at their leading
-    // edge (left-aligned and justified ones), never more than half of the line (a negative
-    // one, a hanging indent, never out of the left margin). Right-to-left lines keep x at
-    // the margin: the shorter line already leaves the indent on their leading (right) side.
-    // A list item's first line starts after its number. A paragraph of a table has no
-    // first-line indent: the cell's text starts at its edge.
-    const bool leadingAligned = !(alignment & (Qt::AlignRight | Qt::AlignHCenter));
-    const qreal ownIndent = metrics.listItem ? markerOverflow(block, metrics)
-                            : cell != nullptr ? 0.0
-                                              : metrics.firstLineIndent;
-    const qreal firstIndent =
-        leadingAligned ? std::clamp(ownIndent, -metrics.leftMargin, lineWidth / 2.0) : 0.0;
-    const bool rightToLeft = block.textDirection() == Qt::RightToLeft;
-    const bool empty = block.length() <= 1;
 
     // Lines are stacked from the space above the paragraph, each with its extra leading
     // split above and below it. Horizontal alignment is Qt's (QTextOption) - the only manual
@@ -1737,12 +1692,13 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* ex
     qreal textLength = 0;
     qreal firstBox = 0;
     for (QTextLine line = layout->createLine(); line.isValid(); line = layout->createLine()) {
-        const qreal lineIndent = line.lineNumber() == 0 ? firstIndent : 0.0;
+        const qreal lineIndent = line.lineNumber() == 0 ? frame.firstIndent : 0.0;
         line.setLineWidth(lineWidth - lineIndent);
         const qreal excess = imageExcess(block, line, metrics);
-        line.setPosition(cellOffset + QPointF(metrics.leftMargin + (rightToLeft ? 0.0 : lineIndent),
-                                              y + lineTopInBox(line, metrics, empty, excess)));
-        const qreal box = lineBoxHeight(line, metrics, empty, excess);
+        line.setPosition(cellOffset +
+                         QPointF(frame.left + (frame.rightToLeft ? 0.0 : lineIndent),
+                                 y + lineTopInBox(line, metrics, frame.empty, excess)));
+        const qreal box = lineBoxHeight(line, metrics, frame.empty, excess);
         if (line.lineNumber() == 0) {
             firstBox = box;
         }
@@ -1828,17 +1784,12 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
 
     const size_t count = m_blockHeights.size();
     m_blockYPositions.resize(count);
-    qreal y = 0;
+    resetFloats();
     if (!m_pageFlow.enabled) {
-        for (size_t i = 0; i < count; ++i) {
-            m_blockYPositions[i] = y;
-            y += m_blockHeights[i] + m_blockSpaceBelow[i];
-        }
-        m_cachedDocumentHeight = y;
-        m_contentBottom = y;
-        m_positionsDirty = false;
+        placeContinuously();
         return;
     }
+    qreal y = 0;
 
     // Page flow: blocks are placed in order, each where the one above ends. A laid out
     // block whose place on its page is the same as when its lines were placed keeps
@@ -1859,9 +1810,16 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
     m_endnotesTop = -1.0;
     const bool withNotes = inStep && (!footnoteNumbers().notes().empty() ||
                                       !m_footnoteContext.otherEndnotes.empty());
+    const bool withFloats = inStep && m_hasFloats;
     qreal lastSpacing = 0;
     QTextBlock block = document()->begin();
     for (size_t i = 0; i < count; ++i, block = block.next()) {
+        // An image the text flows around, with its caption: in a box of its own, taking no
+        // room in the flow
+        if (withFloats && placeFloatsAt(i, block, y)) {
+            lastSpacing = 0;
+            continue;
+        }
         const FlowEntry& entry = m_blockFlowEntries[i];
         if ((entry.flags & FLOW_TABLE) != 0) {
             // A row of a table goes on the next page as a whole when it does not fit in the
@@ -1918,26 +1876,32 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
         const bool withPageNotes =
             withNotes && ((entry.flags & FLOW_NOTES) != 0 ||
                           std::floor((y + FLOW_EPSILON) / m_pageFlow.pitch) <= m_notesLastPage);
+        // A block on a page whose top an image above and below the text takes (reserveTop())
+        // is placed again too: the image may take another part of it now
         qreal height = 0;
         if (m_blockPending[i] != 0) {
             height = (entry.flags & FLOW_PAGE_BREAK) != 0 ? nextPageTop(y) - y
                                                           : flowEstimate(m_blockHeights[i], y, entry);
-        } else if (!withPageNotes && std::abs(m_blockFlowOffsets[i] - offset) < FLOW_EPSILON) {
+        } else if (withFloats && wrapsBeside(i)) {
+            height = wrapBlock(i, block, y);
+        } else if (!withPageNotes && std::abs(m_blockFlowOffsets[i] - offset) < FLOW_EPSILON &&
+                   !touchesTops(y, m_blockFlowHeights[i])) {
             height = m_blockFlowHeights[i];
         } else if (!inStep || !block.isValid() || !block.layout()) {
             height = m_blockFlowOffsets[i] == FLOW_UNPLACED ? m_blockHeights[i]
                                                              : m_blockFlowHeights[i];
         } else {
             height = paginateBlock(block, y, blockMetrics(block));
-            m_blockFlowOffsets[i] = withPageNotes ? FLOW_PLACE_AGAIN : offset;
+            m_blockFlowOffsets[i] =
+                withPageNotes || touchesTops(y, height) ? FLOW_PLACE_AGAIN : offset;
             m_blockFlowHeights[i] = height;
         }
         y += height;
         // A page break ending the text leaves the next page in the document, empty
         lastSpacing = (entry.flags & FLOW_PAGE_BREAK) != 0 ? -2.0 * FLOW_EPSILON : entry.spaceAfter;
     }
-    m_cachedDocumentHeight = y;
-    m_contentBottom = y - lastSpacing;
+    m_cachedDocumentHeight = floatsBottom(y);
+    m_contentBottom = floatsBottom(y - lastSpacing);
     if (withNotes) {
         // The endnotes after the last line; the pages end with the last of the notes
         m_contentBottom = placeEndnotes(m_contentBottom);
@@ -1948,6 +1912,29 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
     m_positionsDirty = !inStep;
 }
 
+void KalahariTextDocumentLayout::placeContinuously() const {
+    // Each block where the one above ends, with the room under it; the lines of a paragraph
+    // beside an image the text flows around in the room the image leaves. Queried in the
+    // middle of a document change, the blocks keep their lines.
+    const size_t count = m_blockHeights.size();
+    const bool withFloats =
+        m_hasFloats && document()->blockCount() == static_cast<int>(count);
+    qreal y = 0;
+    QTextBlock block = document()->begin();
+    for (size_t i = 0; i < count; ++i, block = block.next()) {
+        if (withFloats && placeFloatsAt(i, block, y)) {
+            continue;
+        }
+        m_blockYPositions[i] = y;
+        const qreal height = withFloats && wrapsBeside(i) ? wrapBlock(i, block, y)
+                                                          : m_blockHeights[i];
+        y += height + m_blockSpaceBelow[i];
+    }
+    m_cachedDocumentHeight = floatsBottom(y);
+    m_contentBottom = m_cachedDocumentHeight;
+    m_positionsDirty = false;
+}
+
 qreal KalahariTextDocumentLayout::flowLineTop(qreal top, qreal height, qreal notes) const {
     const qreal pitch = m_pageFlow.pitch;
     qreal placed = top;
@@ -1956,6 +1943,11 @@ qreal KalahariTextDocumentLayout::flowLineTop(qreal top, qreal height, qreal not
         const qreal areaHeight = flowAreaHeight(page);
         const bool reduced = areaHeight < m_pageFlow.textHeight - FLOW_EPSILON;  // by notes
         const qreal offset = placed - page * pitch;
+        // Below an image above and below the text at the top of the area (reserveTop())
+        if (const qreal areaTop = areaTopOf(page); offset < areaTop - FLOW_EPSILON) {
+            placed = page * pitch + areaTop;
+            continue;
+        }
         // The notes of the line need the line above them on a page without notes yet
         const qreal needed = notes > 0.0 ? notes + (reduced ? 0.0 : noteSeparatorRoom()) : 0.0;
         const bool betweenAreas = offset >= areaHeight - FLOW_EPSILON;
@@ -2174,10 +2166,11 @@ qreal KalahariTextDocumentLayout::blockHeight(int blockNumber) const {
     if (blockNumber < 0 || index >= m_blockHeights.size()) {
         return 0;
     }
-    if (!m_pageFlow.enabled) {
+    if (!m_pageFlow.enabled && !m_hasFloats) {
         return m_blockHeights[index] + m_blockSpaceBelow[index];
     }
-    // Page flow: from the block's top to the next block's (page breaks included)
+    // Page flow, or the text flowing around images: from the block's top to the next block's
+    // (page breaks included)
     updateBlockPositions();
     const qreal bottom =
         index + 1 < m_blockYPositions.size() ? m_blockYPositions[index + 1] : m_cachedDocumentHeight;
@@ -2236,6 +2229,13 @@ qreal KalahariTextDocumentLayout::rowHeight(size_t first) const {
 }
 
 int KalahariTextDocumentLayout::blockNumberAt(const QPointF& point) const {
+    // An image the text flows around (or its caption) under the point: its own box
+    if (m_hasFloats) {
+        updateBlockPositions();
+        if (const std::optional<int> image = floatBlockAt(point)) {
+            return *image;
+        }
+    }
     const int number = laidOutBlockAtY(point.y());
     const QTextBlock block = document()->findBlockByNumber(number);
     const QTextTable* table = tableOf(block);
@@ -2822,7 +2822,12 @@ void KalahariTextDocumentLayout::draw(QPainter* painter, const PaintContext& con
         painter->setClipRect(clip);
     }
 
+    // From the first block shown in the clip (an image the text flows around reaches below
+    // its block's top)
     int number = clip.isEmpty() ? 0 : firstBlockOfRow(laidOutBlockAtY(clip.top()));
+    if (!clip.isEmpty() && m_hasFloats) {
+        number = std::min(number, firstBlockShownAtY(clip.top()));
+    }
     for (QTextBlock block = document()->findBlockByNumber(number); block.isValid();
          block = block.next(), ++number) {
         ensureLaidOut(number, number);

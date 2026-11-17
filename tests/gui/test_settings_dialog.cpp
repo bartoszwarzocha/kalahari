@@ -982,10 +982,20 @@ TEST_CASE("Settings dialog: Editor > Images sets new images, their copies and th
     REQUIRE(stack != nullptr);
     CHECK(sameKeys(*stack->currentWidget()).isEmpty());
 
-    // What the program cannot do yet is greyed
+    // How the text flows around a new image: the four ways of Image > Wrap Text
     auto* layout = dialog.findChild<QComboBox*>(QStringLiteral("imageLayout"));
     REQUIRE(layout != nullptr);
-    CHECK_FALSE(layout->isEnabled());
+    CHECK(layout->isEnabled());
+    CHECK(layout->count() == 4);
+    layout->setCurrentIndex(layout->findData(QStringLiteral("right")));
+    applyButton(dialog)->click();
+    CHECK(settingsNewImageOptions().wrap == kalahari::editor::ImageWrap::SquareRight);
+    layout->setCurrentIndex(layout->findData(QStringLiteral("topBottom")));
+    applyButton(dialog)->click();
+    CHECK(settingsNewImageOptions().wrap == kalahari::editor::ImageWrap::TopBottom);
+    layout->setCurrentIndex(layout->findData(QStringLiteral("inline")));
+    applyButton(dialog)->click();
+    CHECK(settingsNewImageOptions().wrap == kalahari::editor::ImageWrap::Inline);
 
     // A smaller copy above the resolution chosen: the resolution only with it
     auto* downscale = dialog.findChild<QCheckBox*>(QStringLiteral("imageDownscale"));

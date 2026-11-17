@@ -220,6 +220,10 @@ void registerAllIcons() {
     iconRegistry.registerIcon("image.properties", "resources/icons/twotone/image.svg", "Image Properties");
     iconRegistry.registerIcon("image.addCaption", "resources/icons/twotone/subtitles.svg", "Insert Caption");
     iconRegistry.registerIcon("image.altText", "resources/icons/twotone/notes.svg", "Alternative Text");
+    iconRegistry.registerIcon("image.wrapInline", "resources/icons/twotone/view_agenda.svg", "In the Text");
+    iconRegistry.registerIcon("image.wrapSquareLeft", "resources/icons/twotone/format_align_right.svg", "Image on the Left");
+    iconRegistry.registerIcon("image.wrapSquareRight", "resources/icons/twotone/format_align_left.svg", "Image on the Right");
+    iconRegistry.registerIcon("image.wrapTopBottom", "resources/icons/twotone/horizontal_split.svg", "Text Above and Below");
     iconRegistry.registerIcon("image.rotateRight", "resources/icons/twotone/rotate_right.svg", "Rotate Right 90°");
     iconRegistry.registerIcon("image.rotateLeft", "resources/icons/twotone/rotate_left.svg", "Rotate Left 90°");
     iconRegistry.registerIcon("image.flipHorizontal", "resources/icons/twotone/swap_horiz.svg", "Flip Horizontally");
@@ -357,6 +361,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.tableDelete", "resources/icons/twotone/delete.svg", "Delete");
     iconRegistry.registerIcon("menu.tableSelect", "resources/icons/twotone/select_all.svg", "Select");
     iconRegistry.registerIcon("menu.tableConvert", "resources/icons/twotone/swap_horiz.svg", "Convert");
+    iconRegistry.registerIcon("menu.imageWrap", "resources/icons/twotone/wrap_text.svg", "Wrap Text");
     iconRegistry.registerIcon("menu.imageRotate", "resources/icons/twotone/rotate_right.svg", "Rotate");
     iconRegistry.registerIcon("menu.imageFilter", "resources/icons/twotone/palette.svg", "Filter");
     iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");

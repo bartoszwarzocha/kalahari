@@ -164,7 +164,9 @@ EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, 
          actions({"image.filterNone", "image.filterGrayscale", "image.filterSepia",
                   "image.filterBlackWhite", "image.filterWash", nullptr, "image.filterAll",
                   "image.colorOptions"}),
-         actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"})});
+         actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"}),
+         actions({"image.wrapInline", nullptr, "image.wrapSquareLeft", "image.wrapSquareRight",
+                  "image.wrapTopBottom"})});
 
     // Autocorrect puts in the quotation marks of the text's language, asked when they are
     // typed: the book's language may change, and a chapter is told from a file outside the

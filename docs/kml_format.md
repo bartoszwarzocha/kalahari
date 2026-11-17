@@ -339,6 +339,7 @@ it: its first item gets the number it has in the chapter as `value`.
 | `border-color` | `#rrggbb` | The color of the line and the shadow; without it, the color of the text |
 | `border-padding` | A length up to `72pt` | The room between the line (or the shadow) and the picture |
 | `shadow` | `true` | A shadow to the right and down of the picture |
+| `wrap` | `left`, `right`, `top-bottom` | The text flows around the image: the image on the left or the right of the text column, the next paragraphs beside it; or the text above and below it. Without it, the image is a part of its line |
 
 - **An image is a part of its line**, as a large character: it stands on the baseline, the
   paragraph's alignment places it, and the text, the undo, the clipboard and drag and drop take
@@ -362,6 +363,15 @@ it: its first item gets the number it has in the chapter as `value`.
   `border-padding` only with a border or a shadow. Values beyond what an attribute takes are
   taken as the nearest one; a turn as the nearest quarter (`100` as `90`); a crop that would
   leave less than 5% of the picture in a direction is made smaller on both of its sides.
+- **The text around it.** `wrap` takes effect for an image alone in its paragraph (its caption
+  may be above or below it), outside a table; elsewhere the image stays a part of its line and
+  keeps the attribute. Beside the text, the image is as wide as it is (at most the column), with
+  its caption under or above it as wide; the lines of the paragraphs after it go beside it,
+  0.3 cm from it, while it reaches down, and below it where the room beside it is less than
+  2.5 cm. A table, a horizontal line and a break go below it. Two images on the same side go one
+  under the other. Above and below the text with page flow, an image that does not fit in the
+  rest of its page goes on to the top of the next page with its caption, and the text after it
+  fills the rest of the page; in the continuous views it stays where the text puts it.
 - **The file.** `src` names a file in the book's main folder, without `..`, a drive or a
   scheme; any other `src` (`/home/...`, `C:\...`, `https://...`) is never read and is shown as
   a missing file. A text outside a book names its images relative to its own folder. The
@@ -509,7 +519,7 @@ settings `export.*`; the page comes from Settings > Editor > Pages and Margins.
 | A page break | The next paragraph starts a page (`w:pageBreakBefore`) | – |
 | A list | Word's numbering (`numbering.xml`): the level formats and bullets, the indents, an item's own number (`w:startOverride`) | `1.` and `-`, the levels indented; an item of its own number starts another list (`<!-- -->`) |
 | A table | `w:tbl`: its width and its columns' widths, merged cells (`w:gridSpan`, `w:vMerge`), header rows repeated (`w:tblHeader`), borders, cell backgrounds, row heights | A pipe table; a merged cell's text in its first column |
-| An image | An inline picture: the file as it is when the editor shows it so, else drawn with its crop, turn, mirror, filter, border and shadow (PNG, or JPEG for a photo); its alternative text, or decorative | `![alt](path)`, the files copied to "<name> – images" next to the file, or linked in the book's folder |
+| An image | An inline picture: the file as it is when the editor shows it so, else drawn with its crop, turn, mirror, filter, border and shadow (PNG, or JPEG for a photo); its alternative text, or decorative. An image the text flows around is anchored to its paragraph (`wp:anchor`, square on its side or top and bottom) | `![alt](path)`, the files copied to "<name> – images" next to the file, or linked in the book's folder |
 | A caption's number, a cross-reference, the list of figures | The text the editor shows; a cross-reference and a row of the list link to the caption (a bookmark) | The text the editor shows |
 | A footnote, an endnote | Word's footnotes and endnotes, in the book's number formats, numbered anew in each text or through the book; endnotes after each text or at the end of the book | `[^label]`, the notes at the end of the file |
 | An annotation (option) | A Word comment with its author and date (a to-do done: resolved, `w15:done`); a to-do or a note starts with its kind | – |

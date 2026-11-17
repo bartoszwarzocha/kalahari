@@ -598,8 +598,8 @@ void checkTextMenus(bool shown, QStringList& problems) {
         CHECK(itemCount(imageMenu) == 8 + 5);
 
         // With the commands of the Image menu, as the editor panel gives them: Image
-        // Properties..., Insert Caption..., Alternative Text..., Rotate and Filter with their items,
-        // Crop, Original Size, Change Image..., Save as Image...
+        // Properties..., Insert Caption..., Alternative Text..., Wrap Text, Rotate and Filter
+        // with their items, Crop, Original Size, Change Image..., Save as Image...
         const auto actions = [&registry](std::initializer_list<const char*> ids) {
             QList<QAction*> list;
             for (const char* id : ids) {
@@ -616,11 +616,13 @@ void checkTextMenus(bool shown, QStringList& problems) {
              actions({"image.filterNone", "image.filterGrayscale", "image.filterSepia",
                       "image.filterBlackWhite", "image.filterWash", nullptr, "image.filterAll",
                       "image.colorOptions"}),
-             actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"})});
+             actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"}),
+             actions({"image.wrapInline", nullptr, "image.wrapSquareLeft",
+                      "image.wrapSquareRight", "image.wrapTopBottom"})});
         QList<test::MenuItem> commandsMenu =
             contextMenu(&pictured, &pictured, image->center().toPoint());
         collectProblems(commandsMenu, QStringLiteral("Image with commands"), {}, problems);
-        CHECK(itemCount(commandsMenu) == 8 + (3 + (1 + 5) + (1 + 7) + 4));
+        CHECK(itemCount(commandsMenu) == 8 + (3 + (1 + 4) + (1 + 5) + (1 + 7) + 4));
     }
 
     // A cell of a table: Insert, Delete and Select, and the commands of the Table menu the

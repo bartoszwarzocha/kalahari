@@ -365,6 +365,34 @@ TEST_CASE("Image Properties window: its pages, their keys and one size on all of
     checkFitsSmallScreen(dialog);
 }
 
+TEST_CASE("Image Properties window: how the text flows around the image",
+          "[gui][images][dialog]") {
+    const Pictures pictures;
+    ImagePropertiesData given = dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400}));
+    given.canWrap = true;
+    {
+        ImagePropertiesDialog dialog(given, QColor(Qt::black));
+        auto* wrap = fieldOf<QComboBox>(dialog, QStringLiteral("&Wrap text:"));
+        REQUIRE(wrap != nullptr);
+        CHECK(wrap->isEnabled());
+        CHECK(wrap->count() == 4);
+        CHECK(wrap->currentData().toInt() == static_cast<int>(ImageWrap::Inline));
+        wrap->setCurrentIndex(wrap->findData(static_cast<int>(ImageWrap::SquareLeft)));
+        CHECK(dialog.data().image.wrap == ImageWrap::SquareLeft);
+        wrap->setCurrentIndex(wrap->findData(static_cast<int>(ImageWrap::TopBottom)));
+        CHECK(dialog.data().image.wrap == ImageWrap::TopBottom);
+    }
+
+    // An image with text in its paragraph, or in a table: in its line, greyed out with why
+    given.canWrap = false;
+    ImagePropertiesDialog dialog(given, QColor(Qt::black));
+    auto* wrap = fieldOf<QComboBox>(dialog, QStringLiteral("&Wrap text:"));
+    REQUIRE(wrap != nullptr);
+    CHECK_FALSE(wrap->isEnabled());
+    CHECK_FALSE(wrap->toolTip().isEmpty());
+    CHECK(dialog.data().image.wrap == ImageWrap::Inline);
+}
+
 TEST_CASE("Image Properties window: a missing file", "[gui][images][dialog]") {
     ImagePropertiesData given;
     given.position = 4;

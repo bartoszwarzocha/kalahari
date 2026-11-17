@@ -365,6 +365,35 @@ TEST_CASE("DOCX: a package Word reads, with the book's structure", "[export][doc
     }
 }
 
+TEST_CASE("DOCX: an image the text flows around is anchored to its paragraph",
+          "[export][docx][images]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    writeRedSquare(folder.path());
+    BookExport book = sampleBook(folder.path());
+    book.items.resize(3);  // the contents, the part and the first chapter
+    book.items.back().kml = QStringLiteral(
+        "<kml><p><img src=\"images/red.png\" alt=\"Left\" wrap=\"left\"/></p>"
+        "<p>Beside the image.</p>"
+        "<p align=\"center\"><img src=\"images/red.png\" alt=\"Above\" wrap=\"top-bottom\"/></p>"
+        "<p>Text <img src=\"images/red.png\" alt=\"In its line\" wrap=\"right\"/> around.</p>"
+        "</kml>");
+    const QString path = folder.filePath(QStringLiteral("wrap.docx"));
+    REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+    keepSample(path);
+    const QHash<QString, QByteArray> entries = zipEntries(path);
+    const QByteArray xml = entries.value(QStringLiteral("word/document.xml"));
+    CHECK(wellFormed(xml));
+    const QString document = QString::fromUtf8(xml);
+    CHECK(count(document, QStringLiteral("<wp:anchor ")) == 2);
+    CHECK(count(document, QStringLiteral("<wp:wrapSquare wrapText=\"right\"/>")) == 1);
+    CHECK(count(document, QStringLiteral("<wp:wrapTopAndBottom/>")) == 1);
+    CHECK(document.contains(QStringLiteral("<wp:align>left</wp:align>")));
+    CHECK(document.contains(QStringLiteral("<wp:align>center</wp:align>")));
+    // An image with text in its paragraph stays in its line
+    CHECK(count(document, QStringLiteral("<wp:inline ")) == 1);
+}
+
 TEST_CASE("DOCX: the options of the export", "[export][docx]") {
     QTemporaryDir folder;
     REQUIRE(folder.isValid());

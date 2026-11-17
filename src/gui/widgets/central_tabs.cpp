@@ -11,7 +11,6 @@
 
 #include <QAbstractButton>
 #include <QAction>
-#include <QApplication>
 #include <QEvent>
 #include <QHBoxLayout>
 #include <QKeyEvent>
@@ -340,7 +339,9 @@ void CentralTabs::showTabList(QTabWidget& tabs, const QPoint& globalPos) {
 }
 
 bool CentralTabs::tabsHaveKeys() const {
-    const QWidget* keys = QApplication::focusWidget();
+    // The widget of its window with the keys: the same as the program's while the window is
+    // active (the keys come only then), and known also before
+    const QWidget* keys = window()->focusWidget();
     return keys != nullptr && (keys == tabBar() || tabBar()->isAncestorOf(keys));
 }
 

@@ -453,6 +453,7 @@ set(KALAHARI_SOURCES
     editor/search_forms.cpp              # The forms the search of all forms finds ("Odm")
     editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout without Qt leading gaps
     editor/kalahari_text_document_layout_notes.cpp  # The layout of the notes: numbers, under paragraphs, at the bottom of pages
+    editor/kalahari_text_document_layout_floats.cpp  # The images the text flows around
     editor/formatting_marks.cpp               # The formatting marks of a paragraph (¶ · ° → ↵ ¬), drawn by the layout
     editor/text_source_adapter.cpp            # OpenSpec #00043 Phase 12.1: Text source adapters
     editor/editor_render_pipeline.cpp         # OpenSpec #00043 Phase 12.1: Unified render pipeline
