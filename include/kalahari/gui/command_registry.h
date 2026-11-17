@@ -129,7 +129,8 @@ public:
     /// @note Use this overload to avoid unnecessary copies
     void registerCommand(Command&& command);
 
-    /// @brief Unregister command from registry
+    /// @brief Unregister command from registry, with its action (it leaves the menus and
+    ///        toolbars)
     /// @param commandId Command ID to unregister
     /// @note If command doesn't exist, this is a no-op (safe to call)
     void unregisterCommand(const std::string& commandId);

@@ -10,10 +10,13 @@
 /// **Architecture:**
 /// - IPlugin: Base interface all plugins must implement
 /// - IExporter: Export documents to various formats (DOCX, PDF, Markdown)
-/// - IPanelProvider: Add custom dockable UI panels (Qt6 QWidget-based)
-/// - ICommandProvider: Register custom commands for menus/toolbars (Qt6 Command Registry)
-/// - IAssistant: Provide graphical assistant personalities
+/// - IPanelProvider: Add panels of their own (a widget, or a page of rich text)
+/// - ICommandProvider: Add commands to the menus
+/// - IAssistant: Hear of the moments of the writer's work (a goal reached)
 /// - ExtensionPointRegistry: Central registry for plugin registration
+///
+/// The interfaces derive from IPlugin virtually, so one plugin can implement several of them
+/// (a plugin written in Python is one core::PythonPlugin implementing them all).
 ///
 /// Example usage:
 /// @code
@@ -44,12 +47,6 @@
 class QWidget;
 
 namespace kalahari {
-
-// Forward declaration for Command structure (avoid circular dependency)
-namespace gui {
-    struct Command;
-}
-
 namespace core {
 
 /// @brief Base interface for all plugins
@@ -115,7 +112,7 @@ struct ExportFormatInfo {
 /// The window of File > Export lists the formats of getFormats() after the program's own
 /// (DOCX and Markdown); a format with options of its own gets a tab of the window from
 /// createOptionsPage(), shown while the format is chosen.
-class IExporter : public IPlugin {
+class IExporter : public virtual IPlugin {
 public:
     /// @brief Virtual destructor
     ~IExporter() override = default;
@@ -148,109 +145,91 @@ public:
                                const std::string& filepath) = 0;
 };
 
-/// @brief UI panel provider interface (Qt6)
+/// @brief A panel of a plugin, as View > Panels lists it
+struct PluginPanelInfo {
+    std::string id;     ///< Its identifier, unique among the panels of the plugin (e.g. "lengths")
+    std::string title;  ///< Its name in View > Panels and on its tab, in the plugin's words
+    std::string icon;   ///< An icon of the program (e.g. "view.statistics") or the absolute
+                        ///< path of an SVG file of the plugin; empty: the icon of the plugins
+};
+
+/// @brief Panel provider interface
 ///
-/// Plugins implementing this interface can provide custom dockable panels
-/// for the main window. Used for adding custom UI panels (research, outline, etc.).
+/// Plugins implementing this interface add panels of their own to every book window: each
+/// panel of getPanels() gets a toggle in View > Panels and docks with the panels on the right,
+/// closed until the writer opens it.
 ///
-/// **Qt6 Integration:**
-/// - Returned QWidget* is wrapped in QDockWidget by MainWindow
-/// - Ownership transfers to MainWindow (parent manages lifetime)
-/// - Use Qt layouts (QVBoxLayout, QHBoxLayout) for panel content
-class IPanelProvider : public IPlugin {
+/// A panel is either a widget of the plugin (createPanel(), for plugins written in C++) or,
+/// when createPanel() gives none, a page the program shows in the colors of its theme: the
+/// rich text of panelContent() (Qt's subset of HTML), read again whenever the panel is shown
+/// or refreshed. A link of the page whose address is not a web address (http, https) goes to
+/// onPanelLink(), so a page can have buttons of its own.
+class IPanelProvider : public virtual IPlugin {
 public:
     /// @brief Virtual destructor
     ~IPanelProvider() override = default;
 
-    /// @brief Create a dockable panel widget
+    /// @brief The panels of the plugin, read once when it is loaded
+    virtual std::vector<PluginPanelInfo> getPanels() = 0;
+
+    /// @brief A widget of the plugin for the panel @p panelId
     ///
-    /// The returned widget will be integrated into MainWindow's QDockWidget system.
-    /// Implement this to create custom UI panels using Qt6 widgets.
-    ///
-    /// @param parentWindow Parent QWidget pointer (typically MainWindow)
-    /// @return QWidget* pointer to created panel widget
-    /// @note Ownership transfers to caller. MainWindow manages widget lifetime.
-    /// @note pybind11 automatically handles QWidget* for Python plugins.
-    virtual QWidget* createPanel(QWidget* parentWindow) = 0;
+    /// @param panelId The id of one of the panels of getPanels()
+    /// @param parent The parent of the widget; the window owns the widget
+    /// @return The widget; the default, nullptr: the program shows panelContent()
+    virtual QWidget* createPanel(const std::string& /*panelId*/, QWidget* /*parent*/) {
+        return nullptr;
+    }
+
+    /// @brief The page of the panel @p panelId, as rich text
+    /// @throws std::runtime_error when the plugin fails; the panel shows why
+    virtual std::string panelContent(const std::string& /*panelId*/) { return {}; }
+
+    /// @brief The writer clicked the link @p link of the page of the panel @p panelId
+    /// @throws std::runtime_error when the plugin fails
+    virtual void onPanelLink(const std::string& /*panelId*/, const std::string& /*link*/) {}
 };
 
-/// @brief Command provider interface (Qt6 Command Registry Integration)
+/// @brief A command of a plugin, as the menus and Settings > Keyboard Shortcuts show it
+struct PluginCommandInfo {
+    std::string id;        ///< Its identifier, unique among the commands of the plugin
+    std::string label;     ///< Its name in the menu, in the plugin's words; "&" marks the
+                           ///< access key, "&&" is an ampersand
+    std::string tooltip;   ///< What it does, for the tooltip and the status bar
+    std::string menu;      ///< Where it goes: a menu of the program by its technical path
+                           ///< ("TOOLS", "TOOLS/Statistics"); empty, or a menu the program
+                           ///< does not have: Tools > Plugins > the name of the plugin
+    std::string shortcut;  ///< Its keys ("Ctrl+Shift+L"); empty: none. Keys the program or
+                           ///< the system has, or another command, are not given to it
+    std::string icon;      ///< An icon of the program or the absolute path of an SVG file of
+                           ///< the plugin; empty: the icon of the plugins
+    bool needsBook = false;  ///< Greyed out while no book is open in the window
+};
+
+/// @brief Command provider interface
 ///
-/// Plugins implementing this interface can register custom commands that
-/// automatically appear in menus, toolbars, and Command Palette.
-///
-/// **Qt6 Command Registry:**
-/// - Commands are registered with CommandRegistry singleton during plugin activation
-/// - MenuBuilder and ToolbarManager build menus and toolbars from the registry
-/// - Keyboard shortcuts, icons, and enable/disable callbacks supported
-///
-/// @note Not wired yet: PluginManager does not call getCommands(), so a plugin's commands
-///       do not reach the registry.
-///
-/// **Example (C++):**
-/// @code
-/// class MyPlugin : public ICommandProvider {
-///     std::vector<gui::Command> getCommands() override {
-///         return {
-///             gui::Command{
-///                 "myplugin.action",    // id
-///                 "My Action",          // label
-///                 "Do something cool",  // tooltip
-///                 "Plugins",            // category
-///                 gui::IconSet(),       // icons
-///                 gui::KeyboardShortcut(), // shortcut
-///                 [this]() { doAction(); }, // execute callback
-///                 nullptr,              // isEnabled
-///                 nullptr,              // isChecked
-///                 true,                 // showInMenu
-///                 true                  // showInToolbar
-///             }
-///         };
-///     }
-/// };
-/// @endcode
-///
-/// **Example (Python):**
-/// @code
-/// class MyPlugin(kalahari_api.ICommandProvider):
-///     def get_commands(self):
-///         return [
-///             kalahari_api.Command(
-///                 id="myplugin.action",
-///                 label="My Action",
-///                 category="Plugins",
-///                 execute=self.do_action,
-///                 showInMenu=True
-///             )
-///         ]
-/// @endcode
-class ICommandProvider : public IPlugin {
+/// Plugins implementing this interface add commands to the menus of every book window. The
+/// commands are read once when the plugin is loaded (getCommands()); choosing one in a menu,
+/// or pressing its keys, calls runCommand() with its id. The writer can change their keys in
+/// Settings > Keyboard Shortcuts like those of the program's own commands.
+class ICommandProvider : public virtual IPlugin {
 public:
     /// @brief Virtual destructor
     ~ICommandProvider() override = default;
 
-    /// @brief Get list of commands to register
-    ///
-    /// To be called once during plugin activation (onActivate()); the returned commands are
-    /// then registered with CommandRegistry and appear in menus/toolbars. Not wired yet, see
-    /// the class note.
-    ///
-    /// **Command Lifecycle:**
-    /// 1. Plugin activated → getCommands() called
-    /// 2. Commands registered with CommandRegistry
-    /// 3. MenuBuilder and ToolbarManager query registry → menus/toolbars update
-    /// 4. User clicks menu item → Command::execute callback invoked
-    ///
-    /// @return Vector of Command structures to register
-    /// @note Use gui::Command forward-declared type (full definition in command.h)
-    virtual std::vector<gui::Command> getCommands() = 0;
+    /// @brief The commands of the plugin, read once when it is loaded
+    virtual std::vector<PluginCommandInfo> getCommands() = 0;
+
+    /// @brief The writer chose the command @p commandId
+    /// @throws std::runtime_error when the plugin fails; the program shows why
+    virtual void runCommand(const std::string& commandId) = 0;
 };
 
 /// @brief Graphical assistant interface
 ///
 /// Plugins implementing this interface can provide graphical assistant personalities.
 /// Assistants interact with users through messages, achievements, and encouragement.
-class IAssistant : public IPlugin {
+class IAssistant : public virtual IPlugin {
 public:
     /// @brief Virtual destructor
     ~IAssistant() override = default;
@@ -264,13 +243,17 @@ public:
 
     /// @brief Called when user reaches a writing goal
     ///
-    /// Use this to trigger celebration animations, achievements, or encouragement.
+    /// The program calls it when the writer reaches the daily goal of Settings > Statistics
+    /// and Goals, once a day. Use this to trigger celebration animations, achievements, or
+    /// encouragement.
     virtual void onGoalReached() = 0;
 
     /// @brief Called when user starts a new writing session
+    /// @note Not called yet: the program has no writing sessions
     virtual void onSessionStart() {}
 
     /// @brief Called when user ends a writing session
+    /// @note Not called yet: the program has no writing sessions
     virtual void onSessionEnd() {}
 };
 

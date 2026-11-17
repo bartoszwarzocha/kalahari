@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Plugin engine** - 2026-11-16. The program loads its add-ons at the start (Python starts
+  only when one is turned on) and puts what they add into every book window: their commands
+  in the menus (Tools > Plugins > the add-on's name, or a menu of the program it names), with
+  their icons and keys (keys the program, the system or another command has are not given to
+  them), greyed out without a book when they need one; their panels as docks on the right,
+  closed until opened, with a toggle in View > Panels and a tab among the panels; their
+  formats in File > Export, with the texts chosen in the window; and the daily goal reached,
+  once a day. An add-on is a Python class with the methods it needs (`get_commands`,
+  `get_panels`, `get_export_formats`/`export_document`, `get_settings`, `on_goal_reached`)
+  and the `kalahari_api` module built into the program (the book, the text in front,
+  messages, its own settings kept within their limits). Add-ons are turned off and on without
+  a restart (`plugins.disabled`), installed into the user's folder in place of an older
+  version and removed from it; each has its own entry module, so two `plugin.py` no longer
+  mix. Only Kalahari's own add-ons load: signed with Kalahari's key, which is built into the
+  program; the user keys, the trust levels and `plugins.allowUnsigned` are gone. The add-on
+  manager window and the add-ons' page in Settings come later.
+
 - **Mind maps and timelines of the Workshop** - 2026-11-16. A mind map or a timeline added to
   the Workshop opens on a tab of its own. Both are modules of their own (`src/mindmap`,
   `src/timeline`): the program knows them only by the editors of the window kinds they register

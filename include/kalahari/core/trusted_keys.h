@@ -2,142 +2,72 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file trusted_keys.h
-/// @brief Manages trusted publisher keys for plugin verification
+/// @brief The keys of the publishers whose plugins the program loads: Kalahari's own
 ///
-/// TrustedKeys is a singleton that manages Ed25519 public keys for plugin
-/// signature verification. It loads built-in keys from resources and
-/// user-configured keys from settings.
+/// The program loads only Kalahari's own add-ons, signed with its key. The keys are built
+/// into the program (trusted_keys.cpp): no file, setting or window adds another publisher.
 ///
-/// @example
 /// @code
 /// auto& keys = TrustedKeys::getInstance();
 /// keys.loadBuiltinKeys();
-///
-/// if (keys.isTrusted("kalahari-dev")) {
-///     auto pubKey = keys.getPublicKey("kalahari-dev");
-///     // Use for verification...
+/// if (auto key = keys.getPublicKey(signedBy)) {
+///     // Verify the signature with *key
 /// }
 /// @endcode
 
 #pragma once
 
+#include <cstdint>
+#include <map>
+#include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
-#include <map>
-#include <optional>
-#include <mutex>
 
 namespace kalahari {
 namespace core {
 
-/// @brief Trust level for plugin publishers.
-enum class TrustLevel {
-    Full,       ///< Official Kalahari publisher (highest trust)
-    Verified,   ///< Community verified publisher
-    User        ///< User-added publisher (requires confirmation)
-};
-
-/// @brief Convert TrustLevel to human-readable string
-/// @param level Trust level
-/// @return String representation
-std::string trustLevelToString(TrustLevel level);
-
-/// @brief Information about a trusted publisher.
+/// @brief A publisher whose plugins the program loads
 struct TrustedPublisher {
-    std::string id;                      ///< Publisher identifier (e.g., "kalahari-dev")
-    std::string name;                    ///< Human-readable name
-    std::vector<uint8_t> publicKey;      ///< 32-byte Ed25519 public key
-    TrustLevel trustLevel;               ///< Trust level
+    std::string id;                  ///< Its id in the signature files ("signed_by")
+    std::string name;                ///< Its name for the writer
+    std::vector<uint8_t> publicKey;  ///< 32-byte Ed25519 public key
 };
 
-/// @brief Manages trusted publisher keys for plugin verification.
-///
-/// Singleton that loads built-in keys from resources and user-configured keys
-/// from settings. Thread-safe for concurrent access.
+/// @brief The keys of Kalahari's own publishers (singleton, thread-safe)
 class TrustedKeys {
 public:
-    /// @brief Get singleton instance
-    /// @return Reference to TrustedKeys instance
     static TrustedKeys& getInstance();
 
-    // Non-copyable
     TrustedKeys(const TrustedKeys&) = delete;
     TrustedKeys& operator=(const TrustedKeys&) = delete;
 
-    /// @brief Load built-in keys from resources.
-    ///
-    /// Loads keys from resources/keys/trusted_publishers.json.
-    /// Called during application startup.
-    /// @return true if keys loaded successfully
-    bool loadBuiltinKeys();
+    /// @brief Load the keys built into the program (at the start, before the plugins)
+    /// @return The number of keys loaded; none while the program has no key of its own
+    size_t loadBuiltinKeys();
 
-    /// @brief Load user-configured keys from settings.
-    ///
-    /// Loads keys stored in user settings (added via Settings dialog).
-    void loadUserKeys();
-
-    /// @brief Get public key for a publisher.
-    ///
-    /// @param publisherId Publisher identifier
-    /// @return Public key bytes (32 bytes), or nullopt if not found
+    /// @brief The public key of the publisher, when the program trusts it
     [[nodiscard]] std::optional<std::vector<uint8_t>> getPublicKey(
-        const std::string& publisherId
-    ) const;
+        const std::string& publisherId) const;
 
-    /// @brief Check if publisher is trusted.
-    ///
-    /// @param publisherId Publisher identifier
-    /// @return true if publisher exists in trusted keys
+    /// @brief Whether the program trusts the publisher
     [[nodiscard]] bool isTrusted(const std::string& publisherId) const;
 
-    /// @brief Get publisher info.
-    ///
-    /// @param publisherId Publisher identifier
-    /// @return Publisher info, or nullopt if not found
+    /// @brief The publisher, when the program trusts it
     [[nodiscard]] std::optional<TrustedPublisher> getPublisher(
-        const std::string& publisherId
-    ) const;
+        const std::string& publisherId) const;
 
-    /// @brief Get all trusted publishers.
-    ///
-    /// @return Vector of all trusted publishers
+    /// @brief Every publisher the program trusts
     [[nodiscard]] std::vector<TrustedPublisher> getAllPublishers() const;
 
-    /// @brief Add a user key.
-    ///
-    /// @param publisherId Publisher identifier (unique)
-    /// @param name Display name
-    /// @param publicKeyBase64 Base64-encoded 32-byte public key
-    /// @return true if key was added successfully
-    bool addUserKey(
-        const std::string& publisherId,
-        const std::string& name,
-        const std::string& publicKeyBase64
-    );
+    /// @brief Trust a key of the tests' own (FOR TESTING ONLY: the tests sign their plugins)
+    void addTestKey(const std::string& publisherId, const std::vector<uint8_t>& publicKey);
 
-    /// @brief Remove a user key.
-    ///
-    /// Only user-added keys can be removed. Built-in keys cannot be removed.
-    /// @param publisherId Publisher identifier
-    /// @return true if key was removed
-    bool removeUserKey(const std::string& publisherId);
-
-    /// @brief Save user keys to settings.
-    ///
-    /// Persists user-added keys to the settings file.
-    void saveUserKeys();
-
-    /// @brief Clear all keys (for testing).
+    /// @brief Forget every key (FOR TESTING ONLY)
     void clear();
 
 private:
     TrustedKeys() = default;
-
-    /// @brief Decode base64 string to bytes.
-    ///
-    /// @param base64 Base64-encoded string
-    /// @return Decoded bytes, or empty vector on error
-    std::vector<uint8_t> base64Decode(const std::string& base64) const;
 
     std::map<std::string, TrustedPublisher> m_publishers;
     mutable std::mutex m_mutex;

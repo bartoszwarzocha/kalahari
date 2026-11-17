@@ -6,6 +6,7 @@
 ///        program has it (the open texts with their unsaved changes) for the file
 
 #include "kalahari/gui/book_export_coordinator.h"
+#include "kalahari/gui/plugin_coordinator.h"
 
 #include "kalahari/core/extension_points.h"
 #include "kalahari/core/logger.h"
@@ -109,6 +110,9 @@ void BookExportCoordinator::exportBook(editor::ExportFormat format) {
                         editor::ExportResult* result, editor::ExportProblem* problem) {
             bool written = false;
             if (const auto exporter = dialogs::ExportBookDialog::exporterOf(choice.formatId)) {
+                // The plugin reads what the writer chose in the window (kalahari_api: the
+                // book given to export_document())
+                const core::PluginHost::ExportScope scope(pluginBookOf(bookExport(choice)));
                 written = exportWithPlugin(*exporter, choice.formatId, path, progress, result,
                                            problem);
                 if (written) {
