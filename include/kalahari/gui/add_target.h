@@ -42,6 +42,9 @@ struct AddTarget {
     /// A material of the cover: the part chosen at the start (core::CoverMaterial::BLURB...);
     /// empty: the one chosen last
     QString coverPart;
+    /// A text for publishers: the part chosen at the start (core::PublishingTexts::PITCH...,
+    /// also TAGLINE and BLURB, which go to the cover); empty: the one chosen last
+    QString publishingPart;
 };
 
 /// @brief What the top of the Add Element window chooses from, as Settings > Navigator sets it

@@ -431,7 +431,12 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
     if (!list.isEmpty()) {
         target.kind = target.kinds.constFirst();
     }
-    target.coverPart = coverPart;
+    // The part asked for: of a text for publishers, of a material of the cover
+    if (MaterialList::isPublishing(list)) {
+        target.publishingPart = coverPart;
+    } else {
+        target.coverPart = coverPart;
+    }
     const QSet<QString> before = workshopIds(m_book);
     m_navigator->onRequestAdd(target);
 

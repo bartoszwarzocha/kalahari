@@ -23,6 +23,12 @@ namespace kalahari::gui {
 
 using core::PublishingTexts;
 
+bool PublishingNames::isPublishingKind(const core::KindRef& kind) {
+    return kind && kind.package != nullptr &&
+           kind.package->id == QLatin1String(core::ProjectManager::BASE_PACKAGE) &&
+           kind.kind->id == QLatin1String(PublishingTexts::KIND);
+}
+
 QString PublishingNames::partName(const QString& part) {
     if (part == QLatin1String(PublishingTexts::PITCH)) {
         //: A text for publishers: one sentence about who, what happens and what is at stake.
@@ -121,11 +127,15 @@ QString PublishingNames::newTitle(const core::ProjectManager& book, const QStrin
     return title;
 }
 
+QString PublishingNames::noTemplateName() {
+    //: A text for publishers without a template. In Polish: Bez szablonu
+    return tr("No template");
+}
+
 QString PublishingNames::templateName(const core::ProjectManager& book,
                                       const QString& reference) {
     if (reference.isEmpty()) {
-        //: A text for publishers without a template. In Polish: Bez szablonu
-        return tr("No template");
+        return noTemplateName();
     }
     const std::optional<core::PublishingTemplate> found = book.publishingTemplate(reference);
     return found ? found->name.text(programLanguage()) : reference;

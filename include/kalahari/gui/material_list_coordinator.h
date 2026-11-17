@@ -118,7 +118,8 @@ private:
     void open(const QString& elementId);
     void rename(const QString& elementId);
     void link(const QString& elementId);
-    /// @param coverPart A material of the cover: the part chosen at the start
+    /// @param coverPart A material of the cover, a text for publishers: the part chosen at the
+    /// start
     void add(MaterialListPanel* panel, const QString& list, const QString& coverPart = {});
     /// @brief Give material @p elementId of the cover the state @p state
     void setCoverState(const QString& elementId, const QString& state);

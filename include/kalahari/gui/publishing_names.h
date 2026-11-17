@@ -14,6 +14,7 @@
 
 namespace kalahari::core {
 class ProjectManager;
+struct KindRef;
 }  // namespace kalahari::core
 
 namespace kalahari::gui {
@@ -24,6 +25,9 @@ class PublishingNames {
     Q_DECLARE_TR_FUNCTIONS(kalahari::gui::PublishingNames)
 
 public:
+    /// @brief Whether @p kind is that of the texts for publishers of the base package
+    static bool isPublishingKind(const core::KindRef& kind);
+
     /// @brief Name of @p part of a text or of a set: "Sentence about the book", "Synopsis",
     /// "Tagline", "Cover description", "About the author"; empty for an unknown part
     static QString partName(const QString& part);
@@ -47,6 +51,9 @@ public:
     /// @brief Title of a new text of @p part in the book open in @p book: "Synopsis – version
     /// 2", the number after those of its part that the book has
     static QString newTitle(const core::ProjectManager& book, const QString& part);
+
+    /// @brief The name of no template: "No template"
+    static QString noTemplateName();
 
     /// @brief Name of template @p reference in the book open in @p book, in the program's
     /// language: "One Page – Five Steps"; "No template" for none; the reference of a template

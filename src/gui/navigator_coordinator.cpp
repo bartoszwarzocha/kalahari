@@ -1291,6 +1291,9 @@ bool NavigatorCoordinator::addWithWindow(
             newMaterial.cover.place = core::CoverMaterial::defaultPlaceOf(part);
         }
         elementId = pm.addMaterial(newMaterial, kind);
+    } else if (const QString part = dialog.publishingPart(); !part.isEmpty()) {
+        // A text for publishers of its part, with its template
+        elementId = pm.addPublishingText(part, dialog.publishingTemplate(), title);
     } else {
         elementId = pm.addElement(kind, title, at.place, at.groupId, at.index,
                                   dialog.takeInside(), std::nullopt, dialog.status());

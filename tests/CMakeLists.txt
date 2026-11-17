@@ -209,6 +209,7 @@ set(TEST_SOURCES
     gui/test_paragraph_cards.cpp      # A paragraph linked with a card: the window, the signs, the commands
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
     gui/test_publishing_list.cpp                 # The list of the texts for publishers
+    gui/test_publishing_add.cpp                  # Add Element of a text for publishers
     gui/test_publishing_settings.cpp             # The names of the texts for publishers and their settings
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
     gui/test_source_cards.cpp                    # The cards of the sources and quotes, the list Sources
@@ -559,6 +560,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/element_place_picker.cpp     # The place of an element in the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/add_to_book_dialog.cpp       # A file as a new element of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_file_dialog.cpp          # A new element of the open book
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/publishing_choice.cpp  # The part and the template of a new text for publishers
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/move_element_dialog.cpp      # A new place in the book for an element
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/delete_dialogs.cpp           # What goes from the book, and its files
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/dialog_parts.cpp             # Parts of the own dialogs
@@ -782,6 +784,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_file_dialog.h  # NewFileDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT

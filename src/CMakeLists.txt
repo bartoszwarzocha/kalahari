@@ -212,6 +212,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/color_palettes.cpp  # The palettes of the color window
     gui/dialogs/add_to_book_dialog.cpp  # AddToBookDialog - a file as a new element of the book
     gui/dialogs/new_file_dialog.cpp  # NewFileDialog - New File: a new element of the open book
+    gui/dialogs/publishing_choice.cpp  # PublishingChoice - the part and the template of a new text for publishers
     gui/dialogs/move_element_dialog.cpp  # MoveElementDialog - a new place in the book for an element
     gui/dialogs/delete_dialogs.cpp  # DeleteFromBookDialog, DeleteFilesDialog - what goes, and its files
     gui/dialogs/dialog_parts.cpp  # Parts of the own dialogs: a list as high as its rows, a note, Copy
@@ -548,6 +549,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/color_dialog.h  # ColorDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_file_dialog.h  # NewFileDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
