@@ -4,7 +4,8 @@
 /// @file status_bar_statistics.h
 /// @brief The words, characters and reading time of the document in front, in the status bar
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_STATUS_BAR_STATISTICS_H
+#define KALAHARI_GUI_WIDGETS_STATUS_BAR_STATISTICS_H
 
 #include <QObject>
 
@@ -14,7 +15,7 @@ class QTimer;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -40,13 +41,13 @@ public:
     void setEditor(editor::BookEditor* bookEditor);
 
     /// @brief The label of the words
-    QLabel* wordsLabel() const { return m_words; }
+    [[nodiscard]] QLabel* wordsLabel() const { return m_words; }
 
     /// @brief The label of the characters
-    QLabel* charactersLabel() const { return m_characters; }
+    [[nodiscard]] QLabel* charactersLabel() const { return m_characters; }
 
     /// @brief The label of the reading time
-    QLabel* readingTimeLabel() const { return m_readingTime; }
+    [[nodiscard]] QLabel* readingTimeLabel() const { return m_readingTime; }
 
 private:
     /// @brief Show the counts of the editor now
@@ -67,3 +68,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_STATUS_BAR_STATISTICS_H

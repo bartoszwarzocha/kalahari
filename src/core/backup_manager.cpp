@@ -18,8 +18,7 @@
 #include <QSaveFile>
 #include <algorithm>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 namespace {
 
@@ -259,5 +258,4 @@ bool BackupManager::restoreFromBackup(const QString& backupPath)
     return true;
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

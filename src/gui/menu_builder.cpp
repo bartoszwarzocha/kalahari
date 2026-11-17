@@ -21,8 +21,7 @@
 #include <utility>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // Translate technical menu names to display names (i18n), with their access keys: unique
 // among the menus of the menu bar and in each menu (test_menu_access_keys)
@@ -48,7 +47,9 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Import") return QObject::tr("&Import");
     if (technicalName == "Export") return QObject::tr("&Export");
     if (technicalName == "Text Style") return QObject::tr("Text &Style");
-    if (technicalName == "Text Effects") return QObject::tr("&Text Effects");
+    if (technicalName == "Text Effects") {
+        return QObject::tr("Te&xt Effects");
+    }
     if (technicalName == "Change Case") return QObject::tr("&Change Case");
     if (technicalName == "Align Text") return QObject::tr("A&lign Text");
     if (technicalName == "Formatting Character") return QObject::tr("Formatting C&haracter");
@@ -58,6 +59,8 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Select") return QObject::tr("&Select");
     if (technicalName == "Convert") return QObject::tr("&Convert");
     // The Image menu (the image's context menu has the same keys)
+    //: How the text flows around the selected image. In Polish: Opływanie t&ekstem
+    if (technicalName == "Wrap Text") return QObject::tr("&Wrap Text");
     //: In Polish: Ob&róć
     if (technicalName == "Rotate") return QObject::tr("R&otate");
     //: In Polish: &Filtr
@@ -72,6 +75,10 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Perspectives") return QObject::tr("Pe&rspectives");
     if (technicalName == "Toolbars") return QObject::tr("&Toolbars");
     if (technicalName == "Recent Books") return QObject::tr("&Recent Books");
+    //: The submenu of Edit with Next To Do and Previous To Do. In Polish: Uwa&gi do zrobienia
+    if (technicalName == "To Dos") {
+        return QObject::tr("T&o Dos");
+    }
 
     // Fallback: as it is, with no access key
     return literalMenuText(QString::fromStdString(technicalName));
@@ -104,6 +111,7 @@ QString MenuBuilder::submenuIconId(const std::string& technicalName) {
         {"Delete", QStringLiteral("menu.tableDelete")},
         {"Select", QStringLiteral("menu.tableSelect")},
         {"Convert", QStringLiteral("menu.tableConvert")},
+        {"Wrap Text", QStringLiteral("menu.imageWrap")},
         {"Rotate", QStringLiteral("menu.imageRotate")},
         {"Filter", QStringLiteral("menu.imageFilter")},
         {"Statistics", QStringLiteral("menu.statistics")},
@@ -115,6 +123,7 @@ QString MenuBuilder::submenuIconId(const std::string& technicalName) {
         {"Panels", QStringLiteral("menu.panels")},
         {"Perspectives", QStringLiteral("menu.perspectives")},
         {"Toolbars", QStringLiteral("menu.toolbars")},
+        {"To Dos", QStringLiteral("menu.toDos")},
     };
     const auto it = icons.find(technicalName);
     return it != icons.end() ? it->second : QString();
@@ -342,5 +351,4 @@ QMenu* MenuBuilder::getMenu(const std::string& technicalName) const {
 // CommandRegistry uses ArtProvider::createAction() which connects each
 // action to ArtProvider::resourcesChanged() signal for auto-refresh.
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

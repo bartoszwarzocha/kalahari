@@ -11,6 +11,17 @@
 /// OpenSpec #00034 Phase F: Added expansion state persistence between sessions.
 
 #include "kalahari/gui/panels/navigator_panel.h"
+
+#include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/card_data.h"
+#include "kalahari/core/card_relations.h"
+#include "kalahari/core/logger.h"
+#include "kalahari/core/package_card.h"
+#include "kalahari/core/project_manager.h"
+#include "kalahari/core/settings_manager.h"
+#include "kalahari/core/theme_manager.h"
+#include "kalahari/gui/card_list.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -21,49 +32,42 @@
 #include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/utils/file_location.h"
-#include "kalahari/core/logger.h"
-#include "kalahari/core/book_project.h"
-#include "kalahari/core/card_data.h"
-#include "kalahari/core/card_relations.h"
-#include "kalahari/core/project_manager.h"
-#include "kalahari/core/art_provider.h"
-#include "kalahari/core/package_card.h"
-#include "kalahari/core/theme_manager.h"
-#include "kalahari/core/settings_manager.h"
-#include <QTreeWidget>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QTreeWidgetItem>
-#include <QTreeWidgetItemIterator>
-#include <QDir>
-#include <QFileInfo>
-#include <QLineEdit>
-#include <QToolButton>
-#include <QComboBox>
-#include <QTimer>
-#include <QMenu>
+
 #include <QActionGroup>
-#include <QPalette>
 #include <QApplication>
-#include <QBrush>
-#include <QDropEvent>
 #include <QBasicTimer>
+#include <QBrush>
 #include <QClipboard>
 #include <QCollator>
+#include <QComboBox>
 #include <QCoreApplication>
+#include <QDir>
+#include <QDropEvent>
+#include <QFileInfo>
 #include <QFont>
 #include <QGuiApplication>
+#include <QHBoxLayout>
 #include <QKeyEvent>
+#include <QLineEdit>
 #include <QLocale>
+#include <QMenu>
 #include <QMimeData>
 #include <QMimeDatabase>
 #include <QPainter>
+#include <QPalette>
 #include <QPen>
 #include <QPersistentModelIndex>
 #include <QScrollBar>
 #include <QSignalBlocker>
 #include <QStyledItemDelegate>
+#include <QTimer>
 #include <QTimerEvent>
+#include <QToolButton>
+#include <QTreeWidget>
+#include <QTreeWidgetItem>
+#include <QTreeWidgetItemIterator>
+#include <QVBoxLayout>
+
 #include <algorithm>
 #include <functional>
 #include <utility>
@@ -367,7 +371,8 @@ public:
         painter->restore();
     }
 
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& index) const override {
         QSize size = QStyledItemDelegate::sizeHint(option, index);
         const QVariant count = index.data(COUNT_ROLE);
         const auto color = index.data(COLOR_ROLE).value<QColor>();
@@ -427,7 +432,7 @@ public:
     std::function<bool()> takesMaterials;
     std::function<bool(const QTreeWidgetItem* item)> linksMaterials;
 
-    bool canPasteHere() const override {
+    [[nodiscard]] bool canPasteHere() const override {
         const QMimeData* mime = QGuiApplication::clipboard()->mimeData();
         return takesMaterials && takesMaterials() && mime != nullptr &&
                (mime->hasUrls() || mime->hasImage() || mime->hasText());
@@ -488,7 +493,7 @@ protected:
 
     /// The dragged nodes also give their links, which the links of a material take
     /// (NavigatorPanel::LINKS_MIME_TYPE)
-    QMimeData* mimeData(const QList<QTreeWidgetItem*>& items) const override {
+    [[nodiscard]] QMimeData* mimeData(const QList<QTreeWidgetItem*>& items) const override {
         QMimeData* mime = QTreeWidget::mimeData(items);
         QStringList links;
         for (const QTreeWidgetItem* item : items) {
@@ -592,7 +597,7 @@ private:
 
     /// The new place of the dragged element when it is dropped at @p pos; none when it cannot
     /// go there or stays where it is
-    std::optional<kalahari::core::ElementPlace> dropPlace(const QPoint& pos) const {
+    [[nodiscard]] std::optional<kalahari::core::ElementPlace> dropPlace(const QPoint& pos) const {
         using Spot = kalahari::gui::NavigatorPanel::DropSpot;
         Spot spot = Spot::On;
         switch (dropIndicatorPosition()) {
@@ -626,24 +631,10 @@ private:
 
 } // anonymous namespace
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 NavigatorPanel::NavigatorPanel(core::ProjectManager& book, QWidget* parent)
     : QWidget(parent)
-    , m_treeWidget(nullptr)
-    , m_otherFilesItem(nullptr)
-    , m_typeFilter(nullptr)
-    , m_currentFilterType(FilterType::All)
-    , m_searchEdit(nullptr)
-    , m_clearButton(nullptr)
-    , m_expandAllButton(nullptr)
-    , m_collapseAllButton(nullptr)
-    , m_filterDebounceTimer(nullptr)
-    , m_contextMenuItem(nullptr)
-    , m_highlightedItem(nullptr)
-    , m_highlightColor()
-    , m_currentIconSize(0)
     , m_book(book)
 {
     auto& logger = core::Logger::getInstance();
@@ -1268,11 +1259,11 @@ QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
     return formIconId(core::BookProject::formOf(registry, element));
 }
 
-QIcon NavigatorPanel::iconOf(const core::ProjectManager& pm, const core::ProjectElement& element,
+QIcon NavigatorPanel::iconOf(const core::ProjectManager& book, const core::ProjectElement& element,
                              core::IconContext context) {
-    const core::BookTypeRegistry& registry = pm.bookTypes();
+    const core::BookTypeRegistry& registry = book.bookTypes();
     const core::PackageCard* card = element.hasKind() && !core::BookProject::kindOf(registry, element)
-                                        ? pm.packageCard(element.kind.packageId)
+                                        ? book.packageCard(element.kind.packageId)
                                         : nullptr;
     return core::ArtProvider::getInstance().getPackageIcon(iconIdOf(registry, element, card), card,
                                                            context);
@@ -1636,12 +1627,12 @@ bool NavigatorPanel::isWorkshopItem(const QTreeWidgetItem* item) {
     return item && item->data(0, WORKSHOP_ROLE).toBool();
 }
 
-bool NavigatorPanel::isMaterialItem(const core::ProjectManager& pm, const QTreeWidgetItem* item) {
+bool NavigatorPanel::isMaterialItem(const core::ProjectManager& book, const QTreeWidgetItem* item) {
     if (!isWorkshopItem(item) || typeOf(item) != QLatin1String("window_element")) {
         return false;
     }
-    const core::ProjectElement* element = pm.findElement(item->data(0, Qt::UserRole).toString());
-    return element && pm.isMaterial(*element);
+    const core::ProjectElement* element = book.findElement(item->data(0, Qt::UserRole).toString());
+    return element && book.isMaterial(*element);
 }
 
 QColor NavigatorPanel::cardColorOf(const QTreeWidgetItem* item) {
@@ -2469,6 +2460,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
         menu.addSeparator();
         addVersionHistoryAction();
+        addPlotBoardAction(menu, elementId);
         addPropertiesAction();
 
     } else if (elementType == "book_file") {
@@ -2488,6 +2480,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         menu.addSeparator();
         addMoveActions();
         menu.addSeparator();
+        addPlotBoardAction(menu, elementId);
         // The statistics of the group, in the Properties panel brought to the front
         QAction* propertiesAction = menu.addAction(
             artProvider.getIcon("view.properties", core::IconContext::Menu),
@@ -2532,6 +2525,9 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             changing << showSectionsAction;
         }
         menu.addSeparator();
+        if (projectOpen) {
+            addPlotBoardAction(menu, QString());
+        }
 
         // The icon of Book > Book Properties...
         QAction* propertiesAction = menu.addAction(
@@ -2603,8 +2599,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         }
 
     } else if (elementType == "workshop_shelf" || elementType == "workshop_group") {
-        // Materials and its kinds show their lists on tabs
-        if (const std::optional<QString> list = materialListOf(item)) {
+        // Materials, its kinds and the groups of the cards show their lists on tabs
+        if (const std::optional<QString> list = listOf(item)) {
             //: Shows the list of the materials of a kind on a tab in the middle of the window.
             //: In Polish: &Otwórz listę
             QAction* openAction = menu.addAction(
@@ -2749,6 +2745,24 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
     // Clear stored item after menu closes
     m_contextMenuItem = nullptr;
+}
+
+void NavigatorPanel::addPlotBoardAction(QMenu& menu, const QString& elementId) {
+    const core::BookProject* project = m_book.project();
+    const std::optional<core::ElementPlace> place =
+        project != nullptr && !elementId.isEmpty() ? project->placeOf(elementId) : std::nullopt;
+    if (!elementId.isEmpty() && (!place || place->place != core::BookPlace::Main)) {
+        return;
+    }
+    // The icon of Book > Plot Board
+    const QAction* action = menu.addAction(
+        core::ArtProvider::getInstance().getIcon("view.plotBoard", core::IconContext::Menu),
+        //: The command of the book, a part and a text of the main section in the Navigator:
+        //: the plot board with its card chosen. In Polish: Pokaż na &tablicy fabuły
+        tr("Show on the Plot &Board"));
+    connect(action, &QAction::triggered, this,
+            [this, elementId]() { emit requestShowOnPlotBoard(elementId); });
+    menu.addSeparator();
 }
 
 void NavigatorPanel::onContextMenuOpen() {
@@ -2971,9 +2985,10 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
         return;
     }
 
-    // Only text elements and the files of the book open in the editor; sections, groups and
-    // window elements do not. A material of the Workshop opens as the settings say
-    // (NavigatorCoordinator::onRequestOpenMaterial()).
+    // Only text elements and the files of the book open in the editor; sections and groups
+    // do not. A material of the Workshop opens as the settings say
+    // (NavigatorCoordinator::onRequestOpenMaterial()), another window element on the tab of
+    // the module that edits it (a mind map, a timeline).
     if (elementType == "text_element" || elementType == "book_file") {
         emit elementSelected(elementId, item->data(0, TITLE_ROLE).toString());
     } else if (elementType == "window_element" && isWorkshopItem(item)) {
@@ -2982,6 +2997,8 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
         const core::KindRef kind = element ? pm.kindOf(*element) : core::KindRef{};
         if (kind && kind.kind->isMaterial()) {
             emit requestOpenMaterial(elementId);
+        } else if (kind) {
+            emit elementSelected(elementId, item->data(0, TITLE_ROLE).toString());
         }
     }
 }
@@ -3020,12 +3037,25 @@ std::optional<QString> NavigatorPanel::materialListOf(const QTreeWidgetItem* ite
     return std::nullopt;
 }
 
+std::optional<QString> NavigatorPanel::cardListOf(const QTreeWidgetItem* item) {
+    if (item == nullptr || typeOf(item) != QLatin1String("workshop_group")) {
+        return std::nullopt;
+    }
+    const QString list = item->data(0, KIND_ROLE).toString();
+    return CardList::isCardList(list) ? std::optional<QString>(list) : std::nullopt;
+}
+
+std::optional<QString> NavigatorPanel::listOf(const QTreeWidgetItem* item) {
+    const std::optional<QString> list = materialListOf(item);
+    return list ? list : cardListOf(item);
+}
+
 bool NavigatorPanel::requestPageOf(const QTreeWidgetItem* item, bool keys) {
     if (item != nullptr && typeOf(item) == QLatin1String(BOOK_DICTIONARY_TYPE)) {
         emit requestOpenBookDictionary(keys);
         return true;
     }
-    if (const std::optional<QString> list = materialListOf(item)) {
+    if (const std::optional<QString> list = listOf(item)) {
         emit requestOpenMaterialList(*list, keys);
         return true;
     }
@@ -3154,15 +3184,18 @@ QList<core::KindRef> NavigatorPanel::namedKindsOf(const QTreeWidgetItem* item) c
     case AddTarget::Scope::Workshop: {
         // The kinds of the node the program makes elements of; a node of several kinds (the
         // Workshop, Materials) leaves the kinds of materials, many of the same weight, to the
-        // window, as the front and back sections do
+        // window, as the front and back sections do. The clippings come from Edit > Cut to
+        // Clippings: one is added by hand only in the window.
         const QList<core::KindRef> available = pm.kindsFor(core::BookPlace::Workshop);
         const QList<core::KindRef> all =
             target->kinds.isEmpty() && project
                 ? project->kindsIn(pm.bookTypes(), core::BookPlace::Workshop)
                 : target->kinds;
         const bool several = all.size() > 1;
+        const core::KindRef clipping = pm.clippingKind();
         for (const core::KindRef& kind : all) {
-            if (offered(available, kind) && !(several && kind.kind->isMaterial())) {
+            const bool isClipping = clipping && kind.kind == clipping.kind;
+            if (offered(available, kind) && !(several && (kind.kind->isMaterial() || isClipping))) {
                 append(kind);
             }
         }
@@ -3870,5 +3903,4 @@ void NavigatorPanel::setFileModified(const QString& path, bool isModified) {
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

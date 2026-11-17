@@ -38,10 +38,12 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/package_card.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/window_editor_provider.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QTabWidget>
@@ -62,8 +64,7 @@
 #include <string>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -142,6 +143,25 @@ QString linkName(const core::ProjectManager& book, const QString& link) {
     const std::optional<core::BookPlace> section =
         project ? project->linkedSection(link) : std::nullopt;
     return section && pm.book() ? pm.book()->sectionName(*section) : link;
+}
+
+/// The name of card @p cardId in the book's dictionary; an empty one when it has none
+core::DictionaryName dictionaryNameOf(const core::ProjectManager& book, const QString& cardId) {
+    const core::DictionaryName* name = book.bookDictionary().findNameOfCard(cardId);
+    return name != nullptr ? *name : core::DictionaryName{};
+}
+
+/// The name @p nameId of a deleted card goes from the book's dictionary, unless the writer
+/// keeps it there (@p keep)
+void forgetName(core::ProjectManager& book, const QString& nameId, bool keep) {
+    if (keep || nameId.isEmpty()) {
+        return;
+    }
+    if (!book.changeBookDictionary(
+            [&nameId](core::BookDictionary& dictionary) { dictionary.removeName(nameId); })) {
+        core::Logger::getInstance().warn("NavigatorCoordinator: The name of a deleted card "
+                                         "stays in the book's dictionary");
+    }
 }
 
 }  // namespace
@@ -355,6 +375,14 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         }
     }
 
+    // An element of a window kind opens on the tab of the module that edits it
+    if (const core::ProjectElement* element = pm.findElement(elementId);
+        element != nullptr && pm.formOf(*element) == core::ElementForm::Window &&
+        !pm.isMaterial(*element)) {
+        openWindowEditor(*element);
+        return;
+    }
+
     // Switching chapters does NOT prompt to save. The current chapter's tab stays
     // open with its "*" modified indicator (tab + navigator tree), and any unsaved
     // changes are reported once at application close. This avoids nagging on every
@@ -451,6 +479,44 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     }
 }
 
+void NavigatorCoordinator::openWindowEditor(const core::ProjectElement& element) {
+    const core::KindRef kind = m_book.kindOf(element);
+    const std::shared_ptr<core::IWindowEditorProvider> provider =
+        kind ? core::windowEditorProvider(kind.kind->editor) : nullptr;
+    if (!provider) {
+        core::Logger::getInstance().warn("NavigatorCoordinator: No editor of {} for {}",
+                                         kind ? kind.kind->editor.toStdString() : std::string(),
+                                         element.id.toStdString());
+        //: The status bar, when an element of the Workshop has no editor in the program. In
+        //: Polish: Program nie ma jeszcze edytora {kind:genitive}.
+        m_statusBar->showMessage(
+            core::fillWords(tr("The program does not have an editor for the {kind} yet."),
+                            {{QStringLiteral("kind"), wordsOf(m_book, element)}}),
+            5000);
+        return;
+    }
+    const QString elementId = element.id;
+    const core::WindowEditorContext context{
+        m_book, m_commands, elementId,
+        [this, editorId = provider->editorId()]() {
+            emit windowEditorSettingsRequested(editorId);
+        },
+        [this](const QString& otherId) { onRequestOpenLink(otherId); }};
+    QWidget* page = provider->createEditor(context, m_centralTabs);
+    if (page == nullptr) {
+        return;
+    }
+    const QString iconId = NavigatorPanel::iconIdOf(m_book.bookTypes(), element, nullptr);
+    page->setProperty("elementId", elementId);
+    page->setProperty("tabIconId", iconId);
+    const int index = m_centralTabs->addTab(
+        page, core::ArtProvider::getInstance().getIcon(iconId), element.title);
+    m_centralTabs->setCurrentIndex(index);
+    page->setFocus(Qt::OtherFocusReason);
+    m_currentElementId = elementId;
+    m_statusBar->showMessage(tr("Opened: %1").arg(element.title), 2000);
+}
+
 EditorPanel* NavigatorCoordinator::createEditorPanel(const core::ProjectElement* element,
                                                      const QString& elementId) {
     if (element != nullptr && m_book.isCard(*element)) {
@@ -488,6 +554,12 @@ CardPanel* NavigatorCoordinator::createCardPanel(const QString& elementId) {
             &NavigatorCoordinator::onRequestAddMaterials);
     connect(page, &CardPage::requestFindInBook, this,
             &NavigatorCoordinator::findInBookRequested);
+    // The declension of its name: the window "Name", another name
+    connect(page, &CardPage::requestNameWindow, this,
+            &NavigatorCoordinator::nameWindowRequested);
+    connect(page, &CardPage::requestOtherName, this, [this, page](const QString& cardId) {
+        emit otherNameRequested(cardId, page->window());
+    });
     return panel;
 }
 
@@ -578,6 +650,9 @@ void NavigatorCoordinator::onRequestDelete(const QString& elementId) {
     content.unassigned =
         std::all_of(content.files.cbegin(), content.files.cend(),
                     [&pm](const QString& file) { return pm.listsAsUnassigned(file); });
+    // A card's name in the book's dictionary goes with it, unless the writer keeps it there
+    const core::DictionaryName cardName = dictionaryNameOf(pm, elementId);
+    content.dictionaryName = cardName.text();
     dialogs::DeleteFromBookDialog dialog(content, pm.bookTypes(), window);
     if (dialog.exec() != QDialog::Accepted) {
         return;
@@ -630,6 +705,7 @@ void NavigatorCoordinator::onRequestDelete(const QString& elementId) {
         return;
     }
     logger.info("NavigatorCoordinator: Deleted element: {}", elementId.toStdString());
+    forgetName(pm, cardName.id, dialog.keepName());
     closeTabsOf(*removed);
 
     // The files go to the Trash, or for good from a folder without one; those that stay are
@@ -1151,6 +1227,14 @@ void NavigatorCoordinator::onRequestAdd(const AddTarget& target) {
     addWithWindow(target);
 }
 
+bool NavigatorCoordinator::onRequestAddCard(const QString& title, const core::KindRef& kind) {
+    AddTarget target;
+    target.scope = AddTarget::Scope::Workshop;
+    target.kind = kind;
+    return addWithWindow(target,
+                         [&title](dialogs::NewFileDialog& dialog) { dialog.setTitle(title); });
+}
+
 bool NavigatorCoordinator::addWithWindow(
     const AddTarget& target, const std::function<void(dialogs::NewFileDialog&)>& prepare) {
     auto& logger = core::Logger::getInstance();
@@ -1320,6 +1404,11 @@ void NavigatorCoordinator::showAdded(const QString& elementId, const QString& ti
     refreshNavigator();
     m_navigatorPanel->revealElement(elementId);
     const core::ProjectElement* element = pm.findElement(elementId);
+    if (element != nullptr && pm.formOf(*element) == core::ElementForm::Window &&
+        !pm.isMaterial(*element)) {
+        onElementSelected(elementId, title);  // a mind map, a timeline: on its tab
+        return;
+    }
     if (!element || pm.formOf(*element) != core::ElementForm::Text) {
         return;
     }
@@ -2101,9 +2190,10 @@ void NavigatorCoordinator::onRequestOpenLink(const QString& link) {
         onRequestOpenMaterial(link);
         return;
     }
-    // Shown where it is in the book; a text opens in the editor too
+    // Shown where it is in the book; a text opens in the editor too, an element of a module
+    // on its tab
     m_navigatorPanel->revealElement(link);
-    if (pm.formOf(*element) == core::ElementForm::Text) {
+    if (pm.formOf(*element) != core::ElementForm::Group) {
         onElementSelected(link, element->title);
     }
 }
@@ -2312,5 +2402,4 @@ void NavigatorCoordinator::onRequestRenameSection(const QString& sectionType) {
     emit documentModified();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

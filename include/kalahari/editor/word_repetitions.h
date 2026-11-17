@@ -10,7 +10,8 @@
 /// book's language knows their base form (chooseBaseForm()). Short and very common words
 /// ("się", "nie", "the") do not count.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_WORD_REPETITIONS_H
+#define KALAHARI_EDITOR_WORD_REPETITIONS_H
 
 #include <QList>
 #include <QSet>
@@ -120,3 +121,5 @@ RepetitionContext repetitionContext(const QStringList& paragraphs, const QList<T
 const QSet<QString>& commonWords(const QString& language);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_WORD_REPETITIONS_H

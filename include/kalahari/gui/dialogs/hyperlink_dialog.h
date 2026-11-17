@@ -4,16 +4,15 @@
 /// @file hyperlink_dialog.h
 /// @brief Insert > Link... (Ctrl+K): the text of a link and its address
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_HYPERLINK_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_HYPERLINK_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
 class QLabel;
 class QLineEdit;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief Insert > Link... (Ctrl+K): the text a link shows and the address it opens
 ///
@@ -52,6 +51,6 @@ private:
     bool m_removeAsked = false;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_HYPERLINK_DIALOG_H

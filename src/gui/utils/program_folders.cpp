@@ -15,8 +15,7 @@
 
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -45,6 +44,8 @@ const char* lastFolderSetting(Operation operation) {
         return "project.lastFolders.saveImage";
     case Operation::ExportBook:
         return "project.lastFolders.exportBook";
+    case Operation::ImportText:
+        return "project.lastFolders.importText";
     }
     return "";
 }
@@ -69,6 +70,7 @@ QString settingsFolderOf(Operation operation) {
     case Operation::ExportBook:
         return ProgramFolders::exportsFolder();
     case Operation::OpenFile:
+    case Operation::ImportText:
     case Operation::AddMaterial:
     case Operation::InsertImage:
     case Operation::SaveImage:
@@ -219,5 +221,4 @@ bool ProgramFolders::samePath(const QString& first, const QString& second) {
     return cleanPath(first).compare(cleanPath(second), CASE) == 0;
 }
 
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui

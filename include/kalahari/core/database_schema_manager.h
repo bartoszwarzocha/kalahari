@@ -9,13 +9,13 @@
 ///
 /// OpenSpec #00041: SQLite Project Database
 
-#pragma once
+#ifndef KALAHARI_CORE_DATABASE_SCHEMA_MANAGER_H
+#define KALAHARI_CORE_DATABASE_SCHEMA_MANAGER_H
 
 #include <QString>
 #include <QSqlDatabase>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Creates database schema for project database
 ///
@@ -37,7 +37,7 @@ public:
     bool createSchema();
 
     /// @brief Get last error message
-    QString lastError() const { return m_lastError; }
+    [[nodiscard]] QString lastError() const { return m_lastError; }
 
 private:
     /// @brief Execute SQL with error handling
@@ -47,5 +47,6 @@ private:
     QString m_lastError;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_DATABASE_SCHEMA_MANAGER_H

@@ -4,14 +4,14 @@
 /// @file shortcut_recorder.h
 /// @brief A field that shows keys and, when asked, records the next key press
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_SHORTCUT_RECORDER_H
+#define KALAHARI_GUI_WIDGETS_SHORTCUT_RECORDER_H
 
 #include <QKeyCombination>
 #include <QLineEdit>
 #include <QString>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A field that records key presses (Settings > Keyboard Shortcuts)
 ///
@@ -67,5 +67,6 @@ private:
     QString m_recordedText; ///< The keys recorded last while recording until Esc
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_SHORTCUT_RECORDER_H

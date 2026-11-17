@@ -18,8 +18,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 ProjectDatabase::ProjectDatabase() = default;
 
@@ -464,5 +463,4 @@ void ProjectDatabase::setSetting(const QString& key, const QVariant& value)
     query.exec();
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

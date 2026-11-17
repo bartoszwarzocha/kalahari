@@ -16,6 +16,8 @@
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/unicode_paths.h>
 
+#include "test_support/plugin_signing.h"
+
 #include <QCoreApplication>
 #include <QTemporaryDir>
 #include <QTranslator>
@@ -299,11 +301,10 @@ TEST_CASE("Plugin Manager: a plugin that is not unpacked is not loaded, and says
                                  R"("entry_point": "outside:Outside"})";
     writeArchive(pathOf(dir) / "plugins" / "outside.kplugin",
                  {{"manifest.json", manifest}, {name, "escaped"}});
+    // Only signed plugins are loaded
+    kalahari::test::signPlugin(pathOf(dir) / "plugins" / "outside.kplugin");
 
     PythonInterpreter::getInstance().initialize();
-    auto& settings = SettingsManager::getInstance();
-    const bool allowedBefore = settings.get<bool>("plugins.allowUnsigned", false);
-    settings.set<bool>("plugins.allowUnsigned", true);
     auto& manager = PluginManager::getInstance();
     {
         // The plugins are looked for in the current folder first
@@ -327,6 +328,5 @@ TEST_CASE("Plugin Manager: a plugin that is not unpacked is not loaded, and says
                        ignored);
         }
     }
-    settings.set<bool>("plugins.allowUnsigned", allowedBefore);
     manager.discoverPlugins();
 }

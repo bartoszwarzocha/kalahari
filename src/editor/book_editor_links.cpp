@@ -5,7 +5,7 @@
 /// @brief BookEditor: links, made with Insert > Link and by autocorrect
 
 #include <kalahari/editor/book_editor.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <kalahari/editor/buffer_commands.h>
 #include <QAbstractTextDocumentLayout>
 #include <QTextBlock>

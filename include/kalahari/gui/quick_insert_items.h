@@ -6,7 +6,8 @@
 ///        cards of its Workshop, the writer's text fragments and the typographic characters,
 ///        as Settings > Editor > Quick Insert chooses for @ and #
 
-#pragma once
+#ifndef KALAHARI_GUI_QUICK_INSERT_ITEMS_H
+#define KALAHARI_GUI_QUICK_INSERT_ITEMS_H
 
 #include <kalahari/editor/quick_insert.h>
 
@@ -68,8 +69,8 @@ editor::QuickInsertItem fragmentItem(editor::QuickInsertSource source, const QSt
                                      const QString& text);
 
 /// @brief The cards of the Workshop of @p project (characters, locations, items: the elements
-///        of the kinds edited as cards), each named by its title, grouped by kind, in the order
-///        of the Workshop
+///        of the kinds edited as cards), each named by its title, with its color, grouped by
+///        kind, in the order of the Workshop
 QList<editor::QuickInsertItem> cardItems(const core::BookProject& project,
                                          const core::BookTypeRegistry& registry);
 
@@ -91,7 +92,10 @@ QString quickInsertTriggers();
 
 /// @brief The items of the list opened by @p trigger ('@', '#'; QChar(): all of them, for
 ///        Insert > Quick Insert...), with the names of the dictionary and the cards of the book
-///        open in @p book (a card whose name the dictionary has is its name there)
+///        open in @p book (a card whose name the dictionary has is its name there, and the
+///        names of a card have its color)
 QList<editor::QuickInsertItem> quickInsertItems(const core::ProjectManager& book, QChar trigger);
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_QUICK_INSERT_ITEMS_H

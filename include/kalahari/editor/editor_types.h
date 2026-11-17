@@ -7,7 +7,8 @@
 /// This header provides forward declarations and basic types used throughout
 /// the custom text editor implementation.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_EDITOR_TYPES_H
+#define KALAHARI_EDITOR_EDITOR_TYPES_H
 
 #include <QString>
 #include <QStringList>
@@ -55,17 +56,17 @@ struct SelectionRange {
     CursorPosition end;
 
     /// @brief Check if selection is empty (start == end)
-    bool isEmpty() const {
+    [[nodiscard]] bool isEmpty() const {
         return start == end;
     }
 
     /// @brief Check if selection spans multiple paragraphs
-    bool isMultiParagraph() const {
+    [[nodiscard]] bool isMultiParagraph() const {
         return start.paragraph != end.paragraph;
     }
 
     /// @brief Normalize range so start <= end
-    SelectionRange normalized() const {
+    [[nodiscard]] SelectionRange normalized() const {
         if (start <= end) {
             return *this;
         }
@@ -117,6 +118,9 @@ struct PageFlow {
     bool enabled = false;
     qreal pitch = 0.0;       ///< Distance between the tops of two consecutive text areas
     qreal textHeight = 0.0;  ///< Height of one text area
+    /// How far below the top of the first text area the text starts: it goes on on the page
+    /// of a text before it (a book exported to PDF or printed); 0: at the top
+    qreal firstPageTop = 0.0;
 
     bool operator==(const PageFlow&) const = default;
 };
@@ -129,12 +133,27 @@ struct MarginCounts {
     bool operator==(const MarginCounts&) const = default;
 };
 
+/// @brief What a mark beside a paragraph stands for
+enum class ParagraphMarkKind {
+    Materials,  ///< The paperclip of the materials linked with the paragraph, and the signs
+                ///< of the cards linked with it (ParagraphMark::icon)
+    Clippings,  ///< The scissors of the clippings cut from the paragraph
+};
+
 /// @brief A mark beside a paragraph, in the left margin of the page: the paperclip of the
-/// materials linked with the paragraph
+/// materials linked with the paragraph, the sign of a kind of the cards linked with it, or the
+/// scissors of the clippings cut from it
 struct ParagraphMark {
     int paragraph = 0;   ///< The paragraph (0-based)
-    QStringList ids;     ///< What it names: the ids of the materials, in their order
-    QStringList titles;  ///< Their titles, for the tooltip and the menu
+    QStringList ids;     ///< What it names: the ids of the materials, the cards or the
+                         ///< clippings, in their order
+    QStringList titles;  ///< What the tooltip and the menu call them: the titles of the
+                         ///< materials or the cards; of a clipping, its title, its words and
+                         ///< its time
+    QString icon{};      ///< The cards' sign it shows, of the icons of the cards
+                         ///< (BookEditor::setParagraphMarks()); empty: the paperclip of the
+                         ///< materials
+    ParagraphMarkKind kind = ParagraphMarkKind::Materials;  ///< What it stands for
 
     bool operator==(const ParagraphMark&) const = default;
 };
@@ -162,3 +181,5 @@ inline Qt::Alignment effectiveAlignment(Qt::Alignment own) {
 }
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_EDITOR_TYPES_H

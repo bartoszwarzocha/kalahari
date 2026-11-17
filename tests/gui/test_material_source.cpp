@@ -5,7 +5,7 @@
 /// @brief Where a material comes from: what comes to the Navigator from outside the program,
 /// the downloads for a material with a web address, and its card for each source
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
@@ -33,7 +33,7 @@
 
 #include <cstdio>
 #include <optional>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -328,7 +328,7 @@ TEST_CASE("Material downloads: the title of a page, the kind of a picture, and w
 }
 
 TEST_CASE("Material card: a page, a picture on the web with and without its copy, and a material "
-          "without a file", "[gui][materials]") {
+          "without a file", "[gui][materials][clipboard]") {
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Caravan"));
     auto& pm = novel.pm;

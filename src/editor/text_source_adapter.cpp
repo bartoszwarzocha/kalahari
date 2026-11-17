@@ -218,11 +218,12 @@ double QTextDocumentSource::totalHeight() const {
 }
 
 size_t QTextDocumentSource::firstParagraphAtY(double y) const {
-    const size_t paragraph = paragraphAtY(y);
-    if (const auto* layout = kalahariLayout()) {
-        return static_cast<size_t>(std::max(0, layout->firstBlockOfRow(static_cast<int>(paragraph))));
+    // In a row of a table its first block; an image the text flows around reaching y from a
+    // block above
+    if (const auto* layout = kalahariLayout(); layout && m_document) {
+        return static_cast<size_t>(std::max(0, layout->firstBlockShownAtY(y)));
     }
-    return paragraph;
+    return paragraphAtY(y);
 }
 
 size_t QTextDocumentSource::paragraphAt(const QPointF& point) const {

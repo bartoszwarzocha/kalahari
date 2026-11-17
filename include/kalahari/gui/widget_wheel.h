@@ -12,7 +12,8 @@
 /// same on every system, and as in web browsers the wheel that scrolls a page goes on
 /// scrolling it when the field with the focus passes under the mouse.
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGET_WHEEL_H
+#define KALAHARI_GUI_WIDGET_WHEEL_H
 
 #include <QObject>
 #include <QPointF>
@@ -63,3 +64,5 @@ private:
 void installWidgetWheel(QApplication& app);
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGET_WHEEL_H

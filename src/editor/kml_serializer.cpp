@@ -33,8 +33,7 @@
 #include <cmath>
 #include <set>
 
-namespace kalahari {
-namespace editor {
+namespace kalahari::editor {
 
 namespace {
 
@@ -119,10 +118,7 @@ QString annotationElement(const Annotation& annotation)
 // Constructor
 // =============================================================================
 
-KmlSerializer::KmlSerializer()
-    : m_indented(false)
-{
-}
+KmlSerializer::KmlSerializer() = default;
 
 // =============================================================================
 // Public Serialization Methods
@@ -235,9 +231,18 @@ QString KmlSerializer::paragraphsToKml(const QTextDocument& document, int from, 
             closeLists();
         }
         if (object != TextObject::None && block.position() >= from && block.position() < to) {
-            // A horizontal line or a break: an element of its own
-            paragraphs += indent + QLatin1Char('<') + kmlElementOf(object) +
-                          QStringLiteral("/>") + newline;
+            // A horizontal line or a break: an element of its own; a scene break with what it
+            // says of its scene
+            paragraphs += indent + QLatin1Char('<') + kmlElementOf(object);
+            const SceneBreakAttributes attributes =
+                sceneBreakAttributes(block.begin().fragment().charFormat());
+            for (const QString& name : sceneBreakAttributeNames()) {
+                if (const auto value = attributes.constFind(name); value != attributes.cend()) {
+                    paragraphs += QLatin1Char(' ') + name + QStringLiteral("=\"") +
+                                  KmlFormatRegistry::escapeXmlAttribute(*value) + QLatin1Char('"');
+                }
+            }
+            paragraphs += QStringLiteral("/>") + newline;
         } else if (object != TextObject::None) {
             // Only the paragraph break after it: an empty paragraph
             paragraphs += indent + QStringLiteral("<p></p>") + newline;
@@ -783,5 +788,4 @@ QString KmlSerializer::metadataToCloseTag(const QTextCharFormat& format) const
 
 // Note: escapeXml is now provided by KmlFormatRegistry::escapeXml()
 
-} // namespace editor
-} // namespace kalahari
+} // namespace kalahari::editor

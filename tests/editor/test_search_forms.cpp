@@ -22,7 +22,7 @@
 #include <QTextDocument>
 #include <QToolButton>
 
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <algorithm>
 #include <vector>

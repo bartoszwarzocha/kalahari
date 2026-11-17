@@ -27,8 +27,7 @@
 #include <QMainWindow>
 #include <QStatusBar>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -238,5 +237,4 @@ void SettingsCoordinator::applyInWindow(const QStringList& changedKeys) {
     // The editors follow the editor settings by themselves (EditorPanel)
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

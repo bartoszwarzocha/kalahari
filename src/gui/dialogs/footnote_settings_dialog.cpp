@@ -2,7 +2,7 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file footnote_settings_dialog.cpp
-/// @brief Insert > Footnote Layout...: how the book numbers its notes and where its
+/// @brief Format > Footnote Layout...: how the book numbers its notes and where its
 ///        endnotes are
 
 #include "kalahari/gui/dialogs/footnote_settings_dialog.h"
@@ -18,9 +18,7 @@
 #include <algorithm>
 #include <array>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -67,7 +65,7 @@ FootnoteSettingsDialog::FootnoteSettingsDialog(const core::BookFootnotes& footno
     : KalahariDialog(parent),
       m_footnotes(footnotes)
 {
-    //: Insert > Footnote Layout... In Polish: Ustawienia przypisów / Numeracja i miejsce
+    //: Format > Footnote Layout... In Polish: Ustawienia przypisów / Numeracja i miejsce
     //: przypisów w tej książce.
     setHeading(tr("Footnote Layout"),
                tr("How this book numbers its notes and where its endnotes are."));
@@ -151,6 +149,4 @@ QString FootnoteSettingsDialog::formatSample(const QString& format)
     return numbers.join(QStringLiteral(", "));
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

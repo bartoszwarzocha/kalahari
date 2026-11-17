@@ -7,7 +7,8 @@
 /// Extracted from MainWindow as part of OpenSpec #00038 refactoring.
 /// Manages diagnostic menu, dev tools menu, and all related functionality.
 
-#pragma once
+#ifndef KALAHARI_GUI_DIAGNOSTIC_CONTROLLER_H
+#define KALAHARI_GUI_DIAGNOSTIC_CONTROLLER_H
 
 #include "kalahari/gui/diagnostic_menus.h"
 
@@ -19,8 +20,7 @@ class QMenuBar;
 class QDockWidget;
 class QStatusBar;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class LogPanel;
 
@@ -158,5 +158,6 @@ private:
     QMenu* m_devToolsMenu{nullptr};    ///< Dev Tools menu
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DIAGNOSTIC_CONTROLLER_H

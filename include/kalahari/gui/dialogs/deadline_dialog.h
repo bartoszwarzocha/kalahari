@@ -5,7 +5,8 @@
 /// @brief The small window of Add Deadline and Change Deadline, on the tab Writing Goals and
 /// Deadlines
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_DEADLINE_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_DEADLINE_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -19,9 +20,7 @@ class QDateEdit;
 class QLineEdit;
 class QSpinBox;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief A part of the book that a deadline can be about: a group or a text of it
 struct BookPart {
@@ -50,7 +49,7 @@ public:
                    QWidget* parent = nullptr);
 
     /// @brief The deadline of the fields: its name without spaces around it
-    core::WritingDeadline deadline() const;
+    [[nodiscard]] core::WritingDeadline deadline() const;
 
 private:
     /// @brief Add or Change only with a name
@@ -62,6 +61,6 @@ private:
     QSpinBox* m_wordsBox = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_DEADLINE_DIALOG_H

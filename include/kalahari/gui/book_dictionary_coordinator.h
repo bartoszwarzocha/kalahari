@@ -90,6 +90,13 @@ public:
     /// @brief The page of the dictionary when its tab is in front, else nullptr
     [[nodiscard]] BookDictionaryPanel* currentPanel() const;
 
+    /// @brief The models of the language of the book
+    [[nodiscard]] core::NameDeclension declension() const;
+
+    /// @brief The forms the spelling dictionary of the chapters knows, when it is of the
+    ///        language of the book
+    [[nodiscard]] core::NameDeclension::DictionaryForms dictionaryForms() const;
+
 public slots:
     /// @brief The window of a new name, with @p text in it and its forms suggested
     /// @return Whether the name was added
@@ -145,12 +152,6 @@ private:
     /// @brief Change the book's dictionary; the status bar says when it cannot be changed
     bool change(const std::function<void(core::BookDictionary&)>& change);
 
-    /// @brief The models of the language of the book
-    [[nodiscard]] core::NameDeclension declension() const;
-
-    /// @brief The forms the spelling dictionary of the chapters knows, when it is of the
-    ///        language of the book
-    [[nodiscard]] core::NameDeclension::DictionaryForms dictionaryForms() const;
 
     /// @brief Show a short message in the status bar
     void showMessage(const QString& message);

@@ -4,7 +4,8 @@
 /// @file kalahari_dialog.h
 /// @brief The base of the program's own dialogs: one look for all of them
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_KALAHARI_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_KALAHARI_DIALOG_H
 
 #include <QDialog>
 #include <QString>
@@ -22,8 +23,7 @@ class QSize;
 class QToolButton;
 class QVBoxLayout;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class FittingScrollArea;
 
@@ -57,6 +57,9 @@ public:
     /// @param description Sentence under the title; empty: none
     void setHeading(const QString& title, const QString& description = QString());
 
+    /// @brief The sentence under the title of the heading; empty: none
+    QString headingDescription() const;
+
     /// @brief Set the heading's icon
     /// @param iconId ArtProvider id (e.g. "template.chapter"); empty: no icon
     void setHeadingIcon(const QString& iconId);
@@ -66,7 +69,7 @@ public:
     void setCompactHeading(bool compact);
 
     /// @brief The layout of the dialog's own content, between the heading and the buttons
-    QVBoxLayout* contentLayout() const { return m_contentLayout; }
+    [[nodiscard]] QVBoxLayout* contentLayout() const { return m_contentLayout; }
 
     /// @brief Add a field to the content, with its label above it
     /// @param label Label text, without a colon
@@ -74,13 +77,13 @@ public:
     void addField(const QString& label, QWidget* field);
 
     /// @brief The button that does the dialog's job; it is the default button
-    QPushButton* acceptButton() const { return m_acceptButton; }
+    [[nodiscard]] QPushButton* acceptButton() const { return m_acceptButton; }
 
     /// @brief The button that closes the dialog without doing anything
-    QPushButton* cancelButton() const { return m_cancelButton; }
+    [[nodiscard]] QPushButton* cancelButton() const { return m_cancelButton; }
 
     /// @brief The Apply button (hidden unless setApplyButtonVisible() shows it)
-    QPushButton* applyButton() const { return m_applyButton; }
+    [[nodiscard]] QPushButton* applyButton() const { return m_applyButton; }
 
     /// @brief Name the accept button after what it does
     /// @param text Button text (e.g. "Add")
@@ -92,12 +95,17 @@ public:
 
     /// @brief At least the minimum width, and the height the heading and the content need
     ///        at that width
-    QSize sizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
 
     /// @brief How the gear of a dialog (addSettingsButton()) opens the Settings dialog
     /// @param opener Opens the Settings dialog over the dialog given at the page given
     ///        (SettingsDialog::openPage()); the program sets it once, with its window
     static void setSettingsOpener(std::function<void(QWidget*, const QString&)> opener);
+
+    /// @brief Open the Settings dialog at @p page over @p over, as a gear does (nothing without
+    ///        the program's opener, as in the tests)
+    /// @return false without an opener
+    static bool openSettings(QWidget* over, const QString& page);
 
 protected:
     /// @brief Keep the whole dialog on a small screen: the content scrolls, the heading
@@ -119,14 +127,14 @@ protected:
 
     /// @brief The window's frame the system adds around the dialog: its own when the window
     ///        exists, else the style's guess
-    QMargins frameMargins() const;
+    [[nodiscard]] QMargins frameMargins() const;
 
     /// @brief @p size made higher by the heading and the line under it, at its width: the
     ///        default size of a dialog given for its content and buttons alone
-    QSize withHeading(const QSize& size) const;
+    [[nodiscard]] QSize withHeading(const QSize& size) const;
 
     /// @brief The buttons that close the dialog, for a dialog that adds one of its own
-    QDialogButtonBox* buttonBox() const { return m_buttonBox; }
+    [[nodiscard]] QDialogButtonBox* buttonBox() const { return m_buttonBox; }
 
     /// @brief Add the gear at the right end of the heading: it opens the Settings dialog at
     ///        the page of the dialog's settings, as the gear of a panel does
@@ -177,5 +185,6 @@ private:
 };
 
 } // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DIALOGS_KALAHARI_DIALOG_H

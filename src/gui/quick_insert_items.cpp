@@ -60,7 +60,7 @@ void addCards(const QList<core::ProjectElement>& elements, const core::BookTypeR
             const QString title = element.title.trimmed();
             cards.append({editor::QuickInsertSource::Card, title, title,
                           wordsOf(kind).form(QStringLiteral("singular")),
-                          kind.kind->plural.text(language), QString(), {}});
+                          kind.kind->plural.text(language), QString(), {}, element.card.color});
         }
         addCards(element.elements, registry, cards);  // the cards in its groups
     }
@@ -124,13 +124,37 @@ editor::QuickInsertItem variantItem(const core::DictionaryName& name,
     return item;
 }
 
+/// @brief The color of the card each name of @p names is of, beside it: of the card the
+///        dictionary says, else of the card of @p cards named as the name
+void giveCardColors(QList<editor::QuickInsertItem>& names, const core::BookDictionary& dictionary,
+                    const core::BookProject& project,
+                    const QList<editor::QuickInsertItem>& cards) {
+    for (editor::QuickInsertItem& item : names) {
+        const core::DictionaryName* name =
+            dictionary.findNameWithText(item.owner.isEmpty() ? item.name : item.owner);
+        const core::ProjectElement* card =
+            name != nullptr && !name->card.isEmpty() ? project.findElement(name->card) : nullptr;
+        if (card != nullptr) {
+            item.color = card->card.color;
+            continue;
+        }
+        const QString title = name != nullptr ? name->text() : item.name;
+        const auto same = std::ranges::find(cards, title, &editor::QuickInsertItem::name);
+        if (same != cards.end()) {
+            item.color = same->color;
+        }
+    }
+}
+
 /// @brief The names of the dictionary and the cards of the book open in @p book; a card
-///        whose name the dictionary has is left to it
+///        whose name the dictionary has is left to it. A name of a card has its color.
 QList<editor::QuickInsertItem> nameItems(const core::ProjectManager& book) {
     const core::BookDictionary& dictionary = book.bookDictionary();
     QList<editor::QuickInsertItem> names = dictionaryItems(dictionary);
     if (const core::BookProject* project = book.project()) {
-        for (const editor::QuickInsertItem& card : cardItems(*project, book.bookTypes())) {
+        const QList<editor::QuickInsertItem> cards = cardItems(*project, book.bookTypes());
+        giveCardColors(names, dictionary, *project, cards);
+        for (const editor::QuickInsertItem& card : cards) {
             if (dictionary.findNameWithText(card.name) == nullptr) {
                 names.append(card);
             }

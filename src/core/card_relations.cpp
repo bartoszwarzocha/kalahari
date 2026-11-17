@@ -194,7 +194,7 @@ std::optional<FieldChange> CardRelations::fieldChange(const ProjectElement& card
                                                       const QString& fieldId,
                                                       const QString& text) const {
     const KindRef kind = m_book->kindOf(card);
-    const CardField* field = kind ? kind.kind->field(fieldId) : nullptr;
+    const CardField* field = m_book->cardField(kind, fieldId);
     if (field == nullptr || field->relation.isEmpty() || kind.package == nullptr) {
         return std::nullopt;
     }

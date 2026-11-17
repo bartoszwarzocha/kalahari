@@ -4,7 +4,8 @@
 /// @file theme_manager.h
 /// @brief Theme management system for Kalahari
 
-#pragma once
+#ifndef KALAHARI_CORE_THEME_MANAGER_H
+#define KALAHARI_CORE_THEME_MANAGER_H
 
 #include "kalahari/core/theme.h"
 #include <QObject>
@@ -18,8 +19,7 @@
 #include <set>
 #include <string>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Manages application themes (load, switch, persist)
 ///
@@ -56,17 +56,17 @@ public:
 
     /// @brief Get currently active theme
     /// @return Current theme (or default Light theme if none loaded)
-    const Theme& getCurrentTheme() const;
+    [[nodiscard]] const Theme& getCurrentTheme() const;
 
     /// @brief Editor color of the current theme, with the user's stored value applied
     /// @param key Name from the theme file's "editor" section (e.g. "commentMarker")
     /// @param fallback Returned if the theme does not define the color
-    QColor editorColor(const std::string& key, const QColor& fallback) const;
+    [[nodiscard]] QColor editorColor(const std::string& key, const QColor& fallback) const;
 
     /// @brief An editor color as the current theme's file gives it, without the user's value
     /// @param key Name from the theme file's "editor" section
     /// @param fallback Returned if the theme does not define the color
-    QColor defaultEditorColor(const std::string& key, const QColor& fallback) const;
+    [[nodiscard]] QColor defaultEditorColor(const std::string& key, const QColor& fallback) const;
 
     /// @brief The setting of the user's own value of an editor color of a theme
     ///
@@ -85,7 +85,7 @@ public:
     ///
     /// The setting OPTIMIZE_COLORS_SETTING; a change of it emits editorColorsChanged(), as a
     /// changed color does.
-    bool optimizesEditorColors() const;
+    [[nodiscard]] bool optimizesEditorColors() const;
 
     /// @brief Move the colors of the papers the settings kept outside the themes
     ///        (editor.colors.<name>) into the themes, and drop the former settings
@@ -97,7 +97,7 @@ public:
 
     /// @brief Get list of available themes in resources/themes/
     /// @return List of theme names (without .json extension)
-    QStringList getAvailableThemes() const;
+    [[nodiscard]] QStringList getAvailableThemes() const;
 
     /// @brief Switch to theme by name
     /// @param themeName Theme name to load and apply
@@ -189,5 +189,6 @@ private:
     std::optional<nlohmann::json> loadThemeFile(const QString& themeName);
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_THEME_MANAGER_H

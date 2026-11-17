@@ -2,21 +2,20 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file footnote_settings_dialog.h
-/// @brief Insert > Footnote Layout...: how the book numbers its notes and where its
+/// @brief Format > Footnote Layout...: how the book numbers its notes and where its
 ///        endnotes are
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_FOOTNOTE_SETTINGS_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_FOOTNOTE_SETTINGS_DIALOG_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
 class QComboBox;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
-/// @brief Insert > Footnote Layout...: the numbering of the book's footnotes and endnotes
+/// @brief Format > Footnote Layout...: the numbering of the book's footnotes and endnotes
 ///        and the place of its endnotes
 ///
 /// The format of the numbers (1, 2, 3; a, b, c; A, B, C; i, ii, iii; I, II, III; *, †, ‡) and
@@ -47,6 +46,6 @@ private:
     QComboBox* m_endnoteNumbering = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_FOOTNOTE_SETTINGS_DIALOG_H

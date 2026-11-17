@@ -8,6 +8,7 @@
 #include "kalahari/gui/dialogs/dialog_parts.h"
 #include "kalahari/core/art_provider.h"
 
+#include <QAbstractButton>
 #include <QAbstractItemView>
 #include <QApplication>
 #include <QClipboard>
@@ -18,14 +19,16 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QStyle>
+#include <QStyleOption>
+#include <QTabBar>
 #include <QTimer>
+#include <QVBoxLayout>
 #include <QWidget>
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -150,6 +153,78 @@ void setUpCopyButton(QPushButton* button, const std::function<QString()>& text) 
     });
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+int widthOfLetters(const QFontMetrics& metrics, int letters)
+{
+    const QString text = QStringLiteral("the quick brown fox jumps over the lazy dog ");
+    return qRound(metrics.horizontalAdvance(text) * static_cast<qreal>(letters) /
+                  static_cast<qreal>(text.size()));
+}
+
+int FittingTabs::heightForWidth(int width) const
+{
+    // The frame around the pages, as QTabWidget measures it
+    QStyleOption option(0);
+    option.initFrom(this);
+    option.state = QStyle::State_None;
+    const QSize frame = style()->sizeFromContents(QStyle::CT_TabWidget, &option, QSize(0, 0), this);
+    const int pageWidth = width - frame.width();
+    int pages = 0;
+    for (int i = 0; i < count(); ++i) {
+        if (!isTabVisible(i)) {
+            continue;  // the options of a format that is not chosen
+        }
+        const QWidget* page = widget(i);
+        const int height = page->hasHeightForWidth() ? page->heightForWidth(pageWidth) : -1;
+        pages = std::max(pages, height >= 0 ? height : page->sizeHint().height());
+    }
+    return frame.height() + tabBar()->sizeHint().height() + pages;
+}
+
+QSize FittingTabs::sizeHint() const
+{
+    const QSize plain = QTabWidget::sizeHint();
+    return {plain.width(), heightForWidth(plain.width())};
+}
+
+QString literal(QString text)
+{
+    return text.replace(QLatin1Char('&'), QStringLiteral("&&"));
+}
+
+QLabel* newRemark(QWidget* parent, const QString& text)
+{
+    auto* label = new QLabel(text, parent);
+    label->setTextFormat(Qt::PlainText);
+    label->setWordWrap(true);
+    label->setForegroundRole(QPalette::PlaceholderText);
+    return label;
+}
+
+QWidget* withRemark(QAbstractButton* button, QLabel* remark, QWidget* beside)
+{
+    auto* option = new QWidget(button->parentWidget());
+    auto* layout = new QVBoxLayout(option);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
+    button->setParent(option);
+    remark->setParent(option);
+    const QStyle* style = button->style();
+    remark->setContentsMargins(style->pixelMetric(QStyle::PM_IndicatorWidth, nullptr, button) +
+                                   style->pixelMetric(QStyle::PM_CheckBoxLabelSpacing, nullptr, button),
+                               0, 0, 0);
+    if (beside != nullptr) {
+        beside->setParent(option);
+        auto* line = new QHBoxLayout();
+        line->setSpacing(button->fontMetrics().averageCharWidth() * 3);
+        line->addWidget(button);
+        line->addWidget(beside);
+        line->addStretch(1);
+        layout->addLayout(line);
+    } else {
+        layout->addWidget(button);
+    }
+    layout->addWidget(remark);
+    return option;
+}
+
+} // namespace kalahari::gui::dialogs

@@ -5,7 +5,8 @@
 /// @brief Insert > Footnote and Endnote, the frame a note's text is written in, and the
 ///        numbers of the notes of every open text in the book around it
 
-#pragma once
+#ifndef KALAHARI_GUI_FOOTNOTE_COORDINATOR_H
+#define KALAHARI_GUI_FOOTNOTE_COORDINATOR_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/editor/text_footnotes.h"
@@ -33,7 +34,7 @@ class CommandRegistry;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -59,7 +60,7 @@ class NoteFrame;
 /// text). This coordinator gives every open text of the book its context, from the open texts
 /// as their editors have them and the others as saved, and gives it again when a text changes
 /// its notes (shortly after), when a text opens or closes and when the book's settings change
-/// (Insert > Footnote Layout...). A file outside the book is numbered alone: 1, 2, 3 and i,
+/// (Format > Footnote Layout...). A file outside the book is numbered alone: 1, 2, 3 and i,
 /// ii, iii.
 class FootnoteCoordinator : public QObject {
     Q_OBJECT
@@ -95,7 +96,7 @@ public:
     FootnoteCoordinator& operator=(const FootnoteCoordinator&) = delete;
 
     /// @brief Give Insert > Footnote and Endnote their callbacks (their states follow the keys:
-    ///        EditCoordinator::addTextCommands()), and Insert > Footnote Layout... its own
+    ///        EditCoordinator::addTextCommands()), and Format > Footnote Layout... its own
     /// @note Call after the commands are registered
     void connectCommands();
 
@@ -124,7 +125,7 @@ public:
     ///        the book's order of texts changed)
     void refreshSoon();
 
-    /// @brief Insert > Footnote Layout...: the window of the book's numbering of notes
+    /// @brief Format > Footnote Layout...: the window of the book's numbering of notes
     /// @return Whether the settings changed
     bool editSettings();
 
@@ -147,7 +148,7 @@ public:
     void finishWriting(const editor::BookEditor* editor = nullptr);
 
     /// @brief The open frame (nullptr: none)
-    NoteFrame* frame() const { return m_frame; }
+    [[nodiscard]] NoteFrame* frame() const { return m_frame; }
 
 private:
     /// @brief The note written in the frame
@@ -174,7 +175,7 @@ private:
 
     /// @brief The notes of a text not open: from its file or its unsaved text, kept until they
     ///        change
-    const CachedText& savedText(const QString& elementId) const;
+    [[nodiscard]] const CachedText& savedText(const QString& elementId) const;
 
     /// @brief The context of the text at @p index of @p texts (-1: a text of the book outside
     ///        its parts, numbered alone in the book's formats)
@@ -215,3 +216,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_FOOTNOTE_COORDINATOR_H

@@ -10,8 +10,7 @@
 #include <QDir>
 #include <QFileInfo>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 // ============================================================================
 // Singleton Instance
@@ -152,5 +151,4 @@ QStringList ResourcePaths::getSearchPaths() const {
     return m_searchPaths;
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

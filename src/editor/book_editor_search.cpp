@@ -10,7 +10,7 @@
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/search_forms.h>
 #include <kalahari/editor/text_footnotes.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <QScrollBar>
 #include <QTextBlock>
 #include <optional>

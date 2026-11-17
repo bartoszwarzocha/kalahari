@@ -11,7 +11,8 @@
 /// its
 /// QTextDocument from it, both when loading a chapter and when pasting Kalahari content.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_KML_DOCUMENT_MODEL_H
+#define KALAHARI_EDITOR_KML_DOCUMENT_MODEL_H
 
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/format_run.h>
@@ -31,8 +32,7 @@
 
 class QXmlStreamReader;
 
-namespace kalahari {
-namespace editor {
+namespace kalahari::editor {
 
 /// @brief KML reader: the paragraphs of a chapter with their text and formatting
 ///
@@ -65,7 +65,7 @@ public:
 
     /// @brief Check if document is empty
     /// @return true if no paragraphs
-    bool isEmpty() const;
+    [[nodiscard]] bool isEmpty() const;
 
     // =========================================================================
     // Paragraph Access
@@ -73,56 +73,62 @@ public:
 
     /// @brief Get paragraph count
     /// @return Number of paragraphs
-    size_t paragraphCount() const;
+    [[nodiscard]] size_t paragraphCount() const;
 
     /// @brief Get plain text of paragraph
     /// @param index Paragraph index (0-based)
     /// @return Plain text content
-    QString paragraphText(size_t index) const;
+    [[nodiscard]] QString paragraphText(size_t index) const;
 
     /// @brief Get format runs for paragraph
     /// @param index Paragraph index (0-based)
     /// @return Vector of format runs
-    const std::vector<FormatRun>& paragraphFormats(size_t index) const;
+    [[nodiscard]] const std::vector<FormatRun>& paragraphFormats(size_t index) const;
 
     /// @brief Get the paragraph's own alignment
     /// @param index Paragraph index (0-based)
     /// @return The alignment its align attribute sets; none without one (it is shown with
     ///         DEFAULT_PARAGRAPH_ALIGNMENT) or if index is out of range
-    Qt::Alignment paragraphAlignment(size_t index) const;
+    [[nodiscard]] Qt::Alignment paragraphAlignment(size_t index) const;
 
     /// @brief The paragraph's style: <h1>-<h3> are the headings, <p style="..."> names one
     /// @param index Paragraph index (0-based)
     /// @return The id of its style; empty for Normal (a <p> without one), an object, or if
     ///         index is out of range
-    QString paragraphStyle(size_t index) const;
+    [[nodiscard]] QString paragraphStyle(size_t index) const;
 
     /// @brief The object the paragraph is: <hr/>, <scene-break/> or <page-break/>
     /// @param index Paragraph index (0-based)
     /// @return The object; None for a paragraph of text or if index is out of range
-    TextObject paragraphObject(size_t index) const;
+    [[nodiscard]] TextObject paragraphObject(size_t index) const;
+
+    /// @brief What a scene break says of the scene after it: its attributes (title,
+    ///        description...; sceneBreakAttributeNames())
+    /// @param index Paragraph index (0-based)
+    /// @return None for a break without them, any other paragraph, or if index is out of range
+    [[nodiscard]] SceneBreakAttributes paragraphSceneAttributes(size_t index) const;
 
     /// @brief The paragraph's own formatting: indents, spacing, line spacing, breaks
     /// @param index Paragraph index (0-based)
     /// @return The parts its attributes set; none if index is out of range
-    ParagraphFormat paragraphOwnFormat(size_t index) const;
+    [[nodiscard]] ParagraphFormat paragraphOwnFormat(size_t index) const;
 
     /// @brief Whether the paragraph is a caption above its image (caption="above")
     /// @param index Paragraph index (0-based)
-    bool paragraphCaptionAbove(size_t index) const;
+    [[nodiscard]] bool paragraphCaptionAbove(size_t index) const;
 
     /// @brief The paragraph's place in a list: an item of <ol> or <ul>
     /// @param index Paragraph index (0-based)
     /// @return The item, its list numbered from 1 in the order of the lists of the KML
     ///         (a list with continue="true" has the number of the list before it); nothing
     ///         for a paragraph outside a list or if index is out of range
-    std::optional<ListItem> paragraphList(size_t index) const;
+    [[nodiscard]] std::optional<ListItem> paragraphList(size_t index) const;
 
     /// @brief The annotations on the place where the paragraph starts
     /// @param index Paragraph index (0-based)
     /// @return Annotations on a place (the annotations inside the paragraph are in its
     ///         format runs); none if index is out of range
-    AnnotationList paragraphStartAnnotations(size_t index) const;
+    [[nodiscard]] AnnotationList paragraphStartAnnotations(size_t index) const;
 
     /// @brief The cell of a table the paragraph is in: a paragraph of <td> or <th>
     /// @param index Paragraph index (0-based)
@@ -131,19 +137,19 @@ public:
     /// The paragraphs of a table follow one another, row by row and each row from left to
     /// right, as in the document. A cell without paragraphs (one under a cell spanning more
     /// rows or columns) has none here.
-    std::optional<TableCellPlace> paragraphCell(size_t index) const;
+    [[nodiscard]] std::optional<TableCellPlace> paragraphCell(size_t index) const;
 
     // =========================================================================
     // Tables
     // =========================================================================
 
     /// @brief The number of tables, in the order of the KML
-    size_t tableCount() const;
+    [[nodiscard]] size_t tableCount() const;
 
     /// @brief The shape of a table: its rows, columns, their widths, header and spans
     /// @param index Table index (0-based), as paragraphCell() gives it
     /// @return Its shape; an empty one if index is out of range
-    TableShape table(size_t index) const;
+    [[nodiscard]] TableShape table(size_t index) const;
 
     // =========================================================================
     // Annotations of a chapter
@@ -166,6 +172,7 @@ private:
         AnnotationList startAnnotations;        ///< Annotations on the paragraph's start
         QString style;                          ///< Id of its style (empty: Normal)
         TextObject object = TextObject::None;   ///< The object it is (None: text)
+        SceneBreakAttributes sceneAttributes;   ///< Of a scene break: what it says of its scene
         ParagraphFormat format;                 ///< Its own formatting
         std::optional<ListItem> list;           ///< Its place in a list
         std::optional<TableCellPlace> cell;     ///< Its cell in a table
@@ -267,7 +274,7 @@ private:
 
     /// @brief Append text read in a format to a paragraph: a format run when the format
     ///        has any property
-    static void appendText(Paragraph& para, const QString& text, const QTextCharFormat& format);
+    static void appendText(Paragraph& para, const QString& source, const QTextCharFormat& format);
 
     /// @brief Append an image read in a format to a paragraph: its character, with a format
     ///        run of the format and the image's properties
@@ -290,5 +297,6 @@ private:
     static const std::vector<FormatRun> s_emptyFormats;  ///< Empty format vector
 };
 
-} // namespace editor
-} // namespace kalahari
+} // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_KML_DOCUMENT_MODEL_H

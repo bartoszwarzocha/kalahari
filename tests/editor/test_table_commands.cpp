@@ -17,7 +17,7 @@
 #include <kalahari/editor/text_keys.h>
 #include <kalahari/editor/text_sorting.h>
 #include <kalahari/editor/text_tables.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QCoreApplication>
 #include <QKeyEvent>

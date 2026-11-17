@@ -8,7 +8,8 @@
 /// for multiple formats: KML (native), HTML, and plain text. Text from other programs is
 /// pasted in one of three modes (PasteMode).
 
-#pragma once
+#ifndef KALAHARI_EDITOR_CLIPBOARD_HANDLER_H
+#define KALAHARI_EDITOR_CLIPBOARD_HANDLER_H
 
 #include <kalahari/editor/editor_types.h>
 #include <QString>
@@ -286,3 +287,5 @@ public:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_CLIPBOARD_HANDLER_H

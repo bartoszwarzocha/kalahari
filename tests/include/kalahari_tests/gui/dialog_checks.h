@@ -12,6 +12,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
+#include "kalahari_tests/polish.h"
 
 #include <QAbstractButton>
 #include <QAbstractScrollArea>
@@ -23,7 +24,6 @@
 #include <QString>
 #include <QStringList>
 #include <QTabBar>
-#include <QTranslator>
 #include <QWidget>
 
 #include <functional>
@@ -110,28 +110,6 @@ inline void checkSmallScreen(const QWidget& window) {
         }
     }
 }
-
-/// The window in Polish while it lives: the translation the program ships
-class Polish {
-public:
-    Polish() {
-        m_loaded = m_translator.load(QStringLiteral(":/i18n/kalahari_pl.qm"));
-        if (m_loaded) {
-            QCoreApplication::installTranslator(&m_translator);
-        }
-    }
-    ~Polish() { QCoreApplication::removeTranslator(&m_translator); }
-    Polish(const Polish&) = delete;
-    Polish& operator=(const Polish&) = delete;
-    Polish(Polish&&) = delete;
-    Polish& operator=(Polish&&) = delete;
-
-    [[nodiscard]] bool loaded() const { return m_loaded; }
-
-private:
-    QTranslator m_translator;
-    bool m_loaded = false;
-};
 
 /// The program's way of opening the Settings dialog, until the test ends
 class SettingsOpener {

@@ -7,8 +7,7 @@
 #include "kalahari/gui/section_words.h"
 #include "kalahari/core/book_project.h"
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 SectionWords SectionWords::forPart(const core::ProjectBook* book, core::BookPlace place)
 {
@@ -211,5 +210,4 @@ QString SectionWords::capitalized(const QString& phrase)
     return phrase.left(1).toUpper() + phrase.mid(1);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

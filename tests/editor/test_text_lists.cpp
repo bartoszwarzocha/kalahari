@@ -14,7 +14,7 @@
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/text_lists.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QTextBlock>
 #include <QTextCursor>

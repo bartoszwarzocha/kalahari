@@ -39,11 +39,12 @@ constexpr int IMAGE_PROPERTIES[] = {
     IMAGE_FILTER_PROPERTY,          IMAGE_BRIGHTNESS_PROPERTY,    IMAGE_CONTRAST_PROPERTY,
     IMAGE_THRESHOLD_PROPERTY,       IMAGE_TRANSPARENCY_PROPERTY,  IMAGE_BORDER_LINE_PROPERTY,
     IMAGE_BORDER_WIDTH_PROPERTY,    IMAGE_BORDER_COLOR_PROPERTY,  IMAGE_BORDER_PADDING_PROPERTY,
-    IMAGE_SHADOW_PROPERTY};
+    IMAGE_SHADOW_PROPERTY,          IMAGE_WRAP_PROPERTY};
 
 /// The names of the filters and border lines in KML, in the order of their enums
 constexpr const char* FILTER_NAMES[] = {"", "grayscale", "sepia", "black-white", "wash"};
 constexpr const char* BORDER_NAMES[] = {"", "solid", "dashed", "dotted", "double"};
+constexpr const char* WRAP_NAMES[] = {"", "left", "right", "top-bottom"};
 
 /// The degrees of a quarter turn
 constexpr int QUARTER_TURN = 90;
@@ -223,6 +224,7 @@ std::optional<ImageProperties> imageOf(const QTextFormat& format)
     }
     image.borderPadding = format.doubleProperty(IMAGE_BORDER_PADDING_PROPERTY);
     image.shadow = format.boolProperty(IMAGE_SHADOW_PROPERTY);
+    image.wrap = static_cast<ImageWrap>(format.intProperty(IMAGE_WRAP_PROPERTY));
     return normalizedImage(image);
 }
 
@@ -276,6 +278,8 @@ void setImage(QTextCharFormat& format, const ImageProperties& image)
     set(IMAGE_BORDER_COLOR_PROPERTY, normalized.borderColor, !normalized.borderColor.isValid());
     set(IMAGE_BORDER_PADDING_PROPERTY, normalized.borderPadding, normalized.borderPadding <= 0.0);
     set(IMAGE_SHADOW_PROPERTY, true, !normalized.shadow);
+    set(IMAGE_WRAP_PROPERTY, static_cast<int>(normalized.wrap),
+        normalized.wrap == ImageWrap::Inline);
 }
 
 void clearImage(QTextCharFormat& format)
@@ -340,6 +344,28 @@ bool hasImages(const QTextBlock& block)
     return false;
 }
 
+bool holdsImageAlone(const QTextBlock& block)
+{
+    if (!block.isValid() || block.length() != 2 ||
+        block.text().at(0) != QChar::ObjectReplacementCharacter || tableOf(block) != nullptr) {
+        return false;
+    }
+    const QTextBlock::iterator it = block.begin();
+    return !it.atEnd() && it.fragment().isValid() && isImageFormat(it.fragment().charFormat());
+}
+
+std::optional<ImageProperties> floatingImage(const QTextBlock& block)
+{
+    if (!holdsImageAlone(block)) {
+        return std::nullopt;
+    }
+    std::optional<ImageProperties> image = imageOf(block.begin().fragment().charFormat());
+    if (!image || image->wrap == ImageWrap::Inline) {
+        return std::nullopt;
+    }
+    return image;
+}
+
 ImageProperties normalizedImage(const ImageProperties& image)
 {
     ImageProperties normalized = image;
@@ -374,6 +400,10 @@ ImageProperties normalizedImage(const ImageProperties& image)
     normalized.borderLine = line >= 0 && line < static_cast<int>(std::size(BORDER_NAMES))
                                 ? image.borderLine
                                 : ImageBorderLine::None;
+    const int wrap = static_cast<int>(image.wrap);
+    normalized.wrap = wrap >= 0 && wrap < static_cast<int>(std::size(WRAP_NAMES))
+                          ? image.wrap
+                          : ImageWrap::Inline;
     normalized.borderWidth =
         std::isfinite(image.borderWidth)
             ? std::round(std::clamp(image.borderWidth, MIN_IMAGE_BORDER_WIDTH,
@@ -595,6 +625,14 @@ QString imageFilterKml(ImageFilter filter)
                : QString();
 }
 
+QString imageWrapKml(ImageWrap wrap)
+{
+    const int index = static_cast<int>(wrap);
+    return index > 0 && index < static_cast<int>(std::size(WRAP_NAMES))
+               ? QLatin1String(WRAP_NAMES[index])
+               : QString();
+}
+
 // =============================================================================
 // Files
 // =============================================================================
@@ -717,6 +755,9 @@ std::vector<std::pair<QString, QString>> imageKmlAttributes(const ImagePropertie
     if (normalized.shadow) {
         add("shadow", QStringLiteral("true"));
     }
+    if (normalized.wrap != ImageWrap::Inline) {
+        add("wrap", imageWrapKml(normalized.wrap));
+    }
     return attributes;
 }
 
@@ -778,6 +819,7 @@ ImageProperties imagePropertiesOfKml(const QXmlStreamAttributes& attributes)
     const QString padding = attributes.value(QStringLiteral("border-padding")).toString();
     image.borderPadding = pointsOfKmlLength(padding).value_or(0.0);
     image.shadow = kmlFlag(attributes, "shadow");
+    image.wrap = static_cast<ImageWrap>(kmlName(attributes, "wrap", WRAP_NAMES));
     return normalizedImage(image);
 }
 

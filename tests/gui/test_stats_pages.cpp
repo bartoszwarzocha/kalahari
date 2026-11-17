@@ -15,16 +15,16 @@
 #include "kalahari/gui/widgets/stats_painter.h"
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QCoreApplication>
 #include <QGroupBox>
-#include <QRadioButton>
 #include <QSpinBox>
 #include <QTimeEdit>
 #include <QToolButton>
 #include <QTreeWidget>
 
 #include <algorithm>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::SettingsDialog;
@@ -41,6 +41,14 @@ T* withText(QWidget& page, const QString& text)
         return shown == text;
     });
     return found != all.end() ? *found : nullptr;
+}
+
+/// Choose the item of @p list with value @p value, as the writer does
+void choose(QComboBox* list, const QVariant& value)
+{
+    const int index = list->findData(value);
+    REQUIRE(index >= 0);
+    list->setCurrentIndex(index);
 }
 
 std::vector<std::string> sorted(std::vector<std::string> keys)
@@ -79,10 +87,10 @@ TEST_CASE("Statistics settings: Bar and Panel writes only what was changed",
     gui::StatsBarPage page;
     page.load();
     CHECK_FALSE(page.isChanged());
-    auto* line = withText<QRadioButton>(page, QStringLiteral("One line"));
-    REQUIRE(line != nullptr);
-    CHECK_FALSE(line->isChecked());
-    line->setChecked(true);
+    auto* look = page.findChild<QComboBox*>(QStringLiteral("statsBarLook"));
+    REQUIRE(look != nullptr);
+    CHECK(look->currentData().toString() != QStringLiteral("line"));
+    choose(look, QStringLiteral("line"));
     auto* streak = withText<QCheckBox>(page, QStringLiteral("Days in a row"));
     REQUIRE(streak != nullptr);
     streak->setChecked(false);
@@ -100,26 +108,33 @@ TEST_CASE("Statistics settings: Bar and Panel writes only what was changed",
 
     // The details of the graph are hidden until asked for
     REQUIRE(page.advancedToggle() != nullptr);
-    CHECK(page.advancedGroup()->isHidden());
+    REQUIRE(page.advancedGroup() != nullptr);
+    CHECK_FALSE(page.advancedGroup()->isVisibleTo(&page));
     page.advancedToggle()->click();
-    CHECK_FALSE(page.advancedGroup()->isHidden());
+    CHECK(page.advancedGroup()->isVisibleTo(&page));
 }
 
 TEST_CASE("Statistics settings: Counting", "[gui][settings][statistics]")
 {
     gui::StatsCountingPage page;
     page.load();
-    auto* written = withText<QRadioButton>(page, QStringLiteral("All the words written"));
-    auto* openBook = withText<QRadioButton>(page, QStringLiteral("Words of the open book only"));
-    auto* goal = withText<QRadioButton>(page, QStringLiteral("reach the daily goal"));
-    REQUIRE(written != nullptr);
-    REQUIRE(openBook != nullptr);
-    REQUIRE(goal != nullptr);
-    CHECK_FALSE(written->isChecked());
-    CHECK_FALSE(openBook->isChecked());
-    written->setChecked(true);
-    openBook->setChecked(true);
-    goal->setChecked(true);
+    auto* counted = page.findChild<QComboBox*>(QStringLiteral("statsGoalCounting"));
+    auto* books = page.findChild<QComboBox*>(QStringLiteral("statsDailyGoalBooks"));
+    auto* rule = page.findChild<QComboBox*>(QStringLiteral("statsStreakRule"));
+    auto* minimum = page.findChild<QSpinBox*>(QStringLiteral("statsStreakMinimum"));
+    REQUIRE(counted != nullptr);
+    REQUIRE(books != nullptr);
+    REQUIRE(rule != nullptr);
+    REQUIRE(minimum != nullptr);
+    CHECK(counted->currentData().toString() != QStringLiteral("written"));
+    CHECK(books->currentData().toBool());
+    CHECK(minimum->isEnabled() ==
+          (rule->currentData().toString() == QStringLiteral("minimumWords")));
+    choose(counted, QStringLiteral("written"));
+    choose(books, false);
+    choose(rule, QStringLiteral("dailyGoal"));
+    // The words a day wait while the daily goal decides
+    CHECK_FALSE(minimum->isEnabled());
 
     // The text pasted is not writing until the writer says so
     auto* pasted = withText<QCheckBox>(page, QStringLiteral("Count pasted text in the statistics"));
@@ -144,6 +159,32 @@ TEST_CASE("Statistics settings: Counting", "[gui][settings][statistics]")
     CHECK_FALSE(rules.allBooks);
     CHECK(rules.streakRule == core::StreakRule::DailyGoal);
     CHECK(rules.dayStartMinutes == 210);
+}
+
+TEST_CASE("Statistics settings: Counting, a cut to the clippings under the words added",
+          "[gui][settings][statistics][clippings]")
+{
+    gui::StatsCountingPage page;
+    page.load();
+    auto* counted = page.findChild<QComboBox*>(QStringLiteral("statsGoalCounting"));
+    auto* keepWords = page.findChild<QCheckBox*>(QStringLiteral("statsClippingsKeepWords"));
+    REQUIRE(counted != nullptr);
+    REQUIRE(keepWords != nullptr);
+
+    // By default a cut lowers the words of the day, as a deletion does
+    CHECK(counted->currentData().toString() == QStringLiteral("net"));
+    CHECK_FALSE(keepWords->isChecked());
+    CHECK(keepWords->isEnabled());
+
+    // Nothing lowers all the words written: the choice does not matter there
+    choose(counted, QStringLiteral("written"));
+    CHECK_FALSE(keepWords->isEnabled());
+    choose(counted, QStringLiteral("net"));
+    CHECK(keepWords->isEnabled());
+
+    keepWords->setChecked(true);
+    CHECK(page.apply() == std::vector<std::string>{"stats.clippingsKeepWords"});
+    CHECK(core::SettingsManager::getInstance().get<bool>("stats.clippingsKeepWords"));
 }
 
 TEST_CASE("Statistics settings: Notifications", "[gui][settings][statistics]")

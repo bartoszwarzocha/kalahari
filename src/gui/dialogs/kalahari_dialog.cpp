@@ -25,9 +25,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -52,6 +50,15 @@ std::function<void(QWidget*, const QString&)>& settingsOpener()
 void KalahariDialog::setSettingsOpener(std::function<void(QWidget*, const QString&)> opener)
 {
     settingsOpener() = std::move(opener);
+}
+
+bool KalahariDialog::openSettings(QWidget* over, const QString& page)
+{
+    if (!settingsOpener()) {
+        return false;
+    }
+    settingsOpener()(over, page);
+    return true;
 }
 
 KalahariDialog::KalahariDialog(QWidget* parent)
@@ -141,6 +148,11 @@ void KalahariDialog::setHeading(const QString& title, const QString& description
     m_titleLabel->setText(title);
     m_descriptionLabel->setText(description);
     m_descriptionLabel->setVisible(!description.isEmpty());
+}
+
+QString KalahariDialog::headingDescription() const
+{
+    return m_descriptionLabel->text();
 }
 
 void KalahariDialog::setHeadingIcon(const QString& iconId)
@@ -345,6 +357,4 @@ void KalahariDialog::updateHeadingIcon()
     m_iconLabel->setVisible(!icon.isNull());
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

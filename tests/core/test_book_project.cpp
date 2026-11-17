@@ -17,6 +17,7 @@
 #include <QTimeZone>
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace kalahari::core;
@@ -435,6 +436,111 @@ TEST_CASE("Book project: the description, own fields, links and turn of a materi
           { "id": "e1", "kind": "kalahari.base:chapter" },
           { "id": "e2", "kind": "kalahari.base:chapter", "links": ["e1", "e1"] } ] } ] })");
     CHECK(twice.books.at(0).mainElements.at(1).linkTargets() == QStringList{QStringLiteral("e1")});
+}
+
+TEST_CASE("Book project: the scenes in the plan of a text", "[core][bookproject][plot]") {
+    const char* const text = R"({
+      "format": 2, "id": "p",
+      "books": [
+        { "id": "b", "folder": "book", "main": [
+            { "id": "e1", "kind": "kalahari.base:chapter", "title": "Chapter 1",
+              "plot": { "pov": "Amara", "planned": [
+                { "title": "The Well", "description": "They find it dry.", "pov": "Amara",
+                  "color": "rose", "after": 2, "mood": "dry" },
+                { "title": "Night", "after": 0 } ] } } ] }
+      ]
+    })";
+    const BookProject project = projectOf(text);
+    const ProjectElement* chapter = project.findElement(QStringLiteral("e1"));
+    REQUIRE(chapter != nullptr);
+    REQUIRE(chapter->plot.planned.size() == 2);
+    const PlannedScene& well = chapter->plot.planned.at(0);
+    CHECK(well.after == 2);
+    CHECK(well.plot.title == QStringLiteral("The Well"));
+    CHECK(well.plot.description == QStringLiteral("They find it dry."));
+    CHECK(well.plot.pov == QStringLiteral("Amara"));
+    CHECK(well.plot.color == QStringLiteral("rose"));
+    // A scene in the plan has no state; a field this version does not know is kept
+    CHECK(well.plot.status.isEmpty());
+    CHECK(well.plot.extra.keys() == QStringList{QStringLiteral("mood")});
+    CHECK(chapter->plot.planned.at(1).after == 0);
+    CHECK(chapter->plot.planned.at(1).plot.title == QStringLiteral("Night"));
+    // Written back, the text has the same plan
+    const auto chapterOf = [](const QJsonObject& json) {
+        return json[QStringLiteral("books")][0][QStringLiteral("main")][0].toObject();
+    };
+    CHECK(chapterOf(project.toJson()) == chapterOf(jsonOf(text)));
+
+    // A plan alone is a plot; without it, a plot that says nothing more leaves no "plot"
+    BookProject planOnly = project;
+    planOnly.findElement(QStringLiteral("e1"))->plot.pov.clear();
+    CHECK_FALSE(planOnly.findElement(QStringLiteral("e1"))->plot.isEmpty());
+    planOnly.findElement(QStringLiteral("e1"))->plot.planned.clear();
+    CHECK(planOnly.findElement(QStringLiteral("e1"))->plot.isEmpty());
+    CHECK_FALSE(chapterOf(planOnly.toJson()).contains(QStringLiteral("plot")));
+}
+
+TEST_CASE("Book project: the description and the plot of a text on the plot board",
+          "[core][bookproject][plot]") {
+    const char* const text = R"({
+      "format": 2, "id": "p",
+      "books": [
+        { "id": "c2a1", "folder": "book", "main": [
+            { "id": "e2", "kind": "kalahari.base:part", "title": "Part One", "elements": [
+              { "id": "e3", "kind": "kalahari.base:chapter", "title": "Chapter 1",
+                "description": "Amara joins the caravan.",
+                "plot": { "pov": "Amara", "place": "Dakhla", "time": "Day 1", "color": "teal",
+                          "arc": "A",
+                          "opening": { "title": "The Market", "description": "She pays too much.",
+                                       "status": "final", "mood": "loud" } } } ] },
+            { "id": "e4", "kind": "kalahari.base:chapter", "title": "Chapter 2" } ] }
+      ]
+    })";
+    const BookProject project = projectOf(text);
+    const ProjectElement* chapter = project.findElement(QStringLiteral("e3"));
+    REQUIRE(chapter != nullptr);
+    CHECK(chapter->description == QStringLiteral("Amara joins the caravan."));
+    CHECK(chapter->plot.pov == QStringLiteral("Amara"));
+    CHECK(chapter->plot.place == QStringLiteral("Dakhla"));
+    CHECK(chapter->plot.time == QStringLiteral("Day 1"));
+    CHECK(chapter->plot.color == QStringLiteral("teal"));
+    // A field of the plot this version does not know is kept
+    CHECK(chapter->plot.extra.keys() == QStringList{QStringLiteral("arc")});
+    // The first scene of the text, before any scene break, with its own fields
+    CHECK(chapter->plot.opening.title == QStringLiteral("The Market"));
+    CHECK(chapter->plot.opening.description == QStringLiteral("She pays too much."));
+    CHECK(chapter->plot.opening.status == QStringLiteral("final"));
+    CHECK(chapter->plot.opening.pov.isEmpty());
+    CHECK(chapter->plot.opening.extra.keys() == QStringList{QStringLiteral("mood")});
+    CHECK_FALSE(chapter->plot.isEmpty());
+    // Written back, the text has the same fields
+    const auto chapterOf = [](const QJsonObject& json) {
+        return json[QStringLiteral("books")][0][QStringLiteral("main")][0]
+                   [QStringLiteral("elements")][0]
+                       .toObject();
+    };
+    CHECK(chapterOf(project.toJson()) == chapterOf(jsonOf(text)));
+
+    // A text without a plot has none and saves none
+    const ProjectElement* other = project.findElement(QStringLiteral("e4"));
+    REQUIRE(other != nullptr);
+    CHECK(other->plot.isEmpty());
+    CHECK(other->description.isEmpty());
+
+    // A plot that says nothing more leaves no "plot"
+    BookProject cleared = project;
+    cleared.findElement(QStringLiteral("e3"))->plot = {};
+    CHECK_FALSE(cleared == project);
+    const QJsonObject written = cleared.toJson()[QStringLiteral("books")][0][QStringLiteral(
+        "main")][0][QStringLiteral("elements")][0].toObject();
+    CHECK_FALSE(written.contains(QStringLiteral("plot")));
+    CHECK(written[QStringLiteral("description")].toString() ==
+          QStringLiteral("Amara joins the caravan."));
+
+    // Only the color changed is another project
+    BookProject recolored = project;
+    recolored.findElement(QStringLiteral("e3"))->plot.color = QStringLiteral("rose");
+    CHECK_FALSE(recolored == project);
 }
 
 TEST_CASE("Book project: a link with its role, paragraph, excerpt and note",
@@ -1227,7 +1333,8 @@ TEST_CASE("Book project: a book takes kinds of other types", "[core][bookproject
     CHECK(references(project.kindsIn(registry, BookPlace::Workshop)) ==
           "kalahari.base:mindmap, kalahari.base:timeline, kalahari.base:character, "
           "kalahari.base:location, kalahari.base:item, kalahari.base:work_note, "
-          "kalahari.base:cover, kalahari.base:quote, kalahari.base:web_page, "
+          "kalahari.base:clipping, kalahari.base:cover, kalahari.base:quote, "
+          "kalahari.base:web_page, "
           "kalahari.base:picture, kalahari.base:document, kalahari.base:publication, "
           "kalahari.base:recording, kalahari.base:other_file, kalahari.screenplay:logline");
     CHECK(references(project.kindsIn(registry, BookPlace::Main)) ==
@@ -1321,6 +1428,9 @@ TEST_CASE("Book project: kinds of packages that are not installed", "[core][book
 
 TEST_CASE("Book project: a .klh file with problems", "[core][bookproject]") {
     struct Broken {
+        Broken(const char* name, QByteArray text, const char* message)
+            : what(name), json(std::move(text)), problem(message) {}
+
         const char* what;
         QByteArray json;
         const char* problem;
@@ -1525,6 +1635,41 @@ TEST_CASE("Book project: a .klh file with problems", "[core][bookproject]") {
         {"a view that is not an object",
          withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "view": 90 })"),
          "books[0].main[0].view: must be an object"},
+        {"a plot that is not an object",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "plot": "Amara" })"),
+         "books[0].main[0].plot: must be an object"},
+        {"a point of view that is not a text",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "plot": { "pov": 3 } })"),
+         "books[0].main[0].plot.pov: must be a text"},
+        {"a first scene that is not an object",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "plot": { "opening": "The Market" } })"),
+         "books[0].main[0].plot.opening: must be an object"},
+        {"a title of the first scene that is not a text",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "plot": { "opening": { "title": 1 } } })"),
+         "books[0].main[0].plot.opening.title: must be a text"},
+        {"a plan that is not a list",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "plot": { "planned": { "title": "The Well" } } })"),
+         "books[0].main[0].plot.planned: must be a list"},
+        {"a scene in the plan that is not an object",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "plot": { "planned": ["The Well"] } })"),
+         "books[0].main[0].plot.planned[0]: must be an object"},
+        {"a place of a scene in the plan below 0",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "plot": { "planned": [ { "title": "The Well", "after": -1 } ] } })"),
+         "books[0].main[0].plot.planned[0].after: must be a whole number, 0 or more"},
+        {"a place of a scene in the plan that is not a whole number",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "plot": { "planned": [ { "after": 1.5 } ] } })"),
+         "books[0].main[0].plot.planned[0].after: must be a whole number, 0 or more"},
+        {"a title of a scene in the plan that is not a text",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "plot": { "planned": [ { "title": 1 } ] } })"),
+         "books[0].main[0].plot.planned[0].title: must be a text"},
         {"a web address that is not a text",
          withElement(R"({ "id": "e1", "kind": "kalahari.base:material", "url": 7 })"),
          "books[0].main[0].url: must be a web address"},

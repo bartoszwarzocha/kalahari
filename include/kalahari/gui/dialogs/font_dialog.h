@@ -5,7 +5,8 @@
 /// @brief Format > Font...: the font, style, size, colors, effects and letter spacing of the
 ///        selected text
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_FONT_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_FONT_DIALOG_H
 
 #include "kalahari/editor/character_format.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
@@ -26,8 +27,7 @@ class QPaintEvent;
 class QPushButton;
 class QTabWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class ColorMenu;
 
@@ -49,7 +49,7 @@ public:
     /// @brief The font the sample is drawn in
     [[nodiscard]] QFont sampleFont() const;
 
-    QSize sizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -177,5 +177,6 @@ private:
 };
 
 } // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DIALOGS_FONT_DIALOG_H

@@ -5,7 +5,7 @@
 /// @brief BookEditor implementation (OpenSpec #00042 Phase 3.1-3.5)
 
 #include <kalahari/editor/book_editor.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <kalahari/core/logger.h>
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/buffer_commands.h>
@@ -36,12 +36,6 @@
 #include <utility>
 
 namespace kalahari::editor {
-
-// Default smooth scroll duration in milliseconds
-constexpr int DEFAULT_SMOOTH_SCROLL_DURATION = 150;
-
-// Default cursor blink interval in milliseconds
-constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;
 
 // The longest text of an annotation its mark's tooltip shows
 constexpr qsizetype MARK_TOOLTIP_LENGTH = 600;
@@ -180,27 +174,11 @@ void invalidateParagraphCounts(const QTextDocument* doc, int from, int charsAdde
 
 BookEditor::BookEditor(QWidget* parent)
     : QWidget(parent)
-    , m_verticalScrollBar(nullptr)
-    , m_scrollAnimation(nullptr)
-    , m_smoothScrollingEnabled(false)  // Disabled by default for stability in tests
-    , m_smoothScrollDuration(DEFAULT_SMOOTH_SCROLL_DURATION)
-    , m_updatingScrollBar(false)
     , m_cursorPosition{0, 0}
-    , m_cursorBlinkTimer(nullptr)
-    , m_cursorVisible(true)
-    , m_cursorBlinkingEnabled(true)
-    , m_cursorBlinkInterval(DEFAULT_CURSOR_BLINK_INTERVAL)
-    , m_preferredCursorX(0.0)
-    , m_preferredCursorXValid(false)
     , m_selection{}
     , m_selectionAnchor{0, 0}
-    , m_isDragging(false)
-    , m_clickTimer(nullptr)
-    , m_clickCount(0)
     , m_lastClickPos(0.0, 0.0)
-    , m_preeditString()
     , m_preeditStart{0, 0}
-    , m_hasComposition(false)
     // The QTextDocument is created by fromKml(), or empty by the first edit
     , m_textBuffer(nullptr)
 {
@@ -511,19 +489,10 @@ bool BookEditor::event(QEvent* event)
             QToolTip::showText(help->globalPos(), tip, this);
             return true;
         }
-        // The mark beside a paragraph: the titles of the materials linked with it
+        // The mark beside a paragraph: the materials or the cards linked with it, the clippings
+        // cut from it
         if (const std::optional<ParagraphMark> marked = paragraphMarkAt(QPointF(help->pos()))) {
-            //: The tooltip of the paperclip beside a paragraph, over the titles of the
-            //: materials. In Polish: Powiązane materiały
-            QStringList lines{
-                QStringLiteral("<b>%1</b>").arg(tr("Linked materials").toHtmlEscaped())};
-            for (const QString& title : marked->titles) {
-                lines << title.toHtmlEscaped();
-            }
-            QToolTip::showText(help->globalPos(),
-                               QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
-                                   .arg(lines.join(QStringLiteral("<br>"))),
-                               this);
+            QToolTip::showText(help->globalPos(), paragraphMarkToolTip(*marked), this);
             return true;
         }
         // A field: what it shows and how it changes
@@ -1095,6 +1064,7 @@ void BookEditor::replaceWithKml(const QString& kml)
     cursor.setBlockCharFormat(QTextCharFormat());  // nothing left of the old first paragraph
     appendParagraphs(cursor, content);
     cursor.endEditBlock();
+    m_paragraphMarks.clear();
     anchorParagraphMarks(marks);
     syncParagraphMarks();
 
@@ -1217,9 +1187,11 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     // them cannot be redone any more
     m_undoLevel = 0;
     m_pasteLevels.clear();
+    m_movedLevels.clear();
     connect(m_textBuffer.get(), &QTextDocument::undoCommandAdded, this, [this]() {
         const int level = ++m_undoLevel;
         m_pasteLevels.removeIf([level](int paste) { return paste >= level; });
+        m_movedLevels.removeIf([level](int moved) { return moved >= level; });
     });
 
     // The grammar of the paragraphs edited is checked when the writer stops typing (the

@@ -26,8 +26,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -465,5 +464,4 @@ void ColorMenu::enterSwatches(ColorSwatches* swatches)
     swatches->setCurrentIndex(m_upward ? lastRow * swatches->columns() : 0);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

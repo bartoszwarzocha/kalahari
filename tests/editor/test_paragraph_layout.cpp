@@ -18,7 +18,7 @@
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/view_modes.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QImage>
 #include <QScrollBar>

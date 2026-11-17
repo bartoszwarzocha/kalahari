@@ -13,7 +13,7 @@
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_source_adapter.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QClipboard>
 #include <QCoreApplication>
@@ -299,7 +299,7 @@ TEST_CASE("Links: Insert > Link makes, edits and removes them as one undo step e
 }
 
 TEST_CASE("Links: the context menu of a link, Ctrl+click and the link under the mouse",
-          "[editor][links][menu]") {
+          "[editor][links][menu][clipboard]") {
     auto editor = editorWith(kml("<p>A <a href=\"https://example.com\">link</a> here</p>"));
     editor->setCursorPosition({0, 3});
     QStringList texts;

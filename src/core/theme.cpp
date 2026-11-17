@@ -11,8 +11,7 @@
 #include <cmath>
 #include <stdexcept>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 namespace {
 
@@ -422,5 +421,4 @@ nlohmann::json Theme::toJson() const {
     return json;
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

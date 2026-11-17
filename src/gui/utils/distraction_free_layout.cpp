@@ -23,9 +23,7 @@
 #include <QToolBar>
 #include <QVariant>
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 namespace {
 
@@ -323,6 +321,4 @@ void DistractionFreeLayout::showParts() {
     }
 }
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils

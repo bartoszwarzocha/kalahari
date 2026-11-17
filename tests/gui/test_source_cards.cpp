@@ -6,7 +6,7 @@
 /// in the bibliography, the bookmarks, the quotes from a source and where a quote comes from;
 /// the list and the node of the sources
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
@@ -36,7 +36,7 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 namespace core = kalahari::core;
 namespace gui = kalahari::gui;
@@ -115,7 +115,7 @@ SourceDescription atlas() {
 
 TEST_CASE("Source card: the description of a publication, its fields by kind, its people and "
           "its entry in the bibliography",
-          "[gui][materials][sources]") {
+          "[gui][materials][sources][clipboard]") {
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Dunes"));
     auto& pm = novel.pm;
@@ -223,7 +223,7 @@ TEST_CASE("Source card: the description of a publication, its fields by kind, it
 
 TEST_CASE("Source card: a description pasted from BibTeX, and a description emptied is no "
           "source",
-          "[gui][materials][sources]") {
+          "[gui][materials][sources][clipboard]") {
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Dunes"));
     auto& pm = novel.pm;
@@ -376,7 +376,7 @@ TEST_CASE("Quote card: where a quote comes from, its reference, and the quotes o
 }
 
 TEST_CASE("Sources: the list of the materials with a description and its node in the Navigator",
-          "[gui][materials][sources]") {
+          "[gui][materials][sources][clipboard]") {
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Dunes"));
     auto& pm = novel.pm;

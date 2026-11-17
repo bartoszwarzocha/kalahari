@@ -50,8 +50,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -978,5 +977,4 @@ QList<QDockWidget*> DockCoordinator::rightDocks() const {
             m_statisticsDock};
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

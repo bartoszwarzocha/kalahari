@@ -10,14 +10,14 @@
 /// book open read-only it says why, with the export of the book's archive. Under a text it
 /// can say what was just done to it, with a button that undoes it (showNotice()).
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_STANDALONE_INFO_BAR_H
+#define KALAHARI_GUI_WIDGETS_STANDALONE_INFO_BAR_H
 
 #include "kalahari/gui/widgets/info_bar.h"
 
 #include <QString>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Info bar displayed for standalone files not part of the book, for a book open
 /// read-only (showReadOnlyBook()), and for a notice under a text (showNotice())
@@ -65,7 +65,7 @@ public:
 
     /// @brief Get the current file path
     /// @return Current file path
-    QString filePath() const { return m_filePath; }
+    [[nodiscard]] QString filePath() const { return m_filePath; }
 
     /// @brief Whether a book is open: without one the file can go into none, so the button is
     /// greyed out and its tooltip says why; nor into a book open read-only (@p readOnly). A new
@@ -79,7 +79,7 @@ public:
 
     /// @brief Whether it says that the open book is read-only (showReadOnlyBook()), not
     /// something of a file
-    bool showsReadOnlyBook() const { return m_readOnlyBook; }
+    [[nodiscard]] bool showsReadOnlyBook() const { return m_readOnlyBook; }
 
     /// @brief Say @p message of what was just done to the text in front, with a button
     /// @p actionText (noticeActionClicked()), in place of a file; setFilePath() and
@@ -91,7 +91,7 @@ public:
                     const QString& actionToolTip = QString());
 
     /// @brief Whether it shows a notice (showNotice())
-    bool showsNotice() const { return m_notice; }
+    [[nodiscard]] bool showsNotice() const { return m_notice; }
 
 signals:
     /// @brief Emitted when the "Add to Book" button is clicked
@@ -110,7 +110,7 @@ signals:
 
 private:
     /// Whether the button saves a new file that no book can take ("Save As...")
-    bool savesAs() const;
+    [[nodiscard]] bool savesAs() const;
 
     /// The text, the state and the tooltip of the button for the file and the book
     void updateAction();
@@ -122,5 +122,6 @@ private:
     bool m_bookReadOnly = false;  ///< The open book is read-only (setBookOpen())
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_STANDALONE_INFO_BAR_H

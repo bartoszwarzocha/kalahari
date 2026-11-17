@@ -47,6 +47,9 @@ constexpr qreal AUTO_SCROLL_DROP_BAND = 24.0;      // px at the top and bottom e
 constexpr qreal AUTO_SCROLL_MIN_STEP = 2.0;        // px
 constexpr qreal AUTO_SCROLL_MAX_STEP = 60.0;       // px
 
+/// The longest text Create Card on the context menu takes for the name of a new card
+constexpr qsizetype MAX_CARD_NAME = 80;
+
 namespace {
 
 /// @brief Whether a key types: a character (also with AltGr), Backspace or Delete. A
@@ -65,7 +68,7 @@ class MenuCommandKeys : public QObject {
 public:
     explicit MenuCommandKeys(const QAction* command) : m_command(command) {}
 
-    bool pressed() const { return m_pressed; }
+    [[nodiscard]] bool pressed() const { return m_pressed; }
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override {
@@ -85,7 +88,7 @@ protected:
     }
 
 private:
-    bool isCommandKey(const QKeyEvent& event) const {
+    [[nodiscard]] bool isCommandKey(const QKeyEvent& event) const {
         if (m_command == nullptr || !m_command->isEnabled()) {
             return false;
         }
@@ -1149,6 +1152,53 @@ void BookEditor::setContextMenuActions(const QList<QAction*>& actions)
     m_contextMenuActions = actions;
 }
 
+void BookEditor::setCardKinds(const QList<CardKindChoice>& kinds)
+{
+    m_cardKinds = kinds;
+}
+
+bool BookEditor::addCreateCardMenu(QMenu& menu, const QString& text)
+{
+    const QString name = text.simplified();
+    if (m_cardKinds.isEmpty() || isReadOnly() || name.isEmpty() || name.size() > MAX_CARD_NAME) {
+        return false;
+    }
+    //: The submenu of the context menu of a word or a selection with the kinds of cards: a new
+    //: card named after them. In Polish: &Utwórz kartę
+    QMenu* cards = menu.addMenu(tr("C&reate Card"));
+    cards->setToolTipsVisible(true);
+    for (const CardKindChoice& kind : std::as_const(m_cardKinds)) {
+        QAction* action = cards->addAction(kind.icon, kind.text);
+        connect(action, &QAction::triggered, this,
+                [this, name, id = kind.kind]() { emit createCardAsked(name, id); });
+    }
+    return true;
+}
+
+void BookEditor::setContextMenuCardActions(const ContextMenuCardActions& actions)
+{
+    m_contextMenuCardActions = actions;
+}
+
+void BookEditor::addCardMenus(QMenu& menu, const QString& word)
+{
+    // A misspelled word has Create Card with its words (addSpellingActions()), a selection in
+    // one paragraph has it here; the commands of the cards of the paragraph follow it
+    if (word.isEmpty()) {
+        addCreateCardMenu(menu, searchTextFromSelection());
+    }
+    const ContextMenuCardActions& commands = m_contextMenuCardActions;
+    if (commands.link != nullptr) {
+        menu.addAction(commands.link);
+    }
+    if (commands.open != nullptr && commands.open->isEnabled()) {
+        menu.addAction(commands.open);
+    }
+    if (!menu.isEmpty() && !menu.actions().constLast()->isSeparator()) {
+        menu.addSeparator();
+    }
+}
+
 void BookEditor::setContextMenuEditActions(const ContextMenuEditActions& actions)
 {
     m_contextMenuEditActions = actions;
@@ -1328,6 +1378,7 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
                           replacing(grammarError->startPos,
                                     grammarError->startPos + grammarError->length));
     }
+    addCardMenus(menu, word);
 
     // The note whose number is at the cursor: edit its text, make it the other kind, delete it
     // (as in the mockup approved on 12.10.2026)
@@ -1474,12 +1525,35 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
             menu.addAction(text, this, edit);
         }
     };
+    // A command of the application under a name of its own, which fits the menu of the text:
+    // its icon, its keys only shown, its state and why it is greyed out
+    const auto addCommandItem = [&menu](QAction* command, const QString& text) {
+        if (command == nullptr) {
+            return;
+        }
+        QString shown = text;
+        if (const QKeySequence keys = command->shortcut(); !keys.isEmpty()) {
+            shown += QLatin1Char('\t') + keys.toString(QKeySequence::NativeText);
+        }
+        QAction* item = menu.addAction(command->icon(), shown, command, &QAction::trigger);
+        item->setEnabled(command->isEnabled());
+        item->setToolTip(command->toolTip());
+        item->setStatusTip(command->statusTip());
+    };
     const ContextMenuEditActions& commands = m_contextMenuEditActions;
     if (hasSelection()) {
         addEditItem(commands.cut, tr("Cu&t"), &BookEditor::cut, true);
+    }
+    // Also without a selection: the paragraph with the cursor (the settings)
+    //: The item of the text's context menu under Cut. In Polish: Wytni&j do wycinków
+    addCommandItem(commands.cutToClippings, tr("Cut to C&lippings"));
+    if (hasSelection()) {
         addEditItem(commands.copy, tr("&Copy"), &BookEditor::copy, false);
     }
     addEditItem(commands.paste, tr("&Paste"), &BookEditor::paste, true);
+    //: The item of the text's context menu under Paste: Insert > Clipping from the Workshop.
+    //: In Polish: Wstaw w&ycinek...
+    addCommandItem(commands.insertClipping, tr("&Insert Clipping..."));
 
     // Also without a selection, as in the program's text fields
     menu.addSeparator();
@@ -1498,18 +1572,9 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         menu.addAction(action);
     }
 
-    // The materials linked with the paragraph, whose mark is beside it: from the keyboard too
-    const QList<ParagraphMark> marks = paragraphMarks();
-    const auto marked =
-        std::find_if(marks.cbegin(), marks.cend(),
-                     [&pos](const ParagraphMark& mark) { return mark.paragraph == pos.paragraph; });
-    if (marked != marks.cend()) {
-        menu.addSeparator();
-        //: The submenu of the materials linked with the paragraph. In Polish: Powiązane
-        //: mate&riały
-        addParagraphMarkItems(*menu.addMenu(m_paragraphMarkIcon, tr("Linked Mate&rials")),
-                              *marked);
-    }
+    // The materials and the cards linked with the paragraph and the clippings cut from it,
+    // whose marks are beside it: from the keyboard too
+    addParagraphMarkMenus(menu, pos.paragraph);
 
     // Color mode toggle
     menu.addSeparator();

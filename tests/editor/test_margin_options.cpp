@@ -11,7 +11,7 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/text_tables.h>
 #include <kalahari/editor/view_modes.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QCoreApplication>
 #include <QIcon>

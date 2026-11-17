@@ -80,7 +80,7 @@ struct FormatPiece {
     int start = 0;           ///< First character (for a paragraph: where it starts)
     int end = 0;             ///< After the last character (for a paragraph: -1)
     QTextCharFormat format;  ///< The format of the piece
-    bool isParagraph() const { return end < 0; }
+    [[nodiscard]] bool isParagraph() const { return end < 0; }
 };
 
 /// @brief The pieces of the text from @p from to @p to with annotations, and the

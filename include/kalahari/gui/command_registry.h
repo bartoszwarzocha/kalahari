@@ -29,7 +29,8 @@
 /// }
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_GUI_COMMAND_REGISTRY_H
+#define KALAHARI_GUI_COMMAND_REGISTRY_H
 
 #include "kalahari/gui/command.h"
 #include <QObject>
@@ -45,8 +46,7 @@
 
 class QAction;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // ============================================================================
 // Command Execution Types
@@ -129,7 +129,8 @@ public:
     /// @note Use this overload to avoid unnecessary copies
     void registerCommand(Command&& command);
 
-    /// @brief Unregister command from registry
+    /// @brief Unregister command from registry, with its action (it leaves the menus and
+    ///        toolbars)
     /// @param commandId Command ID to unregister
     /// @note If command doesn't exist, this is a no-op (safe to call)
     void unregisterCommand(const std::string& commandId);
@@ -347,5 +348,6 @@ private:
     mutable std::mutex m_mutex;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_COMMAND_REGISTRY_H

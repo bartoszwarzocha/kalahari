@@ -17,7 +17,7 @@
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/render_context.h>
 #include <kalahari/editor/find_replace_bar.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QElapsedTimer>
 #include <QFontMetricsF>

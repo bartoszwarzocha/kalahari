@@ -20,7 +20,7 @@ namespace {
 /// The Polish names of two languages, as the Polish translation of the program has them
 class PolishNames : public QTranslator {
 public:
-    bool isEmpty() const override { return false; }
+    [[nodiscard]] bool isEmpty() const override { return false; }
 
     QString translate(const char* context, const char* sourceText, const char* /*disambiguation*/,
                       int /*n*/) const override {

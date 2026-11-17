@@ -9,7 +9,8 @@
 /// gives it. Lengths are in points, as in KML: the layout shows them in the proportions of
 /// the style's lengths (KalahariTextDocumentLayout).
 
-#pragma once
+#ifndef KALAHARI_EDITOR_PARAGRAPH_FORMAT_H
+#define KALAHARI_EDITOR_PARAGRAPH_FORMAT_H
 
 #include <QString>
 #include <QTextFormat>
@@ -91,7 +92,7 @@ struct ParagraphFormat {
                                            ///< without a value)
 
     /// @brief Whether no part has a value
-    bool isEmpty() const;
+    [[nodiscard]] bool isEmpty() const;
 
     bool operator==(const ParagraphFormat&) const = default;
 };
@@ -136,3 +137,5 @@ std::vector<std::pair<QString, QString>> paragraphFormatToKml(const ParagraphFor
 QString kmlNumber(qreal value);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_PARAGRAPH_FORMAT_H

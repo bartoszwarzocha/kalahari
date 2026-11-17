@@ -12,7 +12,7 @@
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/text_images.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -63,9 +63,10 @@ QImage filled(const QSize& size, const QColor& color) {
 struct BookFolder {
     QTemporaryDir dir;
 
-    QString path() const { return dir.path(); }
+    [[nodiscard]] QString path() const { return dir.path(); }
 
-    QString add(const QString& name, const QImage& picture) const {
+    // Not const: it writes a file into the folder
+    QString add(const QString& name, const QImage& picture) {
         QDir(dir.path()).mkpath(QStringLiteral("images"));
         const QString source = QStringLiteral("images/") + name;
         REQUIRE(picture.save(dir.path() + QLatin1Char('/') + source));

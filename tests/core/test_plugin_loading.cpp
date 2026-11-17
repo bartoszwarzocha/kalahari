@@ -8,13 +8,33 @@
 #include <kalahari/core/plugin_manager.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/python_interpreter.h>
-#include <kalahari/core/settings_manager.h>
+#include <kalahari/core/unicode_paths.h>
+
+#include "test_support/plugin_signing.h"
+
+#include <QTemporaryDir>
 
 #include <filesystem>
 
 using namespace kalahari::core;
 
-// Test fixture for plugin loading tests
+namespace {
+
+/// The test plugin of the repository (copied next to the tests' build by CMake)
+std::filesystem::path helloPluginFile() {
+    for (const std::filesystem::path& folder : PluginManager::getInstance().pluginFolders()) {
+        const std::filesystem::path file = folder / "hello_plugin.kplugin";
+        if (std::filesystem::is_regular_file(file)) {
+            return file;
+        }
+    }
+    return {};
+}
+
+}  // namespace
+
+// The hello plugin, signed with the tests' key, in a folder of its own: the program loads
+// only signed plugins
 class PluginLoadingTestFixture {
 public:
     PluginLoadingTestFixture() {
@@ -22,16 +42,31 @@ public:
         Logger::getInstance().init(
             (std::filesystem::temp_directory_path() / "kalahari_test_plugin_loading.log").string());
 
-        // Allow unsigned plugins for testing (test plugins are not signed)
-        SettingsManager::getInstance().set("plugins.allowUnsigned", true);
+        REQUIRE(m_folder.isValid());
+        const std::filesystem::path source = helloPluginFile();
+        REQUIRE_FALSE(source.empty());
+        const std::filesystem::path copy =
+            pathOfText(m_folder.path().toStdString()) / "hello_plugin.kplugin";
+        REQUIRE(std::filesystem::copy_file(source, copy));
+        kalahari::test::signPlugin(copy);
+        PluginManager::getInstance().setPluginFolders({copy.parent_path()});
 
         // Initialize Python interpreter
         PythonInterpreter::getInstance().initialize();
     }
 
     ~PluginLoadingTestFixture() {
-        // Cleanup is automatic (singletons)
+        auto& manager = PluginManager::getInstance();
+        manager.unloadAll();
+        manager.setPluginFolders({});
+        manager.discoverPlugins();
     }
+
+    PluginLoadingTestFixture(const PluginLoadingTestFixture&) = delete;
+    PluginLoadingTestFixture& operator=(const PluginLoadingTestFixture&) = delete;
+
+private:
+    QTemporaryDir m_folder;
 };
 
 TEST_CASE("Plugin Manager - Discovery", "[plugin]") {

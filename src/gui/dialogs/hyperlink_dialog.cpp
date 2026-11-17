@@ -14,9 +14,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 HyperlinkDialog::HyperlinkDialog(QWidget* parent)
     : KalahariDialog(parent)
@@ -83,6 +81,4 @@ void HyperlinkDialog::updateAcceptButton()
     acceptButton()->setEnabled(!m_address->text().trimmed().isEmpty());
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

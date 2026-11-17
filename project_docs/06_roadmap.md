@@ -363,14 +363,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 5.2 Release Checklist
 
-**When creating version section:**
-1. Move all `[Unreleased]` entries to new version section
-2. Add version number and date: `## [X.Y.Z] - YYYY-MM-DD`
-3. Organize entries by category (Added, Changed, Fixed, etc.)
-4. Create new empty `[Unreleased]` section at top
-5. Update ROADMAP.md if phase milestone
-6. Create git tag if development milestone: `git tag v0.1.0-alpha.1`
-7. Push tag to GitHub: `git push --tags`
+The version is written in five files: `CMakeLists.txt` (the number and the release stage,
+`KALAHARI_VERSION_SUFFIX`), `vcpkg.json`, `README.md` (**Current Version:**), `ROADMAP.md`
+(**Version:**) and `CHANGELOG.md` (the section of the version). `scripts/release.py` changes
+them together, and the CTest test `scripts.release_check` fails when they disagree.
+
+1. Write a short summary of the release under `## [Unreleased]`, before its first `###`:
+   it becomes the text of the release page on GitHub.
+2. `python scripts/release.py bump X.Y.Z --date YYYY-MM-DD` sets the version in the five
+   files (release stage "alpha" unless `--suffix` says otherwise; `--suffix ""` for a final
+   release) and moves the entries of `[Unreleased]` to `## [X.Y.Z-alpha] - YYYY-MM-DD`, with
+   one heading for each kind of change (Added, Changed, Deprecated, Removed, Fixed,
+   Security), leaving `[Unreleased]` empty.
+3. Bring the rest of README.md (Next Release, Last Updated, the state of the phase) and
+   ROADMAP.md (checkboxes, Next Release, Last Updated) up to date, then run
+   `python scripts/release.py check`.
+4. Merge the release pull request once its CI passes on the three systems.
+5. With the owner's consent only, tag the merge commit on main and push the tag:
+   `git tag -a vX.Y.Z-alpha -m "Kalahari X.Y.Z-alpha"` and `git push origin vX.Y.Z-alpha`.
+6. The RELEASE workflow (`.github/workflows/release.yml`) checks that the tag is the version
+   of the files and makes a **draft** pre-release on GitHub with the summary of step 1.
+   Nothing is public until the owner publishes the draft. No installers are attached yet:
+   they belong to Phase 4.
 
 **Example:**
 ```markdown

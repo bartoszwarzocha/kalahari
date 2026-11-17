@@ -6,8 +6,7 @@
 
 #include "kalahari/gui/kalahari_syntax_highlighter.h"
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 KalahariSyntaxHighlighter::KalahariSyntaxHighlighter(QTextDocument* parent)
     : QSyntaxHighlighter(parent)
@@ -29,5 +28,4 @@ void KalahariSyntaxHighlighter::highlightBlock(const QString& text) {
     Q_UNUSED(text);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

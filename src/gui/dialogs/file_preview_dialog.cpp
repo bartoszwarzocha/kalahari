@@ -19,9 +19,7 @@
 #include <QTextBrowser>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -83,6 +81,4 @@ FilePreviewDialog::FilePreviewDialog(const core::ChapterDocument& chapter, const
     resize(size);
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

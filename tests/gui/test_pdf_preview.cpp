@@ -6,7 +6,7 @@
 /// a quote, a bookmark and a highlight from it, the PDF file on the card of its material, and
 /// how it opens
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
@@ -60,7 +60,7 @@
 #include <optional>
 #include <string>
 
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 namespace core = kalahari::core;
 namespace gui = kalahari::gui;
@@ -427,7 +427,7 @@ TEST_CASE("PDF preview: the search finds the hits, goes to them and selects them
 }
 
 TEST_CASE("PDF preview: the selection is copied, copied with the reference and makes a quote",
-          "[gui][materials][pdf]") {
+          "[gui][materials][pdf][clipboard]") {
     gui::registerAllIcons();
     const UsualPdfSettings usual;
     test::OpenNovel novel(QStringLiteral("Dunes"));

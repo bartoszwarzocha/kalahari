@@ -15,8 +15,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -99,5 +98,4 @@ QSize PathLabel::room() const {
             2 * margin() + margins.top() + margins.bottom()};
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

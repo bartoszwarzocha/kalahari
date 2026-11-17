@@ -18,7 +18,7 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/text_footnotes.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include <QDir>
 #include <QDirIterator>
 #include <QRegularExpression>

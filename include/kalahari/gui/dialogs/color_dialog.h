@@ -4,7 +4,8 @@
 /// @file color_dialog.h
 /// @brief The program's own window for choosing a color
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_COLOR_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_COLOR_DIALOG_H
 
 #include "kalahari/gui/dialogs/color_palettes.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
@@ -26,9 +27,7 @@ class QSpinBox;
 class QToolButton;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief A color to choose, in place of QColorDialog
 ///
@@ -62,7 +61,7 @@ public:
                 QWidget* parent = nullptr);
 
     /// @brief The color chosen so far
-    QColor color() const { return m_color; }
+    [[nodiscard]] QColor color() const { return m_color; }
 
     /// @brief Choose a color
     void setColor(const QColor& color);
@@ -92,49 +91,49 @@ public:
     void accept() override;
 
     /// @brief The palettes, in the order of the list of palettes
-    const QList<ColorPalette>& palettes() const { return m_palettes; }
+    [[nodiscard]] const QList<ColorPalette>& palettes() const { return m_palettes; }
 
     /// @brief The list of palettes (for tests)
-    QComboBox* paletteBox() const { return m_paletteBox; }
+    [[nodiscard]] QComboBox* paletteBox() const { return m_paletteBox; }
 
     /// @brief The swatches of the palette shown (for tests)
-    QListWidget* paletteList() const { return m_paletteList; }
+    [[nodiscard]] QListWidget* paletteList() const { return m_paletteList; }
 
     /// @brief The recent colors list (for tests)
-    QListWidget* recentList() const { return m_recentList; }
+    [[nodiscard]] QListWidget* recentList() const { return m_recentList; }
 
     /// @brief My colors with their buttons and their note (for tests)
-    QListWidget* myColorsList() const { return m_myList; }
-    QPushButton* addButton() const { return m_addButton; }
-    QPushButton* removeButton() const { return m_removeButton; }
-    QLabel* myColorsNote() const { return m_myColorsNote; }
+    [[nodiscard]] QListWidget* myColorsList() const { return m_myList; }
+    [[nodiscard]] QPushButton* addButton() const { return m_addButton; }
+    [[nodiscard]] QPushButton* removeButton() const { return m_removeButton; }
+    [[nodiscard]] QLabel* myColorsNote() const { return m_myColorsNote; }
 
     /// @brief The name of the color, and the closest named one for a color of no palette
     /// (for tests)
-    QLabel* nameLabel() const { return m_nameLabel; }
-    QLabel* closestLabel() const { return m_closestLabel; }
+    [[nodiscard]] QLabel* nameLabel() const { return m_nameLabel; }
+    [[nodiscard]] QLabel* closestLabel() const { return m_closestLabel; }
 
     /// @brief The shades of the color, from light to dark (for tests)
-    QListWidget* shadesList() const { return m_shadesList; }
+    [[nodiscard]] QListWidget* shadesList() const { return m_shadesList; }
 
     /// @brief The hue, intensity and lightness sliders (for tests)
-    QSlider* hueSlider() const { return m_hueSlider; }
-    QSlider* intensitySlider() const { return m_intensitySlider; }
-    QSlider* lightnessSlider() const { return m_lightnessSlider; }
+    [[nodiscard]] QSlider* hueSlider() const { return m_hueSlider; }
+    [[nodiscard]] QSlider* intensitySlider() const { return m_intensitySlider; }
+    [[nodiscard]] QSlider* lightnessSlider() const { return m_lightnessSlider; }
 
     /// @brief The button that shows or hides the numeric values (for tests)
-    QToolButton* valuesButton() const { return m_valuesButton; }
+    [[nodiscard]] QToolButton* valuesButton() const { return m_valuesButton; }
 
     /// @brief The HEX field (for tests)
-    QLineEdit* hexField() const { return m_hexEdit; }
+    [[nodiscard]] QLineEdit* hexField() const { return m_hexEdit; }
 
     /// @brief The red, green and blue fields (for tests)
-    QSpinBox* redField() const { return m_redSpin; }
-    QSpinBox* greenField() const { return m_greenSpin; }
-    QSpinBox* blueField() const { return m_blueSpin; }
+    [[nodiscard]] QSpinBox* redField() const { return m_redSpin; }
+    [[nodiscard]] QSpinBox* greenField() const { return m_greenSpin; }
+    [[nodiscard]] QSpinBox* blueField() const { return m_blueSpin; }
 
     /// @brief The button with the previous color (for tests)
-    QPushButton* previousButton() const { return m_previousButton; }
+    [[nodiscard]] QPushButton* previousButton() const { return m_previousButton; }
 
 private:
     /// @brief The left column: the palettes, the recent colors and My colors
@@ -176,7 +175,7 @@ private:
     void showValues(bool shown);
 
     /// @brief The name of @p color in the palettes; for a color of no palette "Own color"
-    QString nameOf(const QColor& color) const;
+    [[nodiscard]] QString nameOf(const QColor& color) const;
 
     /// @brief Show the chosen color in the preview, its name, the shades, the sliders, the
     /// fields and the lists
@@ -215,6 +214,6 @@ private:
     QSpinBox* m_blueSpin = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_COLOR_DIALOG_H

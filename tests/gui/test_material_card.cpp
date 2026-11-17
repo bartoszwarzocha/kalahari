@@ -4,8 +4,8 @@
 /// @file test_material_card.cpp
 /// @brief The card of a material in the Properties panel, its preview tab and Link
 
-#include "../editor/editor_test_utils.h"
-#include "document_window.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/material_kinds.h"
@@ -50,7 +50,7 @@
 #include <cstdio>
 #include <functional>
 #include <memory>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 

@@ -14,9 +14,7 @@ class QLayout;
 class QSize;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 /// @brief Recursively clear a layout and delete all items
 ///
@@ -51,8 +49,6 @@ void clearLayout(QLayout* layout);
 /// @param preferred The size the window has on a screen big enough for it
 void resizeWithinScreen(QWidget* window, const QSize& preferred);
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils
 
 #endif // KALAHARI_GUI_UTILS_LAYOUT_UTILS_H

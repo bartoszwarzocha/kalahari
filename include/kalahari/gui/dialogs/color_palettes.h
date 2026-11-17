@@ -4,15 +4,14 @@
 /// @file color_palettes.h
 /// @brief The palettes of the color window: ten families of named colors in six shades
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_COLOR_PALETTES_H
+#define KALAHARI_GUI_DIALOGS_COLOR_PALETTES_H
 
 #include <QColor>
 #include <QList>
 #include <QString>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief A color of a palette with its name, e.g. "Ochre, medium light"
 struct NamedColor {
@@ -47,6 +46,6 @@ QString paletteColorName(const QList<ColorPalette>& palettes, const QColor& colo
 /// @brief The name of the color of @p palettes that looks closest to @p color
 QString closestPaletteColorName(const QList<ColorPalette>& palettes, const QColor& color);
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_COLOR_PALETTES_H

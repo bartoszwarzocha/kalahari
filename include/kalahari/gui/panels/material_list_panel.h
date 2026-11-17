@@ -5,7 +5,8 @@
 /// @brief The list of a kind of materials of the Workshop on a tab in the middle of the
 /// window: a table or tiles, with a search, filters and the commands of a material
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_MATERIAL_LIST_PANEL_H
+#define KALAHARI_GUI_PANELS_MATERIAL_LIST_PANEL_H
 
 #include "kalahari/gui/material_list.h"
 
@@ -14,6 +15,7 @@
 #include <QString>
 #include <QWidget>
 
+class QAbstractItemDelegate;
 class QAbstractItemView;
 class QAction;
 class QCheckBox;
@@ -33,13 +35,13 @@ namespace kalahari::core {
 class ProjectManager;
 }  // namespace kalahari::core
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class MaterialListModel;
 class MaterialListFilter;
 class FilterHeader;
 class CoverPlan;
+class CardCellDelegate;
 
 /// @brief The list of a kind of materials of the open book (MaterialList), on a tab in the
 /// middle of the window
@@ -63,6 +65,12 @@ class CoverPlan;
 /// cover (CoverPlan), and the menu of a row chooses a material for the cover or rejects it.
 /// A kind hidden in the Navigator (MaterialList::HIDDEN_SETTING) shows a page that says so,
 /// with a button that shows it again. The gear opens the settings of the materials.
+///
+/// A list of a kind of cards (characters, locations, items; CardList) has a small portrait
+/// beside each name, and tiles with the portraits, a stripe in the color of each card, its kind
+/// and In Short. F2 edits the cell of a field or of In Short in the table (CardCellDelegate),
+/// and renames the card in the column of the names; Relation... adds a relation with another
+/// card, and the gear opens the settings of the cards.
 class MaterialListPanel : public QWidget {
     Q_OBJECT
 
@@ -74,6 +82,9 @@ public:
     /// The name and the number of the group of a row that names one; none for a material
     static constexpr int HEADING_ROLE = Qt::UserRole + 5;
     static constexpr int STATE_ROLE = Qt::UserRole + 6;  ///< The state of a material of the cover
+    static constexpr int CARD_ROLE = Qt::UserRole + 7;   ///< Whether the row is a card (bool)
+    static constexpr int COLOR_ROLE = Qt::UserRole + 8;  ///< The color of a card (QColor)
+    static constexpr int SUMMARY_ROLE = Qt::UserRole + 9;  ///< In Short of a card, on its tile
 
     /// @brief The list @p list (MaterialList::kinds(), MaterialList::ALL)
     explicit MaterialListPanel(core::ProjectManager& book, const QString& list,
@@ -81,7 +92,7 @@ public:
     ~MaterialListPanel() override;
 
     /// @brief The list it shows
-    QString list() const { return m_list; }
+    [[nodiscard]] QString list() const { return m_list; }
 
     /// @brief Show list @p list, with what it had chosen and its filters when it showed it
     /// before
@@ -94,7 +105,7 @@ public:
     void refreshIcons();
 
     /// @brief The material chosen; empty: none
-    QString currentMaterial() const;
+    [[nodiscard]] QString currentMaterial() const;
 
     /// @brief Choose material @p elementId, shown in the list; false when the list does not
     /// show it
@@ -107,49 +118,52 @@ public:
     void focusList();
 
     /// @brief The table or the tiles, whichever is shown
-    QAbstractItemView* view() const;
+    [[nodiscard]] QAbstractItemView* view() const;
 
     /// @brief The table
-    QTableView* table() const { return m_table; }
+    [[nodiscard]] QTableView* table() const { return m_table; }
 
     /// @brief The tiles
-    QListView* tiles() const { return m_tiles; }
+    [[nodiscard]] QListView* tiles() const { return m_tiles; }
 
     /// @brief The plan of the cover
-    CoverPlan* plan() const { return m_plan; }
+    [[nodiscard]] CoverPlan* plan() const { return m_plan; }
 
     /// @brief The button of the plan of the cover; hidden in the other lists
-    QToolButton* planButton() const { return m_planButton; }
+    [[nodiscard]] QToolButton* planButton() const { return m_planButton; }
 
     /// @brief Copy Entries of the list Sources; hidden in the other lists
     [[nodiscard]] QToolButton* entriesButton() const { return m_entriesButton; }
 
     /// @brief Group by Kind of the list of the cover; hidden in the other lists
-    QToolButton* groupsButton() const { return m_groupsButton; }
+    [[nodiscard]] QToolButton* groupsButton() const { return m_groupsButton; }
 
     /// @brief The filter Kind of the list of the cover; hidden in the other lists
-    QComboBox* partBox() const { return m_partBox; }
+    [[nodiscard]] QComboBox* partBox() const { return m_partBox; }
 
     /// @brief Add of the list
-    QToolButton* addButton() const { return m_addButton; }
+    [[nodiscard]] QToolButton* addButton() const { return m_addButton; }
 
     /// @brief The gear: the settings of the materials
-    QToolButton* settingsButton() const { return m_settingsButton; }
+    [[nodiscard]] QToolButton* settingsButton() const { return m_settingsButton; }
+
+    /// @brief Restore to Its Place of the list of the clippings; hidden in the other lists
+    [[nodiscard]] QToolButton* restoreButton() const { return m_restoreButton; }
 
     /// @brief The page of a kind hidden in the Navigator; shown in place of the list
-    QWidget* hiddenPage() const { return m_hiddenPage; }
+    [[nodiscard]] QWidget* hiddenPage() const { return m_hiddenPage; }
 
     /// @brief The search
-    QLineEdit* searchField() const { return m_search; }
+    [[nodiscard]] QLineEdit* searchField() const { return m_search; }
 
     /// @brief "Linked with:" of the filters
-    QComboBox* linkedWithBox() const { return m_linkedWith; }
+    [[nodiscard]] QComboBox* linkedWithBox() const { return m_linkedWith; }
 
     /// @brief "Without links" of the filters
-    QCheckBox* withoutLinksBox() const { return m_withoutLinks; }
+    [[nodiscard]] QCheckBox* withoutLinksBox() const { return m_withoutLinks; }
 
     /// @brief The rows shown, sorted and filtered
-    QSortFilterProxyModel* rows() const;
+    [[nodiscard]] QSortFilterProxyModel* rows() const;
 
     /// @brief Show the tiles of a list that has them, or its table; kept for the list
     void showTiles(bool tiles);
@@ -176,7 +190,7 @@ public:
     void showColumn(const QString& columnId, bool shown);
 
     /// @brief Ids of the columns shown, in their order
-    QStringList shownColumns() const;
+    [[nodiscard]] QStringList shownColumns() const;
 
     /// @brief Fill @p menu with the commands of the material chosen (the menu of a row)
     void fillMenu(QMenu& menu);
@@ -224,6 +238,12 @@ signals:
     /// @brief Open the settings of the materials (the gear)
     void requestSettings();
 
+    /// @brief Restore clipping @p elementId to the place it was cut from
+    void requestRestore(const QString& elementId);
+
+    /// @brief Open the text clipping @p elementId was cut from at its place
+    void requestShowOrigin(const QString& elementId);
+
     /// @brief Show list @p list, a kind hidden in the Navigator, again
     void requestShowKind(const QString& list);
 
@@ -245,6 +265,7 @@ private:
         bool columnFilters = false;
         QHash<QString, QString> columnFilter;  ///< Column -> its filter
         QString current;                       ///< The material chosen
+        QString column;                        ///< The column of the current cell of the table
         QString sortColumn;                    ///< Empty: MaterialList::firstSortOf()
         QString part;                          ///< The filter Kind of the cover; empty: all
         Qt::SortOrder sortOrder = Qt::AscendingOrder;
@@ -272,19 +293,53 @@ private:
     void onCurrentChanged(QAbstractItemView* view, const QModelIndex& current);
     /// @brief A key of the list: true when it did something with it
     bool handleKey(QAbstractItemView* view, QKeyEvent* key);
-    QString idAt(const QModelIndex& index) const;
-    int columnOf(const QString& columnId) const;
+    /// @brief Rename... of material @p id from the keys of @p view: a list of cards edits the
+    /// cell of a field, a name is renamed; nothing in a book open read-only
+    void renameFromKeys(QAbstractItemView* view, const QString& id);
+    [[nodiscard]] QString idAt(const QModelIndex& index) const;
+    [[nodiscard]] int columnOf(const QString& columnId) const;
     /// @brief The plan of the cover from the rows shown
     void updatePlan();
     /// @brief The page of a kind hidden in the Navigator, or the list
     void updateHidden();
     /// @brief Whether the rows that name the groups of the cover are shown: the table of the
     /// list of the cover with Group by Kind down
-    bool groupsApply() const;
+    [[nodiscard]] bool groupsApply() const;
     /// @brief The materials shown, without the rows that name groups
-    int shownMaterials() const;
+    [[nodiscard]] int shownMaterials() const;
     /// @brief The choices of Kind and the menu of Add of the list of the cover
     void fillCoverChoices();
+    /// @brief The texts of the list that say what it has: the materials or the cards
+    void applyListTexts();
+    /// @brief The height of the rows of the table, the size of its icons and of the tiles
+    /// @param pictures The list has the thumbnails of its pictures
+    void applyRowSizes(bool pictures);
+    /// @brief The commands of a material of the cover in its menu: choose, reject, a draft
+    void addCoverActions(QMenu& menu, const MaterialRow& row);
+    /// @brief The menu of card @p row: Edit, Relation..., Rename..., Delete..., Properties
+    void fillCardMenu(QMenu& menu, const MaterialRow& row);
+    /// @brief Edit the current cell of the table of a list of cards, which F2 edits; false
+    /// when it is no such cell
+    bool editCell(QAbstractItemView* view);
+    /// @brief The column of the table to choose a row in: that of the current cell, also when
+    /// the list was filled again; the first one when it is hidden
+    [[nodiscard]] int tableColumn() const;
+
+    /// @brief The text and what Restore to Its Place of the list of the clippings does
+    void createClippingCommands();
+
+    /// @brief Restore to Its Place and the gear for list @p row of the material chosen: the
+    /// button shown in the list of the clippings, enabled for a clipping whose text is in the
+    /// book; the gear names the settings of the clippings there
+    void updateClippingCommands(const MaterialRow* row);
+
+    /// @brief Restore to Its Place and Go to Its Place in the menu of clipping @p row; nothing
+    /// for another material
+    void addClippingItems(QMenu& menu, const MaterialRow& row);
+
+    /// @brief The gear: Settings > Editor > Clippings in the list of the clippings, else the
+    /// settings of the materials (requestSettings())
+    void openSettings();
 
     QString m_list;
     QHash<QString, State> m_states;
@@ -306,6 +361,7 @@ private:
     QToolButton* m_planButton = nullptr;
     QToolButton* m_groupsButton = nullptr;
     QToolButton* m_settingsButton = nullptr;
+    QToolButton* m_restoreButton = nullptr;  ///< Restore to Its Place: the list of the clippings
     QMenu* m_addMenu = nullptr;           ///< Add of the cover: the kind of the material
     QLabel* m_partLabel = nullptr;
     QComboBox* m_partBox = nullptr;
@@ -329,9 +385,14 @@ private:
     QLabel* m_footer = nullptr;
     QLabel* m_sorting = nullptr;
 
+    QAbstractItemDelegate* m_rowDelegate = nullptr;  ///< Paints the rows of the materials
+    CardCellDelegate* m_cardDelegate = nullptr;      ///< Edits the cells of the cards (F2)
+    bool m_cards = false;    ///< The list is one of the cards (CardList::isCardList())
     bool m_loading = false;  ///< The list is being filled: no material is chosen by the writer
+    int m_settingsListener = 0;    ///< core::SettingsManager::subscribe() id: the portraits
     core::ProjectManager& m_book;  ///< The book of its window
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_MATERIAL_LIST_PANEL_H

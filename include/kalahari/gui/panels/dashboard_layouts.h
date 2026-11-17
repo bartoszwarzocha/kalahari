@@ -7,7 +7,8 @@
 /// On a small screen (1366x768 at 150%, the side panels open) the Dashboard is a narrow
 /// column: its parts go one under another and its texts wrap, so that nothing is cut off.
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_DASHBOARD_LAYOUTS_H
+#define KALAHARI_GUI_PANELS_DASHBOARD_LAYOUTS_H
 
 #include <QLayout>
 #include <QList>
@@ -16,8 +17,7 @@ class QLayoutItem;
 class QRect;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief The Dashboard's content in the middle of the panel: three quarters of its width,
 ///        or as wide as the content likes where that is more, with a margin on each side
@@ -105,7 +105,7 @@ public:
 private:
     /// @brief Place the logo and the texts in @p rect, or only measure them
     /// @return The height they take, with the margins
-    int arrange(const QRect& rect, bool place) const;
+    [[nodiscard]] int arrange(const QRect& rect, bool place) const;
 
     QList<QLayoutItem*> m_items;     ///< The logo, the title and the tagline
     int m_largestLogo = LOGO_SIZE;
@@ -156,7 +156,7 @@ public:
 private:
     /// @brief Place the hints in @p rect, or only measure them
     /// @return The height they take, with the margins
-    int arrange(const QRect& rect, bool place) const;
+    [[nodiscard]] int arrange(const QRect& rect, bool place) const;
 
     QList<QLayoutItem*> m_items;  ///< The keys and the command of each hint, in turn
 };
@@ -201,10 +201,11 @@ public:
 private:
     /// @brief Place the icon and the texts in @p rect, or only measure them
     /// @return The height they take, with the margins
-    int arrange(const QRect& rect, bool place) const;
+    [[nodiscard]] int arrange(const QRect& rect, bool place) const;
 
     QList<QLayoutItem*> m_items;  ///< The icon, then the texts
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_DASHBOARD_LAYOUTS_H

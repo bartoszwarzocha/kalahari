@@ -15,8 +15,8 @@
 /// name of each kind of the installed book types.
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
-#include "context_menu_reader.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/context_menu_reader.h"
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
@@ -25,6 +25,7 @@
 #include "kalahari/editor/annotation.h"
 #include "kalahari/editor/annotation_cards.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/grammar_check_service.h"
 #include "kalahari/editor/spell_check_service.h"
 #include "kalahari/gui/annotations_coordinator.h"
@@ -84,7 +85,7 @@
 #include <memory>
 #include <optional>
 #include <string_view>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -419,6 +420,27 @@ QList<test::MenuItem> fieldMenu(QWidget* field, QWidget* owner) {
     return contextMenu(field, owner, QPoint(5, 5), QContextMenuEvent::Keyboard);
 }
 
+/// The kinds of cards of Create Card as the texts of a book offer them (CardNamesCoordinator):
+/// their names, with keys free among them
+QList<editor::BookEditor::CardKindChoice> cardKindChoices() {
+    core::ProjectManager::loadBookTypes(
+        {QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    QStringList kindNames;
+    for (const char* id : {"character", "location", "item"}) {
+        const core::KindRef kind = core::ProjectManager::installedBookTypes().findKind(
+            QStringLiteral("kalahari.base"), QLatin1String(id));
+        REQUIRE(kind);
+        kindNames << kind.kind->name.text(programLanguage());
+    }
+    QSet<QChar> usedKeys;
+    QList<editor::BookEditor::CardKindChoice> choices;
+    for (const QString& kindText : withFreeAccessKeys(kindNames, usedKeys)) {
+        choices.append(
+            {.kind = QString(), .text = kindText + QStringLiteral("..."), .icon = QIcon()});
+    }
+    return choices;
+}
+
 /// A sentence with a misspelled word ("chaptre", 4 to 11) and a grammar issue ("cta", 24 to 27)
 QString sentence() {
     return QStringLiteral("The chaptre one and the cta sat.");
@@ -500,6 +522,43 @@ private:
 
     QTcpServer m_server;
 };
+
+/// The context menu of a selection in a paragraph linked with materials and with a card, with
+/// the commands of the cards (CardsInTextCoordinator): each item has its own key, the commands
+/// keep theirs. @p booked: a text with the kinds of cards and a selection. @p shown: as Windows
+/// and Linux show them
+void checkCardMenus(editor::BookEditor& booked, bool shown, QStringList& problems) {
+    auto& registry = kalahari::test::commands();
+    QAction* open = registry.getAction(QStringLiteral("book.openCardAtCursor"));
+    REQUIRE(open != nullptr);
+    const bool openEnabled = open->isEnabled();
+    open->setEnabled(true);
+    booked.setContextMenuCardActions(
+        {.link = registry.getAction(QStringLiteral("book.linkParagraphCard")), .open = open});
+    booked.setParagraphMarks(
+        {editor::ParagraphMark{0, {QStringLiteral("m1")}, {QStringLiteral("Map")}},
+         editor::ParagraphMark{
+             0, {QStringLiteral("c1")}, {QStringLiteral("Anna")}, QStringLiteral("character")}},
+        QIcon(), editor::ParagraphMarkKind::Materials, {{QStringLiteral("character"), QIcon()}});
+    const QList<test::MenuItem> items =
+        contextMenu(&booked, &booked, QPoint(5, 5), QContextMenuEvent::Keyboard);
+    // The titles of a material and of a card are names the menu shows as they are: as Windows
+    // and Linux show them, with a free key
+    const QStringList keyless =
+        shown ? QStringList() : QStringList{QStringLiteral("Map"), QStringLiteral("Anna")};
+    collectProblems(items, QStringLiteral("Selection in a paragraph with linked cards"), keyless,
+                    problems);
+    // and Link Paragraph with Card..., Open Card at Cursor, Linked Materials > Map and
+    // Linked Cards > Anna
+    CHECK(itemCount(items) == 1 + 3 + 8 + 2 + 2 + 2);
+    CHECK(labelsOf(items).contains(registry.getAction(
+              QStringLiteral("book.linkParagraphCard"))->text()));
+    CHECK(labelsOf(items).contains(open->text()));
+    CHECK(labelsOf(items).contains(QCoreApplication::translate(BOOK_EDITOR, "Linked Card&s")));
+    booked.setContextMenuCardActions({});
+    booked.setParagraphMarks({}, QIcon());
+    open->setEnabled(openEnabled);
+}
 
 /// The context menus of a book's text: the usual one, without a selection and with one, in
 /// both color modes; that of a misspelled word, with the words of the dictionary and without
@@ -597,8 +656,8 @@ void checkTextMenus(bool shown, QStringList& problems) {
         CHECK(itemCount(imageMenu) == 8 + 5);
 
         // With the commands of the Image menu, as the editor panel gives them: Image
-        // Properties..., Insert Caption..., Alternative Text..., Rotate and Filter with their items,
-        // Crop, Original Size, Change Image..., Save as Image...
+        // Properties..., Insert Caption..., Alternative Text..., Wrap Text, Rotate and Filter
+        // with their items, Crop, Original Size, Change Image..., Save as Image...
         const auto actions = [&registry](std::initializer_list<const char*> ids) {
             QList<QAction*> list;
             for (const char* id : ids) {
@@ -615,11 +674,13 @@ void checkTextMenus(bool shown, QStringList& problems) {
              actions({"image.filterNone", "image.filterGrayscale", "image.filterSepia",
                       "image.filterBlackWhite", "image.filterWash", nullptr, "image.filterAll",
                       "image.colorOptions"}),
-             actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"})});
+             actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"}),
+             actions({"image.wrapInline", nullptr, "image.wrapSquareLeft",
+                      "image.wrapSquareRight", "image.wrapTopBottom"})});
         QList<test::MenuItem> commandsMenu =
             contextMenu(&pictured, &pictured, image->center().toPoint());
         collectProblems(commandsMenu, QStringLiteral("Image with commands"), {}, problems);
-        CHECK(itemCount(commandsMenu) == 8 + (3 + (1 + 5) + (1 + 7) + 4));
+        CHECK(itemCount(commandsMenu) == 8 + (3 + (1 + 4) + (1 + 5) + (1 + 7) + 4));
     }
 
     // A cell of a table: Insert, Delete and Select, and the commands of the Table menu the
@@ -699,14 +760,20 @@ void checkTextMenus(bool shown, QStringList& problems) {
         }
 
         // A comment in a paragraph with linked materials (Mark as Resolved and Linked
-        // Materials have the same key): each item has its own key, the commands of the window
-        // keep theirs
+        // Materials have the same key) and a clipping cut from it: each item has its own key,
+        // the commands of the window keep theirs
         annotated.fromKml(QStringLiteral(
             "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Check it</annotation>"
             "</annotations><p>One <anchor ref=\"c1\">two</anchor> three</p></kml>"));
         annotated.setParagraphMarks({editor::ParagraphMark{0, {QStringLiteral("m1")},
                                                            {QStringLiteral("Map")}}},
                                     QIcon());
+        annotated.setParagraphMarks(
+            {editor::ParagraphMark{.paragraph = 0,
+                                   .ids = {QStringLiteral("k1")},
+                                   .titles = {QStringLiteral("\"Two\" (1 word, today, 7:42)")},
+                                   .kind = editor::ParagraphMarkKind::Clippings}},
+            QIcon(), editor::ParagraphMarkKind::Clippings);
         const QString comment =
             editor::AnnotationCards::kindTitle(editor::AnnotationKind::Comment) +
             QStringLiteral(": ") + QLocale().quoteString(QStringLiteral("Check it"));
@@ -717,7 +784,8 @@ void checkTextMenus(bool shown, QStringList& problems) {
                                           : QStringList{comment, QStringLiteral("Map")};
         collectProblems(items, where + QStringLiteral(", with linked materials"), keyless,
                         problems);
-        CHECK(itemCount(items) == (cards ? 5 : 4) + 6 + 2);  // and Linked Materials > Map
+        // and Linked Materials > Map, Clippings From Here > Show Clipping, Restore Here
+        CHECK(itemCount(items) == (cards ? 5 : 4) + 6 + 2 + 3);
         const QString paste = registry.getAction(QStringLiteral("edit.paste"))->text();
         CHECK(std::any_of(items.cbegin(), items.cend(),
                           [&paste](const test::MenuItem& item) { return item.text == paste; }));
@@ -783,14 +851,28 @@ void checkTextMenus(bool shown, QStringList& problems) {
                                       registry.getAction(QStringLiteral("insert.note"))});
         booked.setSpellCheckService(&spelling);
         booked.setBookDictionary(&dictionary, true);
+        booked.setCardKinds(cardKindChoices());
         booked.show();
         REQUIRE(checked(booked));
         items = contextMenu(&booked, &booked, placeOf(booked, 6));
         collectProblems(items, QStringLiteral("Misspelled word, with the book's dictionary"),
                         shown ? QStringList() : wordTexts, problems);
-        // and Ignore All, Add to Book Dictionary, Add to Your Words, Add Name..., then the
-        // usual menu
-        CHECK(itemCount(items) == words.size() + 4 + 6);
+        // and Ignore All, Add to Book Dictionary, Add to Your Words, Add Name..., Create Card
+        // with its kinds, then the usual menu
+        CHECK(itemCount(items) == words.size() + 4 + 1 + 3 + 6);
+
+        // A selection of right words: Create Card on top of the usual menu
+        booked.setCursorPosition({0, 17});
+        booked.setSelection({{0, 12}, {0, 17}});  // "of an"
+        items = contextMenu(&booked, &booked, QPoint(5, 5), QContextMenuEvent::Keyboard);
+        collectProblems(items, QStringLiteral("Selection, with the kinds of cards"), {},
+                        problems);
+        // and the usual menu of a selection, with Switch to Light Mode or Dark Mode
+        CHECK(itemCount(items) == 1 + 3 + 8);
+        CHECK(labelsOf(items).first() ==
+              QCoreApplication::translate(BOOK_EDITOR, "C&reate Card"));
+
+        checkCardMenus(booked, shown, problems);
 
         QStringList told = {QCoreApplication::translate(BOOK_EDITOR, "Book rule: write %1")
                                 .arg(QLocale().quoteString(rule.right)),

@@ -9,7 +9,8 @@
 /// OpenSpec #00026: Refactored to use ArtProvider::createAction() for
 /// self-updating icons. Icons now refresh automatically when theme changes.
 
-#pragma once
+#ifndef KALAHARI_GUI_MENU_BUILDER_H
+#define KALAHARI_GUI_MENU_BUILDER_H
 
 #include "command_registry.h"
 #include <QMenuBar>
@@ -18,8 +19,7 @@
 #include <string>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Dynamically builds QMenuBar from CommandRegistry with hierarchical menu support
 ///
@@ -114,7 +114,7 @@ public:
     ///
     /// @param technicalName Technical menu name (e.g., "VIEW", "FILE", "EDIT")
     /// @return QMenu pointer or nullptr if not found
-    QMenu* getMenu(const std::string& technicalName) const;
+    [[nodiscard]] QMenu* getMenu(const std::string& technicalName) const;
 
     /// @brief The translated text of a menu or a submenu in the menus, with its access key
     ///        ("FILE" → "&File", "Zoom" → "&Zoom")
@@ -183,5 +183,6 @@ private:
     std::map<std::string, QMenu*> m_menuCache;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_MENU_BUILDER_H

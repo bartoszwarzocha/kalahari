@@ -5,7 +5,8 @@
 /// @brief Book > Chapter Break: the text from the cursor to a new text of the book right after
 ///        the text it was in, with Undo
 
-#pragma once
+#ifndef KALAHARI_GUI_CHAPTER_BREAK_COORDINATOR_H
+#define KALAHARI_GUI_CHAPTER_BREAK_COORDINATOR_H
 
 #include <QList>
 #include <QMetaObject>
@@ -22,11 +23,11 @@ class QWidget;
 
 namespace kalahari::core {
 class ProjectManager;
-}
+} // namespace kalahari::core
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -147,3 +148,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_CHAPTER_BREAK_COORDINATOR_H

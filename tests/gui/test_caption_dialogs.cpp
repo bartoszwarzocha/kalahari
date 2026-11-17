@@ -12,7 +12,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/settings_dialog.h"
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <QAbstractButton>
 #include <QApplication>

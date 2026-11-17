@@ -5,7 +5,8 @@
 /// @brief The small windows of Insert > Special Character...: the keys of a character, and a
 ///        replacement of auto-correct that gives a character
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_CHARACTER_DIALOGS_H
+#define KALAHARI_GUI_DIALOGS_CHARACTER_DIALOGS_H
 
 #include "kalahari/gui/command.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
@@ -23,8 +24,7 @@ namespace kalahari::gui {
 class CommandRegistry;
 }  // namespace kalahari::gui
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class ShortcutRecorder;
 
@@ -103,5 +103,6 @@ private:
 };
 
 } // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DIALOGS_CHARACTER_DIALOGS_H

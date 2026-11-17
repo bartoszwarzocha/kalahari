@@ -6,7 +6,7 @@
 ///        turning text into a table and back, and the properties of a table
 
 #include <kalahari/editor/book_editor.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/table_editing.h>

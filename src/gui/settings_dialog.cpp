@@ -15,13 +15,14 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/core/window_editor_provider.h"
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QElapsedTimer>
 #include <QFont>
 #include <QLabel>
-#include <QRadioButton>
 #include <QScreen>
 #include <QScrollArea>
 #include <QSplitter>
@@ -33,15 +34,12 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 SettingsDialog::SettingsDialog(const core::ProjectManager& book, CommandRegistry& commands,
                                QWidget* parent, bool diagnosticMode,
                                editor::SpellCheckService* spelling, GrammarCoordinator* grammar)
     : KalahariDialog(parent),
-      m_navTree(nullptr),
-      m_pageStack(nullptr),
       m_diagnosticMode(diagnosticMode),
       m_spelling(spelling),
       m_grammar(grammar),
@@ -118,16 +116,26 @@ void SettingsDialog::createNavigationTree() {
     addPage(appearance, tr("Dashboard"), []() { return new DashboardPage(); });
 
     QTreeWidgetItem* editor = category(tr("Editor"));
-    m_pageItems[WORD_COUNT_PAGE] =
-        addPage(editor, tr("General"), [this]() { return new EditorGeneralPage(m_commands); });
+    addPage(editor, tr("General"), [this]() {
+        return new EditorGeneralPage(m_commands, EditorGeneralPage::Part::Text);
+    });
+    //: Settings > Editor > Writing: the behavior of the editor while writing. In Polish: Pisanie
+    m_pageItems[WORD_COUNT_PAGE] = addPage(editor, tr("Writing"), [this]() {
+        return new EditorGeneralPage(m_commands, EditorGeneralPage::Part::Writing);
+    });
     m_pageItems[FIELDS_PAGE] = m_pageItems[WORD_COUNT_PAGE];
     m_pageItems[PASTE_PAGE] = m_pageItems[WORD_COUNT_PAGE];
     m_pageItems[EDITOR_COLORS_PAGE] =
         addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
-    m_pageItems[PAGES_PAGE] =
-        addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
-    m_pageItems[MARGIN_NUMBERING_PAGE] = m_pageItems[PAGES_PAGE];
+    m_pageItems[PAGES_PAGE] = addPage(editor, tr("Pages and Margins"), []() {
+        return new EditorPagesPage(EditorPagesPage::Part::Pages);
+    });
+    //: Settings > Editor > Margin Numbering: the numbers of the lines or paragraphs in the
+    //: margin. Short: the list of the pages is as wide as its longest name. In Polish: Numeracja
+    m_pageItems[MARGIN_NUMBERING_PAGE] = addPage(editor, tr("Margin Numbering"), []() {
+        return new EditorPagesPage(EditorPagesPage::Part::MarginNumbers);
+    });
     //: Settings > Editor > Images: new images, the captions of new books. In Polish: Obrazy
     m_pageItems[IMAGES_PAGE] = addPage(editor, tr("Images"), [this]() {
         auto* imagesPage = new EditorImagesPage();
@@ -146,7 +154,8 @@ void SettingsDialog::createNavigationTree() {
             return spellingPage;
         });
     addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_book, m_grammar); });
-    addPage(editor, tr("Auto-correct"), [this]() { return new EditorAutoCorrectPage(m_commands); });
+    m_pageItems[AUTO_CORRECT_PAGE] = addPage(
+        editor, tr("Auto-correct"), [this]() { return new EditorAutoCorrectPage(m_commands); });
     //: Settings > Editor > Quick Insert: @ and # in the text. In Polish: Szybkie wstawianie
     addPage(editor, tr("Quick Insert"), [this]() { return new EditorQuickInsertPage(m_commands); });
     //: Settings > Editor > Repetitions: the words that come back too close. In Polish: Powtórzenia
@@ -155,11 +164,47 @@ void SettingsDialog::createNavigationTree() {
     //: Settings > Editor > Versions: the versions of the texts. In Polish: Wersje
     m_pageItems[VERSIONS_PAGE] =
         addPage(editor, tr("Versions"), [this]() { return new EditorVersionsPage(m_commands); });
+    //: Settings > Editor > Clippings: Cut to Clippings and Insert > Clipping from the Workshop.
+    //: In Polish: Wycinki
+    m_pageItems[CLIPPINGS_PAGE] = addPage(
+        editor, tr("Clippings"), [this]() { return new EditorClippingsPage(m_commands); });
 
-    m_pageItems[ANNOTATIONS_PAGE] =
-        addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
-    m_pageItems[NAVIGATOR_PAGE] =
-        addPage(nullptr, tr("Navigator"), [this]() { return new NavigatorPage(m_book); });
+    QTreeWidgetItem* annotations = category(tr("Annotations"));
+    m_pageItems[ANNOTATIONS_PAGE] = addPage(annotations, tr("General"), []() {
+        return new AnnotationsPage(AnnotationsPage::Part::General);
+    });
+    //: Settings > Annotations > Annotation Cards: the annotations shown as cards under the
+    //: paragraphs in the continuous view; not the page Cards of the cards of characters,
+    //: locations and items. Short: the list of the pages is as wide as its longest name. In
+    //: Polish: Karty uwag
+    addPage(annotations, tr("Annotation Cards"),
+            []() { return new AnnotationsPage(AnnotationsPage::Part::Cards); });
+
+    QTreeWidgetItem* navigator = category(tr("Navigator"));
+    //: Settings > Navigator > Adding: the menus of the nodes, the Add Element window and the
+    //: dropped files. In Polish: Dodawanie
+    m_pageItems[NAVIGATOR_ADDING_PAGE] = addPage(navigator, tr("Adding"), [this]() {
+        return new NavigatorPage(m_book, NavigatorPage::Part::Adding);
+    });
+    //: Settings > Navigator > Material Lists: what the Materials of the Navigator show, where
+    //: the list of a kind opens, the links of the materials; not the page Materials of the
+    //: opening of the materials. In Polish: Listy materiałów
+    addPage(navigator, tr("Material Lists"),
+            [this]() { return new NavigatorPage(m_book, NavigatorPage::Part::Lists); });
+    //: Settings > Navigator > Material Kinds: the kinds of materials shown in the Navigator. In
+    //: Polish: Typy materiałów
+    m_pageItems[NAVIGATOR_PAGE] = addPage(navigator, tr("Material Kinds"), [this]() {
+        return new NavigatorPage(m_book, NavigatorPage::Part::Kinds);
+    });
+    //: Settings > Navigator > Cover: the cover of the book in the Navigator. In Polish: Okładka
+    addPage(navigator, tr("Cover"),
+            [this]() { return new NavigatorPage(m_book, NavigatorPage::Part::Cover); });
+    //: Settings > Navigator > Texts for Publishers: the lengths, the template of a synopsis and
+    //: the set. Short: the list of the pages is as wide as its longest name. In Polish: Teksty
+    //: dla wydawnictwa
+    m_pageItems[PUBLISHING_PAGE] = addPage(navigator, tr("Texts for Publishers"), [this]() {
+        return new NavigatorPage(m_book, NavigatorPage::Part::Publishing);
+    });
     //: Settings > Cards: the cards of characters, locations and items. In Polish: Karty
     m_pageItems[CARDS_PAGE] = addPage(nullptr, tr("Cards"), []() { return new CardsPage(); });
     //: The page of the materials: how they open, the preview of PDF files and the sources. In
@@ -171,6 +216,20 @@ void SettingsDialog::createNavigationTree() {
                     [this]() { openPage(QString::fromLatin1(EDITOR_COLORS_PAGE)); });
             return materialsPage;
         });
+    //: Settings > Plot Board: the scenes on the board, the colors of the cards. In Polish:
+    //: Tablica fabuły
+    m_pageItems[PLOT_BOARD_PAGE] =
+        addPage(nullptr, tr("Plot Board"), []() { return new PlotBoardPage(); });
+    // The pages of the modules that edit window kinds: Mind Maps, Timelines; openPage() opens
+    // each by the id of its editor ("mindmap")
+    for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+         core::windowEditorProviders()) {
+        if (!provider->settingsTitle().isEmpty()) {
+            m_pageItems[provider->editorId()] = addPage(
+                nullptr, provider->settingsTitle(),
+                [provider]() { return provider->createSettingsPage(); });
+        }
+    }
     //: Settings > Statistics and Goals: the statistics bar, the panel, the counting of the words
     //: and the colors. In Polish: Statystyki i cele
     QTreeWidgetItem* statistics = category(tr("Statistics and Goals"));
@@ -191,6 +250,8 @@ void SettingsDialog::createNavigationTree() {
 
     QTreeWidgetItem* files = category(tr("Files"));
     addPage(files, tr("Folders"), []() { return new FoldersPage(); });
+    //: The page of the choices the window of the import starts with. In Polish: Import
+    m_pageItems[IMPORT_PAGE] = addPage(files, tr("Import"), []() { return new ImportPage(); });
     addPlannedPage(files, tr("Backup"),
                    tr("Planned features:\n"
                       "- Automatic backup frequency\n"
@@ -373,14 +434,10 @@ bool SettingsDialog::openPage(const QString& page) {
                                  : QStringLiteral("marginNumbersGroup");
         auto* group = scrollArea != nullptr ? scrollArea->findChild<QWidget*>(name) : nullptr;
         if (group != nullptr) {
-            const QList<QRadioButton*> choices = group->findChildren<QRadioButton*>();
-            const auto checked = std::find_if(choices.begin(), choices.end(),
-                                              [](const QRadioButton* choice) {
-                                                  return choice->isChecked();
-                                              });
+            auto* mode = group->findChild<QComboBox*>(QStringLiteral("marginNumbersMode"));
             auto* notes = group->findChild<QWidget*>(QStringLiteral("wordCountNotes"));
-            if (checked != choices.end()) {
-                (*checked)->setFocus(Qt::OtherFocusReason);
+            if (mode != nullptr) {
+                mode->setFocus(Qt::OtherFocusReason);
             } else if (notes != nullptr) {
                 notes->setFocus(Qt::OtherFocusReason);
             } else if (QWidget* first = group->nextInFocusChain();
@@ -532,5 +589,4 @@ void SettingsDialog::accept() {
     KalahariDialog::accept();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

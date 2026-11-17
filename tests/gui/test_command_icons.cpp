@@ -25,7 +25,7 @@
 #include <QMenuBar>
 #include <QPair>
 #include <QString>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari::gui;
 
@@ -106,9 +106,9 @@ TEST_CASE("Menus: every submenu has an icon, in the icon colors after they chang
     }
     // Recent Books, Import, Export, Formatting Character, Text Style, Text Effects, Change
     // Case, Align Text, the Table menu's Insert, Delete, Select and Convert, the Image menu's
-    // Rotate and Filter, Statistics, Plugins, Assistant Actions, View Mode, Zoom, Margin
-    // Numbering, Panels, Perspectives, Toolbars
-    CHECK(submenus.size() == 23);
+    // Wrap Text, Rotate and Filter, Statistics, Plugins, Assistant Actions, View Mode, Zoom,
+    // Margin Numbering, Panels, Perspectives, Toolbars, the Edit menu's To Dos
+    CHECK(submenus.size() == 25);
     for (const auto& [path, submenu] : submenus) {
         INFO(path.toStdString());
         CHECK_FALSE(submenu->icon().isNull());

@@ -44,9 +44,7 @@
 #include <optional>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -343,7 +341,7 @@ protected:
     }
 
 private:
-    int rowHeight() const { return fontMetrics().height() + 4; }
+    [[nodiscard]] int rowHeight() const { return fontMetrics().height() + 4; }
 
     std::vector<QStringList> m_rows;
     bool m_headerRow = true;
@@ -425,10 +423,10 @@ protected:
 
 private:
     /// The table drawn: within the widget, with room for the widest line
-    QRectF table() const { return QRectF(rect()).adjusted(8.5, 8.5, -8.5, -8.5); }
+    [[nodiscard]] QRectF table() const { return QRectF(rect()).adjusted(8.5, 8.5, -8.5, -8.5); }
 
     /// The pieces of a line: one for an edge, two for the lines between rows or columns
-    std::vector<QLineF> segments(editor::TableBorderLine line) const
+    [[nodiscard]] std::vector<QLineF> segments(editor::TableBorderLine line) const
     {
         const QRectF box = table();
         switch (line) {
@@ -1588,6 +1586,4 @@ void TablePropertiesDialog::showColor(QPushButton* button, const QColor& color, 
     button->setText(name.isEmpty() ? color.name().toUpper() : name);
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

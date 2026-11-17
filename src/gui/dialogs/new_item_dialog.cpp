@@ -64,22 +64,6 @@ const kalahari::core::SectionNameSet& sectionNameSet(const QString& id) {
 NewItemDialog::NewItemDialog(NewItemMode mode, QWidget* parent)
     : KalahariDialog(parent)
     , m_mode(mode)
-    , m_iconLabel(nullptr)
-    , m_titleLabel(nullptr)
-    , m_descriptionLabel(nullptr)
-    , m_templateList(nullptr)
-    , m_searchEdit(nullptr)
-    , m_nameEdit(nullptr)
-    , m_authorEdit(nullptr)
-    , m_languageCombo(nullptr)
-    , m_locationEdit(nullptr)
-    , m_browseBtn(nullptr)
-    , m_subfolderCheck(nullptr)
-    , m_authorLabel(nullptr)
-    , m_languageLabel(nullptr)
-    , m_locationLabel(nullptr)
-    , m_folderIcon(nullptr)
-    , m_folderLabel(nullptr)
 {
     // The heading: the title of the window and what it makes
     if (m_mode == NewItemMode::Project) {

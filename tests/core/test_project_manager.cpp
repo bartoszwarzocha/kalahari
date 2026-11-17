@@ -7,8 +7,12 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_dictionary.h>
+#include <kalahari/core/book_project.h>
+#include <kalahari/core/book_type_package.h>
+#include <kalahari/core/book_type_registry.h>
 #include <kalahari/core/card_data.h>
 #include <kalahari/core/chapter_document.h>
+#include <kalahari/core/clipping.h>
 #include <kalahari/core/database_types.h>
 #include <kalahari/core/file_trash.h>
 #include <kalahari/core/link_roles.h>
@@ -18,7 +22,7 @@
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/editor/kml_document_model.h>
 
-#include "other_program.h"
+#include "kalahari_tests/core/other_program.h"
 
 #include <QCoreApplication>
 #include <QDateTime>
@@ -40,7 +44,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari::core;
 
@@ -783,6 +787,48 @@ TEST_CASE("A user project has the kinds and the elements chosen in the palette",
     const BookProject saved = savedProject(manifest);
     CHECK(saved.kinds == kinds);
     CHECK(titles(saved.books.first().mainElements) == "Prolog, Część I, Cykl I, Epilog");
+}
+
+TEST_CASE("A user project without the clippings among its kinds takes them with the first one",
+          "[project_manager][clippings]") {
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    NewProject request;
+    request.parentDir = dir.path();
+    request.title = QStringLiteral("Notes");
+    request.author = QStringLiteral("Anna Nowak");
+    request.language = QStringLiteral("en");
+    PaletteChoice palette;
+    palette.kinds = {kind("kalahari.base", "chapter")};
+    palette.elements = {
+        StartElement{.kind = kind("kalahari.base", "chapter"), .place = BookPlace::Main}};
+    request.palette = palette;
+    REQUIRE(pm.createProject(request));
+    const KindReference clippings{.packageId = QStringLiteral("kalahari.base"),
+                                  .kindId = QString::fromLatin1(Clippings::KIND)};
+    REQUIRE_FALSE(pm.project()->kinds.contains(clippings));
+
+    const QString first = pm.addClipping(QStringLiteral("Rain"),
+                                         QStringLiteral("<kml><p>Rain.</p></kml>"), {});
+    REQUIRE_FALSE(first.isEmpty());
+    CHECK(pm.project()->kinds.count(clippings) == 1);
+    const ProjectElement* clipping = pm.findElement(first);
+    REQUIRE(clipping != nullptr);
+    CHECK(ProjectManager::isClipping(*clipping));
+    CHECK(pm.chapterText(first).contains(QStringLiteral("Rain.")));
+
+    // The next one finds the kind there
+    CHECK_FALSE(pm.addClipping(QStringLiteral("Wind"), QStringLiteral("<kml><p>Wind.</p></kml>"),
+                               {})
+                    .isEmpty());
+    CHECK(pm.project()->kinds.count(clippings) == 1);
+
+    // Saved with the book
+    const QString manifest = pm.getManifestPath();
+    REQUIRE(pm.closeProject(false));
+    CHECK(savedProject(manifest).kinds.contains(clippings));
+    // Without a book, nothing
+    CHECK(pm.addClipping(QStringLiteral("Lost"), QString(), {}).isEmpty());
 }
 
 TEST_CASE("ProjectManager creates a project without opening it", "[project_manager]") {
@@ -1765,9 +1811,9 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     CHECK(references(pm.kindsFor(BookPlace::Workshop)) ==
           "kalahari.base:mindmap, kalahari.base:timeline, kalahari.base:character, "
           "kalahari.base:location, kalahari.base:item, kalahari.base:work_note, "
-          "kalahari.base:cover, kalahari.base:quote, kalahari.base:web_page, "
-          "kalahari.base:picture, kalahari.base:document, kalahari.base:publication, "
-          "kalahari.base:recording, kalahari.base:other_file");
+          "kalahari.base:clipping, kalahari.base:cover, kalahari.base:quote, "
+          "kalahari.base:web_page, kalahari.base:picture, kalahari.base:document, "
+          "kalahari.base:publication, kalahari.base:recording, kalahari.base:other_file");
     CHECK(ProjectManager::canAdd(note));
     CHECK(ProjectManager::canAdd(material));
     CHECK(ProjectManager::canAdd(otherFile));
@@ -1929,6 +1975,176 @@ TEST_CASE("ProjectManager keeps the description, own fields, links and turn of a
     CHECK(savedMap->rotation == 90);
     REQUIRE(pm.openProject(manifest));
     CHECK(pm.notes(map) == "The oasis and the road.");
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager keeps the description and the plot of the texts of the book",
+          "[project_manager][plot]") {
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Plot", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString chapter =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1", BookPlace::Main);
+    REQUIRE_FALSE(chapter.isEmpty());
+    const QString picture = QDir(dir.path()).filePath("map.png");
+    writeFile(picture, "a picture");
+    const QString map = pm.addMaterial(picture, kind("kalahari.base", "picture"), "Map");
+    REQUIRE_FALSE(map.isEmpty());
+    int changes = 0;
+    const QMetaObject::Connection counted =
+        QObject::connect(&pm, &ProjectManager::projectChanged, [&changes] { ++changes; });
+
+    // The description and the plot of a chapter, saved at once
+    ElementPlot plot;
+    plot.pov = "Amara";
+    plot.place = "Dakhla";
+    plot.time = "Day 1";
+    plot.color = "teal";
+    REQUIRE(pm.setPlot(chapter, "Amara joins the caravan.", plot));
+    CHECK(changes == 1);
+    CHECK(pm.findElement(chapter)->description == "Amara joins the caravan.");
+    CHECK(pm.findElement(chapter)->plot == plot);
+    // They are not its notes, which its chapter file keeps
+    CHECK(pm.notes(chapter).isEmpty());
+
+    // The same again changes nothing and saves nothing
+    REQUIRE(pm.setPlot(chapter, "Amara joins the caravan.", plot));
+    CHECK(changes == 1);
+
+    // A material of the Workshop, or an element the book has not, has no plot
+    CHECK_FALSE(pm.setPlot(map, "Not a text", plot));
+    CHECK_FALSE(pm.setPlot("nothing", "Nothing", plot));
+    CHECK(pm.findElement(map)->plot.isEmpty());
+    CHECK(changes == 1);
+
+    // A .klh file that cannot be written leaves the chapter as it was
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkdir(manifest));
+    CHECK_FALSE(pm.setPlot(chapter, "Changed", {}));
+    CHECK(pm.findElement(chapter)->plot == plot);
+    CHECK(changes == 1);
+    REQUIRE(QDir().rmdir(manifest));
+    REQUIRE(pm.saveManifest());
+    CHECK(changes == 2);
+    QObject::disconnect(counted);
+
+    // The .klh file has them
+    REQUIRE(pm.closeProject(false));
+    const BookProject saved = savedProject(manifest);
+    const ProjectElement* savedChapter = saved.findElement(chapter);
+    REQUIRE(savedChapter != nullptr);
+    CHECK(savedChapter->description == "Amara joins the caravan.");
+    CHECK(savedChapter->plot == plot);
+}
+
+TEST_CASE("ProjectManager gives the scenes of a text and keeps what they say",
+          "[project_manager][plot][scenes]") {
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Scenes", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString chapter =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1", BookPlace::Main);
+    REQUIRE_FALSE(chapter.isEmpty());
+
+    // A new text is one scene
+    REQUIRE(pm.scenesOf(chapter).size() == 1);
+    CHECK(pm.scenesOf("nothing").isEmpty());
+
+    // Its scenes are those of its file, with their words
+    pm.setChapterContent(chapter, "<kml><p>One two</p><scene-break title=\"Night\"/>"
+                                  "<p>Three four five</p></kml>");
+    REQUIRE(pm.saveChapterContent(chapter));
+    QList<KmlScene> scenes = pm.scenesOf(chapter);
+    REQUIRE(scenes.size() == 2);
+    CHECK(scenes.at(0).words.words == 2);
+    CHECK(scenes.at(1).words.words == 3);
+    CHECK(scenes.at(1).plot.title == "Night");
+    // An editor's text with changes gives its own
+    const QList<KmlScene> unsaved =
+        pm.scenesOf(chapter, QString("<kml><p>a</p><scene-break/><p>b</p><scene-break/></kml>"));
+    CHECK(unsaved.size() == 3);
+
+    // The first scene keeps its plot in the .klh file, the others at their breaks
+    ScenePlot opening;
+    opening.title = "Evening";
+    opening.pov = "Anna";
+    REQUIRE(pm.setScenePlot(chapter, 0, opening));
+    CHECK(pm.findElement(chapter)->plot.opening == opening);
+    CHECK(pm.scenesOf(chapter).at(0).plot == opening);
+    CHECK(unsaved.at(0).plot.isEmpty());
+    CHECK(pm.scenesOf(chapter, QString("<kml><p>a</p></kml>")).at(0).plot == opening);
+    ScenePlot night;
+    night.title = "The Night";
+    night.description = "The storm comes.";
+    night.status = "revision";
+    REQUIRE(pm.setScenePlot(chapter, 1, night));
+    CHECK(pm.scenesOf(chapter).at(1).plot == night);
+    CHECK(pm.chapterText(chapter).contains("<scene-break title=\"The Night\" "
+                                           "description=\"The storm comes.\" "
+                                           "status=\"revision\"/>"));
+    CHECK(pm.loadChapterContent(chapter).contains("The Night"));
+    CHECK_FALSE(pm.setScenePlot(chapter, 2, night));  // no such scene
+
+    // A text with changes its file does not have keeps them: its editor changes the scene
+    pm.setChapterContent(chapter, "<kml><p>Changed</p><scene-break/></kml>");
+    CHECK_FALSE(pm.setScenePlot(chapter, 1, ScenePlot()));
+    pm.discardChapterContent(chapter);
+
+    // Read again with the book
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    scenes = pm.scenesOf(chapter);
+    REQUIRE(scenes.size() == 2);
+    CHECK(scenes.at(0).plot == opening);
+    CHECK(scenes.at(1).plot == night);
+    CHECK(scenes.at(1).words.words == 3);
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager takes a text with its scenes moved, added or deleted",
+          "[project_manager][plot][scenes]") {
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Moves", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString chapter =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1", BookPlace::Main);
+    REQUIRE_FALSE(chapter.isEmpty());
+    pm.setChapterContent(chapter, "<kml><p>One two</p><scene-break title=\"Night\"/>"
+                                  "<p>Three four five</p></kml>");
+    REQUIRE(pm.saveChapterContent(chapter));
+    ScenePlot opening;
+    opening.title = "Evening";
+    REQUIRE(pm.setScenePlot(chapter, 0, opening));
+
+    const SceneText text{.kml = pm.chapterText(chapter),
+                         .opening = pm.findElement(chapter)->plot.opening};
+    const std::optional<SceneText> moved = ChapterDocument::withSceneMoved(text, 1, 0);
+    REQUIRE(moved.has_value());
+    REQUIRE(pm.setSceneText(chapter, *moved));
+    CHECK(pm.chapterText(chapter) == moved->kml);
+    CHECK(pm.findElement(chapter)->plot.opening.title == "Night");
+    QList<KmlScene> scenes = pm.scenesOf(chapter);
+    REQUIRE(scenes.size() == 2);
+    CHECK(scenes.at(0).words.words == 3);
+    CHECK(scenes.at(1).plot.title == "Evening");
+    CHECK(pm.wordCount(chapter) == 5);
+
+    // A text with changes its file does not have keeps them
+    pm.setChapterContent(chapter, "<kml><p>Changed</p></kml>");
+    CHECK_FALSE(pm.setSceneText(chapter, text));
+    pm.discardChapterContent(chapter);
+    CHECK_FALSE(pm.setSceneText("nothing", text));
+
+    // Read again with the book
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    scenes = pm.scenesOf(chapter);
+    REQUIRE(scenes.size() == 2);
+    CHECK(scenes.at(0).plot.title == "Night");
+    CHECK(scenes.at(1).plot.title == "Evening");
     REQUIRE(pm.closeProject(false));
 }
 
@@ -3003,7 +3219,7 @@ TEST_CASE("ProjectManager counts the words and statuses of the book", "[project_
 
 namespace {
 
-/// The dialogue dashes count as words or not (Settings > Editor > General > Word Count) until
+/// The dialogue dashes count as words or not (Settings > Editor > Writing > Word Count) until
 /// the test ends; then the choice is as it was
 class DashRule {
 public:

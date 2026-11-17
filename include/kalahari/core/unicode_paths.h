@@ -12,7 +12,8 @@
 /// program takes the text of a path in UTF-8, the encoding of its log, of Qt and of libzip's
 /// names of entries.
 
-#pragma once
+#ifndef KALAHARI_CORE_UNICODE_PATHS_H
+#define KALAHARI_CORE_UNICODE_PATHS_H
 
 #include <filesystem>
 #include <string>
@@ -38,3 +39,5 @@ std::filesystem::path pathOfText(std::string_view text);
 zip* openZipFile(const std::filesystem::path& path, int flags, int* error);
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_UNICODE_PATHS_H

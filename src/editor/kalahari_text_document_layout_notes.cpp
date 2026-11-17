@@ -5,7 +5,7 @@
 /// @brief KalahariTextDocumentLayout: the notes - their numbers in the text, their texts under
 ///        their paragraphs (the continuous views) and at the bottom of the pages (page flow)
 
-#include "layout_notes_internal.h"
+#include "kalahari/editor/detail/layout_notes_internal.h"
 
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_tables.h>
@@ -912,6 +912,19 @@ std::optional<QRectF> KalahariTextDocumentLayout::noteRect(const QString& id) co
 // =============================================================================
 // Page flow
 // =============================================================================
+
+qreal KalahariTextDocumentLayout::pageNotesHeight(int page) const {
+    updateBlockPositions();
+    if (!m_pageFlow.enabled || page < 0 || static_cast<size_t>(page) >= m_pageNotes.size()) {
+        return 0.0;
+    }
+    return m_pageNotes[static_cast<size_t>(page)].reserved;
+}
+
+qreal KalahariTextDocumentLayout::contentBottom() const {
+    updateBlockPositions();
+    return m_contentBottom;
+}
 
 qreal KalahariTextDocumentLayout::flowAreaHeight(qreal page) const {
     const auto index = static_cast<size_t>(std::max<qreal>(0.0, page));

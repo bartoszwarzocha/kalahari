@@ -7,7 +7,7 @@
 ///        skipped; Next Repetition; the whole book; Settings > Editor > Repetitions
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/chapter_document.h"
 #include "kalahari/core/project_manager.h"
@@ -49,7 +49,7 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -250,7 +250,7 @@ struct Desk {
     }
 
     /// Run the event loop until the panel has these cards
-    bool lists(const QStringList& words) const {
+    [[nodiscard]] bool lists(const QStringList& words) const {
         const RepetitionsPanel* shown = panel;
         const bool listed = waitUntil([shown, &words]() { return cardWords(*shown) == words; });
         if (!listed) {

@@ -5,7 +5,8 @@
 /// @brief The paragraph styles of the book: new ones, changed, deleted and brought back as the
 ///        type has them, from Format > Text Style, the palette and Manage Styles
 
-#pragma once
+#ifndef KALAHARI_GUI_STYLE_COORDINATOR_H
+#define KALAHARI_GUI_STYLE_COORDINATOR_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/editor/paragraph_styles.h"
@@ -33,7 +34,7 @@ class CommandRegistry;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -150,15 +151,17 @@ public:
     /// @return Whether it was made
     bool createMissingStyle(const QString& id, QWidget* parent = nullptr);
 
-    /// @brief Modify Style...: the window of style @p id (empty: the style at the cursor)
+    /// @brief Modify Style...: the window of style @p requested (empty: the style at the
+    ///        cursor)
     /// @return Whether the style changed
-    bool modifyStyle(const QString& id = QString(), QWidget* parent = nullptr);
+    bool modifyStyle(const QString& requested = QString(), QWidget* parent = nullptr);
 
-    /// @brief Delete Style: delete style @p id (empty: the style at the cursor), after asking
-    ///        when paragraphs use it; under the text a notice says so, with Undo, when
+    /// @brief Delete Style: delete style @p requested (empty: the style at the cursor), after
+    ///        asking when paragraphs use it; under the text a notice says so, with Undo, when
     ///        @p notice
     /// @return Whether it was deleted
-    bool deleteStyle(const QString& id = QString(), QWidget* parent = nullptr, bool notice = true);
+    bool deleteStyle(const QString& requested = QString(), QWidget* parent = nullptr,
+                     bool notice = true);
 
     /// @brief Reset to the Type's Style: style @p id as the book's type has it; a notice says
     ///        so, with Undo, when @p notice
@@ -271,3 +274,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_STYLE_COORDINATOR_H

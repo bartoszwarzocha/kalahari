@@ -8,7 +8,7 @@
 /// button in the corner that switches the rows and keeps the setting
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/widgets/central_tabs.h"
@@ -23,6 +23,7 @@
 #include <QPixmap>
 #include <QTabBar>
 #include <QToolButton>
+#include <QWidget>
 
 #include <cstdio>
 #include <string>
@@ -188,13 +189,22 @@ TEST_CASE("Central tabs in rows: Qt's tabs wrapped to the width, the pages under
     CHECK(shownCloseButtons(*bar) == 0);
     CHECK_FALSE(bar->usesScrollButtons());
 
-    // Wide enough for one row, the bar is one row high
+    // Wide enough for one row, the bar is one row high. In a window narrower than the tabs:
+    // Windows keeps a window within the screen (of 1024 pixels on the test machines), not a
+    // part of one
     const int twoRows = bar->height();
-    space.tabs.resize(2000, 300);
+    QWidget window;
+    window.resize(400, 300);
+    space.tabs.setParent(&window);
+    window.show();
+    space.tabs.setGeometry(0, 0, 2000, 300);
+    space.tabs.show();
     settle();
+    CHECK(space.tabs.width() == 2000);
     CHECK(rows->rowCount() == 1);
     CHECK(bar->height() < twoRows);
     CHECK(bar->height() == rows->heightForWidth(bar->width()));
+    space.tabs.setParent(nullptr);  // the workspace's again, before the window goes
 }
 
 TEST_CASE("Central tabs in rows: they follow Qt's tabs", "[gui][centraltabs]") {
@@ -381,7 +391,12 @@ TEST_CASE("Central tabs: the list of all the tabs, from its button and with Alt+
                                QStringLiteral("&5 Quotes"), QStringLiteral("&6 Images")});
     CHECK(space.tabs.currentIndex() == 4);
 
-    // In more rows too, and with Alt+Down on the tabs
+    // In more rows too, and with Alt+Down on the tabs: the keys of their window, also when the
+    // system does not make it active (Windows on the test machines, at times): another window
+    // active
+    QWidget other;
+    other.show();
+    other.activateWindow();
     for (const PanelTabBar::Rows rows : {PanelTabBar::Rows::Single, PanelTabBar::Rows::Wrap}) {
         space.tabs.setRows(rows);
         settle();
@@ -389,10 +404,9 @@ TEST_CASE("Central tabs: the list of all the tabs, from its button and with Alt+
                             ? static_cast<QWidget*>(space.tabs.tabRows())
                             : static_cast<QWidget*>(space.tabs.tabBar());
         REQUIRE(tabs != nullptr);
-        space.tabs.activateWindow();
         tabs->setFocus(Qt::OtherFocusReason);
         settle();
-        REQUIRE(QApplication::focusWidget() == tabs);
+        REQUIRE(space.tabs.focusWidget() == tabs);
         texts = kalahari::test::runPopupMenu(
             [tabs]() {
                 QKeyEvent override(QEvent::ShortcutOverride, Qt::Key_Down, Qt::AltModifier);

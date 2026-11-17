@@ -25,7 +25,7 @@
 #include <kalahari/gui/widgets/central_tabs.h>
 #include <kalahari/gui/widgets/standalone_info_bar.h>
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <QAbstractButton>
 #include <QApplication>

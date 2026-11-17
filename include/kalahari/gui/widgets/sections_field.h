@@ -5,7 +5,8 @@
 /// @brief Fields of the sections of a book: a set of their names or no sections, and the
 /// writer's own names
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_SECTIONS_FIELD_H
+#define KALAHARI_GUI_WIDGETS_SECTIONS_FIELD_H
 
 #include "kalahari/core/book_project.h"
 
@@ -18,8 +19,7 @@
 
 class QLineEdit;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief The front, main and back section, in the order of the names of a set
 inline constexpr std::array<core::BookPlace, 3> SECTION_PLACES = {
@@ -45,7 +45,7 @@ public:
 
     /// @brief The chosen item: the id of a set, core::ProjectBook::CUSTOM_SECTIONS or
     /// NO_SECTIONS
-    QString choice() const;
+    [[nodiscard]] QString choice() const;
 
     /// @brief Choose item @p item; the first set when the field has no such item
     void choose(const QString& item);
@@ -81,13 +81,13 @@ public:
     void setLanguage(const QString& language);
 
     /// @brief The names in the fields, without the spaces at their ends
-    QStringList names() const;
+    [[nodiscard]] QStringList names() const;
 
     /// @brief Put names @p names in the fields, without a signal
     void setNames(const QStringList& names);
 
     /// @brief The field of the first name, the buddy of a label
-    QLineEdit* firstField() const;
+    [[nodiscard]] QLineEdit* firstField() const;
 
 signals:
     /// @brief The writer typed in a field
@@ -100,5 +100,6 @@ private:
     std::array<QLineEdit*, SECTION_PLACES.size()> m_fields{};
 };
 
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_SECTIONS_FIELD_H

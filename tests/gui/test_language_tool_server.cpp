@@ -7,9 +7,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "../editor/editor_test_utils.h"
-#include "../editor/fake_language_tool.h"
-#include "grammar_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/editor/fake_language_tool.h"
+#include "kalahari_tests/gui/grammar_test_utils.h"
 #include "kalahari/gui/language_tool_server.h"
 
 #include <QCoreApplication>
@@ -49,7 +49,7 @@ public:
         REQUIRE(jar.open(QIODevice::WriteOnly));
         jar.write("server");
     }
-    QString path() const { return m_dir.path(); }
+    [[nodiscard]] QString path() const { return m_dir.path(); }
 
 private:
     QTemporaryDir m_dir;

@@ -8,7 +8,7 @@
 #include <kalahari/core/text_diff.h>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_serializer.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 
 #include <QStringList>
 #include <QTextBlock>

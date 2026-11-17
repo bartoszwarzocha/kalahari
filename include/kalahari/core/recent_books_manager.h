@@ -7,14 +7,14 @@
 /// OpenSpec #00030: Manages the list of recently opened .klh files. The File > Recent
 /// Books submenu is gui::RecentBooksMenu.
 
-#pragma once
+#ifndef KALAHARI_CORE_RECENT_BOOKS_MANAGER_H
+#define KALAHARI_CORE_RECENT_BOOKS_MANAGER_H
 
 #include <QObject>
 #include <QStringList>
 #include <QString>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 class ProjectManager;
 
@@ -59,18 +59,18 @@ public:
 
     /// @brief Get list of recent files
     /// @return List of file paths (most recent first)
-    QStringList getRecentFiles() const;
+    [[nodiscard]] QStringList getRecentFiles() const;
 
     /// @brief Check if recent files list is empty
     /// @return true if no recent files, false otherwise
-    bool isEmpty() const;
+    [[nodiscard]] bool isEmpty() const;
 
     /// @brief The book to open at startup: the book opened last, while it is on the list
     ///
     /// A book created or imported without opening goes to the top of the list, yet the book
     /// the writer opened last stays the one opened at startup.
     /// @return Its .klh file; without one on the list the first of the list, empty for none
-    QString lastOpenedBook() const;
+    [[nodiscard]] QString lastOpenedBook() const;
 
     /// @brief Which books open at startup, with the option of the last book: "all" (the books
     /// of the last work, each in its window) or "last" (the book opened last)
@@ -87,7 +87,7 @@ public:
     /// that are still there, in their order, or without them (or with "last") the book opened
     /// last (lastOpenedBook())
     /// @return Their .klh files; empty for none
-    QStringList booksToOpenAtStart() const;
+    [[nodiscard]] QStringList booksToOpenAtStart() const;
 
     /// @brief Maximum number of recent files to store
     static constexpr int MAX_RECENT_FILES = 10;
@@ -116,5 +116,6 @@ private:
     QStringList m_recentFiles;    ///< List of recent file paths
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_RECENT_BOOKS_MANAGER_H

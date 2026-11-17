@@ -20,8 +20,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 namespace {
 
@@ -476,5 +475,4 @@ QString ChapterVersions::newVersionFile(const QDateTime& created,
     }
 }
 
-}  // namespace core
-}  // namespace kalahari
+} // namespace kalahari::core

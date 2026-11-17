@@ -5,25 +5,27 @@
 /// @brief Parts that the program's own dialogs share: a list as high as its rows, the keys of
 /// a list with a filter, a note with an icon, and the Copy button
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_DIALOG_PARTS_H
+#define KALAHARI_GUI_DIALOGS_DIALOG_PARTS_H
 
 #include <QSize>
 #include <QString>
+#include <QTabWidget>
 #include <QTreeWidget>
 
 #include <functional>
 
+class QAbstractButton;
 class QAbstractItemView;
 class QEvent;
+class QFontMetrics;
 class QLabel;
 class QLineEdit;
 class QObject;
 class QPushButton;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief A list of a dialog, as high as its rows up to MAXIMUM_ROWS; the other rows scroll,
 /// and on a small screen the list keeps MINIMUM_ROWS
@@ -38,14 +40,14 @@ public:
     void setRows(int rows);
 
     /// @brief As high as its rows, up to MAXIMUM_ROWS
-    QSize sizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
 
     /// @brief As high as its rows, up to MINIMUM_ROWS
-    QSize minimumSizeHint() const override;
+    [[nodiscard]] QSize minimumSizeHint() const override;
 
 private:
     /// @brief The height of @p rows rows, with the frame
-    int heightFor(int rows) const;
+    [[nodiscard]] int heightFor(int rows) const;
 
     int m_rows = 0;
 };
@@ -80,6 +82,40 @@ void setNoteIcon(QLabel* icon, const QString& iconId);
 /// says so for a while
 void setUpCopyButton(QPushButton* button, const std::function<QString()>& text);
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+/// @brief The width of @p letters letters of a text in the font of @p metrics
+///
+/// Not averageCharWidth(): fonts give it differently (DejaVu Sans 6 pixels, Inter 8, for text
+/// that takes 5.8 and 5.5), and a window would wrap its sentences into more lines in one font
+/// than in another.
+int widthOfLetters(const QFontMetrics& metrics, int letters);
+
+/// @brief Tabs as high as their highest page at the width they have
+///
+/// A page of wrapped sentences asks for the lines its sentences take there, whichever page is
+/// in front. A plain QTabWidget asks so only for the page in front, and for the others takes
+/// their own hints, which wrap the sentences at a narrower width into more lines. A hidden
+/// tab (the options of a format that is not chosen) does not count.
+class FittingTabs : public QTabWidget {
+public:
+    using QTabWidget::QTabWidget;
+
+    [[nodiscard]] bool hasHeightForWidth() const override { return true; }
+    [[nodiscard]] int heightForWidth(int width) const override;
+    [[nodiscard]] QSize sizeHint() const override;
+};
+
+/// @brief @p text in the label of a button: an '&' shows as itself, not as an access key
+QString literal(QString text);
+
+/// @brief A grey sentence under an option or a list
+QLabel* newRemark(QWidget* parent, const QString& text);
+
+/// @brief Button @p button (a check box, a radio button) with @p remark right under it, in
+/// line with its text; @p beside, when given, on the line of the button after it (an option
+/// of its own, which saves a line)
+/// @return The button with its remark, for the layout of the dialog
+QWidget* withRemark(QAbstractButton* button, QLabel* remark, QWidget* beside = nullptr);
+
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_DIALOG_PARTS_H

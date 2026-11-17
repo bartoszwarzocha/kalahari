@@ -66,8 +66,7 @@
 #include <algorithm>
 #include <functional>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -1678,5 +1677,4 @@ bool LinkedMaterialsBox::eventFilter(QObject* watched, QEvent* event) {
     return QGroupBox::eventFilter(watched, event);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

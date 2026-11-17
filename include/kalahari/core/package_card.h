@@ -40,7 +40,8 @@
 /// }
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_PACKAGE_CARD_H
+#define KALAHARI_CORE_PACKAGE_CARD_H
 
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_package.h>
@@ -70,17 +71,17 @@ struct PackageCard {
     QString directory;                 ///< Folder of the card; empty for a card not read
 
     /// @brief Kind @p kindId of the card, or nullptr
-    const ElementKind* kind(const QString& kindId) const;
+    [[nodiscard]] const ElementKind* kind(const QString& kindId) const;
 
     /// @brief The SVG file of icon @p iconId in icon theme @p theme on the card ("twotone")
     /// @return Its path, or empty when the card has no such file
-    QString iconFile(const QString& iconId, const QString& theme) const;
+    [[nodiscard]] QString iconFile(const QString& iconId, const QString& theme) const;
 
     /// @brief The card of @p package
     static PackageCard of(const BookTypePackage& package);
 
     /// @brief The card as the JSON object of its card.json
-    QJsonObject toJson() const;
+    [[nodiscard]] QJsonObject toJson() const;
 
     /// @brief The card of the JSON object of a card.json
     /// @return The card, or nullopt when it is not one: of another format, or without a valid
@@ -138,3 +139,5 @@ struct PackageCards {
 };
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_PACKAGE_CARD_H

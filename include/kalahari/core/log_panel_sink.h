@@ -16,7 +16,8 @@
 /// Logger::getInstance().addSink(sink);
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_LOG_PANEL_SINK_H
+#define KALAHARI_CORE_LOG_PANEL_SINK_H
 
 #include <QObject>
 #include <QString>
@@ -24,8 +25,7 @@
 #include <spdlog/details/null_mutex.h>
 #include <mutex>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief spdlog sink that emits Qt signals for GUI integration
 ///
@@ -62,5 +62,6 @@ protected:
     void flush_() override;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_LOG_PANEL_SINK_H

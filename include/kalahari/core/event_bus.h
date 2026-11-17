@@ -64,7 +64,8 @@
 /// kalahari_api.EventBus.emit(event)
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_EVENT_BUS_H
+#define KALAHARI_CORE_EVENT_BUS_H
 
 #include <string>
 #include <map>
@@ -76,8 +77,7 @@
 #include <memory>
 #include <cstdint>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Event data structure for pub/sub communication
 ///
@@ -243,5 +243,6 @@ private:
     mutable std::mutex m_queue_mutex;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_EVENT_BUS_H

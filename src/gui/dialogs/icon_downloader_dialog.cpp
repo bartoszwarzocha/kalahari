@@ -32,21 +32,6 @@ using namespace kalahari::core;
 
 IconDownloaderDialog::IconDownloaderDialog(QWidget* parent)
     : KalahariDialog(parent)
-    , m_iconNameEdit(nullptr)
-    , m_twotoneCheckBox(nullptr)
-    , m_roundedCheckBox(nullptr)
-    , m_outlinedCheckBox(nullptr)
-    , m_sourceUrlEdit(nullptr)
-    , m_progressBar(nullptr)
-    , m_statusLabel(nullptr)
-    , m_errorDisplay(nullptr)
-    , m_previewWidget(nullptr)
-    , m_downloader(nullptr)
-    , m_converter(nullptr)
-    , m_totalDownloads(0)
-    , m_completedDownloads(0)
-    , m_failedDownloads(0)
-    , m_isDownloading(false)
 {
     setupUi();
 

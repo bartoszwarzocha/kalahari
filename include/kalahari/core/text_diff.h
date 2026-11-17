@@ -8,14 +8,14 @@
 /// paragraphs of both texts in one list, the paragraphs that only one text has whole, and in a
 /// paragraph that both have in another form the words deleted and the words added.
 
-#pragma once
+#ifndef KALAHARI_CORE_TEXT_DIFF_H
+#define KALAHARI_CORE_TEXT_DIFF_H
 
 #include <QList>
 #include <QString>
 #include <QStringList>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief A piece of a paragraph of the comparison
 struct DiffPiece {
@@ -39,7 +39,7 @@ struct DiffParagraph {
     int newer = -1;           ///< Its place in the newer text; -1: only the older has it
 
     /// @brief Whether both texts have it as it is
-    bool isSame() const;
+    [[nodiscard]] bool isSame() const;
 
     bool operator==(const DiffParagraph& other) const = default;
 };
@@ -60,7 +60,7 @@ struct TextDiff {
     int addedWords = 0;               ///< Words only the newer text has (tallyWords())
 
     /// @brief Whether the texts are the same
-    bool isSame() const { return changes.isEmpty(); }
+    [[nodiscard]] bool isSame() const { return changes.isEmpty(); }
 };
 
 /// @brief Compare text @p older with text @p newer, both as their paragraphs
@@ -74,5 +74,6 @@ struct TextDiff {
 /// compared by its paragraphs only.
 TextDiff diffTexts(const QStringList& older, const QStringList& newer);
 
-}  // namespace core
-}  // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_TEXT_DIFF_H

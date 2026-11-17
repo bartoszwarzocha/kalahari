@@ -5,7 +5,8 @@
 /// @brief The lists of the materials of the Workshop on their tabs: the kinds of the Materials,
 /// the columns of each kind and what a material shows in them
 
-#pragma once
+#ifndef KALAHARI_GUI_MATERIAL_LIST_H
+#define KALAHARI_GUI_MATERIAL_LIST_H
 
 #include <QCoreApplication>
 #include <QHash>
@@ -16,10 +17,10 @@
 
 namespace kalahari::core {
 class ProjectManager;
+struct ProjectElement;
 }  // namespace kalahari::core
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A column of a list of materials
 struct MaterialColumn {
@@ -27,6 +28,7 @@ struct MaterialColumn {
     QString title;         ///< Its header; empty for the thumbnail
     bool shown = true;     ///< Shown while the writer has not chosen the columns of the list
     bool sortable = true;  ///< false: the thumbnail
+    bool editable = false; ///< Its cells are edited in the table (F2): the fields of a card
 };
 
 /// @brief A material of the Workshop as a row of a list shows it
@@ -50,6 +52,12 @@ struct MaterialRow {
     QString heading;                 ///< A row that names a group of the list of the cover,
                                      ///< not a material: its name and number; empty: a
                                      ///< material
+    bool clipping = false;           ///< A clipping (core::ClippingData)
+    bool originLive = false;         ///< Of a clipping: the text it was cut from is in the book
+    bool card = false;               ///< A card of a character, a location or an item
+                                     ///< (CardList)
+    QString color;                   ///< Of a card: its color ("#RRGGBB"); empty: none
+    QString summary;                 ///< Of a card: In Short, on its tile
 };
 
 /// @brief The lists of the materials of the book open in @p book: the kinds of the Materials of its
@@ -57,7 +65,8 @@ struct MaterialRow {
 ///
 /// A list is named by the kind of its materials with its package ("kalahari.base:quote");
 /// ALL is the list of All Materials, the working notes too, and SOURCES that of the materials
-/// with a bibliographic description, of every kind. The writer chooses the columns of
+/// with a bibliographic description, of every kind. A list of a kind of cards (characters,
+/// locations, items) has its columns and rows from CardList. The writer chooses the columns of
 /// each list and their order, and between the table and the tiles of the pictures, the
 /// documents and the publications; the program keeps it for each list (LISTS_SETTING).
 class MaterialList {
@@ -98,6 +107,10 @@ public:
     static constexpr const char* COVER_SOURCE = "coverSource"; ///< The cover: of an opinion
     static constexpr const char* COVER_DATE = "coverDate";     ///< The cover: of an opinion
     static constexpr const char* COVER_LICENSE = "coverLicense";  ///< The cover: of a picture
+    static constexpr const char* CLIPPING_FROM = "from";  ///< A clipping: the text it was cut from
+    static constexpr const char* CLIPPING_CUT = "cut";    ///< A clipping: when it was cut
+    static constexpr const char* CLIPPING_NOTE = "note";  ///< A clipping: its note
+    static constexpr const char* CLIPPING_INSERTED = "inserted";  ///< A clipping: inserted last
     static constexpr const char* SOURCE_KIND = "sourceKind";        ///< A source: a book...
     static constexpr const char* SOURCE_AUTHORS = "sourceAuthors";  ///< A source: its authors
     static constexpr const char* SOURCE_YEAR = "sourceYear";        ///< A source: its year
@@ -165,17 +178,29 @@ public:
     /// @brief Icon of @p list: that of its kind in the Navigator, of Materials for ALL
     static QString iconIdOf(const QString& list);
 
-    /// @brief Whether @p list has tiles besides the table: the pictures, the documents and the
-    /// publications
+    /// @brief Whether @p list has tiles besides the table: the pictures, the documents, the
+    /// publications and the cards (CardList)
     static bool hasTiles(const QString& list);
 
     /// @brief Columns of @p list, then one for each field of the writer's that its materials
     /// have (hidden at first), by name
     static QList<MaterialColumn> columnsOf(const core::ProjectManager& book, const QString& list);
 
+    /// @brief Add to @p columns one column for each field of the writer's that @p elements have,
+    /// hidden at first, sorted by name (FIELD_PREFIX)
+    static void appendFieldColumns(QList<MaterialColumn>& columns,
+                                   const QList<const core::ProjectElement*>& elements);
+
     /// @brief Column @p list sorts by at first: the quote of the quotes, the kind of All
-    /// Materials, else the title
+    /// Materials, the time of the cut of the clippings, else the title
     static QString firstSortOf(const QString& list);
+
+    /// @brief The order @p list sorts in at first: the clippings the last cut first, the others
+    /// from A to Z
+    static Qt::SortOrder firstSortOrderOf(const QString& list);
+
+    /// @brief Whether @p list is the list of the clippings
+    static bool isClippings(const QString& list);
 
     /// @brief Rows of the materials of @p list in the book open in @p book, in the order of the
     /// Workshop
@@ -218,7 +243,18 @@ public:
     /// of a page or of a picture on the web without a copy, the path of a file, else the title;
     /// in SOURCES the entry of a source in the bibliography of the book (rowsOf())
     static QString copyTextOf(const core::ProjectManager& book, const QString& elementId);
+
+    /// @brief Columns of the list of the clippings: the title, where it comes from, when it
+    /// was cut, the words, the note and when it was inserted (shown when a clipping inserted
+    /// stays in the Workshop), the time of the file and the links
+    static QList<MaterialColumn> clippingColumns();
+
+    /// @brief What clipping @p element of the book open in @p book shows in the columns of its
+    /// list; nothing for an element that is not a clipping
+    static void setClippingTexts(MaterialRow& row, const core::ProjectManager& book,
+                                 const core::ProjectElement& element);
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_MATERIAL_LIST_H

@@ -5,7 +5,8 @@
 /// @brief The window of the preparation of grammar checking: what is downloaded, how it goes,
 ///        that it is ready, or why it stopped
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_GRAMMAR_SETUP_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_GRAMMAR_SETUP_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -23,7 +24,7 @@ class QToolButton;
 
 namespace kalahari::gui {
 class GrammarSetup;
-}
+} // namespace kalahari::gui
 
 namespace kalahari::gui::dialogs {
 
@@ -57,23 +58,23 @@ public:
     explicit GrammarSetupDialog(GrammarSetup* setup, QWidget* parent = nullptr);
 
     /// @brief What the window shows
-    Page page() const { return m_page; }
+    [[nodiscard]] Page page() const { return m_page; }
 
     /// @brief Why the preparation stopped and what to do (Page::Failed)
-    QString message() const;
+    [[nodiscard]] QString message() const;
 
     /// @brief The details of the failure: what the system said, the address, how much was
     ///        downloaded (Page::Failed)
-    QString details() const;
+    [[nodiscard]] QString details() const;
 
     /// @brief The button that breaks the preparation off (Page::Progress)
-    QPushButton* stopButton() const { return m_stopButton; }
+    [[nodiscard]] QPushButton* stopButton() const { return m_stopButton; }
 
     /// @brief The button that checks the room on the disk again (Page::Plan)
-    QPushButton* checkAgainButton() const { return m_checkAgainButton; }
+    [[nodiscard]] QPushButton* checkAgainButton() const { return m_checkAgainButton; }
 
     /// @brief The button that copies the failure (Page::Failed)
-    QPushButton* copyButton() const { return m_copyButton; }
+    [[nodiscard]] QPushButton* copyButton() const { return m_copyButton; }
 
 public slots:
     /// @brief The button of the page: start, download in the background, finish or try again
@@ -150,3 +151,5 @@ private:
 };
 
 }  // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_GRAMMAR_SETUP_DIALOG_H

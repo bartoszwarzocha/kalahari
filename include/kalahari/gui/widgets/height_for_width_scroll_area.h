@@ -5,7 +5,8 @@
 /// @brief A scroll area as high as its content needs at its width, which scrolls only in a
 ///        panel too low for it
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_HEIGHT_FOR_WIDTH_SCROLL_AREA_H
+#define KALAHARI_GUI_WIDGETS_HEIGHT_FOR_WIDTH_SCROLL_AREA_H
 
 #include <QScrollArea>
 #include <QSize>
@@ -14,8 +15,7 @@ class QEvent;
 class QObject;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A scroll area as high as its content at the area's width: rows that wrap on a
 ///        narrow panel take the lines they need, and the content scrolls only where the
@@ -55,5 +55,6 @@ private:
     int m_minimumLines;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_HEIGHT_FOR_WIDTH_SCROLL_AREA_H

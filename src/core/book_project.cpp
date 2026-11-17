@@ -6,6 +6,8 @@
 
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/card_data.h>
+#include <kalahari/core/card_field_set.h>
+#include <kalahari/core/clipping.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/publishing_texts.h>
 #include <kalahari/core/source_description.h>
@@ -21,6 +23,7 @@
 #include <QUrl>
 #include <QUuid>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <functional>
 #include <iterator>
@@ -49,6 +52,23 @@ const BookPart BOOK_PARTS[] = {
     {BookPlace::Main, "main", &ProjectBook::mainElements},
     {BookPlace::Back, "back", &ProjectBook::backElements},
 };
+
+/// @brief A field of the plot of a scene: its key and where ScenePlot keeps it
+struct SceneField {
+    const char* key;             ///< Key in the .klh file and attribute of a scene break
+    QString ScenePlot::*member;  ///< The field of ScenePlot
+};
+
+/// The fields of the plot of a scene (ScenePlot::toAttributes()), in the order they are written
+constexpr std::array<SceneField, 7> SCENE_FIELDS{{
+    {.key = "title", .member = &ScenePlot::title},
+    {.key = "description", .member = &ScenePlot::description},
+    {.key = "pov", .member = &ScenePlot::pov},
+    {.key = "place", .member = &ScenePlot::place},
+    {.key = "time", .member = &ScenePlot::time},
+    {.key = "color", .member = &ScenePlot::color},
+    {.key = "status", .member = &ScenePlot::status},
+}};
 
 const BookPart& bookPart(BookPlace place) {
     const auto* found = std::find_if(std::begin(BOOK_PARTS), std::end(BOOK_PARTS),
@@ -177,7 +197,7 @@ public:
     }
 
     /// Fields that nothing took
-    const QJsonObject& rest() const { return m_rest; }
+    [[nodiscard]] const QJsonObject& rest() const { return m_rest; }
 
 private:
     QJsonObject m_rest;
@@ -388,6 +408,67 @@ void readCover(Fields& fields, ProjectElement& element, QStringList& problems) {
     data.extra = coverFields.rest();
 }
 
+/// Where a clipping was cut from, from the object @p value of "origin"
+void readClippingOrigin(const QJsonValue& value, const QString& field, ClippingOrigin& origin,
+                        QStringList& problems) {
+    Fields originFields(value.toObject(), field, problems);
+    origin.element = originFields.string("element");
+    origin.title = originFields.string("title");
+    if (const QJsonValue paragraph = originFields.take("paragraph"); !paragraph.isUndefined()) {
+        const int number = isWholeNumber(paragraph) ? paragraph.toInt(-1) : -1;
+        if (number < 0) {
+            originFields.problem("paragraph", QStringLiteral("must be a whole number, 0 or more"));
+        } else {
+            origin.paragraph = number;
+        }
+    }
+    origin.before = originFields.string("before");
+    origin.after = originFields.string("after");
+    origin.cut = originFields.dateTime("cut");
+    origin.extra = originFields.rest();
+}
+
+/// Where a clipping was inserted, from the array "inserted" of @p clippingFields
+void readClippingInsertions(Fields& clippingFields, ClippingData& data, QStringList& problems) {
+    const QString insertedField = clippingFields.path("inserted");
+    const QJsonArray inserted = clippingFields.array("inserted");
+    for (qsizetype i = 0; i < inserted.size(); ++i) {
+        const QString field = QStringLiteral("%1[%2]").arg(insertedField).arg(i);
+        if (!inserted.at(i).isObject()) {
+            addProblem(problems, field, QStringLiteral("must be an object"));
+            continue;
+        }
+        Fields insertionFields(inserted.at(i).toObject(), field, problems);
+        ClippingInsertion insertion;
+        insertion.element = insertionFields.string("element");
+        insertion.at = insertionFields.dateTime("at");
+        insertion.extra = insertionFields.rest();
+        data.inserted << insertion;
+    }
+}
+
+/// Where a clipping was cut from and where it was inserted, with the fields of "clipping" this
+/// version does not know
+void readClipping(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue clipping = fields.take("clipping");
+    if (clipping.isUndefined()) {
+        return;
+    }
+    if (!clipping.isObject()) {
+        fields.problem("clipping", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields clippingFields(clipping.toObject(), fields.path("clipping"), problems);
+    ClippingData& data = element.clipping;
+    if (const QJsonValue origin = clippingFields.take("origin"); origin.isObject()) {
+        readClippingOrigin(origin, clippingFields.path("origin"), data.origin, problems);
+    } else if (!origin.isUndefined()) {
+        clippingFields.problem("origin", QStringLiteral("must be an object"));
+    }
+    readClippingInsertions(clippingFields, data, problems);
+    data.extra = clippingFields.rest();
+}
+
 /// The portraits of a card: [{"image": "e31", "label": "youth"}]
 QList<CardPortrait> readPortraits(Fields& fields, QStringList& problems) {
     QList<CardPortrait> portraits;
@@ -445,6 +526,73 @@ void readCard(Fields& fields, ProjectElement& element, QStringList& problems) {
     }
     data.portraits = readPortraits(cardFields, problems);
     data.extra = cardFields.rest();
+}
+
+/// What a scene says (the first scene of a text, a scene in the plan), from the fields of
+/// @p fields that have it; the fields this version does not know are kept
+ScenePlot readScenePlot(Fields& fields) {
+    QMap<QString, QString> attributes;
+    for (const SceneField& field : SCENE_FIELDS) {
+        if (const QString value = fields.string(field.key); !value.isEmpty()) {
+            attributes.insert(QLatin1String(field.key), value);
+        }
+    }
+    ScenePlot plot = ScenePlot::fromAttributes(attributes);
+    plot.extra = fields.rest();
+    return plot;
+}
+
+/// The scenes in the plan of a text, from list @p planned of field @p field
+QList<PlannedScene> readPlanned(const QJsonArray& planned, const QString& field,
+                                QStringList& problems) {
+    QList<PlannedScene> scenes;
+    for (qsizetype i = 0; i < planned.size(); ++i) {
+        const QString itemField = QStringLiteral("%1[%2]").arg(field).arg(i);
+        if (!planned.at(i).isObject()) {
+            addProblem(problems, itemField, QStringLiteral("must be an object"));
+            continue;
+        }
+        Fields sceneFields(planned.at(i).toObject(), itemField, problems);
+        PlannedScene scene;
+        if (const QJsonValue after = sceneFields.take("after"); !after.isUndefined()) {
+            scene.after = isWholeNumber(after) ? after.toInt(-1) : -1;
+            if (scene.after < 0) {
+                sceneFields.problem("after", QStringLiteral("must be a whole number, 0 or more"));
+                scene.after = 0;
+            }
+        }
+        scene.plot = readScenePlot(sceneFields);
+        scenes << scene;
+    }
+    return scenes;
+}
+
+/// What the plot board says of a text of a book, with the fields of "plot" this version does
+/// not know
+void readPlot(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue plot = fields.take("plot");
+    if (plot.isUndefined()) {
+        return;
+    }
+    if (!plot.isObject()) {
+        fields.problem("plot", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields plotFields(plot.toObject(), fields.path("plot"), problems);
+    ElementPlot& data = element.plot;
+    data.pov = plotFields.string("pov");
+    data.place = plotFields.string("place");
+    data.time = plotFields.string("time");
+    data.color = plotFields.string("color");
+    // The first scene of the text, before any scene break
+    if (const QJsonValue opening = plotFields.take("opening"); opening.isObject()) {
+        Fields openingFields(opening.toObject(), plotFields.path("opening"), problems);
+        data.opening = readScenePlot(openingFields);
+    } else if (!opening.isUndefined()) {
+        plotFields.problem("opening", QStringLiteral("must be an object"));
+    }
+    data.planned = readPlanned(plotFields.array("planned"), plotFields.path("planned"), problems);
+    data.extra = plotFields.rest();
 }
 
 /// The bibliographic description of a material that is a source, with the fields of "source"
@@ -633,7 +781,9 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     element.links = readLinks(fields, problems);
     readView(fields, element, problems);
     readCover(fields, element, problems);
+    readClipping(fields, element, problems);
     readCard(fields, element, problems);
+    readPlot(fields, element, problems);
     readSource(fields, element, problems);
     readBookmarks(fields, element, problems);
     readHighlights(fields, element, problems);
@@ -876,6 +1026,8 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
     } else if (!set.isUndefined()) {
         fields.problem("publishingSet", QStringLiteral("must be an object"));
     }
+    book.isbn = fields.string("isbn");
+    book.publisher = fields.string("publisher");
     book.extra = fields.rest();
     return book;
 }
@@ -964,6 +1116,7 @@ ProjectWorkshop readWorkshop(const QJsonValue& value, Seen& seen, QStringList& p
     workshop.elements = readElements(fields.array("elements"), fields.path("elements"), seen,
                                      problems);
     workshop.relations = readOwnRelations(fields, problems);
+    workshop.cardFields = card_fields::read(fields.take("cardFields"));
     workshop.extra = fields.rest();
     return workshop;
 }
@@ -1007,6 +1160,41 @@ QString dateTimeText(const QDateTime& time) {
 
 QJsonArray elementsToJson(const QList<ProjectElement>& elements);
 
+/// "clipping" of a clipping: where it was cut from and where it was inserted
+QJsonObject clippingToJson(const ClippingData& clipping) {
+    QJsonObject data = clipping.extra;
+    const ClippingOrigin& origin = clipping.origin;
+    if (isEmpty(origin) && origin.extra.isEmpty()) {
+        data.remove(QLatin1String("origin"));
+    } else {
+        QJsonObject from = origin.extra;
+        setOrRemove(from, "element", origin.element);
+        setOrRemove(from, "title", origin.title);
+        if (origin.paragraph > 0) {
+            from.insert(QLatin1String("paragraph"), origin.paragraph);
+        } else {
+            from.remove(QLatin1String("paragraph"));
+        }
+        setOrRemove(from, "before", origin.before);
+        setOrRemove(from, "after", origin.after);
+        setOrRemove(from, "cut", dateTimeText(origin.cut));
+        data.insert(QLatin1String("origin"), from);
+    }
+    if (clipping.inserted.isEmpty()) {
+        data.remove(QLatin1String("inserted"));
+    } else {
+        QJsonArray inserted;
+        for (const ClippingInsertion& insertion : clipping.inserted) {
+            QJsonObject each = insertion.extra;
+            setOrRemove(each, "element", insertion.element);
+            setOrRemove(each, "at", dateTimeText(insertion.at));
+            inserted.append(each);
+        }
+        data.insert(QLatin1String("inserted"), inserted);
+    }
+    return data;
+}
+
 /// What a card has beside its text, as "card" saves it
 QJsonObject cardToJson(const CardData& card) {
     QJsonObject data = card.extra;
@@ -1035,6 +1223,15 @@ QJsonObject cardToJson(const CardData& card) {
     return data;
 }
 
+/// Where clipping @p element was cut from and where it was inserted (ClippingData) in @p json
+void writeClipping(QJsonObject& json, const ProjectElement& element) {
+    if (isEmpty(element.clipping)) {
+        json.remove(QLatin1String("clipping"));
+    } else {
+        json.insert(QLatin1String("clipping"), clippingToJson(element.clipping));
+    }
+}
+
 /// The data of a card beside its text (@p element: CardData) in @p json
 void writeCard(QJsonObject& json, const ProjectElement& element) {
     if (element.card.isEmpty()) {
@@ -1042,6 +1239,43 @@ void writeCard(QJsonObject& json, const ProjectElement& element) {
     } else {
         json.insert(QLatin1String("card"), cardToJson(element.card));
     }
+}
+
+/// What a scene says (the first scene of a text, a scene in the plan), with the fields this
+/// version does not know
+QJsonObject scenePlotToJson(const ScenePlot& plot) {
+    QJsonObject json = plot.extra;
+    const QMap<QString, QString> attributes = plot.toAttributes();
+    for (const SceneField& field : SCENE_FIELDS) {
+        setOrRemove(json, field.key, attributes.value(QLatin1String(field.key)));
+    }
+    return json;
+}
+
+/// What the plot board says of a text ("plot"), with the fields this version does not know
+QJsonObject plotToJson(const ElementPlot& plot) {
+    QJsonObject json = plot.extra;
+    setOrRemove(json, "pov", plot.pov);
+    setOrRemove(json, "place", plot.place);
+    setOrRemove(json, "time", plot.time);
+    setOrRemove(json, "color", plot.color);
+    if (plot.opening.isEmpty()) {
+        json.remove(QLatin1String("opening"));
+    } else {
+        json.insert(QLatin1String("opening"), scenePlotToJson(plot.opening));
+    }
+    if (plot.planned.isEmpty()) {
+        json.remove(QLatin1String("planned"));
+    } else {
+        QJsonArray planned;
+        for (const PlannedScene& scene : plot.planned) {
+            QJsonObject item = scenePlotToJson(scene.plot);
+            item.insert(QLatin1String("after"), scene.after);
+            planned.append(item);
+        }
+        json.insert(QLatin1String("planned"), planned);
+    }
+    return json;
 }
 
 /// @p source as the "source" object of an element, the fields the program does not know kept
@@ -1234,6 +1468,12 @@ QJsonObject elementToJson(const ProjectElement& element) {
         }
         json.insert(QLatin1String("cover"), data);
     }
+    writeClipping(json, element);
+    if (element.plot.isEmpty()) {
+        json.remove(QLatin1String("plot"));
+    } else {
+        json.insert(QLatin1String("plot"), plotToJson(element.plot));
+    }
     writeSource(json, element);
     if (element.publishing.isEmpty()) {
         json.remove(QLatin1String("publishing"));
@@ -1339,6 +1579,8 @@ QJsonObject bookToJson(const ProjectBook& book) {
     } else {
         json.remove(QLatin1String("publishingSet"));
     }
+    setOrRemove(json, "isbn", book.isbn);
+    setOrRemove(json, "publisher", book.publisher);
     return json;
 }
 
@@ -1411,6 +1653,12 @@ QJsonObject workshopToJson(const ProjectWorkshop& workshop) {
             relations.append(each);
         }
         json.insert(QLatin1String("relations"), relations);
+    }
+    if (const QJsonObject cardFields = card_fields::write(workshop.cardFields);
+        cardFields.isEmpty()) {
+        json.remove(QLatin1String("cardFields"));
+    } else {
+        json.insert(QLatin1String("cardFields"), cardFields);
     }
     return json;
 }
@@ -1566,6 +1814,39 @@ bool containsKind(const QList<KindRef>& kinds, const KindRef& ref) {
 }  // namespace
 
 // =============================================================================
+// ScenePlot
+// =============================================================================
+
+QMap<QString, QString> ScenePlot::toAttributes() const {
+    QMap<QString, QString> attributes;
+    for (const SceneField& field : SCENE_FIELDS) {
+        if (const QString& value = this->*field.member; !value.isEmpty()) {
+            attributes.insert(QLatin1String(field.key), value);
+        }
+    }
+    return attributes;
+}
+
+const QStringList& ScenePlot::fieldNames() {
+    static const QStringList NAMES = [] {
+        QStringList names;
+        for (const SceneField& field : SCENE_FIELDS) {
+            names << QLatin1String(field.key);
+        }
+        return names;
+    }();
+    return NAMES;
+}
+
+ScenePlot ScenePlot::fromAttributes(const QMap<QString, QString>& attributes) {
+    ScenePlot plot;
+    for (const SceneField& field : SCENE_FIELDS) {
+        plot.*field.member = attributes.value(QLatin1String(field.key));
+    }
+    return plot;
+}
+
+// =============================================================================
 // Names of the parts of a book
 // =============================================================================
 
@@ -1681,10 +1962,11 @@ bool ProjectElement::operator==(const ProjectElement& other) const {
            file == other.file && url == other.url && status == other.status &&
            firstPageLeft == other.firstPageLeft && elements == other.elements &&
            description == other.description && fields == other.fields && links == other.links &&
-           rotation == other.rotation && cover == other.cover && card == other.card &&
-           source == other.source && bookmarks == other.bookmarks &&
-           highlights == other.highlights && lastPage == other.lastPage && quote == other.quote &&
-           publishing == other.publishing && viewExtra == other.viewExtra && extra == other.extra;
+           rotation == other.rotation && cover == other.cover && clipping == other.clipping &&
+           card == other.card && plot == other.plot && source == other.source &&
+           bookmarks == other.bookmarks && highlights == other.highlights &&
+           lastPage == other.lastPage && quote == other.quote && publishing == other.publishing &&
+           viewExtra == other.viewExtra && extra == other.extra;
 }
 
 // =============================================================================

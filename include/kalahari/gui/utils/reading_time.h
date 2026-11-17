@@ -9,9 +9,7 @@
 
 #include <QString>
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 /// @brief The reading time of @p words words (core::readingMinutes()) as the writer reads it
 ///
@@ -20,8 +18,6 @@ namespace utils {
 /// @param words The words of the text
 [[nodiscard]] QString readingTimeText(int words);
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils
 
 #endif // KALAHARI_GUI_UTILS_READING_TIME_H

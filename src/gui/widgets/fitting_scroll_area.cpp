@@ -19,12 +19,9 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
-
-constexpr int DEFAULT_MINIMUM_LINES = 6;  ///< Height of the area in a lowered dialog, in lines
 
 /// @brief The widget of the area, around the content
 ///
@@ -39,7 +36,7 @@ public:
     {
     }
 
-    int heightForWidth(int width) const override
+    [[nodiscard]] int heightForWidth(int width) const override
     {
         int height = -1;
         if (const QLayout* layout = m_content->layout()) {
@@ -59,7 +56,6 @@ private:
 FittingScrollArea::FittingScrollArea(QWidget* content, QWidget* parent)
     : QScrollArea(parent)
     , m_content(content)
-    , m_minimumLines(DEFAULT_MINIMUM_LINES)
 {
     setFrameShape(QFrame::NoFrame);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -209,5 +205,4 @@ QSize FittingScrollArea::borders() const
     return QSize(2 * frameWidth(), 2 * frameWidth());
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

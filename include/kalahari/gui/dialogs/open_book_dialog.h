@@ -2,7 +2,8 @@
 /// @brief The question "Opening a Book": where a book goes when another one is open in the
 /// window
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_OPEN_BOOK_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_OPEN_BOOK_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -11,9 +12,7 @@
 class QCheckBox;
 class QPushButton;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief Where the book chosen goes while another one is open in the window: in a new window
 /// (the default button, Enter), in this window in place of the open one, or nowhere (Cancel)
@@ -38,16 +37,16 @@ public:
     OpenBookDialog(const QString& openBook, const QString& otherBook, QWidget* parent = nullptr);
 
     /// @brief What the writer chose; Cancel while the window is open
-    Choice choice() const { return m_choice; }
+    [[nodiscard]] Choice choice() const { return m_choice; }
 
     /// @brief Whether the choice is to be remembered, so that it is not asked again
-    bool remembersChoice() const;
+    [[nodiscard]] bool remembersChoice() const;
 
     /// @brief The button In This Window
-    QPushButton* thisWindowButton() const { return m_thisWindowButton; }
+    [[nodiscard]] QPushButton* thisWindowButton() const { return m_thisWindowButton; }
 
     /// @brief The checkbox Remember my choice
-    QCheckBox* rememberBox() const { return m_rememberBox; }
+    [[nodiscard]] QCheckBox* rememberBox() const { return m_rememberBox; }
 
 private:
     QPushButton* m_thisWindowButton = nullptr;
@@ -55,6 +54,6 @@ private:
     Choice m_choice = Choice::Cancel;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_OPEN_BOOK_DIALOG_H

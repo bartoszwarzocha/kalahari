@@ -21,12 +21,12 @@
 ///
 /// OpenSpec #00041: SQLite Project Database
 
-#pragma once
+#ifndef KALAHARI_CORE_PROJECT_LOCK_H
+#define KALAHARI_CORE_PROJECT_LOCK_H
 
 #include <QString>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief RAII-style project lock using PID-based lock file
 ///
@@ -66,7 +66,7 @@ public:
 
     /// @brief Check if this instance holds the lock
     /// @return true if lock is currently acquired
-    bool isAcquired() const { return m_acquired; }
+    [[nodiscard]] bool isAcquired() const { return m_acquired; }
 
     /// @brief Check if a lock file exists and is stale
     /// @param lockFilePath Path to lock file
@@ -102,5 +102,6 @@ private:
     bool m_acquired = false; ///< Whether lock is currently held
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_PROJECT_LOCK_H

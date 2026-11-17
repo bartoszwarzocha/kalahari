@@ -34,7 +34,9 @@ jobs:
   build:
     name: Linux Build & Test
     runs-on: ubuntu-24.04
-    timeout-minutes: 45  # System packages, no vcpkg: the build takes 19 to 28 minutes on the runner
+    # System packages, no vcpkg. The build took 21 minutes on the runner for main at 0.4.0-alpha
+    # and 37 minutes after the nine features merged in November 2026; the whole job took 40
+    timeout-minutes: 60
 
     strategy:
       matrix:
@@ -170,7 +172,11 @@ jobs:
   analysis:
     name: Sanitizers, Coverage & clang-tidy
     runs-on: ubuntu-24.04
-    timeout-minutes: 90  # Build ~30 min and tests ~12 min leave clang-tidy of a large PR too little in 60
+    # Setup and build ~50 min, tests under the sanitizers ~27 min, coverage ~5 min; clang-tidy
+    # of a pull request that changes hundreds of files (a clean-up of the whole code) takes two
+    # hours or more on the runner's 4 cores (344 translation units: not done after 82 minutes);
+    # GitHub stops any job at 360
+    timeout-minutes: 350
 
     steps:
     - name: Checkout code
@@ -237,12 +243,17 @@ jobs:
       if: always()
       run: |
         mkdir -p build/coverage
+        # GCC 13 sometimes numbers the lines of a header one too low in a source file that
+        # includes it (the preprocessor of that file says so too), so an inline function of
+        # the header has two lines among the files: gcovr counts it once, at the higher line
         gcovr --root . build --filter 'src/' --exclude-throw-branches \
+          --merge-mode-functions=merge-use-line-max \
           --txt-summary --txt build/coverage.txt \
           --html-details build/coverage/index.html
         # The same measurement for SonarQube (generic coverage format, paths relative to the
         # repository root), headers included; scripts/sonar_analysis.py downloads it
         gcovr --root . build --filter 'src/' --filter 'include/' --exclude-throw-branches \
+          --merge-mode-functions=merge-use-line-max \
           --sonarqube build/coverage/sonarqube.xml
         echo '### Line coverage (files compiled into tests)' >> "$GITHUB_STEP_SUMMARY"
         echo '```' >> "$GITHUB_STEP_SUMMARY"
@@ -261,8 +272,10 @@ jobs:
       if: github.event_name == 'pull_request'
       run: |
         # Hunks that add only // comments or blank lines (e.g. a licence header in every
-        # file) cannot get a finding, but would make clang-tidy analyse their whole files
+        # file) cannot get a finding, but would make clang-tidy analyse their whole files.
+        # A changed header is checked once, in a translation unit that includes it (with that
+        # unit's include folders)
         git diff -U0 "origin/${{ github.base_ref }}...HEAD" -- '*.cpp' '*.h' \
           | python3 .github/scripts/drop_comment_only_hunks.py \
-          | clang-tidy-diff-18.py -p1 -path build -quiet -j 4
+          | python3 .github/scripts/clang_tidy_changed.py -p build -j 4 --clang-tidy clang-tidy-18
 

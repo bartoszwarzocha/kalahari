@@ -4,7 +4,8 @@
 /// @file theme.h
 /// @brief Theme data structure for Kalahari appearance system
 
-#pragma once
+#ifndef KALAHARI_CORE_THEME_H
+#define KALAHARI_CORE_THEME_H
 
 #include <map>
 #include <set>
@@ -13,8 +14,7 @@
 #include <QPalette>
 #include <nlohmann/json.hpp>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief The contrast ratio of two colors, from 1 (none) to 21 (black on white)
 double contrastRatio(const QColor& a, const QColor& b);
@@ -84,7 +84,7 @@ struct Theme {
 
         /// @brief Convert to QPalette object
         /// @return QPalette with all color roles set
-        QPalette toQPalette() const;
+        [[nodiscard]] QPalette toQPalette() const;
     } palette;
 
     /// @brief Log panel specific colors
@@ -126,8 +126,9 @@ struct Theme {
 
     /// @brief Convert Theme to JSON object
     /// @return JSON representation of theme
-    nlohmann::json toJson() const;
+    [[nodiscard]] nlohmann::json toJson() const;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_THEME_H

@@ -11,9 +11,7 @@
 #include <QTimer>
 #include <QWidget>
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 namespace {
 
@@ -79,6 +77,4 @@ void focusPageOnTabClick(QTabWidget& tabs) {
     });
 }
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils

@@ -18,15 +18,15 @@
 /// }
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_PLUGIN_SIGNATURE_H
+#define KALAHARI_CORE_PLUGIN_SIGNATURE_H
 
 #include <filesystem>
 #include <string>
 #include <vector>
 #include <optional>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Plugin signature verification using Ed25519.
 ///
@@ -119,5 +119,6 @@ private:
     static std::string bytesToHex(const std::vector<uint8_t>& data);
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_PLUGIN_SIGNATURE_H

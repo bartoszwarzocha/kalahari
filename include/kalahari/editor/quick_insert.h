@@ -11,7 +11,8 @@
 /// narrow the list, and the item chosen takes the place of the character and the letters
 /// (QuickInsertController).
 
-#pragma once
+#ifndef KALAHARI_EDITOR_QUICK_INSERT_H
+#define KALAHARI_EDITOR_QUICK_INSERT_H
 
 #include <QChar>
 #include <QList>
@@ -44,6 +45,7 @@ struct QuickInsertItem {
     QString group;   ///< The heading of its group in the list: "Characters", "Text Fragments"
     QString owner;   ///< The name it is another name of ("Anna Wolska" for "Ania"), or empty
     QList<QuickInsertForm> forms;  ///< The forms of a name (→ shows them), its own first
+    QString color{};  ///< The color of the card it is the name of ("#c0504d"); empty: none
 
     bool operator==(const QuickInsertItem&) const = default;
 };
@@ -85,3 +87,5 @@ QuickInsertItem formItem(const QuickInsertItem& item, const QuickInsertForm& for
 bool isEnclosingPair(const QString& text);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_QUICK_INSERT_H

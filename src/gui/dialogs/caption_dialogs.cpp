@@ -27,9 +27,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -52,7 +50,7 @@ public:
         setMinimumHeight(linesHeight());
     }
 
-    QSize sizeHint() const override
+    [[nodiscard]] QSize sizeHint() const override
     {
         return {QListWidget::sizeHint().width(), linesHeight()};
     }
@@ -600,6 +598,4 @@ void InsertCrossReferenceDialog::updateChoices()
     acceptButton()->setEnabled(target != nullptr);
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

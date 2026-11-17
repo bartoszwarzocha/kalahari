@@ -8,8 +8,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "../editor/editor_test_utils.h"
-#include "grammar_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/grammar_test_utils.h"
 #include "kalahari/gui/dialogs/grammar_setup_dialog.h"
 #include "kalahari/gui/grammar_components.h"
 #include "kalahari/gui/grammar_setup.h"

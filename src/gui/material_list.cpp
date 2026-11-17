@@ -8,12 +8,14 @@
 
 #include "kalahari/core/bibliography.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/clipping.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/source_description.h"
+#include "kalahari/gui/card_list.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -32,8 +34,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -408,6 +409,7 @@ MaterialRow rowOf(const core::ProjectManager& book, const core::ProjectElement& 
             }
         }
     }
+    MaterialList::setClippingTexts(row, book, element);
     if (!row.text) {
         setSourceTexts(book, row, element);
     }
@@ -549,6 +551,10 @@ bool MaterialList::isCover(const QString& list) {
     return CoverNames::isCoverKind(kindOfList(list));
 }
 
+bool MaterialList::isClippings(const QString& list) {
+    return baseKindOf(kindOfList(list)) == QLatin1String(core::Clippings::KIND);
+}
+
 QStringList MaterialList::addKindsOf(const core::ProjectManager& book, const QString& list) {
     if (list.isEmpty()) {
         return kinds(book);
@@ -598,7 +604,7 @@ QString MaterialList::iconIdOf(const QString& list) {
 
 bool MaterialList::hasTiles(const QString& list) {
     const QString kindId = baseKindOf(kindOfList(list));
-    return kindId == QLatin1String(core::MaterialKinds::PICTURE) ||
+    return CardList::isCardList(list) || kindId == QLatin1String(core::MaterialKinds::PICTURE) ||
            kindId == QLatin1String(core::MaterialKinds::COVER) ||
            kindId == QLatin1String(core::MaterialKinds::DOCUMENT) ||
            kindId == QLatin1String(core::MaterialKinds::PUBLICATION);
@@ -606,6 +612,9 @@ bool MaterialList::hasTiles(const QString& list) {
 
 QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
                                               const QString& list) {
+    if (CardList::isCardList(list)) {
+        return CardList::columnsOf(book, list);
+    }
     //: A column of the list of materials. In Polish: Tytuł
     const QString title = tr("Title");
     //: In Polish: Powiązania
@@ -632,6 +641,8 @@ QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
                 //: A summary of a material in All Materials. In Polish: Szczegóły
                 << column(DETAILS, tr("Details")) << column(LINKS, links)
                 << column(DESCRIPTION, description, false) << column(MODIFIED, modified, false);
+    } else if (kindId == QLatin1String(core::Clippings::KIND)) {
+        columns << clippingColumns();
     } else if (list == QLatin1String(SOURCES)) {
         //: The kind of the material of a source: publication, web page. In Polish: Typ
         //: materiału
@@ -718,9 +729,14 @@ QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
                 << column(ADDRESS, address, false);
     }
 
-    // The fields of the writer's that the materials of the list have
+    appendFieldColumns(columns, elementsOf(book, list));
+    return columns;
+}
+
+void MaterialList::appendFieldColumns(QList<MaterialColumn>& columns,
+                                      const QList<const core::ProjectElement*>& elements) {
     QStringList fields;
-    for (const core::ProjectElement* element : elementsOf(book, list)) {
+    for (const core::ProjectElement* element : elements) {
         for (const core::ElementField& field : element->fields) {
             const QString name = field.name.trimmed();
             if (!name.isEmpty() && !fields.contains(name)) {
@@ -734,7 +750,6 @@ QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
     for (const QString& field : fields) {
         columns << MaterialColumn{QString::fromLatin1(FIELD_PREFIX) + field, field, false, true};
     }
-    return columns;
 }
 
 QString MaterialList::firstSortOf(const QString& list) {
@@ -748,11 +763,21 @@ QString MaterialList::firstSortOf(const QString& list) {
     if (kindId == QLatin1String(core::MaterialKinds::COVER)) {
         return QString::fromLatin1(COVER_TEXT);
     }
+    if (kindId == QLatin1String(core::Clippings::KIND)) {
+        return QString::fromLatin1(CLIPPING_CUT);
+    }
     return kindId == QLatin1String(core::MaterialKinds::QUOTE) ? QString::fromLatin1(QUOTE)
                                                                 : QString::fromLatin1(TITLE);
 }
 
+Qt::SortOrder MaterialList::firstSortOrderOf(const QString& list) {
+    return isClippings(list) ? Qt::DescendingOrder : Qt::AscendingOrder;
+}
+
 QList<MaterialRow> MaterialList::rowsOf(const core::ProjectManager& book, const QString& list) {
+    if (CardList::isCardList(list)) {
+        return CardList::rowsOf(book, list);
+    }
     QList<MaterialRow> rows;
     const auto& pm = book;
     // Copy of a source copies its entry in the bibliography of the book
@@ -906,5 +931,4 @@ QString MaterialList::copyTextOf(const core::ProjectManager& book, const QString
     return element->title;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

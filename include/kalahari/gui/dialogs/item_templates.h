@@ -10,16 +10,15 @@
 ///
 /// OpenSpec #00033: Project File System - Phase C
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_ITEM_TEMPLATES_H
+#define KALAHARI_GUI_DIALOGS_ITEM_TEMPLATES_H
 
 #include <QString>
 #include <QStringList>
 #include <map>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 // ============================================================================
 // TemplateInfo - Template metadata for display
@@ -45,7 +44,7 @@ struct TemplateInfo {
 
     /// @brief Check if template info is valid
     /// @return True if id and name are non-empty
-    bool isValid() const { return !id.isEmpty() && !name.isEmpty(); }
+    [[nodiscard]] bool isValid() const { return !id.isEmpty() && !name.isEmpty(); }
 };
 
 // ============================================================================
@@ -110,23 +109,23 @@ public:
     /// @brief Get all registered project templates
     /// @return Vector of TemplateInfo for project templates
     /// @note Templates are returned in registration order (builtin first)
-    std::vector<TemplateInfo> getProjectTemplates() const;
+    [[nodiscard]] std::vector<TemplateInfo> getProjectTemplates() const;
 
     /// @brief Get all registered file templates
     /// @return Vector of TemplateInfo for file templates
     /// @note Templates are returned in registration order (builtin first)
-    std::vector<TemplateInfo> getFileTemplates() const;
+    [[nodiscard]] std::vector<TemplateInfo> getFileTemplates() const;
 
     /// @brief Get template by ID
     /// @param id Template ID to find
     /// @return TemplateInfo if found, invalid TemplateInfo otherwise
     /// @note Check result with TemplateInfo::isValid()
-    TemplateInfo getTemplate(const QString& id) const;
+    [[nodiscard]] TemplateInfo getTemplate(const QString& id) const;
 
     /// @brief Check if template exists
     /// @param id Template ID to check
     /// @return True if template is registered
-    bool hasTemplate(const QString& id) const;
+    [[nodiscard]] bool hasTemplate(const QString& id) const;
 
     // ========================================================================
     // Utility
@@ -134,11 +133,11 @@ public:
 
     /// @brief Get count of registered project templates
     /// @return Number of project templates
-    size_t projectTemplateCount() const { return m_projectTemplates.size(); }
+    [[nodiscard]] size_t projectTemplateCount() const { return m_projectTemplates.size(); }
 
     /// @brief Get count of registered file templates
     /// @return Number of file templates
-    size_t fileTemplateCount() const { return m_fileTemplates.size(); }
+    [[nodiscard]] size_t fileTemplateCount() const { return m_fileTemplates.size(); }
 
 private:
     /// @brief Private constructor (singleton)
@@ -175,6 +174,6 @@ private:
     std::vector<QString> m_fileTemplateOrder;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_ITEM_TEMPLATES_H

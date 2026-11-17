@@ -5,7 +5,7 @@
 /// @brief A scroll area as large as its content, which scrolls only on a small screen
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
 

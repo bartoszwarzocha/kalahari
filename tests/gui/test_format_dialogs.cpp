@@ -6,7 +6,7 @@
 ///        Color: the windows, their fields and what the editor gets from them
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/character_format.h"
@@ -19,7 +19,7 @@
 #include "kalahari/gui/widgets/color_menu.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -36,7 +36,7 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using editor::CharacterFormat;

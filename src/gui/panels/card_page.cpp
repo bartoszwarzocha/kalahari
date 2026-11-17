@@ -14,9 +14,11 @@
 #include "kalahari/core/kind_words.h"
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/text_images.h"
+#include "kalahari/gui/dialogs/card_fields_dialog.h"
 #include "kalahari/gui/dialogs/color_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -27,6 +29,7 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/utils/program_folders.h"
 #include "kalahari/gui/widgets/card_chapters_box.h"
+#include "kalahari/gui/widgets/card_name_box.h"
 #include "kalahari/gui/widgets/own_fields_box.h"
 #include "kalahari/gui/widgets/palette_edit.h"
 #include "kalahari/gui/widgets/relations_box.h"
@@ -44,6 +47,7 @@
 #include <QFrame>
 #include <QGroupBox>
 #include <QHBoxLayout>
+#include <QImage>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
@@ -51,11 +55,13 @@
 #include <QMenu>
 #include <QMimeData>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSignalBlocker>
 #include <QStringListModel>
+#include <QTabWidget>
 #include <QTableWidget>
 #include <QTextDocument>
 #include <QToolButton>
@@ -64,6 +70,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <string>
 
 namespace kalahari::gui {
 
@@ -92,6 +99,8 @@ constexpr int TEXT_LINES = 3;
 constexpr qreal NAME_SCALE = 1.5;
 /// Part of the side of a portrait that the height of the initials takes
 constexpr qreal INITIALS_SCALE = 0.36;
+/// Part of the side of a portrait that the icon of the kind takes
+constexpr qreal ICON_SCALE = 0.56;
 /// The picture of a portrait is read at most this many times as large as the portrait
 constexpr int PICTURE_SCALE = 4;
 /// Of the height a picture has over its width, the part above the portrait: a face is near
@@ -133,28 +142,78 @@ core::KindRef pictureKind(const core::ProjectManager& book) {
 
 /// The initials of @p title on @p color, @p pixels on a side; in the text or the base color
 /// of the theme, whichever stands out more
-QPixmap initialsPortrait(const QString& title, const QColor& color, int pixels) {
+/// The color that stands out more on @p background: the text or the base color of the theme
+QColor inkOn(const QColor& background) {
     const QPalette palette = QApplication::palette();
-    const QColor background = color.isValid() ? color : palette.color(QPalette::Mid);
+    const QColor light = palette.color(QPalette::Base);
+    const QColor dark = palette.color(QPalette::Text);
+    return core::contrastRatio(light, background) >= core::contrastRatio(dark, background)
+               ? light
+               : dark;
+}
+
+/// The color of a portrait without a picture: that of the card, else a grey of the theme
+QColor backgroundOf(const QColor& color) {
+    return color.isValid() ? color : QApplication::palette().color(QPalette::Mid);
+}
+
+QPixmap initialsPortrait(const QString& title, const QColor& color, int pixels) {
+    const QColor background = backgroundOf(color);
     QPixmap pixmap(pixels, pixels);
     pixmap.fill(background);
     const QString initials = CardPage::initialsOf(title);
     if (initials.isEmpty()) {
         return pixmap;
     }
-    const QColor light = palette.color(QPalette::Base);
-    const QColor dark = palette.color(QPalette::Text);
     QPainter painter(&pixmap);
     painter.setRenderHint(QPainter::TextAntialiasing);
     QFont font = QApplication::font();
     font.setBold(true);
     font.setPixelSize(std::max(1, qRound(pixels * INITIALS_SCALE)));
     painter.setFont(font);
-    painter.setPen(core::contrastRatio(light, background) >= core::contrastRatio(dark, background)
-                       ? light
-                       : dark);
+    painter.setPen(inkOn(background));
     painter.drawText(QRect(0, 0, pixels, pixels), Qt::AlignCenter, initials);
     return pixmap;
+}
+
+/// The icon @p iconId of the kind of a card on @p color, @p pixels on a side, in one color: the
+/// text or the base color of the theme, whichever stands out more
+QPixmap iconPortrait(const QString& iconId, const QColor& color, int pixels) {
+    const QColor background = backgroundOf(color);
+    QPixmap pixmap(pixels, pixels);
+    pixmap.fill(background);
+    const int side = std::max(1, qRound(pixels * ICON_SCALE));
+    const QPixmap icon = core::ArtProvider::getInstance()
+                             .getIcon(iconId, core::IconContext::Toolbar)
+                             .pixmap(QSize(side, side));
+    if (icon.isNull()) {
+        return pixmap;
+    }
+    // The shape of the icon, in the ink
+    QImage glyph = icon.toImage().convertToFormat(QImage::Format_ARGB32_Premultiplied);
+    glyph.setDevicePixelRatio(1.0);
+    QPainter tint(&glyph);
+    tint.setCompositionMode(QPainter::CompositionMode_SourceIn);
+    tint.fillRect(glyph.rect(), inkOn(background));
+    tint.end();
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    const QRect target((pixels - side) / 2, (pixels - side) / 2, side, side);
+    painter.drawImage(target, glyph);
+    return pixmap;
+}
+
+/// @p square in a circle, the corners clear
+QPixmap circleOf(const QPixmap& square) {
+    QPixmap round(square.size());
+    round.fill(Qt::transparent);
+    QPainter painter(&round);
+    painter.setRenderHint(QPainter::Antialiasing);
+    QPainterPath circle;
+    circle.addEllipse(QRectF(QPointF(0, 0), QSizeF(square.size())));
+    painter.setClipPath(circle);
+    painter.drawPixmap(0, 0, square);
+    return round;
 }
 
 /// Give @p combo the values of @p field to choose from, after an empty one, with @p value
@@ -292,6 +351,10 @@ CardPage::CardPage(core::ProjectManager& book, bool full, QWidget* parent)
     connect(m_relations, &RelationsBox::requestShowCard, this,
             full ? &CardPage::requestOpenCard : &CardPage::requestSelectCard);
     connect(m_relations, &RelationsBox::cardAdded, this, &CardPage::cardAdded);
+    // The declension of the name, as the book's dictionary has it
+    m_nameBox = new CardNameBox(m_book, full, this);
+    connect(m_nameBox, &CardNameBox::requestNameWindow, this, &CardPage::requestNameWindow);
+    connect(m_nameBox, &CardNameBox::requestOtherName, this, &CardPage::requestOtherName);
 
     if (full) {
         createFullLayout();
@@ -314,6 +377,13 @@ CardPage::CardPage(core::ProjectManager& book, bool full, QWidget* parent)
                     refresh();
                 }
             });
+    // New fields of the cards of its kind (the window Card Fields): the form anew
+    connect(&m_book, &core::ProjectManager::cardFieldsChanged, this, [this](const QString& kind) {
+        if (kind == m_kindKey) {
+            m_kindKey.clear();
+            refresh();
+        }
+    });
     // The icons, and the colors of the theme the initials and the swatch are drawn in
     const auto redraw = [this]() {
         m_portraitKey.clear();
@@ -322,9 +392,19 @@ CardPage::CardPage(core::ProjectManager& book, bool full, QWidget* parent)
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             redraw);
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this, redraw);
+    // The layout and the portraits follow Settings > Cards; the listener runs on the thread
+    // that changes them, the card changes on its own
+    m_settingsListener =
+        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
+            if (key == LAYOUT_SETTING || isPortraitSetting(key)) {
+                QMetaObject::invokeMethod(
+                    this, [this, key]() { takeSetting(key); }, Qt::QueuedConnection);
+            }
+        });
 }
 
 CardPage::~CardPage() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
     cutOffChildren(this);
 }
 
@@ -342,14 +422,12 @@ void CardPage::createFullLayout() {
     //: the card. In Polish: Znajdź w książce
     m_findButton = barButton(bar, tr("Find in Book"), QStringLiteral("edit.findInBook"),
                              QStringLiteral("cardFindButton"));
-    //: In Polish: Szuka nazwy karty we wszystkich tekstach książki (panel „Wyszukiwanie”)
-    m_findButton->setToolTip(tr("Searches all the texts of the book for the name of the card "
-                                "(the Search panel)"));
-    connect(m_findButton, &QToolButton::clicked, this, [this]() {
-        if (const core::ProjectElement* element = m_book.findElement(m_elementId)) {
-            emit requestFindInBook(element->title);
-        }
-    });
+    //: In Polish: Szuka nazwy karty we wszystkich tekstach książki, w każdej formie i pod
+    //: innymi imionami (panel „Wyszukiwanie”)
+    m_findButton->setToolTip(tr("Searches all the texts of the book for the name of the card, "
+                                "in all its forms and by its other names (the Search panel)"));
+    connect(m_findButton, &QToolButton::clicked, this,
+            [this]() { emit requestFindInBook(m_elementId); });
     barLayout->addWidget(m_findButton);
     auto* barLine = new QFrame(bar);
     barLine->setFrameShape(QFrame::VLine);
@@ -363,6 +441,15 @@ void CardPage::createFullLayout() {
     m_relationButton->setToolTip(tr("A new relation with another card"));
     connect(m_relationButton, &QToolButton::clicked, m_relations, &RelationsBox::addRelation);
     barLayout->addWidget(m_relationButton);
+    //: The button of the bar of a full card that opens the window Card Fields. In Polish:
+    //: Pola...
+    m_fieldsButton = barButton(bar, tr("Fields..."), QStringLiteral("card.fields"),
+                               QStringLiteral("cardFieldsButton"));
+    //: In Polish: Pola kart tego rodzaju: kolejność i to, gdzie widać każde pole
+    m_fieldsButton->setToolTip(
+        tr("The fields of the cards of this kind: their order and where each is shown"));
+    connect(m_fieldsButton, &QToolButton::clicked, this, &CardPage::editFields);
+    barLayout->addWidget(m_fieldsButton);
     barLayout->addStretch(1);
     barLayout->addWidget(m_settingsButton);
     card::keepIcon(m_settingsButton, QStringLiteral("dock.settings"),
@@ -425,12 +512,12 @@ void CardPage::createFullLayout() {
     header->addLayout(titles, 1);
     contentLayout->addLayout(header);
 
-    // The data beside the long description
-    auto* columns = new QHBoxLayout();
-    columns->setSpacing(SPACING);
-    auto* dataColumn = new QWidget(content);
+    // Under the header: the data beside the long description, or on tabs
+    m_body = new QWidget(content);
+    m_body->setObjectName(QStringLiteral("cardBody"));
+    auto* dataColumn = new QWidget(m_body);
+    m_dataColumn = dataColumn;
     dataColumn->setMinimumWidth(DATA_MINIMUM_WIDTH);
-    dataColumn->setMaximumWidth(DATA_MAXIMUM_WIDTH);
     auto* dataLayout = new QVBoxLayout(dataColumn);
     dataLayout->setContentsMargins(0, 0, 0, 0);
     dataLayout->setSpacing(SPACING);
@@ -443,28 +530,108 @@ void CardPage::createFullLayout() {
     fieldsLayout->addLayout(m_form);
     m_fieldsBox = fieldsGroup;
     dataLayout->addWidget(fieldsGroup);
+    dataLayout->addWidget(m_nameBox);
     //: In Polish: Własne pola karty
     m_ownFields = new OwnFieldsBox(m_book, QStringLiteral("card"), tr("Own fields of the card"),
                                    false, dataColumn);
+    m_ownFields->setAddToKind(true);
     dataLayout->addWidget(m_ownFields);
     dataLayout->addStretch(1);
-    columns->addWidget(dataColumn);
     //: The long description of a card of a character, a location or an item: the text of the
     //: card. In Polish: Opis
-    m_descriptionGroup = new QGroupBox(tr("Description"), content);
+    m_descriptionGroup = new QGroupBox(tr("Description"), m_body);
     m_descriptionGroup->setObjectName(QStringLiteral("cardDescriptionGroup"));
     m_descriptionGroup->setMinimumHeight(DESCRIPTION_MINIMUM_HEIGHT);
     auto* descriptionLayout = new QVBoxLayout(m_descriptionGroup);
     descriptionLayout->setContentsMargins(SPACING, SPACING, SPACING, SPACING);
     // Beside the data: the long description, then the relations, the chapters and the
     // materials of the card
-    m_chapters = new CardChaptersBox(m_book, content);
+    m_chapters = new CardChaptersBox(m_book, m_body);
     connect(m_chapters, &CardChaptersBox::requestOpenChapter, this,
             &CardPage::requestOpenChapter);
-    m_materials = new LinkedMaterialsBox(m_book, content);
+    m_materials = new LinkedMaterialsBox(m_book, m_body);
     connect(m_materials, &LinkedMaterialsBox::requestOpenMaterial, this,
             &CardPage::requestOpenMaterial);
     connect(m_materials, &LinkedMaterialsBox::menuOpening, this, &CardPage::addPortraitAction);
+    m_relations->setParent(m_body);
+    placeBody();
+    contentLayout->addWidget(m_body, 1);
+
+    scroll->setWidget(content);
+    layout->addWidget(scroll, 1);
+}
+
+void CardPage::placeBody() {
+    const bool tabs = hasTabs();
+    if (m_body == nullptr || (m_body->layout() != nullptr && tabs == m_hasTabs)) {
+        return;
+    }
+    m_hasTabs = tabs;
+    // The parts out of the layout they had, as they were shown
+    const QList<QWidget*> parts{m_dataColumn, m_descriptionGroup, m_relations, m_chapters,
+                                m_materials};
+    QList<bool> hidden;
+    for (QWidget* part : parts) {
+        hidden << part->isHidden();
+        part->setParent(m_body);
+    }
+    delete m_body->layout();
+    delete m_tabs;
+    m_tabs = nullptr;
+    if (tabs) {
+        placeOnTabs();
+    } else {
+        placeInColumns();
+    }
+    for (qsizetype i = 0; i < parts.size(); ++i) {
+        parts.at(i)->setHidden(hidden.at(i));
+    }
+}
+
+void CardPage::placeOnTabs() {
+    auto* layout = new QVBoxLayout(m_body);
+    layout->setContentsMargins(0, 0, 0, 0);
+    m_tabs = new QTabWidget(m_body);
+    m_tabs->setObjectName(QStringLiteral("cardTabs"));
+    m_tabs->setDocumentMode(true);
+    const auto page = [this](const QList<QWidget*>& widgets, bool stretch) {
+        auto* each = new QWidget(m_tabs);
+        auto* pageLayout = new QVBoxLayout(each);
+        pageLayout->setContentsMargins(0, SPACING, 0, 0);
+        pageLayout->setSpacing(SPACING);
+        for (QWidget* widget : widgets) {
+            pageLayout->addWidget(widget, stretch ? 0 : 1);
+        }
+        if (stretch) {
+            pageLayout->addStretch(1);
+        }
+        return each;
+    };
+    //: A tab of the full card: the data, the declension and the own fields. In Polish:
+    //: &Ogólne
+    const QString general = tr("&General");
+    //: A tab of the full card: the long description. In Polish: O&pis
+    const QString description = tr("&Description");
+    //: A tab of the full card: the relations with the other cards. In Polish: &Relacje
+    const QString relations = tr("&Relations");
+    //: A tab of the full card: the chapters the card is in and its materials. In Polish:
+    //: Rozdziały i &materiały
+    const QString chapters = tr("Chapters and &Materials");
+    m_tabs->addTab(page({m_dataColumn}, false), general);
+    m_tabs->addTab(page({m_descriptionGroup}, false), description);
+    m_tabs->addTab(page({m_relations}, true), relations);
+    m_tabs->addTab(page({m_chapters, m_materials}, true), chapters);
+    layout->addWidget(m_tabs);
+    m_dataColumn->setMaximumWidth(QWIDGETSIZE_MAX);
+}
+
+void CardPage::placeInColumns() {
+    // The data beside the long description, then the relations, the chapters and the
+    // materials of the card
+    auto* columns = new QHBoxLayout(m_body);
+    columns->setContentsMargins(0, 0, 0, 0);
+    columns->setSpacing(SPACING);
+    columns->addWidget(m_dataColumn);
     auto* side = new QVBoxLayout();
     side->setSpacing(SPACING);
     side->addWidget(m_descriptionGroup, 1);
@@ -472,10 +639,35 @@ void CardPage::createFullLayout() {
     side->addWidget(m_chapters);
     side->addWidget(m_materials);
     columns->addLayout(side, 1);
-    contentLayout->addLayout(columns, 1);
+    m_dataColumn->setMaximumWidth(DATA_MAXIMUM_WIDTH);
+}
 
-    scroll->setWidget(content);
-    layout->addWidget(scroll, 1);
+void CardPage::takeSetting(const std::string& key) {
+    if (key == LAYOUT_SETTING) {
+        placeBody();
+    } else if (isPortraitSetting(key)) {
+        m_portraitKey.clear();
+        refresh();
+    }
+}
+
+bool CardPage::isPortraitSetting(const std::string& key) {
+    return key == SHAPE_SETTING || key == NO_PICTURE_SETTING;
+}
+
+bool CardPage::hasTabs() {
+    return core::SettingsManager::getInstance().get<std::string>(LAYOUT_SETTING, LAYOUT_COLUMNS) ==
+           LAYOUT_TABS;
+}
+
+bool CardPage::roundPortraits() {
+    return core::SettingsManager::getInstance().get<std::string>(SHAPE_SETTING, SHAPE_SQUARE) ==
+           SHAPE_CIRCLE;
+}
+
+bool CardPage::kindIconWithoutPicture() {
+    return core::SettingsManager::getInstance().get<std::string>(
+               NO_PICTURE_SETTING, NO_PICTURE_INITIALS) == NO_PICTURE_ICON;
 }
 
 void CardPage::createShortLayout() {
@@ -521,6 +713,7 @@ void CardPage::createShortLayout() {
     fieldsLayout->addLayout(m_form);
     info->addWidget(m_fieldsBox);
     layout->addWidget(m_infoGroup);
+    layout->addWidget(m_nameBox);
     layout->addWidget(m_relations);
 
     //: The button of the short card of a character, a location or an item in the Properties
@@ -543,6 +736,7 @@ void CardPage::showCard(const QString& elementId) {
     m_elementId = elementId;
     m_portraitKey.clear();
     m_relations->showCard(elementId);
+    m_nameBox->showCard(elementId);
     if (m_full) {
         m_chapters->showCard(elementId);
         //: The materials of a card without any. In Polish: Z kartą nie są powiązane żadne
@@ -565,7 +759,7 @@ void CardPage::refresh() {
     const bool wasUpdating = m_updating;
     m_updating = true;
     if (const QString kindKey = kind.reference(); kindKey != m_kindKey) {
-        buildFields(*kind.kind);
+        buildFields(kind);
         m_kindKey = kindKey;
     }
     showHeader(*element);
@@ -588,11 +782,12 @@ void CardPage::showHeader(const core::ProjectElement& element) {
     }
     m_shortEdit->setReadOnly(readOnly);
     if (m_full) {
-        m_subtitleLabel->setText(subtitleOf(element));
+        m_subtitleLabel->setText(subtitleOf(m_book, element));
         showKindIcon(element);
         showColor(element);
         m_colorButton->setEnabled(!readOnly);
         m_relationButton->setEnabled(!readOnly);
+        m_fieldsButton->setEnabled(!readOnly);
         return;
     }
     const QHash<QString, core::KindWords> nouns{
@@ -628,11 +823,11 @@ void CardPage::setDescriptionWidget(QWidget* description) {
     setTabOrder(description, m_relations->addButton());
 }
 
-void CardPage::buildFields(const core::ElementKind& kind) {
+void CardPage::buildFields(const core::KindRef& kind) {
     clearFields();
     QList<QWidget*> besides;
     QList<QWidget*> fields;
-    for (const core::CardField& field : kind.fields) {
+    for (const core::CardField& field : m_book.cardFields(kind)) {
         if (!(m_full ? field.onCard : field.inProperties)) {
             continue;
         }
@@ -668,16 +863,24 @@ void CardPage::clearFields() {
     }
 }
 
+void CardPage::editFields() {
+    if (m_elementId.isEmpty() || m_book.isReadOnly()) {
+        return;
+    }
+    // The form follows the fields saved (cardFieldsChanged())
+    dialogs::editCardFields(m_book, m_kindKey, window());
+}
+
 void CardPage::orderKeys(const QList<QWidget*>& besides, const QList<QWidget*>& fields) {
     QList<QWidget*> chain;
     if (m_full) {
-        chain << m_findButton << m_relationButton;
+        chain << m_findButton << m_relationButton << m_fieldsButton;
     }
     chain << m_settingsButton << m_portrait << m_nameEdit;
     if (m_colorButton != nullptr) {
         chain << m_colorButton;
     }
-    chain << besides << m_shortEdit << fields;
+    chain << besides << m_shortEdit << fields << m_nameBox->keyParts();
     if (m_ownFields != nullptr) {
         chain << m_ownFields->addButton() << m_ownFields->removeButton() << m_ownFields->table();
     }
@@ -757,7 +960,7 @@ void CardPage::fillFields(const core::ProjectElement& element) {
     const core::KindRef kind = m_book.kindOf(element);
     const bool readOnly = m_book.isReadOnly();
     for (auto it = m_editors.cbegin(); it != m_editors.cend(); ++it) {
-        showValue(it.value(), kind ? kind.kind->field(it.key()) : nullptr,
+        showValue(it.value(), m_book.cardField(kind, it.key()),
                   m_book.cardFieldText(element.id, it.key()), readOnly);
     }
 }
@@ -816,7 +1019,13 @@ QPixmap CardPage::portraitOf(const core::ProjectManager& book, const core::Proje
         }
     }
     if (portrait.isNull()) {
-        portrait = initialsPortrait(element.title, QColor(element.card.color), pixels);
+        const core::KindRef kind = book.kindOf(element);
+        portrait = kindIconWithoutPicture() && kind
+                       ? iconPortrait(kind.kind->icon, QColor(element.card.color), pixels)
+                       : initialsPortrait(element.title, QColor(element.card.color), pixels);
+    }
+    if (roundPortraits()) {
+        portrait = circleOf(portrait);
     }
     portrait.setDevicePixelRatio(pixelRatio);
     return portrait;
@@ -1181,22 +1390,20 @@ void CardPage::saveCardText(const QString& fieldId, const QString& text) {
     }
 }
 
-QString CardPage::subtitleOf(const core::ProjectElement& element) const {
-    const QString value = card::subtitleValue(m_book, element);
+QString CardPage::subtitleOf(const core::ProjectManager& book,
+                            const core::ProjectElement& element) {
+    const QString kind = core::fillWords(QStringLiteral("{Kind}"),
+                                         {{QStringLiteral("kind"), wordsOf(book, element)}});
+    const QString value = card::subtitleValue(book, element);
     //: The kind of a card under its name, with the value of the field beside it: "Character ·
     //: main". In Polish: %1 · %2
-    return value.isEmpty() ? kindNameOf(element) : tr("%1 · %2").arg(kindNameOf(element), value);
-}
-
-QString CardPage::kindNameOf(const core::ProjectElement& element) const {
-    return core::fillWords(QStringLiteral("{Kind}"),
-                           {{QStringLiteral("kind"), wordsOf(m_book, element)}});
+    return value.isEmpty() ? kind : tr("%1 · %2").arg(kind, value);
 }
 
 QStringList CardPage::suggestedCards(const QString& fieldId) const {
     const core::ProjectElement* element = m_book.findElement(m_elementId);
     const core::KindRef kind = element != nullptr ? m_book.kindOf(*element) : core::KindRef{};
-    const core::CardField* field = kind ? kind.kind->field(fieldId) : nullptr;
+    const core::CardField* field = m_book.cardField(kind, fieldId);
     if (field == nullptr || kind.package == nullptr) {
         return {};
     }

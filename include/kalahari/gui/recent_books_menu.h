@@ -4,7 +4,8 @@
 /// @file recent_books_menu.h
 /// @brief File > Recent Books submenu
 
-#pragma once
+#ifndef KALAHARI_GUI_RECENT_BOOKS_MENU_H
+#define KALAHARI_GUI_RECENT_BOOKS_MENU_H
 
 #include <QMenu>
 #include <QString>
@@ -13,8 +14,7 @@ namespace kalahari::gui {
 class CommandRegistry;
 }  // namespace kalahari::gui
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief The File > Recent Books submenu
 ///
@@ -45,5 +45,6 @@ private:
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_RECENT_BOOKS_MENU_H

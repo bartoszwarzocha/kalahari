@@ -5,7 +5,7 @@
 /// @brief BookEditor: lists, the indents of paragraphs and their own formatting
 
 #include <kalahari/editor/book_editor.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <QRegularExpression>

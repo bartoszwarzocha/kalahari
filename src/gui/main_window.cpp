@@ -15,18 +15,23 @@
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/material_list_coordinator.h"
+#include "kalahari/gui/plot_board.h"
+#include "kalahari/gui/plot_board_coordinator.h"
 #include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/panels/book_dictionary_panel.h"
 #include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/special_character_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
+#include "kalahari/gui/edit_target.h"
 #include "kalahari/gui/versions_coordinator.h"
 #include "kalahari/gui/style_coordinator.h"
 #include "kalahari/gui/book_export_coordinator.h"
+#include "kalahari/gui/book_import_coordinator.h"
 #include "kalahari/gui/caption_coordinator.h"
 #include "kalahari/gui/footnote_coordinator.h"
 #include "kalahari/gui/book_search_coordinator.h"
 #include "kalahari/gui/chapter_break_coordinator.h"
+#include "kalahari/gui/clippings_coordinator.h"
 #include "kalahari/gui/field_coordinator.h"
 #include "kalahari/gui/go_to_coordinator.h"
 #include "kalahari/gui/dialogs/edit_dialogs.h"
@@ -38,8 +43,11 @@
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/spelling_panel_coordinator.h"
 #include "kalahari/gui/book_dictionary_coordinator.h"
+#include "kalahari/gui/card_names_coordinator.h"
+#include "kalahari/gui/cards_in_text_coordinator.h"
 #include "kalahari/gui/repetitions_coordinator.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
+#include "kalahari/gui/writing_awards_tracker.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -58,6 +66,7 @@
 #include "kalahari/gui/recent_books_menu.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/plugin_coordinator.h"
 #include "kalahari/gui/panels/preview_panel.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/text_images.h"
@@ -124,8 +133,7 @@
 #include <memory>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -183,6 +191,13 @@ constexpr std::pair<const char*, editor::ImageFilter> IMAGE_FILTER_COMMANDS[] = 
     {"image.filterBlackWhite", editor::ImageFilter::BlackWhite},
     {"image.filterWash", editor::ImageFilter::Wash}};
 
+/// The commands of Image > Wrap Text and their ways of the text flowing around the image
+constexpr std::pair<const char*, editor::ImageWrap> IMAGE_WRAP_COMMANDS[] = {
+    {"image.wrapInline", editor::ImageWrap::Inline},
+    {"image.wrapSquareLeft", editor::ImageWrap::SquareLeft},
+    {"image.wrapSquareRight", editor::ImageWrap::SquareRight},
+    {"image.wrapTopBottom", editor::ImageWrap::TopBottom}};
+
 /// The selected image of a text, as it is
 std::optional<editor::ImageProperties> selectedImageOf(const editor::BookEditor& text) {
     const std::optional<int> position = text.selectedImage();
@@ -229,15 +244,6 @@ MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , m_book(std::make_unique<core::ProjectManager>())
     , m_commands(std::make_unique<CommandRegistry>())
-    , m_fileMenu(nullptr)
-    , m_editMenu(nullptr)
-    , m_viewMenu(nullptr)
-    , m_dockCoordinator(nullptr)
-    , m_firstShow(true)
-    , m_diagnosticController(nullptr)
-    , m_settingsCoordinator(nullptr)
-    , m_navigatorCoordinator(nullptr)
-    , m_documentCoordinator(nullptr)
 {
     auto& logger = core::Logger::getInstance();
     logger.info("MainWindow constructor called");
@@ -474,6 +480,11 @@ MainWindow::MainWindow(QWidget* parent)
     // the session over this window
     m_writingStatsCoordinator->attachStatusBar(statusBar());
     m_writingStatsCoordinator->setSummaryWindow(this);
+    // The plugins hear of the daily goal reached, once a day whichever window sees it
+    if (WritingAwardsTracker* tracker = m_writingStatsCoordinator->tracker()) {
+        connect(tracker, &WritingAwardsTracker::dailyGoalReached, this,
+                []() { tellPluginsGoalReached(); });
+    }
 
     // The annotation commands and the Annotations panel; a chapter is opened as from the
     // Navigator
@@ -495,7 +506,8 @@ MainWindow::MainWindow(QWidget* parent)
             });
 
     // The paperclips beside the paragraphs that materials are linked with: one chosen shows
-    // its material in the Properties panel, brought to the front
+    // its material in the Properties panel, brought to the front; a card chosen at the sign of
+    // its kind opens
     m_paragraphMarksCoordinator = new ParagraphMarksCoordinator(
         *m_book, m_dockCoordinator->centralTabs(),
         [this](const QString& materialId) {
@@ -507,7 +519,7 @@ MainWindow::MainWindow(QWidget* parent)
                 dock->activateWindow();
             }
         },
-        this);
+        [this](const QString& cardId) { openCard(cardId); }, this);
 
     // The lists of the kinds of materials on their tabs: a kind of the Materials clicked in
     // the Navigator, or Materials itself. A material chosen in a list shows in the Properties
@@ -528,6 +540,32 @@ MainWindow::MainWindow(QWidget* parent)
         this);
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterialList,
             m_materialListCoordinator, &MaterialListCoordinator::openList);
+    // The plot board and the outline of the book on their tab (Book > Plot Board, Outline);
+    // Alt+Enter on a card shows it in the Properties panel with the keys
+    m_plotBoardCoordinator = new PlotBoardCoordinator(
+        *m_book, m_dockCoordinator->centralTabs(), m_navigatorCoordinator, statusBar(),
+        [this](bool keys) {
+            QDockWidget* dock = m_dockCoordinator->propertiesDock();
+            dock->show();
+            dock->raise();
+            if (keys) {
+                if (dock->isFloating()) {
+                    dock->activateWindow();
+                }
+                m_dockCoordinator->propertiesPanel()->focusFirstField();
+            }
+        },
+        this);
+    // Show on the Plot Board in the menu of the book, a part and a text of the Navigator
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowOnPlotBoard,
+            m_plotBoardCoordinator, &PlotBoardCoordinator::showOnBoard);
+    // The gear over the board: Settings > Plot Board
+    connect(m_plotBoardCoordinator, &PlotBoardCoordinator::settingsRequested, this, [this]() {
+        if (m_settingsCoordinator != nullptr) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::PLOT_BOARD_PAGE));
+        }
+    });
     // Hide Kind in the menu of a kind of the Navigator; Kind Settings... there and the gear of
     // a list: the materials in Settings > Navigator
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestHideKind,
@@ -757,6 +795,32 @@ MainWindow::MainWindow(QWidget* parent)
         m_captionCoordinator, m_footnoteCoordinator, this, this);
     m_bookExportCoordinator->connectCommands();
 
+    // The commands of the plugins in the menus (Tools > Plugins by default) and their panels
+    // in docks on the right, closed until opened; they follow the plugins turned on and off
+    m_pluginCoordinator = new PluginCoordinator(book(), commands(), this, m_dockCoordinator, this);
+
+    // File > Import > DOCX, Markdown and Plain Text: the texts at their places in the book, or
+    // in a new book, which opens as one of File > Open Book when the window of the import closes
+    BookImportCoordinator::Window importWindow;
+    importWindow.refresh = [this]() { m_navigatorCoordinator->refreshNavigator(); };
+    importWindow.showElement = [this](const QString& elementId) {
+        QDockWidget* dock = m_dockCoordinator->navigatorDock();
+        dock->show();
+        dock->raise();
+        m_dockCoordinator->navigatorPanel()->revealElement(elementId);
+    };
+    importWindow.openElement = [this](const QString& elementId) {
+        if (const core::ProjectElement* element = book().findElement(elementId)) {
+            m_navigatorCoordinator->onElementSelected(elementId, element->title);
+        }
+    };
+    importWindow.openBook = [this](const QString& manifest) {
+        m_documentCoordinator->onOpenRecentFile(manifest);
+    };
+    m_bookImportCoordinator =
+        new BookImportCoordinator(book(), commands(), std::move(importWindow), this);
+    m_bookImportCoordinator->connectCommands();
+
     // Edit > Find in Book... and the Search panel: all the texts of the book; a match of a
     // text not open opens it, as from the Navigator, and the bar under the text says how many
     // matches Replace All in Book changed, with Undo
@@ -805,6 +869,36 @@ MainWindow::MainWindow(QWidget* parent)
         {ChapterBreakCoordinator::COMMAND}, [this](const editor::BookEditor& text) {
             return m_chapterBreakCoordinator->canBreak(text);
         });
+
+    // Edit > Cut to Clippings and Insert > Clipping from the Workshop: fragments to the
+    // Workshop and back, with Undo on the bar under the text and Ctrl+Z in it
+    m_clippingsCoordinator = new ClippingsCoordinator(
+        book(), commands(), m_dockCoordinator->centralTabs(), m_navigatorCoordinator,
+        [this]() { return m_editCoordinator->textWithKeys(); },
+        ClippingsCoordinator::Feedback{
+            .showNotice =
+                [this](EditorPanel* editor, const QString& message, const QString& actionText,
+                       const QString& actionToolTip, std::function<void()> action) {
+                    m_documentCoordinator->showNotice(editor, message, actionText,
+                                                      actionToolTip, std::move(action));
+                },
+            .statusBar = statusBar(),
+            .window = this},
+        this);
+    m_clippingsCoordinator->connectCommands();
+    m_clippingsCoordinator->connectPanels(m_dockCoordinator->propertiesPanel(),
+                                          m_materialListCoordinator);
+    m_clippingsCoordinator->connectMarks(*m_paragraphMarksCoordinator);
+    m_editCoordinator->addTextCommands(
+        {ClippingsCoordinator::CUT_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_clippingsCoordinator->canCut(text);
+        });
+    m_editCoordinator->addTextCommands(
+        {ClippingsCoordinator::INSERT_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_clippingsCoordinator->canInsert(text);
+        });
+
+    createCardsInText();
 
     // Insert > Date && Time... and the date and the time at once (Alt+Shift+D, Alt+Shift+T):
     // in the book's text with the keys, not in a read-only one; Insert > Field... not in a
@@ -970,6 +1064,7 @@ MainWindow::MainWindow(QWidget* parent)
         *m_book, *m_commands, m_dockCoordinator->spellingPanel(), m_dockCoordinator->spellingDock(),
         m_dockCoordinator->centralTabs(), m_spellingCoordinator, m_grammarCoordinator, this);
     createBookDictionary();
+    createCardNames();
 
     // The Repetitions panel, the marks of the repeated words and Next Repetition; a chapter
     // is opened as from the Navigator
@@ -1480,6 +1575,17 @@ void MainWindow::registerCommands() {
         onEditor(&editor::BookEditor::zoomToWholePage, &PreviewPanel::zoomToWholePage);
 
     // View commands
+    // The plot board of the book with its cards, or with the outline, the keys in it
+    callbacks.onPlotBoard = [this]() {
+        if (m_plotBoardCoordinator) {
+            m_plotBoardCoordinator->openBoard(QString::fromLatin1(PlotBoard::VIEW_BOARD), true);
+        }
+    };
+    callbacks.onOutline = [this]() {
+        if (m_plotBoardCoordinator) {
+            m_plotBoardCoordinator->openBoard(QString::fromLatin1(PlotBoard::VIEW_OUTLINE), true);
+        }
+    };
     callbacks.onDashboard = [this]() {
         // Check if Dashboard tab already exists
         QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
@@ -1868,21 +1974,21 @@ void MainWindow::onExit() {
 
 void MainWindow::onUndo() {
     core::Logger::getInstance().info("Action triggered: Undo");
-    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Undo)) {
+    if (editToTell(EditCoordinator::Edit::Undo)) {
         statusBar()->showMessage(tr("Undo performed"), 2000);
     }
 }
 
 void MainWindow::onRedo() {
     core::Logger::getInstance().info("Action triggered: Redo");
-    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Redo)) {
+    if (editToTell(EditCoordinator::Edit::Redo)) {
         statusBar()->showMessage(tr("Redo performed"), 2000);
     }
 }
 
 void MainWindow::onCut() {
     core::Logger::getInstance().info("Action triggered: Cut");
-    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Cut)) {
+    if (editToTell(EditCoordinator::Edit::Cut)) {
         statusBar()->showMessage(tr("Cut to clipboard"), 2000);
     }
 }
@@ -1896,9 +2002,17 @@ void MainWindow::onCopy() {
 
 void MainWindow::onPaste() {
     core::Logger::getInstance().info("Action triggered: Paste");
-    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Paste)) {
+    if (editToTell(EditCoordinator::Edit::Paste)) {
         statusBar()->showMessage(tr("Pasted from clipboard"), 2000);
     }
+}
+
+bool MainWindow::editToTell(EditCommand edit) {
+    if (m_editCoordinator == nullptr) {
+        return false;
+    }
+    const bool saysItself = m_editCoordinator->saysItself(edit);
+    return m_editCoordinator->execute(edit) && !saysItself;
 }
 
 void MainWindow::onSelectAll() {
@@ -1944,10 +2058,25 @@ void MainWindow::createBookDictionary() {
             });
 }
 
+void MainWindow::createCardNames() {
+    m_cardNamesCoordinator = new CardNamesCoordinator(*m_book, *m_bookDictionaryCoordinator,
+                                                      m_dockCoordinator->centralTabs(), this);
+    // Create Card of the texts: Add Element with the kind chosen and the name
+    connect(m_cardNamesCoordinator, &CardNamesCoordinator::addCardRequested,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddCard);
+    // The declension of the cards: the window "Name", another name of the full card
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestCardNameWindow,
+            m_cardNamesCoordinator, &CardNamesCoordinator::editName);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::nameWindowRequested,
+            m_cardNamesCoordinator, &CardNamesCoordinator::editName);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::otherNameRequested,
+            m_cardNamesCoordinator, &CardNamesCoordinator::addOtherName);
+}
+
 void MainWindow::onFind() {
     core::Logger::getInstance().info("Action triggered: Find");
 
-    // A list of materials or the book's dictionary in front: its search
+    // A list of materials, a preview or the book's dictionary in front: its search
     if (MaterialListPanel* list = m_materialListCoordinator != nullptr
                                       ? m_materialListCoordinator->currentList()
                                       : nullptr) {
@@ -2440,19 +2569,40 @@ void MainWindow::addImageCommands() {
         const std::optional<int> image = text.selectedImage();
         return image && QFileInfo(text.imageFilePath(*image)).isFile();
     });
+    // The text flows only around an image alone in its paragraph (one around which it flows
+    // already may go back into the text)
+    std::vector<std::string> wrapCommands;
+    for (const auto& [id, wrap] : IMAGE_WRAP_COMMANDS) {
+        wrapCommands.emplace_back(id);
+    }
+    m_editCoordinator->addTextCommands(wrapCommands, [changeable](Text text) {
+        const std::optional<int> image = text.selectedImage();
+        return changeable(text) && image && text.canWrapImage(*image);
+    });
 
-    // The filter of the selected image
+    // The filter and the wrap of the selected image
     CommandRegistry& registry = *m_commands;  // commands() is the list of ids here
-    for (const auto& [id, filter] : IMAGE_FILTER_COMMANDS) {
+    using ImageTest = std::function<bool(const editor::ImageProperties&)>;
+    const auto checkWhen = [this, &registry](const char* id, ImageTest is) {
         if (Command* command = registry.getCommand(id)) {
-            command->isChecked = [this, wanted = filter]() {
+            command->isChecked = [this, is = std::move(is)]() {
                 const editor::BookEditor* text =
                     m_editCoordinator ? m_editCoordinator->textWithKeys() : nullptr;
                 const std::optional<editor::ImageProperties> image =
                     text != nullptr ? selectedImageOf(*text) : std::nullopt;
-                return image && image->filter == wanted;
+                return image && is(*image);
             };
         }
+    };
+    for (const auto& [id, filter] : IMAGE_FILTER_COMMANDS) {
+        checkWhen(id, [wanted = filter](const editor::ImageProperties& image) {
+            return image.filter == wanted;
+        });
+    }
+    for (const auto& [id, wrap] : IMAGE_WRAP_COMMANDS) {
+        checkWhen(id, [wanted = wrap](const editor::ImageProperties& image) {
+            return image.wrap == wanted;
+        });
     }
 
     // Why
@@ -2494,6 +2644,15 @@ void MainWindow::addImageCommands() {
                                       "next to it");
     });
     explain("image.saveAs", [missing](Text) { return missing; });
+    for (const auto& [id, wrap] : IMAGE_WRAP_COMMANDS) {
+        explain(id, [readOnly](Text text) {
+            //: Why Image > Wrap Text is greyed out. In Polish: Tekst opływa tylko obraz, który
+            //: jest sam w swoim akapicie, poza tabelą
+            return text.isReadOnly() ? readOnly(text)
+                                     : tr("The text flows only around an image alone in its "
+                                          "paragraph, outside a table");
+        });
+    }
 }
 
 void MainWindow::onImageCommand(editor::BookEditor& text, ImageCommand command) {
@@ -2524,6 +2683,18 @@ void MainWindow::onImageCommand(editor::BookEditor& text, ImageCommand command) 
         break;
     case ImageCommand::AltText:
         showPage(Page::DescriptionPage);
+        break;
+    case ImageCommand::WrapInline:
+        text.setImageWrap(*image, editor::ImageWrap::Inline);
+        break;
+    case ImageCommand::WrapSquareLeft:
+        text.setImageWrap(*image, editor::ImageWrap::SquareLeft);
+        break;
+    case ImageCommand::WrapSquareRight:
+        text.setImageWrap(*image, editor::ImageWrap::SquareRight);
+        break;
+    case ImageCommand::WrapTopBottom:
+        text.setImageWrap(*image, editor::ImageWrap::TopBottom);
         break;
     case ImageCommand::RotateRight:
         text.rotateImage(*image, 1);
@@ -2580,7 +2751,7 @@ void MainWindow::onImageCommand(editor::BookEditor& text, ImageCommand command) 
         }
         break;
     }
-    // A check of Image > Filter follows at once, as a menu shows it
+    // A check of Image > Filter and Wrap Text follows at once, as a menu shows it
     m_editCoordinator->updateStates();
 }
 
@@ -2682,15 +2853,32 @@ void MainWindow::onAbout() {
 
 // Dock management - OpenSpec #00038 Phase 4: Delegated to DockCoordinator
 
+void MainWindow::openCard(const QString& cardId) {
+    if (const core::ProjectElement* element = book().findElement(cardId); element != nullptr) {
+        m_navigatorCoordinator->onElementSelected(cardId, element->title);
+    }
+}
+
+void MainWindow::createCardsInText() {
+    // In the text with the keys, also on its context menu
+    m_cardsInTextCoordinator = new CardsInTextCoordinator(
+        book(), commands(), m_dockCoordinator->centralTabs(),
+        [this]() { return m_editCoordinator->textWithKeys(); },
+        [this](const QString& cardId) { openCard(cardId); }, this, this);
+    m_cardsInTextCoordinator->connectCommands();
+    m_editCoordinator->addTextCommands(
+        {CardsInTextCoordinator::LINK_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_cardsInTextCoordinator->canLink(text);
+        });
+    m_editCoordinator->addTextCommands(
+        {CardsInTextCoordinator::OPEN_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_cardsInTextCoordinator->canOpen(text);
+        });
+}
+
 void MainWindow::connectCards() {
     PropertiesPanel* properties = m_dockCoordinator->propertiesPanel();
-    connect(properties, &PropertiesPanel::requestOpenCard, this,
-            [this](const QString& elementId) {
-                if (const core::ProjectElement* element = book().findElement(elementId);
-                    element != nullptr) {
-                    m_navigatorCoordinator->onElementSelected(elementId, element->title);
-                }
-            });
+    connect(properties, &PropertiesPanel::requestOpenCard, this, &MainWindow::openCard);
     const auto openCardSettings = [this]() {
         if (m_settingsCoordinator != nullptr) {
             m_settingsCoordinator->openSettingsPage(
@@ -2698,8 +2886,24 @@ void MainWindow::connectCards() {
         }
     };
     connect(properties, &PropertiesPanel::requestCardSettings, this, openCardSettings);
+    // "+" of the cards of the paragraph: the paragraph at the cursor of the text in front
+    connect(properties, &PropertiesPanel::requestLinkParagraphCard, this, [this]() {
+        EditorPanel* editor = getCurrentEditor();
+        if (m_cardsInTextCoordinator != nullptr && editor != nullptr) {
+            m_cardsInTextCoordinator->linkParagraph(editor->getBookEditor());
+        }
+    });
     connect(m_navigatorCoordinator, &NavigatorCoordinator::cardSettingsRequested, this,
             openCardSettings);
+    connect(m_materialListCoordinator, &MaterialListCoordinator::cardSettingsRequested, this,
+            openCardSettings);
+    // The gear of a mind map or a timeline: the page of its module
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::windowEditorSettingsRequested, this,
+            [this](const QString& editorId) {
+                if (m_settingsCoordinator != nullptr) {
+                    m_settingsCoordinator->openSettingsPage(editorId);
+                }
+            });
     connect(properties, &PropertiesPanel::cardMaterialAdded, m_navigatorCoordinator,
             &NavigatorCoordinator::refreshNavigator);
     // The other card of a relation, and a card made with a relation
@@ -2711,9 +2915,9 @@ void MainWindow::connectCards() {
     connect(properties, &PropertiesPanel::requestAddCardMaterials, m_navigatorCoordinator,
             &NavigatorCoordinator::onRequestAddMaterials);
     connect(m_navigatorCoordinator, &NavigatorCoordinator::findInBookRequested, this,
-            [this](const QString& text) {
+            [this](const QString& cardId) {
                 if (m_bookSearchCoordinator != nullptr) {
-                    m_bookSearchCoordinator->findInBook(text);
+                    m_bookSearchCoordinator->findCardInBook(cardId);
                 }
             });
 }
@@ -3078,6 +3282,10 @@ void MainWindow::updateBookCommands() {
     utils::updateOpenBookCommands(registry);
     if (m_bookExportCoordinator != nullptr) {
         m_bookExportCoordinator->updateCommands();
+    }
+    // The commands of the plugins that need a book
+    if (m_pluginCoordinator != nullptr) {
+        m_pluginCoordinator->updateCommands();
     }
     // A book open read-only says so in the status bar, and in the title of the window
     updateReadOnlyStatus();
@@ -3742,5 +3950,4 @@ void MainWindow::updatePageStatus() {
     m_zoomLabel->show();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

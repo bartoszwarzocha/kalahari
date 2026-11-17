@@ -59,8 +59,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -105,7 +104,6 @@ constexpr int AUTO_CORRECT_MESSAGE_MS = 5000;
 
 EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, QWidget* parent)
     : QWidget(parent)
-    , m_bookEditor(nullptr)
     , m_book(book)
     , m_commands(commands)
 {
@@ -138,7 +136,9 @@ EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, 
          registry.getAction(QStringLiteral("edit.copy")),
          registry.getAction(QStringLiteral("edit.paste")),
          registry.getAction(QStringLiteral("edit.selectAll")),
-         registry.getAction(QStringLiteral("insert.link"))});
+         registry.getAction(QStringLiteral("insert.link")),
+         registry.getAction(QStringLiteral("edit.cutToClippings")),
+         registry.getAction(QStringLiteral("insert.clipping"))});
     // The context menu of a cell: the commands of the Table menu, enabled as there
     const auto actions = [&registry](std::initializer_list<const char*> ids) {
         QList<QAction*> found;
@@ -162,7 +162,9 @@ EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, 
          actions({"image.filterNone", "image.filterGrayscale", "image.filterSepia",
                   "image.filterBlackWhite", "image.filterWash", nullptr, "image.filterAll",
                   "image.colorOptions"}),
-         actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"})});
+         actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"}),
+         actions({"image.wrapInline", nullptr, "image.wrapSquareLeft", "image.wrapSquareRight",
+                  "image.wrapTopBottom"})});
 
     // Autocorrect puts in the quotation marks of the text's language, asked when they are
     // typed: the book's language may change, and a chapter is told from a file outside the
@@ -429,6 +431,95 @@ QString EditorPanel::textLanguage() const {
                    : SpellingCoordinator::defaultLanguage();
 }
 
+editor::EditorColors EditorPanel::themeColors() {
+    // The colors of both papers: the theme's (the editor's own where the theme has none)
+    editor::EditorColors result;
+    const auto& themes = core::ThemeManager::getInstance();
+    const editor::EditorColors defaults;
+    const editor::PaperColorKeys& light = editor::LIGHT_PAPER_COLOR_KEYS;
+    const editor::PaperColorKeys& dark = editor::DARK_PAPER_COLOR_KEYS;
+    auto& papers = result.continuous;
+    papers.backgroundLight = themes.editorColor(light.paper, defaults.continuous.backgroundLight);
+    papers.textLight = themes.editorColor(light.text, defaults.continuous.textLight);
+    papers.deskLight = themes.editorColor(light.desk, defaults.continuous.deskLight);
+    papers.backgroundDark = themes.editorColor(dark.paper, defaults.continuous.backgroundDark);
+    papers.textDark = themes.editorColor(dark.text, defaults.continuous.textDark);
+    papers.deskDark = themes.editorColor(dark.desk, defaults.continuous.deskDark);
+    result.focus.inactiveLight =
+        themes.editorColor(light.focusDimmed, defaults.focus.inactiveLight);
+    result.focus.inactiveDark =
+        themes.editorColor(dark.focusDimmed, defaults.focus.inactiveDark);
+    result.formattingMarks.light =
+        themes.editorColor(light.formattingMarks, defaults.formattingMarks.light);
+    result.formattingMarks.dark =
+        themes.editorColor(dark.formattingMarks, defaults.formattingMarks.dark);
+    result.links.light = themes.editorColor(light.link, defaults.links.light);
+    result.links.dark = themes.editorColor(dark.link, defaults.links.dark);
+    auto& tables = result.tables;
+    tables.linesLight = themes.editorColor(light.tableLines, defaults.tables.linesLight);
+    tables.linesDark = themes.editorColor(dark.tableLines, defaults.tables.linesDark);
+    tables.headerLight = themes.editorColor(light.tableHeader, defaults.tables.headerLight);
+    tables.headerDark = themes.editorColor(dark.tableHeader, defaults.tables.headerDark);
+    tables.gridlinesLight = themes.editorColor(light.tableGridlines, defaults.tables.gridlinesLight);
+    tables.gridlinesDark = themes.editorColor(dark.tableGridlines, defaults.tables.gridlinesDark);
+    auto& images = result.images;
+    images.cropMarksLight =
+        themes.editorColor(light.imageCropMarks, defaults.images.cropMarksLight);
+    images.cropMarksDark = themes.editorColor(dark.imageCropMarks, defaults.images.cropMarksDark);
+    images.missingLight = themes.editorColor(light.imageMissing, defaults.images.missingLight);
+    images.missingDark = themes.editorColor(dark.imageMissing, defaults.images.missingDark);
+    auto& fields = result.fields;
+    fields.light = themes.editorColor(light.field, defaults.fields.light);
+    fields.dark = themes.editorColor(dark.field, defaults.fields.dark);
+    fields.brokenLight = themes.editorColor(light.brokenField, defaults.fields.brokenLight);
+    fields.brokenDark = themes.editorColor(dark.brokenField, defaults.fields.brokenDark);
+    auto& footnotes = result.footnotes;
+    footnotes.lineLight = themes.editorColor(light.noteLine, defaults.footnotes.lineLight);
+    footnotes.lineDark = themes.editorColor(dark.noteLine, defaults.footnotes.lineDark);
+    footnotes.frameLight = themes.editorColor(light.noteFrame, defaults.footnotes.frameLight);
+    footnotes.frameDark = themes.editorColor(dark.noteFrame, defaults.footnotes.frameDark);
+    // Under the text on both papers: translucent, so the text stays readable
+    result.selection =
+        editor::underTextColor(themes.editorColor(editor::SELECTION_COLOR_KEY, defaults.selection),
+                               editor::SELECTION_OPACITY);
+    result.searchMatch = editor::underTextColor(
+        themes.editorColor(editor::SEARCH_MATCH_COLOR_KEY, defaults.searchMatch),
+        editor::SEARCH_MATCH_OPACITY);
+    result.currentSearchMatch = editor::underTextColor(
+        themes.editorColor(editor::CURRENT_SEARCH_MATCH_COLOR_KEY, defaults.currentSearchMatch),
+        editor::CURRENT_SEARCH_MATCH_OPACITY);
+    // The annotations' marks, the waves under the misspelled
+    // words and the grammar issues, and the marks of the repeated words: the theme's colors,
+    // on each paper as "Optimize colors in themes" shows them
+    const bool optimize = themes.optimizesEditorColors();
+    const auto onPaper = [&themes, optimize](const std::string& key, const QColor& paper) {
+        return shownColor(themes.editorColor(key, QColor()), paper, optimize);
+    };
+    const auto markColors = [&onPaper](const QColor& paper) {
+        editor::EditorColors::AnnotationColors colors;
+        colors.comment =
+            onPaper(editor::annotationColorKey(editor::AnnotationKind::Comment), paper);
+        colors.todo = onPaper(editor::annotationColorKey(editor::AnnotationKind::Todo), paper);
+        colors.note = onPaper(editor::annotationColorKey(editor::AnnotationKind::Note), paper);
+        return colors;
+    };
+    const auto waveColors = [&onPaper](const QColor& paper) {
+        editor::EditorColors::IssueColors colors;
+        colors.spelling = onPaper(editor::issueColorKey(editor::TextIssueKind::Spelling), paper);
+        colors.grammar = onPaper(editor::issueColorKey(editor::TextIssueKind::Grammar), paper);
+        colors.bookRule = onPaper(editor::issueColorKey(editor::TextIssueKind::BookRule), paper);
+        colors.repetition = onPaper(editor::REPETITION_COLOR_KEY, paper);
+        return colors;
+    };
+    const QColor lightPaper = result.continuous.backgroundLight;
+    const QColor darkPaper = result.continuous.backgroundDark;
+    result.annotationsLight = markColors(lightPaper);
+    result.annotationsDark = markColors(darkPaper);
+    result.issuesLight = waveColors(lightPaper);
+    result.issuesDark = waveColors(darkPaper);
+    return result;
+}
+
 void EditorPanel::applySettings() {
     if (!m_bookEditor) {
         return;
@@ -457,64 +548,11 @@ void EditorPanel::applySettings() {
     appearance.typography.tabSpaces = settings.get<int>("editor.tabSize");
 
     // The paper (light or dark, independent from the application's theme) and the colors of
-    // both papers: the theme's (the editor's own where the theme has none)
+    // both papers
     appearance.colorMode = settings.get<bool>("editor.darkMode")
         ? editor::EditorColorMode::Dark
         : editor::EditorColorMode::Light;
-    const auto& themes = core::ThemeManager::getInstance();
-    const editor::EditorColors defaults;
-    const editor::PaperColorKeys& light = editor::LIGHT_PAPER_COLOR_KEYS;
-    const editor::PaperColorKeys& dark = editor::DARK_PAPER_COLOR_KEYS;
-    auto& papers = appearance.colors.continuous;
-    papers.backgroundLight = themes.editorColor(light.paper, defaults.continuous.backgroundLight);
-    papers.textLight = themes.editorColor(light.text, defaults.continuous.textLight);
-    papers.deskLight = themes.editorColor(light.desk, defaults.continuous.deskLight);
-    papers.backgroundDark = themes.editorColor(dark.paper, defaults.continuous.backgroundDark);
-    papers.textDark = themes.editorColor(dark.text, defaults.continuous.textDark);
-    papers.deskDark = themes.editorColor(dark.desk, defaults.continuous.deskDark);
-    appearance.colors.focus.inactiveLight =
-        themes.editorColor(light.focusDimmed, defaults.focus.inactiveLight);
-    appearance.colors.focus.inactiveDark =
-        themes.editorColor(dark.focusDimmed, defaults.focus.inactiveDark);
-    appearance.colors.formattingMarks.light =
-        themes.editorColor(light.formattingMarks, defaults.formattingMarks.light);
-    appearance.colors.formattingMarks.dark =
-        themes.editorColor(dark.formattingMarks, defaults.formattingMarks.dark);
-    appearance.colors.links.light = themes.editorColor(light.link, defaults.links.light);
-    appearance.colors.links.dark = themes.editorColor(dark.link, defaults.links.dark);
-    auto& tables = appearance.colors.tables;
-    tables.linesLight = themes.editorColor(light.tableLines, defaults.tables.linesLight);
-    tables.linesDark = themes.editorColor(dark.tableLines, defaults.tables.linesDark);
-    tables.headerLight = themes.editorColor(light.tableHeader, defaults.tables.headerLight);
-    tables.headerDark = themes.editorColor(dark.tableHeader, defaults.tables.headerDark);
-    tables.gridlinesLight = themes.editorColor(light.tableGridlines, defaults.tables.gridlinesLight);
-    tables.gridlinesDark = themes.editorColor(dark.tableGridlines, defaults.tables.gridlinesDark);
-    auto& images = appearance.colors.images;
-    images.cropMarksLight =
-        themes.editorColor(light.imageCropMarks, defaults.images.cropMarksLight);
-    images.cropMarksDark = themes.editorColor(dark.imageCropMarks, defaults.images.cropMarksDark);
-    images.missingLight = themes.editorColor(light.imageMissing, defaults.images.missingLight);
-    images.missingDark = themes.editorColor(dark.imageMissing, defaults.images.missingDark);
-    auto& fields = appearance.colors.fields;
-    fields.light = themes.editorColor(light.field, defaults.fields.light);
-    fields.dark = themes.editorColor(dark.field, defaults.fields.dark);
-    fields.brokenLight = themes.editorColor(light.brokenField, defaults.fields.brokenLight);
-    fields.brokenDark = themes.editorColor(dark.brokenField, defaults.fields.brokenDark);
-    auto& footnotes = appearance.colors.footnotes;
-    footnotes.lineLight = themes.editorColor(light.noteLine, defaults.footnotes.lineLight);
-    footnotes.lineDark = themes.editorColor(dark.noteLine, defaults.footnotes.lineDark);
-    footnotes.frameLight = themes.editorColor(light.noteFrame, defaults.footnotes.frameLight);
-    footnotes.frameDark = themes.editorColor(dark.noteFrame, defaults.footnotes.frameDark);
-    // Under the text on both papers: translucent, so the text stays readable
-    appearance.colors.selection =
-        editor::underTextColor(themes.editorColor(editor::SELECTION_COLOR_KEY, defaults.selection),
-                               editor::SELECTION_OPACITY);
-    appearance.colors.searchMatch = editor::underTextColor(
-        themes.editorColor(editor::SEARCH_MATCH_COLOR_KEY, defaults.searchMatch),
-        editor::SEARCH_MATCH_OPACITY);
-    appearance.colors.currentSearchMatch = editor::underTextColor(
-        themes.editorColor(editor::CURRENT_SEARCH_MATCH_COLOR_KEY, defaults.currentSearchMatch),
-        editor::CURRENT_SEARCH_MATCH_OPACITY);
+    appearance.colors = themeColors();
 
     // Cursor
     appearance.cursor.style = static_cast<editor::CursorStyle>(settings.get<int>("editor.cursor.style"));
@@ -575,34 +613,7 @@ void EditorPanel::applySettings() {
     appearance.textFrameBorder.color = color("editor.textFrameBorder.color");
     appearance.textFrameBorder.width = settings.get<int>("editor.textFrameBorder.width");
 
-    // The annotations' marks (at the size of the setting), the waves under the misspelled
-    // words and the grammar issues, and the marks of the repeated words: the theme's colors,
-    // on each paper as "Optimize colors in themes" shows them
-    const bool optimize = themes.optimizesEditorColors();
-    const auto onPaper = [&themes, optimize](const std::string& key, const QColor& paper) {
-        return shownColor(themes.editorColor(key, QColor()), paper, optimize);
-    };
-    const auto markColors = [&onPaper](const QColor& paper) {
-        editor::EditorColors::AnnotationColors colors;
-        colors.comment = onPaper(editor::annotationColorKey(editor::AnnotationKind::Comment), paper);
-        colors.todo = onPaper(editor::annotationColorKey(editor::AnnotationKind::Todo), paper);
-        colors.note = onPaper(editor::annotationColorKey(editor::AnnotationKind::Note), paper);
-        return colors;
-    };
-    const auto waveColors = [&onPaper](const QColor& paper) {
-        editor::EditorColors::IssueColors colors;
-        colors.spelling = onPaper(editor::issueColorKey(editor::TextIssueKind::Spelling), paper);
-        colors.grammar = onPaper(editor::issueColorKey(editor::TextIssueKind::Grammar), paper);
-        colors.bookRule = onPaper(editor::issueColorKey(editor::TextIssueKind::BookRule), paper);
-        colors.repetition = onPaper(editor::REPETITION_COLOR_KEY, paper);
-        return colors;
-    };
-    const QColor lightPaper = appearance.colors.continuous.backgroundLight;
-    const QColor darkPaper = appearance.colors.continuous.backgroundDark;
-    appearance.colors.annotationsLight = markColors(lightPaper);
-    appearance.colors.annotationsDark = markColors(darkPaper);
-    appearance.colors.issuesLight = waveColors(lightPaper);
-    appearance.colors.issuesDark = waveColors(darkPaper);
+    // The size of the annotations' marks
     appearance.annotationMarkScale =
         std::clamp(settings.get<int>("editor.annotationMarkSize") / 100.0, MIN_MARK_SCALE,
                    MAX_MARK_SCALE);
@@ -1106,5 +1117,4 @@ void EditorPanel::trackStatistics() {
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

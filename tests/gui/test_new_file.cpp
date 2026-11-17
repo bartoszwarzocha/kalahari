@@ -22,8 +22,8 @@
 #include <kalahari/gui/widgets/element_place_picker.h>
 #include <kalahari/gui/widgets/fitting_scroll_area.h>
 
-#include "document_window.h"
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/gui/document_window.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QAbstractButton>
 #include <QAction>
@@ -65,7 +65,7 @@
 #include <cstdio>
 #include <functional>
 #include <string>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 /// Qt's own way to press a key over the window's shortcuts, as the system delivers it (Qt
 /// Test presses keys with it; the program does not link Qt Test)
@@ -1233,9 +1233,9 @@ struct KeptMaterialSettings {
 };
 
 /// @brief The kinds of the Workshop of a novel that Add Element can add, in their order
-constexpr const char* WORKSHOP_KINDS = "Character | Location | Item | Working note | Cover | "
-                                       "Quote | Web page | Picture | Document | Publication | "
-                                       "Recording | Other file";
+constexpr const char* WORKSHOP_KINDS = "Character | Location | Item | Working note | Clipping | "
+                                       "Cover | Quote | Web page | Picture | Document | "
+                                       "Publication | Recording | Other file";
 
 /// @brief Add Element on @p scope of the book, @p id the group or the element of the scope
 gui::AddTarget addingOn(gui::AddTarget::Scope scope, const QString& id = QString(),
@@ -1376,7 +1376,7 @@ TEST_CASE("Add Element: a new part takes the elements that close the main sectio
 
 TEST_CASE("Add Element: in the Workshop a working note and materials of their kinds, without "
           "places and statuses",
-          "[gui][newfile][addelement]") {
+          "[gui][newfile][addelement][clipboard]") {
     test::OpenNovel book(QStringLiteral("Rain"));
     const core::BookTypeRegistry& types = book.pm.bookTypes();
 

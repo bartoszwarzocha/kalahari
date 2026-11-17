@@ -31,7 +31,6 @@ ICONS=(
     "download"          # file.export.docx
     "code"              # file.export.markdown, format.style.code
     "auto_stories"      # file.export.epub, tools.readability
-    "smartphone"        # file.export.mobi
     "functions"         # file.export.latex
 
     # EDIT MENU
@@ -239,6 +238,9 @@ ICONS=(
     "create_new_folder"
     "drive_file_move"
     "file_copy"
+    # Clippings: Cut to Clippings, Insert > Clipping from the Workshop
+    "move_to_inbox"
+    "outbox"
 )
 
 # FOUR styles to download (user can choose in Settings > Appearance)

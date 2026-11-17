@@ -9,6 +9,7 @@
 #define KALAHARI_GUI_DIALOGS_RELATION_DIALOG_H
 
 #include "kalahari/core/card_relations.h"
+#include "kalahari/core/name_declension.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
 #include <QString>
@@ -45,13 +46,16 @@ struct RelationChoice {
 /// @brief Relation: the other card, the relation and its note
 ///
 /// - With whom or what: the cards of the book in groups of their kinds, without the card
-///   itself; typing filters them. At the end, for a name that no card of a kind has,
+///   itself; typing filters them by their names, the forms of the names and their other
+///   names in the book's dictionary ("janem" finds Jan Wolski). At the end, for a name that no card of a kind has,
 ///   "Create character "x"...", one for each kind of cards: the card is made with the
 ///   relation.
 /// - The relation: those between the kinds of the two cards (core::CardRelations::between()),
 ///   with their groups, then "Own Relation...", which shows a name for each card; the writer's
 ///   relation is kept in the book for the next relations.
-/// - On both cards: how each card shows the relation, its name by the gender of the other one.
+/// - On both cards: how each card shows the relation, its name by the gender of the other one;
+///   when the program speaks the language of the book, with the name of the card declined
+///   ("On the card of Jana Wolskiego" in Polish).
 /// - A note, shown beside the relation on both cards.
 ///
 /// The filter has the keys: the letters filter, the arrows choose in the list, Tab goes to the
@@ -102,8 +106,18 @@ private:
     /// @brief The cards of the book in groups of their kinds
     void fillCards();
 
-    /// @brief Show the cards whose titles have @p text, and the cards it can create named so
+    /// @brief Show the cards whose names have @p text, and the cards it can create named so
     void filter(const QString& text);
+
+    /// @brief Whether card item @p item has @p wanted in its title, or in a form of its name
+    ///        or of its other names in the book's dictionary
+    [[nodiscard]] bool matches(const QTreeWidgetItem* item, const QString& wanted) const;
+
+    /// @brief The genitive of the name of card @p cardId titled @p title, of kind @p kind
+    ///        (or of the card to create), as the book's dictionary has it or the program
+    ///        gives it; empty when the program speaks another language than the book
+    [[nodiscard]] QString genitiveOf(const QString& cardId, const QString& title,
+                                     const QString& kind) const;
 
     /// @brief The items that create a card named @p title, for each kind of cards that has
     /// no card of that name
@@ -140,6 +154,9 @@ private:
     core::CardRelations m_relations;
     const core::ProjectElement* m_card = nullptr;
     QString m_kind;  ///< The kind of the card: "kalahari.base:character"
+    /// The declension of the language of the book, when the program speaks it: the preview
+    /// declines the names of the cards
+    std::optional<core::NameDeclension> m_declension;
     QLineEdit* m_filter = nullptr;
     RowList* m_cards = nullptr;
     QComboBox* m_relation = nullptr;

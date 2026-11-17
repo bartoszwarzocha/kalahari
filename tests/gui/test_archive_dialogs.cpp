@@ -6,7 +6,7 @@
 /// them, and the progress and the result of the work in the window
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/project_manager.h"
@@ -42,7 +42,7 @@
 #include <zip.h>
 
 #include <utility>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::dialogs::ArchiveDialog;
@@ -257,7 +257,7 @@ public:
         }
         return {};
     }
-    bool isEmpty() const override { return false; }
+    [[nodiscard]] bool isEmpty() const override { return false; }
 };
 
 } // namespace

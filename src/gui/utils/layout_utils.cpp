@@ -12,9 +12,7 @@
 #include <QSize>
 #include <QWidget>
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 void clearLayout(QLayout* layout) {
     if (!layout) {
@@ -50,6 +48,4 @@ void resizeWithinScreen(QWidget* window, const QSize& preferred) {
     window->resize(size.expandedTo(window->minimumSize()));
 }
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils

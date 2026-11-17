@@ -6,8 +6,8 @@
 ///        (EditCoordinator)
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
-#include "context_menu_reader.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/context_menu_reader.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/find_replace_bar.h"
 #include "kalahari/editor/paragraph_styles.h"
@@ -42,7 +42,7 @@
 #include <array>
 #include <string>
 #include <utility>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;

@@ -2,13 +2,16 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file test_paragraph_marks.cpp
-/// @brief The marks beside the paragraphs (the paperclips of the materials linked with them):
-///        in the left margin in the color of the text, with their paragraphs as the text is
-///        edited, chosen with a click, a menu or the context menu of the paragraph
+/// @brief The marks beside the paragraphs (the paperclips of the materials linked with them,
+///        the signs of the kinds of the cards linked with them beside the paperclips, the
+///        scissors of the clippings cut from them): in the left margin in the color of the
+///        text, with their paragraphs as the text is edited, chosen with a click, a menu or
+///        the context menu of the paragraph
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
-#include "editor_test_utils.h"
+#include <kalahari/editor/editor_types.h>
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QAction>
 #include <QContextMenuEvent>
@@ -22,6 +25,7 @@
 #include <QToolTip>
 
 #include <memory>
+#include <optional>
 #include <utility>
 
 using namespace kalahari::editor;
@@ -50,8 +54,21 @@ QIcon redIcon() {
 }
 
 /// The mark of paragraph @p paragraph naming @p ids with @p titles
-ParagraphMark markOf(int paragraph, const QStringList& ids, const QStringList& titles) {
-    return ParagraphMark{paragraph, ids, titles};
+ParagraphMark markOf(int paragraph, const QStringList& ids, const QStringList& titles,
+                     ParagraphMarkKind kind = ParagraphMarkKind::Materials) {
+    return ParagraphMark{.paragraph = paragraph, .ids = ids, .titles = titles, .kind = kind};
+}
+
+/// The scissors of paragraph @p paragraph naming clippings @p ids with @p titles
+ParagraphMark scissorsOf(int paragraph, const QStringList& ids, const QStringList& titles) {
+    return markOf(paragraph, ids, titles, ParagraphMarkKind::Clippings);
+}
+
+/// A blue square: the scissors, beside the red paperclip
+QIcon blueIcon() {
+    QPixmap pixmap(32, 32);
+    pixmap.fill(Qt::blue);
+    return {pixmap};
 }
 
 /// Image of the editor with one pixel per logical pixel (see test_editor_stage2.cpp)
@@ -104,6 +121,23 @@ QList<int> markedParagraphs(const BookEditor& editor) {
         paragraphs << mark.paragraph;
     }
     return paragraphs;
+}
+
+/// The point of the mark of kind @p kind beside paragraph @p paragraph, found from the text
+/// leftwards; null when there is none
+QPointF markPoint(BookEditor& editor, int paragraph, ParagraphMarkKind kind) {
+    const CursorPosition cursor = editor.cursorPosition();
+    const QRectF line = caretAt(editor, {.paragraph = paragraph, .offset = 0});
+    editor.setCursorPosition(cursor);
+    editorImage(editor);  // shown: the marks of the paragraphs in view are found
+    for (int step = 1; step < static_cast<int>(line.left()); ++step) {
+        const QPointF point(line.left() - step, line.center().y());
+        if (const std::optional<ParagraphMark> mark = editor.paragraphMarkAt(point);
+            mark && mark->kind == kind) {
+            return point;
+        }
+    }
+    return {};
 }
 
 /// In the first popup menu that shows, the entry @p submenu leads to; its entry @p choice is
@@ -311,5 +345,219 @@ TEST_CASE("Paragraph marks: a mark of several materials chooses one in a menu; t
         QContextMenuEvent menuKey(QContextMenuEvent::Keyboard, QPoint(), QPoint());
         QCoreApplication::sendEvent(editor.get(), &menuKey);
         CHECK(chooser.texts.isEmpty());
+    }
+}
+
+TEST_CASE("Paragraph marks: the scissors of the clippings, left of the paperclip, each kind "
+          "set on its own",
+          "[editor][marks][clippings]") {
+    auto both = editorWith(TEXT);
+    auto clipped = editorWith(TEXT);
+    const ParagraphMark paperclip =
+        markOf(1, {QStringLiteral("m1")}, {QStringLiteral("Map")});
+    const QString rained = QStringLiteral("\"Rained\" (3 words, today, 7:42)");
+    both->setParagraphMarks({paperclip}, redIcon());
+    clipped->setParagraphMarks({paperclip}, redIcon());
+    // The kind given is theirs, whatever the marks say
+    both->setParagraphMarks(
+        {markOf(1, {QStringLiteral("c1")}, {rained}),
+         scissorsOf(2, {QStringLiteral("c2")}, {QStringLiteral("\"Wind\" (1 word, today, 7:40)")})},
+        blueIcon(), ParagraphMarkKind::Clippings);
+
+    // Beside one paragraph, the paperclip, then the scissors
+    const QList<ParagraphMark> marks = both->paragraphMarks();
+    REQUIRE(marks.size() == 3);
+    CHECK(marks.at(0) == paperclip);
+    CHECK(marks.at(1) == scissorsOf(1, {QStringLiteral("c1")}, {rained}));
+    CHECK(marks.at(2).paragraph == 2);
+    CHECK(marks.at(2).kind == ParagraphMarkKind::Clippings);
+
+    // The scissors left of the paperclip, which stays where it was
+    both->setCursorPosition({.paragraph = 3, .offset = 4});
+    clipped->setCursorPosition({.paragraph = 3, .offset = 4});
+    const QPointF clip = markPoint(*both, 1, ParagraphMarkKind::Materials);
+    const QPointF scissors = markPoint(*both, 1, ParagraphMarkKind::Clippings);
+    REQUIRE_FALSE(clip.isNull());
+    REQUIRE_FALSE(scissors.isNull());
+    CHECK(scissors.x() < clip.x());
+    CHECK(clip == markPoint(*clipped, 1, ParagraphMarkKind::Materials));
+    CHECK(both->paragraphMarkAt(scissors)->ids == QStringList{QStringLiteral("c1")});
+    // Alone beside its paragraph, a mark is next to the text
+    const QPointF alone = markPoint(*both, 2, ParagraphMarkKind::Clippings);
+    REQUIRE_FALSE(alone.isNull());
+    CHECK(alone.x() > scissors.x());
+
+    // Drawn in the color of the text, as the paperclip: the blue of the icon is not shown
+    const QImage image = editorImage(*both);
+    const QImage withoutScissors = editorImage(*clipped);
+    const QRect drawn = differingArea(image, withoutScissors);
+    REQUIRE_FALSE(drawn.isEmpty());
+    for (int y = drawn.top(); y <= drawn.bottom(); ++y) {
+        for (int x = drawn.left(); x <= drawn.right(); ++x) {
+            const QColor pixel = QColor::fromRgb(image.pixel(x, y));
+            REQUIRE(pixel.blue() - pixel.green() < 40);
+        }
+    }
+
+    SECTION("its tooltip says what was cut there, and what a click does") {
+        QHelpEvent help(QEvent::ToolTip, scissors.toPoint(),
+                        both->mapToGlobal(scissors.toPoint()));
+        QCoreApplication::sendEvent(both.get(), &help);
+        CHECK(QToolTip::text().contains(
+            QStringLiteral("<b>Cut here</b><br>&quot;Rained&quot; (3 words, today, 7:42)<br><i>A "
+                           "click or the menu of the paragraph: Show Clipping, Restore "
+                           "Here</i>")));
+        QToolTip::hideText();
+    }
+
+    SECTION("new paperclips leave the scissors; no scissors leave the paperclips") {
+        both->setParagraphMarks({}, redIcon());
+        REQUIRE(both->paragraphMarks().size() == 2);
+        CHECK(both->paragraphMarks().first().kind == ParagraphMarkKind::Clippings);
+        both->setParagraphMarks({paperclip}, redIcon());
+        both->setParagraphMarks({}, blueIcon(), ParagraphMarkKind::Clippings);
+        CHECK(both->paragraphMarks() == QList<ParagraphMark>{paperclip});
+        CHECK(differingArea(editorImage(*both), editorImage(*clipped)).isEmpty());
+    }
+
+    SECTION("a paragraph joined to the one before: the marks of each kind are one") {
+        both->setCursorPosition({.paragraph = 2, .offset = 0});
+        press(*both, Qt::Key_Backspace);
+        const QList<ParagraphMark> joined = both->paragraphMarks();
+        REQUIRE(joined.size() == 2);
+        CHECK(joined.at(0) == paperclip);
+        CHECK(joined.at(1).ids == (QStringList{QStringLiteral("c1"), QStringLiteral("c2")}));
+    }
+}
+
+TEST_CASE("Paragraph marks: the scissors show the clipping or restore it there, from a click "
+          "or the context menu",
+          "[editor][marks][clippings]") {
+    auto editor = editorWith(TEXT);
+    editor->setParagraphMarks({scissorsOf(1, {QStringLiteral("c1")}, {QStringLiteral("Rained")})},
+                              blueIcon(), ParagraphMarkKind::Clippings);
+    QStringList shown;
+    QStringList restored;
+    QObject::connect(editor.get(), &BookEditor::paragraphMarkClicked,
+                     [&shown](const QString& id) { shown << id; });
+    QObject::connect(editor.get(), &BookEditor::clippingRestoreRequested,
+                     [&restored](const QString& id) { restored << id; });
+    const QPointF point = markPoint(*editor, 1, ParagraphMarkKind::Clippings);
+    REQUIRE_FALSE(point.isNull());
+    const QStringList items{QStringLiteral("&Show Clipping"), QStringLiteral("&Restore Here")};
+
+    // A click: a menu, also for one clipping; the cursor stays
+    editor->setCursorPosition({.paragraph = 3, .offset = 4});
+    CHECK(runPopupMenu([&]() { click(*editor, point); }, QStringLiteral("&Restore Here")) ==
+          items);
+    CHECK(restored == QStringList{QStringLiteral("c1")});
+    CHECK(runPopupMenu([&]() { click(*editor, point); }, QStringLiteral("&Show Clipping")) ==
+          items);
+    CHECK(shown == QStringList{QStringLiteral("c1")});
+    CHECK(editor->cursorPosition() == CursorPosition{3, 4});
+
+    // The context menu of the paragraph, from the keyboard: Clippings From Here
+    {
+        SubmenuChooser chooser(QStringLiteral("Clippings &From Here"),
+                               QStringLiteral("&Restore Here"));
+        editor->setCursorPosition({.paragraph = 1, .offset = 3});
+        QContextMenuEvent menuKey(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+        QCoreApplication::sendEvent(editor.get(), &menuKey);
+        CHECK(chooser.texts == items);
+    }
+    CHECK(restored == (QStringList{QStringLiteral("c1"), QStringLiteral("c1")}));
+
+    // A text open read-only: the clipping is shown, not restored
+    editor->setReadOnly(true);
+    {
+        SubmenuChooser chooser(QStringLiteral("Clippings &From Here"),
+                               QStringLiteral("&Restore Here"));
+        editor->setCursorPosition({.paragraph = 1, .offset = 3});
+        QContextMenuEvent menuKey(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+        QCoreApplication::sendEvent(editor.get(), &menuKey);
+        CHECK(chooser.texts == items);
+    }
+    CHECK(restored.size() == 2);
+    editor->setReadOnly(false);
+
+    // Several clippings cut from one paragraph: a submenu of each, by its title
+    editor->setParagraphMarks(
+        {scissorsOf(1, {QStringLiteral("c1"), QStringLiteral("c2")},
+                    {QStringLiteral("Rained"), QStringLiteral("Salt & Water")})},
+        blueIcon(), ParagraphMarkKind::Clippings);
+    SubmenuChooser chooser(QStringLiteral("Clippings &From Here"), QString());
+    editor->setCursorPosition({.paragraph = 1, .offset = 3});
+    QContextMenuEvent menuKey(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+    QCoreApplication::sendEvent(editor.get(), &menuKey);
+    CHECK(chooser.texts ==
+          (QStringList{QStringLiteral("Rained"), QStringLiteral("Salt && Water")}));
+}
+
+TEST_CASE("Paragraph marks: the signs of the kinds of the cards beside the paperclip",
+          "[editor][marks][cards]") {
+    auto editor = editorWith(TEXT);
+    const auto cardMark = [](const char* id, const char* title, const char* icon) {
+        ParagraphMark mark{1, {QString::fromLatin1(id)}, {QString::fromLatin1(title)}};
+        mark.icon = QString::fromLatin1(icon);
+        return mark;
+    };
+    editor->setParagraphMarks({markOf(1, {QStringLiteral("m1")}, {QStringLiteral("Map")}),
+                               cardMark("c1", "Anna", "character"),
+                               cardMark("c2", "Book of Ashes", "item"),
+                               cardMark("c3", "Jan", "character")},
+                              redIcon(), ParagraphMarkKind::Materials,
+                              {{QStringLiteral("character"), redIcon()},
+                               {QStringLiteral("item"), redIcon()}});
+
+    // One mark for each icon: the paperclip first, then the kinds of the cards
+    const QList<ParagraphMark> marks = editor->paragraphMarks();
+    REQUIRE(marks.size() == 3);
+    CHECK(marks.at(0).icon.isEmpty());
+    CHECK(marks.at(1).icon == QStringLiteral("character"));
+    CHECK(marks.at(1).ids == (QStringList{QStringLiteral("c1"), QStringLiteral("c3")}));
+    CHECK(marks.at(2).ids == QStringList{QStringLiteral("c2")});
+
+    // From the text to the left: the paperclip, the characters, the item
+    QStringList chosen;
+    QObject::connect(editor.get(), &BookEditor::paragraphMarkClicked,
+                     [&chosen](const QString& id) { chosen << id; });
+    const QRectF line = caretAt(*editor, {1, 0});
+    editorImage(*editor);  // shown: the marks of the paragraphs in view are found
+    QStringList found;
+    QPointF item;
+    for (int x = static_cast<int>(line.left()) - 1; x > 0; --x) {
+        const std::optional<ParagraphMark> mark =
+            editor->paragraphMarkAt(QPointF(x, line.center().y()));
+        const QString first = mark ? mark->ids.first() : QString();
+        if (!first.isEmpty() && (found.isEmpty() || found.last() != first)) {
+            found << first;
+        }
+        if (first == QStringLiteral("c2") && item.isNull()) {
+            item = QPointF(x, line.center().y());
+        }
+    }
+    CHECK(found == (QStringList{QStringLiteral("m1"), QStringLiteral("c1"),
+                                QStringLiteral("c2")}));
+    REQUIRE_FALSE(item.isNull());
+    click(*editor, item);
+    CHECK(chosen == QStringList{QStringLiteral("c2")});
+
+    // The context menu of the paragraph: Linked Cards, with the cards of all the signs
+    chosen.clear();
+    {
+        SubmenuChooser chooser(QStringLiteral("Linked Card&s"), QStringLiteral("Jan"));
+        editor->setCursorPosition({1, 3});
+        QContextMenuEvent menuKey(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+        QCoreApplication::sendEvent(editor.get(), &menuKey);
+        CHECK(chooser.texts == (QStringList{QStringLiteral("Anna"), QStringLiteral("Jan"),
+                                            QStringLiteral("Book of Ashes")}));
+    }
+    CHECK(chosen == QStringList{QStringLiteral("c3")});
+    {
+        SubmenuChooser chooser(QStringLiteral("Linked Mate&rials"), QString());
+        editor->setCursorPosition({1, 3});
+        QContextMenuEvent menuKey(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+        QCoreApplication::sendEvent(editor.get(), &menuKey);
+        CHECK(chooser.texts == QStringList{QStringLiteral("Map")});
     }
 }

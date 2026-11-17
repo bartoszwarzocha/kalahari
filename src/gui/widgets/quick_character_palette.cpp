@@ -21,8 +21,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -387,5 +386,4 @@ bool QuickCharacterPalette::eventFilter(QObject* watched, QEvent* event)
     return QFrame::eventFilter(watched, event);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

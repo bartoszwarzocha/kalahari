@@ -39,6 +39,8 @@ Usage:
     python scripts/sonar_analysis.py --skip-scan        # clang-tidy only
     python scripts/sonar_analysis.py --skip-clang-tidy  # scan with the existing report
     python scripts/sonar_analysis.py --only "src/editor/.*"  # clang-tidy on some files
+    python scripts/sonar_analysis.py --project kalahari-check --changed-since origin/main
+                                     # a branch, apart from main; then sonar_new_issues.py
 
 Options:
     --build-dir DIR     build directory with compile_commands.json
@@ -50,6 +52,14 @@ Options:
     --host URL          SonarQube server (default: $SONAR_HOST_URL or http://localhost:9000)
     --coverage-report F SonarQube generic coverage report to import instead of the CI one
     --no-coverage       scan without a coverage report
+    --project KEY       SonarQube project of the results (default: kalahari, the main
+                        analysis); SonarQube Community Build analyses one branch per
+                        project, so the branch of another piece of work goes to a project
+                        of its own and leaves the analysis of main as it is
+    --project-name NAME its name in SonarQube (default: the key)
+    --changed-since C   clang-tidy only on the files the changes since commit C touch (the
+                        files themselves and the files that include them); needs --project
+                        or --skip-scan, so the main analysis always has every file
 """
 
 import argparse
@@ -239,12 +249,51 @@ def ninja_dependencies(build_dir: Path, environment: Optional[Dict[str, str]]) -
     return dependencies
 
 
+def changed_files(base: str) -> List[str]:
+    """Normalized paths of the files that differ from commit @p base (committed or not)."""
+    result = subprocess.run(["git", "diff", "--name-only", base], cwd=REPO_ROOT,
+                            capture_output=True, text=True, encoding="utf-8", check=False)
+    if result.returncode != 0:
+        fail(f"git diff {base}: {result.stderr.strip()}")
+    return [normalized(REPO_ROOT / name) for name in result.stdout.splitlines() if name]
+
+
+def units_touched(units: List[Path], entries: Dict[str, dict],
+                  dependencies: Dict[str, List[str]], changed: List[str]) -> List[Path]:
+    """The translation units that are changed files or include one (Ninja's dependency log)."""
+    changed_set = set(changed)
+    touched = []
+    for unit in units:
+        key = normalized(unit)
+        entry = entries[key]
+        output = entry.get("output")
+        headers = dependencies.get(normalized(Path(entry["directory"]) / output)) if output else None
+        if key in changed_set or any(normalized(Path(h)) in changed_set for h in headers or []):
+            touched.append(unit)
+    return touched
+
+
+def clang_tidy_configs() -> List[str]:
+    """The .clang-tidy files of the repository, for the key of the cache: a changed check or
+    option gives other findings for every file."""
+    configs = []
+    for folder, subfolders, files in os.walk(REPO_ROOT):
+        # Build trees and hidden folders (.git, .worktrees...) have no configuration of ours
+        subfolders[:] = sorted(name for name in subfolders
+                               if not name.startswith((".", "build")))
+        if ".clang-tidy" in files:
+            path = Path(folder) / ".clang-tidy"
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            configs.append(f"{path.relative_to(REPO_ROOT).as_posix()}={digest}")
+    return configs
+
+
 class ResultCache:
     """clang-tidy results of files whose source, headers and command did not change.
 
-    The key of a file covers the clang-tidy version and options, its compile command,
-    the content of the file and of every project header it includes (from Ninja's
-    dependency log) and the size and time of the headers outside the project.
+    The key of a file covers the clang-tidy version, options and .clang-tidy files, its
+    compile command, the content of the file and of every project header it includes (from
+    Ninja's dependency log) and the size and time of the headers outside the project.
     """
 
     def __init__(self, folder: Path, settings: List[str]):
@@ -368,10 +417,19 @@ def clang_tidy_step(args, build_dir: Path, report: Path) -> None:
 
     cache = None if args.no_cache else ResultCache(
         report.parent / "clang-tidy-cache",
-        [" ".join(version), args.checks, header_filter(), *clang_tidy_extra_args()])
-    dependencies = ninja_dependencies(build_dir, environment) if cache else {}
+        [" ".join(version), args.checks, header_filter(), *clang_tidy_extra_args(),
+         *clang_tidy_configs()])
+    dependencies = ninja_dependencies(build_dir, environment)         if cache or args.changed_since else {}
     if cache and not dependencies:
         print("[WARNING] no Ninja dependency log - every file is analysed again")
+    if args.changed_since:
+        if not dependencies:
+            fail("--changed-since needs Ninja's dependency log of a finished build")
+        units = units_touched(units, entries, dependencies, changed_files(args.changed_since))
+        print(f"[INFO] {len(units)} translation units touched by the changes since "
+              f"{args.changed_since}")
+        if not units:
+            print("[INFO] no C++ file to analyse")
     cached: Dict[Path, Tuple[int, str, str]] = {}
     keys: Dict[Path, Optional[str]] = {}
     for unit in units:
@@ -497,13 +555,17 @@ def scan_step(args, build_dir: Path, report: Path) -> None:
         coverage = ci_coverage_report(report.parent / "coverage")
     if coverage:
         command.append(f"-Dsonar.coverageReportPaths={coverage.resolve().as_posix()}")
+    project = args.project or PROJECT_KEY
+    if args.project:
+        command += [f"-Dsonar.projectKey={args.project}",
+                    f"-Dsonar.projectName={args.project_name or args.project}"]
     if os.name == "nt" and scanner.lower().endswith((".bat", ".cmd")):
         command = ["cmd", "/c", *command]
     print(f"[INFO] sonar-scanner: {scanner}")
     result = subprocess.run(command, cwd=REPO_ROOT, check=False)
     if result.returncode != 0:
         fail(f"sonar-scanner ended with code {result.returncode}")
-    print(f"[OK] Results: {host}/dashboard?id={PROJECT_KEY}")
+    print(f"[OK] Results: {host}/dashboard?id={project}")
 
 
 def main() -> None:
@@ -522,9 +584,17 @@ def main() -> None:
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--skip-clang-tidy", action="store_true")
     parser.add_argument("--skip-scan", action="store_true")
+    parser.add_argument("--project", help="SonarQube project key (default: kalahari)")
+    parser.add_argument("--changed-since", metavar="COMMIT",
+                        help="clang-tidy only on the files touched by the changes since COMMIT")
+    parser.add_argument("--project-name", help="its name in SonarQube (default: the key)")
     args = parser.parse_args()
 
     build_dir = args.build_dir if args.build_dir.is_absolute() else REPO_ROOT / args.build_dir
+    if args.changed_since and not args.project and not args.skip_scan:
+        # A report of some files would take the clang-tidy issues of the other files away
+        # from the main analysis
+        fail("--changed-since is for the analysis of a branch: add --project KEY")
     report = build_dir / "sonar" / "clang-tidy.txt"
     if not args.skip_clang_tidy:
         clang_tidy_step(args, build_dir, report)

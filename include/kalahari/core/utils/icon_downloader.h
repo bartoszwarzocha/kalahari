@@ -23,7 +23,8 @@
 /// downloader.downloadFromUrl("https://example.com/icon.svg", "twotone");
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_UTILS_ICON_DOWNLOADER_H
+#define KALAHARI_CORE_UTILS_ICON_DOWNLOADER_H
 
 #include <QObject>
 #include <QNetworkAccessManager>
@@ -32,8 +33,7 @@
 #include <QStringList>
 #include <QMap>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief HTTP downloader for SVG icons
 ///
@@ -108,5 +108,6 @@ private:
     QMap<QNetworkReply*, QPair<QString, QString>> m_pendingRequests; ///< reply → (url, theme)
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_UTILS_ICON_DOWNLOADER_H

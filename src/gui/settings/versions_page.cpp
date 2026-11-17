@@ -24,8 +24,7 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -226,5 +225,4 @@ EditorVersionsPage::EditorVersionsPage(CommandRegistry& commands, QWidget* paren
     pageLayout()->addStretch();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

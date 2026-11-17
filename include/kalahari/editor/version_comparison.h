@@ -11,7 +11,8 @@
 /// texts are left out of it. Its places (positions in the document an editor makes of its KML)
 /// lead to the changes, and from a fragment of it to the same fragment of the version.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_VERSION_COMPARISON_H
+#define KALAHARI_EDITOR_VERSION_COMPARISON_H
 
 #include <QColor>
 #include <QList>
@@ -36,7 +37,7 @@ struct ComparisonRange {
     int end = 0;
 
     /// @brief Whether it has no character
-    bool isEmpty() const { return end <= start; }
+    [[nodiscard]] bool isEmpty() const { return end <= start; }
 
     bool operator==(const ComparisonRange& other) const = default;
 };
@@ -58,13 +59,13 @@ struct VersionComparison {
     int olderLength = 0;             ///< Characters of the version, its paragraph ends too
 
     /// @brief Whether the version has the words of the text as it is now
-    bool isSame() const { return changes.isEmpty(); }
+    [[nodiscard]] bool isSame() const { return changes.isEmpty(); }
 
     /// @brief The range of the version that range [@p from, @p to) of the comparison shows:
     /// its struck out text and the text that both have, not the text written later
     /// @return Positions in the document an editor makes of the version's KML; empty when the
     ///         range shows nothing of the version
-    ComparisonRange olderRange(int from, int to) const;
+    [[nodiscard]] ComparisonRange olderRange(int from, int to) const;
 };
 
 /// @brief Compare @p olderKml, a version of a text, with @p newerKml, the text as it is now
@@ -77,3 +78,5 @@ VersionComparison compareVersions(const QString& olderKml, const QString& newerK
 QString kmlFragment(const QString& kml, int from, int to);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_VERSION_COMPARISON_H

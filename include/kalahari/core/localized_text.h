@@ -27,6 +27,10 @@ struct LocalizedText {
     /// @brief Whether it has no text in any language
     [[nodiscard]] bool isEmpty() const { return values.isEmpty(); }
 
+    /// @brief Text @p text in every language: a name the writer gave, such as of a field of
+    /// the cards (English is the text of the languages it has no text for)
+    [[nodiscard]] static LocalizedText plain(const QString& text);
+
     bool operator==(const LocalizedText&) const = default;
 };
 

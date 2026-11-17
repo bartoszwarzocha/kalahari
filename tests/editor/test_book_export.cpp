@@ -8,199 +8,19 @@
 /// With the environment variable KALAHARI_EXPORT_SAMPLES set to a folder, the files of the
 /// first test are copied there, to be opened in Word or LibreOffice.
 
+#include "test_support/export_samples.h"
+
 #include <catch2/catch_test_macros.hpp>
-#include <kalahari/core/book_type_package.h>
-#include <kalahari/core/unicode_paths.h>
 #include <kalahari/editor/book_export.h>
 
-#include <QColor>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QImage>
 #include <QRegularExpression>
 #include <QTemporaryDir>
-#include <QXmlStreamReader>
-
-#include <zip.h>
 
 using namespace kalahari::editor;
-
-namespace {
-
-/// A style of a package
-kalahari::core::PackageParagraphStyle packageStyle(const QString& id, const QString& name,
-                                                   const QString& base = {},
-                                                   const QVariantMap& properties = {}) {
-    kalahari::core::PackageParagraphStyle style;
-    style.id = id;
-    style.name.values.insert(QStringLiteral("pl"), name);
-    style.baseStyle = base;
-    style.properties = properties;
-    return style;
-}
-
-/// The styles of a novel, as its pack has them
-ParagraphStyleSet novelStyles() {
-    const QString normal = QStringLiteral("normal");
-    const QString heading = QStringLiteral("heading_1");
-    return ParagraphStyleSet::fromPackage(
-        {packageStyle(normal, QStringLiteral("Normalny"), {},
-                      {{QStringLiteral("fontSize"), 12}, {QStringLiteral("lineHeight"), 1.5},
-                       {QStringLiteral("alignment"), QStringLiteral("justify")},
-                       {QStringLiteral("firstLineIndent"), 18}}),
-         packageStyle(heading, QStringLiteral("Nagłówek 1"), normal,
-                      {{QStringLiteral("fontSize"), 20}, {QStringLiteral("bold"), true},
-                       {QStringLiteral("alignment"), QStringLiteral("left")},
-                       {QStringLiteral("firstLineIndent"), 0}, {QStringLiteral("keepWithNext"), true}}),
-         packageStyle(QStringLiteral("heading_2"), QStringLiteral("Nagłówek 2"), heading,
-                      {{QStringLiteral("fontSize"), 16}}),
-         packageStyle(QStringLiteral("heading_3"), QStringLiteral("Nagłówek 3"), heading,
-                      {{QStringLiteral("fontSize"), 14}}),
-         packageStyle(QStringLiteral("quote"), QStringLiteral("Cytat"), normal,
-                      {{QStringLiteral("italic"), true}, {QStringLiteral("leftMargin"), 36}}),
-         packageStyle(QStringLiteral("dialogue"), QStringLiteral("Dialog"), normal),
-         packageStyle(QStringLiteral("code"), QStringLiteral("Kod"), normal,
-                      {{QStringLiteral("fontFamily"), QStringLiteral("Courier New")},
-                       {QStringLiteral("spellCheck"), false}}),
-         packageStyle(QStringLiteral("caption"), QStringLiteral("Podpis ilustracji"), normal,
-                      {{QStringLiteral("italic"), true}}),
-         packageStyle(QStringLiteral("footnote"), QStringLiteral("Przypis"), normal,
-                      {{QStringLiteral("fontSize"), 10}}),
-         packageStyle(QStringLiteral("part_title"), QStringLiteral("Tytuł części"), heading,
-                      {{QStringLiteral("fontSize"), 24}, {QStringLiteral("alignment"), QStringLiteral("center")}}),
-         packageStyle(QStringLiteral("chapter_title"), QStringLiteral("Tytuł rozdziału"), heading,
-                      {{QStringLiteral("alignment"), QStringLiteral("center")}})},
-        QStringLiteral("pl"));
-}
-
-/// A text with every kind of element the export knows
-const QString RICH_KML = QStringLiteral(
-    "<kml><annotations>"
-    "<annotation id=\"a1\" kind=\"comment\" author=\"Anna Nowak\" created=\"2026-10-08T12:00:00Z\">Sprawdź datę.</annotation>"
-    "<annotation id=\"a2\" kind=\"todo\" author=\"Anna Nowak\" done=\"true\">Opisz pogodę.</annotation>"
-    "</annotations>"
-    "<p>Plain <b>bold</b>, <i>italic</i>, <u>under</u>, <s>strike</s>, H<sub>2</sub>O, x<sup>2</sup>, "
-    "<span color=\"#aa0000\" font=\"Georgia\" size=\"14\" caps=\"small\" spacing=\"1\">styled</span> *stars* &amp; [brackets].</p>"
-    "<p>A line<br/>break, a <a href=\"https://example.com/a?b=1&amp;c=2\">link</a> and "
-    "<a href=\"javascript:alert(1)\">not a link</a>.</p>"
-    "<p>Note here<footnote id=\"f1\">The <b>first</b> note.</footnote> and an endnote"
-    "<endnote id=\"e1\">The end note.</endnote>. <anchor ref=\"a1\">Commented text</anchor>.<anchor ref=\"a2\"/></p>"
-    "<scene-break/>"
-    "<p style=\"quote\">A quote.</p>"
-    "<p style=\"code\">int x = 1;</p><p style=\"code\">return x;</p>"
-    "<h2>Section</h2>"
-    "<ol><li>One</li><li>Two<ol type=\"a\"><li>Two a</li></ol></li><li value=\"7\">Seven</li></ol>"
-    "<ul><li>Bullet</li></ul>"
-    "<table><col width=\"40%\"/><col width=\"60%\"/>"
-    "<tr><th><p>Who</p></th><th><p>Role</p></th></tr>"
-    "<tr><td colspan=\"2\" background=\"#fff2cc\"><p>Both</p></td></tr></table>"
-    "<p>After the table.</p>"
-    "<page-break/>"
-    "<p align=\"center\"><img src=\"images/red.png\" alt=\"Red square\" width=\"50%\"/></p>"
-    "<p style=\"caption\">Figure <caption-number label=\"Figure\" id=\"c1\"/>. Red</p>"
-    "<p>See figure <cross-reference to=\"c1\"/>.</p>"
-    "<p><img src=\"images/red.png\" alt=\"Framed\" crop=\"10%\" border=\"solid\" shadow=\"true\"/></p>"
-    "<p><img src=\"images/missing.png\" alt=\"Missing\"/></p>"
-    "<hr/>"
-    "<list-of-figures/>"
-    "</kml>");
-
-/// A book of a part and two chapters, its images in @p folder
-BookExport sampleBook(const QString& folder) {
-    BookExport book;
-    book.title = QStringLiteral("Wiatr nad oazą");
-    book.author = QStringLiteral("Anna Nowak");
-    book.language = QStringLiteral("pl");
-    book.styles = novelStyles();
-    book.fontFamily = QStringLiteral("Literata");
-    book.imagesFolder = folder;
-    book.annotationLabels.insert(AnnotationKind::Todo, QStringLiteral("Zadanie"));
-
-    ExportItem contents;
-    contents.kind = ExportItemKind::Contents;
-    contents.title = QStringLiteral("Spis treści");
-    book.items.push_back(contents);
-
-    ExportItem part;
-    part.kind = ExportItemKind::Group;
-    part.title = QStringLiteral("Część pierwsza");
-    part.titleStyle = QStringLiteral("part_title");
-    book.items.push_back(part);
-
-    ExportItem first;
-    first.elementId = QStringLiteral("e1");
-    first.title = QStringLiteral("Rozdział 1. Studnia");
-    first.titleStyle = QStringLiteral("chapter_title");
-    first.kml = RICH_KML;
-    book.items.push_back(first);
-
-    ExportItem second;
-    second.elementId = QStringLiteral("e2");
-    second.title = QStringLiteral("Rozdział 2");
-    second.titleStyle = QStringLiteral("chapter_title");
-    second.kml = QStringLiteral("<kml><h1>Its own heading</h1><p>Second<footnote id=\"f2\">Second note.</footnote>.</p></kml>");
-    second.footnotes.footnotesBefore = 0;  // anew in each chapter
-    book.items.push_back(second);
-    return book;
-}
-
-/// The files of a ZIP archive by name
-QHash<QString, QByteArray> zipEntries(const QString& path) {
-    QHash<QString, QByteArray> entries;
-    int error = 0;
-    // Not zip_open(): its narrow name is not Unicode on Windows, and the book's name has "ą"
-    zip_t* archive = kalahari::core::openZipFile(kalahari::core::pathOfText(path.toStdString()),
-                                                 ZIP_RDONLY, &error);
-    REQUIRE(archive != nullptr);
-    const zip_int64_t count = zip_get_num_entries(archive, 0);
-    for (zip_int64_t i = 0; i < count; ++i) {
-        zip_stat_t stat;
-        zip_stat_index(archive, static_cast<zip_uint64_t>(i), 0, &stat);
-        zip_file_t* file = zip_fopen_index(archive, static_cast<zip_uint64_t>(i), 0);
-        REQUIRE(file != nullptr);
-        QByteArray data(static_cast<qsizetype>(stat.size), '\0');
-        zip_fread(file, data.data(), stat.size);
-        zip_fclose(file);
-        entries.insert(QString::fromUtf8(stat.name), data);
-    }
-    zip_close(archive);
-    return entries;
-}
-
-/// Whether the XML is well-formed
-bool wellFormed(const QByteArray& xml) {
-    QXmlStreamReader reader(xml);
-    while (!reader.atEnd()) {
-        reader.readNext();
-    }
-    return !reader.hasError();
-}
-
-/// A red square of 40 pixels in images/red.png of @p folder
-void writeRedSquare(const QString& folder) {
-    QDir().mkpath(folder + QStringLiteral("/images"));
-    QImage image(40, 40, QImage::Format_RGB32);
-    image.fill(QColor(200, 0, 0));
-    REQUIRE(image.save(folder + QStringLiteral("/images/red.png")));
-}
-
-/// Copy a file to the folder of the samples, when the environment names one
-void keepSample(const QString& path, const QString& name = QString()) {
-    const QString folder = qEnvironmentVariable("KALAHARI_EXPORT_SAMPLES");
-    if (!folder.isEmpty()) {
-        QDir().mkpath(folder);
-        const QString target = folder + QLatin1Char('/') + (name.isEmpty() ? QFileInfo(path).fileName() : name);
-        QFile::remove(target);
-        QFile::copy(path, target);
-    }
-}
-
-int count(const QString& text, const QString& part) {
-    return static_cast<int>(text.count(part));
-}
-
-}  // namespace
+using namespace kalahari::test;
 
 TEST_CASE("DOCX: a package Word reads, with the book's structure", "[export][docx]") {
     QTemporaryDir folder;
@@ -365,6 +185,35 @@ TEST_CASE("DOCX: a package Word reads, with the book's structure", "[export][doc
     }
 }
 
+TEST_CASE("DOCX: an image the text flows around is anchored to its paragraph",
+          "[export][docx][images]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    writeRedSquare(folder.path());
+    BookExport book = sampleBook(folder.path());
+    book.items.resize(3);  // the contents, the part and the first chapter
+    book.items.back().kml = QStringLiteral(
+        "<kml><p><img src=\"images/red.png\" alt=\"Left\" wrap=\"left\"/></p>"
+        "<p>Beside the image.</p>"
+        "<p align=\"center\"><img src=\"images/red.png\" alt=\"Above\" wrap=\"top-bottom\"/></p>"
+        "<p>Text <img src=\"images/red.png\" alt=\"In its line\" wrap=\"right\"/> around.</p>"
+        "</kml>");
+    const QString path = folder.filePath(QStringLiteral("wrap.docx"));
+    REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+    keepSample(path);
+    const QHash<QString, QByteArray> entries = zipEntries(path);
+    const QByteArray xml = entries.value(QStringLiteral("word/document.xml"));
+    CHECK(wellFormed(xml));
+    const QString document = QString::fromUtf8(xml);
+    CHECK(count(document, QStringLiteral("<wp:anchor ")) == 2);
+    CHECK(count(document, QStringLiteral("<wp:wrapSquare wrapText=\"right\"/>")) == 1);
+    CHECK(count(document, QStringLiteral("<wp:wrapTopAndBottom/>")) == 1);
+    CHECK(document.contains(QStringLiteral("<wp:align>left</wp:align>")));
+    CHECK(document.contains(QStringLiteral("<wp:align>center</wp:align>")));
+    // An image with text in its paragraph stays in its line
+    CHECK(count(document, QStringLiteral("<wp:inline ")) == 1);
+}
+
 TEST_CASE("DOCX: the options of the export", "[export][docx]") {
     QTemporaryDir folder;
     REQUIRE(folder.isValid());
@@ -435,6 +284,73 @@ TEST_CASE("DOCX: the options of the export", "[export][docx]") {
         keepSample(path, QStringLiteral("options-6.docx"));
         const QString document = QString::fromUtf8(zipEntries(path).value(QStringLiteral("word/document.xml")));
         CHECK(document.contains(QStringLiteral("<w:numStart w:val=\"5\"/><w:numRestart w:val=\"eachSect\"/>")));
+    }
+
+    SECTION("Running heads: the author on the left pages, the title on the right ones, none on a "
+            "text's first page or a part's") {
+        book.runningHead = RunningHead::AuthorAndTitle;
+        REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+        keepSample(path, QStringLiteral("options-7.docx"));
+        const QHash<QString, QByteArray> entries = zipEntries(path);
+        const QString document =
+            QString::fromUtf8(entries.value(QStringLiteral("word/document.xml")));
+        const QString settings =
+            QString::fromUtf8(entries.value(QStringLiteral("word/settings.xml")));
+        const QString types =
+            QString::fromUtf8(entries.value(QStringLiteral("[Content_Types].xml")));
+        const QString relationships =
+            QString::fromUtf8(entries.value(QStringLiteral("word/_rels/document.xml.rels")));
+        CHECK(settings.contains(
+            QStringLiteral("<w:defaultTabStop w:val=\"708\"/><w:evenAndOddHeaders/>")));
+        // The empty header, the book's title and its author
+        REQUIRE(entries.contains(QStringLiteral("word/header1.xml")));
+        REQUIRE(entries.contains(QStringLiteral("word/header2.xml")));
+        REQUIRE(entries.contains(QStringLiteral("word/header3.xml")));
+        CHECK_FALSE(entries.contains(QStringLiteral("word/header4.xml")));
+        CHECK(wellFormed(entries.value(QStringLiteral("word/header2.xml"))));
+        CHECK(QString::fromUtf8(entries.value(QStringLiteral("word/header2.xml")))
+                  .contains(QStringLiteral(">Wiatr nad oazą<")));
+        CHECK(QString::fromUtf8(entries.value(QStringLiteral("word/header3.xml")))
+                  .contains(QStringLiteral(">Anna Nowak<")));
+        CHECK_FALSE(QString::fromUtf8(entries.value(QStringLiteral("word/header1.xml")))
+                        .contains(QStringLiteral("<w:t")));
+        CHECK(count(types, QStringLiteral("header+xml")) == 3);
+        CHECK(count(relationships, QStringLiteral("relationships/header\"")) == 3);
+        // Each section its own: three kinds of headers, the footer on every kind of page
+        CHECK(count(document, QStringLiteral("<w:headerReference ")) == 12);
+        CHECK(count(document, QStringLiteral("<w:footerReference ")) == 12);
+        CHECK(count(document, QStringLiteral("<w:titlePg/>")) == 4);
+        // The part (the second section, after the contents): the empty header on its pages
+        static const QRegularExpression sectionProperties(
+            QStringLiteral("<w:sectPr>(.*?)</w:sectPr>"),
+            QRegularExpression::DotMatchesEverythingOption);
+        QRegularExpressionMatchIterator sections = sectionProperties.globalMatch(document);
+        REQUIRE(sections.hasNext());
+        sections.next();
+        REQUIRE(sections.hasNext());
+        const QString part = sections.next().captured(1);
+        CHECK_FALSE(
+            part.contains(QStringLiteral("<w:headerReference w:type=\"even\" r:id=\"") +
+                          relationships.section(QStringLiteral("Target=\"header3.xml\""), 0, 0)
+                              .section(QStringLiteral("Id=\""), -1)
+                              .section(QLatin1Char('"'), 0, 0)));
+        CHECK(count(part, QStringLiteral("<w:headerReference w:type=\"default\" r:id=\"") +
+                              relationships.section(QStringLiteral("Target=\"header1.xml\""), 0, 0)
+                                  .section(QStringLiteral("Id=\""), -1)
+                                  .section(QLatin1Char('"'), 0, 0) +
+                              QLatin1Char('"')) == 1);
+        CHECK(QString::fromUtf8(entries.value(QStringLiteral("word/styles.xml")))
+                  .contains(QStringLiteral("w:styleId=\"Header\"><w:name w:val=\"header\"/>")));
+
+        book.runningHead = RunningHead::Chapter;
+        REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+        const QHash<QString, QByteArray> chapter = zipEntries(path);
+        CHECK_FALSE(QString::fromUtf8(chapter.value(QStringLiteral("word/settings.xml")))
+                        .contains(QStringLiteral("evenAndOddHeaders")));
+        CHECK(count(QString::fromUtf8(chapter.value(QStringLiteral("word/document.xml"))),
+                    QStringLiteral("<w:headerReference ")) == 8);
+        CHECK(QString::fromUtf8(chapter.value(QStringLiteral("word/header2.xml")))
+                  .contains(QStringLiteral(">Spis treści<")));
     }
 
     SECTION("A folder that cannot be written: a problem of writing") {

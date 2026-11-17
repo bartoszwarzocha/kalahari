@@ -8,11 +8,14 @@
 #include "kalahari/gui/dialogs/relation_dialog.h"
 
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/card_names.h"
 #include "kalahari/core/card_relations.h"
 #include "kalahari/core/kind_words.h"
+#include "kalahari/core/name_declension.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
@@ -78,16 +81,39 @@ bool isShown(const QTreeWidgetItem* item) {
     return !item->isHidden() && (item->parent() == nullptr || !item->parent()->isHidden());
 }
 
-/// How card @p card shows a relation in the window: "On the card "Anna": brother – Jan", in
-/// rich text
-QString shownOn(const QString& card, const QString& name, const QString& other) {
+/// How card @p card shows a relation in the window, in rich text: "On the card "Anna":
+/// brother – Jan", or with the name of the card in the genitive @p genitive "On the card of
+/// Anna: brother – Jan"
+QString shownOn(const QString& card, const QString& genitive, const QString& name,
+                const QString& other) {
+    const QString relation = name.isEmpty() ? QStringLiteral("…") : name.toHtmlEscaped();
+    if (!genitive.isEmpty()) {
+        //: How a card shows a relation, in the window Relation, when the program speaks the
+        //: language of the book: %1 the name of the card in the genitive, as the book's
+        //: dictionary declines it ("Jana Wolskiego"), %2 the name of the relation, %3 the
+        //: other card. Keep <b> and </b>. In Polish: Na karcie %1: <b>%2</b> – %3
+        return RelationDialog::tr("On the card of %1: <b>%2</b> – %3")
+            .arg(genitive.toHtmlEscaped(), relation, other.toHtmlEscaped());
+    }
     //: How a card shows a relation, in the window Relation: %1 the card, %2 the name of the
     //: relation, %3 the other card. Keep <b> and </b>. In Polish: Na karcie „%1”: <b>%2</b> –
     //: %3
     return RelationDialog::tr("On the card \"%1\": <b>%2</b> – %3")
-        .arg(card.toHtmlEscaped(),
-             name.isEmpty() ? QStringLiteral("…") : name.toHtmlEscaped(),
-             other.toHtmlEscaped());
+        .arg(card.toHtmlEscaped(), relation, other.toHtmlEscaped());
+}
+
+/// What a name of the writer's relation is labelled with: "On the card "Anna":", or with the
+/// name of the card in the genitive @p genitive "On the card of Anna:"
+QString onCard(const QString& card, const QString& genitive) {
+    if (!genitive.isEmpty()) {
+        //: The name of a relation the writer names, as a card shows it, when the program
+        //: speaks the language of the book: %1 the name of the card in the genitive
+        //: ("Jana Wolskiego"). In Polish: Na karcie %1:
+        return RelationDialog::tr("On the card of %1:").arg(genitive);
+    }
+    //: The name of a relation the writer names, as card %1 shows it. In Polish: Na karcie
+    //: „%1”:
+    return RelationDialog::tr("On the card \"%1\":").arg(card);
 }
 
 /// The new card of @p choice in the Workshop of @p book, of the kind and with the title it
@@ -119,6 +145,10 @@ RelationDialog::RelationDialog(const core::ProjectManager& book, const QString& 
       m_note(new QLineEdit(this)) {
     setObjectName(QStringLiteral("relationDialog"));
     m_kind = m_card != nullptr ? m_relations.kindOf(*m_card) : QString();
+    if (const core::NameDeclension declension(book.bookLanguage());
+        declension.language() == core::NameDeclension(programLanguage()).language()) {
+        m_declension = declension;
+    }
     const QString title = m_card != nullptr ? m_card->title : QString();
     //: The window of a relation of a card with another card; %1: the name of the card. In
     //: Polish: Relacja karty „%1”
@@ -283,8 +313,7 @@ void RelationDialog::filter(const QString& text) {
         bool any = false;
         for (int j = 0; j < group->childCount(); ++j) {
             QTreeWidgetItem* item = group->child(j);
-            const bool shown =
-                wanted.isEmpty() || item->text(0).contains(wanted, Qt::CaseInsensitive);
+            const bool shown = matches(item, wanted);
             item->setHidden(!shown);
             any = any || shown;
         }
@@ -295,6 +324,30 @@ void RelationDialog::filter(const QString& text) {
     if (!isChoice(current) || !isShown(current)) {
         m_cards->setCurrentItem(firstChoice());
     }
+}
+
+bool RelationDialog::matches(const QTreeWidgetItem* item, const QString& wanted) const {
+    if (wanted.isEmpty() || item->text(0).contains(wanted, Qt::CaseInsensitive)) {
+        return true;
+    }
+    const core::DictionaryName* name =
+        m_book.bookDictionary().findNameOfCard(item->data(0, CARD_ROLE).toString());
+    return name != nullptr && core::nameHas(*name, wanted);
+}
+
+QString RelationDialog::genitiveOf(const QString& cardId, const QString& title,
+                                   const QString& kind) const {
+    if (!m_declension) {
+        return {};
+    }
+    const std::optional<core::KindReference> reference = core::KindReference::parse(kind);
+    const core::KindRef found =
+        reference ? m_book.bookTypes().findKind(reference->packageId, reference->kindId)
+                  : core::KindRef();
+    const core::NameKind nameKind = found ? core::nameKindOf(*found.kind) : core::NameKind::Other;
+    return core::formOfName(
+        core::nameOfCard(m_book.bookDictionary(), cardId, title, nameKind, *m_declension),
+        core::GrammaticalCase::Genitive);
 }
 
 void RelationDialog::addCreateItems(const QString& title) {
@@ -368,14 +421,14 @@ void RelationDialog::showOwnNames() {
     if (!own || m_card == nullptr) {
         return;
     }
-    //: The name of a relation the writer names, as card %1 shows it. In Polish: Na karcie
-    //: „%1”:
-    const QString onCard = tr("On the card \"%1\":");
     if (auto* label = qobject_cast<QLabel*>(m_ownForm->labelForField(m_name))) {
-        label->setText(onCard.arg(m_card->title));
+        label->setText(onCard(m_card->title, genitiveOf(m_card->id, m_card->title, m_kind)));
     }
     if (auto* label = qobject_cast<QLabel*>(m_ownForm->labelForField(m_inverse))) {
-        label->setText(onCard.arg(otherTitle()));
+        const core::ProjectElement* other = otherCard();
+        const QString title = otherTitle();
+        label->setText(onCard(
+            title, genitiveOf(other != nullptr ? other->id : QString(), title, otherKind())));
     }
 }
 
@@ -385,6 +438,7 @@ void RelationDialog::showPreview() {
         m_preview->clear();
         return;
     }
+    const core::ProjectElement* card = otherCard();
     QString here;   // what the other card is to the card
     QString there;  // what the card is to the other card
     if (ownChosen()) {
@@ -393,7 +447,6 @@ void RelationDialog::showPreview() {
     } else if (const std::optional<core::RelationInfo> relation =
                    m_relations.find(m_relation->currentData().toString(), m_kind)) {
         const QString language = programLanguage();
-        const core::ProjectElement* card = otherCard();
         here = relation->nameFor(card != nullptr ? core::CardRelations::genderOf(*card)
                                                  : QString(),
                                  language);
@@ -402,8 +455,11 @@ void RelationDialog::showPreview() {
         there = inverse ? inverse->nameFor(core::CardRelations::genderOf(*m_card), language)
                         : relation->inverse;
     }
-    m_preview->setText(shownOn(m_card->title, here, other) + QStringLiteral("<br>") +
-                       shownOn(other, there, m_card->title));
+    const QString otherGenitive =
+        genitiveOf(card != nullptr ? card->id : QString(), other, otherKind());
+    m_preview->setText(
+        shownOn(m_card->title, genitiveOf(m_card->id, m_card->title, m_kind), here, other) +
+        QStringLiteral("<br>") + shownOn(other, otherGenitive, there, m_card->title));
 }
 
 void RelationDialog::updateAccept() {

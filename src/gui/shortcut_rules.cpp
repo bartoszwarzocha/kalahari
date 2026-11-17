@@ -16,8 +16,7 @@
 #include <initializer_list>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -883,5 +882,4 @@ KeyCheck ShortcutRules::check(QKeyCombination pressed, const std::string& comman
     return {};
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

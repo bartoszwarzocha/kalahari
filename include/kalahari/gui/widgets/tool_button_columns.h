@@ -4,7 +4,8 @@
 /// @file tool_button_columns.h
 /// @brief Tool buttons stacked in a column that wraps into more columns when low
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_TOOL_BUTTON_COLUMNS_H
+#define KALAHARI_GUI_WIDGETS_TOOL_BUTTON_COLUMNS_H
 
 #include <QList>
 #include <QWidget>
@@ -12,8 +13,7 @@
 class QAction;
 class QToolButton;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Icon buttons for the side of a panel, in place of a vertical QToolBar
 ///
@@ -34,23 +34,23 @@ public:
     QToolButton* addAction(QAction* action);
 
     /// @brief The buttons, in the order they were added
-    const QList<QToolButton*>& buttons() const { return m_buttons; }
+    [[nodiscard]] const QList<QToolButton*>& buttons() const { return m_buttons; }
 
     /// @brief One column with every button
-    QSize sizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
 
     /// @brief As many columns as the current height needs, as low as one button
-    QSize minimumSizeHint() const override;
+    [[nodiscard]] QSize minimumSizeHint() const override;
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
 
 private:
     /// @brief Size of the largest button
-    QSize cellSize() const;
+    [[nodiscard]] QSize cellSize() const;
 
     /// @brief Columns needed to show every button at a height
-    int columnsFor(int height) const;
+    [[nodiscard]] int columnsFor(int height) const;
 
     /// @brief Place the buttons for the current height
     void arrange();
@@ -60,5 +60,6 @@ private:
     QList<QToolButton*> m_buttons;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_TOOL_BUTTON_COLUMNS_H

@@ -4,7 +4,8 @@
 /// @file view_modes.h
 /// @brief View modes of BookEditor
 
-#pragma once
+#ifndef KALAHARI_EDITOR_VIEW_MODES_H
+#define KALAHARI_EDITOR_VIEW_MODES_H
 
 namespace kalahari::editor {
 
@@ -53,3 +54,5 @@ enum class ViewMode {
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_VIEW_MODES_H

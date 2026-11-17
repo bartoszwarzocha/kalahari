@@ -7,7 +7,8 @@
 /// Helpers for the editor's QTextDocument: conversion between absolute positions and
 /// cursor positions (paragraph + offset).
 
-#pragma once
+#ifndef KALAHARI_EDITOR_BUFFER_COMMANDS_H
+#define KALAHARI_EDITOR_BUFFER_COMMANDS_H
 
 #include <kalahari/editor/editor_types.h>
 #include <QTextCursor>
@@ -52,3 +53,5 @@ QTextCursor createCursor(QTextDocument* document, const CursorPosition& pos);
 QTextCursor createCursor(QTextDocument* document, const CursorPosition& start, const CursorPosition& end);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_BUFFER_COMMANDS_H

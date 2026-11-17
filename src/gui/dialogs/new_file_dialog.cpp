@@ -12,6 +12,7 @@
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/window_editor_provider.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/material_downloader.h"
@@ -68,9 +69,7 @@
 #include <optional>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -349,7 +348,7 @@ public:
     }
 
     /// The width of the name of a part of the book: the whole row of the tiles
-    int headingWidth() const
+    [[nodiscard]] int headingWidth() const
     {
         // The rows of an icon view leave room for the vertical scroll bar, also when it is
         // hidden
@@ -458,7 +457,8 @@ public:
         painter->restore();
     }
 
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& index) const override
     {
         if (!index.data(HEADING_ROLE).toBool()) {
             return QStyledItemDelegate::sizeHint(option, index);
@@ -586,7 +586,14 @@ NewFileKind NewFileDialog::entryOf(const core::ProjectManager& pm, const core::K
                         "from the web; a page and a material without a file have none")
                          .arg(QString::fromLatin1(core::BookProject::WORKSHOP_FOLDER));
     } else {
-        const QFileInfo file(pm.newChapterFile(kind, section));
+        // A window kind of a module: the file of the module in the Workshop's folder
+        const std::shared_ptr<core::IWindowEditorProvider> module =
+            kind.kind->form == core::ElementForm::Window
+                ? core::windowEditorProvider(kind.kind->editor)
+                : nullptr;
+        const QFileInfo file(module ? pm.newMaterialFile(kind.kind->id + QLatin1Char('.') +
+                                                         module->fileSuffix())
+                                    : pm.newChapterFile(kind, section));
         //: The file of a new element: %1 is its name, %2 the folder of the book it is in. In
         //: Polish: %1 w folderze „%2”
         entry.file = tr("%1 in the folder \"%2\"").arg(file.fileName(), file.path());
@@ -1206,6 +1213,12 @@ void NewFileDialog::setMaterialPicture(const QImage& picture)
 void NewFileDialog::setMaterialLinks(const QStringList& links)
 {
     m_materialLinks = links;
+}
+
+void NewFileDialog::setTitle(const QString& title)
+{
+    m_titleEdit->setText(title.simplified());
+    m_titleChanged = !m_titleEdit->text().isEmpty();
 }
 
 void NewFileDialog::changeEvent(QEvent* event)
@@ -2498,6 +2511,4 @@ void NewFileDialog::updateCreateButton()
                                (!entry->placeNote.isEmpty() || !m_picker->places().isEmpty()));
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

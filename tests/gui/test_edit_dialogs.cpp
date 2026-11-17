@@ -7,7 +7,7 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/clipboard_handler.h"
@@ -21,7 +21,7 @@
 #include "kalahari/gui/go_to_coordinator.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari_tests/gui/dialog_checks.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <QClipboard>
 #include <QGuiApplication>
@@ -197,7 +197,7 @@ TEST_CASE("Paste Special: the forms of the clipboard, the one Paste gives chosen
 }
 
 TEST_CASE("Paste Special: Edit > Paste Special... pastes in the form chosen",
-          "[gui][paste][dialog]") {
+          "[gui][paste][dialog][clipboard]") {
     const PasteModeKept kept;
     core::SettingsManager::getInstance().set<std::string>(editor::PASTE_MODE_KEY,
                                                           editor::PASTE_MODE_TEXT);
@@ -404,6 +404,8 @@ TEST_CASE("Go To and Paste Special: their lists never scroll, a row higher than 
         layOut(window);
         CHECK(list->minimumSizeHint().height() >= list->sizeHint().height());
         CHECK(list->verticalScrollBar()->maximum() == 0);
+        // Nor sideways, in a font wider than the one of its width in letters
+        CHECK(list->horizontalScrollBar()->maximum() == 0);
     };
 
     auto text = editorWith(QStringLiteral("<kml><h1>One</h1><p>a</p></kml>"));

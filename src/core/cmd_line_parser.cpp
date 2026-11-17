@@ -11,8 +11,7 @@
 #include <QCoreApplication>
 #include <algorithm>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 // =============================================================================
 // Constructors
@@ -234,5 +233,4 @@ QStringList CmdLineParser::argsToStringList(int argc, wchar_t** argv) {
 }
 #endif
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

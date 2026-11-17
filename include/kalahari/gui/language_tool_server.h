@@ -5,7 +5,8 @@
 /// @brief The LanguageTool server on this computer: one the program starts and closes, or one
 ///        started outside it
 
-#pragma once
+#ifndef KALAHARI_GUI_LANGUAGE_TOOL_SERVER_H
+#define KALAHARI_GUI_LANGUAGE_TOOL_SERVER_H
 
 #include <QObject>
 #include <QString>
@@ -86,36 +87,36 @@ public:
     ///        server started outside to answer (at most 10 s)
     void setStartTimeout(int ms);
 
-    QString java() const { return m_java; }
-    QString folder() const { return m_folder; }
-    int port() const { return m_port; }
-    bool isExternal() const { return m_external; }
+    [[nodiscard]] QString java() const { return m_java; }
+    [[nodiscard]] QString folder() const { return m_folder; }
+    [[nodiscard]] int port() const { return m_port; }
+    [[nodiscard]] bool isExternal() const { return m_external; }
 
     /// @brief Whether there is something to start or connect to: a server started outside,
     ///        or a java program and a folder with the server
-    bool canStart() const;
+    [[nodiscard]] bool canStart() const;
 
     // =========================================================================
     // State
     // =========================================================================
 
-    State state() const { return m_state; }
+    [[nodiscard]] State state() const { return m_state; }
 
     /// @brief Why the server is not running (State::Failed)
-    Failure failure() const { return m_failure; }
+    [[nodiscard]] Failure failure() const { return m_failure; }
 
     /// @brief What the server or Java said last (when it did not start or stopped), for the
     ///        details of the failure
-    QString details() const;
+    [[nodiscard]] QString details() const;
 
     /// @brief Whether the program started the server (else it was started outside)
-    bool startedByProgram() const { return !m_external; }
+    [[nodiscard]] bool startedByProgram() const { return !m_external; }
 
     /// @brief The address of the server (http://127.0.0.1:port)
-    QString address() const;
+    [[nodiscard]] QString address() const;
 
     /// @brief The languages the server checks (pl-PL, en-US...), once it answers
-    QStringList languages() const { return m_languages; }
+    [[nodiscard]] QStringList languages() const { return m_languages; }
 
 public slots:
     /// @brief Start the server, or connect to the one started outside; nothing while it runs
@@ -186,3 +187,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_LANGUAGE_TOOL_SERVER_H

@@ -5,7 +5,8 @@
 /// @brief The commands that insert a character with keys the writer gave it (Insert > Special
 ///        Character..., Assign Shortcut...)
 
-#pragma once
+#ifndef KALAHARI_GUI_CHARACTER_COMMANDS_H
+#define KALAHARI_GUI_CHARACTER_COMMANDS_H
 
 #include <QString>
 
@@ -14,8 +15,7 @@
 #include <string>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class CommandRegistry;
 
@@ -53,5 +53,6 @@ bool registerCharacterCommand(CommandRegistry& registry, char32_t code,
 std::vector<std::string> registerCharacterCommands(CommandRegistry& registry,
                                                    const InsertCharacters& insert);
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_CHARACTER_COMMANDS_H

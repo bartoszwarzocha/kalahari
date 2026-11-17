@@ -2,7 +2,7 @@
 # Imported into CLAUDE.md (main session and subagents). Keep it short and in sync with the code.
 
 ## Project
-- Name: Kalahari (Writer's IDE), version 0.3.x-alpha
+- Name: Kalahari (Writer's IDE), version 0.4.x-alpha
 - Type: Desktop Application
 - Stack: C++20 + Qt6 6.4+ (builds use 6.9), CMake + vcpkg, Python plugins (pybind11), Catch2 v3 tests
 - Phase: Phase 1 - Core Editor (in progress); see ROADMAP.md
@@ -46,7 +46,7 @@ MainWindow orchestrates 7 coordinators:
   parameters (core::ProjectManager& book, CommandRegistry& commands -> m_book, m_commands)
 - Shared by all windows: core::ProjectManager::installedBookTypes(); the user's keys
   (gui::applyCustomShortcuts() gives them to every CommandRegistry::registries())
-- Tests: kalahari::test::book(), kalahari::test::commands() (tests/test_support/window_parts.h)
+- Tests: kalahari::test::book(), kalahari::test::commands() (tests/include/kalahari_tests/test_support/window_parts.h)
 - Several book windows: MainWindow::windows() / windowOfBook() / openBookInNewWindow(),
   closeAllWindows() (File > Exit); DocumentWindows::programWindows() (Window menu, Ctrl+F6);
   settings are applied in every window (SettingsCoordinator::coordinators()); one LanguageTool

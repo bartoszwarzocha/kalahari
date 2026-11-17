@@ -22,8 +22,7 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 using json = nlohmann::json;
 
@@ -79,19 +78,21 @@ GeneralPage::GeneralPage(QWidget* parent)
     //: In Polish: Książka otwierana, gdy inna jest otwarta:
     addField(windows, tr("Book opened while another is open:"), otherBook,
              DocumentCoordinator::OTHER_BOOK_KEY);
-    auto* detachedLook = new QComboBox();
-    //: Settings > General > Windows: a tab moved to a window of its own shows the menus, the
-    //: toolbars and the status bar. In Polish: Pełne okno
-    detachedLook->addItem(tr("Full window"), QStringLiteral("full"));
-    //: The Format toolbar and the status bar. In Polish: Samo pisanie
-    detachedLook->addItem(tr("Writing only"), QStringLiteral("writing"));
-    //: In Polish: Pełne okno: menu, paski narzędzi i pasek stanu, jak w oknie książki. Samo
-    //: pisanie: pasek formatowania i pasek stanu.
-    detachedLook->setToolTip(tr("Full window: the menus, the toolbars and the status bar, as in "
-                                "the book window. Writing only: the Format toolbar and the "
-                                "status bar."));
-    //: In Polish: Wygląd oderwanego okna:
-    addField(windows, tr("Detached window:"), detachedLook, DocumentWindows::LOOK_KEY);
+    // What a tab moved to a window of its own shows, with what it means under the list
+    addChoice(windows,
+              //: In Polish: Wygląd oderwanego okna:
+              tr("Detached window:"),
+              //: Settings > General > Windows: a tab moved to a window of its own shows the
+              //: menus, the toolbars and the status bar. In Polish: Pełne okno
+              {{tr("Full window"), QStringLiteral("full"),
+                //: In Polish: Menu, paski narzędzi i pasek stanu, jak w oknie książki.
+                tr("The menus, the toolbars and the status bar, as in the book window.")},
+               //: The Format toolbar and the status bar. In Polish: Samo pisanie
+               {tr("Writing only"), QStringLiteral("writing"),
+                //: In Polish: Pasek formatowania i pasek stanu.
+                tr("The Format toolbar and the status bar.")}},
+              DocumentWindows::LOOK_KEY)
+        ->setObjectName(QStringLiteral("detachedWindowLook"));
     auto* detachedClose = new QComboBox();
     //: In Polish: Karty wracają do okna książki
     detachedClose->addItem(tr("Its tabs return to the book window"), QStringLiteral("return"));
@@ -162,6 +163,8 @@ AppearanceGeneralPage::AppearanceGeneralPage(QWidget* parent)
     tabLook->addItem(tr("Names only"), QString::fromLatin1(PanelTabs::LOOK_NAMES));
     tabLook->setToolTip(tr("What the tabs of the panels show"));
     addField(panels, tr("Panel tabs:"), tabLook, PanelTabs::LOOK_KEY);
+    //: In Polish: Przy samych ikonach nazwa panelu jest w podpowiedzi.
+    addFieldNote(panels, tr("With icons only, the name of a panel is in its tooltip."));
 
     auto* tabRows = new QComboBox();
     tabRows->addItem(tr("Wrap to the next row"), QString::fromLatin1(PanelTabs::ROWS_WRAP));
@@ -169,15 +172,14 @@ AppearanceGeneralPage::AppearanceGeneralPage(QWidget* parent)
     tabRows->setToolTip(tr("Tabs that do not fit the width of the panel: in more rows, or in "
                            "one row with shortened names"));
     addField(panels, tr("When tabs do not fit:"), tabRows, PanelTabs::ROWS_KEY);
+    //: In Polish: W jednym wierszu za długie nazwy się skracają.
+    addFieldNote(panels, tr("In one row, names that do not fit are shortened."));
 
     auto* tabSide = new QComboBox();
     tabSide->addItem(tr("Above the panels"), QString::fromLatin1(PanelTabs::SIDE_ABOVE));
     tabSide->addItem(tr("Below the panels"), QString::fromLatin1(PanelTabs::SIDE_BELOW));
     tabSide->setToolTip(tr("Where the tabs are: above the panel in front, or under it"));
     addField(panels, tr("Tab position:"), tabSide, PanelTabs::SIDE_KEY);
-
-    addNote(panels, tr("With icons only, the name of a panel is in its tooltip. In one row, "
-                       "names that do not fit are shortened."));
 
     // The tabs in the middle of the window (CentralTabs)
     QFormLayout* windowTabs = addGroup(tr("Tabs in the middle of the window"));
@@ -245,11 +247,12 @@ AdvancedGeneralPage::AdvancedGeneralPage(bool diagnosticMode, QWidget* parent)
     auto* diagnosticMenu = new QCheckBox(tr("Enable Diagnostic Menu"));
     diagnosticMenu->setToolTip(tr("Shows additional menu with debugging tools"));
     form->addRow(diagnosticMenu);
-    addNote(form, tr("When enabled, a 'Diagnostic' menu appears in the menu bar with:\n"
-                     "- System information\n"
-                     "- Log viewer\n"
-                     "- Component status\n\n"
-                     "The menu stays for this session only."));
+    //: In Polish: Na pasku menu pojawia się menu „Diagnostyka” z informacjami o systemie,
+    //: podglądem dziennika i stanem składników. Tylko do końca tej sesji.
+    addOptionNote(form, diagnosticMenu,
+                  tr("Adds the Diagnostic menu to the menu bar, with the system information, "
+                     "the log viewer and the status of the components. For this session "
+                     "only."));
 
     // This session only: nothing is stored
     Binding binding;
@@ -295,27 +298,27 @@ AdvancedLogPage::AdvancedLogPage(QWidget* parent)
     bufferSize->setToolTip(tr("Higher values use more memory but keep more history"));
     addField(form, tr("Buffer Size (lines):"), bufferSize, "log.bufferSize")
         ->setToolTip(tr("Maximum number of log entries to keep in memory"));
+    //: In Polish: Liczba komunikatów, które panel przechowuje w pamięci. Gdy się zapełni,
+    //: najstarsze znikają; plik dziennika zachowuje wszystkie.
+    addFieldNote(form, tr("The messages the panel keeps in memory; when it is full, the oldest "
+                          "ones go. The log file keeps all of them."));
 
-    addCheckBox(form, tr("Show the Log button on the Panels toolbar"),
-                ToolbarManager::LOG_BUTTON_KEY)
-        ->setToolTip(tr("With the button hidden, View > Panels > Log (F4) opens the log "
-                        "panel"));
-
-    addNote(form, tr("The log panel displays application messages in real-time.\n\n"
-                     "Buffer size determines how many log entries are kept in memory.\n"
-                     "When the buffer is full, oldest entries are removed.\n\n"
-                     "Note: Log files are always saved to disk regardless of this setting."));
+    QCheckBox* logButton = addCheckBox(form, tr("Show the Log button on the Panels toolbar"),
+                                       ToolbarManager::LOG_BUTTON_KEY);
+    const QString logButtonNote =
+        tr("With the button hidden, View > Panels > Log (F4) opens the log panel");
+    logButton->setToolTip(logButtonNote);
+    addOptionNote(form, logButton, logButtonNote);
 
     QFormLayout* file = addGroup(tr("Log File"));
-    addNote(file, tr("Log files are stored in the application directory:\n"
-                     "• kalahari.log - Current session log\n\n"
-                     "Use the log panel toolbar buttons to:\n"
-                     "• Open log folder in file explorer\n"
-                     "• Copy log contents to clipboard\n"
-                     "• Clear the log panel display"));
+    //: In Polish: Plik kalahari.log w folderze programu zapisuje komunikaty bieżącej sesji.
+    //: Przyciski panelu dziennika otwierają jego folder, kopiują dziennik do schowka i
+    //: czyszczą panel.
+    addNote(file, tr("The file kalahari.log in the folder of the program keeps the messages of "
+                     "the current session. The buttons of the log panel open its folder, copy "
+                     "the log to the clipboard and clear the panel."));
 
     pageLayout()->addStretch();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

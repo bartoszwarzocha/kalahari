@@ -16,9 +16,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -97,6 +95,4 @@ void QuickInsertItemDialog::updateAcceptButton()
                                !m_text->toPlainText().isEmpty());
 }
 
-}  // namespace dialogs
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui::dialogs

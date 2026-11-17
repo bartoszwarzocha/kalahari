@@ -15,7 +15,8 @@
 /// - Same content in both panes, independent view state
 /// - State save/restore for session persistence
 
-#pragma once
+#ifndef KALAHARI_EDITOR_SPLIT_EDITOR_PANEL_H
+#define KALAHARI_EDITOR_SPLIT_EDITOR_PANEL_H
 
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/editor_appearance.h>
@@ -101,7 +102,7 @@ public:
 
     /// @brief Get the current content as KML
     /// @return KML content from the primary editor
-    QString toKml() const;
+    [[nodiscard]] QString toKml() const;
 
     // =========================================================================
     // Split Operations
@@ -109,11 +110,11 @@ public:
 
     /// @brief Get the current split orientation
     /// @return Current split orientation
-    SplitOrientation splitOrientation() const;
+    [[nodiscard]] SplitOrientation splitOrientation() const;
 
     /// @brief Check if the view is currently split
     /// @return true if there are two editors visible
-    bool isSplit() const;
+    [[nodiscard]] bool isSplit() const;
 
     /// @brief Split the view horizontally (side by side)
     /// @return true if split was successful, false if already split
@@ -149,16 +150,16 @@ public:
 
     /// @brief Get the currently active editor
     /// @return Pointer to the active editor, never nullptr
-    BookEditor* activeEditor() const;
+    [[nodiscard]] BookEditor* activeEditor() const;
 
     /// @brief Get editor by index
     /// @param index Editor index (0 = primary, 1 = secondary)
     /// @return Pointer to editor, or nullptr if index invalid
-    BookEditor* editor(int index) const;
+    [[nodiscard]] BookEditor* editor(int index) const;
 
     /// @brief Get the number of visible editors
     /// @return 1 if not split, 2 if split
-    int editorCount() const;
+    [[nodiscard]] int editorCount() const;
 
     /// @brief Set the active editor by index
     /// @param index Editor index (0 = primary, 1 = secondary)
@@ -174,7 +175,7 @@ public:
 
     /// @brief Get the current appearance configuration
     /// @return Current editor appearance
-    EditorAppearance appearance() const;
+    [[nodiscard]] EditorAppearance appearance() const;
 
     // =========================================================================
     // View Mode
@@ -188,7 +189,7 @@ public:
 
     /// @brief Get the current view mode
     /// @return Current view mode
-    ViewMode viewMode() const;
+    [[nodiscard]] ViewMode viewMode() const;
 
     // =========================================================================
     // State Persistence
@@ -201,7 +202,7 @@ public:
     /// - Split orientation
     /// - Splitter sizes
     /// - Active editor index
-    QByteArray saveState() const;
+    [[nodiscard]] QByteArray saveState() const;
 
     /// @brief Restore panel state
     /// @param state Previously saved state data
@@ -281,3 +282,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_SPLIT_EDITOR_PANEL_H

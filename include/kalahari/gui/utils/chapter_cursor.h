@@ -12,12 +12,12 @@ class QString;
 namespace kalahari {
 namespace core {
 class ProjectDatabase;
-}
+} // namespace core
 namespace editor {
 class BookEditor;
-}
-namespace gui {
-namespace utils {
+} // namespace editor
+
+namespace gui::utils {
 
 /// The setting of where a chapter opens: CHAPTER_OPENS_WHERE_LEFT, where its cursor was when it
 /// was closed last (also before the program was closed), or CHAPTER_OPENS_AT_START
@@ -48,8 +48,8 @@ void rememberChapterCursor(core::ProjectDatabase& database, const QString& eleme
 bool restoreChapterCursor(const core::ProjectDatabase& database, const QString& elementId,
                           editor::BookEditor& editor);
 
-} // namespace utils
-} // namespace gui
+} // namespace gui::utils
+
 } // namespace kalahari
 
 #endif // KALAHARI_GUI_UTILS_CHAPTER_CURSOR_H

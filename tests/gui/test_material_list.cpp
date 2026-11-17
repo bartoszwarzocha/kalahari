@@ -5,8 +5,8 @@
 /// @brief The lists of the kinds of materials on their tabs: the columns, the rows, the search,
 /// the filters, the tiles, the keys, and the Navigator that opens them
 
-#include "../editor/editor_test_utils.h"
-#include "document_window.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/settings_manager.h"
@@ -34,7 +34,7 @@
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::MaterialList;
@@ -348,7 +348,8 @@ TEST_CASE("Materials list: the rows, the search, the filters and the sorting",
     CHECK_FALSE(camel.isEmpty());
 }
 
-TEST_CASE("Materials list: the keys, the commands and the menu of a row", "[gui][materials]") {
+TEST_CASE("Materials list: the keys, the commands and the menu of a row",
+          "[gui][materials][clipboard]") {
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Rain"));
     const QString sand = addQuote(QStringLiteral("Sand"), QStringLiteral("Sand everywhere"));
