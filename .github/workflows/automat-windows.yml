@@ -52,22 +52,56 @@ jobs:
     name: Scenarios on Kalahari (Windows)
     runs-on: windows-latest
     timeout-minutes: 120  # Qt6 via vcpkg takes a long time without a warm binary cache
+    permissions:
+      contents: read
+      actions: read  # to find and download a build of the same program from an earlier run
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
       PYTHONUTF8: '1'
     steps:
-    - name: Free disk space
-      shell: pwsh
-      run: |
-        if (Test-Path "C:\Android") { Remove-Item -Recurse -Force "C:\Android" -ErrorAction SilentlyContinue }
-        if (Test-Path "C:\hostedtoolcache\CodeQL") { Remove-Item -Recurse -Force "C:\hostedtoolcache\CodeQL" -ErrorAction SilentlyContinue }
-
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         submodules: false
 
+    # The program is built once for each version of its code: a run that changes only the
+    # automaton or its scenarios takes the program an earlier run built (an artifact, not
+    # the cache, so main's vcpkg cache keeps its room).
+    - name: Find a build of this version of the program
+      id: program
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+        NAME: kalahari-program-${{ hashFiles('src/**', 'include/**', 'resources/**', 'translations/**', 'plugins/**', 'cmake/**', 'CMakeLists.txt', 'vcpkg.json', 'vcpkg-ports/**') }}
+      run: |
+        "name=$env:NAME" >> $env:GITHUB_OUTPUT
+        $found = gh api "repos/${{ github.repository }}/actions/artifacts?name=$env:NAME&per_page=5" | ConvertFrom-Json
+        $live = @($found.artifacts | Where-Object { -not $_.expired })
+        if ($live.Count -gt 0) {
+          "run_id=$($live[0].workflow_run.id)" >> $env:GITHUB_OUTPUT
+          Write-Host "The program was built in run $($live[0].workflow_run.id)"
+        } else {
+          Write-Host "No build of this version yet: building it"
+        }
+
+    - name: Download the program
+      if: steps.program.outputs.run_id != ''
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ steps.program.outputs.name }}
+        path: build
+        run-id: ${{ steps.program.outputs.run_id }}
+        github-token: ${{ github.token }}
+
+    - name: Free disk space
+      if: steps.program.outputs.run_id == ''
+      shell: pwsh
+      run: |
+        if (Test-Path "C:\Android") { Remove-Item -Recurse -Force "C:\Android" -ErrorAction SilentlyContinue }
+        if (Test-Path "C:\hostedtoolcache\CodeQL") { Remove-Item -Recurse -Force "C:\hostedtoolcache\CodeQL" -ErrorAction SilentlyContinue }
+
     - name: Initialize vcpkg submodule (full clone)
+      if: steps.program.outputs.run_id == ''
       shell: powershell
       run: |
         git submodule update --init --recursive
@@ -79,25 +113,30 @@ jobs:
         }
 
     - name: Setup MSVC (Visual Studio BuildTools)
+      if: steps.program.outputs.run_id == ''
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x64
 
     - name: Install CMake and Ninja
+      if: steps.program.outputs.run_id == ''
       run: choco install cmake ninja -y
 
     - name: Install autotools (for vcpkg Python build)
+      if: steps.program.outputs.run_id == ''
       continue-on-error: true
       run: |
         choco install msys2 -y
         C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm autoconf autoconf-archive automake libtool"
 
     - name: Prepare vcpkg binary cache directory
+      if: steps.program.outputs.run_id == ''
       shell: pwsh
       run: New-Item -ItemType Directory -Force -Path "${{ env.VCPKG_DEFAULT_BINARY_CACHE }}" | Out-Null
 
     # Main's cache (saved by the WINDOWS workflow); this workflow only reads it.
     - name: Restore vcpkg binary cache
+      if: steps.program.outputs.run_id == ''
       uses: actions/cache/restore@v4
       with:
         path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
@@ -107,6 +146,7 @@ jobs:
           windows-msvc-vcpkg-binary-v1-
 
     - name: Bootstrap vcpkg
+      if: steps.program.outputs.run_id == ''
       shell: powershell
       run: |
         if (!(Test-Path "vcpkg/vcpkg.exe")) {
@@ -115,6 +155,7 @@ jobs:
         }
 
     - name: Configure CMake
+      if: steps.program.outputs.run_id == ''
       run: |
         cmake -B build `
           -DCMAKE_BUILD_TYPE=Release `
@@ -126,7 +167,20 @@ jobs:
         CXX: cl
 
     - name: Build Kalahari
+      if: steps.program.outputs.run_id == ''
       run: cmake --build build --config Release --target kalahari --parallel
+
+    # The program with its libraries, plugins and resources, and the Python it finds beside
+    # the build (src/core/python_interpreter.cpp, detectPythonHome)
+    - name: Keep the program for later runs
+      if: steps.program.outputs.run_id == ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.program.outputs.name }}
+        path: |
+          build/bin
+          build/vcpkg_installed/x64-windows/tools/python3
+        retention-days: 5
 
     - name: Set up Python
       uses: actions/setup-python@v5
