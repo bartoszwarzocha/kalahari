@@ -19625,6 +19625,11 @@ In Polish: Dodaj / Zapisz</extracomment>
         <translation>Ulubiony: kliknij, aby usunąć</translation>
     </message>
     <message>
+        <source>Favorite</source>
+        <extracomment>The name of the star of a character in the list, read by screen readers</extracomment>
+        <translation>Ulubiony</translation>
+    </message>
+    <message>
         <source>Click to add it to the favorites</source>
         <translation>Kliknij, aby dodać do ulubionych</translation>
     </message>

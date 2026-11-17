@@ -79,6 +79,21 @@ public:
     }
 };
 
+/// @brief The star of a line of the list: drawn as a full or an empty star, named "Favorite"
+///        for screen readers and for the test automaton (a star alone has no name), with the
+///        state in its description
+void showStar(QTreeWidgetItem* item, bool favorite)
+{
+    const QString state = favorite ? SpecialCharacterDialog::tr("A favorite: click to remove it")
+                                   : SpecialCharacterDialog::tr("Click to add it to the favorites");
+    item->setText(FAVORITE_COLUMN, favorite ? FAVORITE_STAR : NO_STAR);
+    item->setToolTip(FAVORITE_COLUMN, state);
+    //: The name of the star of a character in the list, read by screen readers
+    item->setData(FAVORITE_COLUMN, Qt::AccessibleTextRole,
+                  SpecialCharacterDialog::tr("Favorite"));
+    item->setData(FAVORITE_COLUMN, Qt::AccessibleDescriptionRole, state);
+}
+
 /// @brief A tooltip of a button with its keys: Alt and its access key, where the system has
 ///        access keys
 QString withAccessKeys(const QString& tip, const QString& text)
@@ -719,10 +734,7 @@ void SpecialCharacterDialog::fillList(const QList<char32_t>& characters)
             keys.append(tr("auto-correct %1").arg(typed));
         }
         item->setText(KEYS_COLUMN, keys.join(QStringLiteral(" · ")));
-        const bool favorite = favorites.contains(code);
-        item->setText(FAVORITE_COLUMN, favorite ? FAVORITE_STAR : NO_STAR);
-        item->setToolTip(FAVORITE_COLUMN, favorite ? tr("A favorite: click to remove it")
-                                                   : tr("Click to add it to the favorites"));
+        showStar(item, favorites.contains(code));
         item->setToolTip(GLYPH_COLUMN, toolTipOf(code));
         items.append(item);
     }
@@ -868,10 +880,7 @@ void SpecialCharacterDialog::showFavorites()
             if (code != m_current) {
                 continue;
             }
-            const bool favorite = favorites.contains(code);
-            item->setText(FAVORITE_COLUMN, favorite ? FAVORITE_STAR : NO_STAR);
-            item->setToolTip(FAVORITE_COLUMN, favorite ? tr("A favorite: click to remove it")
-                                                       : tr("Click to add it to the favorites"));
+            showStar(item, favorites.contains(code));
             break;
         }
     }

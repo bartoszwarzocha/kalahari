@@ -20,6 +20,7 @@
 #include "kalahari/gui/special_character_coordinator.h"
 
 #include <QAbstractButton>
+#include <QAccessible>
 #include <QAction>
 #include <QCheckBox>
 #include <QContextMenuEvent>
@@ -254,6 +255,19 @@ TEST_CASE("Special character window: the list, the same search and character",
     REQUIRE(emDash != nullptr);
     CHECK(emDash->text(3) == QStringLiteral("Alt+_"));
     CHECK(emDash->text(4) == QStringLiteral("★"));
+
+    // The star has a name for screen readers (and the test automaton): a star alone has none
+    CHECK(emDash->data(4, Qt::AccessibleTextRole).toString() == QStringLiteral("Favorite"));
+    CHECK(emDash->data(4, Qt::AccessibleDescriptionRole).toString() ==
+          QStringLiteral("A favorite: click to remove it"));
+    list->scrollToItem(emDash);  // lays the list out: its cells exist for accessibility then
+    QAccessibleInterface* listAccess = QAccessible::queryAccessibleInterface(list);
+    REQUIRE(listAccess != nullptr);
+    REQUIRE(listAccess->tableInterface() != nullptr);
+    QAccessibleInterface* star =
+        listAccess->tableInterface()->cellAt(list->indexOfTopLevelItem(emDash), 4);
+    REQUIRE(star != nullptr);
+    CHECK(star->text(QAccessible::Name) == QStringLiteral("Favorite"));
 
     // All the characters, without the search; a group by its button
     dialog->setSearchText(QString());
