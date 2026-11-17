@@ -105,6 +105,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .approval.warn { background: var(--warn-soft); color: var(--warn); }
 .problems { margin: 0; padding: 8px 10px 8px 28px; border-radius: 6px; background: var(--bad-soft); color: var(--bad); font-size: 12.5px; }
 .tscroll { overflow-x: auto; min-width: 0; }
+.covfilters { display: flex; flex-wrap: wrap; gap: 6px; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.covscroll { max-height: 60vh; overflow-y: auto; }
+.covwin summary { cursor: pointer; font-weight: 600; padding: 3px 0; }
+.covwin ul { margin: 4px 0 8px; padding-left: 18px; display: grid; gap: 2px; }
+.sweepitems { margin: 4px 0 0; padding-left: 18px; font-size: 12px; max-height: 340px; overflow-y: auto; }
+.sweepitems .no { color: var(--bad); } .sweepitems .skip { color: var(--muted); }
 table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
 th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -184,6 +190,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .45); }
     <button type="button" role="tab" id="tab-scen" aria-controls="p-scen" aria-selected="true">Scenariusze<span class="count" id="scenCount"></span></button>
     <button type="button" role="tab" id="tab-run" aria-controls="p-run" aria-selected="false">Przebieg</button>
     <button type="button" role="tab" id="tab-res" aria-controls="p-res" aria-selected="false">Wyniki</button>
+    <button type="button" role="tab" id="tab-cov" aria-controls="p-cov" aria-selected="false">Pokrycie</button>
     <button type="button" role="tab" id="tab-set" aria-controls="p-set" aria-selected="false">Ustawienia</button>
   </div>
 
@@ -278,6 +285,34 @@ dialog::backdrop { background: rgba(0, 0, 0, .45); }
     <div class="box" id="runDetail" hidden></div>
   </div>
 
+  <!-- COVERAGE -->
+  <div class="tabpanel" role="tabpanel" id="p-cov" aria-labelledby="tab-cov" hidden>
+    <div class="banner" id="covBanner">Wczytuję raport pokrycia…</div>
+    <div class="kv" id="covKv"></div>
+    <div class="box">
+      <div class="boxhead"><h3>Operacje z list testów</h3><span class="small muted" id="covOpsMeta"></span></div>
+      <div class="covfilters">
+        <input class="search" id="covOpsQ" type="search" placeholder="Szukaj w operacjach i listach" aria-label="Szukaj operacji">
+        <button type="button" class="chip" data-op="gap" aria-pressed="true">Bez scenariusza</button>
+        <button type="button" class="chip" data-op="fail" aria-pressed="false">Scenariusz niezgodny</button>
+        <button type="button" class="chip" data-op="all" aria-pressed="false">Wszystkie</button>
+      </div>
+      <div class="tscroll covscroll"><table id="covOps"><thead><tr><th>Lista i miejsce</th><th>Operacja</th><th>Scenariusze</th></tr></thead><tbody></tbody></table></div>
+      <div class="listfoot small muted" id="covOpsFoot"></div>
+    </div>
+    <div class="box">
+      <div class="boxhead"><h3>Elementy okien programu</h3><span class="small muted" id="covElMeta"></span></div>
+      <div class="covfilters">
+        <input class="search" id="covElQ" type="search" placeholder="Szukaj w nazwach i oknach" aria-label="Szukaj elementu">
+        <button type="button" class="chip" data-el="untouched" aria-pressed="true">Nietknięte</button>
+        <button type="button" class="chip" data-el="swept" aria-pressed="false">Tylko w przeglądzie</button>
+        <button type="button" class="chip" data-el="unnamed" aria-pressed="false">Bez nazwy</button>
+        <button type="button" class="chip" data-el="all" aria-pressed="false">Wszystkie</button>
+      </div>
+      <div class="boxbody" id="covEls"></div>
+    </div>
+  </div>
+
   <!-- SETTINGS -->
   <div class="tabpanel" role="tabpanel" id="p-set" aria-labelledby="tab-set" hidden>
     <div class="setgrid">
@@ -364,6 +399,7 @@ function showTab(id) {
   try { localStorage.setItem("automat-tab", id); } catch (e) { /* private window */ }
   if (id === "tab-res") loadRuns();
   if (id === "tab-set") fillSettings();
+  if (id === "tab-cov") loadCoverage();
 }
 $$(".tabs [role=tab]").forEach((t) => t.addEventListener("click", () => showTab(t.id)));
 
@@ -639,7 +675,7 @@ function onEvent(ev) {
     case "waiting": renderWaiting(ev); loadState(); break;
     case "going_on": renderWaiting(null); loadState(); break;
     case "scenario_finished": loadScenarios(); break;
-    case "run_finished": loadState(); loadScenarios(); loadRuns();
+    case "run_finished": loadState(); loadScenarios(); loadRuns(); if (!$("#p-cov").hidden) loadCoverage();
       toast(`Koniec przebiegu: zgodne ${ev.run.counts.ok}, niezgodne ${ev.run.counts.fail}, błędy ${ev.run.counts.error}`); break;
   }
 }
@@ -680,7 +716,7 @@ async function openRun(id) {
   const box = $("#runDetail"); box.hidden = false;
   const scen = run.scenarios.map((r) => {
     const steps = (r.steps || []).map((st) => {
-      const checks = (st.checks || []).map((c) => `<li class="${c.ok ? "yes" : "no"}">${c.ok ? "✓" : "✗"} ${esc(c.say)}${c.ms != null ? ` – ${fmtMs(c.ms)}` : ""}${c.limit_ms ? ` (limit ${fmtMs(c.limit_ms)})` : ""}${c.worst_ms != null ? `, najgorzej ${fmtMs(c.worst_ms)}` : ""}${!c.ok && c.detail ? `: ${esc(c.detail)}` : ""}</li>`).join("");
+      const checks = (st.checks || []).map((c) => `<li class="${c.ok ? "yes" : "no"}">${c.ok ? "✓" : "✗"} ${esc(c.say)}${c.ms != null ? ` – ${fmtMs(c.ms)}` : ""}${c.limit_ms ? ` (limit ${fmtMs(c.limit_ms)})` : ""}${c.worst_ms != null ? `, najgorzej ${fmtMs(c.worst_ms)}` : ""}${!c.ok && c.detail && !c.items ? `: ${esc(c.detail)}` : ""}${c.items ? sweepItems(c.items) : ""}</li>`).join("");
       const failText = st.action && st.action.ok === false ? `<li class="no">✗ ${esc(st.action.detail)}</li>` : "";
       const note = st.action && st.action.note ? `<div class="small muted">${esc(st.action.note)}</div>` : "";
       return `<tr class="${st.ok ? "" : "failrow"}"><td class="num">${st.index}</td><td>${esc(st.say)}${note}<ul class="checks">${checks}${failText}</ul></td><td class="num">${fmtMs(st.busy_ms)}</td></tr>`;
@@ -713,6 +749,72 @@ $("#zipFile").addEventListener("change", async () => {
   catch (e) { toast("Nie da się wczytać: " + e.message); }
   $("#zipFile").value = "";
 });
+
+function sweepItems(items) {
+  const bad = items.filter((i) => !i.skipped && i.ok === false);
+  const line = (i) => i.skipped ? `<li class="skip">pominięte: ${esc(i.name)} – ${esc(i.skipped)}</li>`
+    : i.ok === false ? `<li class="no">✗ ${esc(i.name)} – ${esc(i.detail)}</li>`
+    : `<li>✓ ${esc(i.name)} – ${esc(i.reaction)}${(i.notes || []).length ? ` <span class="muted">(${esc(i.notes.join("; "))})</span>` : ""}</li>`;
+  return `<details ${bad.length ? "open" : ""}><summary class="small">Opcje: ${items.length} (niezgodne: ${bad.length}, pominięte: ${items.filter((i) => i.skipped).length})</summary>
+    <ul class="sweepitems">${bad.map(line).join("")}${items.filter((i) => !bad.includes(i)).map(line).join("")}</ul></details>`;
+}
+
+/* ---------- Coverage ---------- */
+const EL_STATE = { checked: "sprawdzony w scenariuszu", clicked: "kliknięty w scenariuszu", swept: "tylko w przeglądzie", untouched: "nietknięty" };
+S.cov = null; S.covOp = "gap"; S.covEl = "untouched";
+async function loadCoverage() {
+  try { S.cov = await api.get("/api/coverage"); } catch (e) { $("#covBanner").textContent = "Nie da się wczytać raportu: " + e.message; return; }
+  renderCoverage();
+}
+function renderCoverage() {
+  const c = S.cov; if (!c) return;
+  const ops = c.operations, els = c.elements, n = els.counts || {};
+  const gaps = ops.total - ops.covered;
+  const done = gaps === 0 && n.untouched === 0 && els.total > 0;
+  $("#covBanner").className = "banner " + (done ? "" : "warn");
+  $("#covBanner").innerHTML = done ? "Każda operacja ma scenariusz i każdego elementu okien dotyka jakiś scenariusz."
+    : `Luki: ${gaps} operacji bez scenariusza i ${n.untouched || 0} elementów okien, których nie dotknął żaden scenariusz. Zero luk to warunek oddania.`
+      + (els.runs.length ? ` Elementy z przebiegów: ${els.runs.map(esc).join(", ")}.` : " Elementy okien pojawią się po pierwszym przebiegu na Windows.");
+  $("#covKv").innerHTML = [
+    [`${ops.covered} z ${ops.total}`, "operacji ma scenariusz"], [ops.passed, "operacji przechodzi"],
+    [els.total, "elementów w oknach"], [n.checked || 0, "sprawdzonych w scenariuszach"], [n.clicked || 0, "klikniętych w scenariuszach"],
+    [n.swept || 0, "tylko w przeglądzie"], [n.untouched || 0, "nietkniętych"], [els.unnamed, "bez nazwy dla czytnika ekranu"],
+  ].map(([v, t]) => `<div><b>${esc(v)}</b><span>${esc(t)}</span></div>`).join("");
+  renderCovOps(); renderCovEls();
+}
+function renderCovOps() {
+  const ops = S.cov.operations, q = $("#covOpsQ").value.trim().toLowerCase();
+  const rows = ops.operations.filter((o) => {
+    if (S.covOp === "gap" && o.scenarios.length) return false;
+    if (S.covOp === "fail" && !o.states.some((s) => ["fail", "error"].includes(s))) return false;
+    return !q || (o.text + " " + o.list + " " + (o.list_title || "") + " " + (o.where || "")).toLowerCase().includes(q);
+  });
+  $("#covOpsMeta").textContent = `${ops.covered} z ${ops.total} ma scenariusz` + (ops.unknown.length ? ` · nieznane numery w scenariuszach: ${ops.unknown.length}` : "");
+  $("#covOps tbody").innerHTML = rows.slice(0, 400).map((o) => `<tr><td class="small"><b>${esc(o.list_title || o.list)}</b><div class="muted">${esc(o.where)} · <span class="mono">${esc(o.id)}</span></div></td>
+    <td>${esc(o.text)}</td><td class="small">${o.scenarios.map((s, i) => `${esc(s)} ${stateHtml(o.states[i])}`).join("<br>") || '<span class="tag warn">brak</span>'}</td></tr>`).join("")
+    || '<tr><td colspan="3" class="muted">Nic tu nie ma.</td></tr>';
+  $("#covOpsFoot").textContent = rows.length > 400 ? `Pokazano 400 z ${rows.length}; zawęź wyszukiwaniem.` : `Pozycji: ${rows.length}`;
+}
+function renderCovEls() {
+  const els = S.cov.elements, q = $("#covElQ").value.trim().toLowerCase();
+  const rows = els.elements.filter((e) => {
+    if (S.covEl === "untouched" && e.state !== "untouched") return false;
+    if (S.covEl === "swept" && e.state !== "swept") return false;
+    if (S.covEl === "unnamed" && e.name) return false;
+    return !q || ((e.name || "") + " " + (e.window || "") + " " + (e.path || "")).toLowerCase().includes(q);
+  });
+  const groups = {};
+  rows.forEach((e) => (groups[e.window || "?"] = groups[e.window || "?"] || []).push(e));
+  $("#covElMeta").textContent = `z przebiegów: ${els.runs.length}`;
+  $("#covEls").innerHTML = Object.keys(groups).sort().map((w) => `<details class="covwin" ${Object.keys(groups).length < 6 ? "open" : ""}><summary>${esc(w)} <span class="muted">(${groups[w].length})</span></summary><ul>${
+    groups[w].slice(0, 600).map((e) => `<li><span class="tag">${esc(e.type)}</span> ${e.name ? esc(e.name) : '<i class="muted">bez nazwy</i>'}${e.path ? ` <span class="muted small">[${esc(e.path)}]</span>` : ""}${e.enabled === false ? ' <span class="muted small">(niedostępny)</span>' : ""}
+      <span class="small muted">– ${esc(EL_STATE[e.state])}${e.scenarios.length ? ": " + e.scenarios.map(esc).join(", ") : ""}</span></li>`).join("")}</ul></details>`).join("")
+    || `<div class="muted">${els.total ? "Nic tu nie ma." : "Elementy okien pojawią się po pierwszym przebiegu na Windows."}</div>`;
+}
+$$("[data-op]").forEach((c) => c.addEventListener("click", () => { S.covOp = c.dataset.op; $$("[data-op]").forEach((x) => x.setAttribute("aria-pressed", String(x === c))); renderCovOps(); }));
+$$("[data-el]").forEach((c) => c.addEventListener("click", () => { S.covEl = c.dataset.el; $$("[data-el]").forEach((x) => x.setAttribute("aria-pressed", String(x === c))); renderCovEls(); }));
+$("#covOpsQ").addEventListener("input", () => S.cov && renderCovOps());
+$("#covElQ").addEventListener("input", () => S.cov && renderCovEls());
 
 /* ---------- Settings ---------- */
 function fillSettings() {

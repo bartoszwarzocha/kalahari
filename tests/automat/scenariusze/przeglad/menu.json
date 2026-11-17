@@ -1,0 +1,101 @@
+{
+  "scenarios": [
+    {
+      "id": "przeglad-menu",
+      "title": "Przegląd: każda pozycja menu głównego (książka otwarta)",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "menu"
+        }
+      ]
+    },
+    {
+      "id": "przeglad-menu-zaznaczenie",
+      "title": "Przegląd: menu Edycja, Format i Wstaw przy zaznaczonym tekście",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "click",
+          "target": "editor"
+        },
+        {
+          "do": "keys",
+          "keys": "Ctrl+A"
+        },
+        {
+          "do": "sweep",
+          "what": "menu",
+          "only": [
+            "Edycja > *",
+            "Format > *",
+            "Wstaw > *"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "przeglad-menu-bez-ksiazki",
+      "title": "Przegląd: każda pozycja menu głównego bez otwartej książki",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [],
+        "settings": "domyslne"
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "menu"
+        }
+      ]
+    }
+  ]
+}

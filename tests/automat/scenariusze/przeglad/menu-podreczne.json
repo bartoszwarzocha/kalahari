@@ -1,0 +1,539 @@
+{
+  "scenarios": [
+    {
+      "id": "przeglad-nawigator-karawana",
+      "title": "Przegląd: menu podręczne Nawigatora – książka",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Karawana",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-ksiazka",
+      "title": "Przegląd: menu podręczne Nawigatora – część „Książka”",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Książka",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-sekcja-poczatkowa",
+      "title": "Przegląd: menu podręczne Nawigatora – sekcja początkowa",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Sekcja początkowa",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-sekcja-glowna",
+      "title": "Przegląd: menu podręczne Nawigatora – sekcja główna",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Sekcja główna",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-czesc",
+      "title": "Przegląd: menu podręczne Nawigatora – część",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Droga przez wydmy",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-rozdzial",
+      "title": "Przegląd: menu podręczne Nawigatora – rozdział",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Targ w Ghadames [Szkic]",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-sekcja-koncowa",
+      "title": "Przegląd: menu podręczne Nawigatora – sekcja końcowa",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Sekcja końcowa",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-warsztat",
+      "title": "Przegląd: menu podręczne Nawigatora – warsztat",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Warsztat",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-slownik",
+      "title": "Przegląd: menu podręczne Nawigatora – słownik książki",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Słownik książki",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-postacie",
+      "title": "Przegląd: menu podręczne Nawigatora – postacie",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Postacie",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-miejsca",
+      "title": "Przegląd: menu podręczne Nawigatora – miejsca",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Miejsca",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-przedmioty",
+      "title": "Przegląd: menu podręczne Nawigatora – przedmioty",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Przedmioty",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-materialy",
+      "title": "Przegląd: menu podręczne Nawigatora – materiały",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Materiały (0)",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-nawigator-notatki",
+      "title": "Przegląd: menu podręczne Nawigatora – notatki robocze",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Nawigator",
+            "name": "Notatki robocze (0)",
+            "role": "tree_item"
+          }
+        }
+      ]
+    },
+    {
+      "id": "przeglad-edytor-menu-podreczne",
+      "title": "Przegląd: menu podręczne edytora",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "context_menu",
+          "target": "editor"
+        }
+      ]
+    }
+  ]
+}

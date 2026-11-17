@@ -28,11 +28,12 @@ from pathlib import Path
 
 from automat import books as books_mod
 from automat import config as config_mod
+from automat import coverage
 from automat import files as files_mod
 from automat import stopping
 from automat.runner import Paused, StepFailed
 from automat.scenarios import limit_of
-from automat.win import busy, clipboard, guard, ocr, screen, system, uia, windows
+from automat.win import busy, clipboard, guard, ocr, screen, system, sweep, uia, windows
 from automat.win import events as window_events
 from automat.win import input as inp
 
@@ -152,6 +153,10 @@ class KalahariSession:
         self._expected_windows = []  # windows the current step expects (not error windows)
         self._dumped = set()  # windows whose UI Automation tree this scenario saved
         self.start_warnings = []  # said once, with the scenario's result
+        self.seen = {}  # elements seen in the program's windows, for the coverage report
+        self.touched = []  # elements the actions reached
+        self._items = None  # what a sweep went through (the step's list of options)
+        self.sweeping = False  # the current step is a sweep (its clicks count apart in the report)
 
     @property
     def pid(self) -> int:
@@ -311,9 +316,68 @@ class KalahariSession:
         if element is None:
             return
         try:
-            tree = self.ui.dump(element, depth=10, limit=3000)
+            tree = self.ui.dump(element, depth=12, limit=4000)
             (self.folder / name).write_text(json.dumps(tree, ensure_ascii=False, indent=1), encoding="utf-8")
+            self._remember(tree, windows.window_title(hwnd))
         except Exception:  # noqa: BLE001 - a dump is a help for writing scenarios, not a result
+            pass
+
+    def _remember(self, tree: list, title: str, label: str = None) -> None:
+        """Add the elements of a dumped tree to what this scenario saw (coverage report)."""
+        window = _window_key(title)
+        stack = list(tree)
+        while stack:
+            node = stack.pop(0)
+            stack[0:0] = node.get("children", [])
+            kind = node.get("type")
+            if kind not in coverage.ACTIVE:
+                continue
+            left, top, right, bottom = node.get("rect") or (0, 0, 0, 0)
+            if right - left <= 0 or bottom - top <= 0:
+                continue
+            if kind == "CheckBox" and not node.get("name") and right - left <= 14:
+                continue  # Qt's own handle at the end of each toolbar
+            key = (window, kind, node.get("name") or "", label or "")
+            if key not in self.seen:
+                self.seen[key] = {"window": window, "window_title": title, "type": kind, "name": node.get("name") or "",
+                                  "description": node.get("description"), "enabled": node.get("enabled", True),
+                                  "path": label}
+
+    def see(self, window: str, kind: str, name: str, enabled: bool = True, title: str = None, path: str = None) -> None:
+        """One element for the coverage report (the menus give their items with full paths)."""
+        key = (window, kind, name, path or "")
+        if key not in self.seen:
+            self.seen[key] = {"window": window, "window_title": title or window, "type": kind, "name": name,
+                              "description": None, "enabled": enabled, "path": path}
+
+    def remember_entries(self, entries: list, title: str, label: str = None) -> None:
+        """Elements read with Uia.controls, for the coverage report."""
+        tree = [{"type": e["type"], "name": e["name"], "rect": list(e["rect"]), "enabled": e["enabled"]}
+                for e in entries]
+        self._remember(tree, title, label)
+
+    @staticmethod
+    def matches(title: str, pattern: str) -> bool:
+        return title_matches(title, pattern)
+
+    def _touch(self, element, x=None, y=None) -> None:
+        try:
+            hwnd = windows.root_at(x, y) if x is not None else 0
+            title = windows.window_title(hwnd) if hwnd else ""
+            kind = element.control_type
+            if kind == "MenuItem" and not title:
+                return  # an item of an open menu: the menu step records its whole path
+            self.touched.append({"window": _window_key(title), "type": kind, "name": element.name,
+                                 "sweep": self.sweeping})
+        except Exception:  # noqa: BLE001 - only for the coverage report
+            pass
+
+    def _save_elements(self) -> None:
+        try:
+            data = {"seen": list(self.seen.values()), "touched": self.touched}
+            (self.folder / coverage.ELEMENTS_FILE).write_text(json.dumps(data, ensure_ascii=False, indent=0),
+                                                              encoding="utf-8")
+        except OSError:
             pass
 
     def _close_program(self) -> None:
@@ -344,6 +408,7 @@ class KalahariSession:
             self.events = None
 
     def stop(self) -> dict:
+        self._save_elements()
         ended = {"warnings": list(self.start_warnings)} if self.start_warnings else {}
         self._close_app()
         if self.process is not None and self.process.poll() is None:
@@ -589,6 +654,7 @@ class KalahariSession:
             inp.move_to(x, y)
             time.sleep(0.05)
             self._before["clicked"] = self._grab(element.rect)
+        self._touch(element, x, y)
         moment = inp.click(x, y, button=step.get("button", "left"), double=bool(step.get("double")),
                            modifiers=tuple(step.get("modifiers", [])))
         self.last_target, self.last_element = target, element
@@ -601,6 +667,7 @@ class KalahariSession:
                 self._cursor = None
                 raise Paused("ktoś poruszył myszą")
         self.notes = []
+        self._items = None
         self._before = {}
         self._in_app = bool(step.get("_app"))
         self._expected_windows = _expected_windows(step)
@@ -628,8 +695,11 @@ class KalahariSession:
                 described = element.describe()
             except Exception:  # noqa: BLE001 - the element may be gone already
                 described = None
-        return {"start": start, "t0": t0 or time.perf_counter(), "element": described,
+        done = {"start": start, "t0": t0 or time.perf_counter(), "element": described,
                 "note": "; ".join(self.notes) or None}
+        if self._items is not None:
+            done["items"] = self._items
+        return done
 
     def _do_click(self, step):
         element = self.find(step["target"])
@@ -918,7 +988,20 @@ class KalahariSession:
             if not element.enabled:
                 raise StepFailed(f"pozycja menu {_q(name)} jest niedostępna")
             moment = self._click_element({"name": name, "role": "menu_item"}, element)
+        for depth in range(2, len(path) + 1):
+            self.touched.append({"window": "menu", "type": "MenuItem", "name": " > ".join(path[:depth]),
+                                 "sweep": self.sweeping})
         return moment, element
+
+    def _do_sweep(self, step):
+        """Every option of a kind in turn (automat.win.sweep); the list goes with the step."""
+        began = time.perf_counter()
+        self.sweeping = True
+        try:
+            self._items = sweep.Sweep(self, step).run()
+        finally:
+            self.sweeping = False
+        return began, None
 
     # --- observing ------------------------------------------------------------------------
     def _area_rect(self, area, wait_until: float = 0.0):
@@ -1415,6 +1498,13 @@ def _expected_windows(step: dict) -> list:
             if isinstance(check.get(key), dict) and check[key].get("window"):
                 found.append(check[key]["window"])
     return found
+
+
+def _window_key(title: str) -> str:
+    """The window an element is in, for the coverage report: every book window is one."""
+    if MAIN_TITLE.search(title or ""):
+        return "okno książki"
+    return title or "okno bez tytułu"
 
 
 def _slug(text) -> str:

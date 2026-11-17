@@ -31,7 +31,11 @@ ACTIONS = {
     "wait": ({"ms"}, set()),
     "screenshot": (set(), {"name", "area"}),
     "use": ({"block"}, {"with"}),
+    "sweep": ({"what"}, {"window", "in", "skip", "only", "open", "controls", "target"}),
 }
+# What a sweep goes through (automat.win.sweep)
+SWEEPS = {"menu": "każdą pozycję menu", "context_menu": "każdą pozycję menu podręcznego",
+          "toolbars": "każdy przycisk pasków narzędzi", "controls": "każdą kontrolkę", "pages": "każdą stronę"}
 # What the automaton can do: every action and check of the vocabulary. "app" steps become
 # "_app_open", the other program's steps and "_app_close" (expand_steps).
 SUPPORTED_ACTIONS = (set(ACTIONS) - {"app", "use"}) | {"_app_open", "_app_close"}
@@ -156,6 +160,7 @@ class Scenario:
             "problems": [str(p) for p in self.problems], "unsupported": self.unsupported(),
             "hash": self.expectations_hash() if self.valid else None,
             "measures_time": any(_has_time(s) for s in self.steps),
+            "covers": list(self.data.get("covers", []) or []),
         }
 
 
@@ -348,6 +353,9 @@ def validate(data: dict) -> list:
          "id", "małe litery, cyfry i łączniki, np. „znaki-specjalne-ulubione”")
     need(isinstance(data.get("title"), str) and data.get("title"), "title", "brak tytułu")
     need(isinstance(data.get("tags", []), list), "tags", "znaczniki to lista napisów")
+    covers = data.get("covers", [])
+    need(isinstance(covers, list) and all(isinstance(c, str) and c.startswith("op-") for c in covers), "covers",
+         "„covers” to lista numerów operacji ze spisu (pokrycie/operacje.json), np. „op-1a2b3c4d”")
     sources = data.get("sources")
     need(isinstance(sources, list) and sources, "sources",
          "każdy scenariusz potrzebuje źródła oczekiwań: planu, makiety albo decyzji")
@@ -405,6 +413,8 @@ def validate_step(step, where: str) -> list:
                     problems.append(Problem(f"{where}, krok {number}", "w innym programie nie ma tego działania"))
                     continue
                 problems += validate_step(inner_step, f"{where}, krok {number} w programie")
+    if action == "sweep":
+        problems += _validate_sweep(step, where)
     if "repeat" in step and not (isinstance(step["repeat"], int) and 1 <= step["repeat"] <= 50):
         problems.append(Problem(where, "„repeat” to liczba powtórzeń pomiaru od 1 do 50"))
     expects = step.get("expect", [])
@@ -412,6 +422,31 @@ def validate_step(step, where: str) -> list:
         return problems + [Problem(where, "„expect” to lista sprawdzeń")]
     for i, check in enumerate(expects, 1):
         problems += validate_check(check, f"{where}, sprawdzenie {i}")
+    return problems
+
+
+def _validate_sweep(step: dict, where: str) -> list:
+    problems = []
+    what = step.get("what")
+    if what not in SWEEPS:
+        problems.append(Problem(where, f"„what” to jedno z: {', '.join(SWEEPS)}"))
+    if what in ("controls", "pages") and not isinstance(step.get("window"), str):
+        problems.append(Problem(where, f"przegląd „{what}” potrzebuje okna („window”)"))
+    if what == "context_menu" and not (isinstance(step.get("target"), dict) or step.get("target") == "editor"):
+        problems.append(Problem(where, "przegląd menu podręcznego potrzebuje elementu („target”), na którym klika prawym przyciskiem"))
+    for key in ("skip", "only"):
+        value = step.get(key, [])
+        if not (isinstance(value, list) and all(isinstance(v, str) for v in value)):
+            problems.append(Problem(where, f"„{key}” to lista nazw (wzorce z * i ?)"))
+    opened = step.get("open", [])
+    if not isinstance(opened, list):
+        problems.append(Problem(where, "„open” to lista kroków, które otwierają okno"))
+    else:
+        for number, inner in enumerate(opened, 1):
+            if isinstance(inner, dict) and inner.get("do") in ("sweep", "app", "use", "restart"):
+                problems.append(Problem(f"{where}, krok otwarcia {number}", "tu nie ma tego działania"))
+                continue
+            problems += validate_step(inner, f"{where}, krok otwarcia {number}")
     return problems
 
 
@@ -531,6 +566,14 @@ def _action_sentence(step: dict) -> str:
         if isinstance(to, dict) and set(to) == {"offset"}:
             return f"Przeciągnij {target_text(step.get('target'))} o {to['offset'][0]}, {to['offset'][1]} px"
         return f"Przeciągnij {target_text(step.get('target'))} na {target_text(to)}"
+    if action == "sweep":
+        what = SWEEPS.get(step.get("what"), str(step.get("what")))
+        window = step.get("window")
+        where = " w oknie książki" if window == "*Kalahari" else f" w oknie {_q(window)}" if window else ""
+        inside = f", w części {_q(step['in'])}" if step.get("in") else ""
+        extra = " i każdą kontrolkę na niej" if step.get("controls") else ""
+        on = f" {target_text(step['target'])}" if step.get("what") == "context_menu" and step.get("target") else ""
+        return f"Przejdź przez {what}{on}{extra}{where}{inside} i sprawdź, czy każda reaguje bez błędu"
     if action == "restart":
         return "Zamknij program i uruchom go ponownie"
     if action == "wait":

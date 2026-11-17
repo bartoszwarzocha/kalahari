@@ -501,6 +501,78 @@ class FilesTest(unittest.TestCase):
             self.assertIsNone(text_of(Path(folder) / "nie-ma.txt")[0])
 
 
+class SweepAndCoverageTest(Folder):
+    def make(self):
+        config = config_mod.Config(program=str(self.root / "kalahari.exe"), scenarios=str(self.scenarios),
+                                   results=str(self.root / "wyniki"))
+        library = Library(self.scenarios)
+        store = Store(config.results_path)
+        return Runner(config, library, Approvals(self.root / "z.json"), store, fake.session_factory,
+                      where=fake.WHERE), library, store
+
+    def test_sweep_steps_are_checked(self):
+        good = [{"do": "sweep", "what": "menu", "skip": ["Plik > Zakończ"]},
+                {"do": "sweep", "what": "pages", "window": "Ustawienia", "controls": True,
+                 "open": [{"do": "menu", "path": ["Narzędzia", "Ustawienia..."]}]}]
+        self.write("a.json", scenario("przeglad", steps=good, covers=["op-12345678"]))
+        bad = [{"do": "sweep", "what": "wszystko"}, {"do": "sweep", "what": "controls"},
+               {"do": "sweep", "what": "menu", "skip": "Plik"},
+               {"do": "sweep", "what": "controls", "window": "X", "open": [{"do": "sweep", "what": "menu"}]}]
+        self.write("b.json", scenario("zly-przeglad", steps=bad, covers=["12"]))
+        library = Library(self.scenarios)
+        self.assertTrue(library.get("przeglad").valid, library.get("przeglad").problems)
+        self.assertEqual(library.get("przeglad").summary()["covers"], ["op-12345678"])
+        problems = " ".join(map(str, library.get("zly-przeglad").problems))
+        for text in ("„what” to jedno z", "potrzebuje okna", "„skip” to lista", "krok otwarcia 1", "„covers”"):
+            self.assertIn(text, problems)
+        self.assertIn("każdą pozycję menu", action_sentence(good[0]))
+
+    def test_a_sweep_is_one_check_with_its_options(self):
+        self.write("a.json", scenario("przeglad", steps=[{"do": "sweep", "what": "menu"}]))
+        self.write("b.json", scenario("przeglad-zly", steps=[{"do": "sweep", "what": "menu", "note": "fake:fail"}]))
+        runner, _, _ = self.make()
+        run = runner.run_now(["przeglad", "przeglad-zly"])
+        good, bad = run["scenarios"]
+        check = good["steps"][0]["checks"][0]
+        self.assertEqual((good["state"], check["check"], check["tried"], check["skipped"]), ("ok", "sweep", 2, 1))
+        self.assertEqual(bad["state"], "fail")
+        self.assertIn("Wstaw > Znak specjalny...", bad["steps"][0]["checks"][0]["detail"])
+
+    def test_coverage_of_operations_and_elements(self):
+        from automat import coverage  # noqa: PLC0415
+        operations = self.root / "operacje.json"
+        operations.write_text(json.dumps({"operations": [
+            {"id": "op-aaaaaaaa", "text": "Wstawia znak"}, {"id": "op-bbbbbbbb", "text": "Usuwa znak"}]}),
+            encoding="utf-8")
+        steps = [{"do": "menu", "path": ["Wstaw", "Znak specjalny..."],
+                  "expect": [{"check": "window_shown", "window": "Znak specjalny"}]},
+                 {"do": "click", "target": {"window": "Znak specjalny", "name": "Wstaw", "role": "button"}}]
+        self.write("a.json", scenario("znak", steps=steps, covers=["op-aaaaaaaa", "op-nieznana"]))
+        runner, library, store = self.make()
+        run = runner.run_now(["znak"])
+        elements = {"seen": [
+            {"window": "menu", "window_title": "menu", "type": "MenuItem", "name": "Wstaw > Znak specjalny…"},
+            {"window": "menu", "window_title": "menu", "type": "MenuItem", "name": "Wstaw > Tabela..."},
+            {"window": "menu", "window_title": "menu", "type": "MenuItem", "name": "Plik > Nowy"},
+            {"window": "Znak specjalny", "window_title": "Znak specjalny", "type": "Button", "name": "&Wstaw"},
+            {"window": "Znak specjalny", "window_title": "Znak specjalny", "type": "Button", "name": "Zamknij"},
+            {"window": "okno książki", "window_title": "K - Kalahari", "type": "Button", "name": ""}],
+            "touched": [{"window": "menu", "type": "MenuItem", "name": "Wstaw > Tabela...", "sweep": True},
+                        {"window": "menu", "type": "MenuItem", "name": "Plik > Nowy", "sweep": False}]}
+        (store.run_dir(run["id"]) / "znak" / coverage.ELEMENTS_FILE).write_text(json.dumps(elements), encoding="utf-8")
+        found = coverage.elements(library, store)
+        states = {e["name"]: e["state"] for e in found["elements"]}
+        self.assertEqual(states["Wstaw > Znak specjalny…"], "checked")
+        self.assertEqual(states["&Wstaw"], "checked")
+        self.assertEqual(states["Wstaw > Tabela..."], "swept")
+        self.assertEqual(states["Plik > Nowy"], "clicked")
+        self.assertEqual(states["Zamknij"], "untouched")
+        self.assertEqual((found["untouched"], found["unnamed"]), (2, 1))
+        ops = coverage.operations(library, store.latest_by_scenario(), operations)
+        self.assertEqual((ops["total"], ops["covered"], ops["passed"]), (2, 1, 1))
+        self.assertEqual(ops["unknown"], [{"scenario": "znak", "id": "op-nieznana"}])
+
+
 class ServerTest(Folder):
     def setUp(self):
         super().setUp()
@@ -555,6 +627,13 @@ class ServerTest(Folder):
         self.assertEqual((status, picture[:4]), (200, b"\x89PNG"))
         status, _ = self.call(f"/files/{runs[0]['id']}/../../a.json")
         self.assertEqual(status, 404)
+
+    def test_coverage_report(self):
+        status, answer = self.call("/api/coverage")
+        self.assertEqual(status, 200, answer)
+        report = json.loads(answer)
+        self.assertIn("operations", report)
+        self.assertEqual(report["elements"]["untouched"], 0)
 
     def test_unknown_scenarios_are_refused(self):
         status, answer = self.call("/api/run", {"ids": ["nie-ma"]}, {"X-Automat": "1"})

@@ -39,7 +39,14 @@ class FakeSession:
         stopping.sleep(self.delay * (100 if step.get("note") == "fake:long" else 1))
         if step.get("note") == "fake:missing":
             raise StepFailed(f"nie ma elementu {step.get('target')} (symulacja)")
-        return {"start": start, "t0": time.perf_counter(), "element": None, "note": "symulacja"}
+        done = {"start": start, "t0": time.perf_counter(), "element": None, "note": "symulacja"}
+        if step.get("do") == "sweep":
+            done["items"] = [
+                {"name": "Plik > Nowa książka...", "kind": "MenuItem", "ok": True, "reaction": "okno „Nowa książka” (symulacja)"},
+                {"name": "Plik > Zakończ", "kind": "MenuItem", "ok": True, "skipped": "pominięta w scenariuszu"},
+                {"name": "Wstaw > Znak specjalny...", "kind": "MenuItem",
+                 "ok": step.get("note") != "fake:fail", "detail": "symulacja błędu"}]
+        return done
 
     def observe(self, checks: list, action: dict) -> list:
         out = []

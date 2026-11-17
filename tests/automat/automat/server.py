@@ -21,6 +21,7 @@ from urllib.parse import unquote, urlparse
 
 from automat import __version__
 from automat import config as config_mod
+from automat import coverage
 from automat.approvals import Approvals
 from automat.results import Store
 from automat.runner import Runner
@@ -96,6 +97,13 @@ class App:
             item["latest"] = latest.get(scenario.id)
             out.append(item)
         return {"folder": str(self.library.folder), "blocks": sorted(self.library.blocks()), "scenarios": out}
+
+    def coverage(self) -> dict:
+        """What the scenarios cover: the operations of the test lists and the elements the
+        newest runs saw in the program's windows."""
+        latest = self.store.latest_by_scenario(self.config.keep_runs)
+        return {"operations": coverage.operations(self.library, latest),
+                "elements": coverage.elements(self.library, self.store, runs=self.config.keep_runs)}
 
     # --- changing -----------------------------------------------------------------------
     def run(self, body: dict) -> dict:
@@ -202,6 +210,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(app.scenarios())
             if path == "/api/runs":
                 return self._json({"runs": app.store.runs(app.config.keep_runs)})
+            if path == "/api/coverage":
+                return self._json(app.coverage())
             if path.startswith("/api/runs/"):
                 run = app.store.load(unquote(path[len("/api/runs/"):]))
                 return self._json(run) if run else self._error(HTTPStatus.NOT_FOUND, "nie ma takiego przebiegu")

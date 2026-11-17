@@ -43,6 +43,12 @@ P_NATIVE_WINDOW_HANDLE = 30020
 P_IS_OFFSCREEN = 30022
 P_HELP_TEXT = 30013
 P_FULL_DESCRIPTION = 30159  # Windows 10 1703 and later
+P_IS_EXPAND_AVAILABLE = 30028
+P_IS_TOGGLE_AVAILABLE = 30041
+P_IS_SELECTION_ITEM_AVAILABLE = 30036
+P_TOGGLE_STATE = 30086
+P_IS_SELECTED = 30079
+P_EXPAND_STATE = 30070
 
 # Pattern ids
 PAT_SELECTION = 10001
@@ -348,6 +354,41 @@ class Uia:
                             bool(raw.CachedIsOffscreen), Element(self, raw)))
             except comtypes.COMError:
                 continue
+        return out
+
+    def controls(self, parent: Element, kinds=None, scope=SCOPE_DESCENDANTS) -> list:
+        """[{"name", "type", "rect", "enabled", "offscreen", "toggle", "selected", "expandable",
+        "expanded", "element"}] of every matching element, read in one pass (a cache request)."""
+        request = self.client.CreateCacheRequest()
+        for prop in (P_NAME, P_CONTROL_TYPE, P_IS_OFFSCREEN, P_BOUNDING_RECTANGLE, P_IS_ENABLED,
+                     P_IS_TOGGLE_AVAILABLE, P_TOGGLE_STATE, P_IS_SELECTION_ITEM_AVAILABLE, P_IS_SELECTED,
+                     P_IS_EXPAND_AVAILABLE, P_EXPAND_STATE):
+            request.AddProperty(prop)
+        try:
+            array = parent.raw.FindAllBuildCache(scope, self._condition(kinds=kinds), request)
+        except comtypes.COMError:
+            return []
+        if not array:
+            return []
+        out = []
+        for i in range(array.Length):
+            raw = array.GetElement(i)
+            try:
+                r = raw.CachedBoundingRectangle
+                item = {"name": raw.CachedName or "", "type": CONTROL_TYPES.get(raw.CachedControlType, "Unknown"),
+                        "rect": (r.left, r.top, r.right, r.bottom), "enabled": bool(raw.CachedIsEnabled),
+                        "offscreen": bool(raw.CachedIsOffscreen), "toggle": None, "selected": None,
+                        "expandable": False, "expanded": None, "element": Element(self, raw)}
+                if raw.GetCachedPropertyValue(P_IS_TOGGLE_AVAILABLE) is True:
+                    item["toggle"] = TOGGLE_STATES.get(int(raw.GetCachedPropertyValue(P_TOGGLE_STATE)))
+                if raw.GetCachedPropertyValue(P_IS_SELECTION_ITEM_AVAILABLE) is True:
+                    item["selected"] = bool(raw.GetCachedPropertyValue(P_IS_SELECTED))
+                if raw.GetCachedPropertyValue(P_IS_EXPAND_AVAILABLE) is True:
+                    item["expandable"] = True
+                    item["expanded"] = int(raw.GetCachedPropertyValue(P_EXPAND_STATE)) in (1, 2)
+            except (comtypes.COMError, TypeError, ValueError):
+                continue
+            out.append(item)
         return out
 
     def top_windows(self, pid: int) -> list:

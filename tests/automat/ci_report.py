@@ -9,6 +9,13 @@ import json
 import sys
 from pathlib import Path
 
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+
+from automat import coverage  # noqa: E402
+from automat.results import Store  # noqa: E402
+from automat.scenarios import Library  # noqa: E402
+
 TREE_LINES = 260
 
 
@@ -63,6 +70,15 @@ def main(folder: Path) -> int:
                 mark = "✓" if check.get("ok") else "✗"
                 print(f"        {mark} {check.get('say')}: {check.get('ms')} ms (limit {check.get('limit_ms')})"
                       f" – {check.get('detail')}")
+                for item in check.get("items", []):
+                    if item.get("skipped"):
+                        print(f"          · pominięte {item['name']} – {item['skipped']}")
+                    elif item.get("ok", True):
+                        notes = "; ".join(item.get("notes", []))
+                        print(f"          · ok {item['name']} – {item.get('reaction', '')}"
+                              f" (zajęty {item.get('busy_ms')} ms){' – ' + notes if notes else ''}")
+                    else:
+                        print(f"          · BŁĄD {item['name']} – {item.get('detail', '')}")
         if result.get("trace"):
             print(result["trace"])
     seen = set()
@@ -82,7 +98,33 @@ def main(folder: Path) -> int:
         text = log.read_text(encoding="utf-8", errors="replace").splitlines()
         print(f"\n--- {log.relative_to(run_dir)} (ostatnie 60 wierszy) ---")
         print("\n".join(text[-60:]))
+    print_coverage(folder)
     return 0
+
+
+def print_coverage(folder: Path) -> None:
+    """The coverage report: operations of the test lists without a scenario, and the
+    elements of the program's windows that no scenario acted on."""
+    library = Library(HERE / "scenariusze")
+    store = Store(folder)
+    ops = coverage.operations(library, store.latest_by_scenario())
+    found = coverage.elements(library, store, runs=1)
+    counts = found["counts"]
+    print(f"\n=== Pokrycie: operacje z list testów – {ops['covered']} z {ops['total']} mają scenariusz, "
+          f"{ops['passed']} przechodzą")
+    print(f"=== Pokrycie: elementy okien – {found['total']}: sprawdzone {counts['checked']}, "
+          f"kliknięte {counts['clicked']}, tylko w przeglądzie {counts['swept']}, nietknięte {counts['untouched']}, "
+          f"bez nazwy {found['unnamed']}")
+    by_window = {}
+    for element in found["elements"]:
+        if element["state"] == "untouched":
+            by_window.setdefault(element["window"] or "?", []).append(element)
+    for window, elements in sorted(by_window.items()):
+        print(f"--- nietknięte w „{window}” ({len(elements)}) ---")
+        for element in elements[:400]:
+            where = f" [{element['path']}]" if element.get("path") else ""
+            state = "" if element.get("enabled", True) else " (niedostępny)"
+            print(f"  {element['type']} {element['name']!r}{where}{state}")
 
 
 if __name__ == "__main__":

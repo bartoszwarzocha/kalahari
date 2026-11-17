@@ -1,0 +1,49 @@
+{
+  "scenarios": [
+    {
+      "id": "przeglad-ustawienia",
+      "title": "Przegląd: każda strona okna Ustawienia i każda kontrolka na niej",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        },
+        {
+          "kind": "plan",
+          "ref": "plan-faz.md – okno Ustawienia: drzewo stron po lewej, strona po prawej, OK, Anuluj, Zastosuj"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "sweep",
+          "what": "pages",
+          "window": "Ustawienia",
+          "controls": true,
+          "open": [
+            {
+              "do": "menu",
+              "path": [
+                "Edycja",
+                "Ustawienia..."
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

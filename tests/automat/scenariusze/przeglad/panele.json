@@ -1,0 +1,382 @@
+{
+  "scenarios": [
+    {
+      "id": "przeglad-panel-nawigator",
+      "title": "Przegląd: każdy przycisk panelu „Nawigator”",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "toggle",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Panele",
+            "name": "Nawigator",
+            "role": "check_box"
+          },
+          "state": true
+        },
+        {
+          "do": "sweep",
+          "what": "controls",
+          "window": "*Kalahari",
+          "in": "Nawigator",
+          "open": [
+            {
+              "do": "toggle",
+              "target": {
+                "window": "*Kalahari",
+                "in": "Panele",
+                "name": "Nawigator",
+                "role": "check_box"
+              },
+              "state": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "przeglad-panel-wlasciwosci",
+      "title": "Przegląd: każdy przycisk panelu „Właściwości”",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "toggle",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Panele",
+            "name": "Właściwości",
+            "role": "check_box"
+          },
+          "state": true
+        },
+        {
+          "do": "sweep",
+          "what": "controls",
+          "window": "*Kalahari",
+          "in": "Właściwości",
+          "open": [
+            {
+              "do": "toggle",
+              "target": {
+                "window": "*Kalahari",
+                "in": "Panele",
+                "name": "Właściwości",
+                "role": "check_box"
+              },
+              "state": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "przeglad-panel-akapit-i-style",
+      "title": "Przegląd: każdy przycisk panelu „Akapit i style”",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "toggle",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Panele",
+            "name": "Akapit i style",
+            "role": "check_box"
+          },
+          "state": true
+        },
+        {
+          "do": "sweep",
+          "what": "controls",
+          "window": "*Kalahari",
+          "in": "Akapit i style",
+          "open": [
+            {
+              "do": "toggle",
+              "target": {
+                "window": "*Kalahari",
+                "in": "Panele",
+                "name": "Akapit i style",
+                "role": "check_box"
+              },
+              "state": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "przeglad-panel-wyszukiwanie",
+      "title": "Przegląd: każdy przycisk panelu „Wyszukiwanie”",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "toggle",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Panele",
+            "name": "Wyszukiwanie",
+            "role": "check_box"
+          },
+          "state": true
+        },
+        {
+          "do": "sweep",
+          "what": "controls",
+          "window": "*Kalahari",
+          "in": "Wyszukiwanie",
+          "open": [
+            {
+              "do": "toggle",
+              "target": {
+                "window": "*Kalahari",
+                "in": "Panele",
+                "name": "Wyszukiwanie",
+                "role": "check_box"
+              },
+              "state": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "przeglad-panel-asystent",
+      "title": "Przegląd: każdy przycisk panelu „Asystent”",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "toggle",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Panele",
+            "name": "Asystent",
+            "role": "check_box"
+          },
+          "state": true
+        },
+        {
+          "do": "sweep",
+          "what": "controls",
+          "window": "*Kalahari",
+          "in": "Asystent",
+          "open": [
+            {
+              "do": "toggle",
+              "target": {
+                "window": "*Kalahari",
+                "in": "Panele",
+                "name": "Asystent",
+                "role": "check_box"
+              },
+              "state": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "przeglad-panel-uwagi",
+      "title": "Przegląd: każdy przycisk panelu „Uwagi”",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "toggle",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Panele",
+            "name": "Uwagi",
+            "role": "check_box"
+          },
+          "state": true
+        },
+        {
+          "do": "sweep",
+          "what": "controls",
+          "window": "*Kalahari",
+          "in": "Uwagi",
+          "open": [
+            {
+              "do": "toggle",
+              "target": {
+                "window": "*Kalahari",
+                "in": "Panele",
+                "name": "Uwagi",
+                "role": "check_box"
+              },
+              "state": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "przeglad-panel-statystyki",
+      "title": "Przegląd: każdy przycisk panelu „Statystyki”",
+      "area": "Przegląd programu",
+      "tags": [
+        "przegląd"
+      ],
+      "sources": [
+        {
+          "kind": "decision",
+          "ref": "Decyzja z 17.11.2026: każda możliwa opcja w programie ma być przeklikana – każda pozycja w menu, każdy przycisk w paskach narzędzi i w panelach po prawej, każda operacja w Nawigatorze; każda reaguje bez okna błędu, a program nie przestaje odpowiadać"
+        }
+      ],
+      "setup": {
+        "books": [
+          "karawana"
+        ],
+        "settings": "domyslne",
+        "open": {
+          "book": "karawana",
+          "chapter": "Targ w Ghadames"
+        }
+      },
+      "steps": [
+        {
+          "do": "toggle",
+          "target": {
+            "window": "*Kalahari",
+            "in": "Panele",
+            "name": "Statystyki",
+            "role": "check_box"
+          },
+          "state": true
+        },
+        {
+          "do": "sweep",
+          "what": "controls",
+          "window": "*Kalahari",
+          "in": "Statystyki",
+          "open": [
+            {
+              "do": "toggle",
+              "target": {
+                "window": "*Kalahari",
+                "in": "Panele",
+                "name": "Statystyki",
+                "role": "check_box"
+              },
+              "state": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

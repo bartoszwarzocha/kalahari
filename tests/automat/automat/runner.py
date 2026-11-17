@@ -320,6 +320,28 @@ class Runner:
                     outcome.setdefault("reason", f"zamykanie programu: {error}")
         return outcome
 
+    def _sweep_check(self, items: list) -> dict:
+        """A sweep's options as one check: each one reacted without an error."""
+        tried = [i for i in items if not i.get("skipped")]
+        failed = [i for i in tried if not i.get("ok", True)]
+        for item in items:
+            if item.get("skipped"):
+                self._emit("log", text=f"  pominięte: {item['name']} – {item['skipped']}")
+            elif item.get("ok", True):
+                notes = "; ".join(item.get("notes", []))
+                self._emit("log", text=f"  OK: {item['name']} – {item.get('reaction', '')}"
+                                       f"{' (' + notes + ')' if notes else ''}")
+            else:
+                self._emit("log", text=f"  BŁĄD: {item['name']} – {item.get('detail', '')}", level="error")
+        skipped = len(items) - len(tried)
+        say = (f"każda z {len(tried)} opcji reaguje bez błędu, a program odpowiada"
+               + (f" ({skipped} pominiętych)" if skipped else ""))
+        detail = "; ".join(f"{i['name']}: {i.get('detail', '')}" for i in failed[:30])
+        if len(failed) > 30:
+            detail += f" i {len(failed) - 30} innych"
+        return {"check": "sweep", "say": say, "ok": not failed, "detail": detail,
+                "items": items, "failed": len(failed), "tried": len(tried), "skipped": skipped}
+
     def _relative(self, run: dict, path: Path) -> str:
         return path.relative_to(self.store.run_dir(run["id"])).as_posix()
 
@@ -346,6 +368,8 @@ class Runner:
                 return record, previous_shot
         record["action"] = {"ok": True, "element": action.get("element"), "note": action.get("note")}
         self._emit("log", text=f"{say}{(' – ' + action['note']) if action.get('note') else ''}")
+        if action.get("items") is not None:
+            record["checks"].append(self._sweep_check(action["items"]))
         checks = session.observe(step.get("expect", []), action) if step.get("expect") else []
         for check, outcome in zip(step.get("expect", []), checks, strict=True):
             for key in ("proposal_file", "diff_file", "actual_file"):
