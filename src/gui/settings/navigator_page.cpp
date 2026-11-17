@@ -32,9 +32,9 @@
 /// (core::CoverMaterial). The Navigator, the lists and the cards follow them at once.
 ///
 /// The texts for publishers: the target lengths of a sentence about the book and of a
-/// synopsis without a template, in the unit of the cover's texts, whether a synopsis also gives
-/// its length in standard pages, where the points of the template of a synopsis are and the
-/// parts of the set of a new book (core::PublishingTexts).
+/// synopsis without a template, in both units (the unit of the cover's texts counts), whether a
+/// synopsis also gives its length in standard pages and the parts of the set of a new book
+/// (core::PublishingTexts).
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/cover_names.h"
@@ -98,10 +98,6 @@ constexpr int TARGET_SPACING = 8;
 
 /// Room between the two columns of the parts of a set
 constexpr int SET_COLUMN_SPACING = 16;
-
-/// The values of core::PublishingTexts::POINTS_SETTING
-constexpr const char* BESIDE = "beside";
-constexpr const char* IN_TEXT = "inText";
 
 /// The values of NavigatorPanel::QUICK_MATERIALS_SETTING
 constexpr const char* LINK = "link";
@@ -444,27 +440,6 @@ void NavigatorPage::createPublishing()
     //: In Polish: Strona znormalizowana ma 1800 znaków ze spacjami.
     addFieldNote(lengths, tr("A standard page has 1800 characters with spaces."));
 
-    //: The group of Settings > Navigator > Texts for Publishers. In Polish: Szablon streszczenia
-    QFormLayout* templates = addGroup(tr("Template of a Synopsis"));
-    QComboBox* points = addChoice(
-        templates,
-        //: In Polish: &Punkty szablonu:
-        tr("&Points of the template:"),
-        //: Where the points of the template of a synopsis are. In Polish: Obok tekstu, w
-        //: panelu Właściwości
-        {{tr("Beside the text, in the Properties panel"), QLatin1String(BESIDE),
-          //: In Polish: Nowe streszczenie zaczyna się puste; polecenie „Wstaw szkielet” wstawia
-          //: punkty do tekstu.
-          tr("A new synopsis starts empty; the command \"Insert Skeleton\" puts the points in "
-             "the text.")},
-         //: In Polish: W tekście, jako szkielet z podpowiedziami
-         {tr("In the text, as a skeleton with hints"), QLatin1String(IN_TEXT),
-          //: In Polish: Polecenie „Usuń nagłówki i podpowiedzi” usuwa punkty z tekstu.
-          tr("The command \"Remove Headings and Hints\" takes the points out of the text.")}},
-        std::string());
-    points->setObjectName(QStringLiteral("navigatorPublishingPoints"));
-    bindChoice(points, PublishingTexts::POINTS_SETTING, BESIDE);
-
     //: The group of Settings > Navigator > Texts for Publishers. In Polish: Zestaw dla
     //: wydawnictwa
     addSetChoice(addGroup(tr("Set for Publishers")));
@@ -473,39 +448,39 @@ void NavigatorPage::createPublishing()
 void NavigatorPage::addPublishingTargets(QFormLayout* group)
 {
     using core::PublishingTexts;
-    // The targets of the texts without a template in both units: the unit counted is that of
-    // the page Cover, which can change before this page is applied
+    // The targets of the texts without a template in both units, one under the other, so that
+    // the page fits a narrow window: the unit counted is that of the page Cover, which can
+    // change before this page is applied
     auto* targets = new QWidget();
     auto* grid = new QGridLayout(targets);
     grid->setContentsMargins(0, 0, 0, 0);
     grid->setHorizontalSpacing(TARGET_SPACING);
     grid->setVerticalSpacing(4);
-    //: The column of the target lengths of the texts for publishers. In Polish: Docelowa
-    //: długość
-    grid->addWidget(new QLabel(tr("Target length")), 0, 0);
-    grid->addWidget(new QLabel(CoverNames::unitName(false)), 0, 1);
-    grid->addWidget(new QLabel(CoverNames::unitName(true)), 0, 2);
-    int row = 1;
-    for (const QString& part : PublishingTexts::parts()) {
-        const QString partName = PublishingNames::partName(part);
-        auto* label = new QLabel(partName);
-        grid->addWidget(label, row, 0);
-        for (const bool words : {false, true}) {
+    int row = 0;
+    for (const bool words : {false, true}) {
+        //: In Polish: Docelowa długość w słowach: / Docelowa długość w znakach ze spacjami:
+        auto* unitLabel = new QLabel(words ? tr("Target length in words:")
+                                           : tr("Target length in characters with spaces:"));
+        unitLabel->setWordWrap(true);
+        grid->addWidget(unitLabel, row, 0, 1, 3);
+        ++row;
+        for (const QString& part : PublishingTexts::parts()) {
+            const QString partName = PublishingNames::partName(part);
+            auto* label = new QLabel(partName);
             auto* spin = new QSpinBox();
             spin->setRange(1, MAXIMUM_TARGET);
             spin->setObjectName(QStringLiteral("navigatorPublishingTarget_%1_%2")
                                     .arg(part, words ? QStringLiteral("words")
                                                      : QStringLiteral("characters")));
             spin->setAccessibleName(tr("%1, %2").arg(partName, CoverNames::unitName(words)));
-            if (!words) {
-                label->setBuddy(spin);
-            }
-            grid->addWidget(spin, row, words ? 2 : 1);
+            label->setBuddy(spin);
+            grid->addWidget(label, row, 0);
+            grid->addWidget(spin, row, 1);
             bind(spin, PublishingTexts::targetSettingOf(part, words));
+            ++row;
         }
-        ++row;
     }
-    grid->setColumnStretch(3, 1);
+    grid->setColumnStretch(2, 1);
     group->addRow(targets);
     //: In Polish: Dla tekstów bez szablonu; szablon ma własną docelową długość, a tekst może
     //: mieć swoją. Liczy się jednostka ze strony Okładka, bo opis na okładkę i hasło są w obu

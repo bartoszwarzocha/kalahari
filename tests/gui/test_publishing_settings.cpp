@@ -5,7 +5,7 @@
 /// @brief The texts for publishers in the program: the names of their parts and states, the
 /// length in standard pages and their group in Settings > Navigator
 
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/publishing_texts.h"
@@ -17,7 +17,6 @@
 
 #include <QCheckBox>
 #include <QLocale>
-#include <QRadioButton>
 #include <QSpinBox>
 
 #include <nlohmann/json.hpp>
@@ -132,11 +131,10 @@ TEST_CASE("Texts for publishers: the names of their parts and states and the pag
 TEST_CASE("Texts for publishers: the targets and the pages in Settings > Navigator",
           "[gui][publishing][settings]") {
     const KeptSettings kept;
-    gui::NavigatorPage page(kalahari::test::book());
+    gui::NavigatorPage page(kalahari::test::book(), gui::NavigatorPage::Part::Publishing);
     page.load();
     CHECK_FALSE(page.isChanged());
 
-    auto* words = childOf<QRadioButton>(page, QStringLiteral("navigatorCoverWords"));
     auto* pitchCharacters =
         childOf<QSpinBox>(page, QStringLiteral("navigatorPublishingTarget_pitch_characters"));
     auto* pitchWords =
@@ -147,20 +145,18 @@ TEST_CASE("Texts for publishers: the targets and the pages in Settings > Navigat
         childOf<QSpinBox>(page, QStringLiteral("navigatorPublishingTarget_synopsis_words"));
     auto* pages = childOf<QCheckBox>(page, QStringLiteral("navigatorPublishingPages"));
 
-    // The defaults, in the unit of the cover
+    // The defaults, both units side by side: the unit counted is chosen on the page Cover
     CHECK(pitchCharacters->value() == 200);
     CHECK(synopsisCharacters->value() == 1800);
     CHECK(pitchWords->value() == 35);
     CHECK(synopsisWords->value() == 300);
     CHECK(pitchCharacters->isVisibleTo(&page));
-    CHECK_FALSE(pitchWords->isVisibleTo(&page));
+    CHECK(pitchWords->isVisibleTo(&page));
+    CHECK(pitchCharacters->accessibleName() ==
+          QStringLiteral("Sentence about the book, characters"));
+    CHECK(pitchWords->accessibleName() == QStringLiteral("Sentence about the book, words"));
     CHECK(pages->isChecked());
 
-    // In words, the targets in words
-    words->setChecked(true);
-    CHECK(pitchWords->isVisibleTo(&page));
-    CHECK(synopsisWords->isVisibleTo(&page));
-    CHECK_FALSE(pitchCharacters->isVisibleTo(&page));
     synopsisWords->setValue(450);
     pitchCharacters->setValue(250);
     pages->setChecked(false);
@@ -171,32 +167,26 @@ TEST_CASE("Texts for publishers: the targets and the pages in Settings > Navigat
     CHECK(PublishingTexts::defaultTargetOf(QStringLiteral("pitch"), true) == 35);
     CHECK_FALSE(PublishingTexts::showsPages());
 
-    // Loaded again: as applied, in words
-    gui::NavigatorPage again(kalahari::test::book());
+    // Loaded again: as applied
+    gui::NavigatorPage again(kalahari::test::book(), gui::NavigatorPage::Part::Publishing);
     again.load();
     CHECK_FALSE(again.isChanged());
-    CHECK(childOf<QSpinBox>(again, QStringLiteral("navigatorPublishingTarget_synopsis_words"))
-              ->isVisibleTo(&again));
     CHECK(childOf<QSpinBox>(again, QStringLiteral("navigatorPublishingTarget_synopsis_words"))
               ->value() == 450);
     CHECK_FALSE(childOf<QCheckBox>(again, QStringLiteral("navigatorPublishingPages"))->isChecked());
 }
 
-TEST_CASE("Texts for publishers: the points of a template and the set in Settings > Navigator",
+TEST_CASE("Texts for publishers: the set of a new book in Settings > Navigator",
           "[gui][publishing][settings]") {
     const KeptSettings kept;
     auto& settings = core::SettingsManager::getInstance();
     // A set kept in another order than that of the boxes is not a change
     settings.set<nlohmann::json>(PublishingTexts::SET_SETTING,
                                  nlohmann::json{"synopsis", "pitch"});
-    gui::NavigatorPage page(kalahari::test::book());
+    gui::NavigatorPage page(kalahari::test::book(), gui::NavigatorPage::Part::Publishing);
     page.load();
     CHECK_FALSE(page.isChanged());
 
-    auto* beside = childOf<QRadioButton>(page, QStringLiteral("navigatorPublishingPointsBeside"));
-    auto* inText = childOf<QRadioButton>(page, QStringLiteral("navigatorPublishingPointsInText"));
-    CHECK(beside->isChecked());
-    CHECK_FALSE(inText->isChecked());
 
     QList<QCheckBox*> boxes;
     for (const QString& part : PublishingTexts::setParts()) {
@@ -213,24 +203,15 @@ TEST_CASE("Texts for publishers: the points of a template and the set in Setting
     CHECK_FALSE(boxOf("blurb")->isChecked());
     CHECK_FALSE(boxOf("aboutAuthor")->isChecked());
 
-    // In the text, and the set with the tagline, without the sentence
-    inText->setChecked(true);
+    // The set with the tagline, without the sentence
     boxOf("tagline")->setChecked(true);
     boxOf("pitch")->setChecked(false);
     CHECK(page.isChanged());
     page.apply();
-    CHECK(PublishingTexts::pointsInText());
-    CHECK(settings.get<std::string>(PublishingTexts::POINTS_SETTING, "") == "inText");
     const auto stored = settings.get<nlohmann::json>(PublishingTexts::SET_SETTING);
     CHECK(stored == (nlohmann::json{"tagline", "synopsis"}));
     const core::PublishingSet defaults = core::PublishingSet::defaults();
     CHECK(defaults.includes(QStringLiteral("tagline")));
     CHECK(defaults.includes(QStringLiteral("synopsis")));
     CHECK_FALSE(defaults.includes(QStringLiteral("pitch")));
-
-    // Back beside the text; a value this version does not know is shown as "beside"
-    settings.set<std::string>(PublishingTexts::POINTS_SETTING, "margin");
-    page.load();
-    CHECK(beside->isChecked());
-    CHECK_FALSE(PublishingTexts::pointsInText());
 }

@@ -536,7 +536,7 @@ public:
         Lists,      ///< What the Materials show, where the list of a kind opens, the links
         Kinds,      ///< The kinds of materials the Navigator shows
         Cover,      ///< The lengths of the texts of the cover
-        Publishing  ///< The texts for publishers: lengths, the template, the set
+        Publishing  ///< The texts for publishers: their lengths and the set
     };
 
     /// @param book The book of its window, whose numbers of materials the kinds show
@@ -549,8 +549,8 @@ private:
     void createKinds();
     void createCover();
     /// @brief The texts for publishers: the target lengths of the texts without a template,
-    /// the standard pages of a synopsis, where the points of a template are and the parts of
-    /// the set of a new book (core::PublishingTexts)
+    /// the standard pages of a synopsis and the parts of the set of a new book
+    /// (core::PublishingTexts)
     void createPublishing();
     /// @brief The target lengths of the texts without a template in both units, in @p group
     void addPublishingTargets(QFormLayout* group);

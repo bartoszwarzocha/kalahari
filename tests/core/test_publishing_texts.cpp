@@ -15,7 +15,7 @@
 #include <kalahari/core/publishing_texts.h>
 #include <kalahari/core/settings_manager.h>
 
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <QDir>
 #include <QFile>
