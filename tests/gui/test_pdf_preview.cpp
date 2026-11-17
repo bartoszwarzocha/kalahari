@@ -427,7 +427,7 @@ TEST_CASE("PDF preview: the search finds the hits, goes to them and selects them
 }
 
 TEST_CASE("PDF preview: the selection is copied, copied with the reference and makes a quote",
-          "[gui][materials][pdf]") {
+          "[gui][materials][pdf][clipboard]") {
     gui::registerAllIcons();
     const UsualPdfSettings usual;
     test::OpenNovel novel(QStringLiteral("Dunes"));

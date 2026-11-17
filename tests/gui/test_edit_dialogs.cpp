@@ -197,7 +197,7 @@ TEST_CASE("Paste Special: the forms of the clipboard, the one Paste gives chosen
 }
 
 TEST_CASE("Paste Special: Edit > Paste Special... pastes in the form chosen",
-          "[gui][paste][dialog]") {
+          "[gui][paste][dialog][clipboard]") {
     const PasteModeKept kept;
     core::SettingsManager::getInstance().set<std::string>(editor::PASTE_MODE_KEY,
                                                           editor::PASTE_MODE_TEXT);

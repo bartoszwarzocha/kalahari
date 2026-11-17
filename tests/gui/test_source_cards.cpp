@@ -115,7 +115,7 @@ SourceDescription atlas() {
 
 TEST_CASE("Source card: the description of a publication, its fields by kind, its people and "
           "its entry in the bibliography",
-          "[gui][materials][sources]") {
+          "[gui][materials][sources][clipboard]") {
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Dunes"));
     auto& pm = novel.pm;
@@ -223,7 +223,7 @@ TEST_CASE("Source card: the description of a publication, its fields by kind, it
 
 TEST_CASE("Source card: a description pasted from BibTeX, and a description emptied is no "
           "source",
-          "[gui][materials][sources]") {
+          "[gui][materials][sources][clipboard]") {
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Dunes"));
     auto& pm = novel.pm;
@@ -376,7 +376,7 @@ TEST_CASE("Quote card: where a quote comes from, its reference, and the quotes o
 }
 
 TEST_CASE("Sources: the list of the materials with a description and its node in the Navigator",
-          "[gui][materials][sources]") {
+          "[gui][materials][sources][clipboard]") {
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Dunes"));
     auto& pm = novel.pm;
