@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "../editor/editor_test_utils.h"
+
 #include <QAction>
 #include <QChar>
 #include <QChildEvent>
@@ -64,7 +66,8 @@ inline QList<MenuItem> menuItems(const QList<QAction*>& actions) {
 /// application gave its items as it was polished. It gets no window on the screen, where the
 /// platform decides about a popup (on macOS and Windows the popup of a test window was
 /// sometimes closed before the test could read it). A style that polishes a menu more than
-/// once (Windows 11) has it read once.
+/// once (Windows 11) has it read once. The menu of a misspelled word whose words the
+/// dictionary is still finding is read once they are in it (at most DICTIONARY_WAIT_MS).
 class ContextMenuReader : public QObject {
 public:
     /// @param owner The widget the menus belong to: the parent Qt or the program gives them
@@ -109,6 +112,31 @@ private:
             return;
         }
         menu->setAttribute(Qt::WA_DontShowOnScreen);
+        if (isFindingWords(menu)) {
+            readWhenFound(menu);
+        } else {
+            readNow(menu);
+        }
+    }
+
+    /// Read once the words of a misspelled one are in the menu, while it runs (the timer goes
+    /// with the menu, and its connection with the reader)
+    void readWhenFound(QMenu* menu) {
+        auto* poll = new QTimer(menu);
+        int ticks = 0;
+        connect(poll, &QTimer::timeout, this, [this, menu, poll, ticks]() mutable {
+            if (isFindingWords(menu) && ++ticks * POLL_MS < DICTIONARY_WAIT_MS) {
+                return;
+            }
+            poll->stop();
+            poll->deleteLater();
+            readNow(menu);
+        });
+        poll->start(POLL_MS);
+    }
+
+    /// Note the menu's items, then close it or choose the item asked for once it is open
+    void readNow(QMenu* menu) {
         m_items = menuItems(menu->actions());
         ++m_menusRead;
         // Closed once it is open, the menu ends its event loop; an item chosen closes it
@@ -134,6 +162,7 @@ private:
         });
     }
 
+    static constexpr int POLL_MS = 5;
     QWidget* m_owner;
     QList<MenuItem> m_items;
     int m_menusRead = 0;

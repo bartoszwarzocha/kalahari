@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.4.0-alpha] - 2026-11-16
+## [0.4.0-alpha] - 2026-11-17
 
 The first release of Phase 1 of the roadmap: the rebuilt editor and the new structure of a
 book. Kalahari is alpha software, and there are no installers yet: BUILDING.md explains how
@@ -2736,6 +2736,15 @@ to build it on Windows, Linux and macOS.
   - Physical `lib/x64-*/bwx_*.{lib,a}` binaries from disk (not tracked in git)
 
 ### Fixed
+
+- **Spelling suggestions, and the lists of Go To and Paste Special** - 2026-11-17. The
+  suggestions for a misspelled word are looked for at the priority of the window, as the
+  writer waits for them with the menu open: on a busy computer the dictionary could stop
+  looking before it found any. A word with no suggestions found is looked up again the next
+  time, not left with none. The lists of Go To and Paste Special are never narrower than their
+  longest line, so no scroll bar under them takes the room of a row. The program builds on
+  Windows again: two names hid another name of the same function, which MSVC refuses with
+  `/W4 /WX`.
 
 - **After the test of 16.11** - 2026-11-16. The Special Character window is faster, with its
   favorites, and the Insert toolbar has its button. Insert > Image asks for the caption, or

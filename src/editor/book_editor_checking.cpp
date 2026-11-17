@@ -1136,10 +1136,10 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word,
     if (m_bookDictionary != nullptr && m_bookDictionaryEditable) {
         //: Opens the window of a new name of the book's dictionary, with the word in it. In
         //: Polish: Dodaj &imię lub nazwę…
-        QAction* name = menu.addAction(tr("Add Nam&e..."));
-        name->setToolTip(tr("The word is a name of the book: right in all its forms"));
-        disableWhileReadOnly(name);
-        connect(name, &QAction::triggered, this, [this, word]() { emit addNameAsked(word); });
+        QAction* addName = menu.addAction(tr("Add Nam&e..."));
+        addName->setToolTip(tr("The word is a name of the book: right in all its forms"));
+        disableWhileReadOnly(addName);
+        connect(addName, &QAction::triggered, this, [this, word]() { emit addNameAsked(word); });
     }
     menu.addSeparator();
 }

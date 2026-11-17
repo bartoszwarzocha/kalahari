@@ -56,7 +56,8 @@ constexpr std::array<editor::PasteForm, 5> PASTE_FORMS = {
     editor::PasteForm::Kalahari, editor::PasteForm::Source, editor::PasteForm::Merge,
     editor::PasteForm::Text, editor::PasteForm::Image};
 
-/// A list as high as its lines, never lower: it never scrolls
+/// A list as high as its lines and as wide as its longest one, never smaller: it never
+/// scrolls, in any font
 class LinesList : public QListWidget {
 public:
     LinesList(int lines, int widthChars, QWidget* parent)
@@ -68,16 +69,23 @@ public:
 
     [[nodiscard]] QSize sizeHint() const override
     {
-        return {(fontMetrics().averageCharWidth() * m_widthChars) + (2 * frameWidth()),
-                linesHeight()};
+        const int chars = (fontMetrics().averageCharWidth() * m_widthChars) + (2 * frameWidth());
+        return {std::max(chars, linesWidth()), linesHeight()};
     }
 
     [[nodiscard]] QSize minimumSizeHint() const override
     {
-        return {QListWidget::minimumSizeHint().width(), linesHeight()};
+        return {std::max(QListWidget::minimumSizeHint().width(), linesWidth()), linesHeight()};
     }
 
 private:
+    /// Its longest line whole: in a font wider than the one of the sizes (an average letter
+    /// of another font, or a translation) a narrower list would scroll sideways
+    [[nodiscard]] int linesWidth() const
+    {
+        return std::max(0, sizeHintForColumn(0)) + (2 * frameWidth());
+    }
+
     /// Each of its rows as high as it is: a letter in another font (one the font of the list
     /// does not have) makes its row higher than the others; a line it has no row for yet as
     /// high as the highest one
