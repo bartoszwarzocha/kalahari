@@ -939,6 +939,11 @@ public:
     /// @brief The language of the text of the book ("pl"); empty without a project
     [[nodiscard]] QString bookLanguage() const;
 
+    /// @brief Give the book the ISBN and the publisher of its e-book (ProjectBook::isbn,
+    /// ProjectBook::publisher; empty: none) and save the .klh file
+    /// @return false when no project is open, it is read-only or the file cannot be written
+    bool setBookPublication(const QString& isbn, const QString& publisher);
+
     // =========================================================================
     // Paragraph Styles of the Books
     // =========================================================================

@@ -443,6 +443,15 @@ public:
     /// 7. Render cursor
     void render(QPainter* painter, const QRect& clipRect);
 
+    /// @brief Draw a page as it is printed (the page view; a book exported to PDF or printed):
+    ///        its text, its tables with their header rows repeated and its notes (the page
+    ///        decorator), without the desk, the sheet, its number and what only the screen
+    ///        shows (the cursor, the selection, the highlights, the marks of the annotations and
+    ///        the numbers on the margin)
+    /// @param painter Its origin at the top left of the page's sheet, in document units
+    /// @param page The page, from 0
+    void renderPrintedPage(QPainter* painter, int page);
+
     // =========================================================================
     // Dirty Region Tracking
     // =========================================================================
@@ -720,6 +729,14 @@ private:
     std::optional<FragmentHighlight> m_fragmentHighlight;  ///< Fragment shown in a color
     ParagraphDecorator m_paragraphDecorator;     ///< Draws the room under the paragraphs
     PageDecorator m_pageDecorator;               ///< Draws on the pages besides their lines
+    /// While renderPrintedPage() draws: the page, the top and the bottom of its text area
+    /// (document units), between which the lines are drawn
+    struct PrintedArea {
+        int page = 0;
+        double top = 0.0;
+        double bottom = 0.0;
+    };
+    std::optional<PrintedArea> m_printedArea;
     std::vector<ParagraphMark> m_paragraphMarks;     ///< Marks beside the paragraphs
     std::vector<size_t> m_paragraphMarkSlots;        ///< The slot of each (paragraphMarkRect())
     QMap<ParagraphMarkKind, QIcon> m_paragraphMarkIcons;  ///< What the marks of each kind show

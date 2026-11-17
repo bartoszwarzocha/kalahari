@@ -2,17 +2,22 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file test_export_book_dialog.cpp
-/// @brief File > Export > DOCX and Markdown: the window of the export, and the book it exports
-///        as the program has it (the open texts with their unsaved changes)
+/// @brief File > Export > DOCX, PDF, Markdown and EPUB: the window of the export, and the book it
+///        exports as the program has it (the open texts with their unsaved changes)
 
 #include <catch2/catch_test_macros.hpp>
+#include "../editor/editor_test_utils.h"
+#include "test_support/dialog_checks.h"
 #include "document_window.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/cover_material.h"
 #include "kalahari/core/extension_points.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_appearance.h"
 #include "kalahari/gui/book_export_coordinator.h"
 #include "kalahari/gui/dialogs/export_book_dialog.h"
+#include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/utils/file_location.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 
@@ -24,7 +29,11 @@
 #include <QFile>
 #include <QFont>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QGroupBox>
+#include <QImage>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
 #include <QProgressBar>
@@ -35,6 +44,7 @@
 #include <QTemporaryDir>
 #include <QTranslator>
 #include <QTreeWidget>
+#include <QUuid>
 
 #include <algorithm>
 #include <cstdio>
@@ -44,10 +54,21 @@
 #include <utility>
 #include <vector>
 
+/// Qt's own way to press a key over the window's shortcuts, as the system delivers it (Qt
+/// Test presses keys with it; the program does not link Qt Test)
+Q_GUI_EXPORT bool qt_sendShortcutOverrideEvent(QObject* o, ulong timestamp, int k,
+                                               Qt::KeyboardModifiers mods,
+                                               const QString& text = QString(),
+                                               bool autorep = false, ushort count = 1);
+
 using namespace kalahari;
 using gui::BookExportCoordinator;
 using gui::dialogs::ExportBookDialog;
+using test::AppFontOfPixels;
+using test::checkFitsSmallScreen;
+using test::onItsTab;
 using test::OpenNovel;
+using test::Polish;
 using test::Window;
 
 namespace {
@@ -58,12 +79,15 @@ public:
     SettingsKept() {
         auto& settings = core::SettingsManager::getInstance();
         for (const char* key : {"export.content", "export.font", "editor.page.size",
-                                "ui.lengthUnit"}) {
+                                "ui.lengthUnit", "export.runningHead", "export.pdf.purpose",
+                                "export.epub.look", "export.epub.cover"}) {
             m_strings.emplace_back(key, settings.get<std::string>(key));
         }
         for (const char* key : {"export.titles", "export.newPage", "export.pageNumbers",
                                 "export.comments", "export.copyImages",
-                                "editor.margins.mirrorEnabled"}) {
+                                "editor.margins.mirrorEnabled", "export.pdf.comments",
+                                "export.pdf.bookmarks", "export.pdf.facingPages",
+                                "export.pdf.grayscale", "export.epub.embedFont"}) {
             m_flags.emplace_back(key, settings.get<bool>(key));
         }
         for (const char* key : {"editor.margins.pageInner", "editor.margins.pageOuter"}) {
@@ -150,106 +174,25 @@ ExportBookDialog::Choice wholeBook() {
     return choice;
 }
 
-/// The page of the tabs that has @p widget; null for a widget outside the tabs
-const QWidget* tabPageOf(const QWidget* widget) {
-    for (const QWidget* each = widget; each != nullptr; each = each->parentWidget()) {
-        if (qobject_cast<const QStackedWidget*>(each->parentWidget()) != nullptr &&
-            qobject_cast<const QTabWidget*>(each->parentWidget()->parentWidget()) != nullptr) {
-            return each;
-        }
-    }
-    return nullptr;
-}
-
-/// Whether @p widget shows on its tab, whichever tab is in front
-bool onItsTab(const QWidget* widget) {
-    const QWidget* page = tabPageOf(widget);
-    REQUIRE(page != nullptr);
-    return widget == page || widget->isVisibleTo(page);
-}
-
-/// The access key of a text: the letter after a single "&"
-QChar accessKey(const QString& text) {
-    for (qsizetype i = 0; i + 1 < text.size(); ++i) {
-        if (text.at(i) == QLatin1Char('&')) {
-            if (text.at(i + 1) == QLatin1Char('&')) {
-                ++i;
-                continue;
-            }
-            return text.at(i + 1).toLower();
-        }
-    }
-    return QChar();
-}
-
-/// The texts with an access key while tab @p tab is in front: the titles of the tabs, and the
-/// labels of fields, the buttons and the groups that show on that tab or outside the tabs
-QStringList keyTexts(const ExportBookDialog& dialog, int tab) {
-    QStringList texts;
-    for (int i = 0; i < dialog.tabs()->count(); ++i) {
-        texts << dialog.tabs()->tabText(i);
-    }
-    for (const QWidget* widget : dialog.findChildren<QWidget*>()) {
-        const QWidget* page = tabPageOf(widget);
-        const bool shown = page == nullptr ? widget->isVisibleTo(&dialog)
-                                           : page == dialog.tabs()->widget(tab) && onItsTab(widget);
-        if (!shown) {
-            continue;
-        }
-        if (const auto* label = qobject_cast<const QLabel*>(widget); label && label->buddy()) {
-            texts << label->text();
-        } else if (const auto* button = qobject_cast<const QAbstractButton*>(widget)) {
-            texts << button->text();
-        } else if (const auto* group = qobject_cast<const QGroupBox*>(widget)) {
-            texts << group->title();
-        }
-    }
-    return texts;
-}
-
-/// The texts with the same access key, or with a key that is not a Latin letter or digit (Alt
-/// does not reach "ś"), on any tab in front; empty when each key is the only one
-QString keyProblems(const ExportBookDialog& dialog) {
-    QStringList problems;
-    for (int tab = 0; tab < dialog.tabs()->count(); ++tab) {
-        std::map<QChar, QStringList> texts;
-        for (const QString& text : keyTexts(dialog, tab)) {
-            const QChar key = accessKey(text);
-            if (key.isNull()) {
-                continue;
-            }
-            texts[key] << text;
-            if (key.unicode() >= 0x80 || !key.isLetterOrNumber()) {
-                problems << QStringLiteral("not a Latin key: ") + text;
-            }
-        }
-        for (const auto& [key, each] : texts) {
-            if (each.size() > 1) {
-                problems << each.join(QStringLiteral(" / "));
-            }
-        }
-    }
-    problems.removeDuplicates();
-    return problems.join(QStringLiteral("; "));
-}
-
-/// An exporter of a plugin: a PDF format with a tab of options, and a format without one
-class PdfExporter : public core::IExporter {
+/// An exporter of a plugin: an OpenDocument format with a tab of options, and a format without
+/// one; the formats of the program's ids stay the program's
+class OdtExporter : public core::IExporter {
 public:
-    std::string getPluginId() const override { return "test.pdf-exporter"; }
+    std::string getPluginId() const override { return "test.odt-exporter"; }
     std::string getVersion() const override { return "1.0.0"; }
     void onInit() override {}
     void onActivate() override {}
     std::vector<core::ExportFormatInfo> getFormats() const override {
-        return {{"pdf", "PDF document", "pdf"}, {"txt", "Plain text", "txt"},
-                {"docx", "Another Word", "docx"}, {"", "No id", "x"}};
+        return {{"odt", "OpenDocument text", "odt"}, {"txt", "Plain text", "txt"},
+                {"docx", "Another Word", "docx"}, {"pdf", "Another PDF", "pdf"},
+                {"", "No id", "x"}};
     }
     QWidget* createOptionsPage(const std::string& format, QWidget* parent) override {
-        if (format != "pdf") {
+        if (format != "odt") {
             return nullptr;
         }
         auto* page = new QWidget(parent);
-        m_tagged = new QCheckBox(QStringLiteral("Tagged PDF"), page);
+        m_tagged = new QCheckBox(QStringLiteral("Flat XML"), page);
         // The window deletes the page; the exporter forgets its check box with it
         QObject::connect(page, &QObject::destroyed, [this] { m_tagged = nullptr; });
         return page;
@@ -257,7 +200,7 @@ public:
     bool exportDocument(const std::string& format, const std::string& filepath) override {
         written.emplace_back(format, filepath);
         tagged = m_tagged != nullptr && m_tagged->isChecked();
-        return format == "pdf";
+        return format == "odt";
     }
 
     std::vector<std::pair<std::string, std::string>> written;
@@ -270,7 +213,7 @@ private:
 /// The exporter registered while it lives
 class RegisteredExporter {
 public:
-    RegisteredExporter() : exporter(std::make_shared<PdfExporter>()) {
+    RegisteredExporter() : exporter(std::make_shared<OdtExporter>()) {
         core::ExtensionPointRegistry::getInstance().registerPlugin(exporter);
     }
     ~RegisteredExporter() {
@@ -279,60 +222,8 @@ public:
     RegisteredExporter(const RegisteredExporter&) = delete;
     RegisteredExporter& operator=(const RegisteredExporter&) = delete;
 
-    std::shared_ptr<PdfExporter> exporter;
+    std::shared_ptr<OdtExporter> exporter;
 };
-
-/// The font of the program of @p pixels while it lives: the window fits with the font of
-/// another system, whose letters are as high (Windows' Segoe UI has the lines of a 13 pixel
-/// font, macOS has 13 pixels)
-class AppFontOfPixels {
-public:
-    explicit AppFontOfPixels(int pixels) : m_font(QApplication::font()) {
-        QFont font = m_font;
-        font.setPixelSize(pixels);
-        QApplication::setFont(font);
-    }
-    ~AppFontOfPixels() { QApplication::setFont(m_font); }
-    AppFontOfPixels(const AppFontOfPixels&) = delete;
-    AppFontOfPixels& operator=(const AppFontOfPixels&) = delete;
-
-private:
-    QFont m_font;
-};
-
-/// The windows in Polish while it lives: the translation the program ships
-class Polish {
-public:
-    Polish() {
-        m_loaded = m_translator.load(QStringLiteral(":/i18n/kalahari_pl.qm"));
-        if (m_loaded) {
-            QCoreApplication::installTranslator(&m_translator);
-        }
-    }
-    ~Polish() { QCoreApplication::removeTranslator(&m_translator); }
-    Polish(const Polish&) = delete;
-    Polish& operator=(const Polish&) = delete;
-
-    [[nodiscard]] bool loaded() const { return m_loaded; }
-
-private:
-    QTranslator m_translator;
-    bool m_loaded = false;
-};
-
-/// The window fits a small screen whole, so nothing in it scrolls: on Windows and Linux
-/// 1366x768 at 150%, 911 pixels wide and 460 high. A Mac has no such scaling: its smallest
-/// screen is 1366x768 at 100% (the 11-inch MacBook Air), 640 pixels high under the menu bar,
-/// the title bar and the Dock, and its controls and spacing are larger
-void checkFitsSmallScreen(const ExportBookDialog& dialog) {
-#ifdef Q_OS_MACOS
-    constexpr int MAX_HEIGHT = 640;
-#else
-    constexpr int MAX_HEIGHT = 460;
-#endif
-    CHECK(dialog.sizeHint().width() <= 911);
-    CHECK(dialog.sizeHint().height() <= MAX_HEIGHT);
-}
 
 }  // namespace
 
@@ -342,11 +233,13 @@ TEST_CASE("Export Book: the format, the name and the options of each format",
     QTemporaryDir dir;
     ExportBookDialog dialog(sampleBook(), editor::ExportFormat::Docx, dir.path(), {});
 
-    // The command of the menu chose the format, in the list of the program's formats; the
-    // name is the title of the book
-    REQUIRE(dialog.formatBox()->count() >= 2);
+    // The command of the menu chose the format, in the list of the program's formats in the
+    // order of File > Export; the name is the title of the book
+    REQUIRE(dialog.formatBox()->count() >= 4);
     CHECK(dialog.formatBox()->itemText(0) == QStringLiteral("Word document (.docx)"));
-    CHECK(dialog.formatBox()->itemText(1) == QStringLiteral("Markdown (.md)"));
+    CHECK(dialog.formatBox()->itemText(1) == QStringLiteral("PDF document (.pdf)"));
+    CHECK(dialog.formatBox()->itemText(2) == QStringLiteral("Markdown (.md)"));
+    CHECK(dialog.formatBox()->itemText(3) == QStringLiteral("EPUB e-book (.epub)"));
     CHECK(dialog.formatBox()->currentData().toString() == QStringLiteral("docx"));
     CHECK(dialog.choice().formatId == QStringLiteral("docx"));
     CHECK(dialog.nameField()->text() == QStringLiteral("Wind over the Oasis.docx"));
@@ -486,53 +379,58 @@ TEST_CASE("Export Book: the formats of the plugins in the list, with their own t
         names << format.name;
     }
     CHECK(names == QStringList({QStringLiteral("Word document (.docx)"),
-                                QStringLiteral("Markdown (.md)"),
                                 QStringLiteral("PDF document (.pdf)"),
+                                QStringLiteral("Markdown (.md)"),
+                                QStringLiteral("EPUB e-book (.epub)"),
+                                QStringLiteral("OpenDocument text (.odt)"),
                                 QStringLiteral("Plain text (.txt)")}));
-    CHECK(ExportBookDialog::exporterOf(QStringLiteral("pdf")) == registered.exporter);
+    CHECK(ExportBookDialog::exporterOf(QStringLiteral("odt")) == registered.exporter);
     CHECK(ExportBookDialog::exporterOf(QStringLiteral("docx")) == nullptr);
+    CHECK(ExportBookDialog::exporterOf(QStringLiteral("pdf")) == nullptr);
 
     ExportBookDialog dialog(sampleBook(), editor::ExportFormat::Docx, dir.path(), {});
-    QWidget* pdfPage = dialog.formatPage(QStringLiteral("pdf"));
-    REQUIRE(pdfPage != nullptr);
+    QWidget* odtPage = dialog.formatPage(QStringLiteral("odt"));
+    REQUIRE(odtPage != nullptr);
     CHECK(dialog.formatPage(QStringLiteral("txt")) == nullptr);
-    const int pdfTab = dialog.tabs()->indexOf(pdfPage);
+    const int odtTab = dialog.tabs()->indexOf(odtPage);
     const int extrasTab = dialog.tabs()->indexOf(dialog.notesGroup()->parentWidget());
-    CHECK(dialog.tabs()->tabText(pdfTab) == QStringLiteral("PDF document"));
-    CHECK_FALSE(dialog.tabs()->isTabVisible(pdfTab));
+    CHECK(dialog.tabs()->tabText(odtTab) == QStringLiteral("OpenDocument text"));
+    CHECK_FALSE(dialog.tabs()->isTabVisible(odtTab));
 
-    // PDF: its extension, its tab, and the layout of all the formats; the options of Word and
-    // Markdown go
-    dialog.setFormatId(QStringLiteral("pdf"));
-    CHECK(dialog.choice().formatId == QStringLiteral("pdf"));
-    CHECK(dialog.nameField()->text() == QStringLiteral("Wind over the Oasis.pdf"));
-    CHECK(dialog.tabs()->isTabVisible(pdfTab));
+    // OpenDocument: its extension, its tab, and the layout of all the formats; the options of
+    // the program's formats go
+    dialog.setFormatId(QStringLiteral("odt"));
+    CHECK(dialog.choice().formatId == QStringLiteral("odt"));
+    CHECK(dialog.nameField()->text() == QStringLiteral("Wind over the Oasis.odt"));
+    CHECK(dialog.tabs()->isTabVisible(odtTab));
     CHECK_FALSE(dialog.tabs()->isTabVisible(extrasTab));
+    CHECK_FALSE(dialog.tabs()->isTabVisible(dialog.tabs()->indexOf(dialog.pdfTab())));
     CHECK(onItsTab(dialog.titlesBox()));
     CHECK_FALSE(onItsTab(dialog.newPageBox()));
+    CHECK_FALSE(onItsTab(dialog.embedFontBox()));
 
     // Plain text: no tab of its own
     dialog.setFormatId(QStringLiteral("txt"));
     CHECK(dialog.nameField()->text() == QStringLiteral("Wind over the Oasis.txt"));
-    CHECK_FALSE(dialog.tabs()->isTabVisible(pdfTab));
+    CHECK_FALSE(dialog.tabs()->isTabVisible(odtTab));
 
     // Back to Word: its options, and no tab of the plugin
     dialog.setFormat(editor::ExportFormat::Docx);
     CHECK(dialog.nameField()->text() == QStringLiteral("Wind over the Oasis.docx"));
     CHECK(dialog.tabs()->isTabVisible(extrasTab));
-    CHECK_FALSE(dialog.tabs()->isTabVisible(pdfTab));
+    CHECK_FALSE(dialog.tabs()->isTabVisible(odtTab));
 
     // The plugin writes the file with the options of its tab
-    pdfPage->findChild<QCheckBox*>()->setChecked(true);
-    const QString path = QDir(dir.path()).filePath(QStringLiteral("book.pdf"));
+    odtPage->findChild<QCheckBox*>()->setChecked(true);
+    const QString path = QDir(dir.path()).filePath(QStringLiteral("book.odt"));
     int progress = 0;
     editor::ExportResult result;
     editor::ExportProblem problem;
     CHECK(BookExportCoordinator::exportWithPlugin(
-        *registered.exporter, QStringLiteral("pdf"), path,
+        *registered.exporter, QStringLiteral("odt"), path,
         [&progress](int percent) { progress = percent; }, &result, &problem));
     CHECK(registered.exporter->written ==
-          std::vector<std::pair<std::string, std::string>>{{"pdf", path.toStdString()}});
+          std::vector<std::pair<std::string, std::string>>{{"odt", path.toStdString()}});
     CHECK(registered.exporter->tagged);
     CHECK(progress == 100);
     CHECK(result.file == path);
@@ -542,12 +440,13 @@ TEST_CASE("Export Book: the formats of the plugins in the list, with their own t
         *registered.exporter, QStringLiteral("txt"), path, {}, &result, &problem));
     CHECK(problem.kind == editor::ExportProblem::Kind::Other);
     CHECK(problem.lines ==
-          QStringList{QStringLiteral("test.pdf-exporter: the plugin did not write %1 in the "
+          QStringList{QStringLiteral("test.odt-exporter: the plugin did not write %1 in the "
                                      "format txt")
                           .arg(path)});
 }
 
-TEST_CASE("Export Book: four tabs, the window whole on a small screen, the access keys",
+TEST_CASE("Export Book: the tabs of each format, the window whole on a small screen, the access "
+          "keys",
           "[gui][dialogs][export]") {
     SettingsKept kept;
     QTemporaryDir dir;
@@ -560,26 +459,36 @@ TEST_CASE("Export Book: four tabs, the window whole on a small screen, the acces
     }
     book.frontTitle = QStringLiteral("The Well, where the caravan waited three days for the wind");
 
+    // The tabs shown, the keys of the window, and its size with each tab in front
     const auto check = [&](editor::ExportFormat format) {
         ExportBookDialog dialog(book, format, dir.path(), {});
-        REQUIRE(dialog.tabs()->count() == 4);
         CHECK(dialog.tabs()->currentIndex() == 0);
-        CHECK(keyProblems(dialog).isEmpty());
+        INFO(test::keyProblems(dialog, *dialog.tabs()).toStdString());
+        CHECK(test::keyProblems(dialog, *dialog.tabs()).isEmpty());
+        QStringList shown;
         for (int tab = 0; tab < dialog.tabs()->count(); ++tab) {
+            if (!dialog.tabs()->isTabVisible(tab)) {
+                continue;
+            }
+            shown << dialog.tabs()->tabText(tab);
             dialog.tabs()->setCurrentIndex(tab);
+            INFO("The tab " << dialog.tabs()->tabText(tab).toStdString());
             checkFitsSmallScreen(dialog);
         }
         dialog.setContent(ExportBookDialog::Content::Chosen);
         checkFitsSmallScreen(dialog);
-        return dialog.tabs()->tabText(0) + QStringLiteral(" | ") + dialog.tabs()->tabText(1) +
-               QStringLiteral(" | ") + dialog.tabs()->tabText(2) + QStringLiteral(" | ") +
-               dialog.tabs()->tabText(3);
+        return shown.join(QStringLiteral(" | "));
     };
 
     SECTION("In English") {
         CHECK(check(editor::ExportFormat::Docx) ==
               QStringLiteral("Fi&le | Text&s | La&yout | Annotations and Ima&ges"));
+        CHECK(check(editor::ExportFormat::Pdf) ==
+              QStringLiteral("Fi&le | Text&s | La&yout | Annotations and Ima&ges | P&DF"));
         check(editor::ExportFormat::Markdown);
+        CHECK(
+            check(editor::ExportFormat::Epub) ==
+            QStringLiteral("Fi&le | Text&s | La&yout | Annotations and Ima&ges | Cover an&d Data"));
     }
 
     SECTION("In Polish") {
@@ -587,7 +496,33 @@ TEST_CASE("Export Book: four tabs, the window whole on a small screen, the acces
         REQUIRE(polish.loaded());
         CHECK(check(editor::ExportFormat::Docx) ==
               QStringLiteral("&Plik | T&eksty | U&kład | Uwagi i o&brazy"));
+        CHECK(check(editor::ExportFormat::Pdf) ==
+              QStringLiteral("&Plik | T&eksty | U&kład | Uwagi i o&brazy | P&DF"));
         check(editor::ExportFormat::Markdown);
+        CHECK(check(editor::ExportFormat::Epub) ==
+              QStringLiteral("&Plik | T&eksty | U&kład | Uwagi i o&brazy | Okła&dka i dane"));
+    }
+
+    // Alt and the key of a tab bring it to the front: of the two with the same key, the one of
+    // the format chosen. The keys are shortcuts of the window: they need an active window,
+    // which the offscreen platform has without a window on screen
+    SECTION("The key of the tab of the format") {
+        if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+            SKIP("needs an active window without a window on screen: run with "
+                 "QT_QPA_PLATFORM=offscreen");
+        }
+        ExportBookDialog dialog(book, editor::ExportFormat::Pdf, dir.path(), {});
+        dialog.show();
+        dialog.activateWindow();
+        REQUIRE(test::waitUntil([&dialog] { return dialog.isActiveWindow(); }));
+        CHECK(qt_sendShortcutOverrideEvent(dialog.nameField(), 0, Qt::Key_D, Qt::AltModifier));
+        CHECK(test::waitUntil(
+            [&dialog] { return dialog.tabs()->currentWidget() == dialog.pdfTab(); }));
+        dialog.setFormat(editor::ExportFormat::Epub);
+        dialog.tabs()->setCurrentIndex(0);
+        CHECK(qt_sendShortcutOverrideEvent(dialog.nameField(), 0, Qt::Key_D, Qt::AltModifier));
+        CHECK(test::waitUntil(
+            [&dialog] { return dialog.tabs()->currentWidget() == dialog.epubTab(); }));
     }
 
     // The result of the export shows under the tabs, in the place of the bar
@@ -626,6 +561,8 @@ TEST_CASE("Export Book: four tabs, the window whole on a small screen, the acces
         Polish polish;
         REQUIRE(polish.loaded());
         check(editor::ExportFormat::Docx);
+        check(editor::ExportFormat::Pdf);
+        check(editor::ExportFormat::Epub);
         checkResult();
     }
 }
@@ -733,6 +670,237 @@ TEST_CASE("Export Book: the result, Open File, and the choices kept",
     }
 }
 
+TEST_CASE("Export Book: a PDF, its purpose and its comments apart from Word's",
+          "[gui][dialogs][export]") {
+    SettingsKept kept;
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set<bool>("export.comments", true);
+    settings.set<bool>("export.pdf.comments", false);
+    settings.set<std::string>("export.pdf.purpose", "reading");
+    settings.set<bool>("export.pdf.facingPages", true);
+    settings.set<std::string>("export.runningHead", "authorAndTitle");
+    QTemporaryDir dir;
+    ExportBookDialog dialog(
+        sampleBook(), editor::ExportFormat::Pdf, dir.path(),
+        [](const QString& path, const ExportBookDialog::Choice&,
+           const gui::dialogs::ArchiveDialog::Progress&, editor::ExportResult* result,
+           editor::ExportProblem*) {
+            QFile file(path);
+            REQUIRE(file.open(QIODevice::WriteOnly));
+            result->file = path;
+            return true;
+        });
+    CHECK(dialog.formatBox()->currentData().toString() == QStringLiteral("pdf"));
+    CHECK(dialog.nameField()->text() == QStringLiteral("Wind over the Oasis.pdf"));
+
+    // The layout of Word: the pages, the font and the running head
+    CHECK(onItsTab(dialog.newPageBox()));
+    CHECK(onItsTab(dialog.fontBox()));
+    CHECK(onItsTab(dialog.runningHeadBox()));
+    CHECK_FALSE(onItsTab(dialog.embedFontBox()));
+    CHECK(dialog.runningHeadBox()->currentText() ==
+          QStringLiteral("Author on the left, book title on the right"));
+
+    // Its own comments, and what it does with the images
+    CHECK(onItsTab(dialog.pdfCommentsBox()));
+    CHECK_FALSE(onItsTab(dialog.commentsBox()));
+    CHECK_FALSE(dialog.pdfCommentsBox()->isChecked());
+    CHECK(dialog.pdfCommentsNote() ==
+          QStringLiteral("The comments, to-dos and notes of the text, with their authors and "
+                         "dates, as notes beside the text in a PDF reader. Without this option "
+                         "the file has no annotations."));
+    CHECK(dialog.notesNote().isEmpty());
+    CHECK(dialog.imagesNote() ==
+          QStringLiteral("A PDF document has the images in the file itself, with their cropping, "
+                         "rotation, filter, border and shadow."));
+
+    // Its tab: the purpose, the bookmarks, the pages in pairs
+    CHECK(dialog.tabs()->isTabVisible(dialog.tabs()->indexOf(dialog.pdfTab())));
+    CHECK_FALSE(dialog.tabs()->isTabVisible(dialog.tabs()->indexOf(dialog.epubTab())));
+    CHECK(dialog.purposeButton(editor::PdfPurpose::Reading)->isChecked());
+    CHECK(dialog.bookmarksBox()->isChecked());
+    CHECK(dialog.facingPagesBox()->isChecked());
+
+    dialog.pdfCommentsBox()->setChecked(true);
+    dialog.facingPagesBox()->setChecked(false);
+    dialog.runningHeadBox()->setCurrentIndex(
+        dialog.runningHeadBox()->findData(static_cast<int>(editor::RunningHead::Chapter)));
+    ExportBookDialog::Choice choice = dialog.choice();
+    CHECK(choice.format == editor::ExportFormat::Pdf);
+    CHECK(choice.comments);
+    CHECK(choice.runningHead == editor::RunningHead::Chapter);
+    CHECK(choice.pdf.purpose == editor::PdfPurpose::Reading);
+    CHECK(choice.pdf.bookmarks);
+    CHECK_FALSE(choice.pdf.facingPages);
+
+    // A file for a print shop has no comments; a Qt that cannot write it does not offer it
+    if (editor::pdfPurposeSupported(editor::PdfPurpose::PrintShop)) {
+        dialog.purposeButton(editor::PdfPurpose::PrintShop)->setChecked(true);
+        CHECK_FALSE(dialog.pdfCommentsBox()->isEnabled());
+        CHECK(dialog.pdfCommentsNote() ==
+              QStringLiteral("A file for a print shop (PDF/X-4) cannot have comments."));
+        CHECK(dialog.choice().pdf.purpose == editor::PdfPurpose::PrintShop);
+        CHECK_FALSE(dialog.choice().comments);
+        dialog.purposeButton(editor::PdfPurpose::Reading)->setChecked(true);
+        CHECK(dialog.pdfCommentsBox()->isEnabled());
+        dialog.pdfCommentsBox()->setChecked(true);
+    } else {
+        CHECK_FALSE(dialog.purposeButton(editor::PdfPurpose::PrintShop)->isEnabled());
+        CHECK_FALSE(dialog.grayscaleBox()->isEnabled());
+        CHECK_FALSE(dialog.choice().pdf.grayscale);
+    }
+
+    // Word keeps its own comments
+    dialog.setFormat(editor::ExportFormat::Docx);
+    CHECK(dialog.commentsBox()->isChecked());
+    dialog.commentsBox()->setChecked(false);
+    CHECK_FALSE(dialog.choice().comments);
+
+    // The next export: the choices of each format, the layout shared
+    dialog.setFormat(editor::ExportFormat::Pdf);
+    dialog.accept();
+    REQUIRE(dialog.isDone());
+    CHECK(settings.get<bool>("export.pdf.comments"));
+    CHECK_FALSE(settings.get<bool>("export.comments"));
+    CHECK_FALSE(settings.get<bool>("export.pdf.facingPages"));
+    CHECK(settings.get<std::string>("export.runningHead") == "chapter");
+    ExportBookDialog word(sampleBook(), editor::ExportFormat::Docx, dir.path(), {});
+    CHECK_FALSE(word.commentsBox()->isChecked());
+    CHECK(word.choice().runningHead == editor::RunningHead::Chapter);
+    ExportBookDialog pdf(sampleBook(), editor::ExportFormat::Pdf, dir.path(), {});
+    CHECK(pdf.pdfCommentsBox()->isChecked());
+    CHECK_FALSE(pdf.facingPagesBox()->isChecked());
+}
+
+TEST_CASE("Export Book: an EPUB, its look, its cover and its data", "[gui][dialogs][export]") {
+    SettingsKept kept;
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set<std::string>("export.epub.look", "book");
+    settings.set<std::string>("export.epub.cover", "design");
+    settings.set<bool>("export.epub.embedFont", false);
+    QTemporaryDir dir;
+    QImage picture(60, 90, QImage::Format_RGB32);
+    picture.fill(Qt::darkGreen);
+    const QString design = QDir(dir.path()).filePath(QStringLiteral("design.png"));
+    REQUIRE(picture.save(design));
+    ExportBookDialog::Book book = sampleBook();
+    book.author = QStringLiteral("Anna Nowak");
+    book.language = QStringLiteral("Polish");
+    book.description = QStringLiteral("Three days from the last well, the caravan waits.");
+    book.coverTitle = QStringLiteral("Front, version 3");
+    book.coverFile = design;
+    book.isbn = QStringLiteral("978-3-16-148410-0");
+    book.publisher = QStringLiteral("Dunes");
+    ExportBookDialog dialog(
+        book, editor::ExportFormat::Epub, dir.path(),
+        [](const QString& path, const ExportBookDialog::Choice&,
+           const gui::dialogs::ArchiveDialog::Progress&, editor::ExportResult* result,
+           editor::ExportProblem*) {
+            QFile file(path);
+            REQUIRE(file.open(QIODevice::WriteOnly));
+            result->file = path;
+            result->coverMissing = true;
+            result->fontNotEmbedded = true;
+            return true;
+        });
+    CHECK(dialog.nameField()->text() == QStringLiteral("Wind over the Oasis.epub"));
+
+    // The layout of an EPUB: its look and its font, no pages
+    CHECK(onItsTab(dialog.bookStylesButton()));
+    CHECK(dialog.bookStylesButton()->isChecked());
+    CHECK(onItsTab(dialog.embedFontBox()));
+    CHECK_FALSE(onItsTab(dialog.newPageBox()));
+    CHECK_FALSE(onItsTab(dialog.fontBox()));
+    CHECK_FALSE(onItsTab(dialog.runningHeadBox()));
+
+    // No comments; the images in the file
+    CHECK_FALSE(onItsTab(dialog.commentsBox()));
+    CHECK_FALSE(onItsTab(dialog.pdfCommentsBox()));
+    CHECK(dialog.notesNote() ==
+          QStringLiteral("EPUB has no comments: the annotations stay only in the book."));
+    CHECK(dialog.imagesNote() ==
+          QStringLiteral("An EPUB e-book has the images in the file itself, with their "
+                         "alternative text for screen readers."));
+
+    // Its tab: the design of the materials and the data of the book; its notes show in front
+    CHECK(dialog.tabs()->isTabVisible(dialog.tabs()->indexOf(dialog.epubTab())));
+    CHECK_FALSE(dialog.tabs()->isTabVisible(dialog.tabs()->indexOf(dialog.pdfTab())));
+    dialog.tabs()->setCurrentWidget(dialog.epubTab());
+    CHECK(dialog.coverBox()->currentText() ==
+          QStringLiteral("Front, version 3 (from the materials)"));
+    CHECK(
+        dialog.coverNote() ==
+        QStringLiteral("The design of the front of the cover chosen in the materials \"Cover\"."));
+    CHECK(dialog.isbnField()->text() == QStringLiteral("978-3-16-148410-0"));
+    CHECK(dialog.publisherField()->text() == QStringLiteral("Dunes"));
+    CHECK(dialog.bookDataNote().startsWith(QStringLiteral("Change the title, the author")));
+    ExportBookDialog::Choice choice = dialog.choice();
+    CHECK(choice.format == editor::ExportFormat::Epub);
+    CHECK(choice.bookStyles);
+    CHECK_FALSE(choice.embedFont);
+    CHECK_FALSE(choice.comments);
+    CHECK(choice.cover == ExportBookDialog::Cover::Design);
+    CHECK(choice.coverImage == design);
+    CHECK(choice.isbn == QStringLiteral("978-3-16-148410-0"));
+    CHECK(choice.publisher == QStringLiteral("Dunes"));
+
+    // No cover, then another picture
+    dialog.coverBox()->setCurrentIndex(
+        dialog.coverBox()->findData(static_cast<int>(ExportBookDialog::Cover::None)));
+    CHECK(dialog.coverNote() == QStringLiteral("The e-book has no cover."));
+    CHECK(dialog.choice().coverImage.isEmpty());
+    const QString other = QDir(dir.path()).filePath(QStringLiteral("other.jpg"));
+    REQUIRE(picture.save(other));
+    dialog.setCoverFile(other);
+    CHECK(dialog.coverBox()->currentText() == QStringLiteral("other.jpg"));
+    CHECK(dialog.choice().cover == ExportBookDialog::Cover::File);
+    CHECK(dialog.choice().coverImage == other);
+    CHECK(dialog.coverNote() ==
+          QStringLiteral("The picture %1.").arg(QDir::toNativeSeparators(other)));
+
+    // An ISBN that is not one: the export waits, the other formats do not
+    dialog.isbnField()->setText(QStringLiteral("978-3-16-148410-1"));
+    CHECK_FALSE(dialog.acceptButton()->isEnabled());
+    CHECK(dialog.bookDataNote() ==
+          QStringLiteral("This is not an ISBN: an ISBN has 13 digits (or 10) and the right check "
+                         "digit, e.g. 978-3-16-148410-0."));
+    dialog.setFormat(editor::ExportFormat::Docx);
+    CHECK(dialog.acceptButton()->isEnabled());
+    dialog.setFormat(editor::ExportFormat::Epub);
+    CHECK_FALSE(dialog.acceptButton()->isEnabled());
+    dialog.isbnField()->setText(QStringLiteral("0-306-40615-2"));
+    CHECK(dialog.acceptButton()->isEnabled());
+    dialog.isbnField()->clear();
+    CHECK(dialog.acceptButton()->isEnabled());
+
+    // The result says what the file lacks; the next export has the choices
+    dialog.simpleLookButton()->setChecked(true);
+    dialog.embedFontBox()->setChecked(true);
+    dialog.accept();
+    REQUIRE(dialog.isDone());
+    CHECK(dialog.resultText().endsWith(
+        QStringLiteral("The picture of the cover could not be read: the e-book has no cover. The "
+                       "font of the text is not in the file: its licence does not allow it, or "
+                       "the computer does not have it.")));
+    CHECK(settings.get<std::string>("export.epub.look") == "simple");
+    CHECK(settings.get<bool>("export.epub.embedFont"));
+    // Another picture is not the book's: the next export has the design of the materials
+    CHECK(settings.get<std::string>("export.epub.cover") == "design");
+    ExportBookDialog next(book, editor::ExportFormat::Epub, dir.path(), {});
+    CHECK(next.simpleLookButton()->isChecked());
+    CHECK(next.embedFontBox()->isChecked());
+    CHECK(next.choice().cover == ExportBookDialog::Cover::Design);
+
+    // A book without a chosen design: no cover
+    book.coverFile.clear();
+    ExportBookDialog bare(book, editor::ExportFormat::Epub, dir.path(), {});
+    CHECK(bare.choice().cover == ExportBookDialog::Cover::None);
+    bare.tabs()->setCurrentWidget(bare.epubTab());
+    CHECK(
+        bare.coverNote() ==
+        QStringLiteral("The materials \"Cover\" have no chosen design of the front of the cover."));
+}
+
 TEST_CASE("Export Book: the book as the program has it, in reading order",
           "[gui][export]") {
     SettingsKept kept;
@@ -823,6 +991,111 @@ TEST_CASE("Export Book: the book as the program has it, in reading order",
                                      QStringLiteral("Chapter 1"), QStringLiteral("Part One/"),
                                      QStringLiteral("  The Storm"), QStringLiteral("  The Calm")}));
     }
+}
+
+TEST_CASE("Export Book: a PDF and an EPUB of the book: the colors, the cover and the data",
+          "[gui][export]") {
+    using core::CoverMaterial;
+    SettingsKept kept;
+    OpenNovel novel(QStringLiteral("Wind"));
+    core::ProjectManager& pm = novel.pm;
+    // The chosen design of the front of the cover, and the chosen description of the back
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    QImage picture(60, 90, QImage::Format_RGB32);
+    picture.fill(Qt::darkGreen);
+    const QString pictureFile = QDir(files.path()).filePath(QStringLiteral("front.png"));
+    REQUIRE(picture.save(pictureFile));
+    const core::KindRef coverKind =
+        pm.bookTypes().findKind(QStringLiteral("kalahari.base"), QStringLiteral("cover"));
+    const auto addCover = [&](const QString& title, const char* part, const char* place,
+                              const char* state, const QString& file, const QString& text) {
+        core::NewMaterial material;
+        material.title = title;
+        material.filePath = file;
+        material.description = text;
+        material.cover.part = QString::fromLatin1(part);
+        material.cover.place = QString::fromLatin1(place);
+        material.cover.state = QString::fromLatin1(state);
+        const QString id = pm.addMaterial(material, coverKind);
+        REQUIRE_FALSE(id.isEmpty());
+        return id;
+    };
+    addCover(QStringLiteral("Rejected design"), CoverMaterial::DESIGN, CoverMaterial::FRONT,
+             CoverMaterial::REJECTED, pictureFile, QString());
+    const QString front = addCover(QStringLiteral("Front, version 3"), CoverMaterial::DESIGN,
+                                   CoverMaterial::FRONT, CoverMaterial::CHOSEN, pictureFile,
+                                   QString());
+    addCover(QStringLiteral("Flap"), CoverMaterial::BLURB, CoverMaterial::FRONT_FLAP,
+             CoverMaterial::CHOSEN, QString(), QStringLiteral("On the flap."));
+    addCover(QStringLiteral("Back"), CoverMaterial::BLURB, CoverMaterial::BACK,
+             CoverMaterial::CHOSEN, QString(), QStringLiteral("Three days from the last well."));
+    REQUIRE(pm.setBookPublication(QStringLiteral("978-3-16-148410-0"), QStringLiteral("Dunes")));
+
+    BookExportCoordinator coordinator(pm, kalahari::test::commands(), nullptr,
+                                      []() { return nullptr; }, nullptr, nullptr, nullptr);
+
+    // The window: the data of the book, its cover and its description
+    const ExportBookDialog::Book rows = coordinator.dialogBook();
+    CHECK(rows.author == QStringLiteral("Author"));
+    CHECK(rows.language == QStringLiteral("English"));
+    CHECK(rows.coverTitle == QStringLiteral("Front, version 3"));
+    const core::ProjectElement* frontElement = pm.findElement(front);
+    REQUIRE(frontElement != nullptr);
+    CHECK(rows.coverFile == pm.filePathOf(*frontElement));
+    CHECK(QFileInfo::exists(rows.coverFile));
+    CHECK(rows.description == QStringLiteral("Three days from the last well."));
+    CHECK(rows.isbn == QStringLiteral("978-3-16-148410-0"));
+    CHECK(rows.publisher == QStringLiteral("Dunes"));
+    // The book keeps them in its .klh file
+    QFile manifest(pm.getManifestPath());
+    REQUIRE(manifest.open(QIODevice::ReadOnly));
+    const QJsonObject saved = QJsonDocument::fromJson(manifest.readAll())
+                                  .object()[QStringLiteral("books")][0]
+                                  .toObject();
+    CHECK(saved[QStringLiteral("isbn")].toString() == QStringLiteral("978-3-16-148410-0"));
+    CHECK(saved[QStringLiteral("publisher")].toString() == QStringLiteral("Dunes"));
+
+    // A PDF: the colors of the light paper, the running head and the options of the window
+    ExportBookDialog::Choice choice = wholeBook();
+    choice.format = editor::ExportFormat::Pdf;
+    choice.formatId = QStringLiteral("pdf");
+    choice.runningHead = editor::RunningHead::TitleAndChapter;
+    choice.pdf.purpose = editor::PdfPurpose::Archive;
+    choice.pdf.facingPages = true;
+    choice.fontFamily = QStringLiteral("Georgia");
+    const editor::BookExport pdf = coordinator.bookExport(choice);
+    CHECK(pdf.runningHead == editor::RunningHead::TitleAndChapter);
+    CHECK(pdf.pdf.purpose == editor::PdfPurpose::Archive);
+    CHECK(pdf.pdf.facingPages);
+    CHECK(pdf.fontFamily == QStringLiteral("Georgia"));
+    CHECK(pdf.colors.continuous.backgroundLight ==
+          gui::EditorPanel::themeColors().continuous.backgroundLight);
+
+    // An EPUB: the editor's font, its cover, its data, and the book's lasting identifier
+    choice.format = editor::ExportFormat::Epub;
+    choice.formatId = QStringLiteral("epub");
+    choice.bookStyles = false;
+    choice.embedFont = true;
+    choice.coverImage = rows.coverFile;
+    choice.isbn = rows.isbn;
+    choice.publisher = rows.publisher;
+    const editor::BookExport epub = coordinator.bookExport(choice);
+    CHECK(epub.fontFamily ==
+          QString::fromStdString(core::SettingsManager::getInstance().get<std::string>(
+              "editor.fontFamily")));
+    CHECK_FALSE(epub.epub.bookStyles);
+    CHECK(epub.epub.embedFont);
+    CHECK(epub.epub.coverImage == rows.coverFile);
+    CHECK(epub.epub.description == QStringLiteral("Three days from the last well."));
+    CHECK(epub.epub.isbn == QStringLiteral("978-3-16-148410-0"));
+    CHECK(epub.epub.publisher == QStringLiteral("Dunes"));
+    CHECK_FALSE(QUuid(epub.epub.identifier).isNull());
+    CHECK(coordinator.bookExport(choice).epub.identifier == epub.epub.identifier);
+    // A part of the book is another e-book
+    choice.content = ExportBookDialog::Content::Chosen;
+    choice.chosen = {novel.chapterId};
+    CHECK(coordinator.bookExport(choice).epub.identifier.isEmpty());
 }
 
 TEST_CASE("Export Book: the commands wait for a book or a text", "[gui][export]") {

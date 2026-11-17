@@ -289,18 +289,46 @@ std::map<std::string, json> buildDefaults() {
         {"project.lastFolders.saveImage", ""},
         {"project.lastFolders.exportBook", ""},
         {"project.lastFolders.importText", ""},
-        // File > Export > DOCX and Markdown: the writer's last choices of the window. What
-        // goes to the file: "book" (the whole book), "chosen" (the texts chosen in the window)
-        // or "front" (the text in front); the titles of the Navigator as headings; each text
-        // from a new page; page numbers; the font of the text (empty: the editor's); the
-        // annotations as Word's comments; the images copied next to a Markdown file
+        // File > Export > DOCX, PDF, Markdown and EPUB: the writer's last choices of the
+        // window. What goes to the file: "book" (the whole book), "chosen" (the texts chosen
+        // in the window) or "front" (the text in front); the titles of the Navigator as
+        // headings; each text from a new page; page numbers; the font of the text (empty: the
+        // editor's); the running head ("none", "authorAndTitle", "titleAndChapter",
+        // "chapter"); the annotations as Word's comments; the images copied next to a
+        // Markdown file
         {"export.content", "book"},
         {"export.titles", true},
         {"export.newPage", true},
         {"export.pageNumbers", true},
         {"export.font", ""},
+        {"export.runningHead", "authorAndTitle"},
         {"export.comments", false},
         {"export.copyImages", true},
+        // A PDF: the annotations as its comments; its purpose ("reading", "printShop" for a
+        // print shop, PDF/X-4, "archive", PDF/A-1b); the bookmarks; the pages in pairs; the
+        // shades of gray
+        {"export.pdf.comments", false},
+        {"export.pdf.purpose", "reading"},
+        {"export.pdf.bookmarks", true},
+        {"export.pdf.facingPages", true},
+        {"export.pdf.grayscale", false},
+        // An EPUB: its look ("book", the book's styles, or "simple"); the font of the text in
+        // the file; its cover ("design", the design chosen in the materials of the cover, or
+        // "none")
+        {"export.epub.look", "book"},
+        {"export.epub.embedFont", false},
+        {"export.epub.cover", "design"},
+        // File > Print: the writer's last choices of the window; its layout is the export's
+        // (export.*). What goes to the printer, as export.content ("front" the first time, as
+        // Ctrl+P in the editors of text); the copies whole one after another; the pages on a
+        // sheet ("onePage", "twoPages" side by side, "booklet" folded in half); one page as
+        // large as the sheet allows, else of its own size; the crop marks of a page of its own
+        // size
+        {"print.content", "front"},
+        {"print.collate", true},
+        {"print.sheet.layout", "onePage"},
+        {"print.sheet.fit", true},
+        {"print.sheet.cropMarks", false},
         // File > Import > DOCX, Markdown and Plain Text: the writer's last choices of the
         // window. Where the texts go: "book" (the open book), "newBook" or "otherFiles"; more
         // files each as one text

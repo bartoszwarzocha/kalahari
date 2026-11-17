@@ -35,6 +35,7 @@ set(KALAHARI_CORE_SOURCES
     editor/docx_reader.cpp             # Import of a Word document (DOCX)
     editor/markdown_reader.cpp         # Import of Markdown
     editor/text_reader.cpp             # Import of plain text: encodings, paragraphs, titles
+    editor/epub_writer.cpp             # Export of a book to an EPUB 3 e-book
     core/database_schema_manager.cpp
     core/project_lock.cpp
     core/backup_manager.cpp
@@ -208,7 +209,9 @@ set(KALAHARI_SOURCES
     gui/dialogs/delete_dialogs.cpp  # DeleteFromBookDialog, DeleteFilesDialog - what goes, and its files
     gui/dialogs/dialog_parts.cpp  # Parts of the own dialogs: a list as high as its rows, a note, Copy
     gui/dialogs/archive_dialogs.cpp  # ExportArchiveDialog, ImportArchiveDialog - one window each
-    gui/dialogs/export_book_dialog.cpp  # ExportBookDialog - File > Export > DOCX and Markdown
+    gui/dialogs/book_output_dialog.cpp  # BookOutputDialog - the tabs of the texts and the layout of the export and the print
+    gui/dialogs/print_book_dialog.cpp  # PrintBookDialog - File > Print
+    gui/dialogs/export_book_dialog.cpp  # ExportBookDialog - File > Export > DOCX, PDF, Markdown and EPUB
     gui/dialogs/import_book_dialog.cpp  # ImportBookDialog - File > Import > DOCX, Markdown and Plain Text
     gui/dialogs/file_preview_dialog.cpp  # FilePreviewDialog - the text of a file no element has
     gui/dialogs/user_project_dialog.cpp  # UserProjectDialog - the kinds of elements of a user project
@@ -475,6 +478,10 @@ set(KALAHARI_SOURCES
     editor/formatting_marks.cpp               # The formatting marks of a paragraph (¶ · ° → ↵ ¬), drawn by the layout
     editor/text_source_adapter.cpp            # OpenSpec #00043 Phase 12.1: Text source adapters
     editor/editor_render_pipeline.cpp         # OpenSpec #00043 Phase 12.1: Unified render pipeline
+    # The pages of a book use the layout of the editor above, so they are not in kalahari_core
+    editor/book_pages.cpp                     # The pages of a book as the page view shows them (PDF, printer)
+    editor/book_print.cpp                     # The print of a book: the pages on the sheets, their drawing
+    editor/pdf_writer.cpp                     # Export of a book to a PDF document
     editor/editor_benchmark.cpp               # OpenSpec #00043 Phase 11.11: Performance benchmarks
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
@@ -508,6 +515,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/book_output_dialog.h  # BookOutputDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/print_book_dialog.h  # PrintBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/export_book_dialog.h  # ExportBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/import_book_dialog.h  # ImportBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
@@ -727,6 +736,7 @@ target_link_libraries(kalahari PRIVATE
     Qt6::Widgets
     Qt6::Gui
     Qt6::SvgWidgets
+    Qt6::PrintSupport  # The print of the book
     ${HUNSPELL_LIBRARIES}
 )
 target_include_directories(kalahari PRIVATE ${HUNSPELL_INCLUDE_DIRS})

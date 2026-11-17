@@ -3141,6 +3141,30 @@ QString ProjectManager::bookLanguage() const {
     return current != nullptr ? current->language : QString();
 }
 
+bool ProjectManager::setBookPublication(const QString& isbn, const QString& publisher) {
+    ProjectBook* current = book();
+    if (current == nullptr) {
+        Logger::getInstance().warn("setBookPublication: No project is open");
+        return false;
+    }
+    if (current->isbn == isbn && current->publisher == publisher) {
+        return true;
+    }
+    if (refusesChange("setBookPublication")) {
+        return false;
+    }
+    const QString previousIsbn = current->isbn;
+    const QString previousPublisher = current->publisher;
+    current->isbn = isbn;
+    current->publisher = publisher;
+    if (!saveManifest()) {
+        current->isbn = previousIsbn;
+        current->publisher = previousPublisher;
+        return false;
+    }
+    return true;
+}
+
 QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& link) const {
     QList<const ProjectElement*> linked;
     if (!m_project || link.isEmpty()) {

@@ -277,12 +277,14 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                       IconSet(),
                       callbacks.onImportArchive);
 
-    // Export submenu: DOCX and Markdown open the window of the export (BookExportCoordinator)
+    // Export submenu: DOCX, PDF, Markdown and EPUB open the window of the export
+    // (BookExportCoordinator)
     REG_CMD("file.export.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX..."), "FILE/Export/DOCX", 120, false, 0);
-    REG_CMD("file.export.pdf", QT_TRANSLATE_NOOP("CommandRegistrar", "&PDF"), "FILE/Export/PDF", 130, false, 1);
+    REG_CMD("file.export.pdf", QT_TRANSLATE_NOOP("CommandRegistrar", "&PDF..."), "FILE/Export/PDF",
+            130, false, 0);
     REG_CMD("file.export.markdown", QT_TRANSLATE_NOOP("CommandRegistrar", "&Markdown..."), "FILE/Export/Markdown", 140, true, 0);
-    REG_CMD("file.export.epub", QT_TRANSLATE_NOOP("CommandRegistrar", "&EPUB"), "FILE/Export/EPUB", 150, false, 2);
-    REG_CMD("file.export.mobi", QT_TRANSLATE_NOOP("CommandRegistrar", "M&OBI"), "FILE/Export/MOBI", 160, false, 2);
+    REG_CMD("file.export.epub", QT_TRANSLATE_NOOP("CommandRegistrar", "&EPUB..."),
+            "FILE/Export/EPUB", 150, false, 0);
     REG_CMD("file.export.icml", QT_TRANSLATE_NOOP("CommandRegistrar", "&InDesign ICML"), "FILE/Export/InDesign ICML", 170, false, 3);
     REG_CMD("file.export.latex", QT_TRANSLATE_NOOP("CommandRegistrar", "&LaTeX"), "FILE/Export/LaTeX", 180, false, 3);
     REG_CMD("file.export.settings", QT_TRANSLATE_NOOP("CommandRegistrar", "Export &Settings..."), "FILE/Export/Export Settings...", 190, true, 2);
@@ -292,6 +294,13 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onExportArchive);
+
+    // The window of the print (BookExportCoordinator); Ctrl+P, as in the word processors
+    REG_CMD_TOOL_ICON("file.print", QT_TRANSLATE_NOOP("CommandRegistrar", "&Print..."),
+                      "FILE/Print...", 197, true, 0,
+                      KeyboardShortcut(Qt::Key_P, Qt::ControlModifier),
+                      IconSet(),
+                      nullptr);
 
     // Alt+F4 (Cmd+Q on macOS, see SHORTCUTS): it closes the window on Windows and on Linux
     // desktops anyway; the menu shows it, and it works also where the window manager leaves

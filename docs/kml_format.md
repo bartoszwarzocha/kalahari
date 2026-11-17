@@ -483,15 +483,16 @@ comes back as a break where that format tells it apart from the end of a paragra
 | Plain text files (`.txt`) | A line end | As the plain text of the clipboard |
 | Grammar check (LanguageTool) | A line end | – |
 
-File > Export > DOCX and Markdown write a line break as the table says (see Export to DOCX and
-Markdown below); the other exports and the imports are not written yet and are to keep it so:
+File > Export > DOCX, Markdown, PDF and EPUB, and File > Print write a line break as the table
+says (see Export to DOCX and Markdown, and Export to PDF and EPUB, and the print below); the
+other exports and the imports are not written yet and are to keep it so:
 
 | Format | Export | Import |
 |--------|--------|--------|
 | DOCX | `<w:br/>` in the run | `<w:br/>` without a type or with `w:type="textWrapping"`, and `<w:cr/>`; a page or column break is not a line break |
 | Markdown | A backslash at the end of the line (a hard line break) | A backslash or two spaces at the end of the line |
-| EPUB, MOBI | `<br/>` | – |
-| PDF | A new line of the same paragraph, without the paragraph's spacing and first-line indent | – |
+| EPUB | `<br/>` | – |
+| PDF, the print | A new line of the same paragraph, without the paragraph's spacing and first-line indent | – |
 | InDesign ICML | The character U+2028 (a forced line break) | – |
 | LaTeX | `\\` at the end of the line | – |
 | Scrivener (RTF) | – | `\line` |
@@ -567,6 +568,25 @@ the start of a paragraph (the style gives the indent), the scene marks as scene 
 empty paragraphs left out, kept or made scene breaks. Paragraphs in the style `code` keep their
 text as it is. Word's hidden text is left out. The encodings of plain text: UTF-8, UTF-16 (with
 or without its mark), Windows-1250 and ISO 8859-2, found from the text (`detectTextEncoding()`).
+
+## Export to PDF and EPUB, and the print
+
+File > Export > PDF and EPUB write the same texts as DOCX and Markdown, chosen in the same window.
+A PDF has the pages of the page view: the page and the margins of Settings > Editor > Pages and
+Margins, the colors of the light paper, the page numbers, and the running head of the window (at
+first the author on the left pages and the title of the book on the right ones). A PDF to read
+or to keep (PDF/A-1b) has the links inside the book, bookmarks of the titles and headings, and
+the annotations as its comments (an option); a PDF for a print shop (PDF/X-4, with Qt 6.8 or
+later) has neither links nor comments. An EPUB 3 e-book has a document of XHTML for each item,
+the navigation document with an NCX for the readers of EPUB 2, the look of the book's styles or
+a simple one, the footnotes as notes over the text, the chosen design of the front of the cover
+and description of the materials of the cover, and the ISBN and the publisher the book keeps.
+
+File > Print (Ctrl+P) prints the pages of a PDF without its links, on a printer of the system,
+in the program's own window: a page on a side of a sheet (fitted to it or of its own size, with
+crop marks), two pages side by side, or a booklet to fold in half; on both sides by the printer,
+or by hand (the fronts, then the backs on the turned stack). The window keeps its texts and its
+sheets in the settings `print.*`, its layout with the export (`export.*`).
 
 ## Inline formatting
 

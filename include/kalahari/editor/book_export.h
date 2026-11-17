@@ -2,7 +2,8 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file book_export.h
-/// @brief Export of a book to a Word document (DOCX) and to Markdown (GitHub Flavored)
+/// @brief Export of a book to a Word document (DOCX), to Markdown (GitHub Flavored), to PDF and
+///        to EPUB
 ///
 /// The caller gathers what goes to the file (BookExport): the texts of the book in reading
 /// order with their KML, the titles the Navigator gives them, the numbering of their captions
@@ -13,16 +14,19 @@
 ///
 /// The look of the file comes from the book's styles (the style pack with the book's changes),
 /// not from the editor's look on the screen: the sizes, spacing and indents of the styles, the
-/// font of Normal the caller chooses (the editor's by default). docs/kml_format.md lists what
-/// each element of the text becomes in each format.
+/// font of Normal the caller chooses (the editor's by default). A PDF has the pages of the page
+/// view (BookPages); an EPUB the texts, which the reader divides into its pages.
+/// docs/kml_format.md lists what each element of the text becomes in each format.
 
 #pragma once
 
 #include <kalahari/editor/annotation.h>
+#include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_footnotes.h>
 
+#include <QDateTime>
 #include <QHash>
 #include <QString>
 #include <QStringList>
@@ -36,6 +40,45 @@ namespace kalahari::editor {
 enum class ExportFormat {
     Docx,      ///< A Word document
     Markdown,  ///< GitHub Flavored Markdown
+    Pdf,       ///< A PDF document: the pages of the page view
+    Epub,      ///< An EPUB 3 e-book
+};
+
+/// @brief What the top of the pages of a text shows (a PDF, a printout, a Word document)
+enum class RunningHead {
+    None,             ///< Nothing
+    AuthorAndTitle,   ///< The author on the left pages, the book's title on the right ones
+    TitleAndChapter,  ///< The book's title on the left pages, the text's title on the right ones
+    Chapter,          ///< The text's title on both
+};
+
+/// @brief What a PDF is for
+enum class PdfPurpose {
+    Reading,    ///< To read and to send: links, bookmarks, comments
+    PrintShop,  ///< For a print shop (PDF/X-4): without links and comments, with a color profile
+    Archive,    ///< To keep (PDF/A-1b): it opens the same in years
+};
+
+/// @brief The options of a PDF
+struct PdfOptions {
+    PdfPurpose purpose = PdfPurpose::Reading;
+    bool bookmarks = true;     ///< The titles of the parts and texts and the headings as bookmarks
+    bool facingPages = false;  ///< The reader shows the pages in pairs, as an open book
+    bool grayscale = false;    ///< In shades of gray, for a black and white printer
+};
+
+/// @brief The options and the data of an EPUB
+struct EpubOptions {
+    bool bookStyles = true;  ///< The look of the book's styles; false: a simple one, the font and
+                             ///< its size chosen by the reader
+    bool embedFont = false;  ///< The font of the text in the file, when its licence allows it
+    QString coverImage;      ///< The file of the cover's picture; empty: none
+    QString description;     ///< What the book is about (the blurb); empty: none
+    QString isbn;            ///< Empty, or not an ISBN (isIsbn()): the book's identifier is
+                             ///< @c identifier
+    QString publisher;       ///< Empty: none
+    QString identifier;      ///< The book's own lasting identifier (a UUID) when it has no ISBN
+    QDateTime modified;      ///< When the book was changed last; invalid: now
 };
 
 /// @brief The page of a Word document, as Settings > Editor > Pages and Margins give it
@@ -92,7 +135,12 @@ struct BookExport {
     bool textsOnNewPage = true;   ///< Each item from a new page (DOCX)
     bool titleHeadings = true;    ///< The titles of the items as headings (a text that starts
                                   ///< with a heading of its own keeps it, without the title)
-    bool annotationsAsComments = false;  ///< The annotations as Word's comments (DOCX)
+    bool annotationsAsComments = false;  ///< The annotations as comments (DOCX, PDF)
+    RunningHead runningHead = RunningHead::None;  ///< At the top of the pages (DOCX, PDF)
+    /// The colors of the pages (PDF, printing): those of the light paper
+    EditorColors colors;
+    PdfOptions pdf;
+    EpubOptions epub;
     bool copyImages = true;  ///< Markdown: the images to a folder next to the file; false: the
                              ///< links name the files of the book
     bool endnotesAtBookEnd = false;  ///< The endnotes at the end of the file; false: after each
@@ -122,6 +170,9 @@ struct ExportResult {
     QString imagesFolder;  ///< Markdown: the folder of its images; empty: none written
     int images = 0;        ///< The images written to the file or to its folder
     int missingImages = 0;  ///< The images whose files are missing or unreadable (left out)
+    bool coverMissing = false;     ///< EPUB: the cover's picture cannot be read (left out)
+    bool fontNotEmbedded = false;  ///< EPUB: the font of the text is not in the file (its
+                                   ///< licence does not allow it, or it is not on the computer)
 };
 
 /// @brief Reports the progress of the work, 0-100
@@ -135,6 +186,25 @@ QString markdownImagesFolderName(const QString& baseName, const QString& imagesW
 /// @return false, with what went wrong in @p problem, when it cannot
 bool exportDocx(const BookExport& book, const QString& path, const ExportProgress& progress,
                 ExportResult* result, ExportProblem* problem);
+
+/// @brief Write the book to a PDF document at @p path (replaced only once it is written whole)
+/// @return false, with what went wrong in @p problem, when it cannot
+bool exportPdf(const BookExport& book, const QString& path, const ExportProgress& progress,
+               ExportResult* result, ExportProblem* problem);
+
+/// @brief Write the book to an EPUB 3 e-book at @p path (replaced only once it is written whole)
+/// @return false, with what went wrong in @p problem, when it cannot
+bool exportEpub(const BookExport& book, const QString& path, const ExportProgress& progress,
+                ExportResult* result, ExportProblem* problem);
+
+/// @brief Whether @p text is an ISBN: 13 digits (or 10, the last one may be X) with the check
+///        digit of an ISBN, between them hyphens or spaces
+bool isIsbn(const QString& text);
+
+/// @brief Whether the PDF options of this purpose can be written by the Qt the program runs
+///        with: a file for a print shop (PDF/X-4) and one in shades of gray need Qt 6.8
+bool pdfPurposeSupported(PdfPurpose purpose);
+bool pdfGrayscaleSupported();
 
 /// @brief Write the book to a Markdown file at @p path, its images to a folder next to it
 ///        (BookExport::copyImages) named @p imagesFolderName

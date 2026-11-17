@@ -230,6 +230,12 @@ public:
     void setMissingImageColor(const QColor& color);
     const QColor& missingImageColor() const { return m_missingImageColor; }
 
+    /// @brief Draw the text as it is printed (a book exported to PDF or printed): without the
+    ///        line of a page break and the frame of a missing image, which only the screen
+    ///        shows (they say why a page ends there, which image is missing)
+    void setPrinted(bool printed) { m_printed = printed; }
+    bool isPrinted() const { return m_printed; }
+
     // ==========================================================================
     // Captions, cross-references and the list of figures
     // ==========================================================================
@@ -327,6 +333,14 @@ public:
     ///        area, the endnotes placed on it; the painter's origin at the top left of the
     ///        page's text area
     void drawPageNotes(QPainter* painter, int page, const NoteColors& colors) const;
+
+    /// @brief The height the footnotes take at the bottom of a page's text area (page flow),
+    ///        with the line above them; 0: none
+    qreal pageNotesHeight(int page) const;
+
+    /// @brief The bottom of the text with its endnotes (document coordinates), without the
+    ///        space after its last paragraph: where a text after it goes on (page flow)
+    qreal contentBottom() const;
 
     /// @brief The text of a note as shown: its id and its rectangle (document coordinates)
     struct NoteArea {
@@ -1290,6 +1304,7 @@ private:
     std::shared_ptr<ImageStore> m_imageStore;
     mutable bool m_hasImages = false;
     QColor m_missingImageColor;
+    bool m_printed = false;  ///< setPrinted()
 
     // The fields: what their numbers depend on outside the text, their numbers (counted
     // again when asked for after a change of a field), whether the document has a field or

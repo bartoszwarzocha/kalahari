@@ -71,6 +71,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"file.saveVersion", QStringLiteral("Alt+Shift+S")},
         {"file.versionHistory", QStringLiteral("Alt+Shift+H")},
 #endif
+        {"file.print", QStringLiteral("Ctrl+P")},
 #ifdef Q_OS_MACOS
         {"file.exit", QStringLiteral("Ctrl+Q")},  // Cmd+Q
 #else

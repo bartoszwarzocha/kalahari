@@ -6,6 +6,8 @@ set(TEST_SOURCES
     test_support/reset_singletons.cpp  # Sub-Project C WS4.1: singleton reset hook
     test_support/window_parts.cpp      # The book and the commands of the window of the tests
     test_support/plugin_signing.cpp    # The tests' own publisher key (only signed plugins load)
+    test_support/export_samples.cpp    # The sample book of the export tests
+    test_support/dialog_checks.cpp     # The keys and the size of the windows of the tests
     core/test_settings_manager.cpp
     core/test_cmd_line_parser.cpp
     core/test_svg_converter.cpp
@@ -114,6 +116,9 @@ set(TEST_SOURCES
     editor/test_version_comparison.cpp           # A version of a text compared with the text now
     editor/test_book_export.cpp                  # Export of a book to DOCX and Markdown
     editor/test_book_import.cpp                  # Import of DOCX, Markdown and plain text into a book
+    editor/test_pdf_export.cpp                   # Export of a book to PDF: its pages and the file
+    editor/test_book_print.cpp                   # The print of a book: the pages on the sheets
+    editor/test_epub_export.cpp                  # Export of a book to EPUB 3
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     gui/test_command_registry.cpp
@@ -170,6 +175,7 @@ set(TEST_SOURCES
     gui/test_book_import_texts.cpp               # The texts of an imported file added to the book, Undo import
     gui/test_import_book_dialog.cpp              # File > Import > DOCX, Markdown and plain text: the window
     gui/test_book_import_plan.cpp                # The plan of an import: the texts, their kinds and styles
+    gui/test_print_book_dialog.cpp               # File > Print: the window, its sheets and the print
     gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
     gui/test_own_windows.cpp                     # Only own windows, on their common base
     gui/test_widget_wheel.cpp                    # The mouse wheel changes only the field with the focus
@@ -529,7 +535,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/delete_dialogs.cpp           # What goes from the book, and its files
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/dialog_parts.cpp             # Parts of the own dialogs
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/archive_dialogs.cpp          # Export and import of an archive
-    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/export_book_dialog.cpp       # Export of the book to DOCX and Markdown
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/book_output_dialog.cpp       # The tabs of the export and the print
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/print_book_dialog.cpp        # File > Print
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/export_book_dialog.cpp       # Export of the book to DOCX, PDF, Markdown, EPUB
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/import_book_dialog.cpp       # Import of DOCX, Markdown and plain text
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/file_preview_dialog.cpp      # The text of a file no element has
     ${CMAKE_SOURCE_DIR}/src/gui/utils/file_location.cpp              # A file shown in the file manager
@@ -615,6 +623,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/docx_reader.cpp          # Import of a Word document (DOCX)
     ${CMAKE_SOURCE_DIR}/src/editor/markdown_reader.cpp      # Import of Markdown
     ${CMAKE_SOURCE_DIR}/src/editor/text_reader.cpp          # Import of plain text: encodings, paragraphs, titles
+    ${CMAKE_SOURCE_DIR}/src/editor/book_pages.cpp           # The pages of a book as the page view shows them (PDF, printer)
+    ${CMAKE_SOURCE_DIR}/src/editor/book_print.cpp           # The print of a book: the pages on the sheets
+    ${CMAKE_SOURCE_DIR}/src/editor/pdf_writer.cpp           # Export of a book to a PDF document
+    ${CMAKE_SOURCE_DIR}/src/editor/epub_writer.cpp          # Export of a book to an EPUB 3 e-book
     ${CMAKE_SOURCE_DIR}/src/editor/statistics_collector.cpp   # Phase 6/Task 7.17: Statistics
     ${CMAKE_SOURCE_DIR}/src/editor/word_repetitions.cpp        # The repetitions of words
     ${CMAKE_SOURCE_DIR}/src/editor/quick_insert.cpp            # Quick insert: the items
@@ -721,6 +733,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/book_output_dialog.h  # BookOutputDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/print_book_dialog.h  # PrintBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/export_book_dialog.h  # ExportBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/import_book_dialog.h  # ImportBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
@@ -882,6 +896,7 @@ target_link_libraries(kalahari-tests PRIVATE
     Qt6::Sql        # OpenSpec #00041: SQLite Project Database
     Qt6::Svg        # For IconRegistry (QSvgRenderer) used by ArtProvider
     Qt6::SvgWidgets # For the preview of the Icon Downloader
+    Qt6::PrintSupport  # The print of the book
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     libzip::zip

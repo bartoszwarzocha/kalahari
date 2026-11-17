@@ -917,6 +917,8 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
         book.footnotes = readFootnotes(footnotes, fields.path("footnotes"), problems);
     }
     book.bibliographyStyle = fields.string("bibliographyStyle");
+    book.isbn = fields.string("isbn");
+    book.publisher = fields.string("publisher");
     book.extra = fields.rest();
     return book;
 }
@@ -1415,6 +1417,8 @@ QJsonObject bookToJson(const ProjectBook& book) {
         json.remove(QLatin1String("footnotes"));
     }
     setOrRemove(json, "bibliographyStyle", book.bibliographyStyle);
+    setOrRemove(json, "isbn", book.isbn);
+    setOrRemove(json, "publisher", book.publisher);
     return json;
 }
 

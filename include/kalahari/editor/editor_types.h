@@ -117,6 +117,9 @@ struct PageFlow {
     bool enabled = false;
     qreal pitch = 0.0;       ///< Distance between the tops of two consecutive text areas
     qreal textHeight = 0.0;  ///< Height of one text area
+    /// How far below the top of the first text area the text starts: it goes on on the page
+    /// of a text before it (a book exported to PDF or printed); 0: at the top
+    qreal firstPageTop = 0.0;
 
     bool operator==(const PageFlow&) const = default;
 };
