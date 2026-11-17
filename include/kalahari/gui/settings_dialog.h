@@ -59,16 +59,16 @@ public:
     /// @brief The pages the dialog can be opened at (openPage())
     static constexpr const char* GENERAL_PAGE = "general";           ///< General
     static constexpr const char* EDITOR_COLORS_PAGE = "editor.colors";  ///< Editor > Colors
-    /// Editor > General, scrolled to its group Word Count, the cursor in its counting of the
+    /// Editor > Writing, scrolled to its group Word Count, the cursor in its counting of the
     /// notes' words (the gear of Format > Footnote Layout...)
     static constexpr const char* WORD_COUNT_PAGE = "editor.general.wordCount";
-    /// Editor > General, the cursor in the gray background of the fields (the gear of Insert >
+    /// Editor > Writing, the cursor in the gray background of the fields (the gear of Insert >
     /// Field...)
     static constexpr const char* FIELDS_PAGE = "editor.general.fields";
-    /// Editor > General, the cursor in the Paste Command (the gear of Edit > Paste Special...)
+    /// Editor > Writing, the cursor in the Paste Command (the gear of Edit > Paste Special...)
     static constexpr const char* PASTE_PAGE = "editor.general.paste";
     static constexpr const char* PAGES_PAGE = "editor.pages";        ///< Editor > Pages and Margins
-    /// Editor > Pages and Margins, scrolled to its group Margin Numbering, the cursor in it
+    /// Editor > Margin Numbering, the cursor in the choice of the numbering
     static constexpr const char* MARGIN_NUMBERING_PAGE = "editor.pages.marginNumbering";
     static constexpr const char* IMAGES_PAGE = "editor.images";      ///< Editor > Images
     static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
@@ -78,9 +78,12 @@ public:
     static constexpr const char* REPETITIONS_PAGE = "editor.repetitions";  ///< Editor > Repetitions
     static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* CLIPPINGS_PAGE = "editor.clippings";  ///< Editor > Clippings
-    static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
+    static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations > General
     static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
-    static constexpr const char* NAVIGATOR_PAGE = "navigator";       ///< Navigator
+    /// Navigator > Material Kinds
+    static constexpr const char* NAVIGATOR_PAGE = "navigator";
+    /// Navigator > Adding (the menus of the nodes and the Add Element window)
+    static constexpr const char* NAVIGATOR_ADDING_PAGE = "navigator.adding";
     static constexpr const char* CARDS_PAGE = "cards";               ///< Cards
     static constexpr const char* MATERIALS_PAGE = "materials";       ///< Materials
     static constexpr const char* PLOT_BOARD_PAGE = "plotBoard";      ///< Plot Board
@@ -126,9 +129,9 @@ public:
     /// Grammar panel), VERSIONS_PAGE (the gear of the versions), CLIPPINGS_PAGE (the gears of
     /// the windows of the clippings), REPETITIONS_PAGE (the gear of the Repetitions panel),
     /// ANNOTATIONS_PAGE (the gear of the Annotations panel), NAVIGATOR_PAGE (the gear of a list
-    /// of materials), MATERIALS_PAGE (the gear of the entry of a source), CARDS_PAGE (the gear
-    /// of a card of a character, a location or an item) or
-    /// SHORTCUTS_PAGE (as showShortcutsPage())
+    /// of materials), NAVIGATOR_ADDING_PAGE, MATERIALS_PAGE (the gear of the entry of a source),
+    /// CARDS_PAGE (the gear of a card of a character, a location or an item) or SHORTCUTS_PAGE
+    /// (as showShortcutsPage())
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);
 

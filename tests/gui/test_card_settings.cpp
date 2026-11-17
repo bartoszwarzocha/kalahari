@@ -32,13 +32,13 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <QApplication>
+#include <QComboBox>
 #include <QCoreApplication>
 #include <QGroupBox>
 #include <QImage>
 #include <QLabel>
 #include <QPixmap>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QSortFilterProxyModel>
 #include <QTabWidget>
 #include <QTableWidget>
@@ -88,6 +88,18 @@ QImage listPortrait(const core::ProjectManager& pm, const gui::MaterialListPanel
 }
 
 /// Whether @p widget is inside @p ancestor
+/// The value of the item chosen in @p list
+QString shownIn(const QComboBox* list) {
+    return list->currentData().toString();
+}
+
+/// Choose the item of value @p value in @p list, as the writer does
+void pick(QComboBox* list, const char* value) {
+    const int index = list->findData(QString::fromLatin1(value));
+    REQUIRE(index >= 0);
+    list->setCurrentIndex(index);
+}
+
 bool isIn(const QWidget* widget, const QWidget* ancestor) {
     return ancestor != nullptr && ancestor->isAncestorOf(widget);
 }
@@ -207,18 +219,19 @@ TEST_CASE("Settings > Cards: the layout, the portraits and the fields of new boo
 
     gui::CardsPage page;
     page.load();
-    CHECK(page.layoutButton(gui::CardPage::LAYOUT_COLUMNS)->isChecked());
-    CHECK(page.portraitButton(gui::CardPage::SHAPE_SQUARE)->isChecked());
-    CHECK(page.portraitButton(gui::CardPage::NO_PICTURE_INITIALS)->isChecked());
-    CHECK(page.layoutButton("other") == nullptr);
-    CHECK(page.portraitButton("other") == nullptr);
+    CHECK(shownIn(page.layoutList()) == QLatin1String(gui::CardPage::LAYOUT_COLUMNS));
+    CHECK(shownIn(page.shapeList()) == QLatin1String(gui::CardPage::SHAPE_SQUARE));
+    CHECK(shownIn(page.noPictureList()) == QLatin1String(gui::CardPage::NO_PICTURE_INITIALS));
+    CHECK(page.layoutList()->count() == 2);
+    CHECK(page.shapeList()->count() == 2);
+    CHECK(page.noPictureList()->count() == 2);
     CHECK(page.defaultFieldsLabel()->text().startsWith(
         QStringLiteral("New books have the fields of the book types.")));
     CHECK_FALSE(page.isChanged());
 
-    page.layoutButton(gui::CardPage::LAYOUT_TABS)->setChecked(true);
-    page.portraitButton(gui::CardPage::SHAPE_CIRCLE)->setChecked(true);
-    page.portraitButton(gui::CardPage::NO_PICTURE_ICON)->setChecked(true);
+    pick(page.layoutList(), gui::CardPage::LAYOUT_TABS);
+    pick(page.shapeList(), gui::CardPage::SHAPE_CIRCLE);
+    pick(page.noPictureList(), gui::CardPage::NO_PICTURE_ICON);
     CHECK(page.isChanged());
     page.apply();
     CHECK(gui::CardPage::hasTabs());

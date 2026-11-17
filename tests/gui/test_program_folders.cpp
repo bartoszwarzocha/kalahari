@@ -22,7 +22,7 @@
 #include <QFileInfo>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QRadioButton>
+#include <QComboBox>
 #include <QScrollArea>
 #include <QSpinBox>
 #include <QTemporaryDir>
@@ -415,23 +415,21 @@ TEST_CASE("Folders page: where and how many backups of the databases are kept",
     const QDir root(dir.path());
     gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QStringLiteral("Files"), QStringLiteral("Folders"));
-    auto* inEachBook = dialog.findChild<QRadioButton*>(QStringLiteral("backupsInEachBook"));
-    auto* inOneFolder = dialog.findChild<QRadioButton*>(QStringLiteral("backupsInOneFolder"));
+    auto* place = dialog.findChild<QComboBox*>(QStringLiteral("backupsPlace"));
     auto* folder = dialog.findChild<gui::FolderField*>(QStringLiteral("backupFolder"));
     auto* count = dialog.findChild<QSpinBox*>(QStringLiteral("backupCount"));
-    REQUIRE(inEachBook != nullptr);
-    REQUIRE(inOneFolder != nullptr);
+    REQUIRE(place != nullptr);
     REQUIRE(folder != nullptr);
     REQUIRE(count != nullptr);
 
     // At first in the folder of each book, five copies
-    CHECK(inEachBook->isChecked());
+    CHECK(place->currentIndex() == 0);
     CHECK_FALSE(folder->isEnabled());
     CHECK(folder->folder() == ProgramFolders::defaultBackupsFolder());
     CHECK(count->value() == 5);
 
     // One folder for all books: the suggested folder goes to the settings as it is
-    inOneFolder->setChecked(true);
+    place->setCurrentIndex(1);
     CHECK(folder->isEnabled());
     count->setValue(3);
     const QStringList written = dialog.applyChanges();
@@ -445,7 +443,7 @@ TEST_CASE("Folders page: where and how many backups of the databases are kept",
     folder->setFolder(root.filePath("Backups"));
     CHECK(dialog.applyChanges() == QStringList{QStringLiteral("project.backupFolder")});
     CHECK(setting(core::BackupManager::FOLDER_SETTING) == stored(root.filePath("Backups")));
-    inEachBook->setChecked(true);
+    place->setCurrentIndex(0);
     CHECK_FALSE(folder->isEnabled());
     CHECK(dialog.applyChanges() == QStringList{QStringLiteral("project.backupFolder")});
     CHECK(setting(core::BackupManager::FOLDER_SETTING).empty());
@@ -455,11 +453,11 @@ TEST_CASE("Folders page: where and how many backups of the databases are kept",
                                 root.filePath("Backups").toStdString());
     gui::SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(again, QStringLiteral("Files"), QStringLiteral("Folders"));
-    auto* shownOneFolder = again.findChild<QRadioButton*>(QStringLiteral("backupsInOneFolder"));
+    auto* shownPlace = again.findChild<QComboBox*>(QStringLiteral("backupsPlace"));
     auto* shownFolder = again.findChild<gui::FolderField*>(QStringLiteral("backupFolder"));
-    REQUIRE(shownOneFolder != nullptr);
+    REQUIRE(shownPlace != nullptr);
     REQUIRE(shownFolder != nullptr);
-    CHECK(shownOneFolder->isChecked());
+    CHECK(shownPlace->currentIndex() == 1);
     CHECK(shownFolder->isEnabled());
     CHECK(shownFolder->folder() == root.filePath("Backups"));
     CHECK_FALSE(again.hasChanges());

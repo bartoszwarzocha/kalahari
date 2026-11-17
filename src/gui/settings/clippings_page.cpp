@@ -17,17 +17,21 @@
 #include "kalahari/gui/settings/settings_pages.h"
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QFormLayout>
 #include <QKeySequence>
 #include <QLabel>
-#include <QRadioButton>
 #include <QVBoxLayout>
 
+#include <string>
 #include <vector>
 
 namespace kalahari::gui {
 
 namespace {
+
+/// @brief The fewest characters a list of choices shows
+constexpr int MIN_CHOICE_CHARACTERS = 14;
 
 /// @brief The keys of command @p commandId as the writer sees them; empty: none
 QString keysOf(const CommandRegistry& commands, const char* commandId) {
@@ -74,69 +78,67 @@ EditorClippingsPage::EditorClippingsPage(CommandRegistry& commands, QWidget* par
     connect(&m_commands, &CommandRegistry::shortcutsChanged, intro, showIntro);
     whenLoaded(showIntro);
 
+    // A list of the choices of setting @p key, bound to it (the first one when it has none of
+    // them), narrow enough for the narrowest window
+    const auto addList = [this](QFormLayout* form, const QString& label, const char* key,
+                                const std::vector<Choice>& choices, const char* name) {
+        QComboBox* list = addChoice(form, label, choices, std::string());
+        list->setObjectName(QLatin1String(name));
+        list->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+        list->setMinimumContentsLength(MIN_CHOICE_CHARACTERS);
+        bindChoice(list, key, choices.front().value.toString().toStdString());
+    };
+
     // Cutting: at once or with the small window; without a selection
     //: A group of Settings > Editor > Clippings. In Polish: Wycinanie
     QFormLayout* cutting = addGroup(tr("Cutting"));
-    std::vector<QRadioButton*> cut = addChoices(
-        cutting, QString(), Clippings::CUT_SETTING,
-        //: In Polish: &Wycinaj od razu / Tytuł to pierwsze słowa fragmentu; można go zmienić
-        //: później, jak tytuł każdego tekstu (F2 w Nawigatorze).
-        {{.text = tr("Cut at &once"),
-          .value = Clippings::CUT_AT_ONCE,
-          .note = tr("The title is the first words of the fragment; it can be changed later, as "
-                     "that of any text (F2 in the Navigator).")},
-         //: In Polish: Najpierw &małe okno / Z tytułem i notatką wycinka.
-         {.text = tr("First a s&mall window"),
-          .value = Clippings::CUT_WITH_WINDOW,
-          .note = tr("With the title and a note of the clipping.")}});
-    cut.front()->setObjectName(QStringLiteral("clippingsCutAtOnce"));
-    cut.back()->setObjectName(QStringLiteral("clippingsCutWithWindow"));
-    std::vector<QRadioButton*> noSelection = addChoices(
-        cutting,
-        //: Followed by what the command does. In Polish: Bez zaznaczenia polecenie:
-        tr("Without a selection the command:"), Clippings::NO_SELECTION_SETTING,
-        //: In Polish: wycina &akapit z kursorem
-        {{.text = tr("cuts the &paragraph with the cursor"),
-          .value = Clippings::NO_SELECTION_PARAGRAPH,
-          .note = {}},
-         //: In Polish: jest &nieaktywne
-         {.text = tr("is &greyed out"), .value = Clippings::NO_SELECTION_NOTHING, .note = {}}});
-    noSelection.front()->setObjectName(QStringLiteral("clippingsNoSelectionParagraph"));
-    noSelection.back()->setObjectName(QStringLiteral("clippingsNoSelectionNothing"));
+    addList(cutting,
+            //: Followed by what Edit > Cut to Clippings does. In Polish: &Polecenie:
+            tr("&The command:"), Clippings::CUT_SETTING,
+            //: In Polish: wycina od razu / Tytuł to pierwsze słowa fragmentu; można go zmienić
+            //: później, jak tytuł każdego tekstu (F2 w Nawigatorze).
+            {{tr("cuts at once"), QLatin1String(Clippings::CUT_AT_ONCE),
+              tr("The title is the first words of the fragment; it can be changed later, as "
+                 "that of any text (F2 in the Navigator).")},
+             //: In Polish: najpierw otwiera małe okno / Z tytułem i notatką wycinka.
+             {tr("first opens a small window"), QLatin1String(Clippings::CUT_WITH_WINDOW),
+              tr("With the title and a note of the clipping.")}},
+            "clippingsCut");
+    addList(cutting,
+            //: Followed by what the command does. In Polish: &Bez zaznaczenia polecenie:
+            tr("&Without a selection the command:"), Clippings::NO_SELECTION_SETTING,
+            //: In Polish: wycina akapit z kursorem
+            {{tr("cuts the paragraph with the cursor"),
+              QLatin1String(Clippings::NO_SELECTION_PARAGRAPH), {}},
+             //: In Polish: jest nieaktywne
+             {tr("is greyed out"), QLatin1String(Clippings::NO_SELECTION_NOTHING), {}}},
+            "clippingsNoSelection");
 
     // Inserting: the window or the list; the clipping inserted
     //: A group of Settings > Editor > Clippings. In Polish: Wstawianie
     QFormLayout* inserting = addGroup(tr("Inserting"));
-    std::vector<QRadioButton*> insert = addChoices(
-        inserting,
-        //: Followed by what it opens. In Polish: Polecenie otwiera:
-        tr("The command opens:"), Clippings::INSERT_SETTING,
-        //: In Polish: &okno z listą i podglądem
-        {{.text = tr("a &window with the list and the preview"),
-          .value = Clippings::INSERT_WINDOW,
-          .note = {}},
-         //: In Polish: &listę przy kursorze / Jak szybkie wstawianie, bez podglądu.
-         {.text = tr("a &list at the cursor"),
-          .value = Clippings::INSERT_LIST,
-          .note = tr("As quick insert does, without the preview.")}});
-    insert.front()->setObjectName(QStringLiteral("clippingsInsertWindow"));
-    insert.back()->setObjectName(QStringLiteral("clippingsInsertList"));
-    std::vector<QRadioButton*> afterInsert = addChoices(
-        inserting,
-        //: Followed by what happens to it. In Polish: Wstawiony wycinek:
-        tr("A clipping inserted:"), Clippings::AFTER_INSERT_SETTING,
-        //: In Polish: &zostaje w Warsztacie / Oznaczony jako wstawiony.
-        {{.text = tr("&stays in the Workshop"),
-          .value = Clippings::AFTER_INSERT_KEEP,
-          .note = tr("Marked as inserted.")},
-         //: In Polish: zni&ka z Warsztatu / Cofnięcie usuwa wstawiony tekst, a wycinek wraca
-         //: do Warsztatu.
-         {.text = tr("goes from the Wor&kshop"),
-          .value = Clippings::AFTER_INSERT_REMOVE,
-          .note = tr("Undo takes the insertion back, and the clipping is in the Workshop "
-                     "again.")}});
-    afterInsert.front()->setObjectName(QStringLiteral("clippingsAfterInsertKeep"));
-    afterInsert.back()->setObjectName(QStringLiteral("clippingsAfterInsertRemove"));
+    addList(inserting,
+            //: Followed by what Insert > Clipping from the Workshop opens. In Polish: Polecenie
+            //: &otwiera:
+            tr("The command &opens:"), Clippings::INSERT_SETTING,
+            //: In Polish: okno z listą i podglądem
+            {{tr("a window with the list and the preview"),
+              QLatin1String(Clippings::INSERT_WINDOW), {}},
+             //: In Polish: listę przy kursorze / Jak szybkie wstawianie, bez podglądu.
+             {tr("a list at the cursor"), QLatin1String(Clippings::INSERT_LIST),
+              tr("As quick insert does, without the preview.")}},
+            "clippingsInsert");
+    addList(inserting,
+            //: Followed by what happens to it. In Polish: Wstawiony &wycinek:
+            tr("A clipping &inserted:"), Clippings::AFTER_INSERT_SETTING,
+            //: In Polish: zostaje w Warsztacie / Oznaczony jako wstawiony.
+            {{tr("stays in the Workshop"), QLatin1String(Clippings::AFTER_INSERT_KEEP),
+              tr("Marked as inserted.")},
+             //: In Polish: znika z Warsztatu / Cofnięcie usuwa wstawiony tekst, a wycinek wraca
+             //: do Warsztatu.
+             {tr("goes from the Workshop"), QLatin1String(Clippings::AFTER_INSERT_REMOVE),
+              tr("Undo takes the insertion back, and the clipping is in the Workshop again.")}},
+            "clippingsAfterInsert");
 
     // In the text: the scissors beside the paragraphs clippings were cut from
     //: A group of Settings > Editor > Clippings. In Polish: W tekście
@@ -148,10 +150,9 @@ EditorClippingsPage::EditorClippingsPage(CommandRegistry& commands, QWidget* par
     //: Under "Draw scissors". In Polish: Jak spinacze materiałów: kliknięcie
     //: albo menu akapitu pokazuje wycinek albo przywraca go w tym miejscu. Rysowane w kolorze
     //: tekstu.
-    QLabel* marksNote = addNote(inText, tr("As the paperclips of the materials: a click or the "
-                                           "menu of the paragraph shows the clipping or "
-                                           "restores it there. Drawn in the color of the text."));
-    alignWithText(marksNote, marks);
+    addOptionNote(inText, marks,
+                  tr("As the paperclips of the materials: a click or the menu of the paragraph "
+                     "shows the clipping or restores it there. Drawn in the color of the text."));
 
     //: In Polish: Czy wycięcie zmniejsza słowa dnia, ustawia się w Statystyki i cele > Liczenie.
     addNote(pageLayout(), tr("Whether a cut lowers the words of the day is set in Statistics "

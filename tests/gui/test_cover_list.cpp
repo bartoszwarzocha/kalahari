@@ -30,7 +30,6 @@
 #include <QLineEdit>
 #include <QPlainTextEdit>
 #include <QProgressBar>
-#include <QRadioButton>
 #include <QSortFilterProxyModel>
 #include <QSpinBox>
 #include <QTreeWidget>
@@ -304,7 +303,7 @@ TEST_CASE("Cover materials: a kind hidden in the Navigator, its list and Setting
     CHECK(panel->hiddenPage()->isVisibleTo(panel));
 
     // Settings > Navigator: the kind unchecked; checked, it comes back
-    gui::NavigatorPage page(kalahari::test::book());
+    gui::NavigatorPage page(kalahari::test::book(), gui::NavigatorPage::Part::Kinds);
     page.load();
     auto* box = page.findChild<QCheckBox*>(QStringLiteral("navigatorKind_") + COVER_LIST);
     REQUIRE(box != nullptr);
@@ -318,24 +317,26 @@ TEST_CASE("Cover materials: a kind hidden in the Navigator, its list and Setting
     CHECK(kindNode() != nullptr);
     CHECK_FALSE(panel->hiddenPage()->isVisibleTo(panel));
 
-    // The unit of the texts of the cover and the targets of their kinds
-    auto* words = page.findChild<QRadioButton*>(QStringLiteral("navigatorCoverWords"));
+    // Settings > Navigator > Cover: the unit of the texts of the cover and the targets of
+    // their kinds
+    gui::NavigatorPage coverPage(kalahari::test::book(), gui::NavigatorPage::Part::Cover);
+    auto* unit = coverPage.findChild<QComboBox*>(QStringLiteral("navigatorCoverUnit"));
     auto* blurbWords =
-        page.findChild<QSpinBox*>(QStringLiteral("navigatorCoverTarget_blurb_words"));
+        coverPage.findChild<QSpinBox*>(QStringLiteral("navigatorCoverTarget_blurb_words"));
     auto* blurbCharacters =
-        page.findChild<QSpinBox*>(QStringLiteral("navigatorCoverTarget_blurb_characters"));
-    REQUIRE(words != nullptr);
+        coverPage.findChild<QSpinBox*>(QStringLiteral("navigatorCoverTarget_blurb_characters"));
+    REQUIRE(unit != nullptr);
     REQUIRE(blurbWords != nullptr);
     REQUIRE(blurbCharacters != nullptr);
-    page.load();
+    coverPage.load();
     CHECK(blurbCharacters->value() == 600);
-    CHECK(blurbCharacters->isVisibleTo(&page));
-    CHECK_FALSE(blurbWords->isVisibleTo(&page));
-    words->setChecked(true);
-    CHECK(blurbWords->isVisibleTo(&page));
-    CHECK_FALSE(blurbCharacters->isVisibleTo(&page));
+    CHECK(blurbCharacters->isVisibleTo(&coverPage));
+    CHECK_FALSE(blurbWords->isVisibleTo(&coverPage));
+    unit->setCurrentIndex(unit->findData(QStringLiteral("words")));
+    CHECK(blurbWords->isVisibleTo(&coverPage));
+    CHECK_FALSE(blurbCharacters->isVisibleTo(&coverPage));
     blurbWords->setValue(120);
-    page.apply();
+    coverPage.apply();
     CHECK(CoverMaterial::countsWords());
     CHECK(CoverMaterial::defaultTargetOf(QStringLiteral("blurb"), true) == 120);
     CHECK(CoverMaterial::defaultTargetOf(QStringLiteral("blurb"), false) == 600);

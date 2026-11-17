@@ -13,20 +13,19 @@
 
 #include "kalahari/gui/settings/settings_page.h"
 
-#include <nlohmann/json.hpp>
-
 #include <string>
-#include <vector>
 
 class QCheckBox;
+class QComboBox;
 class QFormLayout;
-class QRadioButton;
-class QToolButton;
 class QGroupBox;
+class QLabel;
+class QLayout;
+class QToolButton;
 
 namespace kalahari::gui {
 
-/// @brief What the pages of the statistics share: choices with notes and the advanced settings
+/// @brief What the pages of the statistics share: options with notes and the advanced settings
 class StatsSettingsPage : public SettingsPage {
     Q_OBJECT
 
@@ -34,7 +33,7 @@ public:
     explicit StatsSettingsPage(QWidget* parent = nullptr);
 
     /// @brief The button that shows the advanced settings; nullptr on a page without them
-    QToolButton* advancedToggle() const { return m_advancedToggle; }
+    QToolButton* advancedToggle() const { return advancedSettingsButton(); }
 
     /// @brief The group of the advanced settings; nullptr on a page without them
     QGroupBox* advancedGroup() const { return m_advancedGroup; }
@@ -45,18 +44,15 @@ protected:
     QCheckBox* addOption(QLayout* layout, const QString& text, const std::string& key,
                          const QString& note = QString());
 
-    /// @brief A note under the control of the last row of @p form, in its column
-    QLabel* addFieldNote(QFormLayout* form, const QString& text);
-
     /// @brief A short text on top of the page: what it is about
     QLabel* addIntro(const QString& text);
 
     /// @brief The button "Advanced Settings" and the group it shows, hidden at first
+    ///        (addAdvancedGroup())
     /// @param title The heading of the group
     QFormLayout* addAdvanced(const QString& title);
 
 private:
-    QToolButton* m_advancedToggle{nullptr};
     QGroupBox* m_advancedGroup{nullptr};
 };
 
@@ -75,9 +71,9 @@ public:
 
 private:
     /// @brief "Cutting to the clippings is not deleting" (the words of the day stay as they
-    ///        were), under the first of @p goal, the choices of what counts toward the goal
-    ///        (the words added)
-    void addClippingsOption(const std::vector<QRadioButton*>& goal);
+    ///        were) in @p counting, under @p goal, the list of what counts toward the goal: only
+    ///        for the words added
+    void addClippingsOption(QFormLayout* counting, const QComboBox* goal);
 };
 
 /// @brief Settings > Statistics and Goals > Notifications

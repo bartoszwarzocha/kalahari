@@ -34,11 +34,11 @@
 #include "kalahari/gui/widgets/palette_edit.h"
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QVBoxLayout>
 
 #include <nlohmann/json.hpp>
@@ -57,6 +57,16 @@ using json = nlohmann::json;
 /// The values of NavigatorPanel::CARDS_TREE_SETTING
 constexpr const char* TREE = "tree";
 constexpr const char* LIST = "list";
+
+/// The fewest characters a list of choices shows
+constexpr int MIN_CHOICE_CHARACTERS = 14;
+
+/// @p list without the width of its longest choice: the page fits a narrow window
+QComboBox* narrow(QComboBox* list) {
+    list->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    list->setMinimumContentsLength(MIN_CHOICE_CHARACTERS);
+    return list;
+}
 
 /// @p colors as the setting keeps them, a list of "#rrggbb"
 json jsonOf(const QStringList& colors) {
@@ -92,109 +102,57 @@ CardsPage::CardsPage(QWidget* parent) : SettingsPage(parent) {
     addFieldsGroup();
 }
 
-void CardsPage::bindChoices(const char* key, const char* fallback, const Choices& choices) {
-    Binding binding;
-    binding.key = [key]() { return std::string(key); };
-    binding.stored = [key, fallback]() {
-        return json(core::SettingsManager::getInstance().get<std::string>(key, fallback));
-    };
-    binding.shown = [choices, fallback]() {
-        for (const auto& [button, value] : choices) {
-            if (button->isChecked()) {
-                return json(value);
-            }
-        }
-        return json(fallback);
-    };
-    binding.show = [choices](const json& value) {
-        const std::string shown = value.is_string() ? value.get<std::string>() : std::string();
-        QRadioButton* chosen = choices.front().first;
-        for (const auto& [button, each] : choices) {
-            if (shown == each) {
-                chosen = button;
-            }
-        }
-        chosen->setChecked(true);
-    };
-    binding.store = [key](const json& value) {
-        core::SettingsManager::getInstance().set<std::string>(key, value.get<std::string>());
-    };
-    bindCustom(std::move(binding));
-}
-
 void CardsPage::addFullCardGroup() {
     //: Settings > Cards: the group of the full card of a character, a location or an item. In
     //: Polish: Pełna karta
     QFormLayout* full = addGroup(tr("Full Card"));
-    //: The data of the full card beside its description. In Polish: Dwie kolumny
-    m_columns = new QRadioButton(tr("Two columns"));
-    m_columns->setObjectName(QStringLiteral("cardsLayoutColumns"));
-    //: In Polish: Zakładki
-    m_tabs = new QRadioButton(tr("Tabs"));
-    m_tabs->setObjectName(QStringLiteral("cardsLayoutTabs"));
-    auto* choices = new QWidget();
-    auto* choicesLayout = new QVBoxLayout(choices);
-    choicesLayout->setContentsMargins(0, 0, 0, 0);
-    choicesLayout->addWidget(m_columns);
-    //: In Polish: Dane, odmiana i własne pola po lewej; opis, relacje, rozdziały i materiały
-    //: po prawej.
-    alignWithText(addNote(choicesLayout,
-                          tr("The data, the declension and the own fields at the left; the "
-                             "description, the relations, the chapters and the materials at "
-                             "the right.")),
-                  m_columns);
-    choicesLayout->addWidget(m_tabs);
-    //: In Polish: Ogólne, Opis, Relacje, Rozdziały i materiały – pod wspólnym nagłówkiem;
-    //: Alt i podkreślona litera wybiera zakładkę.
-    alignWithText(addNote(choicesLayout,
-                          tr("General, Description, Relations, Chapters and Materials – under "
-                             "the header; Alt and the underlined letter choose a tab.")),
-                  m_tabs);
-    //: The label of the choice of the layout of the full card. In Polish: Układ:
-    auto* label = new QLabel(tr("Layout:"));
-    label->setBuddy(m_columns);
-    full->addRow(label, choices);
-    bindChoices(CardPage::LAYOUT_SETTING, CardPage::LAYOUT_COLUMNS,
-                {{m_columns, CardPage::LAYOUT_COLUMNS}, {m_tabs, CardPage::LAYOUT_TABS}});
+    m_cardLayout = narrow(addChoice(
+        full,
+        //: The label of the choice of the layout of the full card. In Polish: Układ:
+        tr("Layout:"),
+        //: The data of the full card beside its description. In Polish: Dwie kolumny
+        {{tr("Two columns"), QLatin1String(CardPage::LAYOUT_COLUMNS),
+          //: In Polish: Dane, odmiana i własne pola po lewej; opis, relacje, rozdziały
+          //: i materiały po prawej.
+          tr("The data, the declension and the own fields at the left; the description, the "
+             "relations, the chapters and the materials at the right.")},
+         //: In Polish: Zakładki
+         {tr("Tabs"), QLatin1String(CardPage::LAYOUT_TABS),
+          //: In Polish: Ogólne, Opis, Relacje, Rozdziały i materiały – pod wspólnym
+          //: nagłówkiem; Alt i podkreślona litera wybiera zakładkę.
+          tr("General, Description, Relations, Chapters and Materials – under the header; Alt "
+             "and the underlined letter choose a tab.")}},
+        std::string()));
+    m_cardLayout->setObjectName(QStringLiteral("cardsLayout"));
+    bindChoice(m_cardLayout, CardPage::LAYOUT_SETTING, CardPage::LAYOUT_COLUMNS);
 }
 
 void CardsPage::addPortraitGroup() {
     //: Settings > Cards: the group of the portraits of the cards. In Polish: Portret
     QFormLayout* portrait = addGroup(tr("Portrait"));
-    const auto pair = [](QRadioButton* first, QRadioButton* second) {
-        auto* box = new QWidget();
-        auto* layout = new QVBoxLayout(box);
-        layout->setContentsMargins(0, 0, 0, 0);
-        layout->addWidget(first);
-        layout->addWidget(second);
-        return box;
-    };
-    //: The shape of the portraits. In Polish: Kwadrat
-    m_square = new QRadioButton(tr("Square"));
-    m_square->setObjectName(QStringLiteral("cardsPortraitSquare"));
-    //: In Polish: Koło
-    m_circle = new QRadioButton(tr("Circle"));
-    m_circle->setObjectName(QStringLiteral("cardsPortraitCircle"));
-    //: In Polish: Kształt:
-    auto* shape = new QLabel(tr("Shape:"));
-    shape->setBuddy(m_square);
-    portrait->addRow(shape, pair(m_square, m_circle));
-    bindChoices(CardPage::SHAPE_SETTING, CardPage::SHAPE_SQUARE,
-                {{m_square, CardPage::SHAPE_SQUARE}, {m_circle, CardPage::SHAPE_CIRCLE}});
+    m_shape = narrow(addChoice(portrait,
+                               //: In Polish: Kształt:
+                               tr("Shape:"),
+                               //: The shape of the portraits. In Polish: Kwadrat
+                               {{tr("Square"), QLatin1String(CardPage::SHAPE_SQUARE), {}},
+                                //: In Polish: Koło
+                                {tr("Circle"), QLatin1String(CardPage::SHAPE_CIRCLE), {}}},
+                               std::string()));
+    m_shape->setObjectName(QStringLiteral("cardsPortraitShape"));
+    bindChoice(m_shape, CardPage::SHAPE_SETTING, CardPage::SHAPE_SQUARE);
 
-    //: What a portrait without a picture shows. In Polish: Inicjały na kolorze karty
-    m_initials = new QRadioButton(tr("Initials on the color of the card"));
-    m_initials->setObjectName(QStringLiteral("cardsPortraitInitials"));
-    //: In Polish: Ikona rodzaju
-    m_kindIcon = new QRadioButton(tr("Icon of the kind"));
-    m_kindIcon->setObjectName(QStringLiteral("cardsPortraitIcon"));
-    //: In Polish: Bez obrazu:
-    auto* without = new QLabel(tr("Without a picture:"));
-    without->setBuddy(m_initials);
-    portrait->addRow(without, pair(m_initials, m_kindIcon));
-    bindChoices(CardPage::NO_PICTURE_SETTING, CardPage::NO_PICTURE_INITIALS,
-                {{m_initials, CardPage::NO_PICTURE_INITIALS},
-                 {m_kindIcon, CardPage::NO_PICTURE_ICON}});
+    m_noPicture = narrow(addChoice(
+        portrait,
+        //: In Polish: Bez obrazu:
+        tr("Without a picture:"),
+        //: What a portrait without a picture shows. In Polish: Inicjały na kolorze karty
+        {{tr("Initials on the color of the card"), QLatin1String(CardPage::NO_PICTURE_INITIALS),
+          {}},
+         //: In Polish: Ikona rodzaju
+         {tr("Icon of the kind"), QLatin1String(CardPage::NO_PICTURE_ICON), {}}},
+        std::string()));
+    m_noPicture->setObjectName(QStringLiteral("cardsPortraitNoPicture"));
+    bindChoice(m_noPicture, CardPage::NO_PICTURE_SETTING, CardPage::NO_PICTURE_INITIALS);
 }
 
 void CardsPage::addColorsGroup() {
@@ -226,13 +184,13 @@ void CardsPage::addColorsGroup() {
     //: The palette that new cards of characters, locations and items take their colors from.
     //: In Polish: Paleta nowych kart:
     colors->addRow(new QLabel(tr("Palette of new cards:")), paletteBox);
-    addNote(colors,
-            //: In Polish: Nowa karta dostaje ten kolor palety, który ma najmniej kart książki.
-            //: Kliknięcie próbki zmienia kolor, Delete go usuwa, a „+” albo Insert dodaje nowy.
-            //: Kolor jednej karty zmienia się na jej pełnej karcie.
-            tr("A new card gets the color of the palette that the fewest cards of the book "
-               "have. A click on a swatch changes the color, Delete takes it out, \"+\" or "
-               "Insert adds one. The color of one card is changed on its full card."));
+    addFieldNote(colors,
+                 //: In Polish: Nowa karta dostaje ten kolor palety, który ma najmniej kart
+                 //: książki. Kliknięcie próbki zmienia kolor, Delete go usuwa, a „+” albo Insert
+                 //: dodaje nowy. Kolor jednej karty zmienia się na jej pełnej karcie.
+                 tr("A new card gets the color of the palette that the fewest cards of the book "
+                    "have. A click on a swatch changes the color, Delete takes it out, \"+\" or "
+                    "Insert adds one. The color of one card is changed on its full card."));
 
     Binding palette;
     palette.key = []() { return std::string(core::CardColors::PALETTE_SETTING); };
@@ -250,68 +208,48 @@ void CardsPage::addNavigatorGroup() {
     QFormLayout* navigator = addGroup(tr("Navigator"));
     //: The locations in the Navigator, each under the location it is part of. In Polish:
     //: Drzewo według miejsca nadrzędnego
-    m_tree = new QRadioButton(tr("A tree by parent location"));
-    m_tree->setObjectName(QStringLiteral("cardsNavigatorTree"));
-    //: In Polish: Lista alfabetyczna
-    m_list = new QRadioButton(tr("An alphabetical list"));
-    m_list->setObjectName(QStringLiteral("cardsNavigatorList"));
-    auto* choices = new QWidget();
-    auto* choicesLayout = new QVBoxLayout(choices);
-    choicesLayout->setContentsMargins(0, 0, 0, 0);
-    choicesLayout->addWidget(m_tree);
-    //: In Polish: Na przykład Żoliborz pod Warszawą. Tak samo są ułożone karty innych rodzajów,
-    //: których pole wskazuje kartę tego samego rodzaju.
-    alignWithText(addNote(choicesLayout,
-                          tr("For example, a district under its city. The cards of other "
-                             "kinds whose field names a card of the same kind are in trees as "
-                             "well.")),
-                  m_tree);
-    choicesLayout->addWidget(m_list);
-    //: The label of the choice between a tree and a list of the locations. In Polish: Miejsca
-    //: w Nawigatorze:
-    auto* label = new QLabel(tr("Locations in the Navigator:"));
-    label->setBuddy(m_tree);
-    navigator->addRow(label, choices);
-
-    bindChoices(NavigatorPanel::CARDS_TREE_SETTING, TREE, {{m_tree, TREE}, {m_list, LIST}});
+    m_locations = addChoice(
+        navigator,
+        //: The label of the choice between a tree and a list of the locations. In Polish:
+        //: Miejsca w Nawigatorze:
+        tr("Locations in the Navigator:"),
+        //: The locations in the Navigator, each under the location it is part of. In Polish:
+        //: Drzewo według miejsca nadrzędnego
+        {{tr("A tree by parent location"), QLatin1String(TREE),
+          //: In Polish: Na przykład Żoliborz pod Warszawą. Tak samo są ułożone karty innych
+          //: rodzajów, których pole wskazuje kartę tego samego rodzaju.
+          tr("For example, a district under its city. The cards of other kinds whose field "
+             "names a card of the same kind are in trees as well.")},
+         //: In Polish: Lista alfabetyczna
+         {tr("An alphabetical list"), QLatin1String(LIST), {}}},
+        std::string());
+    m_locations->setObjectName(QStringLiteral("cardsNavigatorLocations"));
+    bindChoice(m_locations, NavigatorPanel::CARDS_TREE_SETTING, TREE);
 }
 
 void CardsPage::addTextGroup() {
     //: Settings > Cards: the group of the cards in the texts of the book. In Polish: W tekście
     QFormLayout* text = addGroup(tr("In the Text"));
-    //: The Properties panel shows the card whose name the cursor is in and the cards linked
-    //: with the paragraph. In Polish: Imiona i nazwy z kart oraz powiązane akapity
-    m_atCursorNames = new QRadioButton(tr("Names of the cards and linked paragraphs"));
-    m_atCursorNames->setObjectName(QStringLiteral("cardsAtCursorNames"));
-    //: In Polish: Tylko powiązane akapity
-    m_atCursorParagraphs = new QRadioButton(tr("Only linked paragraphs"));
-    m_atCursorParagraphs->setObjectName(QStringLiteral("cardsAtCursorParagraphs"));
-    //: In Polish: Nie pokazuj
-    m_atCursorNone = new QRadioButton(tr("Do not show"));
-    m_atCursorNone->setObjectName(QStringLiteral("cardsAtCursorNone"));
-    auto* choices = new QWidget();
-    auto* choicesLayout = new QVBoxLayout(choices);
-    choicesLayout->setContentsMargins(0, 0, 0, 0);
-    choicesLayout->addWidget(m_atCursorNames);
-    //: In Polish: Gdy kursor jest w imieniu lub nazwie z karty, w dowolnej formie, panel
-    //: „Właściwości” pokazuje tę kartę pod danymi tekstu. Formy zna słownik książki.
-    alignWithText(addNote(choicesLayout,
-                          tr("When the cursor is in the name of a card, in any of its forms, "
-                             "the Properties panel shows the card under the data of the text. "
-                             "The book's dictionary knows the forms.")),
-                  m_atCursorNames);
-    choicesLayout->addWidget(m_atCursorParagraphs);
-    choicesLayout->addWidget(m_atCursorNone);
-    //: The label of the choice of what the Properties panel shows of the cards at the cursor.
-    //: In Polish: Karta przy kursorze:
-    auto* label = new QLabel(tr("Card at the cursor:"));
-    label->setBuddy(m_atCursorNames);
-    text->addRow(label, choices);
-
-    bindChoices(CursorCardBox::SETTING, CursorCardBox::NAMES,
-                {{m_atCursorNames, CursorCardBox::NAMES},
-                 {m_atCursorParagraphs, CursorCardBox::PARAGRAPHS},
-                 {m_atCursorNone, CursorCardBox::NONE}});
+    m_atCursor = narrow(addChoice(
+        text,
+        //: The label of the choice of what the Properties panel shows of the cards at the
+        //: cursor. In Polish: Karta przy kursorze:
+        tr("Card at the cursor:"),
+        //: The Properties panel shows the card whose name the cursor is in and the cards linked
+        //: with the paragraph. In Polish: Imiona i nazwy z kart oraz powiązane akapity
+        {{tr("Names of the cards and linked paragraphs"), QLatin1String(CursorCardBox::NAMES),
+          //: In Polish: Gdy kursor jest w imieniu lub nazwie z karty, w dowolnej formie, panel
+          //: „Właściwości” pokazuje tę kartę pod danymi tekstu. Formy zna słownik książki.
+          tr("When the cursor is in the name of a card, in any of its forms, the Properties "
+             "panel shows the card under the data of the text. The book's dictionary knows the "
+             "forms.")},
+         //: In Polish: Tylko powiązane akapity
+         {tr("Only linked paragraphs"), QLatin1String(CursorCardBox::PARAGRAPHS), {}},
+         //: In Polish: Nie pokazuj
+         {tr("Do not show"), QLatin1String(CursorCardBox::NONE), {}}},
+        std::string()));
+    m_atCursor->setObjectName(QStringLiteral("cardsAtCursor"));
+    bindChoice(m_atCursor, CursorCardBox::SETTING, CursorCardBox::NAMES);
 
     //: The signs of the kinds of the cards beside a paragraph linked with them, like the
     //: paperclip of a material; keep it short, as the narrowest window of the settings has
@@ -321,7 +259,8 @@ void CardsPage::addTextGroup() {
     marks->setObjectName(QStringLiteral("cardsParagraphMarks"));
     //: In Polish: Kliknięcie znaku otwiera kartę. Bez znaków panel „Właściwości” nadal wymienia
     //: karty akapitu.
-    addNote(text, tr("A click on a sign opens the card. Without the signs, the Properties panel "
+    addOptionNote(text, marks,
+                  tr("A click on a sign opens the card. Without the signs, the Properties panel "
                      "still names the cards of the paragraph."));
 }
 
@@ -396,39 +335,6 @@ void CardsPage::showDefaultFields() {
     m_defaultFieldsLabel->setText(tr("Fields of their own in new books: %1. Fields... on the "
                                      "full card changes the fields of one book.")
                                       .arg(kinds.join(QStringLiteral(", "))));
-}
-
-QRadioButton* CardsPage::layoutButton(const char* value) const {
-    const std::string choice(value);
-    if (choice == CardPage::LAYOUT_COLUMNS) {
-        return m_columns;
-    }
-    return choice == CardPage::LAYOUT_TABS ? m_tabs : nullptr;
-}
-
-QRadioButton* CardsPage::portraitButton(const char* value) const {
-    const std::string choice(value);
-    if (choice == CardPage::SHAPE_SQUARE) {
-        return m_square;
-    }
-    if (choice == CardPage::SHAPE_CIRCLE) {
-        return m_circle;
-    }
-    if (choice == CardPage::NO_PICTURE_INITIALS) {
-        return m_initials;
-    }
-    return choice == CardPage::NO_PICTURE_ICON ? m_kindIcon : nullptr;
-}
-
-QRadioButton* CardsPage::atCursorButton(const char* value) const {
-    const std::string choice(value);
-    if (choice == CursorCardBox::NAMES) {
-        return m_atCursorNames;
-    }
-    if (choice == CursorCardBox::PARAGRAPHS) {
-        return m_atCursorParagraphs;
-    }
-    return choice == CursorCardBox::NONE ? m_atCursorNone : nullptr;
 }
 
 }  // namespace kalahari::gui

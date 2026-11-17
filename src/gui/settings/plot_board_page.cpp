@@ -25,7 +25,6 @@
 #include <QComboBox>
 #include <QFormLayout>
 #include <QLabel>
-#include <QRadioButton>
 #include <QString>
 #include <QStringList>
 #include <QWidget>
@@ -42,42 +41,28 @@ namespace kalahari::gui {
 
 namespace {
 
-constexpr int CHOICE_SPACING = 12;  ///< Between the radio buttons and check boxes of a row
+constexpr int CHOICE_SPACING = 12;  ///< Between the check boxes of a row
 constexpr int CHOICE_LINES = 4;     ///< Between their lines, when they wrap
+constexpr int MIN_CHOICE_CHARACTERS = 14;  ///< The fewest characters a list of choices shows
 
-/// @brief A row of a form for radio buttons or check boxes, wrapping when it is narrow
+/// @brief A row of a form for check boxes, wrapping when it is narrow
 FlowLayout* rowLayout(QWidget* row) {
     auto* flow = new FlowLayout(row, CHOICE_SPACING, CHOICE_LINES);
     flow->setContentsMargins(0, 0, 0, 0);
     return flow;
 }
 
-/// @brief Radio buttons with the values of the setting they choose
-using ChoiceButtons = std::vector<std::pair<QRadioButton*, std::string>>;
-
-/// @brief The value of the radio button of @p buttons that is checked; the first one's when
-/// none is
-std::string chosenOf(const ChoiceButtons& buttons) {
-    for (const auto& [button, value] : buttons) {
-        if (button->isChecked()) {
-            return value;
-        }
-    }
-    return buttons.front().second;
-}
-
-/// @brief Check the radio button of @p buttons with value @p value of setting @p key; a value
-/// the program does not know shows as the default of the setting
-void choose(const ChoiceButtons& buttons, std::string value, const char* key) {
-    const auto known = [&value](const auto& button) { return button.second == value; };
-    if (std::ranges::none_of(buttons, known)) {
+/// @brief Choose the item of @p list with value @p value of setting @p key; a value the
+/// program does not know shows as the default of the setting
+void choose(QComboBox* list, const std::string& value, const char* key) {
+    int index = list->findData(QString::fromStdString(value));
+    if (index < 0) {
         const nlohmann::json* fallback = core::settings_schema::defaultValue(key);
-        value = fallback != nullptr && fallback->is_string() ? fallback->get<std::string>()
-                                                             : buttons.front().second;
+        index = fallback != nullptr && fallback->is_string()
+                    ? list->findData(QString::fromStdString(fallback->get<std::string>()))
+                    : 0;
     }
-    for (const auto& [button, name] : buttons) {
-        button->setChecked(name == value);
-    }
+    list->setCurrentIndex(std::max(0, index));
 }
 
 /// @brief The name of what a card and the outline show, in a row of check boxes
@@ -116,20 +101,13 @@ PlotBoardPage::PlotBoardPage(QWidget* parent) : SettingsPage(parent) {
     pageLayout()->addStretch();
 }
 
-void PlotBoardPage::addChoices(QFormLayout* form, const QString& label, const char* key,
-                               const std::vector<Choice>& choices) {
-    auto* row = new QWidget();
-    FlowLayout* flow = rowLayout(row);
-    ChoiceButtons buttons;
-    for (const Choice& choice : choices) {
-        auto* button = new QRadioButton(choice.text, row);
-        button->setObjectName(QStringLiteral("plotBoard_%1").arg(QLatin1String(choice.name)));
-        flow->addWidget(button);
-        buttons.emplace_back(button, choice.value);
-    }
-    auto* title = new QLabel(label);
-    title->setBuddy(buttons.front().first);
-    form->addRow(title, row);
+QComboBox* PlotBoardPage::addChoices(QFormLayout* form, const QString& label, const char* key,
+                                     const std::vector<Choice>& choices) {
+    QComboBox* list = addChoice(form, label, choices, std::string());
+    list->setObjectName(QLatin1String(key));
+    // Its longest choice does not widen the page in a narrow window
+    list->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    list->setMinimumContentsLength(MIN_CHOICE_CHARACTERS);
 
     auto& settings = core::SettingsManager::getInstance();
     Binding binding;
@@ -137,14 +115,17 @@ void PlotBoardPage::addChoices(QFormLayout* form, const QString& label, const ch
     binding.stored = [&settings, key]() {
         return nlohmann::json(settings.get<std::string>(key, std::string()));
     };
-    binding.shown = [buttons]() { return nlohmann::json(chosenOf(buttons)); };
-    binding.show = [buttons, key](const nlohmann::json& value) {
-        choose(buttons, value.is_string() ? value.get<std::string>() : std::string(), key);
+    binding.shown = [list]() {
+        return nlohmann::json(list->currentData().toString().toStdString());
+    };
+    binding.show = [list, key](const nlohmann::json& value) {
+        choose(list, value.is_string() ? value.get<std::string>() : std::string(), key);
     };
     binding.store = [&settings, key](const nlohmann::json& value) {
         settings.set<std::string>(key, value.get<std::string>());
     };
     bindCustom(std::move(binding));
+    return list;
 }
 
 void PlotBoardPage::addChecks(QFormLayout* form, const QString& label,
@@ -172,34 +153,30 @@ void PlotBoardPage::addViewGroup() {
     //: The view a new tab of the plot board opens on. In Polish: Otwieraj na:
     addChoices(view, tr("Open on:"), PlotBoard::START_VIEW_SETTING,
                {//: In Polish: tablicy
-                {.text = tr("the board"), .value = PlotBoard::VIEW_BOARD, .name = "startBoard"},
+                {tr("the board"), QLatin1String(PlotBoard::VIEW_BOARD), {}},
                 //: In Polish: konspekcie
-                {.text = tr("the outline"),
-                 .value = PlotBoard::VIEW_OUTLINE,
-                 .name = "startOutline"},
+                {tr("the outline"), QLatin1String(PlotBoard::VIEW_OUTLINE), {}},
                 //: In Polish: ostatnio używanym
-                {.text = tr("the view used last"),
-                 .value = PlotBoard::START_LAST,
-                 .name = "startLast"}});
+                {tr("the view used last"), QLatin1String(PlotBoard::START_LAST), {}}});
     //: The note under the view a tab opens on. In Polish: Książka > Tablica fabuły i Książka >
     //: Konspekt otwierają swój widok; tak otwiera się karta z polecenia „Pokaż na tablicy
     //: fabuły” w Nawigatorze.
-    addNote(view, tr("Book > Plot Board and Book > Outline open their own views; this is how "
-                     "the tab opens from Show on the Plot Board in the Navigator."));
+    addFieldNote(view, tr("Book > Plot Board and Book > Outline open their own views; this is "
+                          "how the tab opens from Show on the Plot Board in the Navigator."));
     //: In Polish: Układ tablicy:
     addChoices(view, tr("Layout of the board:"), PlotBoard::LAYOUT_SETTING,
                {//: The parts side by side. In Polish: kolumny
-                {.text = tr("columns"), .value = PlotBoard::LAYOUT_COLUMNS, .name = "columns"},
+                {tr("columns"), QLatin1String(PlotBoard::LAYOUT_COLUMNS), {}},
                 //: The cards in rows. In Polish: siatka
-                {.text = tr("grid"), .value = PlotBoard::LAYOUT_GRID, .name = "grid"}});
+                {tr("grid"), QLatin1String(PlotBoard::LAYOUT_GRID), {}}});
     //: In Polish: Rozmiar kart:
     addChoices(view, tr("Size of the cards:"), PlotBoard::SIZE_SETTING,
                {//: In Polish: małe
-                {.text = tr("small"), .value = PlotBoard::SIZE_SMALL, .name = "small"},
+                {tr("small"), QLatin1String(PlotBoard::SIZE_SMALL), {}},
                 //: In Polish: średnie
-                {.text = tr("medium"), .value = PlotBoard::SIZE_MEDIUM, .name = "medium"},
+                {tr("medium"), QLatin1String(PlotBoard::SIZE_MEDIUM), {}},
                 //: In Polish: duże
-                {.text = tr("large"), .value = PlotBoard::SIZE_LARGE, .name = "large"}});
+                {tr("large"), QLatin1String(PlotBoard::SIZE_LARGE), {}}});
     //: What the plot board shows besides the main section. In Polish: Pokazuj na tablicy:
     addChecks(view, tr("Show on the board:"),
               {//: In Polish: sekcję początkową i końcową (tylko podgląd)
@@ -211,11 +188,13 @@ void PlotBoardPage::addScenesGroup() {
     //: A group of Settings > Plot Board. In Polish: Sceny
     QFormLayout* scenes = addGroup(tr("Scenes"));
     //: In Polish: Pokazuj sceny pod tekstami
-    addCheckBox(scenes, tr("Show the scenes under the texts"), PlotBoard::SCENES_SETTING)
-        ->setObjectName(QStringLiteral("plotBoardShowScenes"));
+    QCheckBox* shown =
+        addCheckBox(scenes, tr("Show the scenes under the texts"), PlotBoard::SCENES_SETTING);
+    shown->setObjectName(QStringLiteral("plotBoardShowScenes"));
     //: The note under Show the scenes under the texts. In Polish: W siatce – w otwartych
     //: szufladach pod rzędami kart.
-    addNote(scenes, tr("In the grid: in the drawers under the rows of the cards, open."));
+    addOptionNote(scenes, shown,
+                  tr("In the grid: in the drawers under the rows of the cards, open."));
     auto* variant = new QComboBox();
     variant->setObjectName(QStringLiteral("plotBoardScenes"));
     //: Which scenes the plot board shows. In Polish: tekstów i w ich planach
@@ -231,12 +210,13 @@ void PlotBoardPage::addScenesGroup() {
     //: w planie są tylko w pliku książki, w przerywanej ramce: nie mają tekstu, słów ani stanu,
     //: a Enter na takiej karcie obok scen tekstu wstawia w jej miejscu podział sceny z jej
     //: opisem i otwiera tam tekst.
-    addNote(scenes,
-            tr("The scenes of a text are its parts between the scene breaks (Insert > Scene "
-               "Break): moving a card moves the text of the scene. The scenes in the plan are "
-               "only in the file of the book, in a dashed frame: they have no text, no words "
-               "and no state, and Enter on such a card beside the scenes of the text puts a "
-               "scene break with its description at its place and opens the text there."));
+    addFieldNote(scenes,
+                 tr("The scenes of a text are its parts between the scene breaks (Insert > "
+                    "Scene Break): moving a card moves the text of the scene. The scenes in the "
+                    "plan are only in the file of the book, in a dashed frame: they have no "
+                    "text, no words and no state, and Enter on such a card beside the scenes of "
+                    "the text puts a scene break with its description at its place and opens "
+                    "the text there."));
 }
 
 void PlotBoardPage::addCardsGroup() {
@@ -260,10 +240,10 @@ void PlotBoardPage::addCardsGroup() {
     //: In Polish: Ile linii opisu mieści karta, zależy od jej rozmiaru. Liczba scen jest na
     //: karcie tekstu, którego scen nie widać pod nim; w siatce otwiera i zamyka ich szufladę
     //: (także Spacja).
-    addNote(cards, tr("How many lines of the description a card holds depends on its size. "
-                      "The number of scenes is on the card of a text whose scenes are not "
-                      "shown under it; in the grid it opens and closes their drawer (also "
-                      "Space)."));
+    addFieldNote(cards, tr("How many lines of the description a card holds depends on its "
+                           "size. The number of scenes is on the card of a text whose scenes "
+                           "are not shown under it; in the grid it opens and closes their "
+                           "drawer (also Space)."));
 }
 
 void PlotBoardPage::addColorsGroup() {
@@ -272,39 +252,27 @@ void PlotBoardPage::addColorsGroup() {
     //: In Polish: Koloruj karty:
     addChoices(colors, tr("Color the cards:"), PlotBoard::COLOR_SETTING,
                {//: In Polish: według stanu
-                {.text = tr("by state"), .value = PlotBoard::COLOR_STATUS, .name = "colorStatus"},
+                {tr("by state"), QLatin1String(PlotBoard::COLOR_STATUS), {}},
                 //: In Polish: według punktu widzenia
-                {.text = tr("by point of view"), .value = PlotBoard::COLOR_POV, .name = "colorPov"},
+                {tr("by point of view"), QLatin1String(PlotBoard::COLOR_POV), {}},
                 //: In Polish: własnym kolorem karty
-                {.text = tr("by the own color of the card"),
-                 .value = PlotBoard::COLOR_OWN,
-                 .name = "colorOwn"},
+                {tr("by the own color of the card"), QLatin1String(PlotBoard::COLOR_OWN), {}},
                 //: In Polish: bez kolorów
-                {.text = tr("without colors"),
-                 .value = PlotBoard::COLOR_NONE,
-                 .name = "colorNone"}});
+                {tr("without colors"), QLatin1String(PlotBoard::COLOR_NONE), {}}});
     //: Where the color of a card is. In Polish: Kolor na karcie:
     addChoices(colors, tr("Color on the card:"), PlotBoard::COLOR_PLACE_SETTING,
                {//: In Polish: pasek u góry
-                {.text = tr("a strip at the top"),
-                 .value = PlotBoard::COLOR_STRIP,
-                 .name = "strip"},
+                {tr("a strip at the top"), QLatin1String(PlotBoard::COLOR_STRIP), {}},
                 //: In Polish: tło karty
-                {.text = tr("the background of the card"),
-                 .value = PlotBoard::COLOR_TINT,
-                 .name = "tint"}});
+                {tr("the background of the card"), QLatin1String(PlotBoard::COLOR_TINT), {}}});
     //: What is under the cards. In Polish: Tło tablicy:
     addChoices(colors, tr("Background of the board:"), PlotBoard::BACKGROUND_SETTING,
                {//: In Polish: kolor motywu
-                {.text = tr("the color of the theme"),
-                 .value = PlotBoard::BACKGROUND_THEME,
-                 .name = "backgroundTheme"},
+                {tr("the color of the theme"), QLatin1String(PlotBoard::BACKGROUND_THEME), {}},
                 //: In Polish: korek
-                {.text = tr("cork"), .value = PlotBoard::BACKGROUND_CORK, .name = "backgroundCork"},
+                {tr("cork"), QLatin1String(PlotBoard::BACKGROUND_CORK), {}},
                 //: In Polish: własny kolor
-                {.text = tr("own color"),
-                 .value = PlotBoard::BACKGROUND_OWN,
-                 .name = "backgroundOwn"}});
+                {tr("own color"), QLatin1String(PlotBoard::BACKGROUND_OWN), {}}});
     //: In Polish: Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma
     //: swoje kolory: to są kolory bieżącego motywu.
     addNote(colors, tr("The colors of the states of the texts, of the scenes in the plan and "
@@ -353,8 +321,8 @@ void PlotBoardPage::addOutlineGroup() {
     //: The columns the outline shows. In Polish: Kolumny:
     addChecks(outline, tr("Columns:"), columns);
     //: In Polish: Tytuł widać zawsze. Kolumny wybiera też przycisk „Kolumny” nad konspektem.
-    addNote(outline, tr("The title is always shown. The button Table Columns over the outline "
-                        "chooses the columns too."));
+    addFieldNote(outline, tr("The title is always shown. The button Table Columns over the "
+                             "outline chooses the columns too."));
 }
 
 void PlotBoardPage::addNumbersGroup() {
@@ -364,21 +332,15 @@ void PlotBoardPage::addNumbersGroup() {
     //: In Polish: Po przestawieniu rozdziałów:
     addChoices(numbers, tr("After the chapters are rearranged:"), PlotBoard::RENUMBER_SETTING,
                {//: In Polish: zaproponuj na pasku
-                {.text = tr("offer it on the bar"),
-                 .value = PlotBoard::RENUMBER_ASK,
-                 .name = "renumberAsk"},
+                {tr("offer it on the bar"), QLatin1String(PlotBoard::RENUMBER_ASK), {}},
                 //: In Polish: ponumeruj od razu
-                {.text = tr("renumber at once"),
-                 .value = PlotBoard::RENUMBER_AUTO,
-                 .name = "renumberAuto"},
+                {tr("renumber at once"), QLatin1String(PlotBoard::RENUMBER_AUTO), {}},
                 //: In Polish: nie zmieniaj
-                {.text = tr("do not change"),
-                 .value = PlotBoard::RENUMBER_NEVER,
-                 .name = "renumberNever"}});
+                {tr("do not change"), QLatin1String(PlotBoard::RENUMBER_NEVER), {}}});
     //: In Polish: Dotyczy tytułów nadanych przez program („Rozdział 3”, także z dalszym ciągiem,
     //: np. „Rozdział 3. Burza”); zmienia się tylko numer.
-    addNote(numbers, tr("For the titles the program gave (\"Chapter 3\", also with more, as "
-                        "in \"Chapter 3. Storm\"); only the number changes."));
+    addFieldNote(numbers, tr("For the titles the program gave (\"Chapter 3\", also with more, "
+                             "as in \"Chapter 3. Storm\"); only the number changes."));
 }
 
 }  // namespace kalahari::gui

@@ -64,7 +64,6 @@
 #include <QMenu>
 #include <QPlainTextEdit>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QStringListModel>
 #include <QTableWidget>
 #include <QTimer>
@@ -1443,31 +1442,32 @@ TEST_CASE("Settings > Cards: the dots in the Navigator and the palette of new ca
     CHECK(core::CardColors::palette() == core::CardColors::defaultPalette().mid(1));
 
     // The locations in the Navigator: a tree, or an alphabetical list
-    REQUIRE(page.treeButton() != nullptr);
-    REQUIRE(page.listButton() != nullptr);
-    CHECK(page.treeButton()->isChecked());
-    CHECK_FALSE(page.listButton()->isChecked());
-    page.listButton()->setChecked(true);
+    QComboBox* locations = page.locationsList();
+    REQUIRE(locations != nullptr);
+    CHECK(locations->currentData().toString() == QStringLiteral("tree"));
+    locations->setCurrentIndex(locations->findData(QStringLiteral("list")));
     CHECK(page.isChanged());
     page.apply();
     CHECK(core::SettingsManager::getInstance().get<std::string>(
               gui::NavigatorPanel::CARDS_TREE_SETTING, "tree") == "list");
     CHECK_FALSE(gui::NavigatorPanel::cardsInTrees());
-    page.treeButton()->setChecked(true);
+    locations->setCurrentIndex(locations->findData(QStringLiteral("tree")));
     page.apply();
     CHECK(gui::NavigatorPanel::cardsInTrees());
 
     // The cards at the cursor of a text: the names and the paragraphs, only the paragraphs, none
     using gui::CursorCardBox;
+    QComboBox* cursorList = page.atCursorList();
+    REQUIRE(cursorList != nullptr);
     for (const char* value : {CursorCardBox::NAMES, CursorCardBox::PARAGRAPHS,
                               CursorCardBox::NONE}) {
-        REQUIRE(page.atCursorButton(value) != nullptr);
+        REQUIRE(cursorList->findData(QString::fromLatin1(value)) >= 0);
     }
-    CHECK(page.atCursorButton("other") == nullptr);
-    CHECK(page.atCursorButton(CursorCardBox::NAMES)->isChecked());
+    CHECK(cursorList->count() == 3);
+    CHECK(cursorList->currentData().toString() == QLatin1String(CursorCardBox::NAMES));
     for (const char* value : {CursorCardBox::PARAGRAPHS, CursorCardBox::NONE,
                               CursorCardBox::NAMES}) {
-        page.atCursorButton(value)->setChecked(true);
+        cursorList->setCurrentIndex(cursorList->findData(QString::fromLatin1(value)));
         CHECK(page.isChanged());
         page.apply();
         CHECK(core::SettingsManager::getInstance().get<std::string>(CursorCardBox::SETTING,

@@ -833,7 +833,7 @@ TEST_CASE("Grammar settings: the card says what grammar as you type can do",
     CHECK(page.prepareButton()->text() == QStringLiteral("&Prepare Grammar Checking..."));
     CHECK(page.enabledBox()->isChecked());
     CHECK_FALSE(page.enabledBox()->isEnabled());
-    CHECK(page.localButton()->isChecked());
+    CHECK_FALSE(page.remoteChosen());
     CHECK_FALSE(page.remoteGroup()->isVisibleTo(&page));
     CHECK(page.advancedToggle()->isVisibleTo(&page));
     CHECK_FALSE(page.advancedSettings()->isVisibleTo(&page));
@@ -953,7 +953,7 @@ TEST_CASE("Grammar settings: the text goes to a server in the internet only afte
     setLocal(false);
     EditorGrammarPage page(kalahari::test::book());
     page.load();
-    REQUIRE(page.localButton()->isChecked());
+    REQUIRE_FALSE(page.remoteChosen());
     REQUIRE_FALSE(page.enabledBox()->isChecked());
 
     // Cancel: back to this computer
@@ -965,14 +965,14 @@ TEST_CASE("Grammar settings: the text goes to a server in the internet only afte
             sendButton = dialog->acceptButton()->text();
             dialog->cancelButton()->click();
         });
-        page.remoteButton()->click();
+        page.whereBox()->setCurrentIndex(1);
         REQUIRE(waitUntil([&cancel]() { return cancel.shown(); }));
     }
     CHECK(question.contains(
         QStringLiteral("Send the text of the book to a server in the internet?")));
     CHECK(question.contains(QStringLiteral("Checking on this computer sends the text nowhere.")));
     CHECK(sendButton == QStringLiteral("&Send Text"));
-    CHECK(waitUntil([&page]() { return page.localButton()->isChecked(); }));
+    CHECK(waitUntil([&page]() { return !page.remoteChosen(); }));
     CHECK(page.card() == EditorGrammarPage::Card::NotPrepared);
     CHECK_FALSE(page.isChanged());
 
@@ -980,11 +980,11 @@ TEST_CASE("Grammar settings: the text goes to a server in the internet only afte
     {
         ModalAnswer<MessageDialog> agree(
             [](MessageDialog* dialog) { dialog->acceptButton()->click(); });
-        page.remoteButton()->click();
+        page.whereBox()->setCurrentIndex(1);
         REQUIRE(waitUntil([&agree]() { return agree.shown(); }));
     }
     runEventLoop(50);
-    CHECK(page.remoteButton()->isChecked());
+    CHECK(page.remoteChosen());
     CHECK(page.card() == EditorGrammarPage::Card::Remote);
     // Chosen to be checked there: the checking is turned on with it
     CHECK(page.enabledBox()->isChecked());
@@ -995,13 +995,13 @@ TEST_CASE("Grammar settings: the text goes to a server in the internet only afte
     // Agreed before: not asked again
     EditorGrammarPage again(kalahari::test::book());
     again.load();
-    REQUIRE(again.remoteButton()->isChecked());
+    REQUIRE(again.remoteChosen());
     ModalAnswer<MessageDialog> none([](MessageDialog* dialog) { dialog->cancelButton()->click(); });
-    again.localButton()->click();
-    again.remoteButton()->click();
+    again.whereBox()->setCurrentIndex(0);
+    again.whereBox()->setCurrentIndex(1);
     runEventLoop(100);
     CHECK_FALSE(none.shown());
-    CHECK(again.remoteButton()->isChecked());
+    CHECK(again.remoteChosen());
 }
 
 TEST_CASE("Grammar settings: the server in the internet, the account and the check",

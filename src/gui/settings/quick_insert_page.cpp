@@ -92,6 +92,10 @@ void EditorQuickInsertPage::createSources() {
     QCheckBox* enabled =
         addCheckBox(form, tr("Open the list after @ or #"), quick_insert_keys::ENABLED);
     enabled->setObjectName(QStringLiteral("quickInsertEnabled"));
+    addOptionNote(form, enabled,
+                  tr("@ or # in the middle of a word, as in an e-mail address or in C#, stays "
+                     "a character. The letters typed after it narrow the list; Esc closes it "
+                     "and keeps what was typed."));
 
     // What each character opens: a column each, a row for each source
     auto* grid = new QWidget();
@@ -165,10 +169,6 @@ void EditorQuickInsertPage::createSources() {
     const auto syncSources = [enabled, grid]() { grid->setEnabled(enabled->isChecked()); };
     connect(enabled, &QCheckBox::toggled, this, syncSources);
     whenLoaded(syncSources);
-
-    addNote(form, tr("@ or # in the middle of a word, as in an e-mail address or in C#, stays "
-                     "a character. The letters typed after it narrow the list; Esc closes it "
-                     "and keeps what was typed."));
 
     // With the keys the command has now (the user may change them)
     QLabel* commandNote = addNote(form, QString());

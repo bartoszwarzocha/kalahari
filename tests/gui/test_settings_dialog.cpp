@@ -26,6 +26,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -40,6 +41,8 @@
 #include <QAbstractButton>
 #include <QSpinBox>
 #include <QStackedWidget>
+#include <QStandardItemModel>
+#include <QToolButton>
 #include <QTranslator>
 
 #include <map>
@@ -132,6 +135,20 @@ void settle() {
     }
 }
 
+/// The list of choices named @p name in @p dialog
+QComboBox* choiceList(const QWidget& dialog, const char* name) {
+    auto* list = dialog.findChild<QComboBox*>(QLatin1String(name));
+    REQUIRE(list != nullptr);
+    return list;
+}
+
+/// Choose the item of @p list with value @p value, as the writer does
+void choose(QComboBox* list, const char* value) {
+    const int index = list->findData(QLatin1String(value));
+    REQUIRE(index >= 0);
+    list->setCurrentIndex(index);
+}
+
 /// The program in Polish while it lives: the translation it ships
 class Polish {
 public:
@@ -208,11 +225,25 @@ TEST_CASE("Settings dialog: the gears of the panels open it at their pages", "[g
     REQUIRE(tree->currentItem()->parent() != nullptr);
     CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
 
-    // The gear of the Annotations panel: Annotations
+    // The gear of the Annotations panel: Annotations > General
     CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::ANNOTATIONS_PAGE)));
     REQUIRE(tree->currentItem() != nullptr);
-    CHECK(tree->currentItem()->text(0) == QStringLiteral("Annotations"));
-    CHECK(tree->currentItem()->parent() == nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("General"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Annotations"));
+
+    // The gear of a list of materials and Kind Settings... of the Navigator: Navigator >
+    // Material Kinds; the Add Element window: Navigator > Adding
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::NAVIGATOR_PAGE)));
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Material Kinds"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Navigator"));
+    CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::NAVIGATOR_ADDING_PAGE)));
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Adding"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Navigator"));
 
     // The gears of the Link dialog and of the find bar: Editor > Colors, with the colors of
     // links and of the hits
@@ -316,6 +347,12 @@ TEST_CASE("Settings dialog: every page fits the narrowest window, in English and
             const auto* scrollArea = qobject_cast<QScrollArea*>(stack->currentWidget());
             REQUIRE(scrollArea != nullptr);
             REQUIRE(scrollArea->widget() != nullptr);
+            // The advanced settings shown too
+            for (auto* advanced : scrollArea->widget()->findChildren<QToolButton*>(
+                     QStringLiteral("advancedSettings"))) {
+                advanced->setChecked(true);
+            }
+            settle();
             CHECK(scrollArea->widget()->minimumSizeHint().width() <=
                   scrollArea->viewport()->width());
             CHECK_FALSE(scrollArea->horizontalScrollBar()->isVisible());
@@ -324,6 +361,53 @@ TEST_CASE("Settings dialog: every page fits the narrowest window, in English and
         CHECK(pages > 20);
     }
     settings.set<bool>("editor.margins.mirrorEnabled", mirrored);
+}
+
+TEST_CASE("Settings dialog: the settings changed seldom wait under Advanced Settings",
+          "[gui][settings]") {
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    dialog.show();
+    const auto advancedOf = [&dialog]() {
+        auto* stack = dialog.findChild<QStackedWidget*>();
+        REQUIRE(stack != nullptr);
+        auto* button = stack->currentWidget()->findChild<QToolButton*>(
+            QStringLiteral("advancedSettings"));
+        REQUIRE(button != nullptr);
+        return button;
+    };
+
+    // Appearance > Theme: the colors of the parts of the program; the icon colors in view
+    openPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
+    settle();
+    ColorConfigWidget* window =
+        colorWidget(dialog, QStringLiteral("General background color for windows and panels"));
+    ColorConfigWidget* primary =
+        colorWidget(dialog, QStringLiteral("Primary icon color used for main icon elements"));
+    REQUIRE(window != nullptr);
+    REQUIRE(primary != nullptr);
+    QToolButton* advanced = advancedOf();
+    CHECK(advanced->isVisible());
+    CHECK(advanced->focusPolicy() == Qt::StrongFocus);
+    CHECK(primary->isVisible());
+    CHECK_FALSE(window->isVisible());
+    advanced->click();
+    CHECK(window->isVisible());
+    advanced->click();
+    CHECK_FALSE(window->isVisible());
+
+    // Editor > Pages and Margins: the border of the text frame
+    openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Pages and Margins"));
+    settle();
+    QCheckBox* frame = nullptr;
+    for (QCheckBox* box : dialog.findChildren<QCheckBox*>()) {
+        if (box->text() == QStringLiteral("Show text frame border")) {
+            frame = box;
+        }
+    }
+    REQUIRE(frame != nullptr);
+    CHECK_FALSE(frame->isVisible());
+    advancedOf()->click();
+    CHECK(frame->isVisible());
 }
 
 TEST_CASE("Settings dialog: Apply writes only the changed options", "[gui][settings]") {
@@ -414,7 +498,7 @@ TEST_CASE("Settings dialog: the Annotations page has the author and the size of 
     settings.set<int>("editor.annotationMarkSize", 100);
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(dialog, QString(), QStringLiteral("Annotations"));
+    openPage(dialog, QStringLiteral("Annotations"), QStringLiteral("General"));
     auto* author = dialog.findChild<QLineEdit*>(QStringLiteral("annotationsAuthor"));
     auto* markSize = dialog.findChild<QSpinBox*>(QStringLiteral("annotationsMarkSize"));
     REQUIRE(author != nullptr);
@@ -477,7 +561,7 @@ TEST_CASE("Settings dialog: the Plot Board page chooses the view, the cards and 
           "[gui][settings][plotboard]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const auto startView = settings.get<std::string>("plotBoard.startView", "last");
-    const auto background = settings.get<std::string>("plotBoard.background", "theme");
+    const auto backgroundBefore = settings.get<std::string>("plotBoard.background", "theme");
     const bool time = settings.get<bool>("plotBoard.fields.time", false);
     const bool words = settings.get<bool>("plotBoard.outline.words", true);
     settings.set<std::string>("plotBoard.startView", "last");
@@ -487,20 +571,14 @@ TEST_CASE("Settings dialog: the Plot Board page chooses the view, the cards and 
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QString(), QStringLiteral("Plot Board"));
-    auto* last = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_startLast"));
-    auto* outline = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_startOutline"));
-    auto* theme = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_backgroundTheme"));
-    auto* cork = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_backgroundCork"));
+    QComboBox* view = choiceList(dialog, "plotBoard.startView");
+    QComboBox* background = choiceList(dialog, "plotBoard.background");
     auto* timeField = dialog.findChild<QCheckBox*>(QStringLiteral("plotBoard.fields.time"));
     auto* wordsColumn = dialog.findChild<QCheckBox*>(QStringLiteral("plotBoard.outline.words"));
-    REQUIRE(last != nullptr);
-    REQUIRE(outline != nullptr);
-    REQUIRE(theme != nullptr);
-    REQUIRE(cork != nullptr);
     REQUIRE(timeField != nullptr);
     REQUIRE(wordsColumn != nullptr);
-    CHECK(last->isChecked());
-    CHECK(theme->isChecked());
+    CHECK(view->currentData().toString() == QStringLiteral("last"));
+    CHECK(background->currentData().toString() == QStringLiteral("theme"));
     CHECK_FALSE(timeField->isChecked());
     CHECK(wordsColumn->isChecked());
     // Seven fields of the cards, seven columns of the outline besides the title
@@ -512,8 +590,8 @@ TEST_CASE("Settings dialog: the Plot Board page chooses the view, the cards and 
               .size() == 7);
     CHECK_FALSE(dialog.hasChanges());
 
-    outline->click();
-    cork->click();
+    choose(view, "outline");
+    choose(background, "cork");
     timeField->click();
     wordsColumn->click();
     CHECK(dialog.hasChanges());
@@ -528,7 +606,7 @@ TEST_CASE("Settings dialog: the Plot Board page chooses the view, the cards and 
     CHECK_FALSE(settings.get<bool>("plotBoard.outline.words"));
 
     settings.set<std::string>("plotBoard.startView", startView);
-    settings.set<std::string>("plotBoard.background", background);
+    settings.set<std::string>("plotBoard.background", backgroundBefore);
     settings.set<bool>("plotBoard.fields.time", time);
     settings.set<bool>("plotBoard.outline.words", words);
 }
@@ -544,19 +622,15 @@ TEST_CASE("Settings dialog: the Plot Board page shows the sections and renumbers
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QString(), QStringLiteral("Plot Board"));
     auto* shown = dialog.findChild<QCheckBox*>(QStringLiteral("plotBoard.showSections"));
-    auto* ask = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_renumberAsk"));
-    auto* now = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_renumberAuto"));
-    auto* never = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_renumberNever"));
+    QComboBox* renumberList = choiceList(dialog, "plotBoard.renumber");
     REQUIRE(shown != nullptr);
-    REQUIRE(ask != nullptr);
-    REQUIRE(now != nullptr);
-    REQUIRE(never != nullptr);
+    CHECK(renumberList->count() == 3);
     CHECK_FALSE(shown->isChecked());
-    CHECK(ask->isChecked());
+    CHECK(renumberList->currentData().toString() == QStringLiteral("ask"));
     CHECK_FALSE(dialog.hasChanges());
 
     shown->click();
-    now->click();
+    choose(renumberList, "auto");
     const QStringList applied = dialog.applyChanges();
     CHECK(applied.contains(QStringLiteral("plotBoard.showSections")));
     CHECK(applied.contains(QStringLiteral("plotBoard.renumber")));
@@ -575,16 +649,12 @@ TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in 
     settings.set<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, "named");
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
-    auto* named = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddNamed"));
-    auto* single = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddSingle"));
-    REQUIRE(named != nullptr);
-    REQUIRE(single != nullptr);
-    CHECK(named->isChecked());
-    CHECK_FALSE(single->isChecked());
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
+    QComboBox* commands = choiceList(dialog, "navigatorAddCommands");
+    CHECK(commands->currentData().toString() == QStringLiteral("named"));
     CHECK_FALSE(dialog.hasChanges());
 
-    single->click();
+    choose(commands, "single");
     CHECK(dialog.hasChanges());
     CHECK(dialog.applyChanges() ==
           QStringList{QString::fromLatin1(NavigatorPanel::ADD_COMMANDS_SETTING)});
@@ -592,10 +662,9 @@ TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in 
 
     // Opened again, the page shows the stored choice
     SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(again, QString(), QStringLiteral("Navigator"));
-    auto* singleAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorAddSingle"));
-    REQUIRE(singleAgain != nullptr);
-    CHECK(singleAgain->isChecked());
+    openPage(again, QStringLiteral("Navigator"), QStringLiteral("Adding"));
+    CHECK(choiceList(again, "navigatorAddCommands")->currentData().toString() ==
+          QStringLiteral("single"));
 
     settings.set<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, before);
 }
@@ -608,39 +677,30 @@ TEST_CASE("Settings dialog: the Navigator page chooses the top of the Add Elemen
     settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, "sections");
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
-    auto* sections = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowSections"));
-    auto* book = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowBook"));
-    auto* place = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowPlace"));
-    REQUIRE(sections != nullptr);
-    REQUIRE(book != nullptr);
-    REQUIRE(place != nullptr);
-    CHECK(sections->isChecked());
-    CHECK_FALSE(book->isChecked());
-    CHECK_FALSE(place->isChecked());
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
+    QComboBox* window = choiceList(dialog, "navigatorAddWindow");
+    CHECK(window->currentData().toString() == QStringLiteral("sections"));
     CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::Sections);
 
     // A choice of its own, apart from the commands of the menus
-    auto* named = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddNamed"));
-    REQUIRE(named != nullptr);
-    const bool namedBefore = named->isChecked();
-    place->click();
-    CHECK(named->isChecked() == namedBefore);
+    QComboBox* commands = choiceList(dialog, "navigatorAddCommands");
+    const QString commandsBefore = commands->currentData().toString();
+    choose(window, "place");
+    CHECK(commands->currentData().toString() == commandsBefore);
     CHECK(dialog.applyChanges() ==
           QStringList{QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING)});
     CHECK(settings.get<std::string>(NavigatorPanel::ADD_WINDOW_SETTING) == "place");
     CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::None);
-    book->click();
+    choose(window, "book");
     CHECK(dialog.applyChanges() ==
           QStringList{QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING)});
     CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::Book);
 
     // Opened again, the page shows the stored choice
     SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(again, QString(), QStringLiteral("Navigator"));
-    auto* bookAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowBook"));
-    REQUIRE(bookAgain != nullptr);
-    CHECK(bookAgain->isChecked());
+    openPage(again, QStringLiteral("Navigator"), QStringLiteral("Adding"));
+    CHECK(choiceList(again, "navigatorAddWindow")->currentData().toString() ==
+          QStringLiteral("book"));
 
     settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, before);
 }
@@ -654,23 +714,17 @@ TEST_CASE("Settings dialog: the Materials page chooses how a material opens",
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QString(), QStringLiteral("Materials"));
-    auto* card = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPicturesCard"));
-    auto* system = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPicturesSystem"));
-    REQUIRE(card != nullptr);
-    REQUIRE(system != nullptr);
-    CHECK(card->isChecked());
-    CHECK_FALSE(system->isChecked());
+    QComboBox* open = choiceList(dialog, "materialsOpenPictures");
+    CHECK(open->currentData().toString() == QStringLiteral("card"));
 
     // A choice of its own, apart from those of the pages and of the PDF files
-    auto* browser = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPagesBrowser"));
-    auto* pdfSystem = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPdfSystem"));
-    REQUIRE(browser != nullptr);
-    REQUIRE(pdfSystem != nullptr);
-    const bool browserBefore = browser->isChecked();
-    const bool pdfBefore = pdfSystem->isChecked();
-    system->click();
-    CHECK(browser->isChecked() == browserBefore);
-    CHECK(pdfSystem->isChecked() == pdfBefore);
+    QComboBox* pages = choiceList(dialog, "materialsOpenPages");
+    QComboBox* pdf = choiceList(dialog, "materialsOpenPdf");
+    const QString pagesBefore = pages->currentData().toString();
+    const QString pdfBefore = pdf->currentData().toString();
+    choose(open, "system");
+    CHECK(pages->currentData().toString() == pagesBefore);
+    CHECK(pdf->currentData().toString() == pdfBefore);
     CHECK(dialog.applyChanges() ==
           QStringList{QString::fromLatin1(NavigatorPanel::OPEN_MATERIALS_SETTING)});
     CHECK(settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING) == "system");
@@ -678,17 +732,13 @@ TEST_CASE("Settings dialog: the Materials page chooses how a material opens",
     // Opened again, the page shows the stored choice
     SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(again, QString(), QStringLiteral("Materials"));
-    auto* systemAgain =
-        again.findChild<QRadioButton*>(QStringLiteral("materialsOpenPicturesSystem"));
-    REQUIRE(systemAgain != nullptr);
-    CHECK(systemAgain->isChecked());
+    CHECK(choiceList(again, "materialsOpenPictures")->currentData().toString() ==
+          QStringLiteral("system"));
 
-    // The Navigator page has them no more
-    openPage(again, QString(), QStringLiteral("Navigator"));
-    CHECK(again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard")) ==
-          nullptr);
-    CHECK(again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesBrowser")) ==
-          nullptr);
+    // The pages of the Navigator have them no more
+    openAllPages(again);
+    CHECK(again.findChild<QComboBox*>(QStringLiteral("navigatorOpenMaterials")) == nullptr);
+    CHECK(again.findChild<QComboBox*>(QStringLiteral("navigatorOpenPages")) == nullptr);
 
     settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, before);
 }
@@ -701,7 +751,7 @@ TEST_CASE("Settings dialog: the Navigator page says whether links name paragraph
 
     // They do, as usual
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Material Lists"));
     auto* paragraphs = dialog.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
     REQUIRE(paragraphs != nullptr);
     CHECK(paragraphs->isChecked());
@@ -714,7 +764,7 @@ TEST_CASE("Settings dialog: the Navigator page says whether links name paragraph
 
     // Opened again, the page shows it
     SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(again, QString(), QStringLiteral("Navigator"));
+    openPage(again, QStringLiteral("Navigator"), QStringLiteral("Material Lists"));
     auto* paragraphsAgain =
         again.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
     REQUIRE(paragraphsAgain != nullptr);
@@ -730,26 +780,19 @@ TEST_CASE("Settings dialog: the Navigator page chooses what the Materials show a
 
     // The usual ones: the kinds with their numbers, each on a tab of its own
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
-    auto* types = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsTypes"));
-    auto* expand = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
-    auto* own = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOwnTabs"));
-    auto* one = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOneTab"));
-    REQUIRE(types != nullptr);
-    REQUIRE(expand != nullptr);
-    REQUIRE(own != nullptr);
-    REQUIRE(one != nullptr);
-    CHECK(types->isChecked());
-    CHECK(own->isChecked());
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Material Lists"));
+    QComboBox* tree = choiceList(dialog, "navigatorMaterialsTree");
+    QComboBox* tabs = choiceList(dialog, "navigatorMaterialsTabs");
+    CHECK(tree->currentData().toString() == QStringLiteral("types"));
+    CHECK(tabs->currentData().toString() == QStringLiteral("own"));
     CHECK_FALSE(NavigatorPanel::materialsExpandable());
     CHECK(MaterialList::ownTabs());
 
-    // Each row is a choice of its own
-    expand->click();
-    CHECK(expand->isChecked());
-    CHECK(own->isChecked());
-    one->click();
-    CHECK(expand->isChecked());
+    // Each list is a choice of its own
+    choose(tree, "expand");
+    CHECK(tabs->currentData().toString() == QStringLiteral("own"));
+    choose(tabs, "one");
+    CHECK(tree->currentData().toString() == QStringLiteral("expand"));
     const QStringList written = dialog.applyChanges();
     CHECK(written.size() == 2);
     CHECK(written.contains(QString::fromLatin1(NavigatorPanel::MATERIALS_TREE_SETTING)));
@@ -761,69 +804,59 @@ TEST_CASE("Settings dialog: the Navigator page chooses what the Materials show a
 
     // Opened again, the page shows the stored choices
     SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(again, QString(), QStringLiteral("Navigator"));
-    auto* expandAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
-    auto* oneAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOneTab"));
-    REQUIRE(expandAgain != nullptr);
-    REQUIRE(oneAgain != nullptr);
-    CHECK(expandAgain->isChecked());
-    CHECK(oneAgain->isChecked());
+    openPage(again, QStringLiteral("Navigator"), QStringLiteral("Material Lists"));
+    CHECK(choiceList(again, "navigatorMaterialsTree")->currentData().toString() ==
+          QStringLiteral("expand"));
+    CHECK(choiceList(again, "navigatorMaterialsTabs")->currentData().toString() ==
+          QStringLiteral("one"));
 }
 
-TEST_CASE("Settings dialog: the settings of the Materials on the Navigator page keep apart",
-          "[gui][settings][materials]") {
-    // Regression: the notes of a setting ran into the next setting, with no more room between
-    // two settings than between the choices of one
+TEST_CASE("Settings dialog: a choice is a list with the note of the chosen item under it, and "
+          "no page has radio buttons", "[gui][settings]") {
+    // Regression: the columns of radio buttons with a note under each ran into one another
     ProgramStyle programStyle;
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.resize(900, 700);
     dialog.show();
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Material Lists"));
     settle();
 
-    auto* types = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsTypes"));
-    auto* expand = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
-    auto* own = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOwnTabs"));
-    auto* link = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsLink"));
-    auto* paragraphs = dialog.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
-    REQUIRE(types != nullptr);
-    REQUIRE(expand != nullptr);
-    REQUIRE(own != nullptr);
-    REQUIRE(link != nullptr);
-    REQUIRE(paragraphs != nullptr);
+    // The note under the list, in line with it, says what the chosen item means
+    QComboBox* tree = choiceList(dialog, "navigatorMaterialsTree");
+    choose(tree, "types");
+    auto* group = qobject_cast<QGroupBox*>(tree->parentWidget());
+    REQUIRE(group != nullptr);
+    auto* form = qobject_cast<QFormLayout*>(group->layout());
+    REQUIRE(form != nullptr);
+    int row = -1;
+    QFormLayout::ItemRole role = QFormLayout::FieldRole;
+    form->getWidgetPosition(tree, &row, &role);
+    REQUIRE(row >= 0);
+    QLayoutItem* under = form->itemAt(row + 1, QFormLayout::FieldRole);
+    REQUIRE(under != nullptr);
+    auto* note = qobject_cast<QLabel*>(under->widget());
+    REQUIRE(note != nullptr);
+    CHECK(note->text().startsWith(QStringLiteral("The list of a kind opens on a tab")));
+    CHECK(tree->accessibleDescription() == note->text());
+    settle();
+    CHECK(note->mapTo(group, QPoint()).x() == tree->mapTo(group, QPoint()).x());
+    CHECK(note->mapTo(group, QPoint()).y() >= tree->mapTo(group, QPoint(0, tree->height())).y());
+    choose(tree, "expand");
+    CHECK(note->text().startsWith(QStringLiteral("Each kind also has its materials under it")));
+    CHECK(tree->accessibleDescription() == note->text());
 
-    // The choices of a setting with their notes, in the group of the Materials
-    QWidget* const tree = types->parentWidget();
-    QWidget* const group = tree->parentWidget();
-    REQUIRE(qobject_cast<QGroupBox*>(group) != nullptr);
-    QLabel* dropNote = nullptr;
-    for (QLabel* label : group->findChildren<QLabel*>()) {
-        if (label->text().startsWith(QStringLiteral("Applies to a file dragged"))) {
-            dropNote = label;
-        }
+    // Every page: lists, no radio buttons
+    QTreeWidget* pages = dialog.findChild<QTreeWidget*>();
+    REQUIRE(pages != nullptr);
+    for (QTreeWidgetItemIterator item(pages); *item != nullptr; ++item) {
+        pages->setCurrentItem(*item);
     }
-    REQUIRE(dropNote != nullptr);
-    auto* typesNote = qobject_cast<QLabel*>(tree->layout()->itemAt(1)->widget());
-    REQUIRE(typesNote != nullptr);
-
-    const auto top = [group](const QWidget* widget) { return widget->mapTo(group, QPoint()).y(); };
-    const auto gap = [group, &top](const QWidget* above, const QWidget* below) {
-        return top(below) - above->mapTo(group, QPoint(0, above->height())).y();
-    };
-    const int line = group->fontMetrics().height();
-    const int within = gap(typesNote, expand);
-    INFO("a line is " << line << " px; the choices of one setting are " << within
-                      << " px apart");
-
-    const std::vector<std::pair<const QWidget*, const QWidget*>> settings{
-        {tree, own->parentWidget()},
-        {own->parentWidget(), link->parentWidget()},
-        {dropNote, paragraphs}};
-    for (const auto& [above, below] : settings) {
-        INFO("two settings " << gap(above, below) << " px apart");
-        CHECK(gap(above, below) >= line);
-        CHECK(gap(above, below) > within);
+    settle();
+    const QList<QRadioButton*> radios = dialog.findChildren<QRadioButton*>();
+    for (const QRadioButton* radio : radios) {
+        INFO("a radio button: " << radio->text().toStdString());
     }
+    CHECK(radios.isEmpty());
 }
 
 TEST_CASE("Settings dialog: the Materials page chooses how pages and PDF files open",
@@ -837,21 +870,18 @@ TEST_CASE("Settings dialog: the Materials page chooses how pages and PDF files o
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QString(), QStringLiteral("Materials"));
-    auto* browser = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPagesBrowser"));
-    auto* onCard = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPagesCard"));
-    auto* pdfPreview = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPdfPreview"));
-    auto* pdfSystem = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPdfSystem"));
-    REQUIRE(browser != nullptr);
-    REQUIRE(onCard != nullptr);
-    REQUIRE(pdfPreview != nullptr);
-    REQUIRE(pdfSystem != nullptr);
+    QComboBox* pages = choiceList(dialog, "materialsOpenPages");
+    QComboBox* pdf = choiceList(dialog, "materialsOpenPdf");
     // The usual ones: the browser, and the preview of the program
-    CHECK(browser->isChecked());
-    CHECK(pdfPreview->isChecked());
-    CHECK(pdfPreview->isEnabled() == PdfFiles::previewAvailable());
+    CHECK(pages->currentData().toString() == QStringLiteral("browser"));
+    CHECK(pdf->currentData().toString() == QLatin1String(PdfFiles::PREVIEW));
+    // Without the preview of PDF files it cannot be chosen
+    auto* pdfItems = qobject_cast<QStandardItemModel*>(pdf->model());
+    REQUIRE(pdfItems != nullptr);
+    CHECK(pdfItems->item(0)->isEnabled() == PdfFiles::previewAvailable());
 
-    onCard->click();
-    pdfSystem->click();
+    choose(pages, "card");
+    choose(pdf, PdfFiles::SYSTEM);
     const QStringList written = dialog.applyChanges();
     CHECK(written.size() == 2);
     CHECK(written.contains(QString::fromLatin1(NavigatorPanel::OPEN_PAGES_SETTING)));
@@ -863,12 +893,10 @@ TEST_CASE("Settings dialog: the Materials page chooses how pages and PDF files o
     // Opened again, the page shows the stored choices
     SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(again, QString(), QStringLiteral("Materials"));
-    auto* onCardAgain = again.findChild<QRadioButton*>(QStringLiteral("materialsOpenPagesCard"));
-    auto* systemAgain = again.findChild<QRadioButton*>(QStringLiteral("materialsOpenPdfSystem"));
-    REQUIRE(onCardAgain != nullptr);
-    REQUIRE(systemAgain != nullptr);
-    CHECK(onCardAgain->isChecked());
-    CHECK(systemAgain->isChecked());
+    CHECK(choiceList(again, "materialsOpenPages")->currentData().toString() ==
+          QStringLiteral("card"));
+    CHECK(choiceList(again, "materialsOpenPdf")->currentData().toString() ==
+          QLatin1String(PdfFiles::SYSTEM));
 
     settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, pagesBefore);
     settings.set<std::string>(PdfFiles::OPEN_SETTING, pdfBefore);
@@ -910,23 +938,17 @@ TEST_CASE("Settings dialog: the Materials page sets the preview of PDF files",
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QString(), QStringLiteral("Materials"));
-    auto* continuous = dialog.findChild<QRadioButton*>(QStringLiteral("materialsPdfContinuous"));
-    auto* two = dialog.findChild<QRadioButton*>(QStringLiteral("materialsPdfTwo"));
-    auto* asFile = dialog.findChild<QRadioButton*>(QStringLiteral("materialsPdfAsFile"));
-    auto* inverted = dialog.findChild<QRadioButton*>(QStringLiteral("materialsPdfInverted"));
+    QComboBox* layout = choiceList(dialog, "materialsPdfLayout");
+    QComboBox* dark = choiceList(dialog, "materialsPdfDark");
     auto* zoom = dialog.findChild<QComboBox*>(QStringLiteral("materialsPdfZoom"));
     auto* side = dialog.findChild<QComboBox*>(QStringLiteral("materialsPdfSide"));
     auto* lastPage = dialog.findChild<QCheckBox*>(QStringLiteral("materialsPdfLastPage"));
-    REQUIRE(continuous != nullptr);
-    REQUIRE(two != nullptr);
-    REQUIRE(asFile != nullptr);
-    REQUIRE(inverted != nullptr);
     REQUIRE(zoom != nullptr);
     REQUIRE(side != nullptr);
     REQUIRE(lastPage != nullptr);
     // The usual ones: one under another, as in the file, the width of the page, the bookmarks
-    CHECK(continuous->isChecked());
-    CHECK(asFile->isChecked());
+    CHECK(layout->currentData().toString() == QLatin1String(PdfFiles::CONTINUOUS));
+    CHECK(dark->currentData().toString() == QLatin1String(PdfFiles::AS_FILE));
     CHECK(zoom->currentData().toString() == QLatin1String(PdfFiles::PAGE_WIDTH));
     CHECK(side->currentData().toString() == QLatin1String(PdfFiles::BOOKMARKS));
     CHECK(lastPage->isChecked());
@@ -935,14 +957,14 @@ TEST_CASE("Settings dialog: the Materials page sets the preview of PDF files",
 
     if (!PdfFiles::previewAvailable()) {
         // Without the preview of PDF files its settings wait, dimmed
-        CHECK_FALSE(two->isEnabled());
+        CHECK_FALSE(layout->isEnabled());
         CHECK_FALSE(zoom->isEnabled());
         CHECK_FALSE(lastPage->isEnabled());
         CHECK_FALSE(showColors->isEnabled());
         CHECK(dialog.applyChanges().isEmpty());
     } else {
-        two->click();
-        inverted->click();
+        choose(layout, PdfFiles::TWO);
+        choose(dark, PdfFiles::INVERTED);
         zoom->setCurrentIndex(zoom->findData(QString::fromLatin1(PdfFiles::LAST)));
         side->setCurrentIndex(side->findData(QString::fromLatin1(PdfFiles::HIDDEN)));
         lastPage->click();
@@ -977,37 +999,31 @@ TEST_CASE("Settings dialog: the Navigator page chooses what a drop gives", "[gui
     settings.set<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, "link");
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
-    auto* link = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsLink"));
-    auto* add = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsAdd"));
-    auto* window = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsWindow"));
-    REQUIRE(link != nullptr);
-    REQUIRE(add != nullptr);
-    REQUIRE(window != nullptr);
+    openPage(dialog, QStringLiteral("Navigator"), QStringLiteral("Adding"));
+    QComboBox* quick = choiceList(dialog, "navigatorQuickMaterials");
+    QComboBox* window = choiceList(dialog, "navigatorAddWindow");
     // The usual one: at once with the link
-    CHECK(link->isChecked());
-    CHECK_FALSE(add->isChecked());
-    CHECK_FALSE(window->isChecked());
+    CHECK(quick->currentData().toString() == QStringLiteral("link"));
 
-    window->click();
-    CHECK(window->isChecked());
-    CHECK_FALSE(link->isChecked());
+    // A choice of its own, apart from that of the Add Element window
+    const QString windowBefore = window->currentData().toString();
+    choose(quick, "window");
+    CHECK(window->currentData().toString() == windowBefore);
     CHECK(dialog.applyChanges() ==
           QStringList{QString::fromLatin1(NavigatorPanel::QUICK_MATERIALS_SETTING)});
     CHECK(settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING) == "window");
     CHECK(NavigatorPanel::quickMaterials() == QStringLiteral("window"));
 
-    add->click();
+    choose(quick, "add");
     CHECK(dialog.applyChanges() ==
           QStringList{QString::fromLatin1(NavigatorPanel::QUICK_MATERIALS_SETTING)});
     CHECK(settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING) == "add");
 
     // Opened again, the page shows the stored choice
     SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(again, QString(), QStringLiteral("Navigator"));
-    auto* addAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsAdd"));
-    REQUIRE(addAgain != nullptr);
-    CHECK(addAgain->isChecked());
+    openPage(again, QStringLiteral("Navigator"), QStringLiteral("Adding"));
+    CHECK(choiceList(again, "navigatorQuickMaterials")->currentData().toString() ==
+          QStringLiteral("add"));
 
     settings.set<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, quickBefore);
 }
@@ -1020,30 +1036,24 @@ TEST_CASE("Settings dialog: Network > Materials chooses the downloads of the mat
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QStringLiteral("Network"), QStringLiteral("Materials"));
-    auto* ask = dialog.findChild<QRadioButton*>(QStringLiteral("networkDownloadsAsk"));
-    auto* always = dialog.findChild<QRadioButton*>(QStringLiteral("networkDownloadsAlways"));
-    auto* never = dialog.findChild<QRadioButton*>(QStringLiteral("networkDownloadsNever"));
-    REQUIRE(ask != nullptr);
-    REQUIRE(always != nullptr);
-    REQUIRE(never != nullptr);
-    CHECK(ask->isChecked());
+    QComboBox* downloads = choiceList(dialog, "networkDownloads");
+    CHECK(downloads->currentData().toString() == QStringLiteral("ask"));
     CHECK(MaterialDownloader::policy() == MaterialDownloader::Policy::Ask);
 
-    never->click();
+    choose(downloads, "never");
     CHECK(dialog.applyChanges() == QStringList{QString::fromLatin1(MaterialDownloader::SETTING)});
     CHECK(settings.get<std::string>(MaterialDownloader::SETTING) == "never");
     CHECK(MaterialDownloader::policy() == MaterialDownloader::Policy::Never);
 
-    always->click();
+    choose(downloads, "always");
     CHECK(dialog.applyChanges() == QStringList{QString::fromLatin1(MaterialDownloader::SETTING)});
     CHECK(MaterialDownloader::policy() == MaterialDownloader::Policy::Always);
 
     // Opened again, the page shows the stored choice
     SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(again, QStringLiteral("Network"), QStringLiteral("Materials"));
-    auto* alwaysAgain = again.findChild<QRadioButton*>(QStringLiteral("networkDownloadsAlways"));
-    REQUIRE(alwaysAgain != nullptr);
-    CHECK(alwaysAgain->isChecked());
+    CHECK(choiceList(again, "networkDownloads")->currentData().toString() ==
+          QStringLiteral("always"));
 
     settings.set<std::string>(MaterialDownloader::SETTING, before);
 }

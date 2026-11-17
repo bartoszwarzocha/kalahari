@@ -283,16 +283,31 @@ QWidget* EditorAutoCorrectPage::createWhileTypingTab()
     // Auto-correct as a whole, as Tools > Auto-correct as You Type turns it on and off: off,
     // the replacements are greyed out and keep their choices
     m_enabled = addCheckBox(replace, tr("Auto-correct as you type"), "editor.autoCorrect.enabled");
-    m_replacements.push_back(addCheckBox(replace, tr("Straight quotes with typographic ones"),
+    addOptionNote(replace, m_enabled,
+                  tr("Turns all the replacements below on and off at once, as Tools > "
+                     "Auto-correct as You Type and its button on the Tools toolbar do. Turned "
+                     "off, they keep their choices."));
+
+    //: Settings > Editor > Auto-correct > While Typing: the group of the quotes and the
+    //: apostrophe. In Polish: Cudzysłowy i apostrof
+    QFormLayout* quotes = addTabGroup(layout, tr("Quotes and Apostrophe"));
+    m_replacements.push_back(addCheckBox(quotes, tr("Straight quotes with typographic ones"),
                                          "editor.autoCorrect.quotes"));
     m_replacements.push_back(
-        addCheckBox(replace, tr("Apostrophe ' with ’"), "editor.autoCorrect.apostrophe"));
+        addCheckBox(quotes, tr("Apostrophe ' with ’"), "editor.autoCorrect.apostrophe"));
+    addNote(quotes, tr("The quotation marks follow the language of the book: „…” and ‚…’ in "
+                       "Polish, “…” and ‘…’ in English. Outside the book, as in a file opened "
+                       "from the disk, they follow the language of the program. A language "
+                       "chosen on the Spelling page goes before both."));
 
     // A replacement to a dash with the dash beside it, under it where the page is narrow; the
     // dash is chosen only for the replacement made
-    const auto addDashChoice = [this, replace](const QString& text, const std::string& key,
-                                               const QString& dashName,
-                                               const std::string& dashKey) {
+    //: Settings > Editor > Auto-correct > While Typing: the group of the dashes and the
+    //: ellipsis. In Polish: Myślniki i wielokropek
+    QFormLayout* dashes = addTabGroup(layout, tr("Dashes and Ellipsis"));
+    const auto addDashChoice = [this, dashes](const QString& text, const std::string& key,
+                                              const QString& dashName,
+                                              const std::string& dashKey) {
         auto* box = new QCheckBox(text);
         auto* dash = new QComboBox();
         dash->setAccessibleName(dashName);
@@ -301,7 +316,7 @@ QWidget* EditorAutoCorrectPage::createWhileTypingTab()
         auto* row = new FlowLayout(nullptr, 6, 4);
         row->addWidget(box);
         row->addWidget(dash);
-        replace->addRow(row);
+        dashes->addRow(row);
         bind(box, key);
         bind(dash, dashKey);
         m_replacements.push_back(box);
@@ -324,26 +339,30 @@ QWidget* EditorAutoCorrectPage::createWhileTypingTab()
                                                betweenWords),
         0, 0, 0);
     indented->addWidget(inDialogue);
-    replace->addRow(indented);
+    dashes->addRow(indented);
     bind(inDialogue, "editor.autoCorrect.dashInDialogue");
     m_choices.emplace_back(betweenWords, inDialogue);
 
-    m_replacements.push_back(addCheckBox(replace, tr("“--” with an en dash “–”"),
+    m_replacements.push_back(addCheckBox(dashes, tr("“--” with an en dash “–”"),
                                          "editor.autoCorrect.doubleHyphen"));
-    m_replacements.push_back(addCheckBox(replace, tr("“...” with an ellipsis “…”"),
+    m_replacements.push_back(addCheckBox(dashes, tr("“...” with an ellipsis “…”"),
                                          "editor.autoCorrect.ellipsis"));
-    m_useTable = addCheckBox(replace, tr("Replacements from the table"),
+    addNote(dashes, tr("The hyphen becomes a dash when a space is typed after it."));
+
+    //: Settings > Editor > Auto-correct > While Typing: the group of the replacement table and
+    //: the links. In Polish: Inne zamiany
+    QFormLayout* others = addTabGroup(layout, tr("Other Replacements"));
+    m_useTable = addCheckBox(others, tr("Replacements from the table"),
                              "editor.autoCorrect.replacementTable");
     m_replacements.push_back(m_useTable);
-    m_replacements.push_back(addCheckBox(replace, tr("Internet addresses with links"),
-                                         "editor.autoCorrect.links"));
-    addNote(replace, tr("The quotation marks follow the language of the book: „…” and ‚…’ in "
-                        "Polish, “…” and ‘…’ in English. Outside the book, as in a file opened "
-                        "from the disk, they follow the language of the program. A language "
-                        "chosen on the Spelling page goes before both. The hyphen becomes a dash "
-                        "when a space is typed after it."));
-    addNote(replace, tr("An address that starts with www., http:// or https://, and an e-mail "
-                        "address, becomes a link when a space or Enter is typed after it."));
+    addOptionNote(others, m_useTable,
+                  tr("The fixed replacements of the Replacement Table tab, as (c) with ©."));
+    QCheckBox* links = addCheckBox(others, tr("Internet addresses with links"),
+                                   "editor.autoCorrect.links");
+    m_replacements.push_back(links);
+    addOptionNote(others, links,
+                  tr("An address that starts with www., http:// or https://, and an e-mail "
+                     "address, becomes a link when a space or Enter is typed after it."));
 
     // What is typed in a paragraph of its own and Enter makes an element of the text, and what
     // is typed at the start of a paragraph and a space a list
@@ -358,10 +377,6 @@ QWidget* EditorAutoCorrectPage::createWhileTypingTab()
                                          "editor.autoCorrect.numberedLists"));
     addNote(elements, tr("“***” and “---” are typed in an empty paragraph, “*” and “1.” at "
                          "the start of a paragraph; the list starts from the number typed."));
-
-    addNote(layout, tr("Tools > Auto-correct as You Type, also a button on the Tools toolbar, "
-                       "turns all the replacements on and off at once; the choices above "
-                       "stay."));
 
     // With the keys Undo has now (the user may change them)
     QLabel* undoNote = addNote(layout, QString());
@@ -387,16 +402,25 @@ QWidget* EditorAutoCorrectPage::createCapitalsTab()
     auto* tab = new QWidget();
     auto* layout = new QVBoxLayout(tab);
     QFormLayout* capitals = addTabGroup(layout, tr("Capitals"));
-    m_replacements.push_back(addCheckBox(capitals, tr("A capital at the start of a sentence"),
-                                         "editor.autoCorrect.sentenceCapitals"));
+    QCheckBox* sentences = addCheckBox(capitals, tr("A capital at the start of a sentence"),
+                                       "editor.autoCorrect.sentenceCapitals");
+    m_replacements.push_back(sentences);
+    //: In Polish: Zdanie zaczyna się także po myślniku dialogowym. Bez wielkiej litery po
+    //: skrócie z listy poniżej, po liczbie z kropką (5.), po inicjale (J. Kowalski) i po
+    //: wielokropku.
+    addOptionNote(capitals, sentences,
+                  tr("A sentence starts also after a dialogue dash. No capital after an "
+                     "abbreviation of the list below, a number with a period (5.), an initial "
+                     "(J. Kowalski) or an ellipsis."));
     m_replacements.push_back(addCheckBox(capitals, tr("Correct TWo INitial CApitals"),
                                          "editor.autoCorrect.twoInitialCapitals"));
-    m_replacements.push_back(addCheckBox(capitals, tr("Correct words typed with Caps Lock on"),
-                                         "editor.autoCorrect.capsLock"));
-    addNote(capitals, tr("A sentence starts also after a dialogue dash. No capital after an "
-                         "abbreviation of the list below, a number with a period (5.), an "
-                         "initial (J. Kowalski) or an ellipsis. A word typed with Caps Lock on "
-                         "by mistake, as “cAPS”, becomes “Caps”."));
+    QCheckBox* capsLock = addCheckBox(capitals, tr("Correct words typed with Caps Lock on"),
+                                      "editor.autoCorrect.capsLock");
+    m_replacements.push_back(capsLock);
+    //: In Polish: Wyraz wpisany przypadkiem z włączonym Caps Lock, np. „wIELKI”, zmienia się
+    //: w „Wielki”.
+    addOptionNote(capitals, capsLock,
+                  tr("A word typed with Caps Lock on by mistake, as “cAPS”, becomes “Caps”."));
 
     // The abbreviations of each language and the words with two capitals, side by side
     auto* exceptions = new QGroupBox(tr("Exceptions"));

@@ -187,6 +187,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an image anchored to its paragraph with the text around it. An image in a line of text or in
   a table stays in its line.
 
+### Changed
+
+- **Settings: shorter pages, titled groups and a note under each option** - 2026-11-16. The
+  long pages are split: Editor has General, Writing (the word count and the fields) and Margin
+  Numbering; Annotations has General and Annotation Cards; Navigator has Adding, Material
+  Lists, Material Kinds and Cover. Each page has groups with headings and a short note in plain
+  words under an option; the options seldom changed are under Advanced Settings, shown with a
+  button. A choice of several items is a list with the note of the chosen item under it, in
+  place of the columns of radio buttons, on every page, also on those of Statistics and Goals,
+  Cards, Materials, Images, Auto-correct, Quick Insert, Clippings and Plot Board. A test makes
+  sure that no page has radio buttons and that every page fits the narrowest window, in English
+  and in Polish.
+
 ---
 
 ## [0.4.0-alpha] - 2026-11-17

@@ -19,10 +19,10 @@
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QElapsedTimer>
 #include <QFont>
 #include <QLabel>
-#include <QRadioButton>
 #include <QScreen>
 #include <QScrollArea>
 #include <QSplitter>
@@ -119,16 +119,26 @@ void SettingsDialog::createNavigationTree() {
     addPage(appearance, tr("Dashboard"), []() { return new DashboardPage(); });
 
     QTreeWidgetItem* editor = category(tr("Editor"));
-    m_pageItems[WORD_COUNT_PAGE] =
-        addPage(editor, tr("General"), [this]() { return new EditorGeneralPage(m_commands); });
+    addPage(editor, tr("General"), [this]() {
+        return new EditorGeneralPage(m_commands, EditorGeneralPage::Part::Text);
+    });
+    //: Settings > Editor > Writing: the behavior of the editor while writing. In Polish: Pisanie
+    m_pageItems[WORD_COUNT_PAGE] = addPage(editor, tr("Writing"), [this]() {
+        return new EditorGeneralPage(m_commands, EditorGeneralPage::Part::Writing);
+    });
     m_pageItems[FIELDS_PAGE] = m_pageItems[WORD_COUNT_PAGE];
     m_pageItems[PASTE_PAGE] = m_pageItems[WORD_COUNT_PAGE];
     m_pageItems[EDITOR_COLORS_PAGE] =
         addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
-    m_pageItems[PAGES_PAGE] =
-        addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
-    m_pageItems[MARGIN_NUMBERING_PAGE] = m_pageItems[PAGES_PAGE];
+    m_pageItems[PAGES_PAGE] = addPage(editor, tr("Pages and Margins"), []() {
+        return new EditorPagesPage(EditorPagesPage::Part::Pages);
+    });
+    //: Settings > Editor > Margin Numbering: the numbers of the lines or paragraphs in the
+    //: margin. Short: the list of the pages is as wide as its longest name. In Polish: Numeracja
+    m_pageItems[MARGIN_NUMBERING_PAGE] = addPage(editor, tr("Margin Numbering"), []() {
+        return new EditorPagesPage(EditorPagesPage::Part::MarginNumbers);
+    });
     //: Settings > Editor > Images: new images, the captions of new books. In Polish: Obrazy
     m_pageItems[IMAGES_PAGE] = addPage(editor, tr("Images"), [this]() {
         auto* imagesPage = new EditorImagesPage();
@@ -162,10 +172,36 @@ void SettingsDialog::createNavigationTree() {
     m_pageItems[CLIPPINGS_PAGE] = addPage(
         editor, tr("Clippings"), [this]() { return new EditorClippingsPage(m_commands); });
 
-    m_pageItems[ANNOTATIONS_PAGE] =
-        addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
-    m_pageItems[NAVIGATOR_PAGE] =
-        addPage(nullptr, tr("Navigator"), [this]() { return new NavigatorPage(m_book); });
+    QTreeWidgetItem* annotations = category(tr("Annotations"));
+    m_pageItems[ANNOTATIONS_PAGE] = addPage(annotations, tr("General"), []() {
+        return new AnnotationsPage(AnnotationsPage::Part::General);
+    });
+    //: Settings > Annotations > Annotation Cards: the annotations shown as cards under the
+    //: paragraphs in the continuous view; not the page Cards of the cards of characters,
+    //: locations and items. Short: the list of the pages is as wide as its longest name. In
+    //: Polish: Karty uwag
+    addPage(annotations, tr("Annotation Cards"),
+            []() { return new AnnotationsPage(AnnotationsPage::Part::Cards); });
+
+    QTreeWidgetItem* navigator = category(tr("Navigator"));
+    //: Settings > Navigator > Adding: the menus of the nodes, the Add Element window and the
+    //: dropped files. In Polish: Dodawanie
+    m_pageItems[NAVIGATOR_ADDING_PAGE] = addPage(navigator, tr("Adding"), [this]() {
+        return new NavigatorPage(m_book, NavigatorPage::Part::Adding);
+    });
+    //: Settings > Navigator > Material Lists: what the Materials of the Navigator show, where
+    //: the list of a kind opens, the links of the materials; not the page Materials of the
+    //: opening of the materials. In Polish: Listy materiałów
+    addPage(navigator, tr("Material Lists"),
+            [this]() { return new NavigatorPage(m_book, NavigatorPage::Part::Lists); });
+    //: Settings > Navigator > Material Kinds: the kinds of materials shown in the Navigator. In
+    //: Polish: Typy materiałów
+    m_pageItems[NAVIGATOR_PAGE] = addPage(navigator, tr("Material Kinds"), [this]() {
+        return new NavigatorPage(m_book, NavigatorPage::Part::Kinds);
+    });
+    //: Settings > Navigator > Cover: the cover of the book in the Navigator. In Polish: Okładka
+    addPage(navigator, tr("Cover"),
+            [this]() { return new NavigatorPage(m_book, NavigatorPage::Part::Cover); });
     //: Settings > Cards: the cards of characters, locations and items. In Polish: Karty
     m_pageItems[CARDS_PAGE] = addPage(nullptr, tr("Cards"), []() { return new CardsPage(); });
     //: The page of the materials: how they open, the preview of PDF files and the sources. In
@@ -395,14 +431,10 @@ bool SettingsDialog::openPage(const QString& page) {
                                  : QStringLiteral("marginNumbersGroup");
         auto* group = scrollArea != nullptr ? scrollArea->findChild<QWidget*>(name) : nullptr;
         if (group != nullptr) {
-            const QList<QRadioButton*> choices = group->findChildren<QRadioButton*>();
-            const auto checked = std::find_if(choices.begin(), choices.end(),
-                                              [](const QRadioButton* choice) {
-                                                  return choice->isChecked();
-                                              });
+            auto* mode = group->findChild<QComboBox*>(QStringLiteral("marginNumbersMode"));
             auto* notes = group->findChild<QWidget*>(QStringLiteral("wordCountNotes"));
-            if (checked != choices.end()) {
-                (*checked)->setFocus(Qt::OtherFocusReason);
+            if (mode != nullptr) {
+                mode->setFocus(Qt::OtherFocusReason);
             } else if (notes != nullptr) {
                 notes->setFocus(Qt::OtherFocusReason);
             } else if (QWidget* first = group->nextInFocusChain();
