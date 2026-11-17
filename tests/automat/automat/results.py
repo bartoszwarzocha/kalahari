@@ -76,7 +76,9 @@ class Store:
             for result in run.get("scenarios", []):
                 if result.get("state") in ("ok", "fail", "error") and result["id"] not in latest:
                     latest[result["id"]] = {"run": run_id, "state": result["state"],
-                                            "when": run.get("started"), "steps": step_times(result)}
+                                            "when": run.get("started"), "steps": step_times(result),
+                                            "duration_ms": result.get("duration_ms"),
+                                            "attempts": result.get("attempts", 1)}
         return latest
 
     def time_series(self, limit: int = 30) -> list:

@@ -24,7 +24,7 @@ from automat import config as config_mod  # noqa: E402
 from automat.approvals import Approvals  # noqa: E402
 from automat.results import Store  # noqa: E402
 from automat.runner import Paused, Runner  # noqa: E402
-from automat.scenarios import Library, check_sentence, limit_of  # noqa: E402
+from automat.scenarios import Library, action_sentence, check_sentence, limit_of  # noqa: E402
 
 SOURCES = [{"kind": "mockup", "ref": "makiety/znaki-specjalne.html"}]
 
@@ -221,13 +221,46 @@ class RunnerTest(Folder):
         self.assertEqual(len(result["steps"]), 1)
         self.assertIn("krok 1", result["reason"])
 
-    def test_unsupported_and_invalid_are_not_run(self):
-        self.write("a.json", scenario("przeciaganie", steps=[{"do": "drag", "target": {"window": "O", "name": "A"},
-                                                              "to": {"window": "O", "name": "B"}}]))
+    def test_what_cannot_run_here_and_invalid_are_not_run(self):
+        word = scenario("w-wordzie", steps=[{"do": "app", "app": "word", "steps": [{"do": "keys", "keys": "Ctrl+V"}]}])
+        word["tags"] = ["wymaga-worda"]
+        self.write("a.json", word)
         self.write("b.json", scenario("zepsuty", sources=[]))
-        runner, _, _ = self.make()
-        states = [s["state"] for s in runner.run_now(["przeciaganie", "zepsuty", "nie-ma"])["scenarios"]]
-        self.assertEqual(states, ["skipped", "error", "error"])
+
+        def factory(*args):
+            return fake.session_factory(*args)
+
+        factory.skip_reason = lambda s: "nie ma Worda" if "wymaga-worda" in s.tags else None
+        runner, _, _ = self.make(factory)
+        results = runner.run_now(["w-wordzie", "zepsuty", "nie-ma"])["scenarios"]
+        self.assertEqual([s["state"] for s in results], ["skipped", "error", "error"])
+        self.assertEqual(results[0]["reason"], "nie ma Worda")
+
+    def test_steps_in_another_program_become_steps_of_the_scenario(self):
+        data = scenario("notatnik", steps=[
+            {"do": "keys", "keys": "Ctrl+C"},
+            {"do": "app", "app": "notatnik", "steps": [{"do": "keys", "keys": "Ctrl+V"}],
+             "expect": [{"check": "clipboard", "contains": "A"}]}])
+        self.write("a.json", data)
+        found = Library(self.scenarios).get("notatnik")
+        self.assertEqual(found.problems, [])
+        self.assertEqual([s["do"] for s in found.steps], ["keys", "_app_open", "keys", "_app_close"])
+        self.assertEqual(found.steps[2]["_app"], "notatnik")
+        self.assertEqual(found.steps[3]["expect"][0]["check"], "clipboard")
+        sentences = [action_sentence(s) for s in found.steps]
+        self.assertEqual(sentences[1:], ["Uruchom program Notatnik", "Notatnik: naciśnij Ctrl+V",
+                                         "Zamknij program Notatnik"])
+
+    def test_unknown_program_and_bad_mask_are_problems(self):
+        data = scenario("zle", steps=[
+            {"do": "app", "app": "paint", "steps": [{"do": "keys", "keys": "Enter"}]},
+            {"do": "keys", "keys": "Enter", "expect": [{"check": "image", "area": "editor", "pattern": "Zły wzór",
+                                                        "mask": [[1, 2, 3]]}]}])
+        self.write("a.json", data)
+        problems = " ".join(map(str, Library(self.scenarios).get("zle").problems))
+        self.assertIn("nieznany program", problems)
+        self.assertIn("nazwa wzorca", problems)
+        self.assertIn("prostokątów", problems)
 
     def test_start_failure_is_an_error(self):
         self.write("a.json", scenario("start", fake="start_fails"))
@@ -253,6 +286,23 @@ class RunnerTest(Folder):
         runner, _, _ = self.make()
         states = [s["state"] for s in runner.run_now(["pierwszy", "drugi"], {"stop_on_fail": True})["scenarios"]]
         self.assertEqual(states, ["fail", "stopped"])
+
+    def test_stop_ends_a_long_wait_at_once(self):
+        long = scenario("dlugi")
+        long["steps"][0]["note"] = "fake:long"  # a step that waits five seconds
+        self.write("a.json", long)
+        self.write("b.json", scenario("nastepny"))
+        runner, store, _ = self.make()
+        run_id = runner.start(["dlugi", "nastepny"])
+        time.sleep(0.3)
+        began = time.perf_counter()
+        runner.stop()
+        runner.wait(5)
+        self.assertFalse(runner.running)
+        self.assertLess(time.perf_counter() - began, 1.0)
+        saved = store.load(run_id)
+        self.assertEqual(saved["state"], "stopped")
+        self.assertEqual([s["state"] for s in saved["scenarios"]], ["stopped", "stopped"])
 
     def test_step_by_step_waits_for_go_on(self):
         self.write("a.json", scenario("krok"))
@@ -373,6 +423,40 @@ class ScreenDiffersTest(unittest.TestCase):
         self.assertFalse(screen.differs(before, caret))
         self.assertTrue(screen.differs(before, caret, ignore_caret=False))
         self.assertTrue(screen.differs(before, Image.new("RGB", (31, 20), "white")))
+        # Against an approved pattern: a mask leaves a part out, another size never matches
+        self.assertTrue(screen.compare(before, same)["same"])
+        result = screen.compare(before, star)
+        self.assertFalse(result["same"])
+        self.assertIsNotNone(result["diff"])
+        self.assertIn("%", result["detail"])
+        self.assertTrue(screen.compare(before, star, masks=[[8, 4, 13, 11]])["same"])
+        self.assertFalse(screen.compare(before, Image.new("RGB", (31, 20), "white"))["same"])
+
+
+class FilesTest(unittest.TestCase):
+    """The text of the files the program writes, for the "file" check."""
+
+    def test_text_of_word_book_and_plain_files(self):
+        from automat.files import text_of  # noqa: PLC0415
+        with tempfile.TemporaryDirectory() as folder:
+            docx = Path(folder) / "k.docx"
+            with zipfile.ZipFile(docx, "w") as archive:
+                archive.writestr("word/document.xml", "<w:document><w:body><w:p><w:r><w:t>Targ w Ghadames"
+                                                      "</w:t></w:r></w:p><w:p><w:r><w:t>Zażółć &amp; jaźń</w:t>"
+                                                      "</w:r></w:p></w:body></w:document>")
+                archive.writestr("word/styles.xml", "<w:styles><w:t>Nagłówek</w:t></w:styles>")
+            text, problem = text_of(docx)
+            self.assertIsNone(problem)
+            self.assertIn("Targ w Ghadames\nZażółć & jaźń", text)
+            self.assertNotIn("Nagłówek", text)
+            chapter = Path(folder) / "r.kchapter"
+            chapter.write_text(json.dumps({"content": {"kml": "<kml><p>Ala <b>ma</b> kota</p></kml>"}}),
+                               encoding="utf-8")
+            self.assertIn("Ala ma kota", text_of(chapter)[0])
+            plain = Path(folder) / "t.md"
+            plain.write_bytes("# Śląsk".encode("cp1250"))
+            self.assertEqual(text_of(plain)[0], "# Śląsk")
+            self.assertIsNone(text_of(Path(folder) / "nie-ma.txt")[0])
 
 
 class ServerTest(Folder):

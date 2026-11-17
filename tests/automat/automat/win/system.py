@@ -89,6 +89,17 @@ def session_info() -> dict:
     }
 
 
+def screen_key() -> str:
+    """The screen as image patterns depend on it: its size in pixels and its scale, e.g.
+    "1024x768-96dpi"."""
+    return f"{user32.GetSystemMetrics(0)}x{user32.GetSystemMetrics(1)}-{user32.GetDpiForSystem()}dpi"
+
+
+def screen_text() -> str:
+    dpi = user32.GetDpiForSystem() or 96
+    return f"{user32.GetSystemMetrics(0)}×{user32.GetSystemMetrics(1)}, skalowanie {round(dpi / 96 * 100)}%"
+
+
 # --- Processes ---------------------------------------------------------------------------
 
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000

@@ -9,6 +9,8 @@ import time
 
 from PIL import Image, ImageChops
 
+from automat import stopping
+
 try:
     from mss import MSS as _MSS
 except ImportError:  # older mss
@@ -64,6 +66,7 @@ class Screen:
             last_change = first_frame
         deadline = start + timeout
         while True:
+            stopping.check()
             image = self.grab(rect)
             moment = time.perf_counter()
             frames += 1
@@ -113,3 +116,39 @@ def luminance(color: tuple) -> float:
         return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
     r, g, b = (channel(c) for c in color[:3])
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def compare(pattern: Image.Image, image: Image.Image, tolerance: int = 24, masks=(),
+            allowed: float = 0.002) -> dict:
+    """An area against its approved pattern. A pixel differs when one of its channels differs
+    by more than `tolerance` (0-255); the area matches when at most `allowed` of its pixels
+    (0.2%: antialiasing, a caret) differ. `masks` are rectangles [x, y, width, height] in the
+    area, left out of the comparison (a clock, a blinking caret).
+      same   - whether the area matches
+      share  - the share of differing pixels (0..1), None for another size
+      diff   - a picture of the differences (red on the pattern, faded), None when the same"""
+    if pattern.size != image.size:
+        return {"same": False, "share": None, "diff": None,
+                "detail": f"inny rozmiar: wzorzec {pattern.size[0]}×{pattern.size[1]}, "
+                          f"ekran {image.size[0]}×{image.size[1]}"}
+    first, second = pattern.convert("RGB"), image.convert("RGB")
+    difference = ImageChops.difference(first, second)
+    channels = difference.split()
+    over = [c.point(lambda v: 255 if v > tolerance else 0) for c in channels]
+    mask = ImageChops.lighter(ImageChops.lighter(over[0], over[1]), over[2])
+    for x, y, width, height in masks or ():
+        mask.paste(0, (int(x), int(y), int(x + width), int(y + height)))
+    differing = mask.histogram()[255]
+    total = max(1, first.size[0] * first.size[1])
+    share = differing / total
+    same = share <= allowed
+    diff = None
+    if not same:
+        faded = Image.blend(first, Image.new("RGB", first.size, (255, 255, 255)), 0.6)
+        diff = Image.composite(Image.new("RGB", first.size, (220, 0, 0)), faded, mask)
+    return {"same": same, "share": share, "diff": diff,
+            "detail": f"różni się {_percent(share)} pikseli (dopuszczalne {_percent(allowed)})"}
+
+
+def _percent(share: float) -> str:
+    return f"{share * 100:.2f}".rstrip("0").rstrip(".").replace(".", ",") + "%"

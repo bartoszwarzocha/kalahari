@@ -1,13 +1,15 @@
 """A pretend program, for the automaton's own tests and for working on the page without
 Windows. It does nothing on the screen: every action "works" after a short pause and every
 check passes, unless a note says otherwise ("fake:fail" or "fake:slow" on a check,
-"fake:missing" on a step, "fake": "start_fails" on the scenario). Its results are marked as a
+"fake:missing" or "fake:long" (a hundred times longer) on a step, "fake": "start_fails" on
+the scenario). Its results are marked as a
 simulation, so they are never mistaken for a test of Kalahari.
 """
 
 import time
 from pathlib import Path
 
+from automat import stopping
 from automat.runner import StepFailed
 from automat.scenarios import limit_of
 
@@ -34,7 +36,7 @@ class FakeSession:
 
     def act(self, step: dict) -> dict:
         start = time.perf_counter()
-        time.sleep(self.delay)
+        stopping.sleep(self.delay * (100 if step.get("note") == "fake:long" else 1))
         if step.get("note") == "fake:missing":
             raise StepFailed(f"nie ma elementu {step.get('target')} (symulacja)")
         return {"start": start, "t0": time.perf_counter(), "element": None, "note": "symulacja"}

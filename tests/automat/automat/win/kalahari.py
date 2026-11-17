@@ -27,9 +27,12 @@ import unicodedata
 from pathlib import Path
 
 from automat import books as books_mod
+from automat import config as config_mod
+from automat import files as files_mod
+from automat import stopping
 from automat.runner import Paused, StepFailed
 from automat.scenarios import limit_of
-from automat.win import busy, clipboard, guard, screen, system, uia, windows
+from automat.win import busy, clipboard, guard, ocr, screen, system, uia, windows
 from automat.win import events as window_events
 from automat.win import input as inp
 
@@ -43,6 +46,21 @@ EARLY = 0.05  # window events this long before T0 still belong to the action
 MOVED_PX = 4  # the cursor this far from where the automaton left it: someone moved the mouse
 
 MAIN_TITLE = re.compile(r"(^|\s[-–]\s)Kalahari$")
+# A window that says something went wrong (the program's, or the system's about the program)
+ERROR_TITLE = re.compile(r"błąd|error|exception|wyjątek|assert|runtime library|krytyczn|critical|"
+                         r"awaria|przestał działać|stopped working|not responding|nie odpowiada", re.I)
+SYSTEM_ERROR_PROGRAMS = {"werfault.exe", "werfaultsecure.exe", "wermgr.exe"}
+FILE_DIALOG_CLASS = "#32770"
+DIALOG_TIMEOUT = 10.0  # a system file dialog to appear, and to close after Enter
+FILES = config_mod.AUTOMAT_DIR / "pliki"  # files the scenarios use: an image, a text to import
+YOUR_SETTINGS = "twoje-obecne"  # the preset that copies the user's own settings
+
+# Other programs a scenario may use ("app"): how to start them and how their windows are titled
+APPS = {
+    "notatnik": {"name": "Notatnik", "run": ["notepad.exe"], "titles": ["*Notatnik", "*Notepad"]},
+    "eksplorator": {"name": "Eksplorator plików", "run": ["explorer.exe"], "titles": []},
+    "word": {"name": "Word", "run": ["winword.exe"], "titles": ["*Word"]},
+}
 
 # --- Names --------------------------------------------------------------------------------
 
@@ -129,6 +147,11 @@ class KalahariSession:
         self.start_ms = None
         self._clip_since = 0
         self._cursor = None  # where the automaton left the cursor
+        self.app = None  # another program a scenario uses: {"key", "name", "pid", "hwnd", "process"}
+        self._in_app = False  # the current step works in that program
+        self._expected_windows = []  # windows the current step expects (not error windows)
+        self._dumped = set()  # windows whose UI Automation tree this scenario saved
+        self.start_warnings = []  # said once, with the scenario's result
 
     @property
     def pid(self) -> int:
@@ -157,19 +180,39 @@ class KalahariSession:
         settings_dir = self.appdata / "Kalahari"
         settings_dir.mkdir(parents=True, exist_ok=True)
         preset_name = self.setup.get("settings", "domyslne")
-        preset = Path(self.config.settings_presets) / f"{preset_name}.json"
-        if not preset.is_file():
-            raise StepFailed(f"nie ma zestawu ustawień {_q(preset_name)} (plik {preset})")
-        try:
-            settings = json.loads(preset.read_text(encoding="utf-8"))
-        except ValueError as error:
-            raise StepFailed(f"zestaw ustawień {_q(preset_name)} to nie jest poprawny JSON: {error}") from error
+        if preset_name == YOUR_SETTINGS:
+            settings = self._your_settings()
+        else:
+            preset = Path(self.config.settings_presets) / f"{preset_name}.json"
+            if not preset.is_file():
+                raise StepFailed(f"nie ma zestawu ustawień {_q(preset_name)} (plik {preset})")
+            try:
+                settings = json.loads(preset.read_text(encoding="utf-8"))
+            except ValueError as error:
+                raise StepFailed(f"zestaw ustawień {_q(preset_name)} to nie jest poprawny JSON: {error}") from error
         (settings_dir / "settings.json").write_text(json.dumps(settings, ensure_ascii=False, indent=2),
                                                     encoding="utf-8")
         try:
             self.books = books_mod.make_books(self.setup.get("books", []), self.work / "ksiazki")
         except ValueError as error:
             raise StepFailed(str(error)) from error
+
+    def _your_settings(self) -> dict:
+        """A copy of the user's own settings (their file stays untouched), in Polish, because
+        the scenarios name what they click in Polish. Without the file: the defaults."""
+        own = Path(os.environ.get("APPDATA", "")) / "Kalahari" / "settings.json"
+        try:
+            settings = json.loads(own.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as error:
+            self.start_warnings.append(f"nie da się odczytać Twoich ustawień ({own}): {error}; "
+                                       "scenariusz działa na ustawieniach domyślnych")
+            return {"version": "1.4", "ui": {"language": "pl"}}
+        if not isinstance(settings, dict):
+            return {"version": "1.4", "ui": {"language": "pl"}}
+        if (settings.get("ui") or {}).get("language") != "pl":
+            settings.setdefault("ui", {})["language"] = "pl"
+            self.start_warnings.append("w kopii Twoich ustawień język programu zmieniono na polski")
+        return settings
 
     def _launch(self) -> None:
         env = dict(os.environ)
@@ -287,7 +330,7 @@ class KalahariSession:
                      and not MAIN_TITLE.search(e.title)]
             if asked:
                 raise StepFailed(f"przy zamykaniu program pokazał okno {_q(asked[0].title)}")
-            time.sleep(0.1)
+            stopping.sleep(0.1)
         if self.process.poll() is None:
             raise StepFailed(f"program nie zamknął się w ciągu {CLOSE_TIMEOUT:.0f} s")
         self._stop_watchers()
@@ -301,13 +344,14 @@ class KalahariSession:
             self.events = None
 
     def stop(self) -> dict:
-        ended = {}
+        ended = {"warnings": list(self.start_warnings)} if self.start_warnings else {}
+        self._close_app()
         if self.process is not None and self.process.poll() is None:
             self.process.kill()
             try:
                 self.process.wait(10)
             except subprocess.TimeoutExpired:
-                ended["warnings"] = ["program nie zakończył się po zabiciu procesu"]
+                ended.setdefault("warnings", []).append("program nie zakończył się po zabiciu procesu")
         self._stop_watchers()
         log = self.work / "kalahari.log"
         if log.is_file():
@@ -323,7 +367,7 @@ class KalahariSession:
     def _windows_for(self, pattern):
         """The program's visible top-level windows that match, the one in front first, as
         UI Automation elements; and all of them (for messages)."""
-        tops = windows.top_level(self.pid)
+        tops = windows.top_level(self._pid_now())
         if pattern is None:
             front = windows.foreground()
             ordered = sorted(tops, key=lambda w: w["hwnd"] != front)
@@ -346,11 +390,21 @@ class KalahariSession:
             if exact:
                 return exact
         loose = []
-        for actual, _, _, element in self.ui.snapshot(root, kinds=kinds):
+        unnamed = []
+        for actual, kind, _, element in self.ui.snapshot(root, kinds=kinds):
             if norm(actual) == norm(name) or (rows and _row_matches(actual, name)):
                 loose.append(element)
                 if actual != name:
                     self._note(f"napis w programie {_q(actual)}, w scenariuszu {_q(name)}")
+            elif not actual and kind in ("Edit", "ComboBox", "Spinner"):
+                unnamed.append(element)
+        if not loose:
+            # A field without a name: a person reads the hint in it (the placeholder text,
+            # which Qt gives screen readers as the description)
+            for element in unnamed:
+                if norm(element.description) == norm(name):
+                    loose.append(element)
+                    self._note(f"pole bez nazwy dla czytników ekranu, z podpowiedzią {_q(element.description)}")
         return loose
 
     def _names_under(self, roots, kinds) -> list:
@@ -365,6 +419,8 @@ class KalahariSession:
 
     def _find_once(self, target):
         """(element, None) or (None, why not)."""
+        if target == "editor":
+            return self._editor(None)
         if target == "clicked":
             if self.last_element is None:
                 return None, "żadne działanie nie wskazało jeszcze elementu"
@@ -483,17 +539,28 @@ class KalahariSession:
         return found
 
     # --- acting -------------------------------------------------------------------------
+    def _pid_now(self) -> int:
+        """The process whose windows the current step works with."""
+        return self.app["pid"] if self._in_app and self.app else self.pid
+
+    def _allowed_pids(self) -> set:
+        allowed = {self.pid}
+        if self.app:
+            allowed.add(self.app["pid"])
+        return allowed
+
     def _guard_point(self, x: int, y: int) -> None:
-        """Never click outside the program: the user's other windows stay untouched."""
+        """Never click outside the program (and the other program a scenario opened): the
+        user's other windows stay untouched."""
         root = windows.root_at(x, y)
-        if not root or windows.owner_pid(root) != self.pid:
+        if not root or windows.owner_pid(root) not in self._allowed_pids():
             title = window_events.window_title(root) if root else ""
             raise StepFailed(f"w miejscu kliknięcia ({x}, {y}) jest inne okno"
                              f"{' ' + _q(title) if title else ''}; automat nie klika poza programem")
 
     def _guard_keys(self) -> None:
         front = windows.foreground()
-        if not front or windows.owner_pid(front) != self.pid:
+        if not front or windows.owner_pid(front) not in self._allowed_pids():
             title = window_events.window_title(front) if front else ""
             raise StepFailed(f"klawisze trafiłyby do innego okna{' ' + _q(title) if title else ''}; "
                              "automat pisze tylko do programu")
@@ -535,6 +602,8 @@ class KalahariSession:
                 raise Paused("ktoś poruszył myszą")
         self.notes = []
         self._before = {}
+        self._in_app = bool(step.get("_app"))
+        self._expected_windows = _expected_windows(step)
         changing = [c for c in step.get("expect", [])
                     if c.get("check") == "screen_settled" and c.get("must_change")]
         self._before_clicked = any(c.get("area") == "clicked" for c in changing)
@@ -637,7 +706,7 @@ class KalahariSession:
         return inp.wheel(x, y, int(step["notches"])), element
 
     def _do_wait(self, step):
-        time.sleep(max(0, int(step["ms"])) / 1000)
+        stopping.sleep(max(0, int(step["ms"])) / 1000)
         return time.perf_counter(), None
 
     def _do_screenshot(self, step):
@@ -655,6 +724,142 @@ class KalahariSession:
         self._close_program()
         self._launch()
         return time.perf_counter(), None
+
+    def _do_drag(self, step):
+        """Press on the target, move to `to` and release there; in a step of another program
+        the target is in that program and `to` in Kalahari (a file from the Explorer)."""
+        element = self.find(step["target"])
+        if not element.visible():
+            raise StepFailed(f"{_q(element.name)} jest niewidoczny")
+        x1, y1 = self._point(element, step.get("offset"))
+        self._guard_point(x1, y1)
+        in_app, self._in_app = self._in_app, False
+        try:
+            to = step["to"]
+            if isinstance(to, dict) and set(to) == {"offset"}:
+                dx, dy = to["offset"]
+                x2, y2 = x1 + int(dx), y1 + int(dy)
+                destination = element
+            else:
+                destination = self.find(to)
+                x2, y2 = destination.center
+        finally:
+            self._in_app = in_app
+        self._guard_point(x2, y2)
+        moment = inp.drag(x1, y1, x2, y2)
+        self.last_target, self.last_element = step.get("to"), destination
+        return moment, element
+
+    def _file_dialog(self):
+        for window in windows.top_level(self.pid):
+            if window["class"] == FILE_DIALOG_CLASS:
+                return window
+        return None
+
+    def _do_file_dialog(self, step):
+        """The system window for choosing a file or a folder, which the program opened: the
+        path goes into its name field and Enter confirms it (the dialog's own default button
+        when Enter only opens the folder). Its texts follow the language of Windows, so the
+        scenario gives only the path."""
+        path = Path(self._path(step["path"]))
+        found, _ = uia.wait_until(self._file_dialog, DIALOG_TIMEOUT, 0.05)
+        if not found:
+            titles = [w["title"] for w in windows.top_level(self.pid)]
+            raise StepFailed(f"program nie pokazał systemowego okna wyboru pliku; jego okna: {_quote_list(titles)}")
+        hwnd = found["hwnd"]
+        windows.bring_forward(hwnd)
+        self._calm(hwnd, quiet_ms=200, timeout=5)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        dialog = self.ui.from_handle(hwnd)
+        field = None
+        if dialog is not None:
+            edits = [e for e in dialog.find_all(kinds=("Edit",)) if e.visible()]
+            named = [e for e in edits if e.automation_id in ("1148", "1001", "1152")]
+            field = (named or edits or [None])[0]
+        if field is not None:
+            x, y = field.center
+            self._guard_point(x, y)
+            inp.click(x, y)
+            time.sleep(0.05)
+        self._guard_keys()
+        inp.press("Ctrl+A")
+        inp.type_text(str(path), interval=0.005)
+        moment = inp.press("Enter")
+        closed, _ = uia.wait_until(lambda: windows.rect(hwnd)[2] <= windows.rect(hwnd)[0]
+                                   or not any(w["hwnd"] == hwnd for w in windows.top_level(self.pid)), 1.5, 0.05)
+        if not closed and dialog is not None:
+            # A folder: Enter went into it; the default button (IDOK) chooses it
+            buttons = [b for b in dialog.find_all(kinds=("Button",)) if b.automation_id == "1" and b.visible()]
+            if buttons:
+                x, y = buttons[0].center
+                self._guard_point(x, y)
+                moment = inp.click(x, y)
+        closed, _ = uia.wait_until(lambda: not any(w["hwnd"] == hwnd for w in windows.top_level(self.pid)),
+                                   DIALOG_TIMEOUT, 0.05)
+        if not closed:
+            other = [w for w in windows.top_level(self.pid) if w["class"] == FILE_DIALOG_CLASS and w["hwnd"] != hwnd]
+            said = _window_text(self.ui, other[0]["hwnd"]) if other else ""
+            raise StepFailed(f"okno wyboru pliku nie zamknęło się po wpisaniu {_q(path)}"
+                             + (f"; system pyta: {_q(said)}" if said else ""))
+        self._note(f"ścieżka {path}")
+        return moment, None
+
+    def _do__app_open(self, step):
+        """Start another program (Notatnik, the Explorer, Word) and wait for its window."""
+        key = step["app"]
+        known = APPS.get(key)
+        if known is None:
+            raise StepFailed(f"automat nie zna programu {_q(key)}; zna: {', '.join(APPS)}")
+        args = list(known["run"])
+        opened = step.get("open")
+        titles = list(known["titles"])
+        if opened:
+            target = Path(self._path(opened))
+            args.append(str(target))
+            if key == "eksplorator":
+                titles = [target.name, f"{target.name} *", f"* {target.name}"]
+        before = {w["hwnd"] for w in windows.all_top_level()}
+        try:
+            process = subprocess.Popen(args, cwd=self.work)  # noqa: S603 - fixed programs
+        except OSError as error:
+            raise StepFailed(f"nie da się uruchomić programu {known['name']}: {error}") from error
+
+        def window():
+            for found in windows.all_top_level():
+                if found["hwnd"] not in before and any(title_matches(found["title"], t) for t in titles):
+                    return found
+            return None
+
+        found, moment = uia.wait_until(window, START_TIMEOUT / 3, 0.1)
+        if not found:
+            process.kill()
+            raise StepFailed(f"okno programu {known['name']} nie pojawiło się")
+        self.app = {"key": key, "name": known["name"], "pid": windows.owner_pid(found["hwnd"]),
+                    "hwnd": found["hwnd"], "process": process}
+        windows.bring_forward(found["hwnd"])
+        self._calm(found["hwnd"], quiet_ms=300, timeout=10)
+        return moment, None
+
+    def _do__app_close(self, step):
+        self._close_app()
+        if self.main_hwnd:
+            windows.bring_forward(self.main_hwnd)
+        return time.perf_counter(), None
+
+    def _close_app(self) -> None:
+        app, self.app = self.app, None
+        if not app:
+            return
+        if app["key"] == "eksplorator":
+            windows.ask_to_close(app["hwnd"])  # the shell's process stays: only its window goes
+            return
+        try:
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(app["pid"])], capture_output=True, timeout=15,
+                           check=False)
+        except (OSError, subprocess.SubprocessError):
+            pass
+        if app["process"].poll() is None:
+            app["process"].kill()
 
     @staticmethod
     def _menu_bars(root) -> list:
@@ -722,6 +927,10 @@ class KalahariSession:
         while True:
             if area == "clicked":
                 return self.last_element.rect if self.last_element is not None else None
+            if area == "editor":
+                element, _ = self._editor(None)
+                if element is not None and element.visible():
+                    return element.rect
             if isinstance(area, dict) and set(area) <= {"window"}:
                 pattern = area.get("window")
                 front = windows.foreground()
@@ -735,7 +944,7 @@ class KalahariSession:
                     return element.rect
             if time.perf_counter() >= wait_until:
                 return None
-            time.sleep(0.01)
+            stopping.sleep(0.01)
 
     def _editor(self, target):
         if target:
@@ -882,7 +1091,71 @@ class KalahariSession:
                 return ok, f"średni kolor {hex_color}, jasność {light:.2f}", None
             color.close = shots.close
             return color
+        if kind == "file":
+            def file_probe():
+                matches = self._files(check["path"])
+                if not matches:
+                    return False, f"nie ma pliku {_q(self._path(check['path']))}", None
+                if "contains" not in check:
+                    return True, f"plik {_q(matches[0].name)}", None
+                details = []
+                for path in matches:
+                    text, problem = files_mod.text_of(path)
+                    if text is None:
+                        details.append(problem)
+                        continue
+                    if self._compare(text, check):
+                        return True, f"plik {_q(path.name)}", None
+                    shown = " ".join(text.split())[:160]
+                    details.append(f"{path.name}: {_q(shown)}")
+                return False, "; ".join(details), None
+            return file_probe
+        if kind == "ocr":
+            shots = screen.Screen()
+
+            def ocr_probe():
+                rect = self._area_rect(check["area"])
+                if rect is None:
+                    return False, "nie ma tego obszaru na ekranie", None
+                text, problem = ocr.read(shots.grab(rect))
+                if text is None:
+                    return False, problem, None
+                found = norm(check["contains"]) in norm(text)
+                return found, f"rozpoznany tekst: {_q(text[:160])}", None
+            ocr_probe.close = shots.close
+            return ocr_probe
         return lambda: (False, f"automat nie umie sprawdzenia {_q(kind)}", None)
+
+    # --- paths of files ----------------------------------------------------------------------
+    def _path(self, text) -> str:
+        """A path of a scenario with its placeholders filled: {praca} (the program's working
+        folder of this scenario), {ksiazki} (the copies of the books), {ksiazka:karawana} (one
+        book's folder), {pliki} (the automaton's files for scenarios), {wyniki} (this
+        scenario's results)."""
+        def fill(match):
+            key, _, name = match.group(1).partition(":")
+            if key == "praca":
+                return str(self.work)
+            if key == "ksiazki":
+                return str(self.work / "ksiazki")
+            if key == "ksiazka" and name in self.books:
+                return str(Path(self.books[name]).parent)
+            if key == "pliki":
+                return str(FILES)
+            if key == "wyniki":
+                return str(self.folder)
+            raise StepFailed(f"nieznane miejsce {_q('{' + match.group(1) + '}')} w ścieżce {_q(text)}; "
+                             "znane: {praca}, {ksiazki}, {ksiazka:nazwa}, {pliki}, {wyniki}")
+        filled = re.sub(r"\{([a-z]+(?::[a-z0-9-]+)?)\}", fill, str(text))
+        return str(Path(filled))
+
+    def _files(self, pattern) -> list:
+        """The files the path names; it may hold * and ** (any file of an export folder)."""
+        path = self._path(pattern)
+        if any(c in path for c in "*?["):
+            anchor = Path(path).anchor
+            return sorted(p for p in Path(anchor).glob(str(Path(path).relative_to(anchor))) if p.is_file())
+        return [Path(path)] if Path(path).is_file() else []
 
     def observe(self, checks: list, action: dict) -> list:
         t0 = action["t0"]
@@ -898,9 +1171,10 @@ class KalahariSession:
             kind = check.get("check")
             if kind == "busy_at_most_ms":
                 later.append(index)
-            elif kind == "screen_settled":
-                thread = threading.Thread(target=self._settled, args=(results, index, check, t0, limit, watch_for),
-                                          name="screen-settled", daemon=True)
+            elif kind in ("screen_settled", "image"):
+                worker = self._settled if kind == "screen_settled" else self._image
+                thread = threading.Thread(target=worker, args=(results, index, check, t0, limit, watch_for),
+                                          name=kind, daemon=True)
                 thread.start()
                 threads.append(thread)
             else:
@@ -919,19 +1193,25 @@ class KalahariSession:
                 if ok:
                     ms = round(max(0.0, ((moment or now) - t0) * 1000), 1)
                     results[index] = {"ok": limit is None or ms <= limit, "ms": ms, "detail": detail}
+                    if check.get("check") == "window_shown":
+                        self._dump_window(check["window"])
                     pending.remove(item)
                 elif now >= deadline:
                     results[index] = {"ok": False, "ms": None,
                                       "detail": f"nie nastąpiło w ciągu {deadline - t0:.0f} s; {detail}"}
                     pending.remove(item)
             if pending:
+                stopping.check()
                 time.sleep(0.01)
         for probe in probes:
             closer = getattr(probe, "close", None)
             if closer:
                 closer()
         for thread in threads:
-            thread.join(OBSERVE_AT_LEAST + 5)
+            while thread.is_alive():
+                thread.join(0.05)
+                stopping.check()
+        stopping.check()
         for index in later:
             check = checks[index]
             if self.probe is None:
@@ -998,6 +1278,70 @@ class KalahariSession:
             return
         results[index] = {"ok": limit is None or ms <= limit, "ms": ms, "detail": detail}
 
+    def _image(self, results, index, check, t0, limit, watch_for) -> None:
+        """An area against the pattern the user approved for this screen. Without one, the
+        area as it is once it stops changing is saved as a proposal and the check waits for
+        approval (it does not decide the result)."""
+        name = str(check["pattern"])
+        stored = patterns_dir() / f"{name}.png"
+        rect = self._area_rect(check["area"], wait_until=t0 + watch_for)
+        if rect is None:
+            results[index] = {"ok": False, "ms": None, "detail": "nie ma tego obszaru na ekranie"}
+            return
+        shots = screen.Screen()
+        try:
+            if not stored.is_file():
+                seen = shots.watch(rect, t0, settle_ms=check.get("quiet_ms", self.config.quiet_ms), timeout=watch_for)
+                proposal = self.folder / f"wzorzec-{_slug(name)}.png"
+                seen["image"].save(proposal)
+                results[index] = {"ok": True, "ms": None, "pending": True, "proposal_file": str(proposal),
+                                  "pattern": name, "screen": system.screen_key(),
+                                  "detail": f"nie ma jeszcze zatwierdzonego wzorca {_q(name)} dla tego ekranu "
+                                            f"({system.screen_text()}); zrzut zapisano jako propozycję do zatwierdzenia"}
+                return
+            from PIL import Image  # noqa: PLC0415
+            pattern = Image.open(stored).convert("RGB")
+            masks = check.get("mask") or []
+            tolerance = int(check.get("tolerance", 24))
+            deadline = t0 + watch_for
+            last = None
+            while True:
+                picture = shots.grab(rect)
+                moment = time.perf_counter()
+                last = screen.compare(pattern, picture, tolerance, masks)
+                if last["same"]:
+                    ms = round(max(0.0, (moment - t0) * 1000), 1)
+                    results[index] = {"ok": limit is None or ms <= limit, "ms": ms, "pattern": name,
+                                      "detail": "zgodny z wzorcem; " + last["detail"]}
+                    return
+                if moment >= deadline:
+                    break
+                stopping.check()
+                time.sleep(0.02)
+            actual = self.folder / f"ekran-{_slug(name)}.png"
+            picture.save(actual)
+            outcome = {"ok": False, "ms": None, "pattern": name, "actual_file": str(actual),
+                       "detail": "niezgodny z wzorcem; " + last["detail"]}
+            if last.get("diff") is not None:
+                diff = self.folder / f"roznice-{_slug(name)}.png"
+                last["diff"].save(diff)
+                outcome["diff_file"] = str(diff)
+            results[index] = outcome
+        except Exception as error:  # noqa: BLE001
+            results[index] = {"ok": False, "ms": None, "detail": f"porównanie z wzorcem: {error}"}
+        finally:
+            shots.close()
+
+    def _dump_window(self, pattern) -> None:
+        """The tree of a window the scenario opened, once per window: what is in it, for
+        whoever writes the next scenario."""
+        for window in windows.top_level(self._pid_now()):
+            title = window["title"] or ""
+            if title_matches(title, pattern) and title not in self._dumped:
+                self._dumped.add(title)
+                self._dump(f"drzewo-okna-{_slug(title)[:40]}.json", window["hwnd"])
+                return
+
     # --- health and pictures ----------------------------------------------------------------
     def health(self, since: float) -> dict:
         now = time.perf_counter()
@@ -1007,13 +1351,40 @@ class KalahariSession:
             return {"ok": False, "detail": f"program się zamknął (kod {code})", "busy_ms": longest}
         if self.probe is not None and not self.probe.wait_responsive(now, HANG_LIMIT):
             return {"ok": False, "detail": f"program nie odpowiadał przez {HANG_LIMIT:.0f} s", "busy_ms": longest}
+        problem = self._error_window()
+        if problem:
+            self._dump("drzewo-okna-bledu.json", problem[1])
+            return {"ok": False, "detail": problem[0], "busy_ms": longest,
+                    "say": "nie ma okna błędu programu ani systemu"}
         return {"ok": True, "detail": "", "busy_ms": longest}
+
+    def _error_window(self):
+        """(what it says, hwnd) of a window that reports an error and that the step did not
+        expect: the program's own, a system message of its process, or Windows Error
+        Reporting about it. None when there is none."""
+        for window in windows.top_level(self.pid):
+            title = window["title"] or ""
+            if not ERROR_TITLE.search(title):
+                continue
+            if any(title_matches(title, expected) for expected in self._expected_windows):
+                continue
+            text = _window_text(self.ui, window["hwnd"])
+            return f"program pokazał okno {_q(title)}{': ' + _q(text) if text else ''}", window["hwnd"]
+        for window in windows.all_top_level():
+            image = (system.process_image(windows.owner_pid(window["hwnd"])) or "").lower()
+            if os.path.basename(image) in SYSTEM_ERROR_PROGRAMS:
+                text = _window_text(self.ui, window["hwnd"])
+                if "kalahari" in (window["title"] + " " + text).lower():
+                    return f"system pokazał okno błędu {_q(window['title'])}: {_q(text)}", window["hwnd"]
+        return None
 
     def screenshot(self, path: Path, area=None) -> bool:
         if area is not None:
             rect = self._area_rect(area)
         else:
             rects = [w["rect"] for w in windows.top_level(self.pid)] if self.pid else []
+            if self.app:
+                rects += [w["rect"] for w in windows.top_level(self.app["pid"])]
             if not rects:
                 return False
             rect = (min(r[0] for r in rects), min(r[1] for r in rects),
@@ -1034,5 +1405,59 @@ class KalahariSession:
             shots.close()
 
 
+def _expected_windows(step: dict) -> list:
+    """The windows a step names in its checks: not error windows, whatever their titles."""
+    found = []
+    for check in step.get("expect", []):
+        if check.get("window"):
+            found.append(check["window"])
+        for key in ("target", "area"):
+            if isinstance(check.get(key), dict) and check[key].get("window"):
+                found.append(check[key]["window"])
+    return found
+
+
+def _slug(text) -> str:
+    plain = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "-", plain.lower()).strip("-") or "okno"
+
+
+def _window_text(ui, hwnd: int) -> str:
+    """The texts of a message window (what it says), shortened."""
+    element = ui.from_handle(hwnd)
+    if element is None:
+        return ""
+    texts = [n for n, kind, offscreen, _ in ui.snapshot(element, kinds=("Text", "Document", "Edit"))
+             if n and not offscreen]
+    return " ".join(texts)[:300]
+
+
+def patterns_dir() -> Path:
+    """The image patterns the user approved for this screen (size and scale), outside the
+    repository: another screen needs its own."""
+    return config_mod.data_dir() / "wzorce" / system.screen_key()
+
+
+def _has_word() -> bool:
+    try:
+        import winreg  # noqa: PLC0415
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                            r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\winword.exe"):
+            return True
+    except OSError:
+        return shutil.which("winword") is not None
+
+
+def skip_reason(scenario):
+    """Why the scenario cannot run on this computer (None when it can)."""
+    uses = {step.get("app") for step in scenario.steps if step.get("do") == "_app_open"}
+    if ("word" in uses or "wymaga-worda" in scenario.tags) and not _has_word():
+        return "na tym komputerze nie ma Worda (scenariusz ze znacznikiem „wymaga-worda”)"
+    return None
+
+
 def session_factory(config, scenario, folder):
     return KalahariSession(config, scenario, folder)
+
+
+session_factory.skip_reason = skip_reason

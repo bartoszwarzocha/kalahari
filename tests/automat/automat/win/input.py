@@ -174,6 +174,10 @@ VK = {
     "up": 0x26, "right": 0x27, "down": 0x28, "printscreen": 0x2C, "insert": 0x2D, "delete": 0x2E,
     "del": 0x2E, "win": 0x5B, "apps": 0x5D, "menu": 0x5D, "numlock": 0x90,
     "plus": 0xBB, "comma": 0xBC, "minus": 0xBD, "period": 0xBE,
+    # The keys of the US layout by their characters, and Polish names of a few keys
+    "-": 0xBD, "=": 0xBB, ",": 0xBC, ".": 0xBE, "/": 0xBF, ";": 0xBA, "'": 0xDE, "[": 0xDB,
+    "]": 0xDD, "\\": 0xDC, "`": 0xC0, "spacja": 0x20, "strzałka w lewo": 0x25,
+    "strzałka w prawo": 0x27, "strzałka w górę": 0x26, "strzałka w dół": 0x28,
 }
 for _n in range(1, 25):
     VK[f"f{_n}"] = 0x6F + _n

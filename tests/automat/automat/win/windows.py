@@ -57,6 +57,22 @@ def top_level(pid: int) -> list:
     return found
 
 
+def all_top_level() -> list:
+    """The visible top-level windows of every process, front to back."""
+    found = []
+
+    def visit(hwnd, _):
+        if user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):
+            left, top, right, bottom = rect(hwnd)
+            if right > left and bottom > top:
+                found.append({"hwnd": int(hwnd), "title": window_title(hwnd),
+                              "class": window_class(hwnd), "rect": (left, top, right, bottom)})
+        return True
+
+    user32.EnumWindows(WNDENUMPROC(visit), 0)
+    return found
+
+
 def root_at(x: int, y: int) -> int:
     """The top-level window under the screen point."""
     hwnd = user32.WindowFromPoint(wintypes.POINT(int(x), int(y)))
@@ -78,5 +94,5 @@ def ask_to_close(hwnd: int) -> None:
     user32.PostMessageW(hwnd, WM_CLOSE, 0, 0)
 
 
-__all__ = ["owner_pid", "rect", "top_level", "root_at", "foreground", "bring_forward",
+__all__ = ["owner_pid", "rect", "top_level", "all_top_level", "root_at", "foreground", "bring_forward",
            "ask_to_close", "window_title"]

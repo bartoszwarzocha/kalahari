@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 
 from automat import results as results_mod
+from automat import stopping
 from automat.scenarios import action_sentence, check_sentence, limit_of
 
 
@@ -145,6 +146,7 @@ class Runner:
     def _run(self, run: dict) -> None:
         self.current = run
         self._go_on.clear()
+        stopping.watch(self._stop)
         began = time.perf_counter()
         self.store.save(run)
         self._emit("run_started", run=results_mod.summary(run), ids=[s["id"] for s in run["scenarios"]])
@@ -206,6 +208,11 @@ class Runner:
         if missing:
             result.update(state="skipped", reason="automat jeszcze tego nie umie: " + ", ".join(missing))
             return result
+        skip_reason = getattr(self.session_factory, "skip_reason", None)
+        why = skip_reason(scenario) if skip_reason else None
+        if why:
+            result.update(state="skipped", reason=why)
+            return result
         attempts = []
         began = time.perf_counter()
         for attempt in range(run["options"]["repeat"]):
@@ -231,6 +238,11 @@ class Runner:
         warnings = [w for a in attempts for w in a.get("warnings", [])]
         if warnings:
             result["warnings"] = list(dict.fromkeys(warnings))
+        pending = [{"pattern": c.get("pattern"), "screen": c.get("screen"), "proposal": c.get("proposal"),
+                    "step": step.get("index")}
+                   for step in result["steps"] for c in step.get("checks", []) if c.get("pending")]
+        if pending:
+            result["pending_patterns"] = pending
         return result
 
     def _attempt(self, run: dict, scenario, attempt: int) -> dict:
@@ -261,12 +273,16 @@ class Runner:
                     if step_result.get("stop"):
                         outcome["reason"] = f"krok {number}: {step_result.get('reason')}"
                         break
-        except StepFailed as error:
-            outcome.update(state="error", reason=str(error))
         except Exception as error:  # noqa: BLE001 - every problem goes to the result
-            outcome.update(state="error", reason=f"{type(error).__name__}: {error}",
-                           trace=traceback.format_exc())
-            self._emit("log", text=f"BŁĄD AUTOMATU: {error}", level="error")
+            if isinstance(error, stopping.Stopped) or self._stop.is_set():
+                # a wait ended by "Zatrzymaj", or whatever broke while stopping
+                outcome.update(state="stopped", reason="przebieg zatrzymany")
+            elif isinstance(error, StepFailed):
+                outcome.update(state="error", reason=str(error))
+            else:
+                outcome.update(state="error", reason=f"{type(error).__name__}: {error}",
+                               trace=traceback.format_exc())
+                self._emit("log", text=f"BŁĄD AUTOMATU: {error}", level="error")
         finally:
             if session is not None:
                 try:
@@ -310,6 +326,9 @@ class Runner:
         self._emit("log", text=f"{say}{(' – ' + action['note']) if action.get('note') else ''}")
         checks = session.observe(step.get("expect", []), action) if step.get("expect") else []
         for check, outcome in zip(step.get("expect", []), checks, strict=True):
+            for key in ("proposal_file", "diff_file", "actual_file"):
+                if outcome.get(key):  # pictures of an image check, as paths in the run
+                    outcome[key[:-5]] = self._relative(run, Path(outcome.pop(key)))
             outcome.setdefault("say", check_sentence(check))
             outcome.setdefault("check", check.get("check"))
             outcome.setdefault("limit_ms", limit_of(check, run["limits"]))
@@ -322,8 +341,8 @@ class Runner:
         health = session.health(action["start"])
         record["busy_ms"] = health.get("busy_ms")
         if not health.get("ok", True):
-            record["checks"].append({"check": "health", "say": "program działa i odpowiada", "ok": False,
-                                     "detail": health.get("detail")})
+            record["checks"].append({"check": "health", "say": health.get("say", "program działa i odpowiada"),
+                                     "ok": False, "detail": health.get("detail")})
             record["stop"] = True
             record["reason"] = health.get("detail")
         record["ok"] = all(c["ok"] for c in record["checks"])

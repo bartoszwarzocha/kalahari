@@ -10,6 +10,8 @@ import threading
 import time
 from ctypes import wintypes
 
+from automat import stopping
+
 user32 = ctypes.WinDLL("user32", use_last_error=True)
 
 WM_NULL = 0x0000
@@ -77,6 +79,7 @@ class BusyProbe:
         that came before)."""
         deadline = time.perf_counter() + timeout
         while time.perf_counter() < deadline:
+            stopping.check()
             with self._lock:
                 if any(s >= since and a is not None for s, a in self._samples):
                     return True

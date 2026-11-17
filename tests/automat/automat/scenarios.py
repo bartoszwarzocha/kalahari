@@ -25,15 +25,22 @@ ACTIONS = {
     "toggle": ({"target"}, {"state"}),
     "drag": ({"target", "to"}, set()),
     "scroll": ({"target", "notches"}, set()),
-    "file_dialog": ({"path"}, {"button"}),
-    "app": ({"app", "steps"}, set()),
+    "file_dialog": ({"path"}, set()),
+    "app": ({"app", "steps"}, {"open"}),
     "restart": (set(), set()),
     "wait": ({"ms"}, set()),
     "screenshot": (set(), {"name", "area"}),
     "use": ({"block"}, {"with"}),
 }
-ACTIONS_STAGE_1 = {"menu", "click", "keys", "type", "select", "toggle", "scroll", "restart",
-                   "wait", "screenshot", "use"}
+# What the automaton can do: every action and check of the vocabulary. "app" steps become
+# "_app_open", the other program's steps and "_app_close" (expand_steps).
+SUPPORTED_ACTIONS = (set(ACTIONS) - {"app", "use"}) | {"_app_open", "_app_close"}
+APPS = {"notatnik": "Notatnik", "eksplorator": "Eksplorator plików", "word": "Word"}
+SPECIAL_TARGETS = ("clicked", "editor")  # the element of the last action; the book's editor
+
+
+def is_special(target) -> bool:
+    return isinstance(target, str) and target in SPECIAL_TARGETS
 
 CHECKS = {
     "window_shown": ({"window"}, {"within_ms"}),
@@ -55,15 +62,13 @@ CHECKS = {
     "busy_at_most_ms": ({"value"}, set()),
     "ocr": ({"area", "contains"}, {"within_ms"}),
 }
-CHECKS_STAGE_1 = {"window_shown", "window_closed", "visible", "not_visible", "enabled", "checked",
-                  "selected", "focused", "text", "value", "editor_text", "clipboard",
-                  "screen_settled", "busy_at_most_ms", "color"}
+SUPPORTED_CHECKS = set()  # filled below: all of CHECKS
 
 ROLES = {"button", "check_box", "radio", "combo_box", "edit", "document", "list", "list_item",
          "tree", "tree_item", "tab", "menu_item", "menu", "text", "slider", "spinner", "group",
          "window", "toolbar", "cell", "header"}
 TARGET_KEYS = {"window", "name", "role", "row", "column", "part", "index", "in"}
-SOURCE_KINDS = {"plan", "mockup", "decision"}
+SOURCE_KINDS = {"plan", "mockup", "decision", "test_list"}
 STEP_KEYS_COMMON = {"say", "do", "expect", "repeat", "note"}
 
 # Default limits by the kind of check (the user's decision of 17.11.2026: defaults by kind,
@@ -71,6 +76,10 @@ STEP_KEYS_COMMON = {"say", "do", "expect", "repeat", "note"}
 DEFAULT_LIMITS_MS = {"window": 500, "reaction": 300, "theme": 1000}
 WINDOW_CHECKS = {"window_shown", "window_closed"}
 THEME_CHECKS = {"color"}
+# What a file, a picture or a text on the screen holds is checked without a default time
+# limit: only "within_ms" of the scenario gives one
+UNTIMED_CHECKS = {"file", "image", "ocr"}
+SUPPORTED_CHECKS.update(CHECKS)
 
 
 def default_limit_kind(check: str) -> str:
@@ -122,10 +131,10 @@ class Scenario:
         """Actions and checks the automaton cannot do yet (the scenario is skipped)."""
         missing = []
         for step in self.steps:
-            if step.get("do") not in ACTIONS_STAGE_1:
+            if step.get("do") not in SUPPORTED_ACTIONS:
                 missing.append(f"działanie „{step.get('do')}”")
             for check in step.get("expect", []):
-                if check.get("check") not in CHECKS_STAGE_1:
+                if check.get("check") not in SUPPORTED_CHECKS:
                     missing.append(f"sprawdzenie „{check.get('check')}”")
         return sorted(set(missing))
 
@@ -262,6 +271,23 @@ def expand_steps(steps, blocks: dict, depth: int = 0):
         return [], problems
     out = []
     for number, step in enumerate(steps, 1):
+        if isinstance(step, dict) and step.get("do") == "app":
+            inner, inner_problems = expand_steps(step.get("steps"), blocks, depth + 1)
+            problems += inner_problems
+            key = step.get("app")
+            opening = {"do": "_app_open", "app": key, "_app": key}
+            if "open" in step:
+                opening["open"] = step["open"]
+            if step.get("say"):
+                opening["say"] = step["say"]
+            out.append(opening)
+            for inner_step in inner:
+                out.append(dict(inner_step, _app=key))
+            closing = {"do": "_app_close", "app": key}
+            if "expect" in step:
+                closing["expect"] = list(step["expect"])
+            out.append(closing)
+            continue
         if not isinstance(step, dict) or step.get("do") != "use":
             out.append(step)
             continue
@@ -327,7 +353,7 @@ def validate(data: dict) -> list:
          "każdy scenariusz potrzebuje źródła oczekiwań: planu, makiety albo decyzji")
     for i, source in enumerate(sources or [], 1):
         need(isinstance(source, dict) and source.get("kind") in SOURCE_KINDS and source.get("ref"),
-             f"źródło {i}", "potrzebne „kind” (plan, mockup albo decision) i „ref”")
+             f"źródło {i}", "potrzebne „kind” (plan, mockup, decision albo test_list) i „ref”")
     setup = data.get("setup", {})
     need(isinstance(setup, dict), "setup", "to musi być obiekt")
     if isinstance(setup, dict):
@@ -358,8 +384,27 @@ def validate_step(step, where: str) -> list:
             problems.append(Problem(where, f"nieznane pole „{key}”"))
     if action == "menu" and not (isinstance(step.get("path"), list) and step.get("path")):
         problems.append(Problem(where, "„path” to lista pozycji menu, np. [\"Wstaw\", \"Znak specjalny...\"]"))
-    if "target" in step and step["target"] != "clicked":
+    if "target" in step and not is_special(step["target"]):
         problems += validate_target(step["target"], where)
+    if action == "drag" and "to" in step:
+        to = step["to"]
+        if isinstance(to, dict) and set(to) == {"offset"}:
+            if not (isinstance(to["offset"], list) and len(to["offset"]) == 2):
+                problems.append(Problem(where, "„to”: {\"offset\": [x, y]} – przesunięcie w pikselach"))
+        elif not is_special(to):
+            problems += validate_target(to, where)
+    if action == "app":
+        if step.get("app") not in APPS:
+            problems.append(Problem(where, f"nieznany program „{step.get('app')}”; znane: {', '.join(APPS)}"))
+        inner = step.get("steps")
+        if not (isinstance(inner, list) and inner):
+            problems.append(Problem(where, "„steps” to lista kroków w tym programie"))
+        else:
+            for number, inner_step in enumerate(inner, 1):
+                if isinstance(inner_step, dict) and inner_step.get("do") in ("app", "restart"):
+                    problems.append(Problem(f"{where}, krok {number}", "w innym programie nie ma tego działania"))
+                    continue
+                problems += validate_step(inner_step, f"{where}, krok {number} w programie")
     if "repeat" in step and not (isinstance(step["repeat"], int) and 1 <= step["repeat"] <= 50):
         problems.append(Problem(where, "„repeat” to liczba powtórzeń pomiaru od 1 do 50"))
     expects = step.get("expect", [])
@@ -383,11 +428,18 @@ def validate_check(check, where: str) -> list:
     if "within_ms" in check and not (isinstance(check["within_ms"], int) and check["within_ms"] > 0):
         problems.append(Problem(where, "„within_ms” to liczba milisekund większa od zera"))
     target = check.get("target")
-    if target is not None and target != "clicked":
+    if target is not None and not is_special(target):
         problems += validate_target(target, where)
     area = check.get("area")
-    if area is not None and area != "clicked":
+    if area is not None and not is_special(area):
         problems += validate_target(area, where)
+    if check.get("check") == "image":
+        if not (isinstance(check.get("pattern"), str) and re.fullmatch(r"[a-z0-9][a-z0-9-]*", check.get("pattern", ""))):
+            problems.append(Problem(where, "„pattern” to nazwa wzorca: małe litery, cyfry i łączniki"))
+        for rect in check.get("mask", []) if isinstance(check.get("mask", []), list) else [None]:
+            if not (isinstance(rect, list) and len(rect) == 4 and all(isinstance(v, int) for v in rect)):
+                problems.append(Problem(where, "„mask” to lista prostokątów [x, y, szerokość, wysokość]"))
+                break
     return problems
 
 
@@ -415,6 +467,8 @@ def _q(text) -> str:
 def target_text(target) -> str:
     if target == "clicked":
         return "kliknięty element"
+    if target == "editor":
+        return "edytor"
     if not isinstance(target, dict):
         return "?"
     if "row" in target:
@@ -443,6 +497,13 @@ def _agree(adjective: str, target) -> str:
 
 
 def action_sentence(step: dict) -> str:
+    sentence = _action_sentence(step)
+    if step.get("_app") and step.get("do") not in ("_app_open", "_app_close") and not step.get("say"):
+        return f"{APPS.get(step['_app'], step['_app'])}: {sentence[0].lower()}{sentence[1:]}"
+    return sentence
+
+
+def _action_sentence(step: dict) -> str:
     if step.get("say"):
         return step["say"]
     action = step.get("do")
@@ -466,7 +527,10 @@ def action_sentence(step: dict) -> str:
     if action == "scroll":
         return f"Przewiń {target_text(step.get('target'))} o {step.get('notches')}"
     if action == "drag":
-        return f"Przeciągnij {target_text(step.get('target'))} na {target_text(step.get('to'))}"
+        to = step.get("to")
+        if isinstance(to, dict) and set(to) == {"offset"}:
+            return f"Przeciągnij {target_text(step.get('target'))} o {to['offset'][0]}, {to['offset'][1]} px"
+        return f"Przeciągnij {target_text(step.get('target'))} na {target_text(to)}"
     if action == "restart":
         return "Zamknij program i uruchom go ponownie"
     if action == "wait":
@@ -474,9 +538,14 @@ def action_sentence(step: dict) -> str:
     if action == "screenshot":
         return "Zrób zrzut ekranu"
     if action == "file_dialog":
-        return f"W oknie wyboru pliku wybierz {_q(step.get('path'))}"
+        return f"W systemowym oknie wyboru pliku wpisz {_q(step.get('path'))} i zatwierdź"
     if action == "app":
-        return f"W programie {_q(step.get('app'))}: {len(step.get('steps', []))} kroków"
+        return f"W programie {APPS.get(step.get('app'), step.get('app'))}: {len(step.get('steps', []))} kroków"
+    if action == "_app_open":
+        where = f" z {_q(step['open'])}" if step.get("open") else ""
+        return f"Uruchom program {APPS.get(step.get('app'), step.get('app'))}{where}"
+    if action == "_app_close":
+        return f"Zamknij program {APPS.get(step.get('app'), step.get('app'))}"
     return str(action)
 
 
@@ -519,9 +588,11 @@ def check_sentence(check: dict) -> str:
         tone = "ciemne" if check.get("dark") else "jasne" if check.get("light") else f"w kolorze {check.get('equals')}"
         return f"tło {target_text(check.get('area'))} {tone}"
     if kind == "image":
-        return f"{target_text(check.get('area'))} wygląda jak wzorzec {_q(check.get('pattern'))}"
+        return f"{target_text(check.get('area'))} wygląda jak zatwierdzony wzorzec {_q(check.get('pattern'))}"
     if kind == "screen_settled":
-        return f"{target_text(check.get('area'))} gotowe na ekranie"
+        area = check.get("area")
+        change = " (po zmianie)" if check.get("must_change") else ""
+        return f"{target_text(area)} {_agree('gotowy', area)} na ekranie{change}"
     if kind == "busy_at_most_ms":
         return f"program nie jest zajęty dłużej niż {fmt_ms(check.get('value'))}"
     if kind == "ocr":
@@ -544,6 +615,8 @@ def limit_of(check: dict, limits: dict = None):
         return check.get("value")
     if "within_ms" in check:
         return check["within_ms"]
+    if check.get("check") in UNTIMED_CHECKS:
+        return None
     limits = limits or DEFAULT_LIMITS_MS
     return limits.get(default_limit_kind(check.get("check", "")))
 

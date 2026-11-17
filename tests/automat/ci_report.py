@@ -16,6 +16,8 @@ def walk(node, depth=0, out=None):
     out = [] if out is None else out
     name = node.get("name", "")
     extra = []
+    if node.get("description"):
+        extra.append(f"opis={node['description']!r}")
     for key in ("toggle", "value"):
         if key in node:
             extra.append(f"{key}={node[key]!r}")
@@ -66,15 +68,17 @@ def main(folder: Path) -> int:
     seen = set()
     for tree in sorted(run_dir.rglob("drzewo-*.json")):
         name = tree.name
-        if name in seen and name == "drzewo-okna-glownego.json":
-            continue
+        if name in seen and not name.startswith(("drzewo-po-", "drzewo-po-niezgodnosci")):
+            continue  # a window that looks the same in every scenario: once is enough
         seen.add(name)
         lines = []
         for root in json.loads(tree.read_text(encoding="utf-8")):
             walk(root, 0, lines)
         print(f"\n--- {tree.relative_to(run_dir)} ({len(lines)} elementów, pierwsze {TREE_LINES}) ---")
         print("\n".join(lines[:TREE_LINES]))
-    for log in sorted(run_dir.rglob("kalahari.log"))[:1]:
+    failed = [r["id"] for r in run["scenarios"] if r.get("state") in ("fail", "error")]
+    logs = [run_dir / i / "kalahari.log" for i in failed if (run_dir / i / "kalahari.log").is_file()][:3]
+    for log in logs or sorted(run_dir.rglob("kalahari.log"))[:1]:
         text = log.read_text(encoding="utf-8", errors="replace").splitlines()
         print(f"\n--- {log.relative_to(run_dir)} (ostatnie 60 wierszy) ---")
         print("\n".join(text[-60:]))
