@@ -233,6 +233,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .45); }
   <div class="tabpanel" role="tabpanel" id="p-run" aria-labelledby="tab-run" hidden>
     <div class="banner warn">W czasie przebiegu nie używaj myszy ani klawiatury: automat porusza kursorem i pisze. Ruch myszą wstrzymuje przebieg, a przycisk „Zatrzymaj” go kończy.</div>
     <div class="banner warn" id="pausedBanner" hidden></div>
+    <div class="banner" id="prepBanner" hidden><div id="prepText"></div><div class="progress" style="margin-top:6px"><i id="prepBar"></i></div></div>
     <div class="cols run">
       <div class="box">
         <div class="boxhead"><h3 id="runNow">Nic nie trwa – uruchom scenariusze na karcie „Scenariusze”</h3><span class="small muted tnum" id="runClock"></span></div>
@@ -376,6 +377,7 @@ function renderHead() {
   const waiting = st.waiting;
   if (!st.running) S.stopping = false;
   if (st.running && S.stopping) { pill.className = "pill warn"; pill.textContent = "Zatrzymuję: zamykam program i przywracam Twoje foldery"; }
+  else if (st.running && S.preparing) { pill.className = "pill run"; pill.textContent = "Przygotowanie przebiegu"; }
   else if (st.running) { pill.className = "pill " + (waiting === "paused" ? "warn" : "run"); pill.textContent = waiting === "paused" ? "Wstrzymany" : waiting === "next" ? "Czeka na „Dalej”" : "Trwa przebieg"; }
   else if (!st.windows) { pill.className = "pill info"; pill.textContent = "Bez Windows: tylko podgląd"; }
   else if (!p.exists) { pill.className = "pill bad"; pill.textContent = "Brak programu"; }
@@ -598,6 +600,18 @@ function showShot(path, runId) {
   if (!path || !runId) return;
   $("#liveScreen").innerHTML = `<img class="screen" alt="Zrzut po kroku" src="/files/${encodeURIComponent(runId)}/${path.split("/").map(encodeURIComponent).join("/")}?t=${Date.now()}">`;
 }
+function renderPrepare(ev) {
+  const on = ev && ev.text;
+  $("#prepBanner").hidden = !on;
+  S.preparing = !!on;
+  if (!on) { renderHead(); return; }
+  $("#prepText").textContent = ev.text;
+  const share = ev.total ? Math.min(100, Math.round(ev.done / ev.total * 100)) : 0;
+  $("#prepBar").style.width = share + "%";
+  $("#prepBar").parentElement.hidden = !ev.total;
+  $("#runNow").textContent = "Przygotowanie przebiegu…";
+  renderHead();
+}
 function renderWaiting(w) {
   const banner = $("#pausedBanner"), btn = $("#goOn");
   if (!w) { banner.hidden = true; btn.hidden = true; return; }
@@ -608,8 +622,10 @@ function renderWaiting(w) {
 function onEvent(ev) {
   const L = S.live;
   switch (ev.type) {
-    case "run_started": S.live = { scenario: null, steps: {}, count: ev.ids.length, runId: ev.run.id }; $("#log").innerHTML = ""; loadState(); break;
-    case "scenario_started": L.scenario = ev; L.steps = {}; L.current = 0; renderLive(); break;
+    case "run_started": S.live = { scenario: null, steps: {}, count: ev.ids.length, runId: ev.run.id }; $("#log").innerHTML = "";
+      $("#runNow").textContent = "Przygotowanie przebiegu…"; loadState(); break;
+    case "prepare": renderPrepare(ev); break;
+    case "scenario_started": L.scenario = ev; L.steps = {}; L.current = 0; renderLive(); $("#runNow").textContent = `${ev.title} – uruchamiam program…`; break;
     case "step_started": L.current = ev.number; renderLive(); break;
     case "step_finished": {
       L.steps[ev.number] = ev.step; renderLive();
@@ -735,7 +751,8 @@ async function loadState() {
     }
     S.live.runId = st.current.id; S.live.count = st.current.scenarios.length;
     renderWaiting(L.waiting);
-  } else renderWaiting(null);
+    if (L.prepare) renderPrepare(L.prepare);
+  } else { renderWaiting(null); renderPrepare(null); }
   if (!st.running) $("#runClock").textContent = "";
 }
 $("#optShots").addEventListener("change", () => $("#optShots").dataset.touched = "1");

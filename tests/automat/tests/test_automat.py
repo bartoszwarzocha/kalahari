@@ -366,6 +366,48 @@ class RunnerTest(Folder):
         self.assertEqual(store.load(run["id"])["your_data"], ["przywrócono coś"])
 
 
+class MirrorTest(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        self.folder = self.root / "dane"
+        (self.folder / "sub").mkdir(parents=True)
+        (self.folder / "a.txt").write_text("a", encoding="utf-8")
+        (self.folder / "sub" / "b.bin").write_bytes(b"b" * 1000)
+
+    def test_only_changed_files_are_copied_and_the_folder_is_put_back(self):
+        from automat import mirror  # noqa: PLC0415
+        first = mirror.Mirror(self.folder, self.root / "kopia")
+        seen = []
+        result = first.update(lambda done, total: seen.append((done, total)))
+        self.assertEqual(result["copied_files"], 2)
+        self.assertEqual(seen[-1], (1001, 1001))
+        again = mirror.Mirror(self.folder, self.root / "kopia")
+        self.assertEqual(again.update()["copied_files"], 0)  # a later run copies nothing
+        (self.folder / "a.txt").write_text("zmienione", encoding="utf-8")
+        (self.folder / "sub" / "b.bin").unlink()
+        (self.folder / "nowy.txt").write_text("nowy", encoding="utf-8")
+        diff = again.restore(self.root / "dodane", self.root / "zmienione")
+        self.assertEqual(diff["added"], ["nowy.txt"])
+        self.assertEqual(diff["lost"], [])
+        self.assertEqual((self.folder / "a.txt").read_text(encoding="utf-8"), "a")
+        self.assertEqual((self.folder / "sub" / "b.bin").read_bytes(), b"b" * 1000)
+        self.assertFalse((self.folder / "nowy.txt").exists())
+        self.assertTrue((self.root / "dodane" / "nowy.txt").exists())
+        self.assertEqual((self.root / "zmienione" / "a.txt").read_text(encoding="utf-8"), "zmienione")
+
+    def test_a_stopped_copy_leaves_no_half_file(self):
+        from automat import mirror, stopping  # noqa: PLC0415
+        flag = threading.Event()
+        stopping.watch(flag)
+        self.addCleanup(stopping.watch, threading.Event())
+        flag.set()
+        with self.assertRaises(stopping.Stopped):
+            mirror.Mirror(self.folder, self.root / "kopia").update()
+        left = [p.name for p in (self.root / "kopia").rglob("*") if p.is_file()] if (self.root / "kopia").exists() else []
+        self.assertEqual(left, [])
+
+
 class StoreTest(Folder):
     def test_import_zip_keeps_inside_its_folder(self):
         store = Store(self.root / "wyniki")

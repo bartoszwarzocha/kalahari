@@ -154,8 +154,12 @@ class Runner:
         try:
             if self.guard_factory is not None:
                 guard = self.guard_factory(self.store.run_dir(run["id"]) / "_twoje-dane")
-                self._emit("log", text="Kopia Twoich folderów programu przed przebiegiem")
+                self._emit("prepare", text="Przygotowanie: kopia Twoich folderów programu", done=None, total=None)
+                guard.progress = self._preparing
+                began = time.perf_counter()
                 guard.before()
+                self._emit("log", text=f"Przygotowanie skończone po {fmt((time.perf_counter() - began) * 1000)}")
+            self._emit("prepare", text=None, done=None, total=None)
             for index, slot in enumerate(run["scenarios"]):
                 if self._stop.is_set():
                     slot["state"] = "stopped"
@@ -167,9 +171,14 @@ class Runner:
                 if result["state"] in ("fail", "error") and run["options"]["stop_on_fail"]:
                     self._stop.set()
         except Exception as error:  # noqa: BLE001 - the run file says what broke
-            run["error"] = f"{type(error).__name__}: {error}"
-            run["trace"] = traceback.format_exc()
-            self._emit("log", text=f"BŁĄD AUTOMATU: {error}", level="error")
+            if isinstance(error, stopping.Stopped) or self._stop.is_set():
+                for slot in run["scenarios"]:  # stopped while preparing: nothing ran
+                    if slot.get("state") == "waiting":
+                        slot["state"] = "stopped"
+            else:
+                run["error"] = f"{type(error).__name__}: {error}"
+                run["trace"] = traceback.format_exc()
+                self._emit("log", text=f"BŁĄD AUTOMATU: {error}", level="error")
         finally:
             if guard is not None:
                 try:
@@ -187,6 +196,17 @@ class Runner:
             self.store.save(run)
             self._emit("run_finished", run=results_mod.summary(run))
             self.current = None
+
+    def _preparing(self, text: str, done=None, total=None) -> None:
+        """What the preparation is doing, for the page: a sentence for the log when a part
+        ends (done is None), and the progress of copying at most five times a second."""
+        now = time.perf_counter()
+        if done is None:
+            self._emit("log", text=text)
+        elif done < (total or 0) and now - getattr(self, "_last_progress", 0.0) < 0.2:
+            return
+        self._last_progress = now
+        self._emit("prepare", text=text, done=done, total=total)
 
     def _scenario(self, run: dict, index: int, scenario_id: str) -> dict:
         scenario = self.library.get(scenario_id)
@@ -255,7 +275,9 @@ class Runner:
         try:
             session = self.session_factory(self.config, scenario, folder)
             self._emit("log", text=f"„{scenario.title}”: przygotowanie (kopia książek, osobny folder ustawień) i uruchomienie programu")
+            began = time.perf_counter()
             session.start()
+            self._emit("log", text=f"Program gotowy po {fmt((time.perf_counter() - began) * 1000)}")
             previous_shot = None
             for number, step in enumerate(scenario.steps, 1):
                 if run["options"]["step_by_step"] and not self._stop.is_set():

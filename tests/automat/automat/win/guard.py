@@ -3,17 +3,20 @@
 APPDATA moves only the program's settings folder. Its other data folders come from the
 system's known folders (Qt 6.9 reads them with SHGetKnownFolderPath), so they are the
 user's own: Documents\\Kalahari (books, archives, backups), the dictionaries in the roaming
-AppData and the grammar components in the local AppData. The run copies them before the
-first scenario and puts them back after the last one (the accepted design, 17.11.2026).
-Nothing is deleted: a file the tests added, and the tests' version of a file they
-changed, are moved into the run's folder.
+AppData and the grammar components in the local AppData. Before the first scenario each of
+them is compared with a kept copy in the automaton's data folder and only the files that
+differ are copied (automat.mirror); after the last one the files the tests changed or
+removed come back from that copy. Nothing is deleted: a file the tests added, and the
+tests' version of a file they changed, are moved into the run's folder.
 """
 
 import ctypes
 import os
-import shutil
+import time
 from pathlib import Path
 
+from automat import config as config_mod
+from automat import mirror
 from automat.win import system
 
 ORGANISATION = "Bartosz W. Warzocha & Kalahari Team"  # QCoreApplication::organizationName
@@ -22,8 +25,10 @@ FOLDERS = [
     ("slowniki", "roaming_app_data", os.path.join(ORGANISATION, "Kalahari")),
     ("dane-lokalne", "local_app_data", "Kalahari"),
 ]
-LISTING_LIMIT = 20000  # entries; a bigger folder is only reported, not copied
-COPY_LIMIT = 2 * 1024 ** 3  # bytes
+NAMES = {"dokumenty": "Dokumenty\\Kalahari", "slowniki": "słowniki użytkownika",
+         "dane-lokalne": "dane lokalne programu (składniki gramatyki)"}
+listing = mirror.listing
+differences = mirror.differences
 
 
 def folders() -> list:
@@ -36,48 +41,10 @@ def folders() -> list:
     return out
 
 
-def listing(folder: Path):
-    """{relative path: (size, mtime_ns)} (folders end with os.sep), or None when the folder
-    is too big to walk."""
-    if not folder.is_dir():
-        return {}
-    found = {}
-    stack = [folder]
-    while stack:
-        current = stack.pop()
-        try:
-            entries = list(os.scandir(current))
-        except OSError:
-            continue
-        for entry in entries:
-            if len(found) >= LISTING_LIMIT:
-                return None
-            try:
-                relative = os.path.relpath(entry.path, folder)
-                if entry.is_dir(follow_symlinks=False):
-                    stack.append(Path(entry.path))
-                    found[relative + os.sep] = (0, 0)
-                else:
-                    stat = entry.stat(follow_symlinks=False)
-                    found[relative] = (stat.st_size, stat.st_mtime_ns)
-            except OSError:
-                continue
-    return found
-
-
 def _quote(names, limit=8) -> str:
     names = list(names)
     shown = ", ".join(f"„{n}”" for n in names[:limit])
     return shown + (f" i {len(names) - limit} innych" if len(names) > limit else "")
-
-
-def differences(old: dict, new: dict) -> dict:
-    files_old = {k: v for k, v in old.items() if not k.endswith(os.sep)}
-    files_new = {k: v for k, v in new.items() if not k.endswith(os.sep)}
-    return {"added": sorted(set(files_new) - set(files_old)),
-            "removed": sorted(set(files_old) - set(files_new)),
-            "changed": sorted(k for k in set(files_old) & set(files_new) if files_old[k] != files_new[k]),
-            "new_dirs": sorted((set(new) - set(old)) - set(files_new))}
 
 
 def describe(folder: Path, diff: dict) -> str:
@@ -108,71 +75,57 @@ def changes(before: dict, after: dict) -> list:
     return out
 
 
-class FolderGuard:
-    """Copy before the run, put back after it."""
+def _mb(size: int) -> str:
+    return f"{size / 1024 ** 2:.0f} MB" if size >= 1024 ** 2 else f"{max(1, size // 1024)} kB"
 
-    def __init__(self, backup: Path):
+
+class FolderGuard:
+    """Bring the kept copies up to date before the run, put the folders back after it.
+    progress(text, done, total) reports the copying (bytes) as it goes."""
+
+    def __init__(self, backup: Path, kept: Path = None):
         self.backup = Path(backup)
-        self.saved = []  # (key, folder, listing or None when not copied)
+        self.kept = Path(kept) if kept else config_mod.data_dir() / "kopia-twoich-danych"
+        self.mirrors = []  # (key, Mirror)
         self.messages = []
+        self.progress = None
+
+    def _say(self, text, done=None, total=None) -> None:
+        if self.progress:
+            self.progress(text, done, total)
 
     def before(self) -> None:
         for key, folder in folders():
-            found = listing(folder)
-            if found is None:
-                self.messages.append(f"folder {folder} ma ponad {LISTING_LIMIT} plików: automat go nie "
-                                     "kopiuje, tylko sprawdza, czy testy go nie zmieniły")
-                self.saved.append((key, folder, None))
+            name = NAMES.get(key, key)
+            kept = mirror.Mirror(folder, self.kept / key)
+            began = time.perf_counter()
+            self._say(f"Kopia: {name} – porównuję z kopią z poprzedniego przebiegu")
+            try:
+                result = kept.update(lambda done, total, name=name: self._say(
+                    f"Kopia: {name} – {_mb(done)} z {_mb(total)}", done, total))
+            except ValueError as error:
+                self.messages.append(f"{error}: automat go nie kopiuje, tylko sprawdza, czy testy go nie zmieniły")
                 continue
-            size = sum(v[0] for k, v in found.items() if not k.endswith(os.sep))
-            if size > COPY_LIMIT:
-                self.messages.append(f"folder {folder} ma {size // 1024 ** 2} MB: automat go nie kopiuje")
-                self.saved.append((key, folder, None))
-                continue
-            if folder.is_dir():
-                shutil.copytree(folder, self.backup / "kopia" / key, symlinks=True)
-            self.saved.append((key, folder, found))
+            seconds = time.perf_counter() - began
+            copied = (f"skopiowano {result['copied_files']} plików ({_mb(result['copied_bytes'])})"
+                      if result["copied_files"] else "bez zmian od poprzedniej kopii")
+            self._say(f"Kopia: {name} ({result['files']} plików, {_mb(result['bytes'])}) – {copied}, "
+                      f"{seconds:.1f} s".replace(".", ","))
+            if kept.failed:
+                self.messages.append(f"nie dało się skopiować z {folder}: {_quote(kept.failed)}")
+            self.mirrors.append((key, kept))
 
     def after(self) -> list:
         """Put the folders back; returns sentences about what the run changed there."""
         out = list(self.messages)
-        clean = True
-        for key, folder, old in self.saved:
-            if old is None:
-                continue
-            new = listing(folder) or {}
-            diff = differences(old, new)
-            if not (diff["added"] or diff["removed"] or diff["changed"] or diff["new_dirs"]):
-                continue
-            clean = False
-            copy = self.backup / "kopia" / key
+        for key, kept in self.mirrors:
             moved = self.backup / "dodane-przez-testy" / key
-            for relative in diff["added"]:
-                target = moved / relative
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.move(str(folder / relative), str(target))
-            for relative in diff["changed"]:
-                kept = self.backup / "zmienione-przez-testy" / key / relative
-                kept.parent.mkdir(parents=True, exist_ok=True)
-                shutil.move(str(folder / relative), str(kept))
-            for relative in diff["changed"] + diff["removed"]:
-                target = folder / relative
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(copy / relative, target)
-            for relative in sorted(diff["new_dirs"], key=len, reverse=True):
-                try:
-                    (folder / relative).rmdir()  # only an empty folder the tests made
-                except OSError:
-                    pass
-            if not old and folder.is_dir():
-                try:
-                    folder.rmdir()
-                except OSError:
-                    pass
-            out.append("przywrócono " + describe(folder, diff) +
-                       (f"; pliki dodane przez testy są w {moved}" if diff["added"] else ""))
-        if clean:
-            shutil.rmtree(self.backup / "kopia", ignore_errors=True)
+            diff = kept.restore(moved, self.backup / "zmienione-przez-testy" / key)
+            if diff["added"] or diff["removed"] or diff["changed"]:
+                out.append("przywrócono " + describe(kept.folder, diff) +
+                           (f"; pliki dodane przez testy są w {moved}" if diff["added"] else ""))
+            if diff["lost"]:
+                out.append(f"NIE DAŁO SIĘ PRZYWRÓCIĆ (brak kopii): {_quote(diff['lost'])} w {kept.folder}")
         return out
 
 
@@ -202,6 +155,7 @@ class RunGuard:
         if getattr(self.config, "keep_awake", True):
             keep_awake(True)
         if self.folders is not None:
+            self.folders.progress = getattr(self, "progress", None)
             self.folders.before()
 
     def after(self) -> list:

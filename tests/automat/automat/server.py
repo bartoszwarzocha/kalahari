@@ -46,7 +46,7 @@ class App:
         self.store = Store(config.results_path)
         self.runner = Runner(config, self.library, self.approvals, self.store, session_factory,
                              where=where, guard_factory=guard_factory)
-        self.live = {"scenario": None, "steps": {}, "log": [], "waiting": None}
+        self.live = {"scenario": None, "steps": {}, "log": [], "waiting": None, "prepare": None}
         self._live_lock = threading.Lock()
         self.runner.listen(self._follow)
 
@@ -56,7 +56,9 @@ class App:
         kind = event["type"]
         with self._live_lock:
             if kind == "run_started":
-                self.live = {"scenario": None, "steps": {}, "log": [], "waiting": None}
+                self.live = {"scenario": None, "steps": {}, "log": [], "waiting": None, "prepare": None}
+            elif kind == "prepare":
+                self.live["prepare"] = event if event.get("text") else None
             elif kind == "scenario_started":
                 self.live["scenario"] = event
                 self.live["steps"] = {}
