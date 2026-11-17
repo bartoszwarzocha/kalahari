@@ -213,18 +213,19 @@ def parse_chord(chord: str) -> list:
 
 
 def press(chord: str) -> float:
-    """Press a key chord such as 'Esc', 'Ctrl+Shift+I' or 'Alt+F4'; returns the moment the
-    main key was released. Several chords can be given separated by spaces: 'Alt+W Down'."""
+    """Press a key chord such as 'Esc', 'Ctrl+Shift+I' or 'Alt+F4'. Several chords can be given
+    separated by spaces: 'Alt+W Down'. Returns the moment the main key of the last chord went
+    down: programs act on the key press (Qt's KeyPress), not on its release."""
     moment = 0.0
     for single in chord.split():
         keys = parse_chord(single)
         for vk in keys:
-            _send([_key(vk, False)])
-            time.sleep(0.015)
-        for vk in reversed(keys):
-            stamp = _send([_key(vk, True)])
+            stamp = _send([_key(vk, False)])
             if vk == keys[-1]:
                 moment = stamp
+            time.sleep(0.015)
+        for vk in reversed(keys):
+            _send([_key(vk, True)])
             time.sleep(0.01)
         time.sleep(0.03)
     return moment
@@ -238,7 +239,7 @@ def _unicode(unit: int, up: bool) -> INPUT:
 
 def type_text(text: str, interval: float = 0.02) -> float:
     """Type text character by character, any language (VK_PACKET); a new line is Enter and a
-    tab is Tab. Returns the moment the last character was released."""
+    tab is Tab. Returns the moment the last character went down."""
     moment = 0.0
     for char in text:
         if char == "\n":
@@ -248,7 +249,7 @@ def type_text(text: str, interval: float = 0.02) -> float:
         else:
             data = char.encode("utf-16-le")
             units = [int.from_bytes(data[i:i + 2], "little") for i in range(0, len(data), 2)]
-            _send([_unicode(u, False) for u in units])
-            moment = _send([_unicode(u, True) for u in units])
+            moment = _send([_unicode(u, False) for u in units])
+            _send([_unicode(u, True) for u in units])
         time.sleep(interval)
     return moment

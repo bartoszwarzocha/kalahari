@@ -10,14 +10,15 @@ program itself knows.
 """
 
 import argparse
+import ctypes
 import json
 import os
-import statistics
 import subprocess
 import sys
 import threading
 import time
 import traceback
+from ctypes import wintypes
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -30,6 +31,12 @@ DPI_AWARE = make_dpi_aware()
 from automat.win import busy, clipboard, events, input as inp, screen, system, uia  # noqa: E402
 
 PL_TEXT = "Zażółć gęślą jaźń – „cudzysłów” i… ŹĆŃĄŚŁÓĘŻ"
+
+
+def ctypes_rect(hwnd) -> tuple:
+    rect = wintypes.RECT()
+    events.user32.GetWindowRect(hwnd, ctypes.byref(rect))
+    return rect.left, rect.top, rect.right, rect.bottom
 
 
 class Probe:
@@ -102,13 +109,12 @@ class Probe:
                    f"pulpit wejścia: {env['input_desktop']}, ekran {env['screen']}, DPI {env['dpi']}")
         scr = screen.Screen()
         self.shot("00-pulpit", scr)
-        ui = uia.Uia()
 
         launched = time.perf_counter()
         proc = self.launch()
         hook = events.WindowEvents(proc.pid).start()
         try:
-            self._steps(ui, scr, hook, launched)
+            self._steps(scr, hook, launched)
         except Exception:  # noqa: BLE001 - every failure goes to the report
             self.report["errors"].append(traceback.format_exc())
             print(traceback.format_exc(), flush=True)
@@ -136,7 +142,7 @@ class Probe:
         self.summary()
         return 0 if all(c["ok"] for c in self.report["checks"]) else 1
 
-    def _steps(self, ui, scr, hook, launched):
+    def _steps(self, scr, hook, launched):
         main_event = hook.wait_shown("Sonda automatu", launched, 30)
         if not self.check("okno programu pokazane (zdarzenie systemowe)", main_event is not None,
                           "" if main_event is None else f"{(main_event.time - launched) * 1000:.0f} ms od uruchomienia"):
@@ -144,13 +150,47 @@ class Probe:
         hwnd = main_event.hwnd
         probe = busy.BusyProbe(hwnd).start()
         try:
+            self.wait_app("ready", 0, 10)
+            time.sleep(0.5)
+            self.opening_times(scr, hook, hwnd, "bez UI Automation", 3)
+            ui = uia.Uia()
             self._with_window(ui, scr, hook, probe, hwnd)
+            self.opening_times(scr, hook, hwnd, "z UI Automation", 5)
         finally:
             probe.stop()
 
+    def opening_times(self, scr, hook, hwnd, label, count):
+        """Open the dialog with its shortcut `count` times and compare the moments seen from
+        outside (window event, screenshots) with the program's own (key, show, first paint)."""
+        rect = ctypes_rect(hwnd)
+        inp.click((rect[0] + rect[2]) // 2, rect[1] + 12)  # the title bar: the window comes to the front
+        time.sleep(0.3)
+        rows = []
+        for _ in range(count):
+            t0 = inp.press("Ctrl+Shift+I")
+            shown = hook.wait_shown("Znak specjalny", t0 - 0.05, 8)
+            if shown is None:
+                rows.append({"błąd": "okno się nie pokazało"})
+                break
+            watch = scr.watch(ctypes_rect(shown.hwnd), t0, settle_ms=150, timeout=3)
+            key = self.wait_app("key", t0 - 0.05, 2)
+            paint = self.wait_app("dialog_first_paint", t0 - 0.05, 2)
+            show_event = self.app_moment("dialog_show_event", t0 - 0.05)
+            row = {"okno pokazane (zdarzenie)": round((shown.time - t0) * 1000, 1),
+                   "gotowe na ekranie (zrzuty)": watch["last_change_ms"],
+                   "klawisz w programie": None if key is None else round((key - t0) * 1000, 1),
+                   "showEvent w programie": None if show_event is None else round((show_event - t0) * 1000, 1),
+                   "pierwsze malowanie w programie": None if paint is None else round((paint - t0) * 1000, 1)}
+            rows.append(row)
+            time.sleep(0.2)
+            t1 = inp.press("Esc")
+            hook.wait_closed("Znak specjalny", t1 - 0.05, 3)
+            time.sleep(0.3)
+        self.timing(f"otwieranie skrótem {label} (ms)", rows)
+        self.check(f"skrót Ctrl+Shift+I otwiera okno {count} razy ({label})",
+                   len(rows) == count and all("błąd" not in r for r in rows))
+
     def _with_window(self, ui, scr, hook, probe, hwnd):
-        self.wait_app("ready", 0, 10)
-        time.sleep(0.5)
         main = ui.from_handle(hwnd)
         tree = ui.dump(main, depth=8)
         (self.out / "drzewo-okna-glownego.json").write_text(json.dumps(tree, ensure_ascii=False, indent=1),
@@ -179,7 +219,7 @@ class Probe:
             return
         self.shot("02-menu", scr)
         t0 = inp.click(*item.center)
-        shown = hook.wait_shown("Znak specjalny", t0, 5)
+        shown = hook.wait_shown("Znak specjalny", t0 - 0.05, 8)
         if not self.check("okno „Znak specjalny” otwarte z menu", shown is not None):
             return
         dialog = ui.from_handle(shown.hwnd)
@@ -250,7 +290,7 @@ class Probe:
         # Esc closes the dialog.
         self.where_input_goes(ui, "przed Esc")
         t0 = inp.press("Esc")
-        closed = hook.wait_closed("Znak specjalny", t0, 3)
+        closed = hook.wait_closed("Znak specjalny", t0 - 0.05, 3)
         self.check("Esc zamyka okno (zdarzenie systemowe)", closed is not None,
                    ("" if closed is None else f"{(closed.time - t0) * 1000:.0f} ms; ")
                    + f"okno widoczne: {bool(events.user32.IsWindowVisible(shown.hwnd))}")
@@ -259,43 +299,18 @@ class Probe:
             self.shot("04b-po-esc", scr)
             self.close_dialog(ui, scr, hook, shown.hwnd, "Znak specjalny")
 
-        # A shortcut, five times: the spread of the measurement.
-        shown_ms, paint_ms, diffs = [], [], []
-        for _ in range(5):
-            time.sleep(0.3)
-            t0 = inp.press("Ctrl+Shift+I")
-            shown = hook.wait_shown("Znak specjalny", t0, 3)
-            if shown is None:
-                break
-            dialog = ui.from_handle(shown.hwnd)
-            watch = scr.watch(dialog.rect, t0, settle_ms=150, timeout=3)
-            paint = self.wait_app("dialog_first_paint", t0, 2)
-            shown_ms.append(round((shown.time - t0) * 1000, 1))
-            paint_ms.append(watch["last_change_ms"])
-            if paint is not None:
-                diffs.append(round(watch["last_change_ms"] - (paint - t0) * 1000, 1))
-            t1 = inp.press("Esc")
-            hook.wait_closed("Znak specjalny", t1, 3)
-        self.check("skrót Ctrl+Shift+I otwiera okno 5 razy", len(shown_ms) == 5, f"{shown_ms}")
-        if shown_ms:
-            self.timing("skrót: okno pokazane od T0, 5 pomiarów (ms)", shown_ms)
-            self.timing("skrót: gotowe na ekranie od T0, 5 pomiarów (ms)", paint_ms)
-            self.timing("skrót: zrzuty minus malowanie wg programu (ms)", diffs)
-            if diffs:
-                self.timing("skrót: mediana różnicy zrzuty–program (ms)", statistics.median(diffs))
-
         # A slow window: the moment it is shown and the busy time before.
         slow = main.find_all(name="Wolne okno", kinds=uia.ROLES["button"])
         if self.check("przycisk „Wolne okno” znaleziony", bool(slow)):
             t0 = inp.click(*slow[0].center)
-            shown = hook.wait_shown("Wolne okno", t0, 5)
+            shown = hook.wait_shown("Wolne okno", t0 - 0.05, 5)
             probe.wait_responsive(t0 + 0.01, 5)
             self.check("wolne okno pokazane po ok. 0,4 s (0,35–0,8 s)",
                        shown is not None and 350 <= (shown.time - t0) * 1000 <= 800,
                        "" if shown is None else f"{(shown.time - t0) * 1000:.0f} ms; zajęty {probe.longest_ms(t0, time.perf_counter())} ms")
             if shown:
                 t1 = inp.press("Esc")
-                hook.wait_closed("Wolne okno", t1, 3)
+                hook.wait_closed("Wolne okno", t1 - 0.05, 3)
 
         # Polish text in the editor, read back by UI Automation and through the clipboard.
         editor = main.find_all(name="Tekst", kinds=uia.ROLES["edit"])
@@ -329,6 +344,8 @@ class Probe:
     def close_dialog(self, ui, scr, hook, hwnd, title) -> None:
         """Close a window with the mouse: the close button of its title bar."""
         window = ui.from_handle(hwnd)
+        if window is None:
+            return
         buttons = [b for b in window.find_all(kinds=("Button",)) if b.automation_id == "Close"
                    or b.name in ("Zamknij", "Close")]
         if buttons:
