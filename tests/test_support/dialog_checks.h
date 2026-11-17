@@ -7,9 +7,10 @@
 
 #pragma once
 
+#include "kalahari_tests/polish.h"
+
 #include <QFont>
 #include <QString>
-#include <QTranslator>
 
 class QTabWidget;
 class QWidget;
@@ -46,21 +47,6 @@ public:
 
 private:
     QFont m_font;
-};
-
-/// @brief The windows in Polish while it lives: the translation the program ships
-class Polish {
-public:
-    Polish();
-    ~Polish();
-    Polish(const Polish&) = delete;
-    Polish& operator=(const Polish&) = delete;
-
-    [[nodiscard]] bool loaded() const { return m_loaded; }
-
-private:
-    QTranslator m_translator;
-    bool m_loaded = false;
 };
 
 }  // namespace kalahari::test

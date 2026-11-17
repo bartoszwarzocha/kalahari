@@ -11,7 +11,6 @@
 
 #include <QAbstractButton>
 #include <QApplication>
-#include <QCoreApplication>
 #include <QGroupBox>
 #include <QLabel>
 #include <QStackedWidget>
@@ -130,17 +129,6 @@ AppFontOfPixels::AppFontOfPixels(int pixels) : m_font(QApplication::font()) {
 
 AppFontOfPixels::~AppFontOfPixels() {
     QApplication::setFont(m_font);
-}
-
-Polish::Polish() {
-    m_loaded = m_translator.load(QStringLiteral(":/i18n/kalahari_pl.qm"));
-    if (m_loaded) {
-        QCoreApplication::installTranslator(&m_translator);
-    }
-}
-
-Polish::~Polish() {
-    QCoreApplication::removeTranslator(&m_translator);
 }
 
 }  // namespace kalahari::test
