@@ -25,6 +25,7 @@
 #include "kalahari/gui/panels/card_panel.h"
 #include "kalahari/gui/panels/image_preview_panel.h"
 #include "kalahari/gui/panels/material_page.h"
+#include "kalahari/gui/panels/pitch_panel.h"
 #include "kalahari/gui/panels/preview_panel.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/material_file.h"
@@ -522,7 +523,21 @@ EditorPanel* NavigatorCoordinator::createEditorPanel(const core::ProjectElement*
     if (element != nullptr && m_book.isCard(*element)) {
         return createCardPanel(elementId);
     }
+    if (element != nullptr &&
+        element->publishing.part == QLatin1String(core::PublishingTexts::PITCH)) {
+        return createPitchPanel(elementId);
+    }
     return new EditorPanel(m_book, m_commands, m_centralTabs);
+}
+
+PitchPanel* NavigatorCoordinator::createPitchPanel(const QString& elementId) {
+    auto* panel = new PitchPanel(m_book, m_commands, elementId, m_centralTabs);
+    connect(panel, &PitchPanel::titleChanged, this, [this](const QString& id) {
+        refreshTabTitle(id);
+        m_navigatorPanel->refreshItem(id);
+    });
+    connect(panel, &PitchPanel::publishingChanged, this, &NavigatorCoordinator::onMaterialChanged);
+    return panel;
 }
 
 CardPanel* NavigatorCoordinator::createCardPanel(const QString& elementId) {

@@ -52,6 +52,7 @@ namespace gui {
 class NavigatorPanel;
 class PropertiesPanel;
 class CardPanel;
+class PitchPanel;
 class EditorPanel;
 class MaterialCardPanel;
 class PreviewPanel;
@@ -488,12 +489,17 @@ private:
     [[nodiscard]] QList<MaterialCardPanel*> materialCards() const;
 
     /// @brief The tab of element @p element (@p elementId): the full card of a character, a
-    /// location or an item, the editor of a text otherwise
+    /// location or an item, the card of a sentence about the book, the editor of a text
+    /// otherwise
     EditorPanel* createEditorPanel(const core::ProjectElement* element, const QString& elementId);
 
     /// @brief The full card of character, location or item @p elementId, for its tab: its
     /// name shows on the tab and in the Navigator, its gear opens Settings > Cards
     CardPanel* createCardPanel(const QString& elementId);
+
+    /// @brief The card of sentence about the book @p elementId, for its tab: its title shows on
+    /// the tab and in the Navigator, what the book keeps of it in the lists
+    PitchPanel* createPitchPanel(const QString& elementId);
 
     /// @brief Element @p element of a window kind on a new tab of the module that edits it
     /// (core::IWindowEditorProvider), in front; the status bar says when no module edits it
