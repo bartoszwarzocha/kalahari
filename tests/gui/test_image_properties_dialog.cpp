@@ -367,7 +367,7 @@ TEST_CASE("Image Properties window: its pages, their keys and one size on all of
 
 TEST_CASE("Image Properties window: how the text flows around the image",
           "[gui][images][dialog]") {
-    const Pictures pictures;
+    Pictures pictures;
     ImagePropertiesData given = dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400}));
     given.canWrap = true;
     {
