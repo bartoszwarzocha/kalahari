@@ -1,0 +1,101 @@
+{"scenarios": [
+  {
+    "id": "style-nowy-styl-nazwa",
+    "title": "Nowy styl: pusta albo zajęta nazwa wyłącza OK, nowa nazwa je włącza",
+    "area": "Style tekstu",
+    "tags": ["style"],
+    "sources": [
+      { "kind": "test_list", "ref": "2026-11-10-style-tekstu.md – p. 2: „Nazwa zajęta albo pusta wyłącza OK i mówi dlaczego”; Format › Styl tekstu › Nowy styl…" }
+    ],
+    "covers": ["op-924392cf"],
+    "setup": { "books": ["karawana"], "settings": "domyslne", "open": { "book": "karawana", "chapter": "Targ w Ghadames" } },
+    "steps": [
+      {
+        "do": "menu", "path": ["Format", "Styl tekstu", "Nowy styl..."],
+        "expect": [ { "check": "window_shown", "window": "Nowy styl" } ]
+      },
+      {
+        "say": "Usuń nazwę z pola „Nazwa”",
+        "do": "keys", "keys": "Ctrl+A",
+        "target": { "window": "Nowy styl", "name": "Nazwa", "role": "edit" }
+      },
+      {
+        "do": "keys", "keys": "Delete",
+        "expect": [ { "check": "enabled", "value": false, "target": { "window": "Nowy styl", "name": "OK", "role": "button" } } ]
+      },
+      {
+        "say": "Wpisz nazwę stylu, który już jest w książce („Normalny”)",
+        "do": "type", "text": "Normalny", "replace": true,
+        "target": { "window": "Nowy styl", "name": "Nazwa", "role": "edit" },
+        "expect": [ { "check": "enabled", "value": false, "target": { "window": "Nowy styl", "name": "OK", "role": "button" } } ]
+      },
+      {
+        "do": "type", "text": "Szept karawany", "replace": true,
+        "target": { "window": "Nowy styl", "name": "Nazwa", "role": "edit" },
+        "expect": [ { "check": "enabled", "target": { "window": "Nowy styl", "name": "OK", "role": "button" } } ]
+      },
+      {
+        "do": "keys", "keys": "Esc",
+        "expect": [ { "check": "window_closed", "window": "Nowy styl" } ]
+      }
+    ]
+  },
+  {
+    "id": "style-zarzadzaj-stylami-klawisze",
+    "title": "Okno „Zarządzaj stylami”: Insert otwiera nowy styl, Enter zmienia styl, a okno zostaje; Esc zamyka",
+    "area": "Style tekstu",
+    "tags": ["style", "klawisze"],
+    "sources": [
+      { "kind": "test_list", "ref": "2026-11-10-style-tekstu.md – p. 6: Format › Styl tekstu › Zarządzaj stylami…; klawisze: Insert – nowy, Enter albo F2 – zmień, Delete – usuń, Ctrl+Z – cofnij, Esc – zamknij; Enter na liście otwiera okno stylu i nie zamyka okna" }
+    ],
+    "covers": ["op-03c0d7b9", "op-bead8250"],
+    "setup": { "books": ["karawana"], "settings": "domyslne", "open": { "book": "karawana", "chapter": "Targ w Ghadames" } },
+    "steps": [
+      {
+        "do": "menu", "path": ["Format", "Styl tekstu", "Zarządzaj stylami..."],
+        "expect": [ { "check": "window_shown", "window": "Zarządzaj stylami" } ]
+      },
+      {
+        "say": "Kliknij styl „Normalny” na liście i naciśnij Insert",
+        "do": "click", "target": { "window": "Zarządzaj stylami", "name": "Normalny" }
+      },
+      {
+        "do": "keys", "keys": "Insert",
+        "expect": [ { "check": "window_shown", "window": "Nowy styl" } ]
+      },
+      {
+        "do": "keys", "keys": "Esc",
+        "expect": [
+          { "check": "window_closed", "window": "Nowy styl" },
+          { "check": "visible", "target": { "window": "Zarządzaj stylami" } }
+        ]
+      },
+      {
+        "say": "Naciśnij Enter: otwiera się okno stylu, a „Zarządzaj stylami” zostaje",
+        "do": "keys", "keys": "Enter",
+        "expect": [
+          { "check": "window_shown", "window": "Zmień styl „Normalny”" },
+          { "check": "visible", "target": { "window": "Zarządzaj stylami" } }
+        ]
+      },
+      {
+        "do": "keys", "keys": "Esc",
+        "expect": [ { "check": "window_closed", "window": "Zmień styl „Normalny”" } ]
+      },
+      {
+        "say": "Naciśnij F2: to samo okno stylu",
+        "do": "keys", "keys": "F2",
+        "expect": [ { "check": "window_shown", "window": "Zmień styl „Normalny”" } ]
+      },
+      {
+        "do": "keys", "keys": "Esc",
+        "expect": [ { "check": "window_closed", "window": "Zmień styl „Normalny”" } ]
+      },
+      {
+        "say": "Naciśnij Esc: okno „Zarządzaj stylami” się zamyka",
+        "do": "keys", "keys": "Esc",
+        "expect": [ { "check": "window_closed", "window": "Zarządzaj stylami" } ]
+      }
+    ]
+  }
+]}

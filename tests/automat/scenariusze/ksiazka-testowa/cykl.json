@@ -8,10 +8,12 @@
     { "kind": "test_list", "ref": "2026-10-12-nowa-struktura-ksiazki-pr61-runda3.md – p. 2 (nowa książka z kafelka „Powieść”, tytuł, autor, język „polski”, sekcje, „Utwórz książkę”) i p. 3 (liczba słów, gwiazdka niezapisanych zmian, Ctrl+S, Ctrl+B)" },
     { "kind": "test_list", "ref": "2026-10-20-nawigator.md – projekt w Nawigatorze ma węzły „Książka” i „Warsztat”" },
     { "kind": "test_list", "ref": "2026-11-10-style-tekstu.md – p. 2 (nowy styl z akapitu w kursywie, nadany akapitowi, na liście w menu Format › Styl tekstu)" },
-    { "kind": "test_list", "ref": "2026-11-16-zbiorczy-test-2.md – p. 8 (karta postaci dodana przez „Dodaj postać...” w grupie „Postacie” Warsztatu)" }
+    { "kind": "test_list", "ref": "2026-11-16-zbiorczy-test-2.md – p. 8 (karta postaci dodana przez „Dodaj postać...” w grupie „Postacie” Warsztatu)" },
+    { "kind": "test_list", "ref": "2026-11-10-statystyki-i-cele-pisania.md – p. 8: okno „Podsumowanie sesji pisania” przy zamknięciu książki, gdy w sesji coś napisano; nagłówek „Dzisiaj: … słów”, pole „Pokazuj podsumowanie przy zamknięciu książki” i przycisk „Kopiuj”" },
+    { "kind": "mockup", "ref": "makiety/statystyki-i-cele.html – widok „Podsumowanie sesji”: tytuł okna „Podsumowanie sesji pisania”, nagłówek „Dzisiaj: N słów”" }
   ],
   "covers": ["op-6a0754cc", "op-4c878d3a", "op-0c2d7e32", "op-da23b4e0", "op-ccb25098", "op-f9994c75",
-             "op-5e586e0b", "op-0eaa54d1", "op-f4848cd1", "op-1e2b17e6"],
+             "op-5e586e0b", "op-0eaa54d1", "op-f4848cd1", "op-1e2b17e6", "op-360129eb"],
   "setup": { "books": [], "settings": "domyslne" },
   "steps": [
     {
@@ -53,7 +55,7 @@
       "do": "click", "target": { "window": "Nowa książka", "name": "Utwórz książkę", "role": "button" },
       "expect": [
         { "check": "window_closed", "window": "Nowa książka" },
-        { "check": "window_shown", "window": "Pustynia testowa - Kalahari" },
+        { "check": "visible", "target": { "window": "Pustynia testowa - Kalahari" } },
         { "check": "visible", "target": { "window": "*Kalahari", "name": "Rozdział 1", "role": "tab" } },
         { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Pustynia testowa", "role": "tree_item" } },
         { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Książka", "role": "tree_item" } },
@@ -169,9 +171,19 @@
       ]
     },
     {
-      "say": "Zamknij książkę",
+      "say": "Zamknij książkę: w sesji coś napisano, więc pokazuje się podsumowanie sesji",
       "do": "menu", "path": ["Plik", "Zamknij książkę"],
-      "expect": [ { "check": "window_shown", "window": "Kalahari" } ]
+      "expect": [
+        { "check": "window_shown", "window": "Podsumowanie sesji pisania" },
+        { "check": "visible", "target": { "name": "Dzisiaj: 9 słów", "role": "text" } },
+        { "check": "visible", "target": { "name": "Pokazuj podsumowanie przy zamknięciu książki", "role": "check_box" } },
+        { "check": "visible", "target": { "name": "Kopiuj", "role": "button" } }
+      ]
+    },
+    {
+      "say": "Kliknij „OK” w podsumowaniu: książka się zamyka",
+      "do": "click", "target": { "name": "OK", "role": "button" },
+      "expect": [ { "check": "visible", "target": { "window": "Kalahari" } } ]
     },
     {
       "say": "Usuń folder fikcyjnej książki",

@@ -1,0 +1,175 @@
+{"scenarios": [
+  {
+    "id": "nawigator-drzewo-i-menu-dodawania",
+    "title": "Nawigator: Książka i Warsztat, polecenia dodawania w menu węzłów i nowy rozdział za wskazanym",
+    "area": "Nawigator",
+    "tags": ["nawigator"],
+    "sources": [
+      { "kind": "test_list", "ref": "2026-10-20-nawigator.md – p. 1 (węzły „Książka” i „Warsztat”, trzy sekcje), p. 2 (menu rozdziału: „Dodaj...” i „Dodaj rozdział...”; okno „Dodaj element”; nowy rozdział otwiera się w edytorze), p. 3 (menu „Książka”: „Dodaj...”, „Dodaj rozdział...”, „Dodaj część...”), p. 9 (menu „Warsztat”: „Dodaj...”, „Dodaj notatkę roboczą...”, „Dodaj materiał...”)" }
+    ],
+    "covers": ["op-6c77c1b3", "op-9c144159", "op-d5ac08da", "op-3593f879"],
+    "setup": { "books": ["karawana"], "settings": "domyslne", "open": { "book": "karawana", "chapter": "Targ w Ghadames" } },
+    "steps": [
+      {
+        "say": "Nawigator pokazuje węzły „Książka” i „Warsztat”, a w Książce trzy sekcje",
+        "do": "click", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Karawana", "role": "tree_item" },
+        "expect": [
+          { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Książka", "role": "tree_item" } },
+          { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Warsztat", "role": "tree_item" } },
+          { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Sekcja początkowa", "role": "tree_item" } },
+          { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Sekcja główna", "role": "tree_item" } },
+          { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Sekcja końcowa", "role": "tree_item" } }
+        ]
+      },
+      {
+        "say": "Kliknij prawym przyciskiem rozdział „Targ w Ghadames”",
+        "do": "click", "button": "right",
+        "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Targ w Ghadames [Szkic]", "role": "tree_item" },
+        "expect": [
+          { "check": "visible", "target": { "name": "Dodaj...", "role": "menu_item" } },
+          { "check": "visible", "target": { "name": "Dodaj rozdział...", "role": "menu_item" } },
+          { "check": "visible", "target": { "name": "Zmień nazwę...", "role": "menu_item" } },
+          { "check": "visible", "target": { "name": "Usuń...", "role": "menu_item" } }
+        ]
+      },
+      {
+        "do": "click", "target": { "name": "Dodaj rozdział...", "role": "menu_item" },
+        "expect": [ { "check": "window_shown", "window": "Dodaj element" } ]
+      },
+      {
+        "do": "type", "text": "Wichura", "replace": true,
+        "target": { "window": "Dodaj element", "name": "Tytuł", "role": "edit" }
+      },
+      {
+        "say": "Kliknij „Dodaj”: nowy rozdział jest w Nawigatorze i otwiera się w edytorze",
+        "do": "click", "target": { "window": "Dodaj element", "name": "Dodaj", "role": "button" },
+        "expect": [
+          { "check": "window_closed", "window": "Dodaj element" },
+          { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Wichura [Szkic]", "role": "tree_item" } },
+          { "check": "visible", "target": { "window": "*Kalahari", "name": "Wichura", "role": "tab" } }
+        ]
+      },
+      {
+        "say": "Kliknij prawym przyciskiem „Książka”",
+        "do": "click", "button": "right",
+        "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Książka", "role": "tree_item" },
+        "expect": [
+          { "check": "visible", "target": { "name": "Dodaj...", "role": "menu_item" } },
+          { "check": "visible", "target": { "name": "Dodaj rozdział...", "role": "menu_item" } },
+          { "check": "visible", "target": { "name": "Dodaj część...", "role": "menu_item" } }
+        ]
+      },
+      {
+        "do": "keys", "keys": "Esc"
+      },
+      {
+        "say": "Kliknij prawym przyciskiem „Warsztat”",
+        "do": "click", "button": "right",
+        "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Warsztat", "role": "tree_item" },
+        "expect": [
+          { "check": "visible", "target": { "name": "Dodaj...", "role": "menu_item" } },
+          { "check": "visible", "target": { "name": "Dodaj notatkę roboczą...", "role": "menu_item" } },
+          { "check": "visible", "target": { "name": "Dodaj materiał...", "role": "menu_item" } }
+        ]
+      },
+      {
+        "do": "click", "target": { "name": "Dodaj notatkę roboczą...", "role": "menu_item" },
+        "expect": [
+          { "check": "window_shown", "window": "Dodaj element" },
+          { "check": "not_visible", "target": { "window": "Dodaj element", "name": "Stan:", "role": "text" } }
+        ]
+      },
+      {
+        "do": "type", "text": "Pomysły", "replace": true,
+        "target": { "window": "Dodaj element", "name": "Tytuł", "role": "edit" }
+      },
+      {
+        "say": "Kliknij „Dodaj”: notatka jest w „Notatki robocze” i otwiera się w edytorze",
+        "do": "click", "target": { "window": "Dodaj element", "name": "Dodaj", "role": "button" },
+        "expect": [
+          { "check": "window_closed", "window": "Dodaj element" },
+          { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Pomysły", "role": "tree_item" } },
+          { "check": "visible", "target": { "window": "*Kalahari", "name": "Pomysły", "role": "tab" } }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "nawigator-klawisze-dodawania",
+    "title": "Nawigator: Insert, Ctrl+Shift+Enter, F2 i Delete na rozdziale; Insert na węźle książki nic nie robi",
+    "area": "Nawigator",
+    "tags": ["nawigator", "klawisze"],
+    "sources": [
+      { "kind": "test_list", "ref": "2026-10-20-nawigator.md – p. 5 (Insert i Ctrl+Shift+Enter otwierają „Dodaj element”), p. 6 (F2 otwiera „Zmień nazwę”, Delete pyta o usunięcie, Esc nic nie zmienia), p. 7 (Insert na węźle „Karawana” nic nie robi), p. 8 (Ctrl+Shift+Enter w tekście i Książka > Nowy rozdział... otwierają to samo okno)" }
+    ],
+    "covers": ["op-012b5775", "op-2b362cbd", "op-bf3f05ac", "op-fa7cfbfd"],
+    "setup": { "books": ["karawana"], "settings": "domyslne", "open": { "book": "karawana", "chapter": "Targ w Ghadames" } },
+    "steps": [
+      {
+        "do": "click", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Oaza bez wody [Szkic]", "role": "tree_item" }
+      },
+      {
+        "do": "keys", "keys": "Insert",
+        "expect": [ { "check": "window_shown", "window": "Dodaj element" } ]
+      },
+      {
+        "do": "keys", "keys": "Esc",
+        "expect": [ { "check": "window_closed", "window": "Dodaj element" } ]
+      },
+      {
+        "do": "keys", "keys": "Ctrl+Shift+Enter",
+        "expect": [ { "check": "window_shown", "window": "Dodaj element" } ]
+      },
+      {
+        "do": "keys", "keys": "Esc",
+        "expect": [ { "check": "window_closed", "window": "Dodaj element" } ]
+      },
+      {
+        "do": "keys", "keys": "F2",
+        "expect": [ { "check": "window_shown", "window": "Zmień nazwę" } ]
+      },
+      {
+        "do": "keys", "keys": "Esc",
+        "expect": [ { "check": "window_closed", "window": "Zmień nazwę" } ]
+      },
+      {
+        "say": "Naciśnij Delete: program pyta o usunięcie rozdziału",
+        "do": "keys", "keys": "Delete",
+        "expect": [ { "check": "visible", "target": { "name": "Usunąć rozdział „Oaza bez wody” z książki?", "role": "text" } } ]
+      },
+      {
+        "say": "Zamknij pytanie klawiszem Esc: w książce nic się nie zmienia",
+        "do": "keys", "keys": "Esc",
+        "expect": [
+          { "check": "not_visible", "target": { "name": "Usunąć rozdział „Oaza bez wody” z książki?", "role": "text" } },
+          { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Oaza bez wody [Szkic]", "role": "tree_item" } }
+        ]
+      },
+      {
+        "say": "Kliknij węzeł „Karawana” i naciśnij Insert: nic się nie dzieje",
+        "do": "click", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Karawana", "role": "tree_item" }
+      },
+      {
+        "do": "keys", "keys": "Insert",
+        "expect": [ { "check": "not_visible", "target": { "window": "Dodaj element" } } ]
+      },
+      {
+        "say": "Kliknij w tekst rozdziału i naciśnij Ctrl+Shift+Enter",
+        "do": "keys", "keys": "Ctrl+Shift+Enter", "target": "editor",
+        "expect": [ { "check": "window_shown", "window": "Dodaj element" } ]
+      },
+      {
+        "do": "keys", "keys": "Esc",
+        "expect": [ { "check": "window_closed", "window": "Dodaj element" } ]
+      },
+      {
+        "do": "menu", "path": ["Książka", "Nowy rozdział..."],
+        "expect": [ { "check": "window_shown", "window": "Dodaj element" } ]
+      },
+      {
+        "do": "keys", "keys": "Esc",
+        "expect": [ { "check": "window_closed", "window": "Dodaj element" } ]
+      }
+    ]
+  }
+]}
