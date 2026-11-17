@@ -43,7 +43,7 @@ class Screen:
         return Image.frombytes("RGB", shot.size, shot.bgra, "raw", "BGRX")
 
     def watch(self, rect, start: float, settle_ms: float = 150, timeout: float = 10.0,
-              ignore_caret: bool = True) -> dict:
+              ignore_caret: bool = True, before=None) -> dict:
         """Grab the region again and again from now on. Returns when it has not changed for
         settle_ms, or at the timeout:
           first_frame_ms - from `start` to the first frame: a change finished before it is not
@@ -52,12 +52,16 @@ class Screen:
           last_change_ms - from `start` to the frame that showed the last change
           settled     - whether it stopped changing before the timeout
           frames, frame_ms - number of frames and the mean time per frame
-        A change narrower than 4 px (a blinking caret) is ignored when ignore_caret is set."""
+        A change narrower than 4 px (a blinking caret) is ignored when ignore_caret is set.
+        `before` is the region grabbed before the action: a change finished before the first
+        frame is then seen too (at first_frame_ms, the latest moment it can have been)."""
         first_grab = time.perf_counter()
         previous = self.grab(rect)
         first_frame = time.perf_counter()
         frames = 1
         last_change = None
+        if before is not None and differs(before, previous, ignore_caret):
+            last_change = first_frame
         deadline = start + timeout
         while True:
             image = self.grab(rect)
@@ -84,6 +88,17 @@ class Screen:
             "frame_ms": round((time.perf_counter() - first_grab) * 1000 / frames, 1),
             "image": previous,
         }
+
+
+def differs(old: Image.Image, new: Image.Image, ignore_caret: bool = True) -> bool:
+    """Whether two grabs of a region differ (another size counts; a change narrower than 4 px,
+    a blinking caret, does not when ignore_caret is set)."""
+    if old.size != new.size:
+        return True
+    if old.tobytes() == new.tobytes():
+        return False
+    box = ImageChops.difference(old.convert("RGB"), new.convert("RGB")).getbbox()
+    return bool(box) and not (ignore_caret and box[2] - box[0] <= 3)
 
 
 def mean_color(image: Image.Image) -> tuple:

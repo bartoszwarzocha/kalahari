@@ -350,6 +350,31 @@ class BooksTest(unittest.TestCase):
             books.make_books(["nie-ma"], folder)
 
 
+class ScreenDiffersTest(unittest.TestCase):
+    """The comparison of a region before and after an action (pure Pillow, any system)."""
+
+    def test_differs(self):
+        import importlib.util  # noqa: PLC0415
+        from PIL import Image, ImageDraw  # noqa: PLC0415
+        # The module file alone: the automat.win package is for Windows only, and mss is
+        # imported here, not started
+        path = Path(__file__).resolve().parent.parent / "automat" / "win" / "screen.py"
+        spec = importlib.util.spec_from_file_location("automat_screen_under_test", path)
+        screen = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(screen)
+        before = Image.new("RGB", (30, 20), "white")
+        same = before.copy()
+        star = before.copy()
+        ImageDraw.Draw(star).rectangle((8, 4, 20, 14), fill="black")
+        caret = before.copy()
+        ImageDraw.Draw(caret).line((15, 2, 15, 18), fill="black")
+        self.assertFalse(screen.differs(before, same))
+        self.assertTrue(screen.differs(before, star))
+        self.assertFalse(screen.differs(before, caret))
+        self.assertTrue(screen.differs(before, caret, ignore_caret=False))
+        self.assertTrue(screen.differs(before, Image.new("RGB", (31, 20), "white")))
+
+
 class ServerTest(Folder):
     def setUp(self):
         super().setUp()

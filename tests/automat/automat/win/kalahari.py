@@ -81,6 +81,10 @@ def _quote_list(names, limit: int = 12) -> str:
     return shown + (f" i {len(names) - limit} innych" if len(names) > limit else "")
 
 
+def _area_key(area) -> str:
+    return area if isinstance(area, str) else json.dumps(area, sort_keys=True, ensure_ascii=False)
+
+
 def similar(name: str, names) -> list:
     unique = sorted({n for n in names if n})
     close = difflib.get_close_matches(name, unique, n=6, cutoff=0.5)
@@ -120,6 +124,8 @@ class KalahariSession:
         self.watched_before = {}
         self.launches = 0
         self.failed_checks = 0
+        self._before = {}  # areas grabbed before an action, for checks that they must change
+        self._before_clicked = False
         self.start_ms = None
         self._clip_since = 0
         self._cursor = None  # where the automaton left the cursor
@@ -510,6 +516,12 @@ class KalahariSession:
             self._note(f"{_q(element.name)} był niedostępny")
         x, y = self._point(element, step.get("offset"))
         self._guard_point(x, y)
+        if self._before_clicked:
+            # The clicked element as it looks with the cursor over it, before the press: a
+            # check that its picture must change compares with this
+            inp.move_to(x, y)
+            time.sleep(0.05)
+            self._before["clicked"] = self._grab(element.rect)
         moment = inp.click(x, y, button=step.get("button", "left"), double=bool(step.get("double")),
                            modifiers=tuple(step.get("modifiers", [])))
         self.last_target, self.last_element = target, element
@@ -522,6 +534,15 @@ class KalahariSession:
                 self._cursor = None
                 raise Paused("ktoś poruszył myszą")
         self.notes = []
+        self._before = {}
+        changing = [c for c in step.get("expect", [])
+                    if c.get("check") == "screen_settled" and c.get("must_change")]
+        self._before_clicked = any(c.get("area") == "clicked" for c in changing)
+        for check in changing:
+            if check.get("area") != "clicked":
+                rect = self._area_rect(check["area"])
+                if rect is not None:
+                    self._before[_area_key(check["area"])] = self._grab(rect)
         start = time.perf_counter()
         self._clip_since = clipboard.sequence()
         handler = getattr(self, "_do_" + str(step.get("do")), None)
@@ -934,15 +955,29 @@ class KalahariSession:
                 self._dump(f"drzewo-po-niezgodnosci-{self.failed_checks}.json", front)
         return results
 
+    @staticmethod
+    def _grab(rect):
+        """The screen rectangle now, or None when it cannot be grabbed."""
+        if rect is None or rect[2] <= rect[0] or rect[3] <= rect[1]:
+            return None
+        shots = screen.Screen()
+        try:
+            return shots.grab(rect)
+        except Exception:  # noqa: BLE001 - without it the check only sees changes after the action
+            return None
+        finally:
+            shots.close()
+
     def _settled(self, results, index, check, t0, limit, watch_for) -> None:
         rect = self._area_rect(check["area"], wait_until=t0 + watch_for)
         if rect is None:
             results[index] = {"ok": False, "ms": None, "detail": "nie ma tego obszaru na ekranie"}
             return
+        before = self._before.get(_area_key(check["area"])) if check.get("must_change") else None
         shots = screen.Screen()
         try:
             seen = shots.watch(rect, t0, settle_ms=check.get("quiet_ms", self.config.quiet_ms),
-                               timeout=watch_for)
+                               timeout=watch_for, before=before)
         except Exception as error:  # noqa: BLE001
             results[index] = {"ok": False, "ms": None, "detail": f"zrzuty: {error}"}
             return
