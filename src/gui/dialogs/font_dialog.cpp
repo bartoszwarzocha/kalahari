@@ -35,9 +35,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 using editor::CharacterFormat;
 
@@ -748,6 +746,4 @@ CharacterFormat FontDialog::changes() const
     return changes;
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

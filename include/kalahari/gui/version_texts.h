@@ -6,7 +6,8 @@
 /// kept, where it comes from, its words and its icon, alike in the window of the versions, the
 /// Properties panel and the status bar
 
-#pragma once
+#ifndef KALAHARI_GUI_VERSION_TEXTS_H
+#define KALAHARI_GUI_VERSION_TEXTS_H
 
 #include <kalahari/core/chapter_versions.h>
 #include <kalahari/core/kind_words.h>
@@ -14,8 +15,7 @@
 #include <QDateTime>
 #include <QString>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class CommandRegistry;
 
@@ -58,5 +58,6 @@ QString versionsOffReason();
 /// for one kept on saving, Find and Replace, Restore
 QString versionIconId(core::VersionOrigin origin);
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_VERSION_TEXTS_H

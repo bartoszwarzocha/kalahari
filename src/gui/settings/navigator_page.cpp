@@ -53,8 +53,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -402,5 +401,4 @@ void NavigatorPage::createCover()
     whenLoaded(showUnit);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

@@ -330,7 +330,8 @@ class ViewDelegate : public QStyledItemDelegate {
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
 
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& /*index*/) const override
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& /*index*/) const override
     {
         const int lines = 2 * option.fontMetrics.height();
         return {WritingStatsPanel::MINI_WIDTH * 2,
@@ -405,8 +406,11 @@ public:
         update();
     }
 
-    QSize sizeHint() const override { return {200, captionHeight() * 2 + plotHeight()}; }
-    QSize minimumSizeHint() const override { return {120, sizeHint().height()}; }
+    [[nodiscard]] QSize sizeHint() const override
+    {
+        return {200, captionHeight() * 2 + plotHeight()};
+    }
+    [[nodiscard]] QSize minimumSizeHint() const override { return {120, sizeHint().height()}; }
 
 protected:
     bool event(QEvent* event) override
@@ -477,10 +481,13 @@ protected:
     }
 
 private:
-    int captionHeight() const { return QFontMetrics(scaledFont(font(), 0.85)).height() + 2; }
-    int plotHeight() const { return WritingStatsPanel::GRAPH_HEIGHT; }
+    [[nodiscard]] int captionHeight() const
+    {
+        return QFontMetrics(scaledFont(font(), 0.85)).height() + 2;
+    }
+    [[nodiscard]] int plotHeight() const { return WritingStatsPanel::GRAPH_HEIGHT; }
 
-    QRectF plot() const
+    [[nodiscard]] QRectF plot() const
     {
         int left = 0;
         if (m_graph.kind == GraphData::Kind::Hours) {
@@ -492,7 +499,7 @@ private:
         return QRectF(left, captionHeight(), std::max(10, width() - left), plotHeight());
     }
 
-    bool labelsFit(const QFontMetrics& metrics) const
+    [[nodiscard]] bool labelsFit(const QFontMetrics& metrics) const
     {
         if (m_graph.labels.isEmpty()) {
             return false;
@@ -506,7 +513,7 @@ private:
         });
     }
 
-    QString tipAt(const QPoint& pos) const
+    [[nodiscard]] QString tipAt(const QPoint& pos) const
     {
         const QRectF rect = plot();
         if (!rect.contains(pos) || m_graph.tips.isEmpty()) {
@@ -581,8 +588,8 @@ public:
         updateGeometry();
     }
 
-    bool hasHeightForWidth() const override { return true; }
-    int heightForWidth(int width) const override
+    [[nodiscard]] bool hasHeightForWidth() const override { return true; }
+    [[nodiscard]] int heightForWidth(int width) const override
     {
         if (m_cells.isEmpty()) {
             return 0;
@@ -591,8 +598,11 @@ public:
         const auto rows = (m_cells.size() + columns - 1) / columns;
         return int(rows) * cellHeight() + int(rows - 1) * GAP;
     }
-    QSize sizeHint() const override { return {NUMBER_WIDTH * 3, heightForWidth(NUMBER_WIDTH * 3)}; }
-    QSize minimumSizeHint() const override
+    [[nodiscard]] QSize sizeHint() const override
+    {
+        return {NUMBER_WIDTH * 3, heightForWidth(NUMBER_WIDTH * 3)};
+    }
+    [[nodiscard]] QSize minimumSizeHint() const override
     {
         int width = 0;
         for (const QWidget* cell : m_cells) {
@@ -609,11 +619,11 @@ protected:
     }
 
 private:
-    int columnsFor(int width) const
+    [[nodiscard]] int columnsFor(int width) const
     {
         return std::clamp(width / NUMBER_WIDTH, 1, std::max(1, int(m_cells.size())));
     }
-    int cellHeight() const
+    [[nodiscard]] int cellHeight() const
     {
         int height = 0;
         for (const QWidget* cell : m_cells) {
@@ -656,8 +666,8 @@ public:
         setAccessibleDescription(QStringLiteral("%1%").arg(std::lround(m_share * 100)));
         update();
     }
-    QSize sizeHint() const override { return {100, 8}; }
-    QSize minimumSizeHint() const override { return {20, 8}; }
+    [[nodiscard]] QSize sizeHint() const override { return {100, 8}; }
+    [[nodiscard]] QSize minimumSizeHint() const override { return {20, 8}; }
 
 protected:
     void paintEvent(QPaintEvent* /*event*/) override
@@ -741,10 +751,13 @@ public:
         updateGeometry();
     }
 
-    bool hasHeightForWidth() const override { return true; }
-    int heightForWidth(int width) const override { return const_cast<StatsDetails*>(this)->place(width, false); }
-    QSize sizeHint() const override { return {200, heightForWidth(200)}; }
-    QSize minimumSizeHint() const override { return {80, heightForWidth(80)}; }
+    [[nodiscard]] bool hasHeightForWidth() const override { return true; }
+    [[nodiscard]] int heightForWidth(int width) const override
+    {
+        return const_cast<StatsDetails*>(this)->place(width, false);
+    }
+    [[nodiscard]] QSize sizeHint() const override { return {200, heightForWidth(200)}; }
+    [[nodiscard]] QSize minimumSizeHint() const override { return {80, heightForWidth(80)}; }
 
 protected:
     void resizeEvent(QResizeEvent* event) override
@@ -820,13 +833,13 @@ public:
     }
 
     /// @brief Its lines: the name in bold, then the smaller ones
-    QStringList lines() const { return m_lines; }
+    [[nodiscard]] QStringList lines() const { return m_lines; }
 
-    QSize sizeHint() const override { return {200, heightForWidth(200)}; }
-    QSize minimumSizeHint() const override { return {100, heightForWidth(100)}; }
-    bool hasHeightForWidth() const override { return true; }
+    [[nodiscard]] QSize sizeHint() const override { return {200, heightForWidth(200)}; }
+    [[nodiscard]] QSize minimumSizeHint() const override { return {100, heightForWidth(100)}; }
+    [[nodiscard]] bool hasHeightForWidth() const override { return true; }
 
-    int heightForWidth(int width) const override
+    [[nodiscard]] int heightForWidth(int width) const override
     {
         const int textWidth = std::max(20, width - 2 * PADDING);
         int height = PADDING + circle(width) + 8;
@@ -899,10 +912,13 @@ protected:
 private:
     static constexpr int PADDING = 12;
 
-    int circle(int width) const { return std::max(40, std::min(CIRCLE, width - 2 * PADDING)); }
+    [[nodiscard]] int circle(int width) const
+    {
+        return std::max(40, std::min(CIRCLE, width - 2 * PADDING));
+    }
 
     /// @brief The first line a little larger and bold, the others smaller
-    QFont fontOf(int line) const
+    [[nodiscard]] QFont fontOf(int line) const
     {
         if (line == 0) {
             QFont bold = scaledFont(font(), 1.1);

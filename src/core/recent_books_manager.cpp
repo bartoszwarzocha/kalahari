@@ -13,8 +13,7 @@
 #include <QFileInfo>
 #include <vector>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 RecentBooksManager& RecentBooksManager::getInstance() {
     static RecentBooksManager instance;
@@ -171,5 +170,4 @@ void RecentBooksManager::saveRecentFiles() {
     SettingsManager::getInstance().set("recent_files", files);
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

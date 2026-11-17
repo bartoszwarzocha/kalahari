@@ -5,7 +5,8 @@
 /// @brief New Style... and Modify Style...: the window of a paragraph style of the book, on
 ///        tabs or short with a wide preview
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_STYLE_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_STYLE_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/style_draft.h"
@@ -63,8 +64,8 @@ public:
     /// @brief The font the paragraph of the style is drawn in
     [[nodiscard]] QFont styleFont() const;
 
-    QSize sizeHint() const override;
-    QSize minimumSizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
+    [[nodiscard]] QSize minimumSizeHint() const override;
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -321,3 +322,5 @@ private:
 };
 
 }  // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_STYLE_DIALOG_H

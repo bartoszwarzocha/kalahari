@@ -10,7 +10,8 @@
 /// its own book in project.db, and the writer's journal (WritingJournal) keeps the record of all
 /// the books, for the goals of the writer that are not the goals of one book.
 
-#pragma once
+#ifndef KALAHARI_CORE_WRITING_ACTIVITY_H
+#define KALAHARI_CORE_WRITING_ACTIVITY_H
 
 #include <QDate>
 #include <QDateTime>
@@ -40,12 +41,12 @@ struct WritingActivity {
     qint64 activeMs = 0;     ///< Time of writing, without the pauses longer than the idle time
 
     /// @brief Nothing was written, deleted, pasted or done in it
-    bool isEmpty() const {
+    [[nodiscard]] bool isEmpty() const {
         return written == 0 && deleted == 0 && pasted == 0 && activeMs == 0;
     }
 
     /// @brief The same slot of the same day, in the same text of the same book
-    bool samePlace(const WritingActivity& other) const {
+    [[nodiscard]] bool samePlace(const WritingActivity& other) const {
         return slot == other.slot && date == other.date && bookId == other.bookId &&
                elementId == other.elementId;
     }
@@ -73,10 +74,10 @@ public:
     void setPlace(const QString& bookId, const QString& elementId);
 
     /// @brief The id of the book the next changes are made in
-    const QString& bookId() const { return m_bookId; }
+    [[nodiscard]] const QString& bookId() const { return m_bookId; }
 
     /// @brief The id of the text the next changes are made in
-    const QString& elementId() const { return m_elementId; }
+    [[nodiscard]] const QString& elementId() const { return m_elementId; }
 
     /// @brief The pause after which the time of writing stops (default 5 minutes)
     void setIdleSeconds(int seconds);
@@ -103,22 +104,22 @@ public:
     void pause();
 
     /// @brief What is collected and not taken yet, one entry for each slot, book and text
-    const QList<WritingActivity>& pending() const { return m_pending; }
+    [[nodiscard]] const QList<WritingActivity>& pending() const { return m_pending; }
 
     /// @brief Takes what is collected, to be saved
     QList<WritingActivity> takePending();
 
     /// @brief Words written since the start or the last resetTotals()
-    int written() const { return m_written; }
+    [[nodiscard]] int written() const { return m_written; }
 
     /// @brief Words deleted since the start or the last resetTotals()
-    int deleted() const { return m_deleted; }
+    [[nodiscard]] int deleted() const { return m_deleted; }
 
     /// @brief Words pasted, less the pastes undone, since the start or the last resetTotals()
-    int pasted() const { return m_pasted; }
+    [[nodiscard]] int pasted() const { return m_pasted; }
 
     /// @brief Time of writing since the start or the last resetTotals()
-    qint64 activeMs() const { return m_activeMs; }
+    [[nodiscard]] qint64 activeMs() const { return m_activeMs; }
 
     /// @brief Counts the totals from zero again; what is collected stays to be taken
     void resetTotals();
@@ -140,3 +141,5 @@ private:
 };
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_WRITING_ACTIVITY_H

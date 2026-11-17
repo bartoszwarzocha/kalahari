@@ -15,7 +15,8 @@
 /// }
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_TRUSTED_KEYS_H
+#define KALAHARI_CORE_TRUSTED_KEYS_H
 
 #include <cstdint>
 #include <map>
@@ -24,8 +25,7 @@
 #include <string>
 #include <vector>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief A publisher whose plugins the program loads
 struct TrustedPublisher {
@@ -73,5 +73,6 @@ private:
     mutable std::mutex m_mutex;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_TRUSTED_KEYS_H

@@ -16,7 +16,7 @@
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/text_source_adapter.h>
 
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QContextMenuEvent>
 #include <QCoreApplication>

@@ -29,8 +29,7 @@
 #include <string>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -363,5 +362,4 @@ void EditorQuickInsertPage::updateItemButtons() {
     m_restore->setEnabled(missing);
 }
 
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui

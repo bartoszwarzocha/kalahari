@@ -5,7 +5,8 @@
 /// @brief What the links of a material name in the open book: elements and sections, with
 /// their titles, icons and places
 
-#pragma once
+#ifndef KALAHARI_GUI_LINK_NAMES_H
+#define KALAHARI_GUI_LINK_NAMES_H
 
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_project.h"
@@ -49,3 +50,5 @@ QString linkDetails(const core::ElementLink& link);
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_LINK_NAMES_H

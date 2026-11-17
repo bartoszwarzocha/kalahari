@@ -17,8 +17,7 @@
 #include <algorithm>
 #include <iomanip>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 // ============================================================================
 // Public API
@@ -470,5 +469,4 @@ std::string PluginSignature::bytesToHex(const std::vector<uint8_t>& data) {
     return oss.str();
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

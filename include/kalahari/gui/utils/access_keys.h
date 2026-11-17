@@ -8,7 +8,8 @@
 /// and Linux Alt with the letter chooses the item (the letter is underlined), and "&&"
 /// stands for an ampersand. macOS has no access keys and shows the text without the marks.
 
-#pragma once
+#ifndef KALAHARI_GUI_UTILS_ACCESS_KEYS_H
+#define KALAHARI_GUI_UTILS_ACCESS_KEYS_H
 
 #include <QChar>
 #include <QSet>
@@ -19,8 +20,7 @@ class QAction;
 class QMenu;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A menu text as lists and tooltips show it: without its access key
 ///        ("Save &As..." → "Save As...", "Find && Rep&lace..." → "Find & Replace...")
@@ -74,5 +74,6 @@ void giveFreeAccessKeys(QMenu* menu);
 /// @param parent The parent of the copy
 [[nodiscard]] QMenu* menuWithAccessKeys(const QMenu& menu, QWidget* parent);
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_UTILS_ACCESS_KEYS_H

@@ -9,7 +9,8 @@
 /// the book and the commands those parts get, the same for the whole run. Their commands are
 /// cleared before each test case (resetSingletons()); the book is closed by the tests that open it.
 
-#pragma once
+#ifndef KALAHARI_TESTS_TEST_SUPPORT_WINDOW_PARTS_H
+#define KALAHARI_TESTS_TEST_SUPPORT_WINDOW_PARTS_H
 
 namespace kalahari {
 namespace core {
@@ -29,3 +30,5 @@ gui::CommandRegistry& commands();
 
 }  // namespace test
 }  // namespace kalahari
+
+#endif  // KALAHARI_TESTS_TEST_SUPPORT_WINDOW_PARTS_H

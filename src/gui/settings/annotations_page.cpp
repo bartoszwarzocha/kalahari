@@ -25,8 +25,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -213,5 +212,4 @@ void AnnotationsPage::addCardSettings()
     bindCustom(std::move(tintBinding));
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

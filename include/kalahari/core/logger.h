@@ -15,7 +15,8 @@
 /// Logger::getInstance().error("Failed to load file: {}", filename);
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_LOGGER_H
+#define KALAHARI_CORE_LOGGER_H
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -24,8 +25,7 @@
 #include <memory>
 #include <string>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Thread-safe logging singleton
 ///
@@ -64,7 +64,7 @@ public:
 
     /// @brief Path of the log file actually in use
     /// @return Path passed to init(), its temp-directory fallback, or empty when logging to the console only
-    const std::string& getLogFilePath() const { return m_logFilePath; }
+    [[nodiscard]] const std::string& getLogFilePath() const { return m_logFilePath; }
 
     /// @brief Open a log file sink, falling back to the system temp directory
     /// @param logFilePath Preferred log file path
@@ -74,7 +74,7 @@ public:
 
     /// @brief Check if logger has been initialized
     /// @return true if init() has been called, false otherwise
-    bool isInitialized() const;
+    [[nodiscard]] bool isInitialized() const;
 
     /// @brief Log a debug message (only in Debug builds)
     /// @tparam Args Variadic template arguments for format string
@@ -175,7 +175,7 @@ public:
 
     /// @brief Get the current logging level
     /// @return Current spdlog level
-    spdlog::level::level_enum getLevel() const;
+    [[nodiscard]] spdlog::level::level_enum getLevel() const;
 
 private:
     /// @brief Private constructor (singleton pattern)
@@ -197,5 +197,6 @@ private:
     std::string m_logFilePath;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_LOGGER_H

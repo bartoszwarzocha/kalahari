@@ -7,8 +7,8 @@
 ///        their following the changes, and Replace All in Book with its versions and Undo
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
-#include "document_window.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"

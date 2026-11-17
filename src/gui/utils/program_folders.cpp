@@ -15,8 +15,7 @@
 
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -222,5 +221,4 @@ bool ProgramFolders::samePath(const QString& first, const QString& second) {
     return cleanPath(first).compare(cleanPath(second), CASE) == 0;
 }
 
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui

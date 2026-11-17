@@ -11,7 +11,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/widget_keys.h"

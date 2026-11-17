@@ -11,8 +11,7 @@
 #include <QList>
 #include <QMenu>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -255,5 +254,4 @@ QMenu* menuWithAccessKeys(const QMenu& menu, QWidget* parent) {
     return copy;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

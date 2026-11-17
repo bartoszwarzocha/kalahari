@@ -25,9 +25,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -359,6 +357,4 @@ void KalahariDialog::updateHeadingIcon()
     m_iconLabel->setVisible(!icon.isNull());
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

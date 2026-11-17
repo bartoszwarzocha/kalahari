@@ -5,7 +5,8 @@
 /// @brief Add to Book: a file as a new text element, of the kind, with the title and at the
 /// place the writer chooses
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_ADD_TO_BOOK_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_ADD_TO_BOOK_DIALOG_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
@@ -24,9 +25,7 @@ namespace kalahari::core {
 class ProjectManager;
 }  // namespace kalahari::core
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief A kind the new element can have, with the title it starts with and its place
 struct NewElementChoice {
@@ -81,35 +80,35 @@ public:
                     QWidget* parent = nullptr);
 
     /// @brief The kind of the new element (one of the choices)
-    core::KindRef kind() const;
+    [[nodiscard]] core::KindRef kind() const;
 
     /// @brief The title of the new element, without spaces around it
-    QString title() const;
+    [[nodiscard]] QString title() const;
 
     /// @brief The place of the new element
-    core::ElementPlace place() const;
+    [[nodiscard]] core::ElementPlace place() const;
 
     /// @brief For a file from outside the book: whether the book gets a copy of it (true) or
     /// the file itself (false); true for a file of the book
-    bool copy() const;
+    [[nodiscard]] bool copy() const;
 
     /// @brief The kinds the element can have
-    QComboBox* kindBox() const { return m_kindBox; }
+    [[nodiscard]] QComboBox* kindBox() const { return m_kindBox; }
 
     /// @brief The title of the element
-    QLineEdit* titleEdit() const { return m_titleEdit; }
+    [[nodiscard]] QLineEdit* titleEdit() const { return m_titleEdit; }
 
     /// @brief The place of the element in the book
-    ElementPlacePicker* picker() const { return m_picker; }
+    [[nodiscard]] ElementPlacePicker* picker() const { return m_picker; }
 
     /// @brief "Copy to the book"; nullptr for a file of the book
-    QRadioButton* copyButton() const { return m_copyButton; }
+    [[nodiscard]] QRadioButton* copyButton() const { return m_copyButton; }
 
     /// @brief "Move to the book"; nullptr for a file of the book
-    QRadioButton* moveButton() const { return m_moveButton; }
+    [[nodiscard]] QRadioButton* moveButton() const { return m_moveButton; }
 
     /// @brief The status the element takes
-    QLabel* statusLabel() const { return m_statusLabel; }
+    [[nodiscard]] QLabel* statusLabel() const { return m_statusLabel; }
 
     /// @brief The name of status @p status in the program's language, as the Navigator names
     /// it: "Draft"; an unknown status as it is, capitalized
@@ -133,6 +132,6 @@ private:
     ElementPlacePicker* m_picker = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_ADD_TO_BOOK_DIALOG_H

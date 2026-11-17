@@ -49,9 +49,7 @@
 #include <cmath>
 #include <iterator>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -1701,6 +1699,4 @@ void ImagePropertiesDialog::refreshCaptionPage()
     m_updating = updating;
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

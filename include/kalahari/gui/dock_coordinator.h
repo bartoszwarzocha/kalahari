@@ -8,7 +8,8 @@
 /// This class manages dock widget creation, layout, title bar customization,
 /// and panel instantiation.
 
-#pragma once
+#ifndef KALAHARI_GUI_DOCK_COORDINATOR_H
+#define KALAHARI_GUI_DOCK_COORDINATOR_H
 
 #include <QObject>
 #include <QList>
@@ -34,7 +35,7 @@ class CommandRegistry;
 namespace kalahari {
 namespace editor {
 class BookEditor;
-}
+} // namespace editor
 namespace gui {
 
 // Forward declarations for panels
@@ -533,3 +534,5 @@ private:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_DOCK_COORDINATOR_H

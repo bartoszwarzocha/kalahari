@@ -5,8 +5,8 @@
 /// @brief The plot board and the outline of the book: the cards of the texts, the places they
 /// move to, the cells of the outline, the keys, and what Ctrl+Z undoes
 
-#include "context_menu_reader.h"
-#include "document_window.h"
+#include "kalahari_tests/gui/context_menu_reader.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
@@ -67,7 +67,7 @@
 #include <string>
 #include <utility>
 
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 namespace core = kalahari::core;
 namespace editor = kalahari::editor;

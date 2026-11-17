@@ -5,7 +5,8 @@
 /// @brief The repetitions of words: the panel Repetitions, the marks in the text and Next
 ///        Repetition
 
-#pragma once
+#ifndef KALAHARI_GUI_REPETITIONS_COORDINATOR_H
+#define KALAHARI_GUI_REPETITIONS_COORDINATOR_H
 
 #include <kalahari/editor/word_repetitions.h>
 
@@ -206,3 +207,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_REPETITIONS_COORDINATOR_H

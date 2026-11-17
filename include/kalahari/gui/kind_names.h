@@ -10,7 +10,8 @@
 /// // "Add Story"; in Polish, "Dodaj {kind:accusative}": "Dodaj opowiadanie"
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_GUI_KIND_NAMES_H
+#define KALAHARI_GUI_KIND_NAMES_H
 
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/kind_words.h"
@@ -36,7 +37,7 @@ QString programLanguage();
 
 /// @brief Set the language of the program's texts; main() sets the language of the translation
 /// it loads
-void setProgramLanguage(const QString& language);
+void setProgramLanguage(const QString& code);
 
 /// @brief Name of the type of @p project in the program's language: the name of its package in
 /// @p registry; "User Project" for a book without a type; for a type that the registry does
@@ -93,3 +94,5 @@ core::KindWords fileWords();
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_KIND_NAMES_H

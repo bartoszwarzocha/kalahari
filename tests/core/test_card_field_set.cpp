@@ -16,7 +16,7 @@
 #include <kalahari/core/project_manager.h>
 
 #include "kalahari_tests/changed_setting.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <QFile>
 #include <QJsonArray>

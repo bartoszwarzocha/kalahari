@@ -6,7 +6,7 @@
 /// in the bibliography, the bookmarks, the quotes from a source and where a quote comes from;
 /// the list and the node of the sources
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
@@ -36,7 +36,7 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 namespace core = kalahari::core;
 namespace gui = kalahari::gui;

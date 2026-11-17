@@ -12,8 +12,7 @@
 
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -122,5 +121,4 @@ void fillDevToolsMenu(QMenu* menu, QObject* receiver, const DiagnosticToolRunner
                      [run]() { run(DiagnosticTool::IconDownloader); });
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

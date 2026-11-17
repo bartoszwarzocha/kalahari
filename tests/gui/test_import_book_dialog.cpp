@@ -21,7 +21,7 @@
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/settings_dialog.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <QAbstractButton>
 #include <QApplication>

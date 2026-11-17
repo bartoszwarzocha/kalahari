@@ -36,31 +36,31 @@ void collectTexts(const core::ProjectManager& projects,
 
 }  // namespace
 
-std::vector<BookTextElement> bookTextElements(const core::ProjectManager& projects) {
+std::vector<BookTextElement> bookTextElements(const core::ProjectManager& book) {
     std::vector<BookTextElement> texts;
-    const core::ProjectBook* book = projects.isProjectOpen() ? projects.book() : nullptr;
-    if (book == nullptr) {
+    const core::ProjectBook* opened = book.isProjectOpen() ? book.book() : nullptr;
+    if (opened == nullptr) {
         return texts;
     }
-    const core::KindRef mainKind = projects.mainTextKind();
-    collectTexts(projects, book->frontElements, core::BookPlace::Front, mainKind, texts);
-    collectTexts(projects, book->mainElements, core::BookPlace::Main, mainKind, texts);
-    collectTexts(projects, book->backElements, core::BookPlace::Back, mainKind, texts);
+    const core::KindRef mainKind = book.mainTextKind();
+    collectTexts(book, opened->frontElements, core::BookPlace::Front, mainKind, texts);
+    collectTexts(book, opened->mainElements, core::BookPlace::Main, mainKind, texts);
+    collectTexts(book, opened->backElements, core::BookPlace::Back, mainKind, texts);
     return texts;
 }
 
-std::optional<QString> savedTextIfChanged(const core::ProjectManager& projects,
+std::optional<QString> savedTextIfChanged(const core::ProjectManager& book,
                                           const QString& elementId, QString& signature) {
     // The unsaved text the program keeps, else its file: read again only when it changed
-    const std::vector<QString> dirty = projects.getDirtyElements();
+    const std::vector<QString> dirty = book.getDirtyElements();
     const bool unsaved = std::find(dirty.cbegin(), dirty.cend(), elementId) != dirty.cend();
     QString now;
     QString kml;
     if (unsaved) {
-        kml = projects.chapterText(elementId);
+        kml = book.chapterText(elementId);
         now = QStringLiteral("text:%1:%2").arg(qHash(kml)).arg(kml.size());
-    } else if (const core::ProjectElement* element = projects.findElement(elementId)) {
-        const QFileInfo file(projects.filePathOf(*element));
+    } else if (const core::ProjectElement* element = book.findElement(elementId)) {
+        const QFileInfo file(book.filePathOf(*element));
         now = QStringLiteral("file:%1:%2")
                   .arg(file.lastModified().toMSecsSinceEpoch())
                   .arg(file.size());
@@ -69,20 +69,20 @@ std::optional<QString> savedTextIfChanged(const core::ProjectManager& projects,
         return std::nullopt;
     }
     signature = now;
-    return unsaved ? kml : projects.chapterText(elementId);
+    return unsaved ? kml : book.chapterText(elementId);
 }
 
-void keepVersionBeforeReplaceAll(core::ProjectManager& projects, const QString& elementId,
+void keepVersionBeforeReplaceAll(core::ProjectManager& book, const QString& elementId,
                                  const QString& kml, const QString& found,
                                  const QString& replacement, int count) {
     const auto& settings = core::SettingsManager::getInstance();
-    if (!projects.isProjectOpen() || projects.isReadOnly() ||
+    if (!book.isProjectOpen() || book.isReadOnly() ||
         !settings.get<bool>(core::ChapterVersions::ENABLED_SETTING) ||
         !settings.get<bool>(core::ChapterVersions::BEFORE_REPLACE_ALL_SETTING)) {
         return;
     }
     const core::ProjectManager::VersionKept kept =
-        projects.keepVersion(elementId, kml,
+        book.keepVersion(elementId, kml,
                              {.origin = core::VersionOrigin::ReplaceAll,
                               .found = found,
                               .replacement = replacement,

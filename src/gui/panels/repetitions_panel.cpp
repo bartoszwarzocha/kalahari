@@ -128,7 +128,8 @@ public:
         painter->restore();
     }
 
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& index) const override {
         QStyleOptionViewItem atWidth = option;
         atWidth.rect = QRect(0, 0, m_view->viewport()->width(), 0);
         return QSize(atWidth.rect.width(), cardOf(atWidth, index).height);
@@ -162,7 +163,7 @@ private:
         int height = 0;
     };
 
-    Card cardOf(const QStyleOptionViewItem& option, const QModelIndex& index) const {
+    [[nodiscard]] Card cardOf(const QStyleOptionViewItem& option, const QModelIndex& index) const {
         Card card;
         const QRect frame = option.rect.adjusted(CARD_MARGIN, CARD_MARGIN / 2, -CARD_MARGIN,
                                                  -CARD_MARGIN / 2);

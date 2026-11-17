@@ -14,7 +14,8 @@
 /// 3. LAYOUT    - Calculate block positions (using KalahariTextDocumentLayout)
 /// 4. RENDER    - Draw to painter (text, cursor, selection, overlays)
 
-#pragma once
+#ifndef KALAHARI_EDITOR_EDITOR_RENDER_PIPELINE_H
+#define KALAHARI_EDITOR_EDITOR_RENDER_PIPELINE_H
 
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/render_context.h>
@@ -819,3 +820,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_EDITOR_RENDER_PIPELINE_H

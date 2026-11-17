@@ -9,13 +9,13 @@
 ///
 /// OpenSpec #00041: SQLite Project Database
 
-#pragma once
+#ifndef KALAHARI_CORE_BACKUP_MANAGER_H
+#define KALAHARI_CORE_BACKUP_MANAGER_H
 
 #include <QString>
 #include <QStringList>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Manages project database backups
 ///
@@ -59,7 +59,7 @@ public:
 
     /// @brief Get list of available backups (newest first)
     /// @return List of backup file paths
-    QStringList availableBackups() const;
+    [[nodiscard]] QStringList availableBackups() const;
 
     /// @brief Move the backups in @p folder, such as the .backups folder of a book unpacked
     /// from an archive, to the folder of the backups of the book, with their times
@@ -75,10 +75,10 @@ public:
     bool restoreFromBackup(const QString& backupPath);
 
     /// @brief Get backup directory path
-    QString backupDir() const { return m_backupDir; }
+    [[nodiscard]] QString backupDir() const { return m_backupDir; }
 
     /// @brief Get last error message
-    QString lastError() const { return m_lastError; }
+    [[nodiscard]] QString lastError() const { return m_lastError; }
 
 private:
     /// @brief Ensure backup directory exists
@@ -86,16 +86,16 @@ private:
 
     /// @brief The folder of the book in common folder @p folder: the one whose BOOK_FILE
     /// names the folder of the book, else a new one named after the folder of the book
-    QString bookFolderIn(const QString& folder) const;
+    [[nodiscard]] QString bookFolderIn(const QString& folder) const;
 
     /// @brief Write BOOK_FILE into the folder of the book in the common folder
-    bool writeBookFile() const;
+    [[nodiscard]] bool writeBookFile() const;
 
     /// @brief Generate backup filename with timestamp
-    QString generateBackupName() const;
+    [[nodiscard]] QString generateBackupName() const;
 
     /// @brief Get path to project database
-    QString databasePath() const;
+    [[nodiscard]] QString databasePath() const;
 
     QString m_projectPath;
     QString m_backupDir;
@@ -104,5 +104,6 @@ private:
     QString m_lastError;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_BACKUP_MANAGER_H

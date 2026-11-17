@@ -5,7 +5,8 @@
 /// @brief File > Export > DOCX, PDF, Markdown and EPUB: the file, the texts of the book and how
 /// they look in it, and the progress and the result of the export in one window
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_EXPORT_BOOK_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_EXPORT_BOOK_DIALOG_H
 
 #include "kalahari/editor/book_export.h"
 #include "kalahari/gui/dialogs/book_output_dialog.h"
@@ -32,8 +33,7 @@ namespace core {
 class IExporter;
 } // namespace core
 
-namespace gui {
-namespace dialogs {
+namespace gui::dialogs {
 
 /// @brief Export of the book to a Word document (DOCX), a PDF document, Markdown or an EPUB
 ///        e-book
@@ -111,7 +111,7 @@ public:
     ~ExportBookDialog() override;
 
     /// @brief The choices of the window now
-    Choice choice() const;
+    [[nodiscard]] Choice choice() const;
 
     /// @brief The formats the window lists: the program's own (DOCX, PDF, Markdown, EPUB), then
     /// those of the exporters of the plugins (core::IExporter::getFormats())
@@ -128,85 +128,85 @@ public:
     void setFormatId(const QString& id);
 
     /// @brief The folder of the file
-    QString folder() const { return m_folder; }
+    [[nodiscard]] QString folder() const { return m_folder; }
 
     /// @brief Set the folder of the file, as Browse... does
     void setFolder(const QString& folder);
 
     /// @brief The field of the name of the file
-    QLineEdit* nameField() const { return m_nameField; }
+    [[nodiscard]] QLineEdit* nameField() const { return m_nameField; }
 
     /// @brief The path of the file: the folder and the name with the extension of the format;
     /// empty while the file cannot be written there
-    QString filePath() const;
+    [[nodiscard]] QString filePath() const;
 
     /// @brief The line under the folder: why the program cannot use it, or that it creates it
-    QString folderNote() const { return noteText(m_folderNote); }
+    [[nodiscard]] QString folderNote() const { return noteText(m_folderNote); }
 
     /// @brief The line under the name: why it cannot be the name of the file, the name the file
     /// gets, or that the export replaces a file
-    QString nameNote() const { return noteText(m_nameNote); }
+    [[nodiscard]] QString nameNote() const { return noteText(m_nameNote); }
 
     /// @brief The list of the formats
-    QComboBox* formatBox() const { return m_formatBox; }
+    [[nodiscard]] QComboBox* formatBox() const { return m_formatBox; }
 
     /// @brief The tab of the options of the format of a plugin, @p id; null for a format
     /// without one
-    QWidget* formatPage(const QString& id) const { return m_formatPages.value(id); }
+    [[nodiscard]] QWidget* formatPage(const QString& id) const { return m_formatPages.value(id); }
 
     // tabs(): the file, the texts, the layout, the annotations and the images, the PDF and the
     // cover and data of an EPUB (each shown while its format is chosen), and the tabs of the
     // plugins' formats
 
     /// @brief The tab of the options of a PDF, and the tab of the cover and data of an EPUB
-    QWidget* pdfTab() const { return m_pdfTab; }
-    QWidget* epubTab() const { return m_epubTab; }
+    [[nodiscard]] QWidget* pdfTab() const { return m_pdfTab; }
+    [[nodiscard]] QWidget* epubTab() const { return m_epubTab; }
 
     /// @brief The group of the annotations and the group of the images; each shows the option
     /// of its format (the comments of Word and of a PDF, the copy of the images of Markdown)
     /// and for the other formats says what they do
-    QGroupBox* notesGroup() const { return m_notesGroup; }
-    QGroupBox* imagesGroup() const { return m_imagesGroup; }
+    [[nodiscard]] QGroupBox* notesGroup() const { return m_notesGroup; }
+    [[nodiscard]] QGroupBox* imagesGroup() const { return m_imagesGroup; }
 
     /// @brief The check boxes of the annotations and of the images
-    QCheckBox* commentsBox() const { return m_commentsBox; }
-    QCheckBox* pdfCommentsBox() const { return m_pdfCommentsBox; }
-    QCheckBox* copyImagesBox() const { return m_copyImagesBox; }
+    [[nodiscard]] QCheckBox* commentsBox() const { return m_commentsBox; }
+    [[nodiscard]] QCheckBox* pdfCommentsBox() const { return m_pdfCommentsBox; }
+    [[nodiscard]] QCheckBox* copyImagesBox() const { return m_copyImagesBox; }
 
     /// @brief The sentences under the annotations as comments of a PDF, and in the groups of
     /// the annotations and of the images for a format without their options
-    QString pdfCommentsNote() const;
-    QString notesNote() const;
-    QString imagesNote() const;
+    [[nodiscard]] QString pdfCommentsNote() const;
+    [[nodiscard]] QString notesNote() const;
+    [[nodiscard]] QString imagesNote() const;
 
     /// @brief The options of a PDF: its purpose, the bookmarks, the pages in pairs, the shades
     /// of gray
-    QRadioButton* purposeButton(editor::PdfPurpose purpose) const;
-    QCheckBox* bookmarksBox() const { return m_bookmarksBox; }
-    QCheckBox* facingPagesBox() const { return m_facingPagesBox; }
-    QCheckBox* grayscaleBox() const { return m_grayscaleBox; }
+    [[nodiscard]] QRadioButton* purposeButton(editor::PdfPurpose purpose) const;
+    [[nodiscard]] QCheckBox* bookmarksBox() const { return m_bookmarksBox; }
+    [[nodiscard]] QCheckBox* facingPagesBox() const { return m_facingPagesBox; }
+    [[nodiscard]] QCheckBox* grayscaleBox() const { return m_grayscaleBox; }
 
     /// @brief The look of an EPUB (the book's styles or a simple one) and its font
-    QRadioButton* bookStylesButton() const { return m_bookStylesButton; }
-    QRadioButton* simpleLookButton() const { return m_simpleLookButton; }
-    QCheckBox* embedFontBox() const { return m_embedFontBox; }
+    [[nodiscard]] QRadioButton* bookStylesButton() const { return m_bookStylesButton; }
+    [[nodiscard]] QRadioButton* simpleLookButton() const { return m_simpleLookButton; }
+    [[nodiscard]] QCheckBox* embedFontBox() const { return m_embedFontBox; }
 
     /// @brief The cover of an EPUB, the sentence under it, and the fields of its ISBN and its
     /// publisher
-    QComboBox* coverBox() const { return m_coverBox; }
-    QString coverNote() const { return noteText(m_coverNote); }
-    QLineEdit* isbnField() const { return m_isbnField; }
-    QLineEdit* publisherField() const { return m_publisherField; }
+    [[nodiscard]] QComboBox* coverBox() const { return m_coverBox; }
+    [[nodiscard]] QString coverNote() const { return noteText(m_coverNote); }
+    [[nodiscard]] QLineEdit* isbnField() const { return m_isbnField; }
+    [[nodiscard]] QLineEdit* publisherField() const { return m_publisherField; }
 
     /// @brief The sentence under the data of the book: where they change, or why the ISBN is
     /// not one
-    QString bookDataNote() const;
+    [[nodiscard]] QString bookDataNote() const;
 
     /// @brief Take @p path as the picture of the cover, as Other Picture... does
     void setCoverFile(const QString& path);
 
     /// @brief The name of the folder of the images of a Markdown file: "<name> – images"
-    QString imagesFolderName() const;
+    [[nodiscard]] QString imagesFolderName() const;
 
 protected:
     /// @brief Export the book
@@ -236,31 +236,31 @@ private:
     void browseCover();
 
     /// @brief The program's format chosen in the list
-    editor::ExportFormat currentFormat() const;
+    [[nodiscard]] editor::ExportFormat currentFormat() const;
 
     /// @brief Keep the choices of the window for the next export
     void rememberChoices() const;
 
     /// @brief The file name: the name with the extension of the format; empty when the name
     /// is empty
-    QString fileName() const;
+    [[nodiscard]] QString fileName() const;
 
     /// @brief The extension of the format, with its dot
-    QString extension() const;
+    [[nodiscard]] QString extension() const;
 
     /// @brief The name without the extension of either format
-    QString baseName() const;
+    [[nodiscard]] QString baseName() const;
 
     /// @brief The name the file gets for the content: the title of the book or of the text in
     /// front
-    QString suggestedName() const;
+    [[nodiscard]] QString suggestedName() const;
 
     /// @brief Why the name cannot be the name of a file; empty when it can
-    QString nameProblem() const;
+    [[nodiscard]] QString nameProblem() const;
 
     /// @brief Why the file could not be written, as the window says it; empty for a cause the
     /// window does not name
-    QString reasonOf(const editor::ExportProblem& problem) const;
+    [[nodiscard]] QString reasonOf(const editor::ExportProblem& problem) const;
 
     Exporter m_exporter;
     QString m_folder;
@@ -313,6 +313,8 @@ private:
     FieldNote m_bookDataNote;
 };
 
-} // namespace dialogs
-} // namespace gui
+} // namespace gui::dialogs
+
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_DIALOGS_EXPORT_BOOK_DIALOG_H

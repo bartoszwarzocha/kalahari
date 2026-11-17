@@ -11,9 +11,7 @@
 #include <array>
 #include <limits>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -220,6 +218,4 @@ QString closestPaletteColorName(const QList<ColorPalette>& palettes, const QColo
     return closest;
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

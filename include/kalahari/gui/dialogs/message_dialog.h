@@ -4,7 +4,8 @@
 /// @file message_dialog.h
 /// @brief The program's own windows for messages, questions and a typed text
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_MESSAGE_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_MESSAGE_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -17,9 +18,7 @@ class QLineEdit;
 class QPlainTextEdit;
 class QPushButton;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief A message or a question in the look of the program's own dialogs
 ///
@@ -85,19 +84,19 @@ public:
     void setDefaultButton(DefaultButton button);
 
     /// @brief The button that closed the dialog; Cancel while it is open
-    Answer answer() const { return m_answer; }
+    [[nodiscard]] Answer answer() const { return m_answer; }
 
     /// @brief The text Copy puts on the clipboard: the title, the message and the details
-    QString clipboardText() const;
+    [[nodiscard]] QString clipboardText() const;
 
     /// @brief The alternative button (hidden unless setAlternativeText() shows it)
-    QPushButton* alternativeButton() const { return m_alternativeButton; }
+    [[nodiscard]] QPushButton* alternativeButton() const { return m_alternativeButton; }
 
     /// @brief The button that copies the message to the clipboard
-    QPushButton* copyButton() const { return m_copyButton; }
+    [[nodiscard]] QPushButton* copyButton() const { return m_copyButton; }
 
     /// @brief The button that shows and hides the details (hidden without details)
-    QPushButton* detailsButton() const { return m_detailsButton; }
+    [[nodiscard]] QPushButton* detailsButton() const { return m_detailsButton; }
 
     /// @brief Show a message with an OK button
     /// @param parent Parent widget
@@ -176,10 +175,10 @@ public:
                     QWidget* parent = nullptr);
 
     /// @brief The typed text, without spaces at its ends
-    QString text() const;
+    [[nodiscard]] QString text() const;
 
     /// @brief The field
-    QLineEdit* field() const { return m_field; }
+    [[nodiscard]] QLineEdit* field() const { return m_field; }
 
     /// @brief Ask for a text in one call
     /// @param parent Parent widget
@@ -199,6 +198,6 @@ private:
     QLineEdit* m_field = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_MESSAGE_DIALOG_H

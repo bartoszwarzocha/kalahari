@@ -19,9 +19,7 @@ class QMenuBar;
 class QPoint;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 /// @brief Hides the main window's parts around the text and brings them back
 ///
@@ -107,8 +105,6 @@ private:
     bool m_menusWithKeys{false};       ///< The menus show for a menu opened with its key
 };
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils
 
 #endif // KALAHARI_GUI_UTILS_DISTRACTION_FREE_LAYOUT_H

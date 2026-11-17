@@ -13,8 +13,7 @@
 #include <algorithm>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -209,7 +208,7 @@ QSize DashboardHeaderLayout::minimumSize() const {
 
 void DashboardHeaderLayout::setGeometry(const QRect& rect) {
     QLayout::setGeometry(rect);
-    arrange(rect, true);
+    static_cast<void>(arrange(rect, true));  // places the items; the height is not needed here
 }
 
 int DashboardHeaderLayout::arrange(const QRect& rect, bool place) const {
@@ -378,7 +377,7 @@ QSize DashboardHintsLayout::minimumSize() const {
 
 void DashboardHintsLayout::setGeometry(const QRect& rect) {
     QLayout::setGeometry(rect);
-    arrange(rect, true);
+    static_cast<void>(arrange(rect, true));  // places the items; the height is not needed here
 }
 
 int DashboardHintsLayout::arrange(const QRect& rect, bool place) const {
@@ -508,7 +507,7 @@ QSize DashboardCardLayout::minimumSize() const {
 
 void DashboardCardLayout::setGeometry(const QRect& rect) {
     QLayout::setGeometry(rect);
-    arrange(rect, true);
+    static_cast<void>(arrange(rect, true));  // places the items; the height is not needed here
 }
 
 int DashboardCardLayout::arrange(const QRect& rect, bool place) const {
@@ -549,5 +548,4 @@ int DashboardCardLayout::arrange(const QRect& rect, bool place) const {
     return height + marginsOf(*this).height();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

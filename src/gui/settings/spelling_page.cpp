@@ -34,8 +34,7 @@
 #include <utility>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -313,5 +312,4 @@ void EditorSpellingPage::updateButtons() {
     m_remove->setEnabled(!m_words->selectedItems().isEmpty());
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

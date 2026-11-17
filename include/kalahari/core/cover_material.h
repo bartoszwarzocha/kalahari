@@ -4,7 +4,8 @@
 /// @file cover_material.h
 /// @brief The materials of the cover (MaterialKinds::COVER): what each is and where it goes
 
-#pragma once
+#ifndef KALAHARI_CORE_COVER_MATERIAL_H
+#define KALAHARI_CORE_COVER_MATERIAL_H
 
 #include <QJsonObject>
 #include <QString>
@@ -13,8 +14,7 @@
 
 #include <string>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief What a material of the cover is and where it goes, saved with the material as
 /// "cover", apart from the writer's own fields
@@ -45,7 +45,7 @@ struct CoverData {
     QJsonObject extra;  ///< Fields this version does not know, saved back
 
     /// @brief Whether it says nothing: the material is not a material of the cover
-    bool isEmpty() const;
+    [[nodiscard]] bool isEmpty() const;
 
     bool operator==(const CoverData&) const = default;
 };
@@ -146,5 +146,6 @@ struct CoverMaterial {
     static int lengthOf(QStringView text, bool words);
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_COVER_MATERIAL_H

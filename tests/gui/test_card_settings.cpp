@@ -5,9 +5,9 @@
 /// @brief Settings > Cards: the full card in two columns or on tabs, the shape of the
 /// portraits and what a portrait without a picture shows, the fields of new books
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari_tests/changed_setting.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"

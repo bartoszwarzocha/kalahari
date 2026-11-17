@@ -5,7 +5,8 @@
 /// @brief The submenus Format > Font Color and Highlight Color: the automatic color or none,
 ///        the palette of the color window, its recent colors and More Colors...
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_COLOR_MENU_H
+#define KALAHARI_GUI_WIDGETS_COLOR_MENU_H
 
 #include <QColor>
 #include <QList>
@@ -26,8 +27,7 @@ class QMouseEvent;
 class QPaintEvent;
 class QWidgetAction;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Swatches of colors in rows, for a menu: the arrows move among them, Enter, Space
 ///        or a click chooses one
@@ -72,8 +72,8 @@ public:
     /// @brief The swatches in a row
     [[nodiscard]] int columns() const { return m_columns; }
 
-    QSize sizeHint() const override;
-    QSize minimumSizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
+    [[nodiscard]] QSize minimumSizeHint() const override;
 
 signals:
     /// @brief The writer chose a swatch
@@ -191,5 +191,6 @@ private:
     QLabel* m_recentLabel = nullptr;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_COLOR_MENU_H

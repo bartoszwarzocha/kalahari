@@ -6,7 +6,8 @@
 /// place the writer chooses, or an empty text file, outside the book or with it; and Add
 /// Element, the same window for the place of the Navigator or of the editor it was opened on
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_NEW_FILE_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_NEW_FILE_DIALOG_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
@@ -41,9 +42,7 @@ namespace kalahari::core {
 class ProjectManager;
 }  // namespace kalahari::core
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief A kind that the New File window offers in one part of the book: its tile, and what
 /// the window says of it
@@ -186,30 +185,30 @@ public:
 
     /// @brief The kind of the new element; none when no tile is chosen and for an empty text
     /// file
-    core::KindRef kind() const;
+    [[nodiscard]] core::KindRef kind() const;
 
     /// @brief An empty text file outside the book is chosen: the caller opens an empty file
     /// with the title in a tab of its own
-    bool outsideBook() const;
+    [[nodiscard]] bool outsideBook() const;
 
     /// @brief An empty text file with the book is chosen: the caller adds it to the files of
     /// the book outside its text (core::ProjectManager::addBookFile())
-    bool emptyFileInBook() const;
+    [[nodiscard]] bool emptyFileInBook() const;
 
     /// @brief The title of the new element, without spaces around it
-    QString title() const;
+    [[nodiscard]] QString title() const;
 
     /// @brief The place of the new element
-    core::ElementPlace place() const;
+    [[nodiscard]] core::ElementPlace place() const;
 
     /// @brief The status of a new text element of the book ("draft", "revision" or "final");
     /// empty for the other elements and in New File
-    QString status() const;
+    [[nodiscard]] QString status() const;
 
     /// @brief Ids of the elements a new group takes inside it: those that close the main
     /// section at the end of the groups before it, unless the writer leaves them there; empty
     /// for other elements
-    QStringList takeInside() const;
+    [[nodiscard]] QStringList takeInside() const;
 
     /// @brief Where a new material comes from, chosen in the Source of the window
     enum class MaterialOrigin {
@@ -230,33 +229,33 @@ public:
 
     /// @brief The part of a new material of the cover (core::CoverMaterial::BLURB...); empty
     /// for other elements
-    QString coverPart() const;
+    [[nodiscard]] QString coverPart() const;
 
     /// @brief Choose part @p part of a new material of the cover
     void setCoverPart(const QString& part);
 
     /// @brief The source of a new material; File for other elements
-    MaterialOrigin materialOrigin() const;
+    [[nodiscard]] MaterialOrigin materialOrigin() const;
 
     /// @brief The file of a new material (absolute); empty for other elements, other sources,
     /// a picture without a file and while the path names no file
-    QString materialFile() const;
+    [[nodiscard]] QString materialFile() const;
 
     /// @brief The picture without a file of a new material (setMaterialPicture()); a null
     /// image for other elements and sources
-    QImage materialPicture() const;
+    [[nodiscard]] QImage materialPicture() const;
 
     /// @brief The web address of a new material; empty for other elements and sources and
     /// while the text is no web address
-    QUrl materialAddress() const;
+    [[nodiscard]] QUrl materialAddress() const;
 
     /// @brief Whether the program downloads the title of the page or the copy of the picture
     /// of a new material with an address after Add: the box of the window, or the setting
-    bool downloadChosen() const;
+    [[nodiscard]] bool downloadChosen() const;
 
     /// @brief The elements a new material is linked to (setMaterialLinks()); empty for other
     /// elements
-    QStringList materialLinks() const;
+    [[nodiscard]] QStringList materialLinks() const;
 
     /// @brief A material from the file @p path: the source File with its path
     void setMaterialFile(const QString& path);
@@ -276,88 +275,88 @@ public:
     void setTitle(const QString& title);
 
     /// @brief The status of a new text element of the book; hidden for other tiles
-    QComboBox* statusBox() const { return m_statusBox; }
+    [[nodiscard]] QComboBox* statusBox() const { return m_statusBox; }
 
     /// @brief Whether a new group takes inside it the elements that close the main section;
     /// hidden when there are none
-    QCheckBox* takeBox() const { return m_takeBox; }
+    [[nodiscard]] QCheckBox* takeBox() const { return m_takeBox; }
 
     /// @brief The source of a new material, with its buttons, fields and notes; hidden for
     /// other tiles
-    QGroupBox* sourceGroup() const { return m_sourceGroup; }
+    [[nodiscard]] QGroupBox* sourceGroup() const { return m_sourceGroup; }
 
     /// @brief The buttons of the source of a new material, with the ids of MaterialOrigin
-    QButtonGroup* sourceButtons() const { return m_sourceButtons; }
+    [[nodiscard]] QButtonGroup* sourceButtons() const { return m_sourceButtons; }
 
     /// @brief The parts of a new material of the cover, with their buttons; hidden for other
     /// tiles
-    QGroupBox* coverGroup() const { return m_coverGroup; }
+    [[nodiscard]] QGroupBox* coverGroup() const { return m_coverGroup; }
 
     /// @brief The buttons of the parts of a new material of the cover, with the ids of their
     /// indexes in core::CoverMaterial::parts()
-    QButtonGroup* coverButtons() const { return m_coverButtons; }
+    [[nodiscard]] QButtonGroup* coverButtons() const { return m_coverButtons; }
 
     /// @brief The path of the file of a new material
-    QLineEdit* fileEdit() const { return m_fileEdit; }
+    [[nodiscard]] QLineEdit* fileEdit() const { return m_fileEdit; }
 
     /// @brief The button that chooses the file of a new material in the system's window
-    QPushButton* chooseButton() const { return m_chooseButton; }
+    [[nodiscard]] QPushButton* chooseButton() const { return m_chooseButton; }
 
     /// @brief What the window tells of the file of a new material
-    QLabel* fileNote() const { return m_fileNote; }
+    [[nodiscard]] QLabel* fileNote() const { return m_fileNote; }
 
     /// @brief The web address of a new material
-    QLineEdit* addressEdit() const { return m_addressEdit; }
+    [[nodiscard]] QLineEdit* addressEdit() const { return m_addressEdit; }
 
     /// @brief What the window tells of the address: a page or a picture
-    QLabel* addressNote() const { return m_addressNote; }
+    [[nodiscard]] QLabel* addressNote() const { return m_addressNote; }
 
     /// @brief The box that downloads the title of the page or the copy of the picture; hidden
     /// unless the setting asks
-    QCheckBox* downloadBox() const { return m_downloadBox; }
+    [[nodiscard]] QCheckBox* downloadBox() const { return m_downloadBox; }
 
     /// @brief What the program takes from the network for the address
-    QLabel* networkNote() const { return m_networkNote; }
+    [[nodiscard]] QLabel* networkNote() const { return m_networkNote; }
 
     /// @brief The tiles of the kinds, with the names of the parts of the book between them
-    QListWidget* kindList() const { return m_kindList; }
+    [[nodiscard]] QListWidget* kindList() const { return m_kindList; }
 
     /// @brief The buttons at the top of Add Element that choose what the tiles are, in their
     /// order; nullptr without the choice
-    QButtonGroup* chooserButtons() const { return m_chooser; }
+    [[nodiscard]] QButtonGroup* chooserButtons() const { return m_chooser; }
 
     /// @brief The title of the new element
-    QLineEdit* titleEdit() const { return m_titleEdit; }
+    [[nodiscard]] QLineEdit* titleEdit() const { return m_titleEdit; }
 
     /// @brief The place of the new element in the book; hidden for an empty text file
-    ElementPlacePicker* picker() const { return m_picker; }
+    [[nodiscard]] ElementPlacePicker* picker() const { return m_picker; }
 
     /// @brief Where an empty text file goes, in place of the list of places
-    QLabel* placeNote() const { return m_placeNote; }
+    [[nodiscard]] QLabel* placeNote() const { return m_placeNote; }
 
     /// @brief The place of an empty text file: outside the book; hidden for the other tiles
-    QRadioButton* outsideButton() const { return m_outsideButton; }
+    [[nodiscard]] QRadioButton* outsideButton() const { return m_outsideButton; }
 
     /// @brief The place of an empty text file: with the book; hidden for the other tiles
-    QRadioButton* insideButton() const { return m_insideButton; }
+    [[nodiscard]] QRadioButton* insideButton() const { return m_insideButton; }
 
     /// @brief The button that creates the element
-    QPushButton* createButton() const { return acceptButton(); }
+    [[nodiscard]] QPushButton* createButton() const { return acceptButton(); }
 
     /// @brief The name of the chosen kind, above its description
-    QLabel* nameLabel() const { return m_nameLabel; }
+    [[nodiscard]] QLabel* nameLabel() const { return m_nameLabel; }
 
     /// @brief Where the elements of the chosen kind can be
-    QLabel* whereLabel() const { return m_whereLabel; }
+    [[nodiscard]] QLabel* whereLabel() const { return m_whereLabel; }
 
     /// @brief How many elements of the chosen kind the book can have
-    QLabel* countLabel() const { return m_countLabel; }
+    [[nodiscard]] QLabel* countLabel() const { return m_countLabel; }
 
     /// @brief The file a new element of the chosen kind gets
-    QLabel* fileLabel() const { return m_fileLabel; }
+    [[nodiscard]] QLabel* fileLabel() const { return m_fileLabel; }
 
     /// @brief The type of book the chosen kind belongs to
-    QLabel* typeLabel() const { return m_typeLabel; }
+    [[nodiscard]] QLabel* typeLabel() const { return m_typeLabel; }
 
 protected:
     /// @brief A new font gives the tiles a new size
@@ -380,7 +379,7 @@ private:
 
     /// @brief The parts of the book (or the Workshop) of choice @p choice of the buttons at
     /// the top; all of them without the choice
-    QList<core::BookPlace> placesOf(int choice) const;
+    [[nodiscard]] QList<core::BookPlace> placesOf(int choice) const;
 
     /// @brief The tiles of choice @p choice of the buttons at the top, with the kind chosen
     /// there last, or at first the usual one (the main text kind of the book); the title gets
@@ -405,13 +404,13 @@ private:
     static bool isCover(const NewFileKind* entry);
     /// @brief The source a new material of the chosen tile starts with: of its kind, of the part
     /// of a material of the cover; none for a kind without a source of its own
-    std::optional<MaterialOrigin> originOfChosen() const;
+    [[nodiscard]] std::optional<MaterialOrigin> originOfChosen() const;
     /// @brief A new part of a material of the cover: its source unless the program gave it or
     /// the writer chose it, its title unless the writer changed it, and where it goes
     void onCoverPartChanged();
     /// @brief Where a new element of @p entry goes, in place of the list of places: of a
     /// material of the cover also its place on the cover
-    QString placeNoteOf(const NewFileKind& entry) const;
+    [[nodiscard]] QString placeNoteOf(const NewFileKind& entry) const;
 
     /// @brief The place of the new element
     QWidget* createPlaceGroup(QWidget* parent);
@@ -425,13 +424,13 @@ private:
 
     /// @brief The kind of the chosen tile; nullptr when none is chosen and for an empty text
     /// file
-    const NewFileKind* chosen() const;
+    [[nodiscard]] const NewFileKind* chosen() const;
 
     /// @brief The tile of an empty text file is chosen
-    bool emptyFileChosen() const;
+    [[nodiscard]] bool emptyFileChosen() const;
 
     /// @brief The tiles shown are the kinds of the Workshop
-    bool workshopShown() const;
+    [[nodiscard]] bool workshopShown() const;
 
     /// @brief The name of an empty text file: its tile, and the name above its description
     static QString emptyFileName();
@@ -451,7 +450,7 @@ private:
 
     /// @brief @p text with the words of the chosen kind ({kind}) and of the main text kind of
     /// the book ({main})
-    QString named(const QString& text) const;
+    [[nodiscard]] QString named(const QString& text) const;
 
     /// @brief The heading of Add Element for the chosen tile: what the writer chooses
     void updateHeading();
@@ -466,10 +465,10 @@ private:
 
     /// @brief The title the source of a new material gives: the name of its file, the end of
     /// its address; empty without either
-    QString sourceTitle() const;
+    [[nodiscard]] QString sourceTitle() const;
 
     /// @brief The file the path of a new material names, absolute; empty when it names none
-    QString typedFile() const;
+    [[nodiscard]] QString typedFile() const;
 
     /// @brief Whether a new element of @p entry is a material
     static bool isMaterial(const NewFileKind* entry);
@@ -565,6 +564,6 @@ private:
     QLabel* m_previewNote = nullptr;        ///< The list only shows the book as it will be
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_NEW_FILE_DIALOG_H

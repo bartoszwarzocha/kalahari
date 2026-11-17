@@ -4,7 +4,8 @@
 /// @file annotation_colors.h
 /// @brief The colors of the annotations' cards, readable on the panel and on the paper
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_ANNOTATION_COLORS_H
+#define KALAHARI_GUI_PANELS_ANNOTATION_COLORS_H
 
 #include "kalahari/core/theme.h"
 
@@ -55,3 +56,5 @@ AnnotationCardColors annotationCardColors(const QColor& kindColor, const QColor&
                                           const QColor& text, double tint = 1.0);
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_ANNOTATION_COLORS_H

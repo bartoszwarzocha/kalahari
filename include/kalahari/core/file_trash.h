@@ -9,7 +9,8 @@
 /// off has none, so a file deleted there is gone for good. The program asks canMoveToTrash()
 /// before it tells the writer where the deleted files go.
 
-#pragma once
+#ifndef KALAHARI_CORE_FILE_TRASH_H
+#define KALAHARI_CORE_FILE_TRASH_H
 
 #include <QString>
 
@@ -49,3 +50,5 @@ void setTrashForTests(std::function<bool(const QString&)> canMove,
                       std::function<bool(const QString&)> move);
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_FILE_TRASH_H

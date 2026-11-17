@@ -4,7 +4,8 @@
 /// @file annotation_cards.h
 /// @brief The cards of the annotations under their paragraphs (the continuous views)
 
-#pragma once
+#ifndef KALAHARI_EDITOR_ANNOTATION_CARDS_H
+#define KALAHARI_EDITOR_ANNOTATION_CARDS_H
 
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/editor_appearance.h>
@@ -84,22 +85,22 @@ public:
 
     /// @brief How they look and which there are
     void setSettings(const AnnotationCardSettings& settings);
-    const AnnotationCardSettings& settings() const { return m_settings; }
+    [[nodiscard]] const AnnotationCardSettings& settings() const { return m_settings; }
 
     /// @brief Whether the view shows them now (a continuous view, Distraction-Free as the
     ///        settings say)
     void setShown(bool shown) { m_shown = shown; }
-    bool isShown() const { return m_shown; }
+    [[nodiscard]] bool isShown() const { return m_shown; }
 
     /// @brief Whether an annotation of a kind has a card now
-    bool hasCard(AnnotationKind kind) const;
+    [[nodiscard]] bool hasCard(AnnotationKind kind) const;
 
     /// @brief A new text: its annotations are collapsed or expanded as the settings say,
     ///        none is written in its frame and every long one is cut again
     void startText();
 
     /// @brief Whether an annotation is collapsed
-    bool isCollapsed(const QString& id) const;
+    [[nodiscard]] bool isCollapsed(const QString& id) const;
 
     /// @brief Collapse or expand an annotation
     void setCollapsed(const QString& id, bool collapsed);
@@ -115,20 +116,20 @@ public:
     // =========================================================================
 
     void setColors(const Colors& colors) { m_colors = colors; }
-    const Colors& colors() const { return m_colors; }
+    [[nodiscard]] const Colors& colors() const { return m_colors; }
 
     /// @brief The font of the text: the cards' text is sized after it
     void setTextFont(const QFont& font) { m_textFont = font; }
 
     /// @brief The font of the cards' text: the text's, smaller (AnnotationCardSettings::
     ///        fontPercent)
-    QFont cardFont() const;
+    [[nodiscard]] QFont cardFont() const;
 
     /// @brief The height of a line of the cards' text (document units)
     qreal lineHeight() const;
 
     /// @brief The color of a kind on the paper
-    QColor kindColor(AnnotationKind kind) const;
+    [[nodiscard]] QColor kindColor(AnnotationKind kind) const;
 
     // =========================================================================
     // Writing in the frame over the card
@@ -150,7 +151,7 @@ public:
     /// @brief No annotation is written in the frame
     void clearWriting() { m_writing.reset(); }
 
-    const std::optional<Writing>& writing() const { return m_writing; }
+    [[nodiscard]] const std::optional<Writing>& writing() const { return m_writing; }
 
     // =========================================================================
     // The mouse
@@ -158,12 +159,14 @@ public:
 
     /// @brief The card the mouse is on, and its part (empty id: none)
     void setHovered(const QString& id, std::optional<AnnotationCardPart> part);
-    const QString& hovered() const { return m_hovered; }
-    const std::optional<AnnotationCardPart>& hoveredPart() const { return m_hoveredPart; }
+    [[nodiscard]] const QString& hovered() const { return m_hovered; }
+    [[nodiscard]] const std::optional<AnnotationCardPart>& hoveredPart() const {
+        return m_hoveredPart;
+    }
 
     /// @brief The card of the annotation gone to (empty: none): it is outlined
     void setSelected(const QString& id) { m_selected = id; }
-    const QString& selected() const { return m_selected; }
+    [[nodiscard]] const QString& selected() const { return m_selected; }
 
     // =========================================================================
     // Geometry and drawing (in the coordinates of a paragraph)
@@ -173,14 +176,15 @@ public:
     /// @param block The paragraph
     /// @param top Where its cards start: under its text and its spacing
     /// @param width The width of its text
-    std::vector<AnnotationCardBox> cardsOf(const QTextBlock& block, qreal top, qreal width) const;
+    [[nodiscard]] std::vector<AnnotationCardBox> cardsOf(const QTextBlock& block, qreal top,
+                                                         qreal width) const;
 
     /// @brief The room a paragraph's cards take under it (0: none)
-    qreal spaceBelow(const QTextBlock& block, qreal width) const;
+    [[nodiscard]] qreal spaceBelow(const QTextBlock& block, qreal width) const;
 
     /// @brief The card (and its part) at a point of a paragraph
-    std::optional<AnnotationCardHit> hitTest(const QTextBlock& block, qreal top, qreal width,
-                                             const QPointF& point) const;
+    [[nodiscard]] std::optional<AnnotationCardHit> hitTest(const QTextBlock& block, qreal top,
+                                                           qreal width, const QPointF& point) const;
 
     /// @brief Where the text of the card written on is (the frame lies over it), in the
     ///        coordinates of its paragraph; empty: none of the paragraph's cards is written on
@@ -195,10 +199,10 @@ public:
 private:
     /// @brief The marks of a paragraph that have cards, with the room of a new annotation
     ///        written in the frame (a mark without an id)
-    std::vector<AnnotationMark> cardMarks(const QTextBlock& block) const;
+    [[nodiscard]] std::vector<AnnotationMark> cardMarks(const QTextBlock& block) const;
 
     /// @brief Whether a long text is cut short (not shown whole)
-    bool cutsShort(const QString& id) const;
+    [[nodiscard]] bool cutsShort(const QString& id) const;
 
     AnnotationCardSettings m_settings;
     bool m_shown = false;
@@ -214,3 +218,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_ANNOTATION_CARDS_H

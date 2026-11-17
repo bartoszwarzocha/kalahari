@@ -36,7 +36,8 @@
 /// ExtensionPointRegistry::getInstance().registerPlugin(plugin);
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_EXTENSION_POINTS_H
+#define KALAHARI_CORE_EXTENSION_POINTS_H
 
 #include <string>
 #include <memory>
@@ -65,14 +66,14 @@ public:
     /// to identify the plugin in the registry and during loading.
     ///
     /// @return Unique plugin identifier (e.g., "kalahari-lion-assistant")
-    virtual std::string getPluginId() const = 0;
+    [[nodiscard]] virtual std::string getPluginId() const = 0;
 
     /// @brief Get plugin version
     ///
     /// Should follow semantic versioning (e.g., "1.2.3")
     ///
     /// @return Plugin version string
-    virtual std::string getVersion() const = 0;
+    [[nodiscard]] virtual std::string getVersion() const = 0;
 
     /// @brief Plugin initialization hook
     ///
@@ -121,7 +122,7 @@ public:
     /// @brief The formats the exporter writes, for the list of the formats of File > Export
     ///
     /// @return The formats; the default, none, keeps the exporter out of the list
-    virtual std::vector<ExportFormatInfo> getFormats() const { return {}; }
+    [[nodiscard]] virtual std::vector<ExportFormatInfo> getFormats() const { return {}; }
 
     /// @brief The options of @p format: a page that the window of the export shows as a tab of
     /// its own while the format is chosen
@@ -431,3 +432,5 @@ private:
 
 } // namespace core
 } // namespace kalahari
+
+#endif  // KALAHARI_CORE_EXTENSION_POINTS_H

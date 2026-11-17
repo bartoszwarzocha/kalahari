@@ -19,9 +19,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -152,6 +150,4 @@ void InsertTableDialog::updatePreview()
                                             : tr("%1 and %2").arg(columnsText, rowsText));
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

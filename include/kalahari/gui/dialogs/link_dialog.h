@@ -5,7 +5,8 @@
 /// @brief Link: what a material is about, the materials of an element of the book, or the
 /// chapters of a card
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_LINK_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_LINK_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/core/book_project.h"
@@ -28,9 +29,7 @@ namespace kalahari::core {
 class ProjectManager;
 }  // namespace kalahari::core
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief Link: a tree of the open book with boxes to check
 ///
@@ -73,36 +72,36 @@ public:
                QWidget* parent = nullptr);
 
     /// @brief The checked links, in the order of the tree
-    QStringList checkedLinks() const;
+    [[nodiscard]] QStringList checkedLinks() const;
 
     /// @brief The links checked when the dialog opened, in the order of the tree
-    const QStringList& initialLinks() const { return m_initial; }
+    [[nodiscard]] const QStringList& initialLinks() const { return m_initial; }
 
     /// @brief The link of item @p id with the role, paragraph and note set for it: of the
     /// material or the card with element or section @p id (Targets, Chapters), or of material
     /// @p id with the element or section (Materials)
-    core::ElementLink linkOf(const QString& id) const;
+    [[nodiscard]] core::ElementLink linkOf(const QString& id) const;
 
     /// @brief Make the item of @p id the current one, whose link the right side shows
     void setCurrentLink(const QString& id);
 
     /// @brief The role of the current link
-    QComboBox* roleCombo() const { return m_role; }
+    [[nodiscard]] QComboBox* roleCombo() const { return m_role; }
 
     /// @brief The paragraph of the current link
-    QComboBox* paragraphCombo() const { return m_paragraph; }
+    [[nodiscard]] QComboBox* paragraphCombo() const { return m_paragraph; }
 
     /// @brief The note of the current link
-    QLineEdit* noteEdit() const { return m_note; }
+    [[nodiscard]] QLineEdit* noteEdit() const { return m_note; }
 
     /// @brief The tree
-    QTreeWidget* tree() const { return m_tree; }
+    [[nodiscard]] QTreeWidget* tree() const { return m_tree; }
 
     /// @brief The filter above the tree
-    QLineEdit* filterEdit() const { return m_filter; }
+    [[nodiscard]] QLineEdit* filterEdit() const { return m_filter; }
 
     /// @brief Item of link @p link, or nullptr
-    QTreeWidgetItem* itemOf(const QString& link) const;
+    [[nodiscard]] QTreeWidgetItem* itemOf(const QString& link) const;
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -143,15 +142,16 @@ private:
 
     /// @brief The material or the card of the link of item @p id: the one of the dialog
     /// (Targets, Chapters), else @p id
-    QString materialOf(const QString& id) const;
+    [[nodiscard]] QString materialOf(const QString& id) const;
 
     /// @brief The element whose text the link of item @p id names a paragraph of: @p id
     /// (Targets, Chapters), else the element of the dialog
-    QString textOf(const QString& id) const;
+    [[nodiscard]] QString textOf(const QString& id) const;
 
     /// @brief The first paragraph of @p paragraphs (from 1) with the words of quote
     /// @p material; 0 when it is no quote or no paragraph has them
-    int paragraphOfQuote(const QString& material, const QStringList& paragraphs) const;
+    [[nodiscard]] int paragraphOfQuote(const QString& material,
+                                       const QStringList& paragraphs) const;
 
     /// @brief Whether the links are of the material or the card of the dialog with what the
     /// items name (Targets, Chapters), not of the materials with the element of the dialog
@@ -199,6 +199,6 @@ std::optional<QList<core::ElementLink>> chooseChapters(const core::ProjectManage
                                                        const QString& currentLink,
                                                        QWidget* parent);
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_LINK_DIALOG_H

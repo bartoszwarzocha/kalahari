@@ -5,15 +5,15 @@
 /// @brief A file or a folder shown in the file manager of the system, a file opened in the
 /// program the system gives it, and a web address opened in the system's browser
 
-#pragma once
+#ifndef KALAHARI_GUI_UTILS_FILE_LOCATION_H
+#define KALAHARI_GUI_UTILS_FILE_LOCATION_H
 
 #include <QString>
 #include <QUrl>
 
 #include <functional>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Open the folder of file @p path in the file manager of the system, with the file
 /// selected where the system can do it (Windows Explorer, the Finder); a folder opens itself
@@ -47,5 +47,6 @@ bool openInBrowser(const QUrl& url);
 /// @param open Does openInBrowser() for a web address
 void setBrowserForTests(std::function<bool(const QUrl&)> open);
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_UTILS_FILE_LOCATION_H

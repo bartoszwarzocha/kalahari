@@ -10,7 +10,8 @@
 /// - Caching for performance
 /// - Conversion to Qt formats (QFont, QTextCharFormat, QTextBlockFormat)
 
-#pragma once
+#ifndef KALAHARI_EDITOR_STYLE_RESOLVER_H
+#define KALAHARI_EDITOR_STYLE_RESOLVER_H
 
 #include <QObject>
 #include <QString>
@@ -26,7 +27,7 @@ namespace kalahari::core {
 class ProjectDatabase;
 struct ParagraphStyle;
 struct CharacterStyle;
-}
+} // namespace kalahari::core
 
 namespace kalahari::editor {
 
@@ -62,15 +63,15 @@ struct ResolvedParagraphStyle {
 
     /// @brief Convert to QFont
     /// @return QFont with font properties applied
-    QFont toFont() const;
+    [[nodiscard]] QFont toFont() const;
 
     /// @brief Convert to QTextCharFormat
     /// @return Character format for text rendering
-    QTextCharFormat toCharFormat() const;
+    [[nodiscard]] QTextCharFormat toCharFormat() const;
 
     /// @brief Convert to QTextBlockFormat
     /// @return Block format for paragraph rendering
-    QTextBlockFormat toBlockFormat() const;
+    [[nodiscard]] QTextBlockFormat toBlockFormat() const;
 };
 
 /// @brief Resolved character (inline) style with all inherited properties applied
@@ -93,11 +94,11 @@ struct ResolvedCharacterStyle {
 
     /// @brief Convert to QFont
     /// @return QFont with font properties applied
-    QFont toFont() const;
+    [[nodiscard]] QFont toFont() const;
 
     /// @brief Convert to QTextCharFormat
     /// @return Character format for text rendering
-    QTextCharFormat toCharFormat() const;
+    [[nodiscard]] QTextCharFormat toCharFormat() const;
 };
 
 // =============================================================================
@@ -281,3 +282,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_STYLE_RESOLVER_H

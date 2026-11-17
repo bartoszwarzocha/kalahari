@@ -19,7 +19,7 @@
 #include <kalahari/gui/panels/properties_panel.h>
 #include <kalahari/gui/utils/document_commands.h>
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <QAction>
 #include <QDir>
@@ -38,7 +38,7 @@
 
 #include <cstdio>
 #include <functional>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::dialogs::MessageDialog;

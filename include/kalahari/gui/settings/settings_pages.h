@@ -7,7 +7,8 @@
 /// Each page builds its controls and binds them to setting keys (SettingsPage);
 /// only the theme, icons and diagnostic options add their own steps.
 
-#pragma once
+#ifndef KALAHARI_GUI_SETTINGS_SETTINGS_PAGES_H
+#define KALAHARI_GUI_SETTINGS_SETTINGS_PAGES_H
 
 #include "kalahari/gui/settings/settings_page.h"
 
@@ -44,11 +45,11 @@ class CommandRegistry;
 namespace kalahari {
 namespace core {
 struct Theme;
-}
+} // namespace core
 namespace editor {
 class SpellCheckService;
 struct QuickInsertItem;
-}
+} // namespace editor
 namespace gui {
 
 class ColorConfigWidget;
@@ -159,7 +160,7 @@ private:
     void updatePreview();
 
     QComboBox* m_iconStyle;
-    QHBoxLayout* m_previewLayout;
+    QHBoxLayout* m_previewLayout = nullptr;
     QColor m_primary;
     QColor m_secondary;
 };
@@ -760,3 +761,5 @@ public:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_SETTINGS_SETTINGS_PAGES_H

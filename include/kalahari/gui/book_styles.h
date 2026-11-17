@@ -4,7 +4,8 @@
 /// @file book_styles.h
 /// @brief The paragraph styles of the open book: those of its type and its own
 
-#pragma once
+#ifndef KALAHARI_GUI_BOOK_STYLES_H
+#define KALAHARI_GUI_BOOK_STYLES_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
@@ -15,7 +16,7 @@
 
 namespace kalahari::core {
 class ProjectManager;
-}
+} // namespace kalahari::core
 
 namespace kalahari::gui {
 
@@ -40,3 +41,5 @@ editor::ParagraphStyleSet bookParagraphStyles(const core::ProjectManager& book,
                                               const QList<core::BookParagraphStyle>& entries);
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_BOOK_STYLES_H

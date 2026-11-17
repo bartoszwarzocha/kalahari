@@ -7,7 +7,8 @@
 ///
 /// The text keeps it in its QTextCharFormat: the font, size and colors as Qt's properties,
 /// the letter spacing in points as KmlPropLetterSpacing (kml_format_registry.h).
-#pragma once
+#ifndef KALAHARI_EDITOR_CHARACTER_FORMAT_H
+#define KALAHARI_EDITOR_CHARACTER_FORMAT_H
 
 #include <QColor>
 #include <QFont>
@@ -101,3 +102,5 @@ enum class CaseChange {
 QString changedCase(const QString& text, qsizetype from, qsizetype to, CaseChange change);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_CHARACTER_FORMAT_H

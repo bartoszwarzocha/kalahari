@@ -5,12 +5,12 @@
 /// @brief Caps Lock turned off by the program, where the system lets it: after autocorrect
 ///        changed a word typed with it on by mistake, as Word does
 
-#pragma once
+#ifndef KALAHARI_GUI_UTILS_CAPS_LOCK_H
+#define KALAHARI_GUI_UTILS_CAPS_LOCK_H
 
 #include <functional>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Turn Caps Lock off
 ///
@@ -26,5 +26,6 @@ bool turnCapsLockOff();
 /// @param turnOff Does turnCapsLockOff()
 void setCapsLockForTests(std::function<bool()> turnOff);
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_UTILS_CAPS_LOCK_H

@@ -9,9 +9,7 @@
 #include <algorithm>
 #include <set>
 
-namespace kalahari {
-namespace core {
-namespace settings_schema {
+namespace kalahari::core::settings_schema {
 
 namespace {
 
@@ -801,6 +799,4 @@ bool requiresRestart(const std::string& key) {
     return restartKeys.count(normalized) > 0;
 }
 
-} // namespace settings_schema
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core::settings_schema

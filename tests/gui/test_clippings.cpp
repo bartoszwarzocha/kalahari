@@ -7,7 +7,7 @@
 ///        the fragment; Insert > Clipping puts it in at the cursor (it stays marked as inserted,
 ///        or goes), and Restore to the Place It Came From puts it back where it was
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
@@ -31,7 +31,7 @@
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/settings_dialog.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>

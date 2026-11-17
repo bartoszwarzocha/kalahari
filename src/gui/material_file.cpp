@@ -15,8 +15,7 @@
 #include <QStringList>
 #include <QTransform>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -169,5 +168,4 @@ QImage readPicture(const QString& path, int rotation, const QSize& bounds, QStri
     return image;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

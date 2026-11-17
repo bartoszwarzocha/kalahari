@@ -13,7 +13,7 @@
 #include <kalahari/gui/book_import_plan.h>
 #include <kalahari/gui/book_styles.h>
 #include <catch2/catch_test_macros.hpp>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <QDir>
 #include <QFile>

@@ -10,14 +10,14 @@
 ///
 /// OpenSpec #00041: SQLite Project Database
 
-#pragma once
+#ifndef KALAHARI_CORE_DATABASE_TYPES_H
+#define KALAHARI_CORE_DATABASE_TYPES_H
 
 #include <QString>
 #include <QDateTime>
 #include <QVariantMap>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 // =============================================================================
 // Chapter Data
@@ -39,7 +39,7 @@ struct ChapterInfo {
     QDateTime modifiedAt;    ///< Last modification timestamp
 
     /// @brief Check if chapter info is valid
-    bool isValid() const { return !id.isEmpty() && !path.isEmpty(); }
+    [[nodiscard]] bool isValid() const { return !id.isEmpty() && !path.isEmpty(); }
 };
 
 /// @brief Chapter history entry (maps to 'chapter_history' table)
@@ -92,7 +92,7 @@ struct ParagraphStyle {
     QVariantMap properties;  ///< Style properties (font, size, margins, etc.)
 
     /// @brief Check if style is valid
-    bool isValid() const { return !id.isEmpty() && !name.isEmpty(); }
+    [[nodiscard]] bool isValid() const { return !id.isEmpty() && !name.isEmpty(); }
 };
 
 /// @brief Character (inline) style definition (maps to 'character_styles' table)
@@ -102,8 +102,9 @@ struct CharacterStyle {
     QVariantMap properties;  ///< Style properties (bold, italic, color, etc.)
 
     /// @brief Check if style is valid
-    bool isValid() const { return !id.isEmpty() && !name.isEmpty(); }
+    [[nodiscard]] bool isValid() const { return !id.isEmpty() && !name.isEmpty(); }
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_DATABASE_TYPES_H

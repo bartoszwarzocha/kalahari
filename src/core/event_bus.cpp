@@ -16,8 +16,7 @@
 #include <algorithm>
 #include <QMetaObject>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 EventBus& EventBus::getInstance() {
     static EventBus instance;
@@ -183,5 +182,4 @@ void EventBus::clearAll() {
                               listener_count, queue_size);
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

@@ -6,7 +6,8 @@
 ///        on localhost, their files, a folder of the downloads of their own, the settings
 ///        given back and the stand-in for Java (kalahari-fake-java)
 
-#pragma once
+#ifndef KALAHARI_TESTS_GUI_GRAMMAR_TEST_UTILS_H
+#define KALAHARI_TESTS_GUI_GRAMMAR_TEST_UTILS_H
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -62,7 +63,7 @@ public:
     FakeDownloads& operator=(const FakeDownloads&) = delete;
 
     /// @brief The address of a file
-    QUrl url(const QString& path) const {
+    [[nodiscard]] QUrl url(const QString& path) const {
         return QUrl(QStringLiteral("http://127.0.0.1:%1/%2").arg(m_server.serverPort()).arg(path));
     }
 
@@ -87,10 +88,10 @@ public:
     }
 
     /// @brief How many times a file was asked for
-    int requests(const QString& path) const { return m_requests.value(path); }
+    [[nodiscard]] int requests(const QString& path) const { return m_requests.value(path); }
 
     /// @brief How many answers are kept (hold())
-    int heldAnswers() const { return static_cast<int>(m_held.size()); }
+    [[nodiscard]] int heldAnswers() const { return static_cast<int>(m_held.size()); }
 
 private:
     void receive(QTcpSocket* socket, QByteArray& request) {
@@ -246,10 +247,10 @@ public:
     TemporaryGrammarFolder& operator=(const TemporaryGrammarFolder&) = delete;
 
     /// @brief The folder of the downloads (in a folder of the test)
-    QString path() const { return m_dir.filePath(QStringLiteral("grammar")); }
+    [[nodiscard]] QString path() const { return m_dir.filePath(QStringLiteral("grammar")); }
 
     /// @brief The folder of the test
-    QString root() const { return m_dir.path(); }
+    [[nodiscard]] QString root() const { return m_dir.path(); }
 
 private:
     QTemporaryDir m_dir;
@@ -339,3 +340,5 @@ private:
 };
 
 }  // namespace kalahari::test
+
+#endif  // KALAHARI_TESTS_GUI_GRAMMAR_TEST_UTILS_H

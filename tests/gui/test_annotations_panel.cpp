@@ -7,7 +7,7 @@
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/kind_words.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme.h"
@@ -59,7 +59,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;

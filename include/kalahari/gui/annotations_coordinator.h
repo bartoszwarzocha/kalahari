@@ -5,7 +5,8 @@
 /// @brief The writer's annotations: the commands for them, the frame their text is written
 /// in and the Annotations panel
 
-#pragma once
+#ifndef KALAHARI_GUI_ANNOTATIONS_COORDINATOR_H
+#define KALAHARI_GUI_ANNOTATIONS_COORDINATOR_H
 
 #include <kalahari/editor/annotation.h>
 #include <kalahari/gui/panels/annotation_entry.h>
@@ -36,7 +37,7 @@ class CommandRegistry;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -153,10 +154,10 @@ public:
     void refresh();
 
     /// @brief Whether an annotation's text is being written in its frame
-    bool isWriting() const { return m_writing.has_value(); }
+    [[nodiscard]] bool isWriting() const { return m_writing.has_value(); }
 
     /// @brief The frame an annotation's text is written in (nullptr: none is open)
-    AnnotationFrame* frame() const { return m_frame; }
+    [[nodiscard]] AnnotationFrame* frame() const { return m_frame; }
 
     /// @brief Keep the frame's text (Ctrl+Enter, Save) and close it
     ///
@@ -209,8 +210,8 @@ private:
     };
 
     // Documents
-    EditorPanel* currentEditorPanel() const;
-    editor::BookEditor* currentEditor() const;
+    [[nodiscard]] EditorPanel* currentEditorPanel() const;
+    [[nodiscard]] editor::BookEditor* currentEditor() const;
 
     /// @brief Let a document's editor take annotations as its file does: a plain text file
     /// (.txt) keeps none
@@ -221,10 +222,10 @@ private:
     QString titleOf(const EditorPanel* panel) const;
 
     /// @brief The panel of a chapter's open tab (empty id: the document in front)
-    EditorPanel* openPanel(const QString& elementId) const;
+    [[nodiscard]] EditorPanel* openPanel(const QString& elementId) const;
 
     /// @brief The editor of a chapter's open tab (empty id: the document in front)
-    editor::BookEditor* openEditor(const QString& elementId) const;
+    [[nodiscard]] editor::BookEditor* openEditor(const QString& elementId) const;
 
     /// @brief The editor of a chapter, its tab brought to the front (opened when it is not)
     editor::BookEditor* editorFor(const QString& elementId);
@@ -240,7 +241,7 @@ private:
 
     /// @brief The key of the annotation at the cursor in front: the one the cursor is in or
     /// on, else the last one before it, else the first one after it (empty: none)
-    QString keyAtCursor() const;
+    [[nodiscard]] QString keyAtCursor() const;
 
     // The panel
     void onCurrentTabChanged();
@@ -293,3 +294,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_ANNOTATIONS_COORDINATOR_H

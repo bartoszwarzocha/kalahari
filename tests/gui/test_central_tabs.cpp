@@ -8,7 +8,7 @@
 /// button in the corner that switches the rows and keeps the setting
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/widgets/central_tabs.h"

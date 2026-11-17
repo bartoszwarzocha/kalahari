@@ -13,7 +13,8 @@
 /// - Wrap around
 /// - Match highlighting
 
-#pragma once
+#ifndef KALAHARI_EDITOR_SEARCH_ENGINE_H
+#define KALAHARI_EDITOR_SEARCH_ENGINE_H
 
 // Phase 11.6: Removed text_buffer.h - using QTextDocument directly
 #include <kalahari/editor/text_footnotes.h>
@@ -70,15 +71,15 @@ struct SearchMatch {
 
     /// @brief Check if match is valid
     /// @return true if match has non-zero length
-    bool isValid() const { return length > 0; }
+    [[nodiscard]] bool isValid() const { return length > 0; }
 
     /// @brief Whether it is in the text of a note
-    bool inNote() const { return !noteId.isEmpty(); }
+    [[nodiscard]] bool inNote() const { return !noteId.isEmpty(); }
 
     /// @brief Get end position (exclusive)
     /// @return Absolute character position after the match (in the text: of a match in a
     ///         note, after the note's number)
-    size_t end() const { return inNote() ? start + 1 : start + length; }
+    [[nodiscard]] size_t end() const { return inNote() ? start + 1 : start + length; }
 
     /// @brief Compare matches by position (a match in a note's text by its place there)
     bool operator<(const SearchMatch& other) const {
@@ -183,7 +184,7 @@ public:
 
     /// @brief Get the current document
     /// @return Pointer to QTextDocument
-    QTextDocument* document() const;
+    [[nodiscard]] QTextDocument* document() const;
 
     /// @brief Set the search text
     /// @param text Text to search for
@@ -191,7 +192,7 @@ public:
 
     /// @brief Get the current search text
     /// @return Current search text
-    QString searchText() const;
+    [[nodiscard]] QString searchText() const;
 
     /// @brief Set the replacement text (for replace operations)
     /// @param text Replacement text
@@ -199,7 +200,7 @@ public:
 
     /// @brief Get the current replacement text
     /// @return Current replacement text
-    QString replaceText() const;
+    [[nodiscard]] QString replaceText() const;
 
     /// @brief Set search options
     /// @param options Search configuration
@@ -207,7 +208,7 @@ public:
 
     /// @brief Get current search options
     /// @return Current search configuration
-    SearchOptions options() const;
+    [[nodiscard]] SearchOptions options() const;
 
     // =========================================================================
     // Search Operations
@@ -244,11 +245,11 @@ public:
 
     /// @brief Get current match index (0-based)
     /// @return Current match index, or -1 if no match selected
-    int currentMatchIndex() const;
+    [[nodiscard]] int currentMatchIndex() const;
 
     /// @brief Get total number of matches
     /// @return Total match count
-    int totalMatchCount() const;
+    [[nodiscard]] int totalMatchCount() const;
 
     /// @brief Navigate to next match
     /// @return Next match, or invalid match if none
@@ -260,7 +261,7 @@ public:
 
     /// @brief Get current match without navigation
     /// @return Current match, or invalid match if none
-    SearchMatch currentMatch() const;
+    [[nodiscard]] SearchMatch currentMatch() const;
 
     /// @brief Set current match by index
     /// @param index Match index (0-based)
@@ -307,14 +308,14 @@ public:
 
     /// @brief Get all cached matches for highlighting
     /// @return Reference to cached matches vector
-    const std::vector<SearchMatch>& matches() const;
+    [[nodiscard]] const std::vector<SearchMatch>& matches() const;
 
     /// @brief Clear search state and matches
     void clear();
 
     /// @brief Check if search is active (has search text)
     /// @return true if search text is non-empty
-    bool isActive() const;
+    [[nodiscard]] bool isActive() const;
 
 signals:
     /// @brief Emitted when the matches change, or which of them is the current one
@@ -376,7 +377,8 @@ private:
 
     /// @brief The matches in a line of text (a paragraph, or one of a note): their offsets
     ///        and lengths, in order
-    std::vector<std::pair<qsizetype, qsizetype>> matchesIn(const QString& text) const;
+    [[nodiscard]] std::vector<std::pair<qsizetype, qsizetype>> matchesIn(
+        const QString& original) const;
 
     /// @brief Bring the matches up to date with an edit of the document
     ///
@@ -386,19 +388,19 @@ private:
 
     /// @brief Index of the first match starting at or after @p position
     /// @return The match count if there is none
-    int firstMatchFrom(size_t position) const;
+    [[nodiscard]] int firstMatchFrom(size_t position) const;
 
     /// @brief Index of the first match at or after a place in the text of the note whose
     ///        number is at @p position: @p noteOffset of the text of the note @p noteId
     /// @return The match count if there is none
-    int firstMatchFrom(size_t position, const QString& noteId, int noteOffset) const;
+    [[nodiscard]] int firstMatchFrom(size_t position, const QString& noteId, int noteOffset) const;
 
     /// @brief Index of the first match after the origin's end (@p fromEnd), else of the
     ///        first one at or after its start
-    int firstMatchFromOrigin(bool fromEnd) const;
+    [[nodiscard]] int firstMatchFromOrigin(bool fromEnd) const;
 
     /// @brief Index of the match that is exactly the origin's selection, or -1
-    int originMatchIndex() const;
+    [[nodiscard]] int originMatchIndex() const;
 
     /// @brief Make the match at @p index the current one and announce it
     /// @return A copy of the match
@@ -433,3 +435,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_SEARCH_ENGINE_H

@@ -7,7 +7,7 @@
 ///        change; Tools > Auto-correct as You Type turns all the replacements on and off
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
@@ -51,7 +51,7 @@
 #include <array>
 #include <nlohmann/json.hpp>
 #include <string>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;

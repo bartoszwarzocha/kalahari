@@ -68,7 +68,7 @@ class MenuCommandKeys : public QObject {
 public:
     explicit MenuCommandKeys(const QAction* command) : m_command(command) {}
 
-    bool pressed() const { return m_pressed; }
+    [[nodiscard]] bool pressed() const { return m_pressed; }
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override {
@@ -88,7 +88,7 @@ protected:
     }
 
 private:
-    bool isCommandKey(const QKeyEvent& event) const {
+    [[nodiscard]] bool isCommandKey(const QKeyEvent& event) const {
         if (m_command == nullptr || !m_command->isEnabled()) {
             return false;
         }

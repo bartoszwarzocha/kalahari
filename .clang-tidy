@@ -28,8 +28,10 @@ Checks: >
 
 WarningsAsErrors: '*'
 
-# Only report problems in Kalahari headers, not in Qt or other dependencies
-HeaderFilterRegex: 'include/kalahari/.*'
+# Only report problems in Kalahari headers (the program's, the tests' shared ones and the
+# internal ones in src/), not in Qt or other dependencies; both path separators, because
+# clang writes the paths of includes on Windows with both
+HeaderFilterRegex: '(include[/\\]kalahari|include[/\\]kalahari_tests|src)[/\\].*'
 
 CheckOptions:
   - key: modernize-use-override.IgnoreDestructors
@@ -42,4 +44,8 @@ CheckOptions:
   # add the internal files, against Qt's usage. Qt's headers are left to the code.
   - key: misc-include-cleaner.IgnoreHeaders
     value: 'Qt[A-Za-z0-9]*/.*'
+  # modernize-use-default-member-init (SonarQube analysis): an initializer moved out of a
+  # constructor is written as the members around it are, m_x = nullptr rather than m_x{nullptr}
+  - key: modernize-use-default-member-init.UseAssignment
+    value: 'true'
 ...

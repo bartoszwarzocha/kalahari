@@ -4,8 +4,8 @@
 /// @file reset_singletons.cpp
 /// @brief Implementation of the test-only singleton reset helper (WS4.1).
 
-#include "reset_singletons.h"
-#include "window_parts.h"
+#include "kalahari_tests/test_support/reset_singletons.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <kalahari/core/art_provider.h>
 #include <kalahari/core/icon_registry.h>
@@ -14,8 +14,7 @@
 #include <kalahari/core/trusted_keys.h>
 #include <kalahari/gui/command_registry.h>
 
-namespace kalahari {
-namespace test {
+namespace kalahari::test {
 
 void resetSingletons() {
     // Order: configuration first, then derived visual state.
@@ -44,5 +43,4 @@ void resetSingletons() {
     // Logger: intentionally left as-is (append-only, harmless between tests).
 }
 
-} // namespace test
-} // namespace kalahari
+} // namespace kalahari::test

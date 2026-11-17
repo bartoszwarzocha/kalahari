@@ -9,7 +9,8 @@
 /// Linux have the keys of Windows word processors; macOS has the keys of its own text
 /// fields. On macOS Qt reports Cmd as Ctrl, Option as Alt and Control as Meta.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_KEYS_H
+#define KALAHARI_EDITOR_TEXT_KEYS_H
 
 #include <QKeyCombination>
 #include <Qt>
@@ -123,3 +124,5 @@ constexpr bool isMacOS() {
 }
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_KEYS_H

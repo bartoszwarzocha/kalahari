@@ -4,7 +4,8 @@
 /// @file status_bar_writing.h
 /// @brief The time of writing today and the days in a row, in the status bar
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_STATUS_BAR_WRITING_H
+#define KALAHARI_GUI_WIDGETS_STATUS_BAR_WRITING_H
 
 #include <QObject>
 
@@ -31,10 +32,10 @@ public:
     ~StatusBarWriting() override;
 
     /// @brief The label of the time of writing
-    QLabel* timeLabel() const { return m_time; }
+    [[nodiscard]] QLabel* timeLabel() const { return m_time; }
 
     /// @brief The label of the days in a row
-    QLabel* streakLabel() const { return m_streak; }
+    [[nodiscard]] QLabel* streakLabel() const { return m_streak; }
 
 public slots:
     /// @brief Show what the statistics have now, as the setting says
@@ -50,3 +51,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_STATUS_BAR_WRITING_H

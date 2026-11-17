@@ -6,7 +6,7 @@
 ///        preview, and the print
 
 #include <catch2/catch_test_macros.hpp>
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "test_support/dialog_checks.h"
 #include "test_support/export_samples.h"
 #include "kalahari/core/settings_manager.h"

@@ -5,9 +5,9 @@
 /// @brief The card at the cursor in the Properties panel: the card whose name the cursor of a
 /// text of the book is in, in any of its forms
 
-#include "../editor/editor_test_utils.h"
-#include "document_window.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/document_window.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"

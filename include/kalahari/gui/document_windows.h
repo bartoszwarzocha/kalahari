@@ -5,7 +5,8 @@
 /// @brief The texts of the book window in its tabs and in the windows of their own the tabs are
 /// moved to
 
-#pragma once
+#ifndef KALAHARI_GUI_DOCUMENT_WINDOWS_H
+#define KALAHARI_GUI_DOCUMENT_WINDOWS_H
 
 #include <QList>
 #include <QMainWindow>
@@ -26,8 +27,7 @@ class QTabBar;
 class QTabWidget;
 class QToolBar;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class CommandRegistry;
 class DetachedWindow;
@@ -100,19 +100,19 @@ public:
     // ------------------------------------------------------------------------
 
     /// @brief The pages of the tabs of the book window, then those of each window of its own
-    QList<QWidget*> pages() const;
+    [[nodiscard]] QList<QWidget*> pages() const;
 
     /// @brief The page the keys went to last: the one in front of its tabs (none: no tab)
-    QWidget* frontPage() const;
+    [[nodiscard]] QWidget* frontPage() const;
 
     /// @brief The tabs whose page is in front (the book's at first)
-    QTabWidget* frontTabs() const;
+    [[nodiscard]] QTabWidget* frontTabs() const;
 
     /// @brief The tabs of the book window
-    QTabWidget& bookTabs() const { return *m_bookTabs; }
+    [[nodiscard]] QTabWidget& bookTabs() const { return *m_bookTabs; }
 
     /// @brief The windows of their own of the tabs, in the order they were made
-    QList<DetachedWindow*> windows() const;
+    [[nodiscard]] QList<DetachedWindow*> windows() const;
 
     /// @brief Bring @p page to the front of its tabs, and its window to the front
     void showPage(QWidget* page);
@@ -198,11 +198,11 @@ private:
 
     /// @brief Whether the tabs of the book window are whole: their window, destroyed, destroys
     /// their pages and their bar after they are no longer a QTabWidget
-    bool isWhole() const;
+    [[nodiscard]] bool isWhole() const;
 
     /// @brief The tabs of the book window (while they are whole) and those of the windows of
     /// their own
-    QList<QTabWidget*> allTabs() const;
+    [[nodiscard]] QList<QTabWidget*> allTabs() const;
 
     /// @brief Watch the bar of @p tabs and its tabs in more rows: dragging off, drops, its menu,
     ///        the page in front
@@ -224,7 +224,7 @@ private:
     void showTabMenu(QTabWidget& tabs, int index, const QPoint& globalPos);
 
     /// @brief The windows of the book: the book window, then its windows of their own
-    QList<QWidget*> bookWindows() const;
+    [[nodiscard]] QList<QWidget*> bookWindows() const;
 
     QTabWidget* m_bookTabs;
     QTabWidget* m_frontTabs;               ///< Its window may be gone: see frontTabs()
@@ -259,13 +259,13 @@ public:
     ~DetachedWindow() override;
 
     /// @brief Its tabs
-    QTabWidget& tabs() const { return *m_tabs; }
+    [[nodiscard]] QTabWidget& tabs() const { return *m_tabs; }
 
     /// @brief The title, the status bar and the counts follow the text in front
     void followFront();
 
     /// @brief Whether it is open: not closing
-    bool isOpen() const { return !m_closing; }
+    [[nodiscard]] bool isOpen() const { return !m_closing; }
 
     /// @brief None: its toolbars are those of the book window, whose menu shows them
     QMenu* createPopupMenu() override;
@@ -288,7 +288,7 @@ private:
     QList<QToolBar*> m_toolbars;  ///< Mirrors of the toolbars of the book window
     QLabel* m_pageLabel;
     QLabel* m_zoomLabel;
-    StatusBarStatistics* m_statistics;
+    StatusBarStatistics* m_statistics = nullptr;
     const QWidget* m_followed = nullptr;  ///< The page whose editor the status bar follows
     QList<QMetaObject::Connection> m_followConnections;  ///< To its editor
     int m_settingsListener = -1;
@@ -296,5 +296,6 @@ private:
     bool m_closingTexts = false;   ///< Its texts are being closed by its closing
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DOCUMENT_WINDOWS_H

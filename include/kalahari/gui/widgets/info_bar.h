@@ -4,7 +4,8 @@
 /// @file info_bar.h
 /// @brief A message across the text area: an icon, the message, a button and a close button
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_INFO_BAR_H
+#define KALAHARI_GUI_WIDGETS_INFO_BAR_H
 
 #include <QFrame>
 #include <QString>
@@ -13,8 +14,7 @@ class QLabel;
 class QPushButton;
 class QToolButton;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A message across the text area, in the theme's colors of an info bar
 ///
@@ -35,7 +35,7 @@ public:
     void setMessage(const QString& message);
 
     /// @brief The message
-    QString message() const;
+    [[nodiscard]] QString message() const;
 
     /// @brief The text of the button; empty: no button
     void setActionText(const QString& text);
@@ -66,5 +66,6 @@ private:
     QToolButton* m_closeButton = nullptr;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_INFO_BAR_H

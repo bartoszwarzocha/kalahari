@@ -11,8 +11,7 @@
 
 #include <array>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 namespace {
 
@@ -119,5 +118,4 @@ void TrustedKeys::clear() {
     m_publishers.clear();
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

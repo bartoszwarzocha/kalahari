@@ -5,7 +5,8 @@
 /// @brief The list of a kind of materials of the Workshop on a tab in the middle of the
 /// window: a table or tiles, with a search, filters and the commands of a material
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_MATERIAL_LIST_PANEL_H
+#define KALAHARI_GUI_PANELS_MATERIAL_LIST_PANEL_H
 
 #include "kalahari/gui/material_list.h"
 
@@ -34,8 +35,7 @@ namespace kalahari::core {
 class ProjectManager;
 }  // namespace kalahari::core
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class MaterialListModel;
 class MaterialListFilter;
@@ -92,7 +92,7 @@ public:
     ~MaterialListPanel() override;
 
     /// @brief The list it shows
-    QString list() const { return m_list; }
+    [[nodiscard]] QString list() const { return m_list; }
 
     /// @brief Show list @p list, with what it had chosen and its filters when it showed it
     /// before
@@ -105,7 +105,7 @@ public:
     void refreshIcons();
 
     /// @brief The material chosen; empty: none
-    QString currentMaterial() const;
+    [[nodiscard]] QString currentMaterial() const;
 
     /// @brief Choose material @p elementId, shown in the list; false when the list does not
     /// show it
@@ -118,52 +118,52 @@ public:
     void focusList();
 
     /// @brief The table or the tiles, whichever is shown
-    QAbstractItemView* view() const;
+    [[nodiscard]] QAbstractItemView* view() const;
 
     /// @brief The table
-    QTableView* table() const { return m_table; }
+    [[nodiscard]] QTableView* table() const { return m_table; }
 
     /// @brief The tiles
-    QListView* tiles() const { return m_tiles; }
+    [[nodiscard]] QListView* tiles() const { return m_tiles; }
 
     /// @brief The plan of the cover
-    CoverPlan* plan() const { return m_plan; }
+    [[nodiscard]] CoverPlan* plan() const { return m_plan; }
 
     /// @brief The button of the plan of the cover; hidden in the other lists
-    QToolButton* planButton() const { return m_planButton; }
+    [[nodiscard]] QToolButton* planButton() const { return m_planButton; }
 
     /// @brief Copy Entries of the list Sources; hidden in the other lists
     [[nodiscard]] QToolButton* entriesButton() const { return m_entriesButton; }
 
     /// @brief Group by Kind of the list of the cover; hidden in the other lists
-    QToolButton* groupsButton() const { return m_groupsButton; }
+    [[nodiscard]] QToolButton* groupsButton() const { return m_groupsButton; }
 
     /// @brief The filter Kind of the list of the cover; hidden in the other lists
-    QComboBox* partBox() const { return m_partBox; }
+    [[nodiscard]] QComboBox* partBox() const { return m_partBox; }
 
     /// @brief Add of the list
-    QToolButton* addButton() const { return m_addButton; }
+    [[nodiscard]] QToolButton* addButton() const { return m_addButton; }
 
     /// @brief The gear: the settings of the materials
-    QToolButton* settingsButton() const { return m_settingsButton; }
+    [[nodiscard]] QToolButton* settingsButton() const { return m_settingsButton; }
 
     /// @brief Restore to Its Place of the list of the clippings; hidden in the other lists
     [[nodiscard]] QToolButton* restoreButton() const { return m_restoreButton; }
 
     /// @brief The page of a kind hidden in the Navigator; shown in place of the list
-    QWidget* hiddenPage() const { return m_hiddenPage; }
+    [[nodiscard]] QWidget* hiddenPage() const { return m_hiddenPage; }
 
     /// @brief The search
-    QLineEdit* searchField() const { return m_search; }
+    [[nodiscard]] QLineEdit* searchField() const { return m_search; }
 
     /// @brief "Linked with:" of the filters
-    QComboBox* linkedWithBox() const { return m_linkedWith; }
+    [[nodiscard]] QComboBox* linkedWithBox() const { return m_linkedWith; }
 
     /// @brief "Without links" of the filters
-    QCheckBox* withoutLinksBox() const { return m_withoutLinks; }
+    [[nodiscard]] QCheckBox* withoutLinksBox() const { return m_withoutLinks; }
 
     /// @brief The rows shown, sorted and filtered
-    QSortFilterProxyModel* rows() const;
+    [[nodiscard]] QSortFilterProxyModel* rows() const;
 
     /// @brief Show the tiles of a list that has them, or its table; kept for the list
     void showTiles(bool tiles);
@@ -190,7 +190,7 @@ public:
     void showColumn(const QString& columnId, bool shown);
 
     /// @brief Ids of the columns shown, in their order
-    QStringList shownColumns() const;
+    [[nodiscard]] QStringList shownColumns() const;
 
     /// @brief Fill @p menu with the commands of the material chosen (the menu of a row)
     void fillMenu(QMenu& menu);
@@ -296,17 +296,17 @@ private:
     /// @brief Rename... of material @p id from the keys of @p view: a list of cards edits the
     /// cell of a field, a name is renamed; nothing in a book open read-only
     void renameFromKeys(QAbstractItemView* view, const QString& id);
-    QString idAt(const QModelIndex& index) const;
-    int columnOf(const QString& columnId) const;
+    [[nodiscard]] QString idAt(const QModelIndex& index) const;
+    [[nodiscard]] int columnOf(const QString& columnId) const;
     /// @brief The plan of the cover from the rows shown
     void updatePlan();
     /// @brief The page of a kind hidden in the Navigator, or the list
     void updateHidden();
     /// @brief Whether the rows that name the groups of the cover are shown: the table of the
     /// list of the cover with Group by Kind down
-    bool groupsApply() const;
+    [[nodiscard]] bool groupsApply() const;
     /// @brief The materials shown, without the rows that name groups
-    int shownMaterials() const;
+    [[nodiscard]] int shownMaterials() const;
     /// @brief The choices of Kind and the menu of Add of the list of the cover
     void fillCoverChoices();
     /// @brief The texts of the list that say what it has: the materials or the cards
@@ -393,5 +393,6 @@ private:
     core::ProjectManager& m_book;  ///< The book of its window
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_MATERIAL_LIST_PANEL_H

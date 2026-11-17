@@ -5,7 +5,8 @@
 /// @brief The numbered captions of the book: the numbers of every open text in the book around
 ///        it, Insert Caption, Insert Cross-Reference and Insert List of Figures
 
-#pragma once
+#ifndef KALAHARI_GUI_CAPTION_COORDINATOR_H
+#define KALAHARI_GUI_CAPTION_COORDINATOR_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/editor/text_captions.h"
@@ -34,7 +35,7 @@ class CommandRegistry;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -168,7 +169,7 @@ private:
 
     /// @brief The captions of a text not open: from its file or its unsaved text, kept until
     ///        they change
-    const CachedText& savedText(const QString& elementId) const;
+    [[nodiscard]] const CachedText& savedText(const QString& elementId) const;
 
     /// @brief The context of the text at @p index of @p texts
     [[nodiscard]] editor::CaptionContext contextAt(const std::vector<BookText>& texts,
@@ -205,3 +206,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_CAPTION_COORDINATOR_H

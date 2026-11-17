@@ -11,8 +11,7 @@
 
 #include <QCoreApplication>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -204,5 +203,4 @@ core::KindWords fileWords() {
     return words;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

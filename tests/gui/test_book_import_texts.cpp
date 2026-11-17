@@ -11,7 +11,7 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/editor/image_store.h>
 #include <kalahari/gui/book_import_texts.h>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <QDir>
 #include <QFile>

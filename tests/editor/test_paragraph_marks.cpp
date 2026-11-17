@@ -11,7 +11,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/editor_types.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QAction>
 #include <QContextMenuEvent>

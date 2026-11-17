@@ -6,7 +6,8 @@
 ///        read as the editor reads it with its numbers, the pieces of its paragraphs, the
 ///        styles' kinds and the pictures of the images
 
-#pragma once
+#ifndef KALAHARI_EDITOR_DETAIL_BOOK_EXPORT_INTERNAL_H
+#define KALAHARI_EDITOR_DETAIL_BOOK_EXPORT_INTERNAL_H
 
 #include <kalahari/editor/book_export.h>
 #include <kalahari/editor/image_store.h>
@@ -38,16 +39,16 @@ public:
     ExportText(const ExportText&) = delete;
     ExportText& operator=(const ExportText&) = delete;
 
-    const QTextDocument& document() const { return *m_document; }
-    const CaptionNumbers& captions() const { return m_captions; }
-    const FootnoteNumbers& notes() const { return m_notes; }
+    [[nodiscard]] const QTextDocument& document() const { return *m_document; }
+    [[nodiscard]] const CaptionNumbers& captions() const { return m_captions; }
+    [[nodiscard]] const FootnoteNumbers& notes() const { return m_notes; }
 
     /// @brief The number of a list item as the editor counts it; -1: none (outside a list, an
     ///        item without a number)
-    int listNumber(const QTextBlock& block) const;
+    [[nodiscard]] int listNumber(const QTextBlock& block) const;
 
     /// @brief The annotations of the text with their places
-    const std::vector<AnnotationPlace>& annotations() const { return m_annotations; }
+    [[nodiscard]] const std::vector<AnnotationPlace>& annotations() const { return m_annotations; }
 
 private:
     std::unique_ptr<QTextDocument> m_document;
@@ -125,7 +126,7 @@ struct ExportPicture {
 ///        is of it
 /// @param pageHeight The height of the text of a page in points: an image is never higher;
 ///        0: no limit
-ExportPicture exportPicture(const ImageStore& store, const ImageProperties& image,
+ExportPicture exportPicture(const ImageStore& store, const ImageProperties& properties,
                             double lineWidth, double pageHeight);
 
 /// @brief A text with the characters XML does not allow taken out, escaped for an attribute or
@@ -142,3 +143,5 @@ QByteArray zipped(const std::vector<std::pair<QString, QByteArray>>& files, Expo
 bool writeExportFile(const QString& path, const QByteArray& data, ExportProblem* problem);
 
 }  // namespace kalahari::editor::exporting
+
+#endif  // KALAHARI_EDITOR_DETAIL_BOOK_EXPORT_INTERNAL_H

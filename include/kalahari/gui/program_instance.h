@@ -5,7 +5,8 @@
 /// @brief One program for the writer: a later start hands its request to the program that
 /// runs, and ends
 
-#pragma once
+#ifndef KALAHARI_GUI_PROGRAM_INSTANCE_H
+#define KALAHARI_GUI_PROGRAM_INSTANCE_H
 
 #include <QObject>
 #include <QString>
@@ -16,8 +17,7 @@ class QLocalServer;
 class QLocalSocket;
 class QLockFile;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief One program for the writer
 ///
@@ -65,7 +65,7 @@ public:
     bool listen();
 
     /// @brief Whether this start listens for the requests of later starts
-    bool isListening() const;
+    [[nodiscard]] bool isListening() const;
 
     /// @brief The channel of this program file and this writer
     static QString defaultKey();
@@ -83,5 +83,6 @@ private:
     QLocalServer* m_server = nullptr;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PROGRAM_INSTANCE_H

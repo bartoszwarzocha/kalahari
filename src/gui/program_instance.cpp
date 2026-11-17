@@ -29,8 +29,7 @@
 #include <windows.h>
 #endif
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -222,5 +221,4 @@ void ProgramInstance::readRequest(QLocalSocket* socket)
     socket->disconnectFromServer();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

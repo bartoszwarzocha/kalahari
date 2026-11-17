@@ -11,7 +11,8 @@
 /// link. The format holds no look of a link: the editor draws its characters in the link
 /// color, underlined.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_LINK_H
+#define KALAHARI_EDITOR_TEXT_LINK_H
 
 #include <QString>
 
@@ -83,3 +84,5 @@ bool isOpenableLinkAddress(const QString& address);
 QString linkClickKeys();
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_LINK_H

@@ -14,7 +14,7 @@
 #include <kalahari/core/name_declension.h>
 #include <kalahari/core/project_manager.h>
 
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <QObject>
 #include <QStringList>

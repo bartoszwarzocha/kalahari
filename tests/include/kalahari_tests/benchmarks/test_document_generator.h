@@ -8,7 +8,8 @@
 /// Generates realistic test documents with configurable characteristics
 /// for benchmarking the new editor architecture.
 
-#pragma once
+#ifndef KALAHARI_TESTS_BENCHMARKS_TEST_DOCUMENT_GENERATOR_H
+#define KALAHARI_TESTS_BENCHMARKS_TEST_DOCUMENT_GENERATOR_H
 
 #include <QString>
 #include <QStringList>
@@ -60,10 +61,10 @@ public:
 
     /// @brief Get actual word count of last generated document
     /// @return Word count
-    int lastWordCount() const { return m_lastWordCount; }
+    [[nodiscard]] int lastWordCount() const { return m_lastWordCount; }
 
     /// @brief Get the configuration
-    const Config& config() const { return m_config; }
+    [[nodiscard]] const Config& config() const { return m_config; }
 
     /// @brief Save generated document to file
     /// @param content Document content
@@ -101,3 +102,5 @@ private:
 };
 
 } // namespace kalahari::benchmarks
+
+#endif  // KALAHARI_TESTS_BENCHMARKS_TEST_DOCUMENT_GENERATOR_H

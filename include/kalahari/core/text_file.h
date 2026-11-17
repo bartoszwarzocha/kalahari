@@ -4,7 +4,8 @@
 /// @file text_file.h
 /// @brief Plain text files read and written in their own encoding and line ends
 
-#pragma once
+#ifndef KALAHARI_CORE_TEXT_FILE_H
+#define KALAHARI_CORE_TEXT_FILE_H
 
 #include <QString>
 #include <QStringConverter>
@@ -51,3 +52,5 @@ bool writeTextFile(const QString& path, const QString& text, TextFileFormat& for
                    QString* error = nullptr);
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_TEXT_FILE_H

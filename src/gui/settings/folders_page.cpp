@@ -22,8 +22,7 @@
 #include <QLineEdit>
 #include <QSpinBox>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 using json = nlohmann::json;
 
@@ -170,5 +169,4 @@ SettingsPage::Problem FoldersPage::problem() const {
     return {};
 }
 
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui

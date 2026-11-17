@@ -5,7 +5,8 @@
 /// @brief Undo, Redo, Cut, Copy, Paste, Delete and Select All work on the element with the
 ///        keys; the commands of the book's text work only there
 
-#pragma once
+#ifndef KALAHARI_GUI_EDIT_COORDINATOR_H
+#define KALAHARI_GUI_EDIT_COORDINATOR_H
 
 #include "kalahari/gui/edit_target.h"
 
@@ -25,7 +26,7 @@ class CommandRegistry;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -150,3 +151,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_EDIT_COORDINATOR_H

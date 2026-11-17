@@ -24,9 +24,7 @@
 #include <array>
 #include <cmath>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 using editor::LineSpacing;
 using editor::LineSpacingRule;
@@ -623,6 +621,4 @@ void ParagraphDialog::updatePreviews()
     }
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

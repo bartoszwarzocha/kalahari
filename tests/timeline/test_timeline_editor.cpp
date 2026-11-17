@@ -27,7 +27,7 @@
 #include <kalahari/timeline/timeline_scene.h>
 #include <kalahari/timeline/timeline_settings_page.h>
 
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <QApplication>
 #include <QComboBox>

@@ -21,8 +21,7 @@
 #include <utility>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // Translate technical menu names to display names (i18n), with their access keys: unique
 // among the menus of the menu bar and in each menu (test_menu_access_keys)
@@ -352,5 +351,4 @@ QMenu* MenuBuilder::getMenu(const std::string& technicalName) const {
 // CommandRegistry uses ArtProvider::createAction() which connects each
 // action to ArtProvider::resourcesChanged() signal for auto-refresh.
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

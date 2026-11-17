@@ -12,7 +12,8 @@
 /// OpenSpec #00033 Phase G: Full implementation with QStackedWidget.
 /// OpenSpec #00042 Task 7.4: PropertiesPanel Integration with BookEditor.
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_PROPERTIES_PANEL_H
+#define KALAHARI_GUI_PANELS_PROPERTIES_PANEL_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/gui/material_source.h"
@@ -40,10 +41,9 @@ class ProjectManager;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class CardPage;
 class ClippingOriginBox;
@@ -93,10 +93,10 @@ public:
     ~PropertiesPanel() override;
 
     /// @brief The page the panel shows
-    Page currentPage() const;
+    [[nodiscard]] Page currentPage() const;
 
     /// @brief The card of a material
-    MaterialPage* materialPage() const { return m_materialPage; }
+    [[nodiscard]] MaterialPage* materialPage() const { return m_materialPage; }
 
     /// @brief The short card of a character, a location or an item
     [[nodiscard]] CardPage* cardPage() const { return m_cardPage; }
@@ -110,9 +110,9 @@ public:
     [[nodiscard]] ParagraphCardsBox* paragraphCards() const { return m_paragraphCards; }
 
     /// @brief The materials of the element of the chapter page, of the section and of the part
-    LinkedMaterialsBox* chapterMaterials() const { return m_chapterMaterials; }
-    LinkedMaterialsBox* sectionMaterials() const { return m_sectionMaterials; }
-    LinkedMaterialsBox* partMaterials() const { return m_partMaterials; }
+    [[nodiscard]] LinkedMaterialsBox* chapterMaterials() const { return m_chapterMaterials; }
+    [[nodiscard]] LinkedMaterialsBox* sectionMaterials() const { return m_sectionMaterials; }
+    [[nodiscard]] LinkedMaterialsBox* partMaterials() const { return m_partMaterials; }
 
     /// @brief Where the clipping of the chapter page comes from (hidden for another element)
     [[nodiscard]] ClippingOriginBox* clippingOrigin() const { return m_clippingOrigin; }
@@ -452,7 +452,7 @@ private:
     /// @brief Format date for display
     /// @param dateTime Date and time; invalid when unknown
     /// @return Formatted date string, in local time
-    QString formatDate(const QDateTime& dateTime) const;
+    [[nodiscard]] QString formatDate(const QDateTime& dateTime) const;
 
     /// @brief Select @p status in the chapter's status combo; "draft" when it is not there
     void selectChapterStatus(const QString& status);
@@ -473,42 +473,44 @@ private:
     void showBookType(const core::BookProject& project, const core::ProjectBook& book);
 
     // Main widget
-    QStackedWidget* m_stackedWidget;
+    QStackedWidget* m_stackedWidget = nullptr;
 
     // No Project Page
-    QLabel* m_noProjectLabel;
+    QLabel* m_noProjectLabel = nullptr;
 
     // Project Page widgets
     QLabel* m_projectTypeIcon = nullptr;   ///< Icon of the book's type (showBookType())
     QLabel* m_projectTypeLabel = nullptr;  ///< Name of the book's type: "Novel", "Novel (not in
                                            ///< the program)"
-    QLineEdit* m_projectTitleEdit;
-    QLineEdit* m_projectAuthorEdit;
-    QComboBox* m_projectLanguageCombo;
+    QLineEdit* m_projectTitleEdit = nullptr;
+    QLineEdit* m_projectAuthorEdit = nullptr;
+    QComboBox* m_projectLanguageCombo = nullptr;
     QComboBox* m_projectBibliographyCombo = nullptr;  ///< Its own style, or the Settings' one
-    QLineEdit* m_projectGenreEdit;
-    QFormLayout* m_projectInfoLayout;          ///< Rows of the book's information
-    SectionsComboBox* m_projectSectionsCombo;  ///< The sections of the book, or none
-    SectionNamesEdit* m_projectSectionNames;   ///< Own names of the sections
-    QLabel* m_projectChaptersTitle;  ///< "Total Chapters:", "Total Stories:": the main texts
-    QLabel* m_projectChaptersLabel;
-    QLabel* m_projectWordsLabel;
-    QLabel* m_projectCreatedLabel;
-    QLabel* m_projectModifiedLabel;
-    QLabel* m_projectDraftCountLabel;
-    QLabel* m_projectRevisionCountLabel;
-    QLabel* m_projectFinalCountLabel;
+    QLineEdit* m_projectGenreEdit = nullptr;
+    QFormLayout* m_projectInfoLayout = nullptr;          ///< Rows of the book's information
+    SectionsComboBox* m_projectSectionsCombo = nullptr;  ///< The sections of the book, or none
+    SectionNamesEdit* m_projectSectionNames = nullptr;   ///< Own names of the sections
+    QLabel* m_projectChaptersTitle = nullptr;  ///< "Total Chapters:", "Total Stories:": the main
+                                               ///< texts
+    QLabel* m_projectChaptersLabel = nullptr;
+    QLabel* m_projectWordsLabel = nullptr;
+    QLabel* m_projectCreatedLabel = nullptr;
+    QLabel* m_projectModifiedLabel = nullptr;
+    QLabel* m_projectDraftCountLabel = nullptr;
+    QLabel* m_projectRevisionCountLabel = nullptr;
+    QLabel* m_projectFinalCountLabel = nullptr;
 
     // Chapter Page widgets: a text element of any kind, or a file of the book outside its
     // text, which has only its title and its words
-    QGroupBox* m_chapterInfoGroup;  ///< "Chapter Information", "Story Information"
-    QFormLayout* m_chapterInfoLayout;  ///< Rows of the element's information
-    QLineEdit* m_chapterTitleEdit;
-    QLabel* m_chapterWordCountLabel;
-    QComboBox* m_chapterStatusCombo;
-    QCheckBox* m_chapterFirstPageLeft;  ///< The text starts on a left page (mirror margins)
-    QGroupBox* m_chapterNotesGroup;
-    QTextEdit* m_chapterNotesEdit;
+    QGroupBox* m_chapterInfoGroup = nullptr;  ///< "Chapter Information", "Story Information"
+    QFormLayout* m_chapterInfoLayout = nullptr;  ///< Rows of the element's information
+    QLineEdit* m_chapterTitleEdit = nullptr;
+    QLabel* m_chapterWordCountLabel = nullptr;
+    QComboBox* m_chapterStatusCombo = nullptr;
+    QCheckBox* m_chapterFirstPageLeft = nullptr;  ///< The text starts on a left page (mirror
+                                                  ///< margins)
+    QGroupBox* m_chapterNotesGroup = nullptr;
+    QTextEdit* m_chapterNotesEdit = nullptr;
     LinkedMaterialsBox* m_chapterMaterials = nullptr;  ///< The materials of the element
     ClippingOriginBox* m_clippingOrigin = nullptr;     ///< Where a clipping comes from
     PlotFieldsBox* m_chapterPlot = nullptr;  ///< What the plot board says of a text
@@ -523,24 +525,25 @@ private:
     QVBoxLayout* m_editorPageLayout = nullptr;   ///< The Editor page, for the versions group
 
     // Section Page widgets
-    QLabel* m_sectionTitleLabel;
-    QLabel* m_sectionChapterCountTitle;  ///< "Chapters:", "Stories:", or "Elements:" outside
-                                         ///< the main one
-    QLabel* m_sectionChapterCountLabel;
-    QLabel* m_sectionWordCountLabel;
-    QLabel* m_sectionDraftCountLabel;
-    QLabel* m_sectionRevisionCountLabel;
-    QLabel* m_sectionFinalCountLabel;
+    QLabel* m_sectionTitleLabel = nullptr;
+    QLabel* m_sectionChapterCountTitle = nullptr;  ///< "Chapters:", "Stories:", or "Elements:"
+                                                   ///< outside the main one
+    QLabel* m_sectionChapterCountLabel = nullptr;
+    QLabel* m_sectionWordCountLabel = nullptr;
+    QLabel* m_sectionDraftCountLabel = nullptr;
+    QLabel* m_sectionRevisionCountLabel = nullptr;
+    QLabel* m_sectionFinalCountLabel = nullptr;
     LinkedMaterialsBox* m_sectionMaterials = nullptr;  ///< The materials of the section
 
     // Part Page widgets
-    QLabel* m_partTitleLabel;
-    QLabel* m_partChapterCountTitle;  ///< "Chapters:", "Stories:": the main texts of the book
-    QLabel* m_partChapterCountLabel;
-    QLabel* m_partWordCountLabel;
-    QLabel* m_partDraftCountLabel;
-    QLabel* m_partRevisionCountLabel;
-    QLabel* m_partFinalCountLabel;
+    QLabel* m_partTitleLabel = nullptr;
+    QLabel* m_partChapterCountTitle = nullptr;  ///< "Chapters:", "Stories:": the main texts of the
+                                                ///< book
+    QLabel* m_partChapterCountLabel = nullptr;
+    QLabel* m_partWordCountLabel = nullptr;
+    QLabel* m_partDraftCountLabel = nullptr;
+    QLabel* m_partRevisionCountLabel = nullptr;
+    QLabel* m_partFinalCountLabel = nullptr;
     LinkedMaterialsBox* m_partMaterials = nullptr;  ///< The materials of the part
     // The card of a material
     MaterialPage* m_materialPage = nullptr;
@@ -549,18 +552,18 @@ private:
     ParagraphCardsBox* m_paragraphCards = nullptr;  ///< The paragraph's cards (placeTextGroups())
 
     // Editor Page widgets (OpenSpec #00042 Task 7.4)
-    QLabel* m_editorTitleLabel;           ///< "Selection" or "Document"
-    QLabel* m_editorWordCountLabel;       ///< Word count
-    QLabel* m_editorCharCountLabel;       ///< Character count (with spaces)
-    QLabel* m_editorCharNoSpaceLabel;     ///< Character count (without spaces)
-    QLabel* m_editorParagraphCountLabel;  ///< Paragraph count
-    QLabel* m_editorReadingTimeLabel;     ///< Estimated reading time
+    QLabel* m_editorTitleLabel = nullptr;           ///< "Selection" or "Document"
+    QLabel* m_editorWordCountLabel = nullptr;       ///< Word count
+    QLabel* m_editorCharCountLabel = nullptr;       ///< Character count (with spaces)
+    QLabel* m_editorCharNoSpaceLabel = nullptr;     ///< Character count (without spaces)
+    QLabel* m_editorParagraphCountLabel = nullptr;  ///< Paragraph count
+    QLabel* m_editorReadingTimeLabel = nullptr;     ///< Estimated reading time
 
     // State tracking
     QString m_currentChapterId;    ///< Currently displayed chapter ID
     QString m_currentSectionType;  ///< Currently displayed section type
     QString m_currentPartId;       ///< Currently displayed part ID
-    bool m_isUpdating;             ///< Flag to prevent recursive updates
+    bool m_isUpdating = false;     ///< Flag to prevent recursive updates
 
     // Active editor tracking (OpenSpec #00042 Task 7.4)
     EditorPanel* m_activeEditorPanel{nullptr};  ///< Currently tracked editor panel
@@ -573,5 +576,6 @@ private:
     core::ProjectManager& m_book;  ///< The book of its window
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_PROPERTIES_PANEL_H

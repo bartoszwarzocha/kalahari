@@ -15,7 +15,8 @@
 ///
 /// Ported from wxWidgets IconRegistry and extended for Qt6 + TwoTone support.
 
-#pragma once
+#ifndef KALAHARI_CORE_ICON_REGISTRY_H
+#define KALAHARI_CORE_ICON_REGISTRY_H
 
 #include <QColor>
 #include <QIcon>
@@ -26,11 +27,10 @@
 #include <map>
 #include <optional>
 
-// Forward declaration to avoid circular dependency
-namespace kalahari { namespace core { struct Theme; } }
+namespace kalahari::core {
 
-namespace kalahari {
-namespace core {
+// Forward declaration to avoid circular dependency
+struct Theme;
 
 // ============================================================================
 // IconDescriptor - Icon with Customization Options
@@ -45,12 +45,12 @@ struct IconDescriptor {
     QString label;                                ///< Human-readable label ("Save File")
 
     /// @brief Get effective SVG path (user override or default)
-    QString getEffectiveSVGPath() const {
+    [[nodiscard]] QString getEffectiveSVGPath() const {
         return userSVGPath.has_value() ? *userSVGPath : defaultSVGPath;
     }
 
     /// @brief Check if icon has user customization (SVG or colors)
-    bool isCustomized() const {
+    [[nodiscard]] bool isCustomized() const {
         return userSVGPath.has_value() || primaryOverride.has_value() || secondaryOverride.has_value();
     }
 };
@@ -146,10 +146,10 @@ public:
                       const QString& label);
 
     /// @brief Check if icon is registered
-    bool hasIcon(const QString& actionId) const;
+    [[nodiscard]] bool hasIcon(const QString& actionId) const;
 
     /// @brief Get all registered action IDs (sorted alphabetically)
-    QStringList getAllIconIds() const;
+    [[nodiscard]] QStringList getAllIconIds() const;
 
     // ========================================================================
     // Icon Retrieval (called by Command Registry, UI)
@@ -183,14 +183,14 @@ public:
     /// @brief The program's SVG file of icon @p actionId in icon theme @p theme, as it was
     /// registered (not the user's own file), with the colors as placeholders
     /// @return Its absolute path, or empty when the icon is not registered or has no file there
-    QString svgFileOf(const QString& actionId, const QString& theme) const;
+    [[nodiscard]] QString svgFileOf(const QString& actionId, const QString& theme) const;
 
     /// @brief Get icon descriptor for action
     /// @return IconDescriptor pointer or nullptr if not found
-    const IconDescriptor* getIconDescriptor(const QString& actionId) const;
+    [[nodiscard]] const IconDescriptor* getIconDescriptor(const QString& actionId) const;
 
     /// @brief Get icon label
-    QString getIconLabel(const QString& actionId) const;
+    [[nodiscard]] QString getIconLabel(const QString& actionId) const;
 
     // ========================================================================
     // User Customization (called by Settings Dialog, future Icon Manager)
@@ -222,7 +222,7 @@ public:
     void setSizes(const IconSizeConfig& sizes);
 
     /// @brief Get current size configuration
-    const IconSizeConfig& getSizes() const { return m_sizes; }
+    [[nodiscard]] const IconSizeConfig& getSizes() const { return m_sizes; }
 
     /// @brief Reset sizes to defaults
     void resetSizes();
@@ -238,7 +238,7 @@ public:
     void setThemeColors(const QColor& primary, const QColor& secondary, const QString& name);
 
     /// @brief Get current theme configuration
-    const ThemeConfig& getThemeConfig() const { return m_theme; }
+    [[nodiscard]] const ThemeConfig& getThemeConfig() const { return m_theme; }
 
     /// @brief Reset theme to default Light
     void resetTheme();
@@ -272,7 +272,7 @@ private:
     /// @brief Load SVG file content from disk
     /// @param filePath Absolute or relative SVG file path
     /// @return SVG content as QString, or empty string if error
-    QString loadSVGFromFile(const QString& filePath) const;
+    [[nodiscard]] QString loadSVGFromFile(const QString& filePath) const;
 
     /// @brief Absolute path of an SVG file: a relative "resources/icons/<theme>/<name>.svg" in
     /// the resources folder, else in the program's folder
@@ -286,21 +286,21 @@ private:
     /// @param primary PRIMARY color (QColor::name() hex string)
     /// @param secondary SECONDARY color (QColor::name() hex string)
     /// @return Modified SVG content with colors applied
-    QString replaceColorPlaceholders(const QString& svgContent,
-                                     const QColor& primary,
-                                     const QColor& secondary) const;
+    [[nodiscard]] QString replaceColorPlaceholders(const QString& svgContent,
+                                                   const QColor& primary,
+                                                   const QColor& secondary) const;
 
     /// @brief Render SVG to QPixmap
     /// @param svgContent SVG content (with colors already replaced)
     /// @param size Pixel size (width = height)
     /// @return Rendered QPixmap, or empty QPixmap if error
-    QPixmap renderSVGToPixmap(const QString& svgContent, int size) const;
+    [[nodiscard]] QPixmap renderSVGToPixmap(const QString& svgContent, int size) const;
 
     /// @brief Get effective PRIMARY color for icon (per-icon override or theme)
-    QColor getEffectivePrimaryColor(const QString& actionId) const;
+    [[nodiscard]] QColor getEffectivePrimaryColor(const QString& actionId) const;
 
     /// @brief Get effective SECONDARY color for icon (per-icon override or theme)
-    QColor getEffectiveSecondaryColor(const QString& actionId) const;
+    [[nodiscard]] QColor getEffectiveSecondaryColor(const QString& actionId) const;
 
     /// @brief Construct cache key for QIcon cache (without size - QIcon works at any size)
     /// @param actionId Action ID
@@ -308,15 +308,15 @@ private:
     /// @param primary PRIMARY color
     /// @param secondary SECONDARY color
     /// @return Cache key (e.g., "file.save_twotone_#424242_#757575")
-    QString constructCacheKey(const QString& actionId,
-                              const QString& theme,
-                              const QColor& primary,
-                              const QColor& secondary) const;
+    [[nodiscard]] QString constructCacheKey(const QString& actionId,
+                                            const QString& theme,
+                                            const QColor& primary,
+                                            const QColor& secondary) const;
 
     /// @brief Create QIcon from SVG content with multiple pre-rendered sizes
     /// @param svgContent SVG content (with colors already replaced)
     /// @return QIcon with pixmaps at common sizes (16, 24, 32, 48, 64, 128)
-    QIcon createIconFromSVG(const QString& svgContent) const;
+    [[nodiscard]] QIcon createIconFromSVG(const QString& svgContent) const;
 
     /// @brief Clear cache entries matching pattern (e.g., "file.save_*")
     void clearCachePattern(const QString& pattern);
@@ -342,5 +342,6 @@ private:
     mutable std::map<QString, QIcon> m_iconCache;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_ICON_REGISTRY_H

@@ -7,14 +7,14 @@
 /// This file defines the AssistantPanel class, a placeholder for the
 /// AI assistant panel. Will be enhanced in Phase 2+.
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_ASSISTANT_PANEL_H
+#define KALAHARI_GUI_PANELS_ASSISTANT_PANEL_H
 
 #include <QWidget>
 
 class QLabel;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Assistant panel (placeholder)
 ///
@@ -32,8 +32,9 @@ public:
     ~AssistantPanel() override = default;
 
 private:
-    QLabel* m_placeholderLabel;
+    QLabel* m_placeholderLabel = nullptr;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_ASSISTANT_PANEL_H

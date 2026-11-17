@@ -63,8 +63,7 @@
 #include <algorithm>
 #include <initializer_list>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -118,53 +117,6 @@ void focusMaterials(const LinkedMaterialsBox* box) {
 
 PropertiesPanel::PropertiesPanel(core::ProjectManager& book, QWidget* parent)
     : QWidget(parent)
-    , m_stackedWidget(nullptr)
-    , m_noProjectLabel(nullptr)
-    , m_projectTitleEdit(nullptr)
-    , m_projectAuthorEdit(nullptr)
-    , m_projectLanguageCombo(nullptr)
-    , m_projectGenreEdit(nullptr)
-    , m_projectInfoLayout(nullptr)
-    , m_projectSectionsCombo(nullptr)
-    , m_projectSectionNames(nullptr)
-    , m_projectChaptersTitle(nullptr)
-    , m_projectChaptersLabel(nullptr)
-    , m_projectWordsLabel(nullptr)
-    , m_projectCreatedLabel(nullptr)
-    , m_projectModifiedLabel(nullptr)
-    , m_projectDraftCountLabel(nullptr)
-    , m_projectRevisionCountLabel(nullptr)
-    , m_projectFinalCountLabel(nullptr)
-    , m_chapterInfoGroup(nullptr)
-    , m_chapterInfoLayout(nullptr)
-    , m_chapterTitleEdit(nullptr)
-    , m_chapterWordCountLabel(nullptr)
-    , m_chapterStatusCombo(nullptr)
-    , m_chapterFirstPageLeft(nullptr)
-    , m_chapterNotesGroup(nullptr)
-    , m_chapterNotesEdit(nullptr)
-    , m_sectionTitleLabel(nullptr)
-    , m_sectionChapterCountTitle(nullptr)
-    , m_sectionChapterCountLabel(nullptr)
-    , m_sectionWordCountLabel(nullptr)
-    , m_sectionDraftCountLabel(nullptr)
-    , m_sectionRevisionCountLabel(nullptr)
-    , m_sectionFinalCountLabel(nullptr)
-    , m_partTitleLabel(nullptr)
-    , m_partChapterCountTitle(nullptr)
-    , m_partChapterCountLabel(nullptr)
-    , m_partWordCountLabel(nullptr)
-    , m_partDraftCountLabel(nullptr)
-    , m_partRevisionCountLabel(nullptr)
-    , m_partFinalCountLabel(nullptr)
-    , m_editorTitleLabel(nullptr)
-    , m_editorWordCountLabel(nullptr)
-    , m_editorCharCountLabel(nullptr)
-    , m_editorCharNoSpaceLabel(nullptr)
-    , m_editorParagraphCountLabel(nullptr)
-    , m_editorReadingTimeLabel(nullptr)
-    , m_isUpdating(false)
-    , m_activeEditorPanel(nullptr)
     , m_book(book)
 {
     auto& logger = core::Logger::getInstance();
@@ -2200,5 +2152,4 @@ void PropertiesPanel::showParagraphCards(const editor::BookEditor* text,
     m_paragraphCards->showParagraph(elementId, paragraph, cards);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

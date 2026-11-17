@@ -28,8 +28,7 @@
 #include <QScopedValueRollback>
 #include <QTextEdit>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -472,5 +471,4 @@ void installWidgetKeys(QApplication& app) {
     app.installEventFilter(new WidgetKeys(currentShortcutPlatform(), &app));
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

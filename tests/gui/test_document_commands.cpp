@@ -12,7 +12,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/utils/document_commands.h"
 
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QAction>
 #include <QApplication>
@@ -25,7 +25,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari::gui;
 

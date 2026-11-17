@@ -8,7 +8,8 @@
 /// OpenSpec #00036 - Enhanced Dashboard with recent books
 /// Redesign: Native Qt widgets (QGridLayout, QLabel, QFrame)
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_DASHBOARD_PANEL_H
+#define KALAHARI_GUI_PANELS_DASHBOARD_PANEL_H
 
 #include <QWidget>
 #include <QCheckBox>
@@ -26,8 +27,7 @@ namespace kalahari::gui {
 class CommandRegistry;
 }  // namespace kalahari::gui
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class DashboardHeaderLayout;
 class DashboardHintsLayout;
@@ -153,7 +153,7 @@ private:
     /// @brief Load icon with theme colors at consistent DASHBOARD_ICON_SIZE
     /// @param actionId Action ID registered in ArtProvider (e.g., "file.open")
     /// @return QPixmap at DASHBOARD_ICON_SIZE, or null if not found
-    QPixmap loadThemedIcon(const QString& actionId) const;
+    [[nodiscard]] QPixmap loadThemedIcon(const QString& actionId) const;
 
     /// @brief The icon @p actionId of a book card in the icon colors of the toolbars
     /// (ArtProvider), drawn sharp at any size
@@ -165,63 +165,67 @@ private:
     static QPixmap bookIconPixmap(const QLabel* label, int size);
 
     // Main layout components
-    QScrollArea* m_scrollArea;         ///< Scroll area for content
-    QWidget* m_contentWidget;          ///< Main content container
-    QVBoxLayout* m_mainLayout;         ///< Main vertical layout
+    QScrollArea* m_scrollArea = nullptr;  ///< Scroll area for content
+    QWidget* m_contentWidget = nullptr;   ///< Main content container
+    QVBoxLayout* m_mainLayout = nullptr;  ///< Main vertical layout
 
     // Header components
     DashboardHeaderLayout* m_headerLayout = nullptr;  ///< The logo beside the texts, or above them
-    QLabel* m_logoLabel;               ///< Application logo (at most 256x256)
-    QLabel* m_titleLabel;              ///< "Welcome to Kalahari"
-    QLabel* m_taglineLabel;            ///< Tagline text
+    QLabel* m_logoLabel = nullptr;     ///< Application logo (at most 256x256)
+    QLabel* m_titleLabel = nullptr;    ///< "Welcome to Kalahari"
+    QLabel* m_taglineLabel = nullptr;  ///< Tagline text
 
     // Shortcuts section
-    QFrame* m_shortcutsFrame;          ///< Shortcuts container frame
-    QLabel* m_shortcutsTitleLabel;     ///< "KEYBOARD SHORTCUTS"
+    QFrame* m_shortcutsFrame = nullptr;       ///< Shortcuts container frame
+    QLabel* m_shortcutsTitleLabel = nullptr;  ///< "KEYBOARD SHORTCUTS"
     DashboardHintsLayout* m_shortcutsLayout = nullptr;  ///< In a row, or one under another
     std::vector<QLabel*> m_shortcutLabels;  ///< The keys and the name of each command
 
     // Main content columns
-    QWidget* m_columnsWidget;          ///< Container for columns
-    QFrame* m_newsColumn;              ///< News column
-    QFrame* m_recentFilesColumn;       ///< Recent files column
-    QWidget* m_columnDivider;           ///< Divider between columns (QWidget for reliable styling)
-    QLabel* m_newsIcon;                ///< News column icon
-    QLabel* m_newsTitle;               ///< News column title
-    QLabel* m_filesIcon;               ///< Files column icon
-    QLabel* m_filesTitle;              ///< Files column title
-    QVBoxLayout* m_newsListLayout;     ///< Layout for news items
-    QVBoxLayout* m_filesListLayout;    ///< Layout for file cards
-    QWidget* m_newsListWidget;         ///< Container for news items
-    QWidget* m_filesListWidget;        ///< Container for file cards
+    QWidget* m_columnsWidget = nullptr;        ///< Container for columns
+    QFrame* m_newsColumn = nullptr;            ///< News column
+    QFrame* m_recentFilesColumn = nullptr;     ///< Recent files column
+    QWidget* m_columnDivider = nullptr;        ///< Divider between columns (QWidget for reliable
+                                               ///< styling)
+    QLabel* m_newsIcon = nullptr;              ///< News column icon
+    QLabel* m_newsTitle = nullptr;             ///< News column title
+    QLabel* m_filesIcon = nullptr;             ///< Files column icon
+    QLabel* m_filesTitle = nullptr;            ///< Files column title
+    QVBoxLayout* m_newsListLayout = nullptr;   ///< Layout for news items
+    QVBoxLayout* m_filesListLayout = nullptr;  ///< Layout for file cards
+    QWidget* m_newsListWidget = nullptr;       ///< Container for news items
+    QWidget* m_filesListWidget = nullptr;      ///< Container for file cards
 
     // Footer
-    QCheckBox* m_autoLoadCheckbox;     ///< Auto-load last project checkbox
-    QLabel* m_autoLoadLabel = nullptr;  ///< Its text, which wraps (a QCheckBox cannot)
-    int m_autoLoadSubscription = -1;    ///< The checkbox following its setting (SettingsManager)
+    QCheckBox* m_autoLoadCheckbox = nullptr;  ///< Auto-load last project checkbox
+    QLabel* m_autoLoadLabel = nullptr;        ///< Its text, which wraps (a QCheckBox cannot)
+    int m_autoLoadSubscription = -1;          ///< The checkbox following its setting
+                                              ///< (SettingsManager)
 
     // Cached recent file cards for click handling
     std::vector<std::pair<QWidget*, QString>> m_fileCards;  ///< Card widget -> file path
 
     // Responsive layout state
-    bool m_singleColumnMode;               ///< True if in single column layout
-    QGridLayout* m_columnsGridLayout;      ///< Grid layout for columns (stored for reorganization)
+    bool m_singleColumnMode = false;             ///< True if in single column layout
+    QGridLayout* m_columnsGridLayout = nullptr;  ///< Grid layout for columns (stored for
+                                                 ///< reorganization)
 
     // Section visibility state (from settings)
-    bool m_showNews;                       ///< Show news column (from settings)
-    bool m_showRecentFiles;                ///< Show recent files column (from settings)
+    bool m_showNews = true;                ///< Show news column (from settings)
+    bool m_showRecentFiles = true;         ///< Show recent files column (from settings)
 
     /// @brief Get max items to display from settings
     /// @return Number of items (3-9, default 5)
-    int getMaxItems() const;
+    [[nodiscard]] int getMaxItems() const;
 
     /// @brief Get icon size from settings
     /// @return Icon size in pixels (24-64, default 48)
-    int getIconSize() const;
+    [[nodiscard]] int getIconSize() const;
 
     static constexpr int SINGLE_COLUMN_THRESHOLD = 750;  ///< Width threshold for single column mode
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_DASHBOARD_PANEL_H

@@ -15,7 +15,7 @@
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/plugin_coordinator.h"
 #include "kalahari/gui/utils/access_keys.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <QAction>
 #include <QApplication>

@@ -5,7 +5,8 @@
 /// @brief The characters of Insert > Special Character...: their groups, their names in the
 ///        program's language and in English, and finding them by a name or a code
 
-#pragma once
+#ifndef KALAHARI_GUI_SPECIAL_CHARACTERS_H
+#define KALAHARI_GUI_SPECIAL_CHARACTERS_H
 
 #include <QCoreApplication>
 #include <QHash>
@@ -14,8 +15,7 @@
 
 #include <optional>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A character of the window
 struct SpecialCharacter {
@@ -29,7 +29,7 @@ struct SpecialCharacter {
     QString group;        ///< The id of its group; empty for a character of no group
 
     /// @brief The character as text
-    QString text() const { return QString::fromUcs4(&code, 1); }
+    [[nodiscard]] QString text() const { return QString::fromUcs4(&code, 1); }
 
     bool operator==(const SpecialCharacter&) const = default;
 };
@@ -55,14 +55,14 @@ public:
     SpecialCharacters();
 
     /// @brief The groups, in the window's order
-    const QList<SpecialCharacterGroup>& groups() const { return m_groups; }
+    [[nodiscard]] const QList<SpecialCharacterGroup>& groups() const { return m_groups; }
 
     /// @brief A character of the window, or any other one, named by its code ("Character
     ///        U+2603"), without a group
-    SpecialCharacter character(char32_t code) const;
+    [[nodiscard]] SpecialCharacter character(char32_t code) const;
 
     /// @brief Whether a character is one of the window's groups
-    bool contains(char32_t code) const { return m_characters.contains(code); }
+    [[nodiscard]] bool contains(char32_t code) const { return m_characters.contains(code); }
 
     /// @brief The characters a text finds, in the order of the groups
     ///
@@ -70,7 +70,7 @@ public:
     /// character, in any case and without the accents ("polpauza" finds "Półpauza"). A code
     /// ("2014", "U+2014") finds its character first, also one that is in no group; so does a
     /// character of the groups typed itself ("—").
-    QList<char32_t> find(const QString& text) const;
+    [[nodiscard]] QList<char32_t> find(const QString& text) const;
 
     /// @brief The code of a character as the window shows it: "U+2014"
     static QString codeText(char32_t code);
@@ -91,5 +91,6 @@ private:
                                              ///< finding (no case, no accents)
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_SPECIAL_CHARACTERS_H

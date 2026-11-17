@@ -26,8 +26,7 @@
 #include <libproc.h>
 #endif
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 ProjectLock::ProjectLock(const QString& projectPath)
     : m_projectPath(projectPath)
@@ -182,5 +181,4 @@ bool ProjectLock::isProcessAlive(qint64 pid)
 #endif
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

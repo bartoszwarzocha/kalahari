@@ -6,9 +6,9 @@
 /// the window Link Paragraph with Card, the signs beside the paragraph, Book > Link Paragraph
 /// with Card... and Book > Open Card at Cursor
 
-#include "../editor/editor_test_utils.h"
-#include "document_window.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/document_window.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"

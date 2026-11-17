@@ -13,8 +13,8 @@
 #include <kalahari/editor/text_keys.h>
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/gui/utils/access_keys.h>
-#include "editor_test_utils.h"
-#include "../benchmarks/test_document_generator.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/benchmarks/test_document_generator.h"
 
 #include <QAction>
 #include <QContextMenuEvent>

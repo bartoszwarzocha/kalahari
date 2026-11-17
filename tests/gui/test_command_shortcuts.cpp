@@ -24,7 +24,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari::gui;
 

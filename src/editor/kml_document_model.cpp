@@ -23,8 +23,7 @@
 #include <algorithm>
 #include <optional>
 
-namespace kalahari {
-namespace editor {
+namespace kalahari::editor {
 
 namespace {
 
@@ -1141,5 +1140,4 @@ bool KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
     return true;
 }
 
-} // namespace editor
-} // namespace kalahari
+} // namespace kalahari::editor

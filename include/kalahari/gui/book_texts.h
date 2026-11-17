@@ -4,7 +4,8 @@
 /// @file book_texts.h
 /// @brief The texts of the open book in reading order, and the saved text of one not open
 
-#pragma once
+#ifndef KALAHARI_GUI_BOOK_TEXTS_H
+#define KALAHARI_GUI_BOOK_TEXTS_H
 
 #include "kalahari/core/book_project.h"
 
@@ -15,7 +16,7 @@
 
 namespace kalahari::core {
 class ProjectManager;
-}
+} // namespace kalahari::core
 
 namespace kalahari::gui {
 
@@ -55,3 +56,5 @@ void keepVersionBeforeReplaceAll(core::ProjectManager& book, const QString& elem
                                  const QString& replacement, int count);
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_BOOK_TEXTS_H

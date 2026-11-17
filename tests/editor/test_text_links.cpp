@@ -13,7 +13,7 @@
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_source_adapter.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QClipboard>
 #include <QCoreApplication>

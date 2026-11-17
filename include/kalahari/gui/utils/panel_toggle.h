@@ -10,9 +10,7 @@
 class QAction;
 class QDockWidget;
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 /// @brief True while a panel is open
 ///
@@ -35,8 +33,6 @@ void togglePanel(QDockWidget* dock);
 /// its tab is raised or covered.
 void followPanel(QAction* action, QDockWidget* dock);
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils
 
 #endif // KALAHARI_GUI_UTILS_PANEL_TOGGLE_H

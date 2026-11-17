@@ -6,9 +6,9 @@
 ///        exports as the program has it (the open texts with their unsaved changes)
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "test_support/dialog_checks.h"
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/extension_points.h"
@@ -178,11 +178,11 @@ ExportBookDialog::Choice wholeBook() {
 /// one; the formats of the program's ids stay the program's
 class OdtExporter : public core::IExporter {
 public:
-    std::string getPluginId() const override { return "test.odt-exporter"; }
-    std::string getVersion() const override { return "1.0.0"; }
+    [[nodiscard]] std::string getPluginId() const override { return "test.odt-exporter"; }
+    [[nodiscard]] std::string getVersion() const override { return "1.0.0"; }
     void onInit() override {}
     void onActivate() override {}
-    std::vector<core::ExportFormatInfo> getFormats() const override {
+    [[nodiscard]] std::vector<core::ExportFormatInfo> getFormats() const override {
         return {{"odt", "OpenDocument text", "odt"}, {"txt", "Plain text", "txt"},
                 {"docx", "Another Word", "docx"}, {"pdf", "Another PDF", "pdf"},
                 {"", "No id", "x"}};

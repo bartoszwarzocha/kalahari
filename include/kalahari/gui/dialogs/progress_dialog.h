@@ -4,7 +4,8 @@
 /// @file progress_dialog.h
 /// @brief The program's own window for the progress of a long task
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_PROGRESS_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_PROGRESS_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -13,9 +14,7 @@
 class QLabel;
 class QProgressBar;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief The progress of a long task, in place of QProgressDialog
 ///
@@ -48,13 +47,13 @@ public:
     void setValue(int value);
 
     /// @brief The current progress
-    int value() const;
+    [[nodiscard]] int value() const;
 
     /// @brief Show or hide Cancel, for a task that cannot stop (by default it is shown)
     void setCancelVisible(bool visible);
 
     /// @brief Cancel or Esc was pressed
-    bool wasCanceled() const { return m_canceled; }
+    [[nodiscard]] bool wasCanceled() const { return m_canceled; }
 
     /// @brief Cancel or Esc: remember it for the task and close the dialog
     void reject() override;
@@ -65,6 +64,6 @@ private:
     bool m_canceled = false;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_PROGRESS_DIALOG_H

@@ -59,8 +59,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -105,7 +104,6 @@ constexpr int AUTO_CORRECT_MESSAGE_MS = 5000;
 
 EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, QWidget* parent)
     : QWidget(parent)
-    , m_bookEditor(nullptr)
     , m_book(book)
     , m_commands(commands)
 {
@@ -1119,5 +1117,4 @@ void EditorPanel::trackStatistics() {
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

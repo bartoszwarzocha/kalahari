@@ -12,8 +12,8 @@
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_tables.h>
+#include "kalahari/editor/detail/layout_notes_internal.h"
 #include "layout_flow_internal.h"
-#include "layout_notes_internal.h"
 #include <QElapsedTimer>
 #include <QFileInfo>
 #include <QFontInfo>

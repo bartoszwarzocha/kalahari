@@ -5,11 +5,11 @@
 /// @brief The cards of characters, locations and items: short in the Properties panel, full
 /// on a tab beside the chapters, their portraits and colors, and Settings > Cards
 
-#include "../editor/editor_test_utils.h"
-#include "document_window.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari_tests/changed_setting.h"
 #include "kalahari_tests/polish.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"

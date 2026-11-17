@@ -14,8 +14,7 @@
 #include <QPushButton>
 #include <QToolButton>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -150,5 +149,4 @@ void InfoBar::updateIcons()
     m_closeButton->setIcon(artProvider.getIcon("dock.close", core::IconContext::Button));
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

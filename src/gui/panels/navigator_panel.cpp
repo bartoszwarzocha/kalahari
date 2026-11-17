@@ -371,7 +371,8 @@ public:
         painter->restore();
     }
 
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& index) const override {
         QSize size = QStyledItemDelegate::sizeHint(option, index);
         const QVariant count = index.data(COUNT_ROLE);
         const auto color = index.data(COLOR_ROLE).value<QColor>();
@@ -431,7 +432,7 @@ public:
     std::function<bool()> takesMaterials;
     std::function<bool(const QTreeWidgetItem* item)> linksMaterials;
 
-    bool canPasteHere() const override {
+    [[nodiscard]] bool canPasteHere() const override {
         const QMimeData* mime = QGuiApplication::clipboard()->mimeData();
         return takesMaterials && takesMaterials() && mime != nullptr &&
                (mime->hasUrls() || mime->hasImage() || mime->hasText());
@@ -492,7 +493,7 @@ protected:
 
     /// The dragged nodes also give their links, which the links of a material take
     /// (NavigatorPanel::LINKS_MIME_TYPE)
-    QMimeData* mimeData(const QList<QTreeWidgetItem*>& items) const override {
+    [[nodiscard]] QMimeData* mimeData(const QList<QTreeWidgetItem*>& items) const override {
         QMimeData* mime = QTreeWidget::mimeData(items);
         QStringList links;
         for (const QTreeWidgetItem* item : items) {
@@ -596,7 +597,7 @@ private:
 
     /// The new place of the dragged element when it is dropped at @p pos; none when it cannot
     /// go there or stays where it is
-    std::optional<kalahari::core::ElementPlace> dropPlace(const QPoint& pos) const {
+    [[nodiscard]] std::optional<kalahari::core::ElementPlace> dropPlace(const QPoint& pos) const {
         using Spot = kalahari::gui::NavigatorPanel::DropSpot;
         Spot spot = Spot::On;
         switch (dropIndicatorPosition()) {
@@ -630,24 +631,10 @@ private:
 
 } // anonymous namespace
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 NavigatorPanel::NavigatorPanel(core::ProjectManager& book, QWidget* parent)
     : QWidget(parent)
-    , m_treeWidget(nullptr)
-    , m_otherFilesItem(nullptr)
-    , m_typeFilter(nullptr)
-    , m_currentFilterType(FilterType::All)
-    , m_searchEdit(nullptr)
-    , m_clearButton(nullptr)
-    , m_expandAllButton(nullptr)
-    , m_collapseAllButton(nullptr)
-    , m_filterDebounceTimer(nullptr)
-    , m_contextMenuItem(nullptr)
-    , m_highlightedItem(nullptr)
-    , m_highlightColor()
-    , m_currentIconSize(0)
     , m_book(book)
 {
     auto& logger = core::Logger::getInstance();
@@ -1272,11 +1259,11 @@ QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
     return formIconId(core::BookProject::formOf(registry, element));
 }
 
-QIcon NavigatorPanel::iconOf(const core::ProjectManager& pm, const core::ProjectElement& element,
+QIcon NavigatorPanel::iconOf(const core::ProjectManager& book, const core::ProjectElement& element,
                              core::IconContext context) {
-    const core::BookTypeRegistry& registry = pm.bookTypes();
+    const core::BookTypeRegistry& registry = book.bookTypes();
     const core::PackageCard* card = element.hasKind() && !core::BookProject::kindOf(registry, element)
-                                        ? pm.packageCard(element.kind.packageId)
+                                        ? book.packageCard(element.kind.packageId)
                                         : nullptr;
     return core::ArtProvider::getInstance().getPackageIcon(iconIdOf(registry, element, card), card,
                                                            context);
@@ -1640,12 +1627,12 @@ bool NavigatorPanel::isWorkshopItem(const QTreeWidgetItem* item) {
     return item && item->data(0, WORKSHOP_ROLE).toBool();
 }
 
-bool NavigatorPanel::isMaterialItem(const core::ProjectManager& pm, const QTreeWidgetItem* item) {
+bool NavigatorPanel::isMaterialItem(const core::ProjectManager& book, const QTreeWidgetItem* item) {
     if (!isWorkshopItem(item) || typeOf(item) != QLatin1String("window_element")) {
         return false;
     }
-    const core::ProjectElement* element = pm.findElement(item->data(0, Qt::UserRole).toString());
-    return element && pm.isMaterial(*element);
+    const core::ProjectElement* element = book.findElement(item->data(0, Qt::UserRole).toString());
+    return element && book.isMaterial(*element);
 }
 
 QColor NavigatorPanel::cardColorOf(const QTreeWidgetItem* item) {
@@ -3916,5 +3903,4 @@ void NavigatorPanel::setFileModified(const QString& path, bool isModified) {
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

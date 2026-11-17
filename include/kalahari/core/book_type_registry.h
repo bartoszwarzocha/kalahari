@@ -4,7 +4,8 @@
 /// @file book_type_registry.h
 /// @brief Book type packages loaded from folders, and what a book of each type offers
 
-#pragma once
+#ifndef KALAHARI_CORE_BOOK_TYPE_REGISTRY_H
+#define KALAHARI_CORE_BOOK_TYPE_REGISTRY_H
 
 #include <kalahari/core/book_type_package.h>
 #include <QHash>
@@ -25,13 +26,13 @@ struct KindRef {
 
     /// @brief "kalahari.base:chapter": the kind with the package that defines it; empty when
     /// there is no kind
-    QString reference() const;
+    [[nodiscard]] QString reference() const;
 
     /// @brief Whether a new element of the kind is offered in @p place: one of its places that
     /// the package defining it lists it in, or any of its places when the package lists it
     /// nowhere; a retired kind nowhere. An element is moved to the other places of its kind,
     /// not added there (a chapter goes to the front section, but is added to the main one).
-    bool offeredIn(BookPlace place) const;
+    [[nodiscard]] bool offeredIn(BookPlace place) const;
 };
 
 /// @brief Element that a new book of a type starts with
@@ -71,65 +72,67 @@ public:
     void load(const QStringList& directories);
 
     /// @brief Problems found by the last load()
-    const QList<BookTypeProblem>& problems() const { return m_problems; }
+    [[nodiscard]] const QList<BookTypeProblem>& problems() const { return m_problems; }
 
     /// @brief Loaded packages: in the order of @p directories, in each by folder name
-    QList<const BookTypePackage*> packages() const;
+    [[nodiscard]] QList<const BookTypePackage*> packages() const;
 
     /// @brief Loaded book types (packages with role "type"), in the order of packages()
-    QList<const BookTypePackage*> bookTypes() const;
+    [[nodiscard]] QList<const BookTypePackage*> bookTypes() const;
 
     /// @brief Package @p id, or nullptr
-    const BookTypePackage* package(const QString& id) const;
+    [[nodiscard]] const BookTypePackage* package(const QString& id) const;
 
     /// @brief Kind @p kindId as package @p packageId sees it
     ///
     /// The package's own kind, else one of the packages it uses. A package comes before the
     /// packages it uses, and of two packages in "uses" the later one comes first. A kind of
     /// another package, "kalahari.nonfiction:bibliography", is the kind as that package sees it.
-    KindRef findKind(const QString& packageId, const QString& kindId) const;
+    [[nodiscard]] KindRef findKind(const QString& packageId, const QString& kindId) const;
 
     /// @brief Kinds that package @p packageId offers in @p place, in its order; a retired kind
     /// (ElementKind::retired) that its list names is left out
-    QList<KindRef> kindsIn(const QString& packageId, BookPlace place) const;
+    [[nodiscard]] QList<KindRef> kindsIn(const QString& packageId, BookPlace place) const;
 
     /// @brief Kinds of package @p packageId that can be inside a group of kind @p groupKindId
     ///
     /// Kinds of the package's lists, in the order main, front, back, Workshop.
-    QList<KindRef> kindsInside(const QString& packageId, const QString& groupKindId) const;
+    [[nodiscard]] QList<KindRef> kindsInside(const QString& packageId,
+                                             const QString& groupKindId) const;
 
     /// @brief Elements that a new book of type @p packageId starts with
-    QList<StartElement> startElements(const QString& packageId) const;
+    [[nodiscard]] QList<StartElement> startElements(const QString& packageId) const;
 
     /// @brief Every kind of every package: the palette a project takes kinds from
     ///
     /// Kinds of the same id from different packages are different kinds. In the order of
     /// packages(); in a package, in the order of its lists, then the kinds it does not list.
     /// Retired kinds (ElementKind::retired) are left out.
-    QList<KindRef> allKinds() const;
+    [[nodiscard]] QList<KindRef> allKinds() const;
 
     /// @brief Paragraph styles of package @p packageId and of the packages it uses
     ///
     /// Styles of used packages first; a style of the package replaces a used one of its id.
-    QList<PackageParagraphStyle> paragraphStyles(const QString& packageId) const;
+    [[nodiscard]] QList<PackageParagraphStyle> paragraphStyles(const QString& packageId) const;
 
     /// @brief Character styles of package @p packageId and of the packages it uses
-    QList<PackageCharacterStyle> characterStyles(const QString& packageId) const;
+    [[nodiscard]] QList<PackageCharacterStyle> characterStyles(const QString& packageId) const;
 
 private:
     enum class CheckState { Unchecked, Checking, Valid, Invalid };
 
     /// Package and the packages it uses, each before the packages it uses
-    QList<const BookTypePackage*> lineage(const BookTypePackage& package) const;
-    KindRef findKind(const BookTypePackage& package, const QString& kindName) const;
+    [[nodiscard]] QList<const BookTypePackage*> lineage(const BookTypePackage& package) const;
+    [[nodiscard]] KindRef findKind(const BookTypePackage& package, const QString& kindName) const;
     /// Whether one of @p kindNames, as @p package sees it, is @p kind
     bool namesKind(const BookTypePackage& package, const QStringList& kindNames,
                    const ElementKind* kind) const;
-    QList<KindRef> kindsInside(const BookTypePackage& package, const QString& groupKindId) const;
+    [[nodiscard]] QList<KindRef> kindsInside(const BookTypePackage& package,
+                                             const QString& groupKindId) const;
     bool validate(const BookTypePackage& package, QHash<QString, CheckState>& states);
     /// Drop the packages that use or name kinds of packages which were not loaded
     void dropDependents(QHash<QString, CheckState>& states);
-    QStringList check(const BookTypePackage& package) const;
+    [[nodiscard]] QStringList check(const BookTypePackage& package) const;
 
     std::vector<std::unique_ptr<BookTypePackage>> m_packages;
     QHash<QString, const BookTypePackage*> m_packagesById;
@@ -137,3 +140,5 @@ private:
 };
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_BOOK_TYPE_REGISTRY_H

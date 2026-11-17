@@ -4,7 +4,8 @@
 /// @file move_element_dialog.h
 /// @brief Move: a new place in the book for an element, with the elements inside it
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_MOVE_ELEMENT_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_MOVE_ELEMENT_DIALOG_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
@@ -18,9 +19,7 @@ namespace kalahari::core {
 class ProjectManager;
 }  // namespace kalahari::core
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief Move: a new place in the book for an element of the Navigator
 ///
@@ -60,30 +59,30 @@ public:
 
     /// @brief The chosen place, in the book without the element
     /// (core::ProjectManager::moveElementTo())
-    core::ElementPlace place() const;
+    [[nodiscard]] core::ElementPlace place() const;
 
     /// @brief The place of the element in the book
-    ElementPlacePicker* picker() const { return m_picker; }
+    [[nodiscard]] ElementPlacePicker* picker() const { return m_picker; }
 
 private:
     /// @brief Where @p place of the book without the element is, as a part of a sentence: "at
     /// the end of the main section", "in the part "Part One", before "Chapter 3""
-    QString placeText(const core::ElementPlace& place) const;
+    [[nodiscard]] QString placeText(const core::ElementPlace& place) const;
 
     /// @brief For a kind of the start or of the end, its places as options: the start or the
     /// end of each part of the book it can be in, and first in its first group there or last
     /// in its last one
-    QList<PlaceOption> edgeOptions() const;
+    [[nodiscard]] QList<PlaceOption> edgeOptions() const;
 
     /// @brief @p text with the name of the element's kind for "{kind}", and of the kind of
     /// @p group for "{group}"
     QString named(const QString& text, const core::ProjectElement* group = nullptr) const;
 
     /// @brief Group @p id of the book without the element, or nullptr
-    const core::ProjectElement* groupOf(const QString& id) const;
+    [[nodiscard]] const core::ProjectElement* groupOf(const QString& id) const;
 
     /// @brief The part @p place of the book without the element, or nullptr
-    const PickerSection* sectionOf(core::BookPlace place) const;
+    [[nodiscard]] const PickerSection* sectionOf(core::BookPlace place) const;
 
     /// @brief The dialog can be accepted only with another place
     void updateAcceptButton();
@@ -93,6 +92,6 @@ private:
     ElementPlacePicker* m_picker = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_MOVE_ELEMENT_DIALOG_H

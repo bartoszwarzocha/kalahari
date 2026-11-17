@@ -13,8 +13,7 @@
 #include <utility>
 #include <vector>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 namespace {
 
@@ -162,7 +161,7 @@ struct Token {
     QString text;   ///< The word or the character; whitespace at the start of a paragraph
     QString space;  ///< The whitespace after it
 
-    QString whole() const { return text + space; }
+    [[nodiscard]] QString whole() const { return text + space; }
 };
 
 /// Pieces of a paragraph: words and each other character, with the whitespace after them, so
@@ -537,5 +536,4 @@ TextDiff diffTexts(const QStringList& older, const QStringList& newer) {
     return diff;
 }
 
-}  // namespace core
-}  // namespace kalahari
+} // namespace kalahari::core

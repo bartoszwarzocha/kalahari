@@ -37,8 +37,7 @@
 #include <utility>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -74,7 +73,7 @@ public:
         update();
     }
 
-    QSize sizeHint() const override {
+    [[nodiscard]] QSize sizeHint() const override {
         const QFontMetricsF metrics(m_font);
         return QSize(static_cast<int>(std::ceil(metrics.horizontalAdvance(QLatin1Char('M')) *
                                                 SCENE_BREAK_PREVIEW_EMS)),
@@ -132,7 +131,7 @@ public:
         update();
     }
 
-    QSize sizeHint() const override {
+    [[nodiscard]] QSize sizeHint() const override {
         const QSizeF page = pageSize();
         return QSize(static_cast<int>(std::ceil(page.width() * 2.0)) + 1,
                      static_cast<int>(std::ceil(page.height())) + 1);
@@ -183,7 +182,7 @@ protected:
 
 private:
     /// The size of a page on the screen, in pixels
-    QSizeF pageSize() const {
+    [[nodiscard]] QSizeF pageSize() const {
         const qreal height = std::round(fontMetrics().height() * SPREAD_PREVIEW_PAGE_LINES);
         return QSizeF(std::round(height * m_size.width() / m_size.height()), height);
     }
@@ -246,19 +245,19 @@ public:
         update();
     }
 
-    QSize sizeHint() const override {
+    [[nodiscard]] QSize sizeHint() const override {
         const Geometry geometry = measure();
         return QSize(sideBySideWidth(geometry), rowHeight(geometry));
     }
 
-    QSize minimumSizeHint() const override {
+    [[nodiscard]] QSize minimumSizeHint() const override {
         const Geometry geometry = measure();
         return QSize(static_cast<int>(std::ceil(geometry.box.width())) + 1, rowHeight(geometry));
     }
 
-    bool hasHeightForWidth() const override { return true; }
+    [[nodiscard]] bool hasHeightForWidth() const override { return true; }
 
-    int heightForWidth(int width) const override {
+    [[nodiscard]] int heightForWidth(int width) const override {
         const Geometry geometry = measure();
         const int row = rowHeight(geometry);
         return width >= sideBySideWidth(geometry)
@@ -325,7 +324,7 @@ private:
         qreal caption = 0.0;   ///< Height of the name under a paper
     };
 
-    Geometry measure() const {
+    [[nodiscard]] Geometry measure() const {
         Geometry geometry;
         geometry.textFont = font();
         geometry.textFont.setFamily(m_textFamily);
@@ -363,7 +362,7 @@ private:
     }
 
     /// The number at a line of the preview; none where the interval leaves it out
-    QString numberAt(int line) const {
+    [[nodiscard]] QString numberAt(int line) const {
         const auto atInterval = [this](int from) {
             return (from + m_interval - 1) / m_interval * m_interval;
         };
@@ -1036,5 +1035,4 @@ void EditorPagesPage::addMarginNumbersGroup() {
     });
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

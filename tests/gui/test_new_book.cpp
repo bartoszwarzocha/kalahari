@@ -15,7 +15,7 @@
 #include <kalahari/gui/dialogs/user_project_dialog.h>
 #include <kalahari/gui/widgets/kind_palette.h>
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <QCheckBox>
 #include <QCoreApplication>
@@ -37,7 +37,7 @@
 #include <functional>
 #include <optional>
 #include <string>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using core::BookPlace;
@@ -330,7 +330,7 @@ public:
         }
         return {};
     }
-    bool isEmpty() const override { return false; }
+    [[nodiscard]] bool isEmpty() const override { return false; }
 };
 
 } // namespace

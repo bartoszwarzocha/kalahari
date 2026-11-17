@@ -32,8 +32,7 @@
 #include <string>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -325,5 +324,4 @@ void EditorRepetitionsPage::updateButtons() {
     m_remove->setEnabled(!m_words->selectedItems().isEmpty());
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

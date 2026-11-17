@@ -13,8 +13,7 @@
 #include <QSqlError>
 #include <QFile>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 DatabaseSchemaManager::DatabaseSchemaManager(QSqlDatabase& db)
     : m_db(db)
@@ -149,5 +148,4 @@ bool DatabaseSchemaManager::createSchema()
     return true;
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

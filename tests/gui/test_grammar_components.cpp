@@ -7,7 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "grammar_test_utils.h"
+#include "kalahari_tests/gui/grammar_test_utils.h"
 #include "kalahari/gui/grammar_components.h"
 
 #include <QDir>

@@ -10,7 +10,8 @@
 /// of the book, its deadline and the deadlines of its parts are the book's own (BookGoals, in
 /// its project.db). A change works at once: there is no OK or Apply.
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_WRITING_GOALS_TAB_H
+#define KALAHARI_GUI_PANELS_WRITING_GOALS_TAB_H
 
 #include "kalahari/gui/dialogs/deadline_dialog.h"
 
@@ -107,7 +108,7 @@ private:
     void storeGoals(const core::BookGoals& goals);
 
     /// @brief The writing days of the buttons, as the setting keeps them
-    int writingDaysOfButtons() const;
+    [[nodiscard]] int writingDaysOfButtons() const;
 
     /// @brief "%1 words" in the writer's language
     static QString words(qint64 count);
@@ -157,3 +158,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_WRITING_GOALS_TAB_H

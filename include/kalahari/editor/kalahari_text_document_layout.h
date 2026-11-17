@@ -4,7 +4,8 @@
 /// @file kalahari_text_document_layout.h
 /// @brief Custom QAbstractTextDocumentLayout without Qt leading gaps (OpenSpec #00043)
 
-#pragma once
+#ifndef KALAHARI_EDITOR_KALAHARI_TEXT_DOCUMENT_LAYOUT_H
+#define KALAHARI_EDITOR_KALAHARI_TEXT_DOCUMENT_LAYOUT_H
 
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/paragraph_format.h>
@@ -667,7 +668,7 @@ protected:
                             const QTextFormat& format) override;
 
     /// @brief Draw an object of the text in the color of the text
-    void drawInlineObject(QPainter* painter, const QRectF& rect, QTextInlineObject object,
+    void drawInlineObject(QPainter* painter, const QRectF& rect, QTextInlineObject item,
                           int posInDocument, const QTextFormat& format) override;
 
 private:
@@ -1426,3 +1427,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_KALAHARI_TEXT_DOCUMENT_LAYOUT_H

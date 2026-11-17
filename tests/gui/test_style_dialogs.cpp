@@ -6,7 +6,7 @@
 ///        Paragraph for a style, and Manage Styles
 
 #include <catch2/catch_test_macros.hpp>
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/paragraph_styles.h"
@@ -40,7 +40,7 @@
 
 #include <functional>
 #include <string>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::StyleCoordinator;

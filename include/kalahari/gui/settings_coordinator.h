@@ -7,7 +7,8 @@
 /// OpenSpec #00038 - Phase 5: Extract Settings Management from MainWindow
 /// This class manages settings dialog integration and settings application.
 
-#pragma once
+#ifndef KALAHARI_GUI_SETTINGS_COORDINATOR_H
+#define KALAHARI_GUI_SETTINGS_COORDINATOR_H
 
 #include <QObject>
 #include <QStringList>
@@ -28,7 +29,7 @@ class CommandRegistry;
 namespace kalahari {
 namespace editor {
 class SpellCheckService;
-}
+} // namespace editor
 namespace gui {
 
 class DashboardPanel;
@@ -141,3 +142,5 @@ private:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_SETTINGS_COORDINATOR_H

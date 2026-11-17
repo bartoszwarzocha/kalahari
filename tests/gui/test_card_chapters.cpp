@@ -5,8 +5,8 @@
 /// @brief The chapters a card is in and the materials linked with it on the full card, Find in
 /// Book of the card, and the files and pictures dropped on a card
 
-#include "document_window.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/gui/document_window.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"

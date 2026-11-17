@@ -7,8 +7,8 @@
 
 #include <kalahari/editor/book_pages.h>
 
-#include "book_editor_internal.h"
-#include "book_export_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
+#include "kalahari/editor/detail/book_export_internal.h"
 
 #include <kalahari/editor/editor_render_pipeline.h>
 #include <kalahari/editor/image_store.h>

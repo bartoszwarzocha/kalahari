@@ -170,9 +170,11 @@ jobs:
   analysis:
     name: Sanitizers, Coverage & clang-tidy
     runs-on: ubuntu-24.04
-    # Setup and build ~50 min, tests under the sanitizers ~27 min, coverage ~5 min: in 90 min
-    # clang-tidy of a large PR (78 changed C++ files) was cut off after 6 minutes
-    timeout-minutes: 120
+    # Setup and build ~50 min, tests under the sanitizers ~27 min, coverage ~5 min; clang-tidy
+    # of a pull request that changes hundreds of files (a clean-up of the whole code) takes two
+    # hours or more on the runner's 4 cores (344 translation units: not done after 82 minutes);
+    # GitHub stops any job at 360
+    timeout-minutes: 350
 
     steps:
     - name: Checkout code
@@ -268,8 +270,10 @@ jobs:
       if: github.event_name == 'pull_request'
       run: |
         # Hunks that add only // comments or blank lines (e.g. a licence header in every
-        # file) cannot get a finding, but would make clang-tidy analyse their whole files
+        # file) cannot get a finding, but would make clang-tidy analyse their whole files.
+        # A changed header is checked once, in a translation unit that includes it (with that
+        # unit's include folders)
         git diff -U0 "origin/${{ github.base_ref }}...HEAD" -- '*.cpp' '*.h' \
           | python3 .github/scripts/drop_comment_only_hunks.py \
-          | clang-tidy-diff-18.py -p1 -path build -quiet -j 4
+          | python3 .github/scripts/clang_tidy_changed.py -p build -j 4 --clang-tidy clang-tidy-18
 

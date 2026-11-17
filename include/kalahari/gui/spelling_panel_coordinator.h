@@ -5,7 +5,8 @@
 /// @brief The Spelling and Grammar panel: the issues of the text in front, what the writer
 ///        does with them, and when the panel shows
 
-#pragma once
+#ifndef KALAHARI_GUI_SPELLING_PANEL_COORDINATOR_H
+#define KALAHARI_GUI_SPELLING_PANEL_COORDINATOR_H
 
 #include <kalahari/gui/panels/spelling_issue_list.h>
 
@@ -109,7 +110,7 @@ private slots:
 
 private:
     // The text in front
-    editor::BookEditor* currentEditor() const;
+    [[nodiscard]] editor::BookEditor* currentEditor() const;
     void onCurrentTabChanged();
     void onCursorMoved(const editor::CursorPosition& position);
     void scheduleRefresh();
@@ -129,7 +130,7 @@ private:
     bool isDone(editor::TextIssueKind kind, int checked, int paragraphs);
 
     /// @brief The place of the editor's cursor in its whole text
-    int cursorPlace(const editor::BookEditor& editor) const;
+    [[nodiscard]] int cursorPlace(const editor::BookEditor& editor) const;
 
     // What the writer does in the panel
     void selectInEditor(const SpellingPanelIssue& issue);
@@ -170,3 +171,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_SPELLING_PANEL_COORDINATOR_H

@@ -19,8 +19,7 @@
 
 #include <optional>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 // =============================================================================
 // Construction
@@ -589,5 +588,4 @@ WordTally ChapterDocument::kmlWordTally(const QString& kml)
     return tally;
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

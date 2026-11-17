@@ -36,7 +36,8 @@
 ///
 /// OpenSpec #00035: KChapter Document Format
 
-#pragma once
+#ifndef KALAHARI_CORE_CHAPTER_DOCUMENT_H
+#define KALAHARI_CORE_CHAPTER_DOCUMENT_H
 
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/text_statistics.h>
@@ -49,8 +50,7 @@
 #include <QList>
 #include <optional>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief A scene of a text: its text from its start or from a scene break (<scene-break/>,
 ///        a paragraph of the text) to the next break
@@ -109,11 +109,11 @@ public:
 
     /// @brief Get KML content
     /// @return KML string
-    QString kml() const;
+    [[nodiscard]] QString kml() const;
 
     /// @brief Get plain text content (disaster recovery backup)
     /// @return Plain text string
-    QString plainText() const;
+    [[nodiscard]] QString plainText() const;
 
     /// @brief Set KML content
     /// @param kml KML content string
@@ -129,7 +129,7 @@ public:
 
     /// @brief Check if document has content
     /// @return true if KML is not empty
-    bool hasContent() const;
+    [[nodiscard]] bool hasContent() const;
 
     // =========================================================================
     // Statistics (auto-calculated)
@@ -140,24 +140,24 @@ public:
     ///         of the settings when the text was set, with the texts of the notes of the KML
     ///         when the rules count them: a file read keeps the number it was saved with,
     ///         whatever the rules are now (wordTally() follows them)
-    int wordCount() const;
+    [[nodiscard]] int wordCount() const;
 
     /// @brief The words of the text under any rules of counting (core::tallyWords()),
     ///        counted now, as the editor counts the text of the KML: with the texts of its
     ///        footnotes and endnotes (kmlWordTally())
-    WordTally wordTally() const;
+    [[nodiscard]] WordTally wordTally() const;
 
     /// @brief Get character count
     /// @return Number of characters (excluding whitespace)
-    int characterCount() const;
+    [[nodiscard]] int characterCount() const;
 
     /// @brief Get paragraph count
     /// @return Number of paragraphs containing text, as counted by core::countText()
-    int paragraphCount() const;
+    [[nodiscard]] int paragraphCount() const;
 
     /// @brief Get last modification timestamp
     /// @return QDateTime of last modification
-    QDateTime lastModified() const;
+    [[nodiscard]] QDateTime lastModified() const;
 
     /// @brief Update last modified timestamp to now
     void touch();
@@ -168,7 +168,7 @@ public:
 
     /// @brief Get chapter title
     /// @return Title string
-    QString title() const;
+    [[nodiscard]] QString title() const;
 
     /// @brief Set chapter title
     /// @param title Title string
@@ -176,7 +176,7 @@ public:
 
     /// @brief Get chapter status
     /// @return Status string (e.g., "draft", "revision", "final")
-    QString status() const;
+    [[nodiscard]] QString status() const;
 
     /// @brief Set chapter status
     /// @param status Status string
@@ -184,7 +184,7 @@ public:
 
     /// @brief Get chapter notes
     /// @return Notes string
-    QString notes() const;
+    [[nodiscard]] QString notes() const;
 
     /// @brief Set chapter notes
     /// @param notes Notes string
@@ -192,7 +192,7 @@ public:
 
     /// @brief Get chapter color (for visual organization)
     /// @return Optional color
-    std::optional<QColor> color() const;
+    [[nodiscard]] std::optional<QColor> color() const;
 
     /// @brief Set chapter color
     /// @param color Color value
@@ -207,7 +207,7 @@ public:
 
     /// @brief Get comments array
     /// @return JSON array of comments
-    QJsonArray comments() const;
+    [[nodiscard]] QJsonArray comments() const;
 
     /// @brief Set comments array
     /// @param comments JSON array of comments
@@ -215,7 +215,7 @@ public:
 
     /// @brief Get highlights array
     /// @return JSON array of highlights
-    QJsonArray highlights() const;
+    [[nodiscard]] QJsonArray highlights() const;
 
     /// @brief Set highlights array
     /// @param highlights JSON array of highlights
@@ -227,7 +227,7 @@ public:
 
     /// @brief Serialize to JSON object
     /// @return Complete JSON representation
-    QJsonObject toJson() const;
+    [[nodiscard]] QJsonObject toJson() const;
 
     /// @brief Deserialize from JSON object
     /// @param json JSON object
@@ -249,7 +249,7 @@ public:
     /// the previous file as it was.
     /// @param path File path
     /// @return true if saved successfully
-    bool save(const QString& path) const;
+    [[nodiscard]] bool save(const QString& path) const;
 
     // =========================================================================
     // Migration Helpers
@@ -345,5 +345,6 @@ private:
     QJsonArray m_highlights;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_CHAPTER_DOCUMENT_H

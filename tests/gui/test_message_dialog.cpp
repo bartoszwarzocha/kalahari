@@ -10,7 +10,7 @@
 #include "kalahari/gui/dialogs/color_dialog.h"
 #include "kalahari/core/settings_manager.h"
 
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QApplication>
 #include <QAbstractButton>

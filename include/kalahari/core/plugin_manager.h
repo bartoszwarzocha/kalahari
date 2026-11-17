@@ -4,7 +4,8 @@
 /// @file plugin_manager.h
 /// @brief Singleton managing plugin lifecycle
 
-#pragma once
+#ifndef KALAHARI_CORE_PLUGIN_MANAGER_H
+#define KALAHARI_CORE_PLUGIN_MANAGER_H
 
 #include <kalahari/core/plugin_manifest.h>
 #include <kalahari/core/plugin_archive.h>
@@ -25,8 +26,7 @@
 
 namespace py = pybind11;
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Plugin lifecycle states
 enum class PluginState {
@@ -233,5 +233,6 @@ private:
     mutable std::mutex m_mutex;                               ///< Thread safety
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_PLUGIN_MANAGER_H

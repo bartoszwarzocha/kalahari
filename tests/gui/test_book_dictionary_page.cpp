@@ -9,7 +9,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/name_declension.h"
 #include "kalahari/core/project_manager.h"
@@ -30,7 +30,7 @@
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/widgets/central_tabs.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <QApplication>
 #include <QCheckBox>

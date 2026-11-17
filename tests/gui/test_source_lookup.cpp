@@ -5,7 +5,7 @@
 /// @brief The description of a source from a catalog on the web: the window of From the Web by
 /// ISBN or DOI..., its button on the card of a source and its options in the Settings
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
@@ -39,7 +39,7 @@
 #include <functional>
 #include <string>
 
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 namespace core = kalahari::core;
 namespace gui = kalahari::gui;

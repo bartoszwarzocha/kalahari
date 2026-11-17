@@ -11,9 +11,7 @@
 
 class QAction;
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 /// @brief Keep a toggle checked while an on/off setting is on
 ///
@@ -43,8 +41,6 @@ void followChoice(QAction* action, const std::string& key, const std::string& va
 /// @return The value the setting has now
 std::string chooseSetting(const std::string& key, const std::string& value, const std::string& off);
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils
 
 #endif // KALAHARI_GUI_UTILS_SETTING_TOGGLE_H

@@ -5,7 +5,8 @@
 /// @brief The windows of the lists: Format > Bullets and Numbering... and Set Numbering
 ///        Value... of the context menu of a list item
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_LIST_DIALOGS_H
+#define KALAHARI_GUI_DIALOGS_LIST_DIALOGS_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/editor/text_lists.h"
@@ -24,8 +25,7 @@ class QListWidget;
 class QPaintEvent;
 class QTabWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class LengthSpinBox;
 
@@ -43,8 +43,8 @@ public:
     void setNumberFormat(editor::ListNumberFormat format);
 
 protected:
-    QString textFromValue(int value) const override;
-    int valueFromText(const QString& text) const override;
+    [[nodiscard]] QString textFromValue(int value) const override;
+    [[nodiscard]] int valueFromText(const QString& text) const override;
     QValidator::State validate(QString& input, int& position) const override;
 
 private:
@@ -69,7 +69,7 @@ public:
     /// @brief The marks shown, from the top: "1.", "2.", "a)"
     [[nodiscard]] QStringList shownMarks() const;
 
-    QSize sizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -178,5 +178,6 @@ private:
 };
 
 } // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DIALOGS_LIST_DIALOGS_H

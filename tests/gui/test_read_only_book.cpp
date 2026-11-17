@@ -18,8 +18,8 @@
 #include <kalahari/gui/read_only_book.h>
 #include <kalahari/gui/widgets/standalone_info_bar.h>
 
-#include "context_menu_reader.h"
-#include "document_window.h"
+#include "kalahari_tests/gui/context_menu_reader.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <QAbstractItemView>
 #include <QComboBox>
@@ -43,7 +43,7 @@
 
 #include <algorithm>
 #include <cstdio>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::dialogs::MessageDialog;

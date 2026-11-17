@@ -4,7 +4,8 @@
 /// @file book_editor_internal.h
 /// @brief Helpers shared by the BookEditor source files (not part of the editor's API)
 
-#pragma once
+#ifndef KALAHARI_EDITOR_DETAIL_BOOK_EDITOR_INTERNAL_H
+#define KALAHARI_EDITOR_DETAIL_BOOK_EDITOR_INTERNAL_H
 
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/text_captions.h>
@@ -158,3 +159,5 @@ inline bool readKmlInto(QTextDocument& document, const QString& kml) {
 }
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_DETAIL_BOOK_EDITOR_INTERNAL_H

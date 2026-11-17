@@ -21,7 +21,7 @@
 #include <kalahari/mindmap/mind_map_scene.h>
 #include <kalahari/mindmap/mind_map_view.h>
 
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <QApplication>
 #include <QFileInfo>

@@ -67,8 +67,7 @@
 #include <string>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -327,7 +326,8 @@ public:
         painter->restore();
     }
 
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& index) const override {
         if (index.data(MaterialListPanel::CARD_ROLE).toBool()) {
             return cardTileSize(option.font);
         }
@@ -511,20 +511,20 @@ public:
         }
     }
 
-    const MaterialRow* rowAt(int row) const {
+    [[nodiscard]] const MaterialRow* rowAt(int row) const {
         return row >= 0 && row < m_rows.size() ? &m_rows.at(row) : nullptr;
     }
 
     /// A material at @p row; nullptr for a row that names a group
-    const MaterialRow* materialAt(int row) const {
+    [[nodiscard]] const MaterialRow* materialAt(int row) const {
         const MaterialRow* found = rowAt(row);
         return found != nullptr && found->heading.isEmpty() ? found : nullptr;
     }
 
     /// The materials, without the rows that name groups
-    int materialCount() const { return m_materials; }
+    [[nodiscard]] int materialCount() const { return m_materials; }
 
-    Qt::ItemFlags flags(const QModelIndex& index) const override {
+    [[nodiscard]] Qt::ItemFlags flags(const QModelIndex& index) const override {
         const MaterialRow* row = index.isValid() ? rowAt(index.row()) : nullptr;
         // A row that names a group is no material: the keys and the mouse pass it by
         if (row != nullptr && !row->heading.isEmpty()) {
@@ -536,21 +536,22 @@ public:
         return QAbstractTableModel::flags(index) | (editable ? Qt::ItemIsEditable : Qt::NoItemFlags);
     }
 
-    QString columnId(int column) const {
+    [[nodiscard]] QString columnId(int column) const {
         return column >= 0 && column < m_columns.size() ? m_columns.at(column).id : QString();
     }
 
-    int titleColumn() const { return m_titleColumn; }
+    [[nodiscard]] int titleColumn() const { return m_titleColumn; }
 
-    int rowCount(const QModelIndex& parent = QModelIndex()) const override {
+    [[nodiscard]] int rowCount(const QModelIndex& parent = QModelIndex()) const override {
         return parent.isValid() ? 0 : static_cast<int>(m_rows.size());
     }
 
-    int columnCount(const QModelIndex& parent = QModelIndex()) const override {
+    [[nodiscard]] int columnCount(const QModelIndex& parent = QModelIndex()) const override {
         return parent.isValid() ? 0 : static_cast<int>(m_columns.size());
     }
 
-    QVariant headerData(int section, Qt::Orientation orientation, int role) const override {
+    [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation,
+                                      int role) const override {
         if (orientation != Qt::Horizontal || section < 0 || section >= m_columns.size()) {
             return {};
         }
@@ -566,7 +567,7 @@ public:
         return {};
     }
 
-    QVariant data(const QModelIndex& index, int role) const override {
+    [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override {
         const MaterialRow* row = index.isValid() ? rowAt(index.row()) : nullptr;
         if (row == nullptr || index.column() >= m_columns.size()) {
             return {};
@@ -731,10 +732,11 @@ public:
         }
     }
 
-    bool groups() const { return m_groups; }
+    [[nodiscard]] bool groups() const { return m_groups; }
 
 protected:
-    bool filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const override {
+    [[nodiscard]] bool filterAcceptsRow(int sourceRow,
+                                        const QModelIndex& sourceParent) const override {
         Q_UNUSED(sourceParent);
         const auto* model = static_cast<const MaterialListModel*>(sourceModel());
         const MaterialRow* row = model->rowAt(sourceRow);
@@ -758,7 +760,7 @@ protected:
     }
 
     /// Whether the search and the filters let material @p row through
-    bool accepts(const MaterialRow& material) const {
+    [[nodiscard]] bool accepts(const MaterialRow& material) const {
         const MaterialRow* row = &material;
         if (!m_part.isEmpty() && row->group != m_part) {
             return false;
@@ -782,7 +784,7 @@ protected:
         return true;
     }
 
-    bool lessThan(const QModelIndex& left, const QModelIndex& right) const override {
+    [[nodiscard]] bool lessThan(const QModelIndex& left, const QModelIndex& right) const override {
         // In groups: the groups in their order, each after the row that names it, whichever
         // way the column sorts
         if (m_groups) {
@@ -881,7 +883,7 @@ public:
         placeFields();
     }
 
-    QLineEdit* fieldOf(const QString& columnId) const {
+    [[nodiscard]] QLineEdit* fieldOf(const QString& columnId) const {
         const qsizetype index = m_ids.indexOf(columnId);
         return index >= 0 ? m_fields.at(index) : nullptr;
     }
@@ -896,9 +898,9 @@ public:
         placeFields();
     }
 
-    bool fieldsShown() const { return m_shown; }
+    [[nodiscard]] bool fieldsShown() const { return m_shown; }
 
-    QSize sizeHint() const override {
+    [[nodiscard]] QSize sizeHint() const override {
         QSize size = QHeaderView::sizeHint();
         if (m_shown) {
             size.setHeight(size.height() + fieldHeight());
@@ -929,7 +931,7 @@ protected:
     }
 
 private:
-    int fieldHeight() const {
+    [[nodiscard]] int fieldHeight() const {
         return m_fields.isEmpty() ? QLineEdit().sizeHint().height()
                                   : m_fields.constFirst()->sizeHint().height();
     }
@@ -2425,5 +2427,4 @@ void MaterialListPanel::fillCoverChoices() {
     m_addButton->setPopupMode(QToolButton::MenuButtonPopup);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

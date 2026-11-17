@@ -9,9 +9,7 @@
 #include <QAction>
 #include <QDockWidget>
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 bool isPanelOpen(const QDockWidget* dock) {
     return dock != nullptr && !dock->isHidden();
@@ -52,6 +50,4 @@ void followPanel(QAction* action, QDockWidget* dock) {
     });
 }
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils

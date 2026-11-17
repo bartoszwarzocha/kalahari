@@ -7,7 +7,8 @@
 /// Measures cursor navigation, text insertion, and deletion performance.
 /// Results are logged and can be compared against reference values (e.g., Word).
 
-#pragma once
+#ifndef KALAHARI_EDITOR_EDITOR_BENCHMARK_H
+#define KALAHARI_EDITOR_EDITOR_BENCHMARK_H
 
 #include <QObject>
 #include <QString>
@@ -15,8 +16,7 @@
 #include <vector>
 #include <functional>
 
-namespace kalahari {
-namespace editor {
+namespace kalahari::editor {
 
 class BookEditor;
 
@@ -31,7 +31,7 @@ struct BenchmarkResult {
     double maxMs;              ///< Maximum time for single op
 
     /// @brief Format result as string
-    QString toString() const;
+    [[nodiscard]] QString toString() const;
 };
 
 /// @brief Performance benchmarks for BookEditor
@@ -65,7 +65,7 @@ public:
     void setIterations(int iterations) { m_iterations = iterations; }
 
     /// @brief Get current iteration count
-    int iterations() const { return m_iterations; }
+    [[nodiscard]] int iterations() const { return m_iterations; }
 
     /// @brief Set warmup iterations (not measured)
     /// @param warmup Number of warmup iterations (default: 100)
@@ -125,7 +125,7 @@ public:
 
     /// @brief Get last benchmark results
     /// @return Vector of last run results
-    const std::vector<BenchmarkResult>& lastResults() const { return m_lastResults; }
+    [[nodiscard]] const std::vector<BenchmarkResult>& lastResults() const { return m_lastResults; }
 
     // =========================================================================
     // Reference Values (Word 2019 typical performance)
@@ -181,5 +181,6 @@ private:
     int m_savedCursorOffset{0};              ///< Saved cursor offset
 };
 
-} // namespace editor
-} // namespace kalahari
+} // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_EDITOR_BENCHMARK_H

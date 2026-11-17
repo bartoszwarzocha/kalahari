@@ -102,7 +102,7 @@ public:
         setAccessibleName(tr("Preview of the colors"));
     }
 
-    QSize sizeHint() const override { return {320, 56}; }
+    [[nodiscard]] QSize sizeHint() const override { return {320, 56}; }
 
 protected:
     void paintEvent(QPaintEvent* /*event*/) override

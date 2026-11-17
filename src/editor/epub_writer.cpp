@@ -13,7 +13,7 @@
 /// endnotes after their text or at the end of the book. An NCX table of contents serves the
 /// readers of EPUB 2. The annotations stay in the book.
 
-#include "book_export_internal.h"
+#include "kalahari/editor/detail/book_export_internal.h"
 
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>

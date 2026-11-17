@@ -5,7 +5,7 @@
 /// @brief The words, characters and reading time of the document in front, in the status bar
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/text_statistics.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/widgets/status_bar_statistics.h"

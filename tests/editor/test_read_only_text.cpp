@@ -9,7 +9,7 @@
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/find_replace_bar.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QApplication>
 #include <QClipboard>

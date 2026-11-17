@@ -13,8 +13,7 @@
 #include <algorithm>
 #include <string>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 std::vector<ReplacementEntry> replacementEntriesOf(const nlohmann::json& pairs)
 {
@@ -110,5 +109,4 @@ QStringList autoCorrectSources(const QString& text)
     return sources;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

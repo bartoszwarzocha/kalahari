@@ -6,7 +6,8 @@
 ///        export and of the print, and the book as the program has it (the open texts with
 ///        their unsaved changes) for the file or the printer
 
-#pragma once
+#ifndef KALAHARI_GUI_BOOK_EXPORT_COORDINATOR_H
+#define KALAHARI_GUI_BOOK_EXPORT_COORDINATOR_H
 
 #include "kalahari/editor/book_export.h"
 #include "kalahari/gui/dialogs/export_book_dialog.h"
@@ -35,7 +36,7 @@ struct ProjectElement;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -87,7 +88,7 @@ public:
     void updateCommands();
 
     /// @brief Why the commands of the export are greyed out; empty when they work
-    QString whyNotExport() const;
+    [[nodiscard]] QString whyNotExport() const;
 
     /// @brief Why File > Print is greyed out; empty when it works
     QString whyNotPrint() const;
@@ -99,11 +100,12 @@ public:
     void printBook();
 
     /// @brief What the window says about the book and the text in front
-    dialogs::ExportBookDialog::Book dialogBook() const;
+    [[nodiscard]] dialogs::ExportBookDialog::Book dialogBook() const;
 
     /// @brief The export of @p choice: the texts of the book as the program has them, the
     ///        styles, the page and the options
-    editor::BookExport bookExport(const dialogs::ExportBookDialog::Choice& choice) const;
+    [[nodiscard]] editor::BookExport bookExport(
+        const dialogs::ExportBookDialog::Choice& choice) const;
 
     /// @brief The export of the texts and the layout of @p layout, as a PDF has them: the
     ///        texts of the book as the program has them, the styles and the page
@@ -139,7 +141,7 @@ public:
 
 private:
     /// @brief The open texts of the book, by their elements, as their editors have them
-    QHash<QString, const editor::BookEditor*> openEditors() const;
+    [[nodiscard]] QHash<QString, const editor::BookEditor*> openEditors() const;
 
     /// @brief A text of the book: as its editor in @p open has it, else as the program keeps
     ///        it, with the numbers of its captions and notes
@@ -168,3 +170,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_BOOK_EXPORT_COORDINATOR_H

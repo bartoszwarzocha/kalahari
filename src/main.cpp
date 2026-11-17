@@ -58,9 +58,9 @@ class DownloadHelper : public QObject {
 
 public:
     DownloadHelper(QObject* parent = nullptr)
-        : QObject(parent), downloadSuccess(false) {}
+        : QObject(parent) {}
 
-    bool downloadSuccess;
+    bool downloadSuccess = false;
     QString downloadedSvg;
     QString expectedTheme;
 

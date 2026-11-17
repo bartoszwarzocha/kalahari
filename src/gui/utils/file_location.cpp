@@ -17,8 +17,7 @@
 
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -125,5 +124,4 @@ void setBrowserForTests(std::function<bool(const QUrl&)> open) {
     testBrowser() = std::move(open);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

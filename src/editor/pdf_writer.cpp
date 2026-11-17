@@ -7,7 +7,7 @@
 ///        way the reader shows the pages added to the file as an incremental update (the file
 ///        Qt writes stays as it is, the new objects follow it)
 
-#include "book_export_internal.h"
+#include "kalahari/editor/detail/book_export_internal.h"
 
 #include <kalahari/editor/book_pages.h>
 

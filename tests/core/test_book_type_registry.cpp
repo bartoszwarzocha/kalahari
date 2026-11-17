@@ -200,7 +200,7 @@ class PackageFolder {
 public:
     PackageFolder() { REQUIRE(m_directory.isValid()); }
 
-    QString path() const { return m_directory.path(); }
+    [[nodiscard]] QString path() const { return m_directory.path(); }
 
     void write(const QString& package, const QString& file, const QByteArray& content) {
         const QString filePath = m_directory.filePath(package + QLatin1Char('/') + file);

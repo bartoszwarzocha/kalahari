@@ -4,7 +4,8 @@
 /// @file text_highlight.h
 /// @brief Highlighted ranges of a paragraph's text (search matches, checks, the word read aloud)
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_HIGHLIGHT_H
+#define KALAHARI_EDITOR_TEXT_HIGHLIGHT_H
 
 namespace kalahari::editor {
 
@@ -52,3 +53,5 @@ struct RepetitionMark {
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_HIGHLIGHT_H

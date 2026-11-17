@@ -5,7 +5,7 @@
 /// @brief KalahariTextDocumentLayout: the notes - their numbers in the text, their texts under
 ///        their paragraphs (the continuous views) and at the bottom of the pages (page flow)
 
-#include "layout_notes_internal.h"
+#include "kalahari/editor/detail/layout_notes_internal.h"
 
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_tables.h>

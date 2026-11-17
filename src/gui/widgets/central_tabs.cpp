@@ -22,8 +22,7 @@
 
 #include <string>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -376,5 +375,4 @@ PanelTabBar::Rows CentralTabs::rowsSetting() {
                : PanelTabBar::Rows::Single;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

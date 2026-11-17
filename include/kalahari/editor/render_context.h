@@ -11,7 +11,8 @@
 /// - INPUT PARAMETERS: Set by BookEditor based on user settings
 /// - COMPUTED VALUES: Calculated by EditorRenderPipeline
 
-#pragma once
+#ifndef KALAHARI_EDITOR_RENDER_CONTEXT_H
+#define KALAHARI_EDITOR_RENDER_CONTEXT_H
 
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
@@ -350,3 +351,5 @@ struct RenderContext {
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_RENDER_CONTEXT_H

@@ -16,7 +16,8 @@
 /// The layout shows the numbers (KalahariTextDocumentLayout); KML writes the lists as
 /// <ol>, <ul> and <li>, a list of a lower level inside an item (docs/kml_format.md).
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_LISTS_H
+#define KALAHARI_EDITOR_TEXT_LISTS_H
 
 #include <QString>
 #include <QTextFormat>
@@ -100,7 +101,7 @@ struct ListLevel {
     ListMarkerAlignment alignment = ListMarkerAlignment::Left;
 
     /// @brief Whether the level has bullets instead of numbers
-    bool isBullet() const { return format == ListNumberFormat::Bullet; }
+    [[nodiscard]] bool isBullet() const { return format == ListNumberFormat::Bullet; }
 
     bool operator==(const ListLevel&) const = default;
 };
@@ -126,10 +127,10 @@ struct ListDefinition {
     static ListLevel defaultLevel(ListKind kind, int level);
 
     /// @brief The kind of the list: the kind of its first level
-    ListKind kind() const;
+    [[nodiscard]] ListKind kind() const;
 
     /// @brief The definition as a block format property keeps it
-    QString toString() const;
+    [[nodiscard]] QString toString() const;
 
     /// @brief A definition from toString(); the levels it lacks or cannot read are those of a
     ///        numbered list
@@ -163,7 +164,9 @@ struct ListItem {
     bool numbered = true;        ///< False: no number or bullet
 
     /// @brief The format of the item's level
-    const ListLevel& levelFormat() const { return definition.levels[static_cast<size_t>(level)]; }
+    [[nodiscard]] const ListLevel& levelFormat() const {
+        return definition.levels[static_cast<size_t>(level)];
+    }
 
     bool operator==(const ListItem&) const = default;
 };
@@ -222,3 +225,5 @@ ListLevel listLevelFromKml(bool numbered, const QXmlStreamAttributes& attributes
 QString listLevelToKml(const ListLevel& level, int levelIndex);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_LISTS_H

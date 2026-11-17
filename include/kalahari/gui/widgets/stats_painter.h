@@ -6,7 +6,8 @@
 /// goals share: graphs on a fine grid, thin lines with a translucent fill, as in the Task
 /// Manager of Windows 11
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_STATS_PAINTER_H
+#define KALAHARI_GUI_WIDGETS_STATS_PAINTER_H
 
 #include <kalahari/core/writing_statistics.h>
 
@@ -47,16 +48,16 @@ struct StatsColors {
     int fillOpacity = 20;  ///< The fill under the lines, in percent
 
     /// @brief One color of the list below, by its key ("statsLine")
-    QColor color(const std::string& key) const;
+    [[nodiscard]] QColor color(const std::string& key) const;
 
     /// @brief The fill under the lines: the line color with fillOpacity
-    QColor fill() const;
+    [[nodiscard]] QColor fill() const;
 
     /// @brief The color of a pace of work; the line color when it is unknown or idle
-    QColor temperature(core::WritingTemperature temperature) const;
+    [[nodiscard]] QColor temperature(core::WritingTemperature temperature) const;
 
     /// @brief The color of the badges won of @p level: 0 bronze ... 3 platinum
-    QColor badge(int level) const;
+    [[nodiscard]] QColor badge(int level) const;
 
     /// @brief The colors of the theme in use, with the writer's own
     static StatsColors current();
@@ -117,3 +118,5 @@ void drawGlyph(QPainter& painter, Glyph glyph, const QRectF& rect, const QColor&
 }  // namespace stats_painter
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_STATS_PAINTER_H

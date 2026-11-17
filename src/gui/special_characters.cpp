@@ -12,8 +12,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -807,5 +806,4 @@ std::optional<char32_t> SpecialCharacters::codeOf(const QString& text) {
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

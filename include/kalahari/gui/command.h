@@ -9,7 +9,8 @@
 /// - KeyboardShortcut: Keyboard binding representation
 /// - Command: Complete command descriptor with execution callbacks
 
-#pragma once
+#ifndef KALAHARI_GUI_COMMAND_H
+#define KALAHARI_GUI_COMMAND_H
 
 #include <QPixmap>
 #include <QIcon>
@@ -21,8 +22,7 @@
 #include <functional>
 #include <string>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // ============================================================================
 // IconSet - Pre-rendered Icons for Menu/Toolbar
@@ -72,13 +72,13 @@ struct IconSet {
     static IconSet fromRegistry(const QString& actionId, const QString& theme = QString());
 
     /// @brief Check if icon set is empty (all pixmaps invalid)
-    bool isEmpty() const noexcept {
+    [[nodiscard]] bool isEmpty() const noexcept {
         return icon16.isNull() && icon24.isNull() && icon32.isNull();
     }
 
     /// @brief Convert to QIcon for Qt integration
     /// @return QIcon with all three sizes (16/24/32px)
-    QIcon toQIcon() const;
+    [[nodiscard]] QIcon toQIcon() const;
 };
 
 // ============================================================================
@@ -106,15 +106,15 @@ struct KeyboardShortcut {
 
     /// @brief Convert shortcut to human-readable string
     /// @return String like "Ctrl+S", "Ctrl+Shift+N", "F1"
-    QString toString() const;
+    [[nodiscard]] QString toString() const;
 
     /// @brief Convert to QKeySequence for Qt integration
     /// @return QKeySequence for use in QAction::setShortcut()
-    QKeySequence toQKeySequence() const;
+    [[nodiscard]] QKeySequence toQKeySequence() const;
 
     /// @brief The keys of the shortcut for QAction::setShortcuts(): toQKeySequence(), and with
     ///        Enter the Enter of the keypad too (both are written "Enter")
-    QList<QKeySequence> toQKeySequences() const;
+    [[nodiscard]] QList<QKeySequence> toQKeySequences() const;
 
     /// @brief Parse shortcut from QKeySequence
     /// @param seq QKeySequence to convert
@@ -127,7 +127,7 @@ struct KeyboardShortcut {
     static KeyboardShortcut fromString(const QString& str);
 
     /// @brief Check if shortcut is empty (no key defined)
-    bool isEmpty() const noexcept { return keyCode == 0; }
+    [[nodiscard]] bool isEmpty() const noexcept { return keyCode == 0; }
 
     /// @brief Equality comparison
     bool operator==(const KeyboardShortcut& other) const noexcept {
@@ -227,17 +227,17 @@ struct Command {
     // ========================================================================
 
     /// @brief Check if command has valid execution callback
-    bool canExecute() const noexcept { return execute != nullptr; }
+    [[nodiscard]] bool canExecute() const noexcept { return execute != nullptr; }
 
     /// @brief Check if command should be enabled
     /// @return true if enabled callback returns true or if no callback set
-    bool checkEnabled() const {
+    [[nodiscard]] bool checkEnabled() const {
         return isEnabled ? isEnabled() : true;
     }
 
     /// @brief Check if command should be checked
     /// @return true if checked callback returns true, false otherwise
-    bool checkChecked() const {
+    [[nodiscard]] bool checkChecked() const {
         return isChecked ? isChecked() : false;
     }
 
@@ -252,5 +252,6 @@ struct Command {
     QAction* toQAction(QObject* parent) const;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_COMMAND_H

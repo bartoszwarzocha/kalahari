@@ -9,7 +9,8 @@
 /// values: pages do not copy values by hand. A setting that takes effect only after
 /// a restart (settings_schema::requiresRestart) is marked on the page automatically.
 
-#pragma once
+#ifndef KALAHARI_GUI_SETTINGS_SETTINGS_PAGE_H
+#define KALAHARI_GUI_SETTINGS_SETTINGS_PAGE_H
 
 #include <QString>
 #include <QColor>
@@ -246,3 +247,5 @@ private:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_SETTINGS_SETTINGS_PAGE_H

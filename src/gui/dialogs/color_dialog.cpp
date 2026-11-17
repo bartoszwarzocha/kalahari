@@ -36,9 +36,7 @@
 #include <string>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -142,8 +140,8 @@ public:
         painter->restore();
     }
 
-    QSize sizeHint(const QStyleOptionViewItem& /*option*/,
-                   const QModelIndex& /*index*/) const override
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& /*option*/,
+                                 const QModelIndex& /*index*/) const override
     {
         return {SWATCH_CELL, SWATCH_CELL};
     }
@@ -796,6 +794,4 @@ void ColorDialog::updateViews()
     m_updating = false;
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

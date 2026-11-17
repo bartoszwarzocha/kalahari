@@ -133,8 +133,7 @@
 #include <memory>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -245,15 +244,6 @@ MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , m_book(std::make_unique<core::ProjectManager>())
     , m_commands(std::make_unique<CommandRegistry>())
-    , m_fileMenu(nullptr)
-    , m_editMenu(nullptr)
-    , m_viewMenu(nullptr)
-    , m_dockCoordinator(nullptr)
-    , m_firstShow(true)
-    , m_diagnosticController(nullptr)
-    , m_settingsCoordinator(nullptr)
-    , m_navigatorCoordinator(nullptr)
-    , m_documentCoordinator(nullptr)
 {
     auto& logger = core::Logger::getInstance();
     logger.info("MainWindow constructor called");
@@ -3960,5 +3950,4 @@ void MainWindow::updatePageStatus() {
     m_zoomLabel->show();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

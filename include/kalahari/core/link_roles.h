@@ -5,15 +5,15 @@
 /// @brief How a material is linked with an element: the roles of links, and the paragraph a
 /// link names
 
-#pragma once
+#ifndef KALAHARI_CORE_LINK_ROLES_H
+#define KALAHARI_CORE_LINK_ROLES_H
 
 #include "kalahari/core/book_project.h"
 
 #include <QString>
 #include <QStringList>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 struct ElementKind;
 
@@ -75,5 +75,6 @@ struct LinkRoles {
     static int paragraphOf(const QStringList& paragraphs, const ElementLink& link);
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_LINK_ROLES_H

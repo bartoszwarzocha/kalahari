@@ -4,7 +4,8 @@
 /// @file segmented_layout.h
 /// @brief Joined buttons of a choice: in a row, or one under another on a narrow panel
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_SEGMENTED_LAYOUT_H
+#define KALAHARI_GUI_WIDGETS_SEGMENTED_LAYOUT_H
 
 #include <QLayout>
 #include <QList>
@@ -13,8 +14,7 @@ class QLayoutItem;
 class QRect;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Joined buttons in a row where it has the room, else one under another, all as
 ///        wide as the widest
@@ -72,5 +72,6 @@ private:
     bool m_stacked = false;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_SEGMENTED_LAYOUT_H

@@ -8,8 +8,7 @@
 #include "kalahari/core/logger.h"
 #include <stdexcept>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 ExtensionPointRegistry& ExtensionPointRegistry::getInstance() {
     static ExtensionPointRegistry instance;
@@ -116,5 +115,4 @@ void ExtensionPointRegistry::clearAll() {
     Logger::getInstance().info("ExtensionPointRegistry: All plugins cleared");
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

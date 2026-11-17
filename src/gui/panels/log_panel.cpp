@@ -27,8 +27,7 @@
 #include <QTime>
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // ============================================================================
 // Constructor / Destructor
@@ -36,11 +35,8 @@ namespace gui {
 
 LogPanel::LogPanel(QWidget* parent, bool diagnosticMode)
     : QWidget(parent)
-    , m_logEdit(nullptr)
-    , m_toolBar(nullptr)
     , m_sink(std::make_shared<core::LogPanelSink>())
     , m_diagnosticMode(diagnosticMode)
-    , m_isDarkTheme(false)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("LogPanel: Creating enhanced log panel (diagnosticMode={})", diagnosticMode);
@@ -386,5 +382,4 @@ void LogPanel::showEvent(QShowEvent* event) {
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

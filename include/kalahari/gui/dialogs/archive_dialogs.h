@@ -5,7 +5,8 @@
 /// @brief Export Project Archive and Import Project Archive: each in one window, from the
 /// choice of the archive to the result of the work
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_ARCHIVE_DIALOGS_H
+#define KALAHARI_GUI_DIALOGS_ARCHIVE_DIALOGS_H
 
 #include "kalahari/core/archive_problem.h"
 #include "kalahari/core/book_project.h"
@@ -46,8 +47,7 @@ namespace core {
 class BookTypeRegistry;
 } // namespace core
 
-namespace gui {
-namespace dialogs {
+namespace gui::dialogs {
 
 class RowList;
 
@@ -67,35 +67,35 @@ public:
     using Progress = std::function<void(int)>;
 
     /// @brief The bar of the progress of the work; hidden before the work
-    QProgressBar* progressBar() const { return m_progressBar; }
+    [[nodiscard]] QProgressBar* progressBar() const { return m_progressBar; }
 
     /// @brief The sentence of the result, or of what went wrong; empty before the work
-    QString resultText() const;
+    [[nodiscard]] QString resultText() const;
 
     /// @brief The sentence under the bar while the work lasts; empty while it is hidden
     QString progressText() const;
 
     /// @brief Why the work failed, as the window says it under resultText(); empty when the
     /// work did not fail
-    QString reasonText() const;
+    [[nodiscard]] QString reasonText() const;
 
     /// @brief How the work failed, one problem a line, as the log has it: the description of
     /// Kalahari and of its libraries, which only Copy puts on the clipboard; empty when the
     /// work did not fail
-    QString detailsText() const;
+    [[nodiscard]] QString detailsText() const;
 
     /// @brief Copy, shown when something went wrong
-    QPushButton* copyButton() const { return m_copyButton; }
+    [[nodiscard]] QPushButton* copyButton() const { return m_copyButton; }
 
     /// @brief What Copy puts on the clipboard: the title of the window, what the window says
     /// went wrong, and how, as the log has it
-    QString clipboardText() const;
+    [[nodiscard]] QString clipboardText() const;
 
     /// @brief What the work that is done left out, as the window says it under its result
     QString notesText() const;
 
     /// @brief Whether the work is done: the window shows its result, and Close
-    bool isDone() const { return m_state == State::Done; }
+    [[nodiscard]] bool isDone() const { return m_state == State::Done; }
 
     /// @brief Show the result in the file manager of the system, as Show in Folder does
     void showResult();
@@ -104,7 +104,7 @@ public:
     void openResult();
 
     /// @brief Open File, shown with the result of a work that wrote a file the system opens
-    QLabel* openLink() const { return m_openLink; }
+    [[nodiscard]] QLabel* openLink() const { return m_openLink; }
 
     /// @brief Do the work of the window; when it is done, close the window
     void accept() override;
@@ -124,7 +124,7 @@ protected:
     explicit ArchiveDialog(QWidget* parent = nullptr);
 
     /// @brief The layout of the fields, which wait while the work lasts and stay after it
-    QVBoxLayout* fieldsLayout() const { return m_fieldsLayout; }
+    [[nodiscard]] QVBoxLayout* fieldsLayout() const { return m_fieldsLayout; }
 
     /// @brief A group of rows with a title, at the end of the fields: a label at the left of
     /// each field, the labels of all the groups as wide as the widest
@@ -150,7 +150,7 @@ protected:
                          const QString& iconId = QString());
 
     /// @brief The sentence of line @p note; empty while it is hidden
-    QString noteText(const FieldNote& note) const;
+    [[nodiscard]] QString noteText(const FieldNote& note) const;
 
     /// @brief A field of a path that cannot be typed, with Browse... beside it
     /// @param field Gets the field of the path
@@ -302,44 +302,44 @@ public:
                         QWidget* parent = nullptr);
 
     /// @brief The folder of the archive
-    QString folder() const { return m_folder; }
+    [[nodiscard]] QString folder() const { return m_folder; }
 
     /// @brief Set the folder of the archive, as Browse... does
     void setFolder(const QString& folder);
 
     /// @brief The field of the name of the archive
-    QLineEdit* nameField() const { return m_nameField; }
+    [[nodiscard]] QLineEdit* nameField() const { return m_nameField; }
 
     /// @brief The path of the archive: the folder and the name, which gets ".klh.zip" when it
     /// does not end with it; empty while the archive cannot be written there
-    QString archivePath() const;
+    [[nodiscard]] QString archivePath() const;
 
     /// @brief The line under the folder: why the program cannot use it, or that it creates it
-    QString folderNote() const { return noteText(m_folderNote); }
+    [[nodiscard]] QString folderNote() const { return noteText(m_folderNote); }
 
     /// @brief The line under the name: why it cannot be the name of the archive, the name the
     /// archive gets, or that the export replaces an archive
-    QString nameNote() const { return noteText(m_nameNote); }
+    [[nodiscard]] QString nameNote() const { return noteText(m_nameNote); }
 
     /// @brief The check box that takes the backups of the database to the archive
-    QCheckBox* backupsBox() const { return m_backupsBox; }
+    [[nodiscard]] QCheckBox* backupsBox() const { return m_backupsBox; }
 
     /// @brief The line under the check box of the backups: what they give, or that the book
     /// has none yet
-    QString backupsNote() const { return noteText(m_backupsNote); }
+    [[nodiscard]] QString backupsNote() const { return noteText(m_backupsNote); }
 
     /// @brief The check box that takes the versions of the texts to the archive
-    QCheckBox* versionsBox() const { return m_versionsBox; }
+    [[nodiscard]] QCheckBox* versionsBox() const { return m_versionsBox; }
 
     /// @brief The line under the check box of the versions: what they give, or that the book
     /// has none yet
-    QString versionsNote() const { return noteText(m_versionsNote); }
+    [[nodiscard]] QString versionsNote() const { return noteText(m_versionsNote); }
 
     /// @brief The group of the files that are not ready; hidden when there are none
-    QGroupBox* unreadyGroup() const { return m_unreadyGroup; }
+    [[nodiscard]] QGroupBox* unreadyGroup() const { return m_unreadyGroup; }
 
     /// @brief The list of the files that are not ready
-    QTreeWidget* unreadyList() const;
+    [[nodiscard]] QTreeWidget* unreadyList() const;
 
 protected:
     /// @brief Export the book
@@ -354,14 +354,14 @@ private:
 
     /// @brief The file name of the archive: the name, with ".klh.zip" when it does not end
     /// with it; empty when the name is empty
-    QString fileName() const;
+    [[nodiscard]] QString fileName() const;
 
     /// @brief Why the name cannot be the name of a file; empty when it can
-    QString nameProblem() const;
+    [[nodiscard]] QString nameProblem() const;
 
     /// @brief Why the archive could not be saved, as the window says it; empty for a cause
     /// the window does not name
-    QString reasonOf(const core::ArchiveProblem& problem) const;
+    [[nodiscard]] QString reasonOf(const core::ArchiveProblem& problem) const;
 
     Book m_book;
     Exporter m_exporter;
@@ -422,29 +422,29 @@ public:
     void setOpeningQuestion(OpeningQuestion question);
 
     /// @brief The archive; empty before it is chosen
-    QString archive() const { return m_archive; }
+    [[nodiscard]] QString archive() const { return m_archive; }
 
     /// @brief Read archive @p path and show its book, as Browse... does
     void setArchive(const QString& path);
 
     /// @brief The folder in which the folder of the book is made
-    QString folder() const { return m_folder; }
+    [[nodiscard]] QString folder() const { return m_folder; }
 
     /// @brief Set the folder in which the folder of the book is made, as Browse... does
     void setFolder(const QString& folder);
 
     /// @brief The folder of the imported book: the folder and the name of the archive
-    QString bookFolder() const;
+    [[nodiscard]] QString bookFolder() const;
 
     /// @brief The line under the archive: why the program cannot read its book; empty when it
     /// can
-    QString archiveNote() const { return noteText(m_archiveNote); }
+    [[nodiscard]] QString archiveNote() const { return noteText(m_archiveNote); }
 
     /// @brief The line under the folder: where the book goes, or why it cannot go there
-    QString folderNote() const { return noteText(m_folderNote); }
+    [[nodiscard]] QString folderNote() const { return noteText(m_folderNote); }
 
     /// @brief The book of the archive as the window shows it, one "Label: value" a line
-    QString bookText() const;
+    [[nodiscard]] QString bookText() const;
 
     /// @brief What @p elements are, as the window says it: "8 elements: 5 chapters, a
     /// prologue, an epilogue and a title page"
@@ -475,11 +475,11 @@ private:
     void showBook();
 
     /// @brief The title of the book of the archive; the name of the archive when it has none
-    QString bookTitle() const;
+    [[nodiscard]] QString bookTitle() const;
 
     /// @brief Why the book of the archive cannot be read or imported, as the window says it;
     /// empty for a cause the window does not name
-    QString reasonOf(const core::ArchiveProblem& problem) const;
+    [[nodiscard]] QString reasonOf(const core::ArchiveProblem& problem) const;
 
     const core::BookTypeRegistry* m_registry;
     std::unique_ptr<QTemporaryDir> m_cardsFolder;  ///< The cards of the archive, unpacked
@@ -505,6 +505,8 @@ private:
     int m_backups = 0;  ///< Number of the backups of the database in the archive
 };
 
-} // namespace dialogs
-} // namespace gui
+} // namespace gui::dialogs
+
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_DIALOGS_ARCHIVE_DIALOGS_H

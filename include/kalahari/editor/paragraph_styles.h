@@ -13,7 +13,8 @@
 /// An object is a block of its own holding one object replacement character (U+FFFC) whose
 /// character format names the kind of object; the layout sizes and draws it.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_PARAGRAPH_STYLES_H
+#define KALAHARI_EDITOR_PARAGRAPH_STYLES_H
 
 #include <QHash>
 #include <QList>
@@ -33,7 +34,7 @@ class QTextDocument;
 namespace kalahari::core {
 struct BookParagraphStyle;
 struct PackageParagraphStyle;
-}
+} // namespace kalahari::core
 
 namespace kalahari::editor {
 
@@ -305,30 +306,30 @@ public:
                                      const QString& language);
 
     /// @brief The styles in the order of their package
-    const QList<ParagraphStyle>& styles() const { return m_styles; }
+    [[nodiscard]] const QList<ParagraphStyle>& styles() const { return m_styles; }
 
     /// @brief The style with this id, or nullptr
-    const ParagraphStyle* find(const QString& id) const;
+    [[nodiscard]] const ParagraphStyle* find(const QString& id) const;
 
     /// @brief Whether the set has a style with this id
-    bool contains(const QString& id) const { return find(id) != nullptr; }
+    [[nodiscard]] bool contains(const QString& id) const { return find(id) != nullptr; }
 
     /// @brief The style Normal
-    const ParagraphStyle& normal() const;
+    [[nodiscard]] const ParagraphStyle& normal() const;
 
     /// @brief The style a paragraph is shown in: its own, or Normal when the set has no style
     ///        of this id (a paragraph pasted from another book keeps its id)
-    const ParagraphStyle& shownStyle(const QString& id) const;
+    [[nodiscard]] const ParagraphStyle& shownStyle(const QString& id) const;
 
     /// @brief Style Enter starts after a paragraph of @p id at its end
-    QString nextStyleOf(const QString& id) const;
+    [[nodiscard]] QString nextStyleOf(const QString& id) const;
 
     /// @brief A property of a style as it is shown (see shownStyle())
-    QVariant property(const QString& id, const QString& name) const;
+    [[nodiscard]] QVariant property(const QString& id, const QString& name) const;
 
     /// @brief Whether the spelling and grammar of paragraphs in the style are checked
     ///        (the property spellCheck; true without it)
-    bool isChecked(const QString& id) const;
+    [[nodiscard]] bool isChecked(const QString& id) const;
 
     bool operator==(const ParagraphStyleSet&) const = default;
 
@@ -374,3 +375,5 @@ QString paragraphStyleIdFor(const QString& name, const QStringList& taken);
 QStringList possibleBaseStyles(const ParagraphStyleSet& styles, const QString& id);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_PARAGRAPH_STYLES_H

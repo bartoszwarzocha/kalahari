@@ -14,8 +14,7 @@
 #include <QKeySequence>
 #include <QLocale>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief The context of the translations of the texts of the versions
 struct VersionTexts {
@@ -136,5 +135,4 @@ QString versionIconId(core::VersionOrigin origin) {
     return QStringLiteral("version.manual");
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

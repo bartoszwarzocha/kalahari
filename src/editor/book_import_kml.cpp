@@ -5,7 +5,7 @@
 /// @brief Import of a file into a book: the KML of a text, with the book's styles, the file's
 ///        formatting it keeps and the cleanups of its text
 
-#include "book_export_internal.h"
+#include "kalahari/editor/detail/book_export_internal.h"
 
 #include <kalahari/editor/book_import.h>
 #include <kalahari/editor/text_footnotes.h>

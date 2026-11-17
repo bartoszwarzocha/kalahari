@@ -28,9 +28,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -229,6 +227,4 @@ QWidget* withRemark(QAbstractButton* button, QLabel* remark, QWidget* beside)
     return option;
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

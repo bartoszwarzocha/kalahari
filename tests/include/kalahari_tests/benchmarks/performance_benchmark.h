@@ -8,7 +8,8 @@
 /// Provides a framework for running and measuring performance benchmarks
 /// with statistical analysis (min, max, avg, median, percentiles).
 
-#pragma once
+#ifndef KALAHARI_TESTS_BENCHMARKS_PERFORMANCE_BENCHMARK_H
+#define KALAHARI_TESTS_BENCHMARKS_PERFORMANCE_BENCHMARK_H
 
 #include <QString>
 #include <QElapsedTimer>
@@ -198,3 +199,5 @@ namespace Targets {
 }
 
 } // namespace kalahari::benchmarks
+
+#endif  // KALAHARI_TESTS_BENCHMARKS_PERFORMANCE_BENCHMARK_H

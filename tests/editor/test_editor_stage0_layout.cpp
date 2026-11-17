@@ -21,7 +21,7 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/viewport_manager.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include <QScreen>
 #include <QTextBlock>
 #include <QTextCursor>
@@ -82,7 +82,7 @@ struct LaidOutDocument {
         doc->clearUndoRedoStacks();
     }
 
-    QStringList paragraphs() const {
+    [[nodiscard]] QStringList paragraphs() const {
         QStringList out;
         for (QTextBlock b = doc->begin(); b.isValid(); b = b.next()) out << b.text();
         return out;

@@ -24,8 +24,7 @@
 
 #include <set>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 using json = nlohmann::json;
 
@@ -323,7 +322,6 @@ std::pair<QColor, QColor> ThemePage::iconColors() const {
 IconsPage::IconsPage(QWidget* parent)
     : SettingsPage(parent)
     , m_iconStyle(new QComboBox())
-    , m_previewLayout(nullptr)
     , m_primary(core::ArtProvider::getInstance().getPrimaryColor())
     , m_secondary(core::ArtProvider::getInstance().getSecondaryColor())
 {
@@ -412,5 +410,4 @@ void IconsPage::updatePreview() {
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

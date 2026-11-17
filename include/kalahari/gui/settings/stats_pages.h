@@ -9,7 +9,8 @@
 /// under the button "Advanced Settings", as on the Grammar page. The goals and the deadlines
 /// themselves are not here: they are on the tab Writing Goals and Deadlines.
 
-#pragma once
+#ifndef KALAHARI_GUI_SETTINGS_STATS_PAGES_H
+#define KALAHARI_GUI_SETTINGS_STATS_PAGES_H
 
 #include "kalahari/gui/settings/settings_page.h"
 
@@ -33,10 +34,10 @@ public:
     explicit StatsSettingsPage(QWidget* parent = nullptr);
 
     /// @brief The button that shows the advanced settings; nullptr on a page without them
-    QToolButton* advancedToggle() const { return advancedSettingsButton(); }
+    [[nodiscard]] QToolButton* advancedToggle() const { return advancedSettingsButton(); }
 
     /// @brief The group of the advanced settings; nullptr on a page without them
-    QGroupBox* advancedGroup() const { return m_advancedGroup; }
+    [[nodiscard]] QGroupBox* advancedGroup() const { return m_advancedGroup; }
 
 protected:
     /// @brief A check box bound to @p key in @p layout, with a note under it in line with its
@@ -96,3 +97,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_SETTINGS_STATS_PAGES_H

@@ -30,8 +30,7 @@
 #include <unistd.h>   // readlink
 #endif
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 namespace {
 
@@ -1134,5 +1133,4 @@ std::pair<std::string, std::string> PluginManager::parseEntryPoint(const std::st
     return {module_name, class_name};
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

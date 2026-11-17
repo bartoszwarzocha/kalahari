@@ -4,7 +4,8 @@
 /// @file note_frame.h
 /// @brief The frame a note's text is written in, at the place of the note
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_NOTE_FRAME_H
+#define KALAHARI_GUI_PANELS_NOTE_FRAME_H
 
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/gui/panels/writing_frame.h>
@@ -39,7 +40,7 @@ public:
     void setContent(const QString& content);
 
     /// @brief The text as written: KML of its paragraphs
-    QString content() const;
+    [[nodiscard]] QString content() const;
 
     /// @brief The font of the text: the book's, as tall as the editor shows it
     void setTextFont(const QFont& font);
@@ -52,8 +53,10 @@ protected:
     void editLink();
 
     bool textKeyPressed(QKeyEvent* event) override;
-    QString styleSheetFor(const AnnotationCardColors& colors) const override;
+    [[nodiscard]] QString styleSheetFor(const AnnotationCardColors& colors) const override;
     void paintEvent(QPaintEvent* event) override;
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_NOTE_FRAME_H

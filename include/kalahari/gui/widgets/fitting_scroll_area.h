@@ -4,7 +4,8 @@
 /// @file fitting_scroll_area.h
 /// @brief A scroll area as large as its content, which scrolls only on a small screen
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_FITTING_SCROLL_AREA_H
+#define KALAHARI_GUI_WIDGETS_FITTING_SCROLL_AREA_H
 
 #include <QMetaObject>
 #include <QScrollArea>
@@ -15,8 +16,7 @@ class QObject;
 class QResizeEvent;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A scroll area as large as its content: the content scrolls only when the window is
 /// lower than the content can be (a small screen, 1366×768 at 150%)
@@ -41,11 +41,11 @@ public:
     ~FittingScrollArea() override;
 
     /// @brief The size the content needs
-    QSize sizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
 
     /// @brief The content's minimum width beside the scroll bar, and the height of
     /// setMinimumLines() (all of a lower content, measured as wide as the screen)
-    QSize minimumSizeHint() const override;
+    [[nodiscard]] QSize minimumSizeHint() const override;
 
     /// @brief The height of the area in a lowered window, in lines of text: 6 by default (a
     /// dialog), fewer in a panel, so that more panels fit one under another on a small screen
@@ -54,7 +54,7 @@ public:
 
     /// @brief The height the content needs in the area @p width wide: wrapped texts take the
     /// lines they need at that width
-    int contentHeightForWidth(int width) const;
+    [[nodiscard]] int contentHeightForWidth(int width) const;
 
     /// @brief Scroll to @p widget of the content and keep it in view while the window
     /// settles: after a later change of the area's height or the content's (a window the
@@ -81,7 +81,7 @@ private:
     void dropNeedlessScrollBar();
 
     /// @brief The frame around the content, both sides together
-    QSize borders() const;
+    [[nodiscard]] QSize borders() const;
 
     /// @brief Scroll to the widget kept in view, when it is shown
     void scrollToKept();
@@ -89,14 +89,19 @@ private:
     /// @brief Keep no widget in view
     void stopKeeping();
 
-    QWidget* m_content;  ///< The content, inside the area's widget
-    int m_minimumLines;  ///< Height of the area in a lowered window, in lines
-    bool m_droppingBar = false;               ///< Taking away the scroll bar just now
-    QWidget* m_kept = nullptr;                ///< The widget kept in view; nullptr: none
-    QWidget* m_keptFirst = nullptr;           ///< Its part in view first, in a lower area
-    QMetaObject::Connection m_keptGone;       ///< Keeps no widget once the widget is deleted
-    QMetaObject::Connection m_keptFirstGone;  ///< The same for its part
+    /// @brief Height of the area in a lowered dialog, in lines
+    static constexpr int DEFAULT_MINIMUM_LINES = 6;
+
+    QWidget* m_content;                          ///< The content, inside the area's widget
+    int m_minimumLines = DEFAULT_MINIMUM_LINES;  ///< Height of the area in a lowered window, in
+                                                 ///< lines
+    bool m_droppingBar = false;                  ///< Taking away the scroll bar just now
+    QWidget* m_kept = nullptr;                   ///< The widget kept in view; nullptr: none
+    QWidget* m_keptFirst = nullptr;              ///< Its part in view first, in a lower area
+    QMetaObject::Connection m_keptGone;          ///< Keeps no widget once the widget is deleted
+    QMetaObject::Connection m_keptFirstGone;     ///< The same for its part
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_FITTING_SCROLL_AREA_H

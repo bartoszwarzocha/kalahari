@@ -5,7 +5,7 @@
 /// @brief BookEditor implementation (OpenSpec #00042 Phase 3.1-3.5)
 
 #include <kalahari/editor/book_editor.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <kalahari/core/logger.h>
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/buffer_commands.h>
@@ -36,12 +36,6 @@
 #include <utility>
 
 namespace kalahari::editor {
-
-// Default smooth scroll duration in milliseconds
-constexpr int DEFAULT_SMOOTH_SCROLL_DURATION = 150;
-
-// Default cursor blink interval in milliseconds
-constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;
 
 // The longest text of an annotation its mark's tooltip shows
 constexpr qsizetype MARK_TOOLTIP_LENGTH = 600;
@@ -180,27 +174,11 @@ void invalidateParagraphCounts(const QTextDocument* doc, int from, int charsAdde
 
 BookEditor::BookEditor(QWidget* parent)
     : QWidget(parent)
-    , m_verticalScrollBar(nullptr)
-    , m_scrollAnimation(nullptr)
-    , m_smoothScrollingEnabled(false)  // Disabled by default for stability in tests
-    , m_smoothScrollDuration(DEFAULT_SMOOTH_SCROLL_DURATION)
-    , m_updatingScrollBar(false)
     , m_cursorPosition{0, 0}
-    , m_cursorBlinkTimer(nullptr)
-    , m_cursorVisible(true)
-    , m_cursorBlinkingEnabled(true)
-    , m_cursorBlinkInterval(DEFAULT_CURSOR_BLINK_INTERVAL)
-    , m_preferredCursorX(0.0)
-    , m_preferredCursorXValid(false)
     , m_selection{}
     , m_selectionAnchor{0, 0}
-    , m_isDragging(false)
-    , m_clickTimer(nullptr)
-    , m_clickCount(0)
     , m_lastClickPos(0.0, 0.0)
-    , m_preeditString()
     , m_preeditStart{0, 0}
-    , m_hasComposition(false)
     // The QTextDocument is created by fromKml(), or empty by the first edit
     , m_textBuffer(nullptr)
 {

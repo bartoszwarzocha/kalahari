@@ -20,8 +20,7 @@
 #include <string>
 #include <tuple>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // Helper function for tr() - must be in a QObject context
 // We use QCoreApplication::translate() as a workaround.
@@ -1192,5 +1191,4 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     return count;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

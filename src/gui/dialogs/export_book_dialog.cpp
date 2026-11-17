@@ -50,9 +50,7 @@
 #include <string>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -1207,6 +1205,4 @@ QString ExportBookDialog::reasonOf(const editor::ExportProblem& problem) const
     return QString();
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

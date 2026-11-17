@@ -18,9 +18,7 @@
 #include <cmath>
 #include <limits>
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 namespace {
 
@@ -71,6 +69,4 @@ bool restoreChapterCursor(const core::ProjectDatabase& database, const QString& 
     return true;
 }
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils
