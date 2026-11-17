@@ -779,7 +779,7 @@
         <translation>&amp;Pulpit</translation>
     </message>
     <message>
-        <source>&amp;Outline</source>
+        <source>O&amp;utline</source>
         <translation>Konsp&amp;ekt</translation>
     </message>
     <message>

@@ -488,7 +488,7 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_KEY_CB("view.plotBoard", QT_TRANSLATE_NOOP("CommandRegistrar", "Plot &Board"), "BOOK/Plot Board", 92, false, 0,
                    KeyboardShortcut(Qt::Key_T, Qt::ControlModifier | Qt::ShiftModifier),
                    callbacks.onPlotBoard);
-    REG_CMD_KEY_CB("view.outline", QT_TRANSLATE_NOOP("CommandRegistrar", "&Outline"), "BOOK/Outline", 94, true, 0,
+    REG_CMD_KEY_CB("view.outline", QT_TRANSLATE_NOOP("CommandRegistrar", "O&utline"), "BOOK/Outline", 94, true, 0,
                    KeyboardShortcut(Qt::Key_L, Qt::ControlModifier | Qt::ShiftModifier),
                    callbacks.onOutline);
     // The book's dictionary on its tab: its names, spelling rules and words (no keys);
