@@ -1,0 +1,181 @@
+{
+  "id": "ksiazka-testowa-cykl",
+  "title": "Fikcyjna książka od utworzenia do usunięcia: tekst, formatowanie, własny styl i karta postaci",
+  "area": "Fikcyjna książka",
+  "tags": ["książka", "edytor", "style", "warsztat"],
+  "sources": [
+    { "kind": "decision", "ref": "Decyzja z 17.11.2026: test tworzy fikcyjną książkę, wstawia w niej teksty, formatuje je, definiuje własne style i dodaje elementy, a na koniec książka zostaje usunięta" },
+    { "kind": "test_list", "ref": "2026-10-12-nowa-struktura-ksiazki-pr61-runda3.md – p. 2 (nowa książka z kafelka „Powieść”, tytuł, autor, język „polski”, sekcje, „Utwórz książkę”) i p. 3 (liczba słów, gwiazdka niezapisanych zmian, Ctrl+S, Ctrl+B)" },
+    { "kind": "test_list", "ref": "2026-10-20-nawigator.md – projekt w Nawigatorze ma węzły „Książka” i „Warsztat”" },
+    { "kind": "test_list", "ref": "2026-11-10-style-tekstu.md – p. 2 (nowy styl z akapitu w kursywie, nadany akapitowi, na liście w menu Format › Styl tekstu)" },
+    { "kind": "test_list", "ref": "2026-11-16-zbiorczy-test-2.md – p. 8 (karta postaci dodana przez „Dodaj postać...” w grupie „Postacie” Warsztatu)" }
+  ],
+  "covers": ["op-6a0754cc", "op-4c878d3a", "op-0c2d7e32", "op-da23b4e0", "op-ccb25098", "op-f9994c75",
+             "op-5e586e0b", "op-0eaa54d1", "op-f4848cd1", "op-1e2b17e6"],
+  "setup": { "books": [], "settings": "domyslne" },
+  "steps": [
+    {
+      "do": "menu", "path": ["Plik", "Nowa książka..."],
+      "expect": [ { "check": "window_shown", "window": "Nowa książka" } ]
+    },
+    {
+      "say": "W części „Szablony” kliknij kafelek „Powieść”",
+      "do": "click", "target": { "window": "Nowa książka", "name": "Powieść", "role": "list_item" },
+      "expect": [ { "check": "selected", "target": { "window": "Nowa książka", "name": "Powieść", "role": "list_item" } } ]
+    },
+    {
+      "do": "type", "text": "Pustynia testowa", "replace": true,
+      "target": { "window": "Nowa książka", "name": "Tytuł książki", "role": "edit" }
+    },
+    {
+      "do": "type", "text": "Jan Testowy", "replace": true,
+      "target": { "window": "Nowa książka", "name": "Autor", "role": "edit" }
+    },
+    {
+      "do": "select", "item": "polski",
+      "target": { "window": "Nowa książka", "name": "Język", "role": "combo_box" }
+    },
+    {
+      "say": "W polu „Miejsce” wpisz folder roboczy scenariusza",
+      "do": "type", "text": "{praca}", "replace": true,
+      "target": { "window": "Nowa książka", "name": "Miejsce", "role": "edit" },
+      "expect": [
+        { "check": "checked", "target": { "window": "Nowa książka", "name": "Utwórz podfolder z nazwą książki", "role": "check_box" } },
+        { "check": "visible", "target": { "window": "Nowa książka", "name": "Książka powstanie w folderze „Pustynia testowa”.", "role": "text" } }
+      ]
+    },
+    {
+      "do": "select", "item": "Strony początkowe · Tekst główny · Strony końcowe",
+      "target": { "window": "Nowa książka", "name": "Sekcje", "role": "combo_box" }
+    },
+    {
+      "say": "Kliknij „Utwórz książkę”: program o nic nie pyta, bo żadna książka nie była otwarta",
+      "do": "click", "target": { "window": "Nowa książka", "name": "Utwórz książkę", "role": "button" },
+      "expect": [
+        { "check": "window_closed", "window": "Nowa książka" },
+        { "check": "window_shown", "window": "Pustynia testowa - Kalahari" },
+        { "check": "visible", "target": { "window": "*Kalahari", "name": "Rozdział 1", "role": "tab" } },
+        { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Pustynia testowa", "role": "tree_item" } },
+        { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Książka", "role": "tree_item" } },
+        { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Warsztat", "role": "tree_item" } },
+        { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Strony początkowe", "role": "tree_item" } },
+        { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Tekst główny", "role": "tree_item" } },
+        { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Strony końcowe", "role": "tree_item" } },
+        { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Rozdział 1 [Szkic]", "role": "tree_item" } }
+      ]
+    },
+    {
+      "say": "Kliknij w tekst rozdziału i napisz zdanie",
+      "do": "type", "text": "Słońce paliło piasek od rana.", "target": "editor",
+      "expect": [
+        { "check": "editor_text", "contains": "Słońce paliło piasek od rana." },
+        { "check": "visible", "target": { "window": "*Kalahari", "name": "*Rozdział 1", "role": "tab" } }
+      ]
+    },
+    {
+      "say": "Zapisz rozdział (Ctrl+S): gwiazdka znika",
+      "do": "keys", "keys": "Ctrl+S",
+      "expect": [
+        { "check": "visible", "target": { "window": "*Kalahari", "name": "Rozdział 1", "role": "tab" } },
+        { "check": "not_visible", "target": { "window": "*Kalahari", "name": "*Rozdział 1", "role": "tab" } }
+      ]
+    },
+    {
+      "say": "Zaznacz cały tekst i pogrub go (Ctrl+B): gwiazdka wraca",
+      "do": "keys", "keys": "Ctrl+A",
+      "target": "editor"
+    },
+    {
+      "do": "keys", "keys": "Ctrl+B",
+      "expect": [
+        { "check": "visible", "target": { "window": "*Kalahari", "name": "*Rozdział 1", "role": "tab" } }
+      ]
+    },
+    {
+      "say": "Jeszcze raz Ctrl+B: pogrubienie i gwiazdka znikają",
+      "do": "keys", "keys": "Ctrl+B",
+      "expect": [
+        { "check": "not_visible", "target": { "window": "*Kalahari", "name": "*Rozdział 1", "role": "tab" } }
+      ]
+    },
+    {
+      "say": "Przejdź na koniec tekstu i dopisz drugi akapit",
+      "do": "keys", "keys": "Ctrl+End",
+      "target": "editor"
+    },
+    {
+      "do": "keys", "keys": "Enter"
+    },
+    {
+      "do": "type", "text": "Wiatr ucichł nad wydmami.",
+      "expect": [ { "check": "editor_text", "contains": "Wiatr ucichł nad wydmami." } ]
+    },
+    {
+      "say": "Zaznacz drugi akapit i nadaj mu kursywę (Ctrl+I)",
+      "do": "keys", "keys": "Shift+Home"
+    },
+    {
+      "do": "keys", "keys": "Ctrl+I"
+    },
+    {
+      "say": "Format › Styl tekstu › Nowy styl...: okno bierze wygląd akapitu z kursorem",
+      "do": "menu", "path": ["Format", "Styl tekstu", "Nowy styl..."],
+      "expect": [ { "check": "window_shown", "window": "Nowy styl" } ]
+    },
+    {
+      "do": "type", "text": "Głos pustyni", "replace": true,
+      "target": { "window": "Nowy styl", "name": "Nazwa", "role": "edit" },
+      "expect": [ { "check": "enabled", "target": { "window": "Nowy styl", "name": "OK", "role": "button" } } ]
+    },
+    {
+      "do": "toggle", "state": true,
+      "target": { "window": "Nowy styl", "name": "Nadaj styl akapitowi z kursorem", "role": "check_box" }
+    },
+    {
+      "do": "click", "target": { "window": "Nowy styl", "name": "OK", "role": "button" },
+      "expect": [ { "check": "window_closed", "window": "Nowy styl" } ]
+    },
+    {
+      "say": "Nowy styl jest w menu Format › Styl tekstu: nadaj go akapitowi z kursorem jeszcze raz",
+      "do": "menu", "path": ["Format", "Styl tekstu", "Głos pustyni"]
+    },
+    {
+      "say": "W Nawigatorze, w Warsztacie, kliknij prawym przyciskiem „Postacie”",
+      "do": "click", "button": "right",
+      "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Postacie", "role": "tree_item" },
+      "expect": [ { "check": "visible", "target": { "name": "Dodaj postać...", "role": "menu_item" } } ]
+    },
+    {
+      "do": "click", "target": { "name": "Dodaj postać...", "role": "menu_item" },
+      "expect": [ { "check": "window_shown", "window": "Dodaj element" } ]
+    },
+    {
+      "do": "type", "text": "Nadia", "replace": true,
+      "target": { "window": "Dodaj element", "name": "Tytuł", "role": "edit" }
+    },
+    {
+      "do": "click", "target": { "window": "Dodaj element", "name": "Dodaj", "role": "button" },
+      "expect": [
+        { "check": "window_closed", "window": "Dodaj element" },
+        { "check": "visible", "target": { "window": "*Kalahari", "in": "Nawigator", "name": "Nadia", "role": "tree_item" } }
+      ]
+    },
+    {
+      "say": "Zapisz wszystko",
+      "do": "menu", "path": ["Plik", "Zapisz wszystko"],
+      "expect": [
+        { "check": "file", "path": "{praca}\\Pustynia testowa\\*.klh" },
+        { "check": "file", "path": "{praca}\\Pustynia testowa\\**\\*.kchapter", "contains": "Słońce paliło piasek od rana." }
+      ]
+    },
+    {
+      "say": "Zamknij książkę",
+      "do": "menu", "path": ["Plik", "Zamknij książkę"],
+      "expect": [ { "check": "window_shown", "window": "Kalahari" } ]
+    },
+    {
+      "say": "Usuń folder fikcyjnej książki",
+      "do": "remove", "path": "{praca}\\Pustynia testowa"
+    }
+  ]
+}

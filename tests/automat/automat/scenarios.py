@@ -26,6 +26,7 @@ ACTIONS = {
     "drag": ({"target", "to"}, set()),
     "scroll": ({"target", "notches"}, set()),
     "file_dialog": ({"path"}, set()),
+    "remove": ({"path"}, set()),
     "app": ({"app", "steps"}, {"open"}),
     "restart": (set(), set()),
     "wait": ({"ms"}, set()),
@@ -582,6 +583,8 @@ def _action_sentence(step: dict) -> str:
         return "Zrób zrzut ekranu"
     if action == "file_dialog":
         return f"W systemowym oknie wyboru pliku wpisz {_q(step.get('path'))} i zatwierdź"
+    if action == "remove":
+        return f"Usuń z dysku {_q(step.get('path'))}"
     if action == "app":
         return f"W programie {APPS.get(step.get('app'), step.get('app'))}: {len(step.get('steps', []))} kroków"
     if action == "_app_open":

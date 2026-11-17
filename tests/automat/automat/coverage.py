@@ -40,11 +40,12 @@ ROLE_KINDS = {
 
 def norm(text) -> str:
     """A name as a person reads it (as automat.win.kalahari.norm): no '&' of access keys,
-    '…' and '...' alike, spaces and case not counted, the shortcut after a tab left out."""
+    '…' and '...' alike, spaces and case not counted, the shortcut after a tab and the colon
+    after a label left out."""
     text = unicodedata.normalize("NFC", str(text or "")).split("\t")[0]
     text = text.replace("&&", "\0").replace("&", "").replace("\0", "&")
     text = text.replace("…", "...")
-    return " ".join(text.split()).casefold()
+    return " ".join(text.split()).casefold().rstrip(":").rstrip()
 
 
 def load_operations(path: Path = OPERATIONS_FILE) -> list:

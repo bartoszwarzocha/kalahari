@@ -17,9 +17,15 @@ on:
         description: 'Also run the probe of the Windows machine'
         type: boolean
         default: false
+      scenarios:
+        description: 'Only these scenarios (ids or patterns with *, separated by spaces); empty: all'
+        type: string
+        default: ''
 
+# A new push stops the run of the push before it; a run on request (a few scenarios) runs
+# beside it and stops only the request before it.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -194,15 +200,20 @@ jobs:
       continue-on-error: true
       run: python tests/automat/probe/idle_check.py
 
-    - name: Run every scenario
+    - name: Run the scenarios
       id: run
       continue-on-error: true
       working-directory: tests/automat
-      run: >
-        python -m automat uruchom --wszystkie
-        --program "${{ github.workspace }}\build\bin\kalahari.exe"
-        --results "${{ github.workspace }}\automat-wyniki"
-        --gdzie "GitHub (windows-latest)"
+      env:
+        CHOSEN: ${{ inputs.scenarios }}
+      shell: pwsh
+      run: |
+        $chosen = @(if ($env:CHOSEN) { $env:CHOSEN -split '\s+' | Where-Object { $_ } } else { '--wszystkie' })
+        python -m automat uruchom @chosen `
+          --program "${{ github.workspace }}\build\bin\kalahari.exe" `
+          --results "${{ github.workspace }}\automat-wyniki" `
+          --gdzie "GitHub (windows-latest)"
+        exit $LASTEXITCODE
 
     - name: The run in the log
       if: always()

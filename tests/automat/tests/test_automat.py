@@ -538,6 +538,16 @@ class SweepAndCoverageTest(Folder):
         self.assertEqual(bad["state"], "fail")
         self.assertIn("Wstaw > Znak specjalny...", bad["steps"][0]["checks"][0]["detail"])
 
+    def test_remove_step_and_label_colons(self):
+        from automat import coverage  # noqa: PLC0415
+        self.write("a.json", scenario("usun", steps=[{"do": "remove", "path": "{praca}\\nowe"}]))
+        self.write("b.json", scenario("usun-zle", steps=[{"do": "remove"}]))
+        library = Library(self.scenarios)
+        self.assertTrue(library.get("usun").valid, library.get("usun").problems)
+        self.assertIn("potrzebuje pola „path”", " ".join(map(str, library.get("usun-zle").problems)))
+        self.assertEqual(action_sentence({"do": "remove", "path": "{praca}\\nowe"}), "Usuń z dysku „{praca}\\nowe”")
+        self.assertEqual(coverage.norm("Tytuł &książki:"), coverage.norm("Tytuł książki"))
+
     def test_coverage_of_operations_and_elements(self):
         from automat import coverage  # noqa: PLC0415
         operations = self.root / "operacje.json"

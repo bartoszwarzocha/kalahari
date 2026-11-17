@@ -74,6 +74,11 @@ def norm(text) -> str:
     return " ".join(text.split()).casefold()
 
 
+def bare(text) -> str:
+    """norm() without the colon after a label: "Tytuł książki:" reads as "Tytuł książki"."""
+    return norm(text).rstrip(":").rstrip()
+
+
 def title_matches(title: str, pattern: str) -> bool:
     if pattern is None:
         return True
@@ -112,6 +117,8 @@ def similar(name: str, names) -> list:
         close = [lowered[n] for n in difflib.get_close_matches(norm(name), list(lowered), n=6, cutoff=0.5)]
     return close or unique[:12]
 
+
+FIELD_KINDS = ("Edit", "ComboBox", "Spinner", "Document")  # fields a label names
 
 ROLE_WORDS = {"button": "przycisku", "edit": "pola", "list": "listy", "cell": "komórki",
               "menu_item": "pozycji menu", "tab": "karty", "check_box": "pola wyboru",
@@ -457,7 +464,7 @@ class KalahariSession:
         loose = []
         unnamed = []
         for actual, kind, _, element in self.ui.snapshot(root, kinds=kinds):
-            if norm(actual) == norm(name) or (rows and _row_matches(actual, name)):
+            if bare(actual) == bare(name) or (rows and _row_matches(actual, name)):
                 loose.append(element)
                 if actual != name:
                     self._note(f"napis w programie {_q(actual)}, w scenariuszu {_q(name)}")
@@ -470,7 +477,33 @@ class KalahariSession:
                 if norm(element.description) == norm(name):
                     loose.append(element)
                     self._note(f"pole bez nazwy dla czytników ekranu, z podpowiedzią {_q(element.description)}")
+        if not loose and (kinds is None or set(kinds) & set(FIELD_KINDS)):
+            loose = self._field_by_label(root, name, kinds)
         return loose
+
+    def _field_by_label(self, root, name: str, kinds) -> list:
+        """The field a person finds by the label to its left ("Tytuł książki:" and the box
+        beside it), when the field has no name of its own for screen readers."""
+        wanted = tuple(k for k in (kinds or FIELD_KINDS) if k in FIELD_KINDS)
+        entries = self.ui.controls(root, ("Text",) + wanted)
+        labels = [e for e in entries if e["type"] == "Text" and not e["offscreen"] and bare(e["name"]) == bare(name)]
+        fields = [e for e in entries if e["type"] in wanted and not e["offscreen"]]
+        found = []
+        for label in labels:
+            left, top, right, bottom = label["rect"]
+            beside = []
+            for field in fields:
+                f_left, f_top, f_right, f_bottom = field["rect"]
+                middle = (f_top + f_bottom) / 2
+                if f_left >= right - 4 and (top <= middle <= bottom or f_top <= (top + bottom) / 2 <= f_bottom):
+                    beside.append((f_left - right, field))
+            if beside:
+                field = min(beside, key=lambda pair: pair[0])[1]
+                found.append(field["element"])
+                said = f" (czytnik ekranu słyszy {_q(field['name'])})" if field["name"] else ""
+                self._note(f"pole bez własnej nazwy dla czytników ekranu{said}; automat znalazł je po napisie "
+                           f"{_q(label['name'])} obok niego")
+        return found
 
     def _names_under(self, roots, kinds) -> list:
         names = []
@@ -726,7 +759,32 @@ class KalahariSession:
         self._guard_keys()
         if step.get("replace"):
             inp.press("Ctrl+A")
-        return inp.type_text(str(step["text"])), element
+        return inp.type_text(self._places(str(step["text"]))), element
+
+    def _do_remove(self, step):
+        """Delete a file or folder the scenario made, only inside its working folder (the
+        fictional book at the end of its scenario)."""
+        path = Path(self._path(step["path"])).resolve()
+        work = Path(self.work).resolve()
+        if path == work or work not in path.parents:
+            raise StepFailed(f"automat usuwa tylko to, co jest w folderze roboczym scenariusza ({{praca}}), "
+                             f"a nie {_q(path)}")
+        if not path.exists():
+            raise StepFailed(f"nie ma {_q(path)} – nie ma czego usunąć")
+        t0 = time.perf_counter()
+        deadline = t0 + CLOSE_TIMEOUT
+        while True:
+            try:
+                if path.is_dir():
+                    shutil.rmtree(path)
+                else:
+                    path.unlink()
+                return t0, None
+            except OSError as error:
+                # The program may still hold a file of the book for a moment after it closed it
+                if time.perf_counter() > deadline:
+                    raise StepFailed(f"nie da się usunąć {_q(path)}: {error}") from error
+                stopping.sleep(0.5)
 
     def _do_select(self, step):
         element = self.find(step["target"])
@@ -1210,25 +1268,38 @@ class KalahariSession:
         return lambda: (False, f"automat nie umie sprawdzenia {_q(kind)}", None)
 
     # --- paths of files ----------------------------------------------------------------------
+    def _place(self, key: str):
+        """The folder a placeholder names, or None."""
+        key, _, name = key.partition(":")
+        if key == "praca":
+            return str(self.work)
+        if key == "ksiazki":
+            return str(self.work / "ksiazki")
+        if key == "ksiazka" and name in self.books:
+            return str(Path(self.books[name]).parent)
+        if key == "pliki":
+            return str(FILES)
+        if key == "wyniki":
+            return str(self.folder)
+        return None
+
+    def _places(self, text: str) -> str:
+        """A typed text with the placeholders it holds filled (a folder typed in a field);
+        other braces stay as they are."""
+        return re.sub(r"\{([a-z]+(?::[a-z0-9-]+)?)\}",
+                      lambda m: self._place(m.group(1)) or m.group(0), text)
+
     def _path(self, text) -> str:
         """A path of a scenario with its placeholders filled: {praca} (the program's working
         folder of this scenario), {ksiazki} (the copies of the books), {ksiazka:karawana} (one
         book's folder), {pliki} (the automaton's files for scenarios), {wyniki} (this
         scenario's results)."""
         def fill(match):
-            key, _, name = match.group(1).partition(":")
-            if key == "praca":
-                return str(self.work)
-            if key == "ksiazki":
-                return str(self.work / "ksiazki")
-            if key == "ksiazka" and name in self.books:
-                return str(Path(self.books[name]).parent)
-            if key == "pliki":
-                return str(FILES)
-            if key == "wyniki":
-                return str(self.folder)
-            raise StepFailed(f"nieznane miejsce {_q('{' + match.group(1) + '}')} w ścieżce {_q(text)}; "
-                             "znane: {praca}, {ksiazki}, {ksiazka:nazwa}, {pliki}, {wyniki}")
+            place = self._place(match.group(1))
+            if place is None:
+                raise StepFailed(f"nieznane miejsce {_q('{' + match.group(1) + '}')} w ścieżce {_q(text)}; "
+                                 "znane: {praca}, {ksiazki}, {ksiazka:nazwa}, {pliki}, {wyniki}")
+            return place
         filled = re.sub(r"\{([a-z]+(?::[a-z0-9-]+)?)\}", fill, str(text))
         return str(Path(filled))
 

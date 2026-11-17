@@ -2,13 +2,15 @@
 
     python -m automat strona              the page in the browser (the usual way)
     python -m automat lista               the scenarios and what is wrong with them
-    python -m automat uruchom ID ...      run scenarios here and now (--wszystkie: all)
+    python -m automat uruchom ID ...      run scenarios here and now (an id may hold * and ?;
+                                          --wszystkie: all)
 
 On Windows it drives kalahari.exe; elsewhere only "lista" and the simulation (--symulacja)
 work, for the automaton's own tests.
 """
 
 import argparse
+import fnmatch
 import os
 import sys
 from pathlib import Path
@@ -74,7 +76,18 @@ def cmd_run(args) -> int:
     if args.gdzie:
         where = args.gdzie
     library = Library(config.scenarios_path)
-    ids = [s.id for s in library.list()] if args.wszystkie else args.ids
+    every = [s.id for s in library.list()]
+    if args.wszystkie:
+        ids = every
+    else:
+        # An id may be a pattern with * and ? ("ksiazka-*": every scenario of the fictional book)
+        ids = []
+        for wanted in args.ids:
+            matched = [i for i in every if fnmatch.fnmatchcase(i, wanted)] if any(c in wanted for c in "*?[") else [wanted]
+            if not matched:
+                print(f"Żaden scenariusz nie pasuje do „{wanted}”.")
+                return 2
+            ids += [i for i in matched if i not in ids]
     if not ids:
         print("Podaj identyfikatory scenariuszy albo --wszystkie.")
         return 2
