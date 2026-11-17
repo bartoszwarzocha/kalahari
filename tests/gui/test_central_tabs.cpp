@@ -23,6 +23,7 @@
 #include <QPixmap>
 #include <QTabBar>
 #include <QToolButton>
+#include <QWidget>
 
 #include <cstdio>
 #include <string>
@@ -188,13 +189,22 @@ TEST_CASE("Central tabs in rows: Qt's tabs wrapped to the width, the pages under
     CHECK(shownCloseButtons(*bar) == 0);
     CHECK_FALSE(bar->usesScrollButtons());
 
-    // Wide enough for one row, the bar is one row high
+    // Wide enough for one row, the bar is one row high. In a window narrower than the tabs:
+    // Windows keeps a window within the screen (of 1024 pixels on the test machines), not a
+    // part of one
     const int twoRows = bar->height();
-    space.tabs.resize(2000, 300);
+    QWidget window;
+    window.resize(400, 300);
+    space.tabs.setParent(&window);
+    window.show();
+    space.tabs.setGeometry(0, 0, 2000, 300);
+    space.tabs.show();
     settle();
+    CHECK(space.tabs.width() == 2000);
     CHECK(rows->rowCount() == 1);
     CHECK(bar->height() < twoRows);
     CHECK(bar->height() == rows->heightForWidth(bar->width()));
+    space.tabs.setParent(nullptr);  // the workspace's again, before the window goes
 }
 
 TEST_CASE("Central tabs in rows: they follow Qt's tabs", "[gui][centraltabs]") {

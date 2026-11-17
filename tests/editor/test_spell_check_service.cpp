@@ -11,10 +11,13 @@
 #include "editor_test_utils.h"
 
 #include <QFile>
+#include <QObject>
 #include <QTemporaryDir>
 #include <QTextStream>
+#include <QThread>
 
 #include <memory>
+#include <optional>
 
 using namespace kalahari::editor;
 using kalahari::test::DICTIONARY_WAIT_MS;
@@ -388,6 +391,41 @@ TEST_CASE("SpellCheckService: the suggestions, the likeliest first", "[editor][s
         CHECK_FALSE(service->suggestions(QStringLiteral("Ysoled")).contains(
             QStringLiteral("zorblax"), Qt::CaseInsensitive));
     }
+}
+
+TEST_CASE("SpellCheckService: the suggestions found on a thread of their own, and those kept",
+          "[editor][spell_check]") {
+    auto service = english();
+    QObject context;
+    const auto find = [&service, &context](const QString& word) {
+        std::optional<QStringList> found;
+        service->findSuggestions(word, 5, &context,
+                                 [&found](const QStringList& words) { found = words; });
+        REQUIRE(waitUntil([&found]() { return found.has_value(); }, DICTIONARY_WAIT_MS));
+        return *found;
+    };
+
+    // Found, and kept for the next question about the word
+    const QStringList wrong = find(QStringLiteral("wrnog"));
+    CHECK(wrong.value(0) == QStringLiteral("wrong"));
+    CHECK(service->knownSuggestions(QStringLiteral("wrnog")).value_or(QStringList()) == wrong);
+
+    // At the priority of the window's thread: the writer waits for the words with the menu
+    // open. Hunspell stops looking at a time limit of clock(), which on Windows runs on also
+    // while a thread waits for the processor, so on a busy computer a thread of a lower
+    // priority can come back with no words for a word that has some
+    const auto* thread = service->findChild<QThread*>(QStringLiteral("Spelling suggestions"));
+    REQUIRE(thread != nullptr);
+    CHECK(thread->priority() == QThread::InheritPriority);
+
+    // A word with no suggestions is looked up again the next time, on the thread and without
+    // it, as Hunspell may have stopped looking for lack of time
+    CHECK(find(QStringLiteral("qqqqqqqq")).isEmpty());
+    CHECK_FALSE(service->knownSuggestions(QStringLiteral("qqqqqqqq")).has_value());
+    CHECK(service->suggestions(QStringLiteral("qqqqqqqq")).isEmpty());
+    CHECK_FALSE(service->knownSuggestions(QStringLiteral("qqqqqqqq")).has_value());
+    CHECK(service->suggestions(QStringLiteral("teh")).value(0) == QStringLiteral("the"));
+    CHECK(service->knownSuggestions(QStringLiteral("teh")).has_value());
 }
 
 // ============================================================================
