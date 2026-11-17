@@ -1,0 +1,55 @@
+{
+  "id": "znaki-specjalne-ulubione",
+  "title": "Okno „Znak specjalny”: gwiazdka dodaje znak do ulubionych",
+  "area": "Znaki specjalne",
+  "tags": ["czasy"],
+  "sources": [
+    { "kind": "plan", "ref": "plan-faz.md – Pełny edytor, część 3: znaki specjalne, okno „Znak specjalny…”" },
+    { "kind": "mockup", "ref": "makiety/znaki-specjalne.html – widok B (lista): gwiazdka „Ulubiony” w wierszu znaku dodaje go do ulubionych" },
+    { "kind": "decision", "ref": "Uwagi z testu 16.11, część 1: gwiazdka zaznacza się dopiero po 3–4 s od kliknięcia" },
+    { "kind": "decision", "ref": "Progi z 17.11.2026: reakcja na kliknięcie 0,3 s" }
+  ],
+  "setup": {
+    "books": ["karawana"],
+    "settings": "domyslne",
+    "open": { "book": "karawana", "chapter": "Targ w Ghadames" }
+  },
+  "steps": [
+    { "do": "use", "block": "otworz-znak-specjalny" },
+    {
+      "do": "click",
+      "target": { "window": "Znak specjalny", "name": "Lista", "role": "button" }
+    },
+    {
+      "do": "type",
+      "text": "euro",
+      "target": { "window": "Znak specjalny", "name": "Szukaj znaku", "role": "edit" },
+      "expect": [
+        { "check": "visible", "target": { "window": "Znak specjalny", "name": "Znaki", "row": "Euro" } }
+      ]
+    },
+    {
+      "say": "Kliknij gwiazdkę „Ulubiony” w wierszu „Euro”",
+      "do": "click",
+      "target": { "window": "Znak specjalny", "name": "Znaki", "row": "Euro", "part": "Ulubiony" },
+      "expect": [
+        { "check": "screen_settled", "area": "clicked", "must_change": true },
+        { "check": "busy_at_most_ms", "value": 300 }
+      ]
+    },
+    {
+      "say": "Wyczyść pole „Szukaj znaku”",
+      "do": "keys",
+      "keys": "Ctrl+A Delete",
+      "target": { "window": "Znak specjalny", "name": "Szukaj znaku", "role": "edit" }
+    },
+    {
+      "do": "click",
+      "target": { "window": "Znak specjalny", "name": "Ulubione" },
+      "expect": [
+        { "check": "visible", "target": { "window": "Znak specjalny", "name": "Znaki", "row": "Euro" } },
+        { "check": "busy_at_most_ms", "value": 300 }
+      ]
+    }
+  ]
+}

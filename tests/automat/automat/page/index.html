@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automat testów Kalahari</title>
+<style>
+/* The house style of the accepted mockup (makiety/automat-testow.html, 17.11.2026) */
+:root {
+  --desk: #ebe7e0; --paper: #f8f6f2; --ink: #1f1d1a; --muted: #5e5850; --line: #d6cfc4;
+  --accent: #9c4f24; --accent-soft: #f2e3d7; --pick: #2f6b3a; --pick-soft: #e1efe3;
+  --bad: #b3261e; --bad-soft: #f8e1de; --warn: #8a5a00; --warn-soft: #f6ead0; --info: #2b5a8a; --info-soft: #e1ebf5;
+  --tool: #fdfcfa; --tool-2: #f1ede6; --code-bg: #f1ede6;
+  --font-ui: "Segoe UI", "Noto Sans", system-ui, sans-serif;
+  --font-mono: Consolas, "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --desk: #161410; --paper: #211e19; --ink: #ece7df; --muted: #a39b8f; --line: #3b362e;
+  --accent: #e39060; --accent-soft: #3b2a1e; --pick: #8fcf9b; --pick-soft: #1f3324;
+  --bad: #f2948b; --bad-soft: #3d1f1c; --warn: #e6c27a; --warn-soft: #3a2f17; --info: #9cc3ea; --info-soft: #1c2b3b;
+  --tool: #1b1915; --tool-2: #26231d; --code-bg: #26231d; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --desk: #161410; --paper: #211e19; --ink: #ece7df; --muted: #a39b8f; --line: #3b362e;
+  --accent: #e39060; --accent-soft: #3b2a1e; --pick: #8fcf9b; --pick-soft: #1f3324;
+  --bad: #f2948b; --bad-soft: #3d1f1c; --warn: #e6c27a; --warn-soft: #3a2f17; --info: #9cc3ea; --info-soft: #1c2b3b;
+  --tool: #1b1915; --tool-2: #26231d; --code-bg: #26231d; color-scheme: dark }
+
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--desk); color: var(--ink); font-family: var(--font-ui); line-height: 1.5; font-size: 13.5px; }
+h3 { font-size: 14.5px; margin: 0; }
+code, .mono { font: 12.5px var(--font-mono); }
+code { background: var(--code-bg); padding: 1px 4px; border-radius: 3px; overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+.tnum { font-variant-numeric: tabular-nums; }
+button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.app { max-width: 1400px; margin: 0 auto; background: var(--tool); min-height: 100vh; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+.apphead { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.appname { font-weight: 700; font-size: 15px; }
+.appmeta { display: grid; gap: 1px; font-size: 12px; color: var(--muted); min-width: 0; flex: 1 1 360px; }
+.appmeta span { overflow-wrap: anywhere; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--tool-2); white-space: nowrap; }
+.pill.ok { background: var(--pick-soft); color: var(--pick); border-color: transparent; }
+.pill.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+.pill.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.pill.info { background: var(--info-soft); color: var(--info); border-color: transparent; }
+.pill.run { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.pill.run::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .pill.run::before { animation: none !important; } }
+.tabs { display: flex; flex-wrap: wrap; gap: 2px; padding: 0 10px; border-bottom: 1px solid var(--line); background: var(--tool-2); }
+.tabs button { font: 600 13px var(--font-ui); color: var(--muted); background: none; border: 0; padding: 9px 12px; cursor: pointer; border-bottom: 2px solid transparent; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs .count { font-weight: 500; color: var(--muted); margin-left: 3px; }
+.tabpanel { padding: 14px 16px 18px; display: grid; gap: 14px; min-width: 0; }
+
+.btn { font: 600 13px var(--font-ui); border: 1px solid var(--line); background: var(--tool); color: var(--ink); border-radius: 6px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn.danger { color: var(--bad); }
+.btn[disabled] { opacity: .45; cursor: default; }
+.btn.sm { padding: 3px 9px; font-size: 12px; }
+.runbar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; padding: 10px 12px; background: var(--tool-2); border: 1px solid var(--line); border-radius: 8px; }
+.runbar .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+.opt { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.opt select, .field select, .field input, .search { font: 13px var(--font-ui); color: var(--ink); background: var(--tool); border: 1px solid var(--line); border-radius: 5px; padding: 4px 7px; min-width: 0; }
+
+.cols { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 14px; align-items: start; }
+.cols.run { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+@media (max-width: 960px) { .cols, .cols.run { grid-template-columns: minmax(0, 1fr); } }
+.box { border: 1px solid var(--line); border-radius: 8px; background: var(--tool); min-width: 0; }
+.boxhead { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.boxbody { padding: 10px 12px; display: grid; gap: 10px; min-width: 0; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.search { flex: 1 1 160px; }
+.chip { font: 12px var(--font-ui); border: 1px solid var(--line); background: var(--tool); color: var(--muted); padding: 2px 9px; border-radius: 999px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.slist { max-height: calc(100vh - 290px); min-height: 200px; overflow: auto; }
+.group { padding: 8px 12px 4px; display: flex; gap: 8px; align-items: center; font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--accent); font-weight: 700; }
+.group input { margin: 0; }
+.srow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 9px; align-items: center; padding: 7px 12px; border-top: 1px solid var(--line); cursor: pointer; }
+.srow:hover { background: var(--tool-2); }
+.srow.sel { background: var(--accent-soft); }
+.srow .t { font-weight: 600; font-size: 13px; }
+.srow .sub { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 11.5px; color: var(--muted); }
+.state { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.state::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--line); }
+.state.ok { color: var(--pick); } .state.ok::before { background: var(--pick); border-radius: 50%; }
+.state.fail, .state.error { color: var(--bad); } .state.fail::before, .state.error::before { background: var(--bad); transform: rotate(45deg); border-radius: 1px; }
+.state.skip, .state.none, .state.stopped { color: var(--muted); } .state.skip::before, .state.stopped::before { background: transparent; border: 2px solid var(--muted); }
+.state.runs { color: var(--accent); } .state.runs::before { background: var(--accent); border-radius: 50%; }
+.state.wait { color: var(--muted); } .state.wait::before { background: transparent; border: 1px dashed var(--muted); border-radius: 50%; }
+.tag { font-size: 11px; padding: 0 6px; border-radius: 4px; background: var(--tool-2); border: 1px solid var(--line); color: var(--muted); }
+.tag.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.tag.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+.listfoot { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+
+.srcs { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 12.5px; }
+.srcs li { display: flex; gap: 8px; align-items: baseline; }
+.srcs .k { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); min-width: 66px; }
+.approval { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 8px 10px; border-radius: 6px; background: var(--pick-soft); color: var(--pick); font-size: 12.5px; font-weight: 600; }
+.approval.warn { background: var(--warn-soft); color: var(--warn); }
+.problems { margin: 0; padding: 8px 10px 8px 28px; border-radius: 6px; background: var(--bad-soft); color: var(--bad); font-size: 12.5px; }
+.tscroll { overflow-x: auto; min-width: 0; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.cur td { background: var(--accent-soft); }
+tr.failrow td { background: var(--bad-soft); }
+.over { color: var(--bad); font-weight: 700; }
+.checks { margin: 3px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
+.checks .no { color: var(--bad); }
+.checks .yes { color: var(--pick); }
+
+.screenwrap { position: relative; background: var(--tool-2); border-bottom: 1px solid var(--line); min-height: 120px; display: grid; place-items: center; }
+.screen { display: block; max-width: 100%; height: auto; }
+.progress { height: 6px; background: var(--tool-2); border-radius: 3px; overflow: hidden; }
+.progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.kv div { background: var(--tool-2); border-radius: 6px; padding: 6px 9px; display: grid; }
+.kv b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.kv span { font-size: 11.5px; color: var(--muted); }
+.log { font: 12px var(--font-mono); max-height: 320px; overflow: auto; background: var(--code-bg); border-radius: 6px; padding: 8px 10px; display: grid; gap: 2px; align-content: start; }
+.log .error { color: var(--bad); }
+.log .warn { color: var(--warn); }
+.banner { padding: 8px 10px; border-radius: 6px; background: var(--info-soft); color: var(--info); font-size: 12.5px; }
+.banner.warn { background: var(--warn-soft); color: var(--warn); }
+.banner.bad { background: var(--bad-soft); color: var(--bad); }
+
+.runs tr { cursor: pointer; }
+.runs tbody tr:hover td { background: var(--tool-2); }
+.runs tr.sel td { background: var(--accent-soft); }
+.scard { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; }
+.scard.fail, .scard.error { border-color: var(--bad); background: var(--bad-soft); }
+.scard summary { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; cursor: pointer; list-style: none; }
+.scard summary::-webkit-details-marker { display: none; }
+.scard summary b { font-size: 13.5px; }
+.shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.shot { display: grid; gap: 4px; font-size: 11.5px; color: var(--muted); }
+.shot img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--tool-2); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.setgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 14px; }
+.field { display: grid; gap: 3px; font-size: 12px; color: var(--muted); font-weight: 600; min-width: 0; }
+.field input, .field select { width: 100%; font-weight: 400; }
+.check { display: flex; gap: 7px; align-items: flex-start; font-size: 12.8px; }
+.check input { margin-top: 3px; }
+.toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 6px; font-size: 13px; max-width: calc(100% - 32px); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="apphead">
+    <div class="appname">Automat testów Kalahari</div>
+    <div class="appmeta">
+      <span id="programLine">Program: …</span>
+      <span id="storeLine"></span>
+    </div>
+    <span class="pill" id="statusPill">…</span>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Części strony">
+    <button type="button" role="tab" id="tab-scen" aria-controls="p-scen" aria-selected="true">Scenariusze<span class="count" id="scenCount"></span></button>
+    <button type="button" role="tab" id="tab-run" aria-controls="p-run" aria-selected="false">Przebieg</button>
+    <button type="button" role="tab" id="tab-res" aria-controls="p-res" aria-selected="false">Wyniki</button>
+    <button type="button" role="tab" id="tab-set" aria-controls="p-set" aria-selected="false">Ustawienia</button>
+  </div>
+
+  <!-- SCENARIOS -->
+  <div class="tabpanel" role="tabpanel" id="p-scen" aria-labelledby="tab-scen">
+    <div class="runbar">
+      <button type="button" class="btn primary" id="runSel">Uruchom zaznaczone</button>
+      <button type="button" class="btn" id="runAll">Uruchom wszystkie</button>
+      <button type="button" class="btn" id="runFailed">Uruchom nieudane</button>
+      <button type="button" class="btn danger" id="stopBtn1" disabled>Zatrzymaj</button>
+      <span class="sep" aria-hidden="true"></span>
+      <label class="opt">Powtórzenia <select id="optRep"><option>1</option><option>3</option><option>5</option><option>10</option></select></label>
+      <label class="opt"><input type="checkbox" id="optStop"> Zatrzymaj przy pierwszym błędzie</label>
+      <label class="opt"><input type="checkbox" id="optStep"> Krok po kroku</label>
+      <label class="opt">Zrzuty <select id="optShots"><option value="each_step">każdego kroku</option><option value="on_failure">tylko przy błędzie</option></select></label>
+    </div>
+    <div class="cols">
+      <div class="box">
+        <div class="filters">
+          <input class="search" id="q" type="search" placeholder="Szukaj w nazwach i źródłach" aria-label="Szukaj scenariusza">
+          <button type="button" class="chip" data-f="all" aria-pressed="true">Wszystkie</button>
+          <button type="button" class="chip" data-f="fail" aria-pressed="false">Nieudane</button>
+          <button type="button" class="chip" data-f="appr" aria-pressed="false">Do zatwierdzenia</button>
+          <button type="button" class="chip" data-f="czasy" aria-pressed="false">Z pomiarem czasu</button>
+        </div>
+        <div class="slist" id="slist"></div>
+        <div class="listfoot" id="listFoot"></div>
+      </div>
+      <div class="box" id="detail"><div class="boxbody muted">Wybierz scenariusz z listy.</div></div>
+    </div>
+  </div>
+
+  <!-- RUN -->
+  <div class="tabpanel" role="tabpanel" id="p-run" aria-labelledby="tab-run" hidden>
+    <div class="banner warn">W czasie przebiegu nie używaj myszy ani klawiatury: automat porusza kursorem i pisze. Ruch myszą wstrzymuje przebieg, a przycisk „Zatrzymaj” go kończy.</div>
+    <div class="banner warn" id="pausedBanner" hidden></div>
+    <div class="cols run">
+      <div class="box">
+        <div class="boxhead"><h3 id="runNow">Nic nie trwa – uruchom scenariusze na karcie „Scenariusze”</h3><span class="small muted tnum" id="runClock"></span></div>
+        <div class="screenwrap" id="liveScreen"><span class="small muted">Tu pojawia się zrzut po każdym kroku.</span></div>
+        <div class="boxbody">
+          <div class="progress" aria-hidden="true"><i id="progBar"></i></div>
+          <div class="kv">
+            <div><b id="kvScen">–</b><span>scenariusz</span></div>
+            <div><b id="kvStep">–</b><span>krok</span></div>
+            <div><b id="kvTime">–</b><span>czas kroku</span></div>
+            <div><b id="kvBusy">–</b><span>program zajęty (najdłużej)</span></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn primary" id="goOn" hidden>Dalej</button>
+            <button type="button" class="btn danger" id="stopBtn2" disabled>Zatrzymaj</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;gap:14px;min-width:0">
+        <div class="box">
+          <div class="boxhead"><h3>Kroki bieżącego scenariusza</h3></div>
+          <div class="tscroll"><table id="liveSteps"><thead><tr><th>#</th><th>Krok i oczekiwany efekt</th><th class="num">Limit</th><th class="num">Czas</th><th>Wynik</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="box">
+          <div class="boxhead"><h3>Dziennik automatu</h3></div>
+          <div class="boxbody"><div class="log" id="log" aria-live="polite"><span class="muted">Tu pojawiają się kliknięcia, klawisze, okna i wyniki sprawdzeń.</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="tabpanel" role="tabpanel" id="p-res" aria-labelledby="tab-res" hidden>
+    <div class="banner" id="resSource"></div>
+    <div class="box">
+      <div class="boxhead"><h3>Przebiegi</h3><div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" class="btn sm" id="importZip">Dodaj wyniki z GitHuba (ZIP) do folderu</button>
+        <input type="file" id="zipFile" accept=".zip,application/zip" hidden>
+      </div></div>
+      <div class="tscroll"><table class="runs" id="runsTable"><thead><tr><th>Kiedy</th><th>Gdzie</th><th class="num">Scenariusze</th><th>Wynik</th><th class="num">Trwał</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="box" id="runDetail" hidden></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="tabpanel" role="tabpanel" id="p-set" aria-labelledby="tab-set" hidden>
+    <div class="setgrid">
+      <div class="box"><div class="boxhead"><h3>Program i scenariusze</h3></div><div class="boxbody">
+        <label class="field">Program do testu<input type="text" id="setProgram"></label>
+        <label class="field">Scenariusze i bloki<input type="text" id="setScen"></label>
+        <div class="small muted">Książki testowe automat tworzy na nowo dla każdego scenariusza (Karawana, Wyspa, Opowieści znad oazy, Kroniki podróży).</div>
+        <label class="check"><input type="checkbox" checked disabled> Przed startem sprawdź, czy nie działa Kalahari z tego pliku (kolejny start przekazałby polecenie działającemu programowi)</label>
+      </div></div>
+      <div class="box"><div class="boxhead"><h3>Wyniki</h3></div><div class="boxbody">
+        <label class="field">Folder wyników<input type="text" id="setResults"></label>
+        <label class="field">Przebiegi na stronie<input type="number" id="setKeep" min="1"></label>
+        <div class="small muted" id="setDataDir"></div>
+      </div></div>
+      <div class="box"><div class="boxhead"><h3>Odizolowanie od Twoich danych</h3></div><div class="boxbody">
+        <label class="check"><input type="checkbox" checked disabled> Osobny folder ustawień i dziennika pisania dla każdego scenariusza (zmienna APPDATA przy uruchomieniu)</label>
+        <label class="check"><input type="checkbox" id="setRestore"> Kopia przed przebiegiem i przywrócenie po nim: Dokumenty\Kalahari, słowniki użytkownika, składniki gramatyki</label>
+        <label class="check"><input type="checkbox" checked disabled> Twoje zwykłe ustawienia: bez zmian</label>
+        <div class="small muted">Kosz: w Windows program usuwa pliki do Kosza systemu; scenariusze tego etapu niczego nie usuwają.</div>
+      </div></div>
+      <div class="box"><div class="boxhead"><h3>Czasy i zrzuty</h3></div><div class="boxbody">
+        <div class="banner">Progi domyślne dla rodzaju kroku; scenariusz może mieć własny próg dla wybranego kroku.</div>
+        <div class="form">
+          <label class="field">Okno ma się pojawić w (ms)<input type="number" min="1" id="limWindow"></label>
+          <label class="field">Reakcja na kliknięcie (ms)<input type="number" min="1" id="limReaction"></label>
+          <label class="field">Zmiana motywu (ms)<input type="number" min="1" id="limTheme"></label>
+          <label class="field">Ekran „gotowy”, gdy bez zmian przez (ms)<input type="number" min="1" id="setQuiet"></label>
+        </div>
+        <label class="field">Zrzuty<select id="setShots"><option value="each_step">każdego kroku</option><option value="on_failure">tylko przy błędzie</option></select></label>
+      </div></div>
+      <div class="box"><div class="boxhead"><h3>Bezpieczeństwo przebiegu</h3></div><div class="boxbody">
+        <label class="check"><input type="checkbox" id="setMouse"> Ruch myszą wstrzymuje przebieg</label>
+        <label class="check"><input type="checkbox" checked disabled> Program zawieszony dłużej niż 30 s: zrzut, zamknięcie procesu, następny scenariusz</label>
+        <label class="check"><input type="checkbox" id="setAwake"> Na czas przebiegu nie usypiaj komputera</label>
+        <div class="small muted" id="screenLine"></div>
+      </div></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button type="button" class="btn primary" id="saveSettings">Zapisz ustawienia</button>
+      <span class="small muted" id="setMsg" aria-live="polite"></span>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtMs = (ms) => ms == null ? "–" : ms >= 1000 ? (ms / 1000).toFixed(2).replace(".", ",") + " s" : Math.round(ms) + " ms";
+const fmtDur = (ms) => ms == null ? "–" : ms < 60000 ? Math.round(ms / 1000) + " s" : Math.floor(ms / 60000) + " min " + Math.round(ms % 60000 / 1000) + " s";
+const when = (iso) => { if (!iso) return "–"; const d = new Date(iso); return d.toLocaleDateString("pl-PL", { day: "numeric", month: "numeric" }) + " " + d.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" }); };
+const KIND = { plan: "Plan", mockup: "Makieta", decision: "Decyzja" };
+const STATE = { ok: ["ok", "zgodny"], fail: ["fail", "niezgodny"], error: ["error", "błąd automatu"], skipped: ["skip", "pominięty"],
+  stopped: ["stopped", "zatrzymany"], running: ["runs", "trwa"], waiting: ["wait", "czeka"], none: ["none", "nie uruchamiany"] };
+const stateHtml = (s) => { const [c, t] = STATE[s] || STATE.none; return `<span class="state ${c}">${t}</span>`; };
+
+const api = {
+  async get(path) { const r = await fetch(path, { cache: "no-store" }); const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); return j; },
+  async post(path, body, raw) {
+    const r = await fetch(path, { method: "POST", headers: { "X-Automat": "1", "Content-Type": raw ? "application/zip" : "application/json" }, body: raw || JSON.stringify(body || {}) });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); return j;
+  },
+};
+function toast(text) { const t = $("#toast"); t.textContent = text; t.hidden = false; clearTimeout(toast.timer); toast.timer = setTimeout(() => t.hidden = true, 4500); }
+
+let S = { state: null, scenarios: [], folder: "", checked: new Set(), selected: null, filter: "all", runs: [], openRun: null,
+  live: { scenario: null, steps: {}, total: 0, index: 0, count: 0 } };
+
+/* ---------- Tabs ---------- */
+function showTab(id) {
+  $$(".tabs [role=tab]").forEach((t) => { const on = t.id === id; t.setAttribute("aria-selected", String(on)); $("#" + t.getAttribute("aria-controls")).hidden = !on; });
+  try { localStorage.setItem("automat-tab", id); } catch (e) { /* private window */ }
+  if (id === "tab-res") loadRuns();
+  if (id === "tab-set") fillSettings();
+}
+$$(".tabs [role=tab]").forEach((t) => t.addEventListener("click", () => showTab(t.id)));
+
+/* ---------- Header ---------- */
+function renderHead() {
+  const st = S.state; if (!st) return;
+  const p = st.program;
+  $("#programLine").innerHTML = `Program: <span class="mono">${esc(p.path)}</span>` + (p.exists ? ` · zbudowany ${esc(when(p.modified))}` : ' · <b style="color:var(--bad)">nie ma takiego pliku – popraw w Ustawieniach</b>');
+  $("#storeLine").innerHTML = `Scenariusze: <span class="mono">${esc(st.config.scenarios)}</span> · wyniki: <span class="mono">${esc(st.config.results)}</span>`;
+  const pill = $("#statusPill");
+  const waiting = st.waiting;
+  if (st.running) { pill.className = "pill " + (waiting === "paused" ? "warn" : "run"); pill.textContent = waiting === "paused" ? "Wstrzymany" : waiting === "next" ? "Czeka na „Dalej”" : "Trwa przebieg"; }
+  else if (!st.windows) { pill.className = "pill info"; pill.textContent = "Bez Windows: tylko podgląd"; }
+  else if (!p.exists) { pill.className = "pill bad"; pill.textContent = "Brak programu"; }
+  else { pill.className = "pill ok"; pill.textContent = "Gotowy"; }
+  ["#runSel", "#runAll", "#runFailed"].forEach((b) => $(b).disabled = st.running);
+  ["#stopBtn1", "#stopBtn2"].forEach((b) => $(b).disabled = !st.running);
+}
+
+/* ---------- Scenario list ---------- */
+const latestState = (s) => s.latest ? s.latest.state : "none";
+function needsApproval(s) { return s.approval.state !== "approved"; }
+function visibleScen() {
+  const q = $("#q").value.trim().toLowerCase();
+  return S.scenarios.filter((s) => {
+    if (S.filter === "fail" && !["fail", "error"].includes(latestState(s))) return false;
+    if (S.filter === "appr" && !needsApproval(s)) return false;
+    if (S.filter === "czasy" && !s.measures_time) return false;
+    if (q && !(s.title + " " + s.id + " " + s.sources.map((x) => x.ref).join(" ")).toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+function apprTag(s) {
+  return s.approval.state === "none" ? '<span class="tag warn">nowy – do zatwierdzenia</span>'
+    : s.approval.state === "changed" ? '<span class="tag warn">zmieniony po zatwierdzeniu</span>' : "";
+}
+function renderList() {
+  const vis = visibleScen();
+  const areas = [...new Set(vis.map((s) => s.area))];
+  let h = "";
+  areas.forEach((area) => {
+    const items = vis.filter((s) => s.area === area);
+    const allOn = items.every((s) => S.checked.has(s.id));
+    h += `<div class="group"><input type="checkbox" data-area="${esc(area)}" ${allOn ? "checked" : ""} aria-label="Zaznacz grupę ${esc(area)}">${esc(area)}</div>`;
+    items.forEach((s) => {
+      const bad = s.problems.length ? '<span class="tag bad">błędy w pliku</span>' : s.unsupported.length ? '<span class="tag">automat jeszcze nie umie</span>' : "";
+      const last = s.latest ? `<span>ostatnio ${esc(when(s.latest.when))}</span>` : "";
+      h += `<div class="srow ${s.id === S.selected ? "sel" : ""}" data-id="${esc(s.id)}" tabindex="0">
+        <input type="checkbox" data-check="${esc(s.id)}" ${S.checked.has(s.id) ? "checked" : ""} aria-label="Zaznacz: ${esc(s.title)}">
+        <span class="t">${esc(s.title)}</span>${stateHtml(latestState(s))}
+        <span class="sub"><span>${s.steps.length} kroków</span>${last}${s.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}${apprTag(s)}${bad}</span></div>`;
+    });
+  });
+  $("#slist").innerHTML = h || `<div class="listfoot">${S.scenarios.length ? "Nic nie pasuje do filtra." : "W folderze nie ma jeszcze scenariuszy."}</div>`;
+  $("#scenCount").textContent = S.scenarios.length;
+  $("#runSel").textContent = `Uruchom zaznaczone (${S.checked.size})`;
+  $("#runAll").textContent = `Uruchom wszystkie (${S.scenarios.length})`;
+  $("#runFailed").textContent = `Uruchom nieudane (${S.scenarios.filter((s) => ["fail", "error"].includes(latestState(s))).length})`;
+  $("#listFoot").innerHTML = `Lista z plików w <span class="mono">${esc(S.folder)}</span>; nowy albo zmieniony plik pojawia się tu sam w ciągu kilku sekund.`;
+}
+$("#slist").addEventListener("click", (e) => {
+  const cb = e.target.closest("input[type=checkbox]");
+  if (cb) {
+    if (cb.dataset.area !== undefined) visibleScen().filter((s) => s.area === cb.dataset.area).forEach((s) => cb.checked ? S.checked.add(s.id) : S.checked.delete(s.id));
+    else cb.checked ? S.checked.add(cb.dataset.check) : S.checked.delete(cb.dataset.check);
+    renderList(); return;
+  }
+  const row = e.target.closest(".srow");
+  if (row) { S.selected = row.dataset.id; renderList(); renderDetail(); }
+});
+$("#slist").addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("srow")) { e.preventDefault(); e.target.click(); } });
+$("#q").addEventListener("input", renderList);
+$$(".filters .chip").forEach((c) => c.addEventListener("click", () => { S.filter = c.dataset.f; $$(".filters .chip").forEach((x) => x.setAttribute("aria-pressed", String(x === c))); renderList(); }));
+
+function setupText(setup) {
+  const parts = [];
+  if (setup.books && setup.books.length) parts.push("kopia książek: " + setup.books.map((b) => `„${b}”`).join(", "));
+  parts.push(`ustawienia: „${setup.settings || "domyslne"}”`);
+  if (setup.open && setup.open.chapter) parts.push(`otwarty rozdział „${setup.open.chapter}”`);
+  else if (setup.open) parts.push(`otwarta książka „${setup.open.book}”`);
+  return "Na początek: " + parts.join(", ") + ".";
+}
+function limitTxt(e) { return e.limit_ms == null ? "–" : fmtMs(e.limit_ms) + (e.own_limit ? "" : " *"); }
+function renderDetail() {
+  const s = S.scenarios.find((x) => x.id === S.selected);
+  if (!s) { $("#detail").innerHTML = '<div class="boxbody muted">Wybierz scenariusz z listy.</div>'; return; }
+  const appr = s.approval.state === "approved" ? `<div class="approval">Oczekiwania zatwierdzone ${esc(when(s.approval.date))} · wynik liczy się do odbioru</div>`
+    : s.approval.state === "changed" ? '<div class="approval warn">Oczekiwania zmieniono po zatwierdzeniu – wynik nie liczy się do odbioru</div>'
+    : '<div class="approval warn">Nowy scenariusz – oczekiwania nie są jeszcze zatwierdzone (zatwierdzanie na stronie przyjdzie w etapie 2)</div>';
+  const lastSteps = s.latest ? s.latest.steps : [];
+  const rows = s.steps.map((st, i) => {
+    const last = lastSteps.find((x) => x.index === i + 1);
+    const times = last ? last.checks.map((c) => `<span class="${c.ok === false ? "over" : ""}">${fmtMs(c.ms)}</span>`).join("<br>") : "–";
+    const failed = last && last.checks.some((c) => c.ok === false);
+    return `<tr class="${failed ? "failrow" : ""}"><td class="num">${i + 1}</td><td>${esc(st.say)}${st.block ? ` <span class="tag">blok ${esc(st.block)}</span>` : ""}
+      ${st.expect.length ? `<ul class="checks">${st.expect.map((e) => `<li>→ ${esc(e.say)}</li>`).join("")}</ul>` : ""}</td>
+      <td class="num">${st.expect.map(limitTxt).join("<br>") || "–"}</td><td class="num">${times}</td></tr>`;
+  }).join("");
+  $("#detail").innerHTML = `<div class="boxhead"><h3>${esc(s.title)}</h3>${stateHtml(latestState(s))}</div>
+    <div class="boxbody">
+      <div class="small muted">${esc(s.area)} · <span class="mono">${esc(s.file)}</span> · <span class="mono">${esc(s.id)}</span></div>
+      <ul class="srcs">${s.sources.map((x) => `<li><span class="k">${esc(KIND[x.kind] || x.kind)}</span><span>${esc(x.ref)}</span></li>`).join("")}</ul>
+      ${appr}
+      ${s.problems.length ? `<ul class="problems">${s.problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : ""}
+      ${s.unsupported.length ? `<div class="banner">Automat jeszcze nie umie: ${esc(s.unsupported.join(", "))} – scenariusz zostanie pominięty.</div>` : ""}
+      <div class="small muted">${esc(setupText(s.setup))}</div>
+      <div class="tscroll"><table><thead><tr><th>#</th><th>Krok i oczekiwany efekt</th><th class="num">Limit</th><th class="num">Ostatnio</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="small muted">* próg domyślny dla rodzaju kroku (Ustawienia); bez gwiazdki – próg ze scenariusza.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" data-runone ${S.state && S.state.running ? "disabled" : ""}>Uruchom ten scenariusz</button></div>
+    </div>`;
+}
+$("#detail").addEventListener("click", (e) => { if (e.target.closest("[data-runone]")) startRun([S.selected]); });
+
+async function loadScenarios() {
+  try {
+    const data = await api.get("/api/scenarios");
+    const known = new Set(data.scenarios.map((s) => s.id));
+    S.checked.forEach((id) => { if (!known.has(id)) S.checked.delete(id); });
+    S.scenarios = data.scenarios; S.folder = data.folder;
+    if (!S.selected && S.scenarios.length) S.selected = S.scenarios[0].id;
+    renderList(); renderDetail();
+  } catch (e) { $("#listFoot").textContent = "Nie da się odczytać scenariuszy: " + e.message; }
+}
+
+/* ---------- Running ---------- */
+function options() {
+  return { repeat: +$("#optRep").value, stop_on_fail: $("#optStop").checked, step_by_step: $("#optStep").checked, screenshots: $("#optShots").value };
+}
+async function startRun(ids) {
+  if (!ids.length) { toast("Zaznacz scenariusze na liście."); return; }
+  try { await api.post("/api/run", { ids, options: options() }); $("#log").innerHTML = ""; showTab("tab-run"); await loadState(); }
+  catch (e) { toast("Nie da się uruchomić: " + e.message); }
+}
+$("#runSel").addEventListener("click", () => startRun(S.scenarios.filter((s) => S.checked.has(s.id)).map((s) => s.id)));
+$("#runAll").addEventListener("click", () => startRun(S.scenarios.map((s) => s.id)));
+$("#runFailed").addEventListener("click", () => startRun(S.scenarios.filter((s) => ["fail", "error"].includes(latestState(s))).map((s) => s.id)));
+["#stopBtn1", "#stopBtn2"].forEach((b) => $(b).addEventListener("click", () => api.post("/api/stop").catch((e) => toast(e.message))));
+$("#goOn").addEventListener("click", () => api.post("/api/go-on").catch((e) => toast(e.message)));
+
+function logLine(ev) {
+  const lg = $("#log");
+  if (lg.firstElementChild && lg.firstElementChild.classList.contains("muted")) lg.innerHTML = "";
+  const el = document.createElement("div");
+  if (ev.level) el.className = ev.level;
+  el.textContent = `${ev.time}  ${ev.text}`;
+  const atEnd = lg.scrollTop + lg.clientHeight >= lg.scrollHeight - 20;
+  lg.appendChild(el);
+  while (lg.childElementCount > 600) lg.firstElementChild.remove();
+  if (atEnd) lg.scrollTop = lg.scrollHeight;
+}
+function renderLive() {
+  const L = S.live, sc = L.scenario;
+  if (!sc) { $("#liveSteps tbody").innerHTML = ""; return; }
+  $("#runNow").textContent = sc.title;
+  const cur = L.current || 0;
+  $("#liveSteps tbody").innerHTML = sc.steps.map((st, i) => {
+    const n = i + 1, done = L.steps[n];
+    const failed = done && !done.ok;
+    const cls = done ? (failed ? "failrow" : "") : n === cur ? "cur" : "";
+    const times = done ? (done.checks || []).map((c) => `<span class="${c.ok ? "" : "over"}">${fmtMs(c.ms)}</span>`).join("<br>") || "–" : "–";
+    const res = done ? stateHtml(failed ? "fail" : "ok") : n === cur ? stateHtml("running") : stateHtml("waiting");
+    const detail = failed ? `<ul class="checks">${(done.checks || []).filter((c) => !c.ok).map((c) => `<li class="no">✗ ${esc(c.say)}: ${esc(c.detail)}</li>`).join("")}${done.reason && !(done.checks || []).length ? `<li class="no">✗ ${esc(done.reason)}</li>` : ""}</ul>` : "";
+    return `<tr class="${cls}"><td class="num">${n}</td><td>${esc(st.say)}${st.expect.length ? `<div class="small muted">${st.expect.map(esc).join("; ")}</div>` : ""}${detail}</td>
+      <td class="num">${st.limits.map(fmtMs).join("<br>") || "–"}</td><td class="num">${times}</td><td>${res}</td></tr>`;
+  }).join("");
+  $("#kvStep").textContent = `${cur || "–"} / ${sc.steps.length}`;
+  $("#kvScen").textContent = `${(sc.index ?? 0) + 1} / ${L.count || "?"}`;
+  const total = L.count ? Math.round(((sc.index ?? 0) + (cur ? (cur - 1) / sc.steps.length : 0)) / L.count * 100) : 0;
+  $("#progBar").style.width = total + "%";
+}
+function showShot(path, runId) {
+  if (!path || !runId) return;
+  $("#liveScreen").innerHTML = `<img class="screen" alt="Zrzut po kroku" src="/files/${encodeURIComponent(runId)}/${path.split("/").map(encodeURIComponent).join("/")}?t=${Date.now()}">`;
+}
+function renderWaiting(w) {
+  const banner = $("#pausedBanner"), btn = $("#goOn");
+  if (!w) { banner.hidden = true; btn.hidden = true; return; }
+  btn.hidden = false;
+  if (w.why === "paused") { btn.textContent = "Wznów"; banner.hidden = false; banner.textContent = `Przebieg wstrzymany przed krokiem ${w.number}: ${w.reason}. Odsuń rękę od myszy i kliknij „Wznów” – krok zacznie się od nowa.`; }
+  else { btn.textContent = "Dalej"; banner.hidden = true; }
+}
+function onEvent(ev) {
+  const L = S.live;
+  switch (ev.type) {
+    case "run_started": S.live = { scenario: null, steps: {}, count: ev.ids.length, runId: ev.run.id }; $("#log").innerHTML = ""; loadState(); break;
+    case "scenario_started": L.scenario = ev; L.steps = {}; L.current = 0; renderLive(); break;
+    case "step_started": L.current = ev.number; renderLive(); break;
+    case "step_finished": {
+      L.steps[ev.number] = ev.step; renderLive();
+      const checks = (ev.step.checks || []).filter((c) => c.ms != null);
+      $("#kvTime").textContent = checks.length ? fmtMs(Math.max(...checks.map((c) => c.ms))) : "–";
+      $("#kvBusy").textContent = fmtMs(ev.step.busy_ms);
+      if (ev.step.screens) showShot(ev.step.screens.after, L.runId);
+      break;
+    }
+    case "log": logLine(ev); break;
+    case "waiting": renderWaiting(ev); loadState(); break;
+    case "going_on": renderWaiting(null); loadState(); break;
+    case "scenario_finished": loadScenarios(); break;
+    case "run_finished": loadState(); loadScenarios(); loadRuns();
+      toast(`Koniec przebiegu: zgodne ${ev.run.counts.ok}, niezgodne ${ev.run.counts.fail}, błędy ${ev.run.counts.error}`); break;
+  }
+}
+function connect() {
+  const source = new EventSource("/api/events");
+  source.onmessage = (m) => { try { onEvent(JSON.parse(m.data)); } catch (e) { console.error(e); } };
+  source.onerror = () => { $("#statusPill").className = "pill bad"; $("#statusPill").textContent = "Brak połączenia z automatem"; };
+  source.onopen = () => loadState();
+}
+
+/* ---------- Results ---------- */
+function countsHtml(c) {
+  const parts = [];
+  if (c.ok) parts.push(`<span class="pill ok">${c.ok} zgodne</span>`);
+  if (c.fail) parts.push(`<span class="pill bad">${c.fail} niezgodne</span>`);
+  if (c.error) parts.push(`<span class="pill bad">${c.error} błędy automatu</span>`);
+  if (c.skipped) parts.push(`<span class="pill">${c.skipped} pominięte</span>`);
+  if (c.stopped) parts.push(`<span class="pill">${c.stopped} zatrzymane</span>`);
+  return `<div class="chips">${parts.join("") || '<span class="muted">–</span>'}</div>`;
+}
+async function loadRuns() {
+  try { S.runs = (await api.get("/api/runs")).runs; } catch (e) { toast(e.message); return; }
+  $("#resSource").innerHTML = `Wyniki z folderu <span class="mono">${esc(S.state ? S.state.config.results : "")}</span>. Przebieg z GitHuba dodasz przyciskiem „Dodaj wyniki z GitHuba (ZIP)” – pobierz artefakt „automat-wyniki” z zadania AUTOMAT.`;
+  $("#runsTable tbody").innerHTML = S.runs.map((r) => `<tr class="${r.id === S.openRun ? "sel" : ""}" data-run="${esc(r.id)}" tabindex="0">
+      <td class="tnum">${esc(when(r.started))}${r.state === "running" ? ' <span class="tag">trwa</span>' : ""}</td><td>${esc(r.where)}</td>
+      <td class="num">${r.total}</td><td>${countsHtml(r.counts)}${r.unapproved ? `<div class="small muted">niezatwierdzone: ${r.unapproved}</div>` : ""}</td><td class="num">${fmtDur(r.duration_ms)}</td></tr>`).join("")
+    || '<tr><td colspan="5" class="muted">Jeszcze nie było przebiegów.</td></tr>';
+  if (!S.openRun && S.runs.length) openRun(S.runs[0].id);
+}
+$("#runsTable").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-run]"); if (tr) openRun(tr.dataset.run); });
+$("#runsTable").addEventListener("keydown", (e) => { const tr = e.target.closest("tr[data-run]"); if (tr && e.key === "Enter") openRun(tr.dataset.run); });
+const fileUrl = (runId, path) => `/files/${encodeURIComponent(runId)}/${path.split("/").map(encodeURIComponent).join("/")}`;
+async function openRun(id) {
+  S.openRun = id;
+  $$("#runsTable tbody tr").forEach((tr) => tr.classList.toggle("sel", tr.dataset.run === id));
+  let run;
+  try { run = await api.get("/api/runs/" + encodeURIComponent(id)); } catch (e) { toast(e.message); return; }
+  const box = $("#runDetail"); box.hidden = false;
+  const scen = run.scenarios.map((r) => {
+    const steps = (r.steps || []).map((st) => {
+      const checks = (st.checks || []).map((c) => `<li class="${c.ok ? "yes" : "no"}">${c.ok ? "✓" : "✗"} ${esc(c.say)}${c.ms != null ? ` – ${fmtMs(c.ms)}` : ""}${c.limit_ms ? ` (limit ${fmtMs(c.limit_ms)})` : ""}${c.worst_ms != null ? `, najgorzej ${fmtMs(c.worst_ms)}` : ""}${!c.ok && c.detail ? `: ${esc(c.detail)}` : ""}</li>`).join("");
+      const failText = st.action && st.action.ok === false ? `<li class="no">✗ ${esc(st.action.detail)}</li>` : "";
+      const note = st.action && st.action.note ? `<div class="small muted">${esc(st.action.note)}</div>` : "";
+      return `<tr class="${st.ok ? "" : "failrow"}"><td class="num">${st.index}</td><td>${esc(st.say)}${note}<ul class="checks">${checks}${failText}</ul></td><td class="num">${fmtMs(st.busy_ms)}</td></tr>`;
+    }).join("");
+    const shots = (r.steps || []).filter((st) => st.screens && (!st.ok || r.state === "ok")).slice(0, 40).map((st) =>
+      `<div class="shot"><a href="${fileUrl(run.id, st.screens.after)}" target="_blank" rel="noopener"><img loading="lazy" alt="Po kroku ${st.index}" src="${fileUrl(run.id, st.screens.after)}"></a>po kroku ${st.index}${st.ok ? "" : " – błąd"}</div>`).join("");
+    const open = ["fail", "error"].includes(r.state);
+    return `<details class="scard ${esc(r.state)}" ${open ? "open" : ""}><summary>${stateHtml(r.state)}<b>${esc(r.title || r.id)}</b>
+        ${r.attempts > 1 ? `<span class="tag">${r.attempts} próby</span>` : ""}${r.approval && r.approval !== "approved" ? '<span class="tag warn">niezatwierdzony</span>' : ""}
+        <span class="small muted">${fmtDur(r.duration_ms)}</span></summary>
+      ${r.reason ? `<div class="small"><b>Powód:</b> ${esc(r.reason)}</div>` : ""}
+      ${(r.warnings || []).map((w) => `<div class="banner warn">${esc(w)}</div>`).join("")}
+      ${steps ? `<div class="tscroll"><table><thead><tr><th>#</th><th>Krok i sprawdzenia</th><th class="num">Zajęty</th></tr></thead><tbody>${steps}</tbody></table></div>` : ""}
+      ${shots ? `<div class="shots">${shots}</div>` : ""}
+      ${r.log ? `<div class="small"><a href="${fileUrl(run.id, r.log)}" target="_blank" rel="noopener">Dziennik programu (kalahari.log)</a></div>` : ""}
+      ${r.trace ? `<details><summary class="small">Szczegóły błędu automatu</summary><pre class="mono small" style="white-space:pre-wrap">${esc(r.trace)}</pre></details>` : ""}
+    </details>`;
+  }).join("");
+  box.innerHTML = `<div class="boxhead"><h3>Przebieg ${esc(when(run.started))} · ${esc(run.where)}</h3><span class="small muted">${esc(run.program && run.program.modified ? "program z " + when(run.program.modified) : "")}</span></div>
+    <div class="boxbody">
+      ${run.error ? `<div class="banner bad">Błąd automatu: ${esc(run.error)}</div>` : ""}
+      ${(run.your_data || []).map((w) => `<div class="banner warn">Twoje dane: ${esc(w)}</div>`).join("")}
+      ${scen || '<div class="muted">Bez scenariuszy.</div>'}
+    </div>`;
+}
+$("#importZip").addEventListener("click", () => $("#zipFile").click());
+$("#zipFile").addEventListener("change", async () => {
+  const file = $("#zipFile").files[0]; if (!file) return;
+  try { const res = await api.post("/api/import", null, await file.arrayBuffer()); toast(res.added.length ? `Dodano przebiegi: ${res.added.length}` : "W pliku nie było przebiegów automatu"); S.openRun = res.added[0] || S.openRun; loadRuns(); }
+  catch (e) { toast("Nie da się wczytać: " + e.message); }
+  $("#zipFile").value = "";
+});
+
+/* ---------- Settings ---------- */
+function fillSettings() {
+  const st = S.state; if (!st) return;
+  const c = st.config;
+  $("#setProgram").value = c.program; $("#setScen").value = c.scenarios; $("#setResults").value = c.results;
+  $("#setKeep").value = c.keep_runs; $("#setRestore").checked = c.restore_folders; $("#setMouse").checked = c.pause_on_mouse;
+  $("#setAwake").checked = c.keep_awake; $("#limWindow").value = c.limits.window; $("#limReaction").value = c.limits.reaction;
+  $("#limTheme").value = c.limits.theme; $("#setQuiet").value = c.quiet_ms; $("#setShots").value = c.screenshots;
+  $("#setDataDir").innerHTML = `Zatwierdzenia i ustawienia automatu: <span class="mono">${esc(st.data_dir)}</span> (poza repozytorium).`;
+  const sc = st.screen || {};
+  $("#screenLine").textContent = sc.screen ? `Ekran: ${sc.screen[0]}×${sc.screen[1]}, skalowanie ${Math.round((sc.dpi || 96) / 96 * 100)}% (odczytane przy starcie automatu).` : "";
+}
+$("#saveSettings").addEventListener("click", async () => {
+  const body = { program: $("#setProgram").value, scenarios: $("#setScen").value, results: $("#setResults").value, keep_runs: +$("#setKeep").value,
+    restore_folders: $("#setRestore").checked, pause_on_mouse: $("#setMouse").checked, keep_awake: $("#setAwake").checked,
+    quiet_ms: +$("#setQuiet").value, screenshots: $("#setShots").value,
+    limits: { window: +$("#limWindow").value, reaction: +$("#limReaction").value, theme: +$("#limTheme").value } };
+  try { S.state = await api.post("/api/settings", body); $("#setMsg").textContent = "Zapisano."; renderHead(); loadScenarios(); }
+  catch (e) { $("#setMsg").textContent = "Nie zapisano: " + e.message; }
+});
+
+/* ---------- State ---------- */
+async function loadState() {
+  try { S.state = await api.get("/api/state"); } catch (e) { return; }
+  renderHead();
+  const st = S.state;
+  $("#optShots").value = $("#optShots").dataset.touched ? $("#optShots").value : st.config.screenshots;
+  if (st.running && st.live) {
+    const L = st.live;
+    if (L.scenario && (!S.live.scenario || S.live.scenario.id !== L.scenario.id)) {
+      S.live.scenario = L.scenario; S.live.steps = L.steps; S.live.runId = st.current.id; S.live.count = st.current.scenarios.length;
+      const numbers = Object.keys(L.steps).map(Number); S.live.current = numbers.length ? Math.max(...numbers) + 1 : 1;
+      if ($("#log").firstElementChild && $("#log").firstElementChild.classList.contains("muted")) L.log.forEach(logLine);
+      renderLive();
+    }
+    S.live.runId = st.current.id; S.live.count = st.current.scenarios.length;
+    renderWaiting(L.waiting);
+  } else renderWaiting(null);
+  if (!st.running) $("#runClock").textContent = "";
+}
+$("#optShots").addEventListener("change", () => $("#optShots").dataset.touched = "1");
+
+(async function init() {
+  let tab = "tab-scen";
+  try { tab = localStorage.getItem("automat-tab") || tab; } catch (e) { /* private window */ }
+  await loadState();
+  await loadScenarios();
+  showTab($("#" + tab) ? tab : "tab-scen");
+  connect();
+  setInterval(() => { if (!document.hidden) loadScenarios(); }, 3000);
+  setInterval(() => { if (S.state && S.state.running && S.state.current) $("#runClock").textContent = new Date().toLocaleTimeString("pl-PL"); }, 1000);
+})();
+</script>
+</body>
+</html>

@@ -1,22 +1,174 @@
 name: AUTOMAT
 
-# The external test automaton (tests/automat). The probe checks, on a GitHub Windows machine,
-# that real mouse and keyboard input, Qt's UI Automation, window events, the busy probe,
-# screenshots and the clipboard work, using a small Qt program (not Kalahari).
+# The external test automaton (tests/automat).
+# - unit: the automaton's own tests and the scenario check (any machine, no program).
+# - kalahari: builds Kalahari (Release) and runs every scenario against the real program on
+#   a GitHub Windows machine; the job log carries every step, check, time and the UI
+#   Automation trees the run saved, so a run can be read without the artifact.
+# - probe: the probe of the Windows machine with a small Qt program (on request only).
 
 on:
   push:
     branches: [ 'claude/**' ]
     paths: [ 'tests/automat/**', '.github/workflows/automat-windows.yml' ]
   workflow_dispatch:
+    inputs:
+      probe:
+        description: 'Also run the probe of the Windows machine'
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  unit:
+    name: Automaton tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tests/automat
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install the automaton's packages
+      run: python -m pip install -r requirements.txt
+
+    - name: Run the automaton's tests
+      run: python -m unittest discover -s tests -t . -v
+
+    - name: Check the scenarios
+      run: python -m automat lista
+
+  kalahari:
+    name: Scenarios on Kalahari (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 120  # Qt6 via vcpkg takes a long time without a warm binary cache
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
+      PYTHONUTF8: '1'
+    steps:
+    - name: Free disk space
+      shell: pwsh
+      run: |
+        if (Test-Path "C:\Android") { Remove-Item -Recurse -Force "C:\Android" -ErrorAction SilentlyContinue }
+        if (Test-Path "C:\hostedtoolcache\CodeQL") { Remove-Item -Recurse -Force "C:\hostedtoolcache\CodeQL" -ErrorAction SilentlyContinue }
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: false
+
+    - name: Initialize vcpkg submodule (full clone)
+      shell: powershell
+      run: |
+        git submodule update --init --recursive
+        cd vcpkg
+        $isShallow = git rev-parse --is-shallow-repository
+        if ($isShallow -eq "true") {
+          git fetch --unshallow 2>$null
+          if ($LASTEXITCODE -ne 0) { Write-Host "Already unshallowed or error (continuing)" }
+        }
+
+    - name: Setup MSVC (Visual Studio BuildTools)
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Install CMake and Ninja
+      run: choco install cmake ninja -y
+
+    - name: Install autotools (for vcpkg Python build)
+      continue-on-error: true
+      run: |
+        choco install msys2 -y
+        C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm autoconf autoconf-archive automake libtool"
+
+    - name: Prepare vcpkg binary cache directory
+      shell: pwsh
+      run: New-Item -ItemType Directory -Force -Path "${{ env.VCPKG_DEFAULT_BINARY_CACHE }}" | Out-Null
+
+    # Main's cache (saved by the WINDOWS workflow); this workflow only reads it.
+    - name: Restore vcpkg binary cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+        key: windows-msvc-vcpkg-binary-v1-${{ hashFiles('vcpkg.json') }}-${{ github.run_id }}
+        restore-keys: |
+          windows-msvc-vcpkg-binary-v1-${{ hashFiles('vcpkg.json') }}-
+          windows-msvc-vcpkg-binary-v1-
+
+    - name: Bootstrap vcpkg
+      shell: powershell
+      run: |
+        if (!(Test-Path "vcpkg/vcpkg.exe")) {
+          cd vcpkg
+          .\bootstrap-vcpkg.bat
+        }
+
+    - name: Configure CMake
+      run: |
+        cmake -B build `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake `
+          -DVCPKG_TARGET_TRIPLET=x64-windows `
+          -G Ninja
+      env:
+        CC: cl
+        CXX: cl
+
+    - name: Build Kalahari
+      run: cmake --build build --config Release --target kalahari --parallel
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install the automaton's packages
+      run: python -m pip install -r tests/automat/requirements.txt
+
+    - name: Does the automaton's input reset the idle timer
+      continue-on-error: true
+      run: python tests/automat/probe/idle_check.py
+
+    - name: Run every scenario
+      id: run
+      continue-on-error: true
+      working-directory: tests/automat
+      run: >
+        python -m automat uruchom --wszystkie
+        --program "${{ github.workspace }}\build\bin\kalahari.exe"
+        --results "${{ github.workspace }}\automat-wyniki"
+        --gdzie "GitHub (windows-latest)"
+
+    - name: The run in the log
+      if: always()
+      run: python tests/automat/ci_report.py "${{ github.workspace }}\automat-wyniki"
+
+    - name: Upload the run's results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: automat-wyniki
+        path: automat-wyniki
+        retention-days: 14
+
+    - name: Fail when a scenario failed
+      if: steps.run.outcome != 'success'
+      run: exit 1
+
   probe:
     name: Probe of the Windows machine
+    if: github.event_name == 'workflow_dispatch' && inputs.probe
     runs-on: windows-latest
     timeout-minutes: 20
     steps:

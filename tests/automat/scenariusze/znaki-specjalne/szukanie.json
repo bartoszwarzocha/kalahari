@@ -1,0 +1,159 @@
+{
+  "id": "znaki-specjalne-szukanie",
+  "title": "Okno „Znak specjalny”: szukanie po nazwie i po kodzie",
+  "area": "Znaki specjalne",
+  "tags": [
+    "czasy"
+  ],
+  "sources": [
+    {
+      "kind": "plan",
+      "ref": "plan-faz.md – Pełny edytor, część 3: znaki specjalne, okno „Znak specjalny…”"
+    },
+    {
+      "kind": "mockup",
+      "ref": "makiety/znaki-specjalne.html – wyszukiwanie po polskiej i angielskiej nazwie, po słowach pokrewnych i po kodzie: „U+2014” albo „2014”"
+    },
+    {
+      "kind": "decision",
+      "ref": "Progi z 17.11.2026: reakcja 0,3 s"
+    }
+  ],
+  "setup": {
+    "books": [
+      "karawana"
+    ],
+    "settings": "domyslne",
+    "open": {
+      "book": "karawana",
+      "chapter": "Targ w Ghadames"
+    }
+  },
+  "steps": [
+    {
+      "do": "use",
+      "block": "otworz-znak-specjalny"
+    },
+    {
+      "do": "click",
+      "target": {
+        "window": "Znak specjalny",
+        "name": "Lista",
+        "role": "button"
+      }
+    },
+    {
+      "say": "Napisz „polpauza” (bez polskich liter) w polu „Szukaj znaku”",
+      "do": "type",
+      "text": "polpauza",
+      "replace": true,
+      "target": {
+        "window": "Znak specjalny",
+        "name": "Szukaj znaku",
+        "role": "edit"
+      },
+      "expect": [
+        {
+          "check": "visible",
+          "target": {
+            "window": "Znak specjalny",
+            "name": "Znaki",
+            "row": "Półpauza"
+          }
+        }
+      ]
+    },
+    {
+      "say": "Napisz kod „2014” w polu „Szukaj znaku”",
+      "do": "type",
+      "text": "2014",
+      "replace": true,
+      "target": {
+        "window": "Znak specjalny",
+        "name": "Szukaj znaku",
+        "role": "edit"
+      },
+      "expect": [
+        {
+          "check": "visible",
+          "target": {
+            "window": "Znak specjalny",
+            "name": "Znaki",
+            "row": "Pauza"
+          }
+        }
+      ]
+    },
+    {
+      "say": "Napisz kod „U+2026” w polu „Szukaj znaku”",
+      "do": "type",
+      "text": "U+2026",
+      "replace": true,
+      "target": {
+        "window": "Znak specjalny",
+        "name": "Szukaj znaku",
+        "role": "edit"
+      },
+      "expect": [
+        {
+          "check": "visible",
+          "target": {
+            "window": "Znak specjalny",
+            "name": "Znaki",
+            "row": "Wielokropek"
+          }
+        }
+      ]
+    },
+    {
+      "say": "Napisz po angielsku „em dash” w polu „Szukaj znaku”",
+      "do": "type",
+      "text": "em dash",
+      "replace": true,
+      "target": {
+        "window": "Znak specjalny",
+        "name": "Szukaj znaku",
+        "role": "edit"
+      },
+      "expect": [
+        {
+          "check": "visible",
+          "target": {
+            "window": "Znak specjalny",
+            "name": "Znaki",
+            "row": "Pauza"
+          }
+        }
+      ]
+    },
+    {
+      "say": "Napisz słowo pokrewne „myślnik” w polu „Szukaj znaku”",
+      "do": "type",
+      "text": "myślnik",
+      "replace": true,
+      "target": {
+        "window": "Znak specjalny",
+        "name": "Szukaj znaku",
+        "role": "edit"
+      },
+      "expect": [
+        {
+          "check": "visible",
+          "target": {
+            "window": "Znak specjalny",
+            "name": "Znaki",
+            "row": "Pauza"
+          }
+        },
+        {
+          "check": "visible",
+          "target": {
+            "window": "Znak specjalny",
+            "name": "Znaki",
+            "row": "Półpauza"
+          }
+        }
+      ]
+    }
+  ]
+}

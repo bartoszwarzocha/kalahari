@@ -1,0 +1,60 @@
+{
+  "id": "znaki-specjalne-grupy",
+  "title": "Okno „Znak specjalny”: grupy Ulubione, Ostatnio użyte i Wszystkie",
+  "area": "Znaki specjalne",
+  "tags": ["czasy"],
+  "sources": [
+    { "kind": "plan", "ref": "plan-faz.md – Pełny edytor, część 3: znaki specjalne, okno „Znak specjalny…”" },
+    { "kind": "mockup", "ref": "makiety/znaki-specjalne.html – widok B (lista): grupy jako przyciski nad listą, „Wszystkie” pokazuje całą listę" },
+    { "kind": "decision", "ref": "Uwagi z testu 16.11, część 1: przełączanie między filtrami (Ulubione, Wszystkie, Ostatnio użyte) trwa 2–3 s" },
+    { "kind": "decision", "ref": "Progi z 17.11.2026: reakcja na kliknięcie 0,3 s" }
+  ],
+  "setup": {
+    "books": ["karawana"],
+    "settings": "domyslne",
+    "open": { "book": "karawana", "chapter": "Targ w Ghadames" }
+  },
+  "steps": [
+    { "do": "use", "block": "otworz-znak-specjalny" },
+    {
+      "do": "click",
+      "target": { "window": "Znak specjalny", "name": "Lista", "role": "button" },
+      "expect": [
+        { "check": "checked", "target": { "window": "Znak specjalny", "name": "Lista", "role": "button" } }
+      ]
+    },
+    {
+      "do": "click",
+      "target": { "window": "Znak specjalny", "name": "Ulubione" },
+      "expect": [
+        { "check": "screen_settled", "area": { "window": "Znak specjalny" } },
+        { "check": "busy_at_most_ms", "value": 300 }
+      ]
+    },
+    {
+      "do": "click",
+      "target": { "window": "Znak specjalny", "name": "Ostatnio użyte" },
+      "expect": [
+        { "check": "screen_settled", "area": { "window": "Znak specjalny" } },
+        { "check": "busy_at_most_ms", "value": 300 }
+      ]
+    },
+    {
+      "do": "click",
+      "target": { "window": "Znak specjalny", "name": "Wszystkie" },
+      "expect": [
+        { "check": "screen_settled", "area": { "window": "Znak specjalny" } },
+        { "check": "busy_at_most_ms", "value": 300 },
+        { "check": "visible", "target": { "window": "Znak specjalny", "name": "Znaki", "row": "Pauza" } }
+      ]
+    },
+    {
+      "do": "click",
+      "target": { "window": "Znak specjalny", "name": "Strzałki" },
+      "expect": [
+        { "check": "screen_settled", "area": { "window": "Znak specjalny" } },
+        { "check": "busy_at_most_ms", "value": 300 }
+      ]
+    }
+  ]
+}

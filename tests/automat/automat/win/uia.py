@@ -301,6 +301,28 @@ class Uia:
             return []
         return [Element(self, array.GetElement(i)) for i in range(array.Length)]
 
+    def snapshot(self, parent: Element, kinds=None, scope=SCOPE_DESCENDANTS) -> list:
+        """[(name, control type, offscreen, Element)] of every matching element, with the
+        properties read in one pass (a cache request) instead of one call per property."""
+        request = self.client.CreateCacheRequest()
+        for prop in (P_NAME, P_CONTROL_TYPE, P_IS_OFFSCREEN):
+            request.AddProperty(prop)
+        try:
+            array = parent.raw.FindAllBuildCache(scope, self._condition(kinds=kinds), request)
+        except comtypes.COMError:
+            return []
+        if not array:
+            return []
+        out = []
+        for i in range(array.Length):
+            raw = array.GetElement(i)
+            try:
+                out.append((raw.CachedName or "", CONTROL_TYPES.get(raw.CachedControlType, "Unknown"),
+                            bool(raw.CachedIsOffscreen), Element(self, raw)))
+            except comtypes.COMError:
+                continue
+        return out
+
     def top_windows(self, pid: int) -> list:
         """All top-level windows of the process, as UI Automation sees them (menus included)."""
         return self.find_all(self.root, pid=pid, scope=SCOPE_CHILDREN)

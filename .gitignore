@@ -207,3 +207,7 @@ Clipboard_*.png
 
 # SonarQube scanner working directory
 .scannerwork/
+
+# Results of the test automaton (tests/automat): screenshots and run files, per machine
+automat-wyniki/
+tests/automat/probe-out/

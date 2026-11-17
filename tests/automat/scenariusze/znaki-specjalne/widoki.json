@@ -1,0 +1,54 @@
+{
+  "id": "znaki-specjalne-widoki",
+  "title": "Okno „Znak specjalny”: przełączanie siatki i listy",
+  "area": "Znaki specjalne",
+  "tags": ["czasy"],
+  "sources": [
+    { "kind": "plan", "ref": "plan-faz.md – Pełny edytor, część 3: znaki specjalne, okno „Znak specjalny…”" },
+    { "kind": "mockup", "ref": "makiety/znaki-specjalne.html – druga wersja z 21.10: widoki A (siatka) i B (lista), przycisk Siatka | Lista" },
+    { "kind": "decision", "ref": "Uwagi z testu 16.11, część 1: przełączanie między siatką a listą trwa 2–3 s" },
+    { "kind": "decision", "ref": "Progi z 17.11.2026: okno 0,5 s, reakcja na kliknięcie 0,3 s" }
+  ],
+  "setup": {
+    "books": ["karawana"],
+    "settings": "domyslne",
+    "open": { "book": "karawana", "chapter": "Targ w Ghadames" }
+  },
+  "steps": [
+    { "do": "use", "block": "otworz-znak-specjalny" },
+    {
+      "do": "click",
+      "target": { "window": "Znak specjalny", "name": "Lista", "role": "button" },
+      "expect": [
+        { "check": "checked", "target": { "window": "Znak specjalny", "name": "Lista", "role": "button" } },
+        { "check": "screen_settled", "area": { "window": "Znak specjalny" } },
+        { "check": "busy_at_most_ms", "value": 300 }
+      ]
+    },
+    {
+      "do": "click",
+      "target": { "window": "Znak specjalny", "name": "Siatka", "role": "button" },
+      "expect": [
+        { "check": "checked", "target": { "window": "Znak specjalny", "name": "Siatka", "role": "button" } },
+        { "check": "screen_settled", "area": { "window": "Znak specjalny" } },
+        { "check": "busy_at_most_ms", "value": 300 }
+      ]
+    },
+    {
+      "do": "click",
+      "target": { "window": "Znak specjalny", "name": "Lista", "role": "button" },
+      "expect": [
+        { "check": "checked", "target": { "window": "Znak specjalny", "name": "Lista", "role": "button" } },
+        { "check": "screen_settled", "area": { "window": "Znak specjalny" } },
+        { "check": "busy_at_most_ms", "value": 300 }
+      ]
+    },
+    {
+      "do": "keys",
+      "keys": "Esc",
+      "expect": [
+        { "check": "window_closed", "window": "Znak specjalny" }
+      ]
+    }
+  ]
+}

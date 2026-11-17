@@ -1,4 +1,4 @@
-"""How long the program does not respond: a control message sent every 50 ms.
+"""How long the program does not respond: a control message sent every 20 ms.
 
 SendMessageTimeout with WM_NULL does not return until the window procedure has processed
 the message (Microsoft Docs), so the time each call takes is the time the program's
@@ -25,9 +25,11 @@ user32.IsWindow.restype = wintypes.BOOL
 
 
 class BusyProbe:
-    """Sends WM_NULL to one window of the program every `interval` seconds."""
+    """Sends WM_NULL to one window of the program every `interval` seconds. A busy stretch is
+    seen to within about one interval (a probe of the GitHub machine: 0.8 s of work measured
+    as 758–790 ms with 50 ms)."""
 
-    def __init__(self, hwnd: int, interval: float = 0.05, timeout_ms: int = 60000):
+    def __init__(self, hwnd: int, interval: float = 0.02, timeout_ms: int = 60000):
         self.hwnd = hwnd
         self.interval = interval
         self.timeout_ms = timeout_ms

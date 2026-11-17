@@ -1,0 +1,12 @@
+{
+  "title": "Otwórz okno „Znak specjalny” z menu Wstaw",
+  "steps": [
+    {
+      "do": "menu",
+      "path": ["Wstaw", "Znak specjalny…"],
+      "expect": [
+        { "check": "window_shown", "window": "Znak specjalny" }
+      ]
+    }
+  ]
+}

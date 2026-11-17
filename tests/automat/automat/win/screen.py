@@ -26,6 +26,11 @@ class Screen:
         whole = self._sct.monitors[0]
         return whole["width"], whole["height"]
 
+    def bounds(self) -> tuple:
+        """The whole desktop (all screens) as (left, top, right, bottom)."""
+        whole = self._sct.monitors[0]
+        return (whole["left"], whole["top"], whole["left"] + whole["width"], whole["top"] + whole["height"])
+
     def grab(self, rect=None) -> Image.Image:
         """The screen, or the rectangle (left, top, right, bottom) of it, as an RGB image."""
         if rect is None:
@@ -41,6 +46,8 @@ class Screen:
               ignore_caret: bool = True) -> dict:
         """Grab the region again and again from now on. Returns when it has not changed for
         settle_ms, or at the timeout:
+          first_frame_ms - from `start` to the first frame: a change finished before it is not
+                       seen, so "no change" means "ready within first_frame_ms"
           changed     - whether anything changed after `start`
           last_change_ms - from `start` to the frame that showed the last change
           settled     - whether it stopped changing before the timeout
@@ -48,6 +55,7 @@ class Screen:
         A change narrower than 4 px (a blinking caret) is ignored when ignore_caret is set."""
         first_grab = time.perf_counter()
         previous = self.grab(rect)
+        first_frame = time.perf_counter()
         frames = 1
         last_change = None
         deadline = start + timeout
@@ -68,6 +76,7 @@ class Screen:
                 settled = False
                 break
         return {
+            "first_frame_ms": round((first_frame - start) * 1000, 1),
             "changed": last_change is not None,
             "last_change_ms": round((last_change - start) * 1000, 1) if last_change else 0.0,
             "settled": settled,

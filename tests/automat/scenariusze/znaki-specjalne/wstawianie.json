@@ -1,0 +1,40 @@
+{
+  "id": "znaki-specjalne-wstawianie",
+  "title": "Okno „Znak specjalny”: Enter wstawia znak w miejscu kursora",
+  "area": "Znaki specjalne",
+  "tags": ["czasy"],
+  "sources": [
+    { "kind": "plan", "ref": "plan-faz.md – Pełny edytor, część 3: znaki specjalne, okno „Znak specjalny…”" },
+    { "kind": "mockup", "ref": "makiety/znaki-specjalne.html – „Enter wstawia znak w miejscu kursora”; „Zostaw okno otwarte po wstawieniu” domyślnie wyłączone" },
+    { "kind": "decision", "ref": "Progi z 17.11.2026: okno 0,5 s, reakcja 0,3 s" }
+  ],
+  "setup": {
+    "books": ["karawana"],
+    "settings": "domyslne",
+    "open": { "book": "karawana", "chapter": "Targ w Ghadames" }
+  },
+  "steps": [
+    {
+      "say": "Napisz w rozdziale „Znak:”",
+      "do": "type",
+      "text": "Znak:",
+      "expect": [
+        { "check": "editor_text", "contains": "Znak:" }
+      ]
+    },
+    { "do": "use", "block": "otworz-znak-specjalny" },
+    {
+      "do": "type",
+      "text": "pauza",
+      "target": { "window": "Znak specjalny", "name": "Szukaj znaku", "role": "edit" }
+    },
+    {
+      "do": "keys",
+      "keys": "Enter",
+      "expect": [
+        { "check": "window_closed", "window": "Znak specjalny" },
+        { "check": "editor_text", "contains": "Znak:—" }
+      ]
+    }
+  ]
+}
