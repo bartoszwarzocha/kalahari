@@ -561,6 +561,17 @@ bool MaterialList::isPublishing(const QString& list) {
     return baseKindOf(kindOfList(list)) == QLatin1String(core::PublishingTexts::KIND);
 }
 
+bool MaterialList::hasGroups(const QString& list) {
+    return isCover(list) || isPublishing(list);
+}
+
+QString MaterialList::partColumnOf(const QString& list) {
+    if (isCover(list)) {
+        return QString::fromLatin1(COVER_PART);
+    }
+    return isPublishing(list) ? QString::fromLatin1(PUBLISHING_PART) : QString();
+}
+
 QStringList MaterialList::addKindsOf(const core::ProjectManager& book, const QString& list) {
     if (list.isEmpty()) {
         return kinds(book);
@@ -876,7 +887,7 @@ void MaterialList::setPlanShown(const QString& list, bool plan) {
 }
 
 bool MaterialList::groupsShown(const QString& list) {
-    if (!isCover(list) && !isPublishing(list)) {
+    if (!hasGroups(list)) {
         return false;
     }
     const json kept = listSettings(list);
@@ -942,6 +953,11 @@ QString MaterialList::copyTextOf(const core::ProjectManager& book, const QString
     const core::ProjectElement* element = pm.findElement(elementId);
     if (element == nullptr) {
         return {};
+    }
+    // The words of a text for publishers
+    if (core::ProjectManager::isPublishingText(*element)) {
+        const QString text = pm.publishingTextOf(elementId).trimmed();
+        return text.isEmpty() ? element->title : text;
     }
     const core::KindRef kind = pm.kindOf(*element);
     if (baseKindOf(kind) == QLatin1String(core::MaterialKinds::QUOTE) &&

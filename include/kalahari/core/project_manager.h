@@ -884,12 +884,20 @@ public:
     /// (PublishingTexts::CHOSEN, REJECTED; empty: a draft) and save the .klh file once
     ///
     /// A text chosen for the set takes the place of the one of its part chosen before: that
-    /// one is a draft again.
+    /// one is a draft again, and the set takes the text chosen in place of a version it picked
+    /// for the part (PublishingSet::picks).
     /// @param drafts Gets the texts that are drafts again; may be nullptr
     /// @return false when the project has no such text or the file cannot be written; the
     ///         texts keep their states then
     bool setPublishingState(const QString& elementId, const QString& state,
                             QStringList* drafts = nullptr);
+
+    /// @brief Make @p elementId, a text for publishers or a description or a tagline of the
+    /// cover, the version of its part in the book's set: the set picks it, or takes it without
+    /// a pick when it is the version chosen (setPublishingSet())
+    /// @return false for an element that is no version of a part of the set, or when the file
+    ///         cannot be written; the set stays as it was then
+    bool pickForPublishingSet(const QString& elementId);
 
     /// @brief The book's set of texts for publishers: its own, else that of the Settings
     /// (PublishingSet::defaults()); the Settings' one without a project

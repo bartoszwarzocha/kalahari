@@ -439,6 +439,7 @@ set(KALAHARI_SOURCES
     gui/panels/image_preview_panel.cpp  # ImagePreviewPanel - the preview of a material's picture on a tab
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
     gui/panels/material_list_panel_clippings.cpp  # MaterialListPanel - the commands of the clippings
+    gui/panels/material_list_panel_publishing.cpp  # MaterialListPanel - the commands of the texts for publishers
     gui/panels/clipping_origin_box.cpp  # ClippingOriginBox - where a clipping comes from, in the Properties
     gui/panels/book_dictionary_panel.cpp  # BookDictionaryPanel - the book dictionary on a tab
     gui/panels/plot_board_panel.cpp  # PlotBoardPanel - the tab of the plot board and the outline

@@ -150,6 +150,10 @@ public:
     /// @brief Restore to Its Place of the list of the clippings; hidden in the other lists
     [[nodiscard]] QToolButton* restoreButton() const { return m_restoreButton; }
 
+    /// @brief From the Cover of the list of the texts for publishers: shows the descriptions
+    /// and the taglines of the cover; hidden in the other lists
+    [[nodiscard]] QToolButton* fromCoverButton() const { return m_fromCoverButton; }
+
     /// @brief The page of a kind hidden in the Navigator; shown in place of the list
     [[nodiscard]] QWidget* hiddenPage() const { return m_hiddenPage; }
 
@@ -234,6 +238,17 @@ signals:
     /// @brief Give material @p elementId of the cover the state @p state: chosen for the
     /// cover, rejected, or a draft (empty)
     void requestCoverState(const QString& elementId, const QString& state);
+
+    /// @brief Give text @p elementId for publishers the state @p state: chosen for the set,
+    /// rejected, or a draft (empty)
+    void requestPublishingState(const QString& elementId, const QString& state);
+
+    /// @brief Make description or tagline @p elementId of the cover the version of its part in
+    /// the set for publishers (Choose for the Set)
+    void requestSetPick(const QString& elementId);
+
+    /// @brief Show material @p elementId in the list of the cover (Show in the Cover)
+    void requestShowInCover(const QString& elementId);
 
     /// @brief Open the settings of the materials (the gear)
     void requestSettings();
@@ -337,9 +352,25 @@ private:
     /// for another material
     void addClippingItems(QMenu& menu, const MaterialRow& row);
 
-    /// @brief The gear: Settings > Editor > Clippings in the list of the clippings, else the
-    /// settings of the materials (requestSettings())
+    /// @brief The gear: Settings > Editor > Clippings in the list of the clippings, Settings >
+    /// Navigator > Texts for Publishers in that of the texts, else the settings of the
+    /// materials (requestSettings())
     void openSettings();
+
+    /// @brief The text and what From the Cover of the list of the texts for publishers does
+    void createPublishingCommands();
+
+    /// @brief From the Cover and the gear: the button shown in the list of the texts for
+    /// publishers, where the gear names their settings
+    void updatePublishingCommands();
+
+    /// @brief The choices of Kind and the menu of Add of the list of the texts for publishers
+    void fillPublishingChoices();
+
+    /// @brief Choose for the Set, Reject and Back to Draft in the menu of text @p row for
+    /// publishers; Choose for the Set and Show in the Cover in that of a description or a
+    /// tagline of the cover; nothing for another material
+    void addPublishingItems(QMenu& menu, const MaterialRow& row);
 
     QString m_list;
     QHash<QString, State> m_states;
@@ -361,6 +392,7 @@ private:
     QToolButton* m_planButton = nullptr;
     QToolButton* m_groupsButton = nullptr;
     QToolButton* m_settingsButton = nullptr;
+    QToolButton* m_fromCoverButton = nullptr;  ///< From the Cover: the texts for publishers
     QToolButton* m_restoreButton = nullptr;  ///< Restore to Its Place: the list of the clippings
     QMenu* m_addMenu = nullptr;           ///< Add of the cover: the kind of the material
     QLabel* m_partLabel = nullptr;

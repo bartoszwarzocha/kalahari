@@ -127,6 +127,12 @@ bool ProjectManager::setPublishingState(const QString& elementId, const QString&
     // The project as it was, to put back when the file cannot be written
     const BookProject before = *m_project;
     const QStringList others = PublishingTexts::setState(*m_project, elementId, state);
+    // The set takes the text chosen, not another version it picked
+    bool unpicked = false;
+    if (ProjectBook* current = book(); state == QLatin1String(PublishingTexts::CHOSEN) &&
+                                       current != nullptr && current->publishingSet) {
+        unpicked = current->publishingSet->picks.remove(found->publishing.part) > 0;
+    }
     if (*m_project == before) {
         return true;
     }
@@ -136,6 +142,9 @@ bool ProjectManager::setPublishingState(const QString& elementId, const QString&
     }
     if (drafts != nullptr) {
         *drafts = others;
+    }
+    if (unpicked) {
+        emit publishingSetChanged();
     }
     return true;
 }
@@ -166,6 +175,32 @@ bool ProjectManager::setPublishingSet(const PublishingSet& set) {
     }
     emit publishingSetChanged();
     return true;
+}
+
+bool ProjectManager::pickForPublishingSet(const QString& elementId) {
+    const ProjectBook* current = book();
+    const ProjectElement* element = findElement(elementId);
+    if (!m_project || current == nullptr || element == nullptr) {
+        return false;
+    }
+    const QString part =
+        isPublishingText(*element) ? element->publishing.part : element->cover.part;
+    if (!PublishingTexts::versionsOf(*m_project, part).contains(element)) {
+        Logger::getInstance().warn("pickForPublishingSet: Not a version of a part of the set: {}",
+                                   elementId.toStdString());
+        return false;
+    }
+    // Without a pick, the set has the version chosen; a pick names another one
+    PublishingSet set = publishingSet();
+    set.picks.remove(part);
+    const QList<PublishingSetPart> parts = PublishingTexts::resolveSet(*m_project, *current, set);
+    const bool taken = std::any_of(parts.cbegin(), parts.cend(), [&](const PublishingSetPart& p) {
+        return p.part == part && p.elementId == elementId;
+    });
+    if (!taken) {
+        set.picks.insert(part, elementId);
+    }
+    return setPublishingSet(set);
 }
 
 QList<PublishingSetPart> ProjectManager::publishingSetParts() const {

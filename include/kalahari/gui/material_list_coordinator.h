@@ -122,6 +122,13 @@ private:
     void add(MaterialListPanel* panel, const QString& list, const QString& coverPart = {});
     /// @brief Give material @p elementId of the cover the state @p state
     void setCoverState(const QString& elementId, const QString& state);
+    /// @brief Give text @p elementId for publishers the state @p state
+    void setPublishingState(const QString& elementId, const QString& state);
+    /// @brief Make description or tagline @p elementId of the cover the version of its part
+    /// in the set for publishers
+    void pickForSet(const QString& elementId);
+    /// @brief Show material @p elementId in the list of its kind, the cover
+    void showInCover(const QString& elementId);
     void showInFolder(const QString& elementId);
     [[nodiscard]] QWidget* window() const;
 

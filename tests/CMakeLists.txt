@@ -208,6 +208,7 @@ set(TEST_SOURCES
     gui/test_cursor_card.cpp          # The card at the cursor in the Properties panel
     gui/test_paragraph_cards.cpp      # A paragraph linked with a card: the window, the signs, the commands
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
+    gui/test_publishing_list.cpp                 # The list of the texts for publishers
     gui/test_publishing_settings.cpp             # The names of the texts for publishers and their settings
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
     gui/test_source_cards.cpp                    # The cards of the sources and quotes, the list Sources
@@ -617,6 +618,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/card_list.cpp                        # The lists of the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel.cpp       # The list of a kind of materials
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel_clippings.cpp  # The commands of the clippings
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel_publishing.cpp  # The commands of the texts for publishers
     ${CMAKE_SOURCE_DIR}/src/gui/panels/clipping_origin_box.cpp       # Where a clipping comes from
     ${CMAKE_SOURCE_DIR}/src/gui/plot_board.cpp                       # What the plot board shows
     ${CMAKE_SOURCE_DIR}/src/gui/plot_board_titles.cpp                # The numbers in the titles

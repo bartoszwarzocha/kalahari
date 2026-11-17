@@ -257,6 +257,14 @@ public:
     /// @brief Whether @p list is that of the texts for publishers
     static bool isPublishing(const QString& list);
 
+    /// @brief Whether the rows of @p list can be in groups by what they are: the lists of the
+    /// cover and of the texts for publishers
+    static bool hasGroups(const QString& list);
+
+    /// @brief The column of @p list that says what its rows are, which the groups hide:
+    /// COVER_PART, PUBLISHING_PART; empty for a list without groups
+    static QString partColumnOf(const QString& list);
+
     /// @brief Whether the list of the texts for publishers @p list shows the descriptions and
     /// the taglines of the cover too (LISTS_SETTING); at first it does
     static bool fromCoverShown(const QString& list);
