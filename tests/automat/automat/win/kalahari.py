@@ -119,6 +119,7 @@ class KalahariSession:
         self.notes = []
         self.watched_before = {}
         self.launches = 0
+        self.failed_checks = 0
         self.start_ms = None
         self._clip_since = 0
         self._cursor = None  # where the automaton left the cursor
@@ -718,23 +719,24 @@ class KalahariSession:
     def _editor(self, target):
         if target:
             return self._find_once(target)
-        roots, _ = self._windows_for(None)
-        editors = []
-        for root in roots:
-            editors += [e for e in root.find_all(kinds=("Edit", "Document")) if e.visible()]
-            if editors:
-                break
+        # The book's editor is in the main window, also while a dialog is in front (whose
+        # own fields, such as a search field, are not the editor).
+        main = self.ui.from_handle(self.main_hwnd) if self.main_hwnd else None
+        if main is None:
+            return None, "nie ma okna programu"
+        editors = [e for e in main.find_all(kinds=("Edit", "Document")) if e.visible()]
         if not editors:
             return None, "nie ma otwartego edytora"
-        focused = [e for e in editors if e.has_focus]
-        if focused:
-            return focused[0], None
 
         def area(e):
             left, top, right, bottom = e.rect
             return (right - left) * (bottom - top)
 
-        return max(editors, key=area), None
+        largest = max(editors, key=area)
+        # Of several editors (a split view) the one with the focus; a small field with the
+        # focus (the navigator's filter) is not one.
+        focused = [e for e in editors if e.has_focus and area(e) * 4 >= area(largest)]
+        return (focused[0] if focused else largest), None
 
     def _text_of(self, element) -> str:
         if element.control_type in ("Edit", "Document", "ComboBox", "Spinner"):
@@ -924,6 +926,12 @@ class KalahariSession:
         for index, result in enumerate(results):
             if result is None:
                 results[index] = {"ok": False, "ms": None, "detail": "sprawdzenie nie skończyło się"}
+        if not all(r["ok"] for r in results):
+            # What the windows held when a check failed: the help for reading the result.
+            self.failed_checks += 1
+            front = windows.foreground()
+            if front and windows.owner_pid(front) == self.pid and front != self.main_hwnd:
+                self._dump(f"drzewo-po-niezgodnosci-{self.failed_checks}.json", front)
         return results
 
     def _settled(self, results, index, check, t0, limit, watch_for) -> None:

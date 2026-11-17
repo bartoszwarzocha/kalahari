@@ -107,6 +107,12 @@ def _com_init() -> None:
     _local.com = True
 
 
+def wrap(uia, raw):
+    """An Element, or None when UI Automation gave a NULL pointer (Qt does that, for example,
+    for a cell past the last column of a table)."""
+    return Element(uia, raw) if raw else None
+
+
 class Element:
     """One UI Automation element; every property is read fresh."""
 
@@ -117,7 +123,7 @@ class Element:
     def _get(self, attribute, default=None):
         try:
             return getattr(self.raw, attribute)
-        except comtypes.COMError:
+        except (comtypes.COMError, ValueError):  # ValueError: the element is a NULL pointer
             return default
 
     @property
@@ -235,15 +241,16 @@ class Element:
         if pattern is None:
             return []
         array = pattern.GetCurrentColumnHeaders()
-        return [Element(self._uia, array.GetElement(i)) for i in range(array.Length)]
+        found = (wrap(self._uia, array.GetElement(i)) for i in range(array.Length))
+        return [e for e in found if e is not None]
 
     def cell(self, row: int, column: int):
         pattern = self._pattern(PAT_GRID, UIA.IUIAutomationGridPattern)
         if pattern is None:
             return None
         try:
-            return Element(self._uia, pattern.GetItem(row, column))
-        except comtypes.COMError:
+            return wrap(self._uia, pattern.GetItem(row, column))
+        except (comtypes.COMError, ValueError):
             return None
 
     def children(self) -> list:
@@ -329,14 +336,14 @@ class Uia:
 
     def from_handle(self, hwnd: int):
         try:
-            return Element(self, self.client.ElementFromHandle(hwnd))
-        except comtypes.COMError:
+            return wrap(self, self.client.ElementFromHandle(hwnd))
+        except (comtypes.COMError, ValueError):
             return None
 
     def focused(self):
         try:
-            return Element(self, self.client.GetFocusedElement())
-        except comtypes.COMError:
+            return wrap(self, self.client.GetFocusedElement())
+        except (comtypes.COMError, ValueError):
             return None
 
     def dump(self, element: Element, depth: int = 6, limit: int = 4000) -> list:

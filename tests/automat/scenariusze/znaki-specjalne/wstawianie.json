@@ -5,7 +5,7 @@
   "tags": ["czasy"],
   "sources": [
     { "kind": "plan", "ref": "plan-faz.md – Pełny edytor, część 3: znaki specjalne, okno „Znak specjalny…”" },
-    { "kind": "mockup", "ref": "makiety/znaki-specjalne.html – „Enter wstawia znak w miejscu kursora”; „Zostaw okno otwarte po wstawieniu” domyślnie wyłączone" },
+    { "kind": "mockup", "ref": "makiety/znaki-specjalne.html – „Enter wstawia znak do rozdziału w miejscu kursora”; „Zostaw okno otwarte po wstawieniu” domyślnie zaznaczone: znak się wstawia, a okno zostaje (jak w Wordzie, tak jest w planie)" },
     { "kind": "decision", "ref": "Progi z 17.11.2026: okno 0,5 s, reakcja 0,3 s" }
   ],
   "setup": {
@@ -26,14 +26,25 @@
     {
       "do": "type",
       "text": "pauza",
-      "target": { "window": "Znak specjalny", "name": "Szukaj znaku", "role": "edit" }
+      "target": { "window": "Znak specjalny", "name": "Szukaj znaku", "role": "edit" },
+      "expect": [
+        { "check": "checked", "target": { "window": "Znak specjalny", "name": "Zostaw okno otwarte po wstawieniu", "role": "check_box" } }
+      ]
     },
     {
       "do": "keys",
       "keys": "Enter",
       "expect": [
-        { "check": "window_closed", "window": "Znak specjalny" },
-        { "check": "editor_text", "contains": "Znak:—" }
+        { "check": "editor_text", "contains": "Znak:—" },
+        { "check": "visible", "target": { "window": "Znak specjalny" } }
+      ]
+    },
+    {
+      "say": "Zamknij okno klawiszem Esc",
+      "do": "keys",
+      "keys": "Esc",
+      "expect": [
+        { "check": "window_closed", "window": "Znak specjalny" }
       ]
     }
   ]

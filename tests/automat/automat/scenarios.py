@@ -431,6 +431,17 @@ def target_text(target) -> str:
     return f"okno {_q(target.get('window'))}"
 
 
+def _agree(adjective: str, target) -> str:
+    """The adjective in the gender of the noun target_text() starts with: "okno" is neuter,
+    "komórka" feminine, the rest (a row, a quoted name) masculine."""
+    if isinstance(target, dict):
+        if "row" in target and "column" in target and "part" not in target:
+            return adjective[:-1] + "a"
+        if not ({"row", "name"} & set(target)):
+            return adjective[:-1] + "e"
+    return adjective
+
+
 def action_sentence(step: dict) -> str:
     if step.get("say"):
         return step["say"]
@@ -477,15 +488,15 @@ def check_sentence(check: dict) -> str:
     if kind == "window_closed":
         return f"okno {_q(check.get('window'))} znika"
     if kind == "visible":
-        return f"{target_text(target)} widoczny"
+        return f"{target_text(target)} {_agree('widoczny', target)}"
     if kind == "not_visible":
-        return f"{target_text(target)} niewidoczny"
+        return f"{target_text(target)} {_agree('niewidoczny', target)}"
     if kind == "enabled":
-        return f"{target_text(target)} {'dostępny' if check.get('value', True) else 'niedostępny'}"
+        return f"{target_text(target)} {_agree('dostępny' if check.get('value', True) else 'niedostępny', target)}"
     if kind == "checked":
-        return f"{target_text(target)} {'zaznaczony' if check.get('value', True) else 'niezaznaczony'}"
+        return f"{target_text(target)} {_agree('zaznaczony' if check.get('value', True) else 'niezaznaczony', target)}"
     if kind == "selected":
-        return f"{target_text(target)} {'wybrany' if check.get('value', True) else 'niewybrany'}"
+        return f"{target_text(target)} {_agree('wybrany' if check.get('value', True) else 'niewybrany', target)}"
     if kind == "focused":
         return f"{target_text(target)} ma fokus"
     if kind in ("text", "value"):
