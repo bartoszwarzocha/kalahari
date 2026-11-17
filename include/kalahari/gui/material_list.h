@@ -58,6 +58,9 @@ struct MaterialRow {
                                      ///< (CardList)
     QString color;                   ///< Of a card: its color ("#RRGGBB"); empty: none
     QString summary;                 ///< Of a card: In Short, on its tile
+    bool publishing = false;         ///< A text for publishers (core::PublishingData)
+    bool fromCover = false;          ///< In the list of the texts for publishers: a
+                                     ///< description or a tagline of the cover
 };
 
 /// @brief The lists of the materials of the book open in @p book: the kinds of the Materials of its
@@ -107,6 +110,12 @@ public:
     static constexpr const char* COVER_SOURCE = "coverSource"; ///< The cover: of an opinion
     static constexpr const char* COVER_DATE = "coverDate";     ///< The cover: of an opinion
     static constexpr const char* COVER_LICENSE = "coverLicense";  ///< The cover: of a picture
+    static constexpr const char* PUBLISHING_PART = "publishingPart";  ///< A text for publishers:
+                                                                        ///< what it is
+    static constexpr const char* PUBLISHING_TEXT = "publishingText";  ///< Its text or its title
+    static constexpr const char* PUBLISHING_TEMPLATE = "publishingTemplate";  ///< Its template
+    static constexpr const char* PUBLISHING_STATE = "publishingState";  ///< Chosen for the set...
+    static constexpr const char* PUBLISHING_LENGTH = "publishingLength";  ///< With its target
     static constexpr const char* CLIPPING_FROM = "from";  ///< A clipping: the text it was cut from
     static constexpr const char* CLIPPING_CUT = "cut";    ///< A clipping: when it was cut
     static constexpr const char* CLIPPING_NOTE = "note";  ///< A clipping: its note
@@ -225,11 +234,12 @@ public:
     /// @brief Show the plan of the cover in @p list, or its table or tiles (LISTS_SETTING)
     static void setPlanShown(const QString& list, bool plan);
 
-    /// @brief Whether the table of the list of the cover has its materials in groups by
-    /// their parts, as it has at first (LISTS_SETTING)
+    /// @brief Whether the table of the list of the cover, or of the texts for publishers, has
+    /// its materials in groups by their parts, as it has at first (LISTS_SETTING)
     static bool groupsShown(const QString& list);
 
-    /// @brief Show the materials of the list of the cover in groups, or in one table
+    /// @brief Show the materials of the list of the cover, or of the texts for publishers, in
+    /// groups, or in one table
     static void setGroupsShown(const QString& list, bool groups);
 
     /// @brief Whether a kind clicked in the Navigator has a tab of its own (TABS_SETTING)
@@ -243,6 +253,36 @@ public:
     /// of a page or of a picture on the web without a copy, the path of a file, else the title;
     /// in SOURCES the entry of a source in the bibliography of the book (rowsOf())
     static QString copyTextOf(const core::ProjectManager& book, const QString& elementId);
+
+    /// @brief Whether @p list is that of the texts for publishers
+    static bool isPublishing(const QString& list);
+
+    /// @brief Whether the list of the texts for publishers @p list shows the descriptions and
+    /// the taglines of the cover too (LISTS_SETTING); at first it does
+    static bool fromCoverShown(const QString& list);
+
+    /// @brief Keep whether the list of the texts for publishers @p list shows the descriptions
+    /// and the taglines of the cover
+    static void setFromCoverShown(const QString& list, bool shown);
+
+    /// @brief Columns of the list of the texts for publishers: what a text is, its text or
+    /// title, its template, its state, its length with the target and the time of its file;
+    /// the title and the links hidden
+    static QList<MaterialColumn> publishingColumns();
+
+    /// @brief What text @p element for publishers of the book open in @p book shows in the
+    /// columns of its list; nothing for an element that is not a text for publishers
+    static void setPublishingTexts(MaterialRow& row, const core::ProjectManager& book,
+                                   const core::ProjectElement& element);
+
+    /// @brief What a description or a tagline @p element of the cover shows in the columns of
+    /// the list of the texts for publishers, as a row from the cover
+    static void setPublishingCoverTexts(MaterialRow& row, const core::ProjectElement& element);
+
+    /// @brief The descriptions and the taglines of the cover of the book open in @p book, as
+    /// the list of the texts for publishers shows them: the versions of the parts of its set
+    static QList<const core::ProjectElement*> publishingCoverTexts(
+        const core::ProjectManager& book);
 
     /// @brief Columns of the list of the clippings: the title, where it comes from, when it
     /// was cut, the words, the note and when it was inserted (shown when a clipping inserted

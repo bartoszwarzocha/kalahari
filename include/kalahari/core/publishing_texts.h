@@ -250,6 +250,9 @@ struct PublishingTexts {
     static constexpr const char* REJECTED = "rejected";  ///< Rejected
     /// @}
 
+    /// @brief The kind of the texts for publishers in the base package
+    static constexpr const char* KIND = "publishing";
+
     /// @brief How a text names the writer's own template: "user:t1"
     static constexpr const char* OWN_TEMPLATE_PREFIX = "user";
 

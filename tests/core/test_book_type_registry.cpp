@@ -295,7 +295,9 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
               std::vector<std::string>{
                   "title_page, copyright, dedication, motto, toc, preface, introduction",
                   "chapter, part", "afterword, acknowledgments, glossary, about_author, toc",
-                  "mindmap, timeline, character, location, item, work_note, clipping, cover, quote, web_page, picture, document, publication, recording, other_file"});
+                  "mindmap, timeline, character, location, item, work_note, clipping, cover, "
+                  "publishing, quote, web_page, picture, document, publication, recording, "
+                  "other_file"});
         CHECK(primary("kalahari.base") == "chapter");
     }
 
@@ -305,7 +307,9 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
                   "title_page, copyright, dedication, motto, toc, preface",
                   "prologue, part, chapter, epilogue",
                   "afterword, acknowledgments, glossary, about_author, toc",
-                  "mindmap, timeline, character, location, item, work_note, clipping, cover, quote, web_page, picture, document, publication, recording, other_file"});
+                  "mindmap, timeline, character, location, item, work_note, clipping, cover, "
+                  "publishing, quote, web_page, picture, document, publication, recording, "
+                  "other_file"});
         CHECK(primary("kalahari.novel") == "chapter");
         CHECK(start("kalahari.novel") == "title_page/front, chapter/main");
     }
@@ -316,7 +320,8 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
                   "title_page, copyright, dedication, motto, toc, introduction",
                   "story, section",
                   "contributors, first_publications, acknowledgments, about_author, toc",
-                  "mindmap, character, location, work_note, clipping, cover, quote, web_page, picture, document, publication, recording, other_file"});
+                  "mindmap, character, location, work_note, clipping, cover, publishing, quote, "
+                  "web_page, picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.short_stories") == "story");
         CHECK(start("kalahari.short_stories") == "title_page/front, story/main");
     }
@@ -329,8 +334,8 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
                   "part, chapter, conclusion",
                   "annex, endnotes, bibliography, glossary, index, illustrations, "
                   "acknowledgments, about_author, toc",
-                  "timeline, mindmap, work_note, clipping, cover, quote, web_page, picture, "
-                  "document, publication, recording, other_file"});
+                  "timeline, mindmap, work_note, clipping, cover, publishing, quote, web_page, "
+                  "picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.nonfiction") == "chapter");
         CHECK(start("kalahari.nonfiction") ==
               "title_page/front, introduction/front, chapter/main");
@@ -350,7 +355,8 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
               std::vector<std::string>{
                   "title_page, copyright, dedication, motto, toc, introduction", "cycle, poem",
                   "explanatory_notes, about_author, first_lines, publisher_note, toc",
-                  "draft, mindmap, work_note, clipping, cover, quote, web_page, picture, document, publication, recording, other_file"});
+                  "draft, mindmap, work_note, clipping, cover, publishing, quote, web_page, "
+                  "picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.poetry") == "poem");
         CHECK(start("kalahari.poetry") == "title_page/front, poem/main");
     }
@@ -514,10 +520,11 @@ TEST_CASE("Built-in book types: groups of the Workshop and the parts layer",
         "document/resources, publication/resources, recording/resources, other_file/resources";
     CHECK(groups("kalahari.novel") ==
           "mindmap, timeline, character/libraries, location/libraries, item/libraries, "
-          "work_note/resources, clipping/resources, cover/resources, " +
+          "work_note/resources, clipping/resources, cover/resources, publishing/resources, " +
               materials);
     CHECK(groups("kalahari.nonfiction") ==
-          "timeline, mindmap, work_note/resources, clipping/resources, cover/resources, " +
+          "timeline, mindmap, work_note/resources, clipping/resources, cover/resources, "
+          "publishing/resources, " +
               materials);
     // The cover only on request (Book Properties)
     CHECK(groups("kalahari.screenplay") ==

@@ -192,6 +192,7 @@ set(KALAHARI_SOURCES
     core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
     core/card_relations.cpp # The relations between the cards of a book (uses ProjectManager)
     core/project_manager_card_fields.cpp # ProjectManager: the fields of the cards of the book
+    core/project_manager_publishing.cpp # ProjectManager: the texts for publishers of the book
     core/package_card.cpp   # Cards of the packages a book uses: names and icons (IconRegistry)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus
@@ -258,6 +259,7 @@ set(KALAHARI_SOURCES
     gui/link_names.cpp  # The titles, icons and places of the links of a material
     gui/material_list.cpp  # MaterialList - the lists of the materials: their kinds, columns and rows
     gui/material_list_clippings.cpp  # MaterialList - the columns of the clippings
+    gui/material_list_publishing.cpp  # MaterialList - the columns of the texts for publishers
     gui/clipping_texts.cpp  # What the program says of a clipping
     gui/card_list.cpp  # CardList - the lists of the cards: their columns and rows
     gui/version_texts.cpp  # What the program says of a version of a text

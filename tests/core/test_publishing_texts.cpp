@@ -8,6 +8,7 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/book_type_package.h>
 #include <kalahari/core/book_type_registry.h>
 #include <kalahari/core/cover_material.h>
 #include <kalahari/core/localized_text.h>
@@ -19,12 +20,14 @@
 
 #include <QDir>
 #include <QFile>
+#include <QList>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QTemporaryDir>
 
 #include <nlohmann/json_fwd.hpp>
 
+#include <algorithm>
 #include <cstdio>
 #include <optional>
 #include <string>
@@ -840,4 +843,110 @@ TEST_CASE("ProjectManager keeps the texts for publishers of a book", "[core][pub
     CHECK(saved->findElement(synopsis)->publishing.templateId ==
           QStringLiteral("kalahari.novel:each_chapter"));
     CHECK(saved->books.first().publishingSet == set);
+}
+
+TEST_CASE("ProjectManager adds texts for publishers of their kind, after the Cover",
+          "[core][publishing]") {
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Karawana", "Ewa Lis", "pl", true, "kalahari.novel"));
+    const KindRef kind = pm.publishingKind();
+    REQUIRE(kind);
+    CHECK(kind.kind->form == kalahari::core::ElementForm::Text);
+    CHECK(kind.kind->workshopGroup == kalahari::core::WorkshopGroup::Resources);
+    CHECK(kind.kind->icon == QStringLiteral("material.publishing"));
+    // In the Workshop of a novel, after the Cover
+    const QList<KindRef> workshop =
+        pm.project()->kindsIn(pm.bookTypes(), kalahari::core::BookPlace::Workshop);
+    const auto at = [&workshop](const char* kindId) {
+        return std::ranges::find_if(workshop, [kindId](const KindRef& each) {
+                   return each.kind->id == QLatin1String(kindId);
+               }) - workshop.begin();
+    };
+    REQUIRE(at("cover") < workshop.size());
+    CHECK(at("publishing") == at("cover") + 1);
+
+    const QString pitch =
+        pm.addPublishingText(QString::fromLatin1(PublishingTexts::PITCH),
+                             QStringLiteral("kalahari.novel:when_must"),
+                             QStringLiteral("Zdanie o książce – wersja 1"));
+    REQUIRE_FALSE(pitch.isEmpty());
+    const ProjectElement* added = pm.findElement(pitch);
+    REQUIRE(added != nullptr);
+    CHECK(added->kind.packageId == QStringLiteral("kalahari.base"));
+    CHECK(added->kind.kindId == QString::fromLatin1(PublishingTexts::KIND));
+    CHECK(added->publishing.part == PublishingTexts::PITCH);
+    CHECK(added->publishing.templateId == QStringLiteral("kalahari.novel:when_must"));
+    CHECK(added->title == QStringLiteral("Zdanie o książce – wersja 1"));
+    CHECK(ProjectManager::isPublishingText(*added));
+    CHECK_FALSE(added->file.isEmpty());
+    CHECK(pm.publishingTextOf(pitch).isEmpty());
+    const QString synopsis = pm.addPublishingText(QString::fromLatin1(PublishingTexts::SYNOPSIS),
+                                                  QString(), QStringLiteral("Streszczenie"));
+    REQUIRE_FALSE(synopsis.isEmpty());
+    CHECK(PublishingTexts::textsOf(*pm.project(), QString::fromLatin1(PublishingTexts::SYNOPSIS))
+              .size() == 1);
+    // A chapter is no text for publishers
+    CHECK_FALSE(ProjectManager::isPublishingText(*pm.findElement(pm.mainTexts().first().first)));
+
+    // Only a sentence and a synopsis are texts; a description goes to the Cover
+    CHECK(pm.addPublishingText(QString::fromLatin1(PublishingTexts::BLURB), QString(),
+                               QStringLiteral("Opis"))
+              .isEmpty());
+
+    // A .klh file that cannot be written: nothing is added
+    const QString manifest = pm.getManifestPath();
+    const BookProject unchanged = *pm.project();
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkdir(manifest));
+    CHECK(pm.addPublishingText(QString::fromLatin1(PublishingTexts::SYNOPSIS), QString(),
+                               QStringLiteral("Lost"))
+              .isEmpty());
+    CHECK(*pm.project() == unchanged);
+    REQUIRE(QDir().rmdir(manifest));
+    REQUIRE(pm.saveManifest());
+
+    // Saved with the book; without a book, nothing
+    REQUIRE(pm.closeProject(false));
+    QStringList problems;
+    const std::optional<BookProject> saved = BookProject::load(manifest, problems);
+    REQUIRE(saved.has_value());
+    CHECK(saved->findElement(pitch)->publishing.part == PublishingTexts::PITCH);
+    CHECK(pm.addPublishingText(QString::fromLatin1(PublishingTexts::PITCH), QString(),
+                               QStringLiteral("Lost"))
+              .isEmpty());
+}
+
+TEST_CASE("A user project without the texts for publishers among its kinds takes them",
+          "[core][publishing]") {
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    kalahari::core::NewProject request;
+    request.parentDir = dir.path();
+    request.title = QStringLiteral("Notes");
+    request.author = QStringLiteral("Anna Nowak");
+    request.language = QStringLiteral("en");
+    const KindRef chapter =
+        pm.bookTypes().findKind(QStringLiteral("kalahari.base"), QStringLiteral("chapter"));
+    REQUIRE(chapter);
+    kalahari::core::PaletteChoice palette;
+    palette.kinds = {chapter};
+    palette.elements = {kalahari::core::StartElement{.kind = chapter,
+                                                     .place = kalahari::core::BookPlace::Main}};
+    request.palette = palette;
+    REQUIRE(pm.createProject(request));
+    const kalahari::core::KindReference texts{
+        .packageId = QStringLiteral("kalahari.base"),
+        .kindId = QString::fromLatin1(PublishingTexts::KIND)};
+    REQUIRE_FALSE(pm.project()->kinds.contains(texts));
+
+    REQUIRE_FALSE(pm.addPublishingText(QString::fromLatin1(PublishingTexts::SYNOPSIS), QString(),
+                                       QStringLiteral("Synopsis"))
+                      .isEmpty());
+    CHECK(pm.project()->kinds.count(texts) == 1);
+    REQUIRE_FALSE(pm.addPublishingText(QString::fromLatin1(PublishingTexts::PITCH), QString(),
+                                       QStringLiteral("Pitch"))
+                      .isEmpty());
+    CHECK(pm.project()->kinds.count(texts) == 1);
+    REQUIRE(pm.closeProject(false));
 }

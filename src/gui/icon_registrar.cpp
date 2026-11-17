@@ -455,6 +455,15 @@ void registerAllIcons() {
     // The materials of the cover: the kind, and what each material is
     iconRegistry.registerIcon("material.cover", "resources/icons/twotone/book_cover.svg",
                               "Cover");
+    // The texts for publishers: the kind, a sentence about the book, a synopsis, the set
+    iconRegistry.registerIcon("material.publishing", "resources/icons/twotone/outbox.svg",
+                              "Texts for Publishers");
+    iconRegistry.registerIcon("material.publishingPitch", "resources/icons/twotone/subtitles.svg",
+                              "Sentence About the Book");
+    iconRegistry.registerIcon("material.publishingSynopsis",
+                              "resources/icons/twotone/article.svg", "Synopsis");
+    iconRegistry.registerIcon("material.publishingSet", "resources/icons/twotone/view_agenda.svg",
+                              "Set for Publishers");
     iconRegistry.registerIcon("material.coverBlurb", "resources/icons/twotone/subject.svg",
                               "Cover Description");
     iconRegistry.registerIcon("material.coverTagline", "resources/icons/twotone/short_text.svg",

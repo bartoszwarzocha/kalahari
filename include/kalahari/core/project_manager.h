@@ -851,8 +851,28 @@ public:
 
     // =========================================================================
     // Texts for Publishers
-    // ==================================================================
     // =========================================================================
+
+    /// @brief The kind of the texts for publishers: PublishingTexts::KIND of the base package;
+    /// none when the installed base package does not have it
+    [[nodiscard]] KindRef publishingKind() const;
+
+    /// @brief Whether @p element is a text for publishers: it has a part
+    /// (PublishingData::part)
+    [[nodiscard]] static bool isPublishingText(const ProjectElement& element);
+
+    /// @brief Add a text for publishers of @p part (PublishingTexts::PITCH, SYNOPSIS) with
+    /// @p title and the template @p templateReference (PublishingTemplate::reference(); empty:
+    /// none) to the Workshop: a text element of publishingKind() with an empty text, where
+    /// the place of its kind is
+    ///
+    /// Every book can have texts for publishers: a book whose kinds do not have them takes
+    /// their kind with the first one. Saves the .klh file.
+    /// @return The id of the new text; empty when no book is open or it is read-only, @p part
+    ///         is not a part of a text, the base package has no texts for publishers, or a
+    ///         file cannot be written; the book stays as it was then
+    QString addPublishingText(const QString& part, const QString& templateReference,
+                              const QString& title);
 
     /// @brief Give text @p elementId for publishers the data @p data (what it is, its template
     /// and its state) and save the .klh file

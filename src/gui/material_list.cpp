@@ -13,6 +13,7 @@
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/source_description.h"
 #include "kalahari/gui/card_list.h"
@@ -410,6 +411,7 @@ MaterialRow rowOf(const core::ProjectManager& book, const core::ProjectElement& 
         }
     }
     MaterialList::setClippingTexts(row, book, element);
+    MaterialList::setPublishingTexts(row, book, element);
     if (!row.text) {
         setSourceTexts(book, row, element);
     }
@@ -555,6 +557,10 @@ bool MaterialList::isClippings(const QString& list) {
     return baseKindOf(kindOfList(list)) == QLatin1String(core::Clippings::KIND);
 }
 
+bool MaterialList::isPublishing(const QString& list) {
+    return baseKindOf(kindOfList(list)) == QLatin1String(core::PublishingTexts::KIND);
+}
+
 QStringList MaterialList::addKindsOf(const core::ProjectManager& book, const QString& list) {
     if (list.isEmpty()) {
         return kinds(book);
@@ -643,6 +649,8 @@ QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
                 << column(DESCRIPTION, description, false) << column(MODIFIED, modified, false);
     } else if (kindId == QLatin1String(core::Clippings::KIND)) {
         columns << clippingColumns();
+    } else if (kindId == QLatin1String(core::PublishingTexts::KIND)) {
+        columns << publishingColumns();
     } else if (list == QLatin1String(SOURCES)) {
         //: The kind of the material of a source: publication, web page. In Polish: Typ
         //: materiału
@@ -763,6 +771,9 @@ QString MaterialList::firstSortOf(const QString& list) {
     if (kindId == QLatin1String(core::MaterialKinds::COVER)) {
         return QString::fromLatin1(COVER_TEXT);
     }
+    if (kindId == QLatin1String(core::PublishingTexts::KIND)) {
+        return QString::fromLatin1(PUBLISHING_TEXT);
+    }
     if (kindId == QLatin1String(core::Clippings::KIND)) {
         return QString::fromLatin1(CLIPPING_CUT);
     }
@@ -789,7 +800,19 @@ QList<MaterialRow> MaterialList::rowsOf(const core::ProjectManager& book, const 
             row.copy = core::Bibliography::entry(element->source, element->title, style,
                                                  pm.bookLanguage(), false);
         }
+        // The search finds a text for publishers by its words too
+        if (row.publishing) {
+            row.search += QLatin1Char('\n') + pm.publishingTextOf(element->id).toLower();
+        }
         rows << row;
+    }
+    // The texts for publishers with the descriptions and the taglines of the cover
+    if (isPublishing(list) && fromCoverShown(list)) {
+        for (const core::ProjectElement* element : publishingCoverTexts(book)) {
+            MaterialRow row = rowOf(book, *element, pm.kindOf(*element));
+            setPublishingCoverTexts(row, *element);
+            rows << row;
+        }
     }
     return rows;
 }
@@ -853,7 +876,7 @@ void MaterialList::setPlanShown(const QString& list, bool plan) {
 }
 
 bool MaterialList::groupsShown(const QString& list) {
-    if (!isCover(list)) {
+    if (!isCover(list) && !isPublishing(list)) {
         return false;
     }
     const json kept = listSettings(list);
@@ -863,6 +886,19 @@ bool MaterialList::groupsShown(const QString& list) {
 
 void MaterialList::setGroupsShown(const QString& list, bool groups) {
     setListSetting(list, "groups", groups);
+}
+
+bool MaterialList::fromCoverShown(const QString& list) {
+    if (!isPublishing(list)) {
+        return false;
+    }
+    const json kept = listSettings(list);
+    return !kept.contains("fromCover") || !kept.at("fromCover").is_boolean() ||
+           kept.at("fromCover").get<bool>();
+}
+
+void MaterialList::setFromCoverShown(const QString& list, bool shown) {
+    setListSetting(list, "fromCover", shown);
 }
 
 bool MaterialList::ownTabs() {
