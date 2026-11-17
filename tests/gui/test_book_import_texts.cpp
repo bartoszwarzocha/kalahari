@@ -42,13 +42,16 @@ public:
 
     /// The kind of this id
     core::KindRef kind(const char* id) const {
+        core::KindRef found;
         for (const core::KindRef& kind : test::book().bookTypes().allKinds()) {
             if (kind.kind->id == QLatin1String(id)) {
-                return kind;
+                found = kind;
+                break;
             }
         }
-        FAIL("No kind " << id);
-        return {};
+        INFO("No kind " << id);
+        REQUIRE(found.kind != nullptr);
+        return found;
     }
 
     /// The titles of a list of the book
