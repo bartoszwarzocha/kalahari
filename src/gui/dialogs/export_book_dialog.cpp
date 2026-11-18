@@ -37,6 +37,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QRegularExpression>
+#include <QSignalBlocker>
 #include <QStyle>
 #include <QStyleOption>
 #include <QTabBar>
@@ -337,14 +338,9 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     coverGrid->setContentsMargins(0, 0, 0, 0);
     coverGrid->setColumnStretch(1, 1);
     m_coverBox = new QComboBox(coverFields);
-    if (!book.coverFile.isEmpty()) {
-        //: The cover of an EPUB: the design chosen in the materials; %1: its title. In Polish:
-        //: %1 (z materiałów)
-        m_coverBox->addItem(tr("%1 (from the materials)").arg(book.coverTitle),
-                            static_cast<int>(Cover::Design));
-    }
     //: The cover of an EPUB. In Polish: Bez okładki
     m_coverBox->addItem(tr("No cover"), static_cast<int>(Cover::None));
+    showCoverDesign();
     //: Chooses another picture of the cover of an EPUB. In Polish: Inny &obraz…
     auto* otherPictureButton = new QPushButton(tr("Other &Picture..."), coverFields);
     otherPictureButton->setAutoDefault(false);
@@ -369,27 +365,13 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
         label->setTextFormat(Qt::PlainText);
         return label;
     };
-    m_titleAndAuthor = newValue(book.author.trimmed().isEmpty()
-                                    ? book.title
-                                    //: The title and the author of an EPUB; %1: the title, %2:
-                                    //: the author. In Polish: %1 – %2
-                                    : tr("%1 – %2").arg(book.title, book.author));
+    m_titleAndAuthor = newValue(QString());
     //: In Polish: Tytuł i autor:
     addRow(dataGrid, tr("Title and author:"), m_titleAndAuthor);
-    //: The language of a book that has none. In Polish: Nie ustawiono
-    m_languageLabel = newValue(book.language.isEmpty() ? tr("Not set") : book.language);
+    m_languageLabel = newValue(QString());
     //: In Polish: Język:
     addRow(dataGrid, tr("Language:"), m_languageLabel);
-    const QString description = book.description.simplified();
-    m_descriptionLabel = newValue(
-        description.isEmpty()
-            //: The description of a book that has none. In Polish: Brak
-            ? tr("None")
-            : fontMetrics().elidedText(
-                  //: A description in quotes; %1: its text. In Polish: „%1”
-                  tr("\"%1\"").arg(description), Qt::ElideMiddle,
-                  widthOfLetters(fontMetrics(), DESCRIPTION_LETTERS)));
-    m_descriptionLabel->setToolTip(description);
+    m_descriptionLabel = newValue(QString());
     //: In Polish: Opis:
     addRow(dataGrid, tr("Description:"), m_descriptionLabel);
     // The ISBN and the publisher in one row: the tab as high as the others
@@ -397,13 +379,13 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     auto* publicationLayout = new QHBoxLayout(publication);
     publicationLayout->setContentsMargins(0, 0, 0, 0);
     publicationLayout->setSpacing(fontMetrics().averageCharWidth() * 3);
-    m_isbnField = new QLineEdit(book.isbn, publication);
+    m_isbnField = new QLineEdit(publication);
     //: The example of an ISBN in its empty field. In Polish: 978-83-…
     m_isbnField->setPlaceholderText(tr("978-..."));
     // As wide as an ISBN with its hyphens
     m_isbnField->setFixedWidth(widthOfLetters(m_isbnField->fontMetrics(), ISBN_LETTERS));
     publicationLayout->addWidget(m_isbnField);
-    m_publisherField = new QLineEdit(book.publisher, publication);
+    m_publisherField = new QLineEdit(publication);
     //: The example of a publisher in its empty field. In Polish: np. Wydawnictwo Wydmy albo
     //: puste
     m_publisherField->setPlaceholderText(tr("e.g. Dunes Publishing, or empty"));
@@ -430,6 +412,7 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     dataGrid->addWidget(m_bookDataNote.widget, noteRow, 0, 1, 2);
     epub->addWidget(dataGroup, 1, 0, 1, 2);
     endTab(epub);
+    showBookData();
 
     // The options of the formats of the plugins: a tab of each, shown while it is chosen
     for (const Format& each : std::as_const(m_formats)) {
@@ -828,6 +811,58 @@ void ExportBookDialog::showPurpose()
             : tr("The comments, to-dos and notes of the text, with their authors and dates, as "
                  "notes beside the text in a PDF reader. Without this option the file has no "
                  "annotations."));
+}
+
+void ExportBookDialog::showBookData()
+{
+    const Book& shown = book();
+    m_titleAndAuthor->setText(shown.author.trimmed().isEmpty()
+                                  ? shown.title
+                                  //: The title and the author of an EPUB; %1: the title, %2:
+                                  //: the author. In Polish: %1 – %2
+                                  : tr("%1 – %2").arg(shown.title, shown.author));
+    //: The language of a book that has none. In Polish: Nie ustawiono
+    m_languageLabel->setText(shown.language.isEmpty() ? tr("Not set") : shown.language);
+    const QString description = shown.description.simplified();
+    m_descriptionLabel->setText(
+        description.isEmpty()
+            //: The description of a book that has none. In Polish: Brak
+            ? tr("None")
+            : fontMetrics().elidedText(
+                  //: A description in quotes; %1: its text. In Polish: „%1”
+                  tr("\"%1\"").arg(description), Qt::ElideMiddle,
+                  widthOfLetters(fontMetrics(), DESCRIPTION_LETTERS)));
+    m_descriptionLabel->setToolTip(description);
+    m_isbnField->setText(shown.isbn);
+    m_publisherField->setText(shown.publisher);
+}
+
+void ExportBookDialog::showCoverDesign()
+{
+    // The design of the book first in the list, chosen when the one before was chosen
+    const auto designData = static_cast<int>(Cover::Design);
+    const int before = m_coverBox->findData(designData);
+    const bool chosen = before >= 0 && m_coverBox->currentIndex() == before;
+    const QSignalBlocker blocker(m_coverBox);
+    if (before >= 0) {
+        m_coverBox->removeItem(before);
+    }
+    if (book().coverFile.isEmpty()) {
+        return;
+    }
+    //: The cover of an EPUB: the design chosen in the materials; %1: its title. In Polish:
+    //: %1 (z materiałów)
+    m_coverBox->insertItem(0, tr("%1 (from the materials)").arg(book().coverTitle), designData);
+    if (chosen) {
+        m_coverBox->setCurrentIndex(0);
+    }
+}
+
+void ExportBookDialog::bookChanged()
+{
+    showBookData();
+    showCoverDesign();
+    showCover();
 }
 
 void ExportBookDialog::showCover()

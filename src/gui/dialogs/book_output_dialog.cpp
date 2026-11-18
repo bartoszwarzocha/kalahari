@@ -24,6 +24,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QSignalBlocker>
 #include <QTabWidget>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -48,6 +49,9 @@ constexpr int STATUS_ROLE = Qt::UserRole + 1;  ///< The status of a text of the 
 constexpr int LIST_ROWS = 5;
 /// The width of the list of the fonts, in letters of their names
 constexpr int FONT_NAME_LETTERS = 22;
+/// The width of the list Volume, in letters of the names of the volumes (longer ones are cut
+/// in it, whole in its list)
+constexpr int VOLUME_NAME_LETTERS = 32;
 /// The width of the window in the letters of a text: the remarks in fewer lines
 constexpr int WIDTH_IN_LETTERS = 140;
 /// The widest the window starts, a wide font or not: with its frame it fits a screen of
@@ -133,25 +137,22 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
 {
     QGridLayout* content = newTab(title);
     QWidget* contentBox = content->parentWidget();
-    int leafCount = 0;
-    for (const Row& row : std::as_const(m_book.rows)) {
-        leafCount += row.leaf ? 1 : 0;
-    }
-    //: %n: how many texts the book has. In Polish: &Cała książka (%n tekst / teksty / tekstów)
-    m_bookButton = new QRadioButton(tr("Whole &book (%n texts)", nullptr, leafCount), contentBox);
+    m_bookButton = new QRadioButton(contentBox);
     //: In Polish: &Wybrane teksty
     m_chosenButton = new QRadioButton(tr("&Chosen texts"), contentBox);
     //: %1: the title of the text of the tab in front. In Polish: Tekst na wie&rzchu: „%1”
     m_frontButton = new QRadioButton(
         tr("&Text in front: \"%1\"").arg(literal(m_book.frontTitle)), contentBox);
-    //: %n: the parts of the set for a publisher that have a text. In Polish: Zes&taw dla
-    //: wydawnictwa (%n część / części / części)
-    m_setButton = new QRadioButton(tr("Set for the &publisher (%n parts)", nullptr,
-                                      m_book.setParts),
-                                   contentBox);
+    m_setButton = new QRadioButton(contentBox);
+    showBookCounts();
+    int row = 0;
+    // A series: the volume whose texts go, over them
+    const bool series = m_book.volumes.size() > 1;
+    if (series) {
+        content->addWidget(newVolumeRow(contentBox), row++, 0, 1, 2);
+    }
     // The book and the chosen texts side by side; the text in front, whose title may be long,
     // under them
-    int row = 0;
     auto* bookOrChosen = new QHBoxLayout();
     bookOrChosen->setSpacing(fontMetrics().averageCharWidth() * 3);
     bookOrChosen->addWidget(m_bookButton);
@@ -175,7 +176,9 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
     m_textList->setItemsExpandable(true);
     fillTextList();
     m_textList->expandAll();
-    m_textList->setRows(std::min(static_cast<int>(m_book.rows.size()), LIST_ROWS));
+    // As high for each volume of a series
+    m_textList->setRows(series ? LIST_ROWS
+                               : std::min(static_cast<int>(m_book.rows.size()), LIST_ROWS));
     chosenLayout->addWidget(m_textList, 0, 0);
     auto* buttons = new QVBoxLayout();
     buttons->setContentsMargins(0, 0, 0, 0);
@@ -209,15 +212,7 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
     for (QRadioButton* button : {m_bookButton, m_chosenButton, m_frontButton, m_setButton}) {
         connect(button, &QRadioButton::toggled, this, [this](bool on) {
             if (on) {
-                // The list stays in its place, so the tab keeps its look; it works with
-                // Chosen texts
-                m_chosenBox->setEnabled(m_chosenButton->isChecked());
-                // The parts of the set follow one another on the pages
-                if (m_newPageBox != nullptr) {
-                    m_newPageBox->setEnabled(!m_setButton->isChecked());
-                }
-                dropFailure();
-                contentChanged();
+                followContentChoice();
             }
         });
     }
@@ -227,7 +222,99 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
     m_chosenButton->setVisible(!m_book.title.isEmpty());
     m_chosenBox->setVisible(!m_book.title.isEmpty());
     m_frontButton->setVisible(!m_book.frontTitle.isEmpty());
+}
+
+void BookOutputDialog::followContentChoice()
+{
+    // The list stays in its place, so the tab keeps its look; it works with Chosen texts. The
+    // text in front is of no volume.
+    m_chosenBox->setEnabled(m_chosenButton->isChecked());
+    if (m_volumeRow != nullptr) {
+        m_volumeRow->setEnabled(!m_frontButton->isChecked());
+    }
+    // The parts of the set follow one another on the pages
+    if (m_newPageBox != nullptr) {
+        m_newPageBox->setEnabled(!m_setButton->isChecked());
+    }
+    dropFailure();
+    contentChanged();
+}
+
+QWidget* BookOutputDialog::newVolumeRow(QWidget* parent)
+{
+    m_volumeRow = new QWidget(parent);
+    auto* layout = new QHBoxLayout(m_volumeRow);
+    layout->setContentsMargins(0, 0, 0, 0);
+    //: The list of the volumes of a series in the windows of the export and of the print. In
+    //: Polish: To&m:
+    auto* label = new QLabel(tr("&Volume:"), m_volumeRow);
+    m_volumeBox = new QComboBox(m_volumeRow);
+    m_volumeBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    m_volumeBox->setMinimumContentsLength(VOLUME_NAME_LETTERS);
+    for (const Volume& volume : std::as_const(m_book.volumes)) {
+        m_volumeBox->addItem(volume.name, volume.id);
+        m_volumeBox->setItemData(m_volumeBox->count() - 1, volume.name, Qt::ToolTipRole);
+    }
+    m_volumeBox->setCurrentIndex(std::max(0, m_volumeBox->findData(m_book.volume)));
+    label->setBuddy(m_volumeBox);
+    layout->addWidget(label);
+    layout->addWidget(m_volumeBox);
+    layout->addStretch();
+    connect(m_volumeBox, &QComboBox::currentIndexChanged, this, &BookOutputDialog::showVolume);
+    return m_volumeRow;
+}
+
+void BookOutputDialog::showBookCounts()
+{
+    int leafCount = 0;
+    for (const Row& row : std::as_const(m_book.rows)) {
+        leafCount += row.leaf ? 1 : 0;
+    }
+    //: %n: how many texts the book has. In Polish: &Cała książka (%n tekst / teksty / tekstów)
+    m_bookButton->setText(tr("Whole &book (%n texts)", nullptr, leafCount));
+    //: %n: the parts of the set for a publisher that have a text. In Polish: Zes&taw dla
+    //: wydawnictwa (%n część / części / części)
+    m_setButton->setText(tr("Set for the &publisher (%n parts)", nullptr, m_book.setParts));
     m_setButton->setVisible(!m_book.title.isEmpty() && !m_book.setTitle.isEmpty());
+}
+
+void BookOutputDialog::showVolume(int index)
+{
+    const QString id = m_volumeBox->itemData(index).toString();
+    if (!m_volumeBook || id.isEmpty() || id == m_book.volume) {
+        return;
+    }
+    Book shown = m_volumeBook(id);
+    // The text in front stays, whichever volume is chosen
+    shown.frontTitle = m_book.frontTitle;
+    shown.frontId = m_book.frontId;
+    shown.volumes = m_book.volumes;
+    shown.volume = id;
+    m_book = std::move(shown);
+    {
+        const QSignalBlocker blocker(m_textList);
+        m_textList->clear();
+        fillTextList();
+        m_textList->expandAll();
+    }
+    showBookCounts();
+    // A volume without a set: its whole book instead
+    if (m_setButton->isChecked() && m_setButton->isHidden()) {
+        m_bookButton->setChecked(true);
+    }
+    dropFailure();
+    bookChanged();
+    contentChanged();
+}
+
+void BookOutputDialog::setVolumeBook(VolumeBook volumeBook)
+{
+    m_volumeBook = std::move(volumeBook);
+}
+
+void BookOutputDialog::bookChanged()
+{
+    // The base shows nothing of the book but its texts
 }
 
 void BookOutputDialog::fillTextList()
@@ -494,6 +581,7 @@ BookOutputDialog::Layout BookOutputDialog::layoutChoice() const
     layout.fontFamily = m_fontBox->currentData().toString();
     layout.runningHead =
         static_cast<editor::RunningHead>(m_runningHeadBox->currentData().toInt());
+    layout.volume = m_book.volume;
     return layout;
 }
 

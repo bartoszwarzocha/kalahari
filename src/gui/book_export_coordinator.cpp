@@ -9,6 +9,8 @@
 #include "kalahari/gui/book_export_coordinator.h"
 #include "kalahari/gui/plugin_coordinator.h"
 
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/extension_points.h"
 #include "kalahari/core/logger.h"
@@ -47,9 +49,11 @@
 #include <QUuid>
 
 #include <algorithm>
+#include <array>
 #include <memory>
 #include <optional>
 #include <utility>
+#include <vector>
 
 namespace kalahari::gui {
 
@@ -175,8 +179,6 @@ void setPaper(QPrinter& printer, const QPageSize& paper, bool sideways) {
     printer.setPageOrientation(sideways ? QPageLayout::Landscape : QPageLayout::Portrait);
 }
 
-/// The lasting identifier of the e-book of the open book: the same for the book in each export,
-/// another for each book (a UUID made of the project's and the book's ids)
 /// The set for a publisher of @p projects in @p shown, as one text: its title and its parts
 void addSetOf(const core::ProjectManager& projects, dialogs::ExportBookDialog::Book& shown) {
     shown.setParts = static_cast<int>(PublishingSetContents::textsOf(projects).size());
@@ -187,15 +189,149 @@ void addSetOf(const core::ProjectManager& projects, dialogs::ExportBookDialog::B
     }
 }
 
+/// The book @p volumeId of the open series; the current book for an empty id or none such,
+/// nullptr without a project
+const core::ProjectBook* volumeOf(const core::ProjectManager& projects, const QString& volumeId) {
+    if (!projects.isProjectOpen()) {
+        return nullptr;
+    }
+    const core::BookProject* project = projects.project();
+    const qsizetype index = volumeId.isEmpty() ? -1 : project->bookIndex(volumeId);
+    return index >= 0 ? &project->books.at(index) : projects.book();
+}
+
+using ExportRow = dialogs::ExportBookDialog::Row;
+
+/// The icon of the node of section @p place in the Navigator
+QString sectionIconId(core::BookPlace place) {
+    switch (place) {
+        case core::BookPlace::Front:
+            return QStringLiteral("structure.frontmatter");
+        case core::BookPlace::Back:
+            return QStringLiteral("structure.backmatter");
+        case core::BookPlace::Main:
+        case core::BookPlace::Workshop:
+            break;
+    }
+    return QStringLiteral("structure.body");
+}
+
+/// Add to @p rows the texts, the tables of contents and the groups of @p elements at depth
+/// @p level, each group with the elements inside it after it
+void addRowsOf(const core::ProjectManager& projects, const QList<core::ProjectElement>& elements,
+               int level, QList<ExportRow>& rows) {
+    // The groups still to go through after the row of each, deepest last
+    struct Pending {
+        const QList<core::ProjectElement>* elements;
+        qsizetype next;
+        int level;
+    };
+    std::vector<Pending> pending{{&elements, 0, level}};
+    while (!pending.empty()) {
+        Pending& at = pending.back();
+        if (at.next >= at.elements->size()) {
+            pending.pop_back();
+            continue;
+        }
+        const core::ProjectElement& element = at.elements->at(at.next++);
+        const core::ElementForm form = projects.formOf(element);
+        const bool text = form == core::ElementForm::Text && !element.file.isEmpty();
+        const bool group = form == core::ElementForm::Group;
+        const bool contents =
+            form == core::ElementForm::Window && isContentsKind(element.kind.kindId);
+        if (text || group || contents) {
+            rows.append(ExportRow{element.id, element.title, text ? element.status : QString(),
+                                  NavigatorPanel::iconIdOf(projects.bookTypes(), element),
+                                  at.level, !group});
+        }
+        if (group) {
+            pending.push_back({&element.elements, 0, at.level + 1});
+        }
+    }
+}
+
+/// Without the sections and the groups that have no texts
+void dropEmptyGroups(QList<ExportRow>& rows) {
+    for (qsizetype i = rows.size() - 1; i >= 0; --i) {
+        const bool emptyGroup =
+            !rows[i].leaf && (i + 1 == rows.size() || rows[i + 1].level <= rows[i].level);
+        if (emptyGroup) {
+            rows.removeAt(i);
+        }
+    }
+}
+
+/// The texts of @p book with their sections and groups as the Navigator shows them, the rows
+/// of the list of the window
+QList<ExportRow> rowsOf(const core::ProjectManager& projects, const core::ProjectBook& book) {
+    QList<ExportRow> rows;
+    const std::array<std::pair<const QList<core::ProjectElement>*, core::BookPlace>, 3> parts = {
+        {{&book.frontElements, core::BookPlace::Front},
+         {&book.mainElements, core::BookPlace::Main},
+         {&book.backElements, core::BookPlace::Back}}};
+    for (const auto& [elements, place] : parts) {
+        if (elements->isEmpty()) {
+            continue;
+        }
+        int level = 0;
+        if (book.partsLayer) {
+            rows.append(ExportRow{QString(), book.sectionName(place), QString(),
+                                  sectionIconId(place), 0, false});
+            level = 1;
+        }
+        addRowsOf(projects, *elements, level, rows);
+    }
+    dropEmptyGroups(rows);
+    return rows;
+}
+
+/// What the window says about @p volume of the open project: its data, the cover, its set
+/// for a publisher when it is the current book, its texts, and the volumes of a series
+dialogs::ExportBookDialog::Book bookOfVolume(const core::ProjectManager& projects,
+                                             const core::ProjectBook& volume) {
+    dialogs::ExportBookDialog::Book book;
+    //: The title of a book without one in the windows of the export and of the print. In
+    //: Polish: Książka
+    book.title = volume.title.trimmed().isEmpty() ? BookExportCoordinator::tr("Book")
+                                                  : volume.title;
+    book.author = volume.author;
+    book.language = volume.language.isEmpty() ? QString() : utils::languageName(volume.language);
+    book.isbn = volume.isbn;
+    book.publisher = volume.publisher;
+    const CoverOfBook cover = coverOfBook(projects);
+    if (cover.design != nullptr) {
+        book.coverTitle = cover.design->title;
+        book.coverFile = projects.filePathOf(*cover.design);
+    }
+    if (cover.description != nullptr) {
+        book.description = cover.description->description;
+    }
+    // The set for a publisher of the current book (PublishingSetContents)
+    if (&volume == projects.book()) {
+        addSetOf(projects, book);
+    }
+    book.rows = rowsOf(projects, volume);
+    // A series: its volumes in the list Volume
+    if (projects.isSeries()) {
+        const QList<core::ProjectBook>& volumes = projects.project()->books;
+        for (qsizetype i = 0; i < volumes.size(); ++i) {
+            book.volumes.append({volumes.at(i).id, NavigatorPanel::volumeName(volumes.at(i), i)});
+        }
+        book.volume = volume.id;
+    }
+    return book;
+}
+
 /// Plain text @p text in KML: each line a paragraph
 QString kmlOfText(const QString& text) {
     return QStringLiteral("<kml>") + editor::ClipboardHandler::textToKml(text) +
            QStringLiteral("</kml>");
 }
 
-QString bookIdentifier(const core::ProjectManager& projects) {
+/// The lasting identifier of the e-book of @p book of the open project: the same for the book
+/// in each export, another for each book (a UUID made of the project's and the book's ids)
+QString bookIdentifier(const core::ProjectManager& projects, const core::ProjectBook* book) {
     const core::BookProject* project = projects.project();
-    const core::ProjectBook* book = projects.isProjectOpen() ? projects.book() : nullptr;
     if (project == nullptr || book == nullptr) {
         return QString();
     }
@@ -290,6 +426,7 @@ void BookExportCoordinator::exportContent(
             return writeExport(path, choice, progress, result, problem);
         },
         m_window);
+    dialog.setVolumeBook([this](const QString& volumeId) { return dialogBook(volumeId); });
     // The content asked for; else the one the window chose
     dialog.setContent(content.value_or(dialog.layoutChoice().content));
     dialog.exec();
@@ -344,7 +481,7 @@ bool BookExportCoordinator::writeFile(const editor::BookExport& book, const QStr
             if (m_book.isProjectOpen() &&
                 (choice.content == dialogs::ExportBookDialog::Content::Book ||
                  choice.content == dialogs::ExportBookDialog::Content::Chosen)) {
-                m_book.setBookPublication(choice.isbn, choice.publisher);
+                m_book.setBookPublication(choice.isbn, choice.publisher, choice.volume);
             }
             return editor::exportEpub(book, path, progress, result, problem);
     }
@@ -395,86 +532,17 @@ void BookExportCoordinator::printBook() {
             return printed;
         },
         {}, m_window);
+    dialog.setVolumeBook([this](const QString& volumeId) { return dialogBook(volumeId); });
     dialog.exec();
 }
 
-dialogs::ExportBookDialog::Book BookExportCoordinator::dialogBook() const {
-    dialogs::ExportBookDialog::Book book;
-    core::ProjectManager& projects = m_book;
-    const core::ProjectBook* projectBook = projects.isProjectOpen() ? projects.book() : nullptr;
-    if (projectBook != nullptr) {
-        book.title = projectBook->title.trimmed().isEmpty() ? tr("Book") : projectBook->title;
-        book.author = projectBook->author;
-        book.language = projectBook->language.isEmpty()
-                            ? QString()
-                            : utils::languageName(projectBook->language);
-        book.isbn = projectBook->isbn;
-        book.publisher = projectBook->publisher;
-        const CoverOfBook cover = coverOfBook(projects);
-        if (cover.design != nullptr) {
-            book.coverTitle = cover.design->title;
-            book.coverFile = projects.filePathOf(*cover.design);
-        }
-        if (cover.description != nullptr) {
-            book.description = cover.description->description;
-        }
-        addSetOf(projects, book);
-        // The texts with their groups, as the Navigator shows them
-        const std::function<void(const QList<core::ProjectElement>&, int)> addRows =
-            [&](const QList<core::ProjectElement>& elements, int level) {
-                for (const core::ProjectElement& element : elements) {
-                    const core::ElementForm form = projects.formOf(element);
-                    const bool text = form == core::ElementForm::Text && !element.file.isEmpty();
-                    const bool contents =
-                        form == core::ElementForm::Window && isContentsKind(element.kind.kindId);
-                    const bool group = form == core::ElementForm::Group;
-                    if (!text && !contents && !group) {
-                        continue;
-                    }
-                    dialogs::ExportBookDialog::Row row;
-                    row.id = element.id;
-                    row.title = element.title;
-                    row.status = text ? element.status : QString();
-                    row.iconId = NavigatorPanel::iconIdOf(projects.bookTypes(), element);
-                    row.level = level;
-                    row.leaf = !group;
-                    book.rows.append(row);
-                    if (group) {
-                        addRows(element.elements, level + 1);
-                    }
-                }
-            };
-        const std::pair<const QList<core::ProjectElement>*, core::BookPlace> parts[] = {
-            {&projectBook->frontElements, core::BookPlace::Front},
-            {&projectBook->mainElements, core::BookPlace::Main},
-            {&projectBook->backElements, core::BookPlace::Back}};
-        for (const auto& [elements, place] : parts) {
-            if (elements->isEmpty()) {
-                continue;
-            }
-            int level = 0;
-            if (projectBook->partsLayer) {
-                dialogs::ExportBookDialog::Row section;
-                section.title = projectBook->sectionName(place);
-                section.iconId = place == core::BookPlace::Front ? QStringLiteral("structure.frontmatter")
-                                 : place == core::BookPlace::Main ? QStringLiteral("structure.body")
-                                                                  : QStringLiteral("structure.backmatter");
-                section.leaf = false;
-                book.rows.append(section);
-                level = 1;
-            }
-            addRows(*elements, level);
-        }
-        // A section or a group without texts is no row of the list
-        for (qsizetype i = book.rows.size() - 1; i >= 0; --i) {
-            const bool emptyGroup = !book.rows[i].leaf &&
-                                    (i + 1 == book.rows.size() ||
-                                     book.rows[i + 1].level <= book.rows[i].level);
-            if (emptyGroup) {
-                book.rows.removeAt(i);
-            }
-        }
-    }
+dialogs::ExportBookDialog::Book BookExportCoordinator::dialogBook(
+    const QString& volumeId) const {
+    const core::ProjectManager& projects = m_book;
+    const core::ProjectBook* projectBook = volumeOf(projects, volumeId);
+    dialogs::ExportBookDialog::Book book =
+        projectBook != nullptr ? bookOfVolume(projects, *projectBook)
+                               : dialogs::ExportBookDialog::Book();
 
     // The text in front: of the book, or a file outside it
     const EditorPanel* front = m_currentEditor ? m_currentEditor() : nullptr;
@@ -502,7 +570,7 @@ editor::BookExport BookExportCoordinator::bookExport(
     const dialogs::ExportBookDialog::Choice& choice) const {
     using Content = dialogs::ExportBookDialog::Content;
     const core::ProjectManager& projects = m_book;
-    const core::ProjectBook* projectBook = projects.isProjectOpen() ? projects.book() : nullptr;
+    const core::ProjectBook* projectBook = volumeOf(projects, choice.volume);
 
     editor::BookExport book =
         bookExport(static_cast<const dialogs::BookOutputDialog::Layout&>(choice));
@@ -526,7 +594,7 @@ editor::BookExport BookExportCoordinator::bookExport(
         }
         // The book's own identifier for the whole book; a part of it is another e-book
         if (choice.content == Content::Book) {
-            book.epub.identifier = bookIdentifier(projects);
+            book.epub.identifier = bookIdentifier(projects, projectBook);
         }
     }
     return book;
@@ -537,7 +605,7 @@ editor::BookExport BookExportCoordinator::bookExport(
     using Content = dialogs::BookOutputDialog::Content;
     const core::ProjectManager& projects = m_book;
     const auto& settings = core::SettingsManager::getInstance();
-    const core::ProjectBook* projectBook = projects.isProjectOpen() ? projects.book() : nullptr;
+    const core::ProjectBook* projectBook = volumeOf(projects, layout.volume);
 
     editor::BookExport book;
     if (projectBook != nullptr) {

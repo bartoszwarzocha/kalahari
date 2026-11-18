@@ -1233,8 +1233,11 @@ public:
 
     /// @brief Give the book the ISBN and the publisher of its e-book (ProjectBook::isbn,
     /// ProjectBook::publisher; empty: none) and save the .klh file
-    /// @return false when no project is open, it is read-only or the file cannot be written
-    bool setBookPublication(const QString& isbn, const QString& publisher);
+    /// @param bookId The book of a series; empty: the current book
+    /// @return false when no project is open, it has no such book, it is read-only or the
+    ///         file cannot be written
+    bool setBookPublication(const QString& isbn, const QString& publisher,
+                            const QString& bookId = QString());
 
     // =========================================================================
     // Paragraph Styles of the Books

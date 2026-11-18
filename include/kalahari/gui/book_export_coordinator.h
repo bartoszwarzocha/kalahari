@@ -105,7 +105,9 @@ public:
     void printBook();
 
     /// @brief What the window says about the book and the text in front
-    [[nodiscard]] dialogs::ExportBookDialog::Book dialogBook() const;
+    /// @param volumeId The volume of a series; empty: the current book
+    [[nodiscard]] dialogs::ExportBookDialog::Book dialogBook(
+        const QString& volumeId = QString()) const;
 
     /// @brief The export of @p choice: the texts of the book as the program has them, the
     ///        styles, the page and the options

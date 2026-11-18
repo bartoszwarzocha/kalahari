@@ -28724,6 +28724,11 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
             <numerusform>Zes&amp;taw dla wydawnictwa (%n części)</numerusform>
         </translation>
     </message>
+    <message>
+        <source>&amp;Volume:</source>
+        <extracomment>The list of the volumes of a series in the windows of the export and of the print. In Polish: To&amp;m:</extracomment>
+        <translation>To&amp;m:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::ExportBookDialog</name>

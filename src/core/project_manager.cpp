@@ -3317,11 +3317,20 @@ QString ProjectManager::bookLanguage() const {
     return current != nullptr ? current->language : QString();
 }
 
-bool ProjectManager::setBookPublication(const QString& isbn, const QString& publisher) {
+bool ProjectManager::setBookPublication(const QString& isbn, const QString& publisher,
+                                        const QString& bookId) {
     ProjectBook* current = book();
     if (current == nullptr) {
         Logger::getInstance().warn("setBookPublication: No project is open");
         return false;
+    }
+    if (!bookId.isEmpty()) {
+        const qsizetype index = m_project->bookIndex(bookId);
+        if (index < 0) {
+            Logger::getInstance().warn("setBookPublication: No book {}", bookId.toStdString());
+            return false;
+        }
+        current = &m_project->books[index];
     }
     if (current->isbn == isbn && current->publisher == publisher) {
         return true;
