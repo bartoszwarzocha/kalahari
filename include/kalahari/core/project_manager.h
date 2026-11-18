@@ -139,6 +139,18 @@ struct NewProject {
     std::optional<PaletteChoice> palette;
 };
 
+/// @brief A new book of a series, as ProjectManager::addBook() makes it
+struct NewBook {
+    QString title;     ///< Its title
+    QString author;    ///< Its author
+    QString language;  ///< Language code of its text; empty: that of the current book
+    /// Its place in the list of books; -1: after the current book
+    qsizetype index = -1;
+    /// Whether it starts with the elements of the front and back sections of the book before
+    /// it, besides its first chapter
+    bool pagesOfPrevious = false;
+};
+
 /// @brief A new material of the Workshop, as ProjectManager::addMaterial() adds it: a copy of
 /// a file, a picture or a web address, or none of them (a paper book, a talk, a quotation)
 struct NewMaterial {
@@ -362,9 +374,25 @@ public:
     BookProject* project();
     [[nodiscard]] const BookProject* project() const;
 
-    /// @brief The first book of the open project, or nullptr
+    /// @brief The current book of the open project, or nullptr: the book the writer works on,
+    /// the first one until setCurrentBook() chooses another book of a series
     ProjectBook* book();
     [[nodiscard]] const ProjectBook* book() const;
+
+    /// @brief Index of the current book in the list of books; -1 while no project is open
+    [[nodiscard]] qsizetype currentBookIndex() const;
+
+    /// @brief Make book @p bookId the current book (currentBookChanged()); a project opened
+    /// again starts with its first book
+    /// @return false when the project has no such book
+    bool setCurrentBook(const QString& bookId);
+
+    /// @brief Whether the open project is a series: it has more than one book
+    [[nodiscard]] bool isSeries() const;
+
+    /// @brief The book that has element @p elementId in one of its sections; nullptr for an
+    /// element of the Workshop, a file of a book outside its text, or no such element
+    [[nodiscard]] const ProjectBook* bookOf(const QString& elementId) const;
 
     /// @brief Check if the project's .klh file has unsaved changes
     ///
@@ -689,18 +717,25 @@ public:
     /// the element; the place it has now is one of them
     [[nodiscard]] QList<ElementPlace> movePlacesOf(const QString& elementId) const;
 
-    /// @brief Whether element @p elementId can be moved to @p to, one of movePlacesOf()
-    [[nodiscard]] bool canMoveTo(const QString& elementId, const ElementPlace& to) const;
+    /// @brief Whether element @p elementId can be moved to @p to, one of movePlacesOf(), or to
+    /// @p to in book @p bookId of a series, one of movePlacesIn()
+    /// @param bookId Id of the book of @p to; empty: the element's own book
+    [[nodiscard]] bool canMoveTo(const QString& elementId, const ElementPlace& to,
+                                 const QString& bookId = QString()) const;
 
     /// @brief Move element @p elementId, with the elements inside it, to @p to and save the
     /// .klh file
     ///
     /// The element goes to another section of the book or into another group, or to another
-    /// place of its list, wherever its kind can be. Its files stay where they are.
-    /// @param to A place in the book without the element, one of movePlacesOf()
+    /// place of its list, wherever its kind can be, or to another book of a series. Its files
+    /// stay where they are.
+    /// @param to A place in the book without the element, one of movePlacesOf(), or a place
+    ///        in book @p bookId, one of movePlacesIn()
+    /// @param bookId Id of the book of @p to; empty: the element's own book
     /// @return false when the element cannot go there or the file cannot be written; the
     ///         project stays as it was then
-    bool moveElementTo(const QString& elementId, const ElementPlace& to);
+    bool moveElementTo(const QString& elementId, const ElementPlace& to,
+                       const QString& bookId = QString());
 
     /// @brief Place in its list that Move to Start gives element @p elementId
     ///
@@ -852,6 +887,51 @@ public:
     ///         materials keep their states then
     bool setCoverState(const QString& elementId, const QString& state,
                        QStringList* drafts = nullptr);
+
+    // =========================================================================
+    // A Series: Several Books with One Workshop (project_manager_series.cpp)
+    // =========================================================================
+
+    /// @brief Name of the series: the writer's own, or else the title of the first book;
+    /// empty while no project is open
+    [[nodiscard]] QString seriesName() const;
+
+    /// @brief Give the series the name @p name, without the spaces at its ends (empty: the
+    /// title of the first book), and save the .klh file
+    /// @return false when no project is open or the file cannot be written
+    bool setSeriesName(const QString& name);
+
+    /// @brief Add a new book to the project, which makes it a series, and save the .klh file
+    ///
+    /// The book gets a folder of its own, the first free one of book2, book3... It starts with
+    /// the elements the main section of a new book of the type starts with (its first
+    /// chapter), with the text of their kinds' templates. With NewBook::pagesOfPrevious it also
+    /// gets the text elements of the front and back sections of the book before it, in their
+    /// sections: an element whose kind's template has the title or the author of the book (the
+    /// title page) is made anew from the template, with the data of the new book; the others
+    /// get a copy of their text. The current book stays the current one.
+    /// @return The id of the new book; empty when no project is open, the book is read-only,
+    ///         its title is empty or a file cannot be written (the project stays as it was)
+    QString addBook(const NewBook& request);
+
+    /// @brief Move book @p bookId to place @p index of the list of books and save the .klh
+    /// file
+    /// @return false when the project has no such book or place, or the file cannot be written
+    bool moveBook(const QString& bookId, qsizetype index);
+
+    /// @brief Take book @p bookId out of the series and save the .klh file
+    ///
+    /// The links to its elements and to its sections go with it, as removeElement() takes
+    /// them; the files of its elements stay on the disk (filesOf() lists them). The first book
+    /// becomes the current one when the current book goes.
+    /// @return The book; nullopt for the last book of the project, a book the project does not
+    ///         have, or when the file cannot be written
+    std::optional<ProjectBook> removeBook(const QString& bookId);
+
+    /// @brief Places in book @p bookId that element @p elementId of another book can be moved
+    /// to (BookProject::movePlacesIn())
+    [[nodiscard]] QList<ElementPlace> movePlacesIn(const QString& elementId,
+                                                   const QString& bookId) const;
 
     // =========================================================================
     // Texts for Publishers
@@ -1326,11 +1406,11 @@ public:
     /// @return true if all saved successfully
     bool saveAllDirty();
 
-    /// @brief Get text elements whose status is not "final"
+    /// @brief Get the text elements of the current book whose status is not "final"
     /// @return Pairs (element ID, status), in the reading order of the book
     [[nodiscard]] std::vector<std::pair<QString, QString>> getIncompleteElements() const;
 
-    /// @brief Get the text elements of the book by status
+    /// @brief Get the text elements of the current book by status
     /// @return Map of status -> count
     [[nodiscard]] std::map<QString, int> getStatusStatistics() const;
 
@@ -1451,6 +1531,10 @@ signals:
     /// @brief The .klh file was saved after a change of the project: its elements, their
     /// order, titles, states or details may be other than before (saveManifest())
     void projectChanged();
+
+    /// @brief Another book of the series became the current book (setCurrentBook(),
+    /// removeBook())
+    void currentBookChanged();
 
     /// @brief Emitted when the links of elements change (ProjectElement::links): set, added
     /// with a material, taken out with an element, or following the paragraphs of a text that
@@ -1587,7 +1671,7 @@ private:
     /// (VersionOrigin::Save) when the settings say so (saveChapterContent())
     void keepVersionOnSave(const QString& elementId, const QString& kml);
 
-    /// @brief Folders of the files of unassignedFiles(): of the book and of the Workshop, as
+    /// @brief Folders of the files of unassignedFiles(): of each book and of the Workshop, as
     /// absolute paths
     [[nodiscard]] QStringList unassignedFolders() const;
 
@@ -1605,6 +1689,42 @@ private:
     /// @brief Whether the open book is read-only, so that @p what does not change it; the log
     /// says so
     bool refusesChange(const char* what) const;
+
+    /// @brief @p bookId, or empty when it names the book of element @p elementId: the book of
+    /// a move to another book of a series (moveElementTo())
+    [[nodiscard]] QString otherBookThan(const QString& elementId, const QString& bookId) const;
+
+    /// @brief The first folder of book2, book3... that no book of the project has and that is
+    /// not on the disk, for a new book of a series
+    [[nodiscard]] QString freeBookFolder() const;
+
+    /// @brief Give new book @p book the elements it starts with (addBook()): the pages of the
+    /// front and back sections of @p source when @p pages, then its first chapter
+    /// @param written Gets the absolute paths of the files written
+    /// @return false when a file cannot be written
+    bool addStartingElements(ProjectBook& book, const ProjectBook& source, bool pages,
+                             QStringList& written) const;
+
+    /// @brief Give new book @p book copies of the text elements of section @p place of
+    /// @p source (addBook())
+    bool copyPages(ProjectBook& book, const ProjectBook& source, BookPlace place,
+                   QStringList& written) const;
+
+    /// @brief Kinds of the elements the main section of a new book starts with: those of the
+    /// type, or in a project without a type the kind of the first text of @p source
+    [[nodiscard]] QList<KindRef> firstKinds(const ProjectBook& source) const;
+
+    /// @brief A new text element of @p kind titled @p title for book @p book, with its chapter
+    /// file of text @p kml written in the folder of the book
+    /// @param written Gets the absolute path of the file
+    /// @return The element; nullopt when the file cannot be written
+    std::optional<ProjectElement> newTextIn(const ProjectBook& book, const KindRef& kind,
+                                            const QString& title, const QString& kml,
+                                            QStringList& written) const;
+
+    /// @brief A free chapter file for a new element of kind @p kindId in folder @p folder,
+    /// relative to the project (newChapterFile())
+    [[nodiscard]] QString newChapterFileIn(const QString& folder, const QString& kindId) const;
 
     /// @brief Text element @p elementId of a book (not of the Workshop); nullptr: none
     [[nodiscard]] const ProjectElement* bookTextOf(const QString& elementId) const;
@@ -1628,6 +1748,7 @@ private:
 
     WorkMode m_workMode = WorkMode::NoDocument;    ///< Current work mode
     std::unique_ptr<BookProject> m_project;        ///< Open project
+    QString m_currentBook;                         ///< Id of book(); empty: the first book
     QHash<QString, ElementState> m_elementStates;  ///< Text element id -> its state
     std::filesystem::path m_projectPath;           ///< Project root folder path
     std::filesystem::path m_manifestPath;          ///< Path to .klh manifest file

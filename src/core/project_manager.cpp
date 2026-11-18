@@ -970,6 +970,7 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
     }
 
     m_project = std::make_unique<BookProject>(std::move(*project));
+    m_currentBook.clear();
     m_manifestPath = std::filesystem::path(manifestInfo.absoluteFilePath().toStdWString());
     m_projectPath = m_manifestPath.parent_path();
 
@@ -1151,6 +1152,7 @@ bool ProjectManager::closeProject(bool promptSave) {
 
     // Clear state
     m_project.reset();
+    m_currentBook.clear();
     m_missingPackages.clear();
     m_packageCards.clear();
     m_elementStates.clear();
@@ -1260,11 +1262,40 @@ const BookProject* ProjectManager::project() const {
 }
 
 ProjectBook* ProjectManager::book() {
-    return m_project && !m_project->books.isEmpty() ? &m_project->books.first() : nullptr;
+    const qsizetype current = currentBookIndex();
+    return current >= 0 ? &m_project->books[current] : nullptr;
 }
 
 const ProjectBook* ProjectManager::book() const {
-    return m_project && !m_project->books.isEmpty() ? &m_project->books.first() : nullptr;
+    const qsizetype current = currentBookIndex();
+    return current >= 0 ? &m_project->books.at(current) : nullptr;
+}
+
+qsizetype ProjectManager::currentBookIndex() const {
+    if (!m_project || m_project->books.isEmpty()) {
+        return -1;
+    }
+    return std::max<qsizetype>(m_project->bookIndex(m_currentBook), 0);
+}
+
+bool ProjectManager::setCurrentBook(const QString& bookId) {
+    if (!m_project || m_project->bookIndex(bookId) < 0) {
+        return false;
+    }
+    if (book()->id != bookId) {
+        m_currentBook = bookId;
+        emit currentBookChanged();
+    }
+    return true;
+}
+
+bool ProjectManager::isSeries() const {
+    return m_project && m_project->books.size() > 1;
+}
+
+const ProjectBook* ProjectManager::bookOf(const QString& elementId) const {
+    const qsizetype index = m_project ? m_project->bookIndexOf(elementId) : -1;
+    return index >= 0 ? &m_project->books.at(index) : nullptr;
 }
 
 bool ProjectManager::isDirty() const {
@@ -1494,9 +1525,10 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
 
     // Only a group takes elements inside it: elements of the content of its part of the book,
     // which has no groups, each once, and only those that can be inside it
+    const QList<ProjectElement>& partElements = m_project->elementsIn(place, currentBookIndex());
     const QList<const ProjectElement*> content =
         takeInside.isEmpty() ? QList<const ProjectElement*>()
-                             : BookProject::contentOf(bookTypes(), m_project->elementsIn(place));
+                             : BookProject::contentOf(bookTypes(), partElements);
     for (const QString& insideId : takeInside) {
         const auto inside =
             std::find_if(content.cbegin(), content.cend(), [&insideId](const ProjectElement* e) {
@@ -1564,7 +1596,7 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
         for (const QString& insideId : takeInside) {
             element.elements.append(*m_project->takeElement(insideId));
         }
-        list = at.groupId.isEmpty() ? &m_project->elementsIn(place)
+        list = at.groupId.isEmpty() ? &m_project->elementsIn(place, currentBookIndex())
                                     : &m_project->findElement(at.groupId)->elements;
         insertAt = list->size();
         for (qsizetype i = 0; i < list->size(); ++i) {
@@ -1608,7 +1640,9 @@ std::optional<ElementPlace> ProjectManager::newPlaceAfter(const QString& element
         return std::nullopt;
     }
     const ProjectElement* group = at->groupId.isEmpty() ? nullptr : findElement(at->groupId);
-    const QList<ProjectElement>& list = group ? group->elements : m_project->elementsIn(at->place);
+    const qsizetype bookIndex = std::max<qsizetype>(m_project->bookIndexOf(elementId), 0);
+    const QList<ProjectElement>& list =
+        group != nullptr ? group->elements : m_project->elementsIn(at->place, bookIndex);
 
     // A prologue or an epilogue goes where its kind goes
     ElementPlace after{at->place, at->groupId, at->index + 1};
@@ -1815,7 +1849,8 @@ ElementPlace ProjectManager::newPlaceOf(const KindRef& kind, BookPlace place,
     if (!groupId.isEmpty() && !group) {
         return at;
     }
-    const QList<ProjectElement>& list = group ? group->elements : m_project->elementsIn(place);
+    const QList<ProjectElement>& list =
+        group != nullptr ? group->elements : m_project->elementsIn(place, currentBookIndex());
     at.index = newIndexIn(list, kind);
 
     // In the body: before the elements that close it, also when they end a part
@@ -2153,9 +2188,15 @@ QStringList ProjectManager::unassignedFolders() const {
     if (!m_project) {
         return folders;
     }
+    // The folders of the books of a series, then the folder of the Workshop
     const QDir projectDir(getProjectPath());
-    for (const BookPlace place : {BookPlace::Main, BookPlace::Workshop}) {
-        const QString folder = QDir::cleanPath(projectDir.filePath(folderOf(place, book())));
+    QStringList relative;
+    for (const ProjectBook& each : m_project->books) {
+        relative.append(folderOf(BookPlace::Main, &each));
+    }
+    relative.append(folderOf(BookPlace::Workshop, nullptr));
+    for (const QString& name : relative) {
+        const QString folder = QDir::cleanPath(projectDir.filePath(name));
         if (std::none_of(folders.cbegin(), folders.cend(), [&folder](const QString& listed) {
                 return fileKey(listed) == fileKey(folder);
             })) {
@@ -2317,11 +2358,14 @@ QList<ElementPlace> ProjectManager::movePlacesOf(const QString& elementId) const
     return m_project ? m_project->movePlacesOf(bookTypes(), elementId) : QList<ElementPlace>{};
 }
 
-bool ProjectManager::canMoveTo(const QString& elementId, const ElementPlace& to) const {
-    return movePlacesOf(elementId).contains(to);
+bool ProjectManager::canMoveTo(const QString& elementId, const ElementPlace& to,
+                               const QString& bookId) const {
+    return (bookId.isEmpty() ? movePlacesOf(elementId) : movePlacesIn(elementId, bookId))
+        .contains(to);
 }
 
-bool ProjectManager::moveElementTo(const QString& elementId, const ElementPlace& to) {
+bool ProjectManager::moveElementTo(const QString& elementId, const ElementPlace& to,
+                                   const QString& bookId) {
     auto& logger = Logger::getInstance();
     if (refusesChange("moveElementTo")) {
         return false;
@@ -2332,7 +2376,8 @@ bool ProjectManager::moveElementTo(const QString& elementId, const ElementPlace&
         logger.warn("moveElementTo: The project has no element {}", elementId.toStdString());
         return false;
     }
-    if (*from == to) {
+    const QString otherBook = otherBookThan(elementId, bookId);
+    if (*from == to && otherBook.isEmpty()) {
         return true;  // It is there
     }
     const std::string where = to.groupId.isEmpty() ? bookPlaceName(to.place).toStdString()
@@ -2340,7 +2385,7 @@ bool ProjectManager::moveElementTo(const QString& elementId, const ElementPlace&
 
     // The project as it was comes back when the change cannot be saved
     const BookProject previous = *m_project;
-    if (!m_project->moveElementTo(bookTypes(), elementId, to)) {
+    if (!m_project->moveElementTo(bookTypes(), elementId, to, otherBook)) {
         logger.warn("moveElementTo: {} cannot go to place {} of {}", elementId.toStdString(),
                     to.index, where);
         return false;
@@ -3820,7 +3865,7 @@ std::vector<std::pair<QString, QString>> ProjectManager::getIncompleteElements()
     if (!m_project) {
         return result;
     }
-    for (const ProjectElement* element : m_project->readingOrder()) {
+    for (const ProjectElement* element : m_project->readingOrder(currentBookIndex())) {
         const QString status = statusOf(*element);
         if (formOf(*element) == ElementForm::Text && status != QLatin1String("final")) {
             result.emplace_back(element->id, status);
@@ -3834,7 +3879,7 @@ std::map<QString, int> ProjectManager::getStatusStatistics() const {
     if (!m_project) {
         return statistics;
     }
-    for (const ProjectElement* element : m_project->readingOrder()) {
+    for (const ProjectElement* element : m_project->readingOrder(currentBookIndex())) {
         if (formOf(*element) == ElementForm::Text) {
             ++statistics[statusOf(*element)];
         }
@@ -4022,6 +4067,10 @@ QString ProjectManager::newChapterFile(const KindRef& kind, BookPlace place) con
                            kind ? kind.kind->id : QString());
 }
 
+QString ProjectManager::newChapterFileIn(const QString& folder, const QString& kindId) const {
+    return freeChapterFile(*m_project, getProjectPath(), folder, kindId);
+}
+
 QString ProjectManager::newBookFile() const {
     return m_project ? freeChapterFile(*m_project, getProjectPath(),
                                        folderOf(BookPlace::Main, book()), QString(BOOK_FILE_NAME))
@@ -4060,7 +4109,7 @@ QList<ProjectElement>* ProjectManager::listForNew(const KindRef& kind, BookPlace
 
     QList<ProjectElement>* list = nullptr;
     if (groupId.isEmpty()) {
-        list = &m_project->elementsIn(place);
+        list = &m_project->elementsIn(place, currentBookIndex());
     } else {
         ProjectElement* group = m_project->findElement(groupId);
         if (!group || formOf(*group) != ElementForm::Group) {

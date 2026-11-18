@@ -38,6 +38,7 @@ set(TEST_SOURCES
     core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
     core/test_publishing_texts.cpp    # The texts for publishers: their data, templates, lengths and the set
+    core/test_series.cpp              # A series: several books of one project with one Workshop
     core/test_card_data.cpp           # The cards of the Workshop: their fields, data in the book and colors
     core/test_card_relations.cpp      # The relations between cards, and the fields that name a card by one
     core/test_card_field_set.cpp      # The fields of the cards as a book has them, and those new books start with
@@ -328,6 +329,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/project_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager_card_fields.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager_publishing.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/project_manager_series.cpp
     ${CMAKE_SOURCE_DIR}/src/core/recent_books_manager.cpp
     # OpenSpec #00041: SQLite Project Database
     ${CMAKE_SOURCE_DIR}/src/core/project_database.cpp

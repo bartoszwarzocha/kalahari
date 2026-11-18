@@ -6,9 +6,10 @@
 ///
 /// A project has a book type or, in a user project, no type and the kinds chosen from the
 /// palette. It can take kinds of other types. It has a list of books and one Workshop that the
-/// books share; the list has one book for now, and a series will have more. An element names
-/// its kind with the package that defines it, so it keeps its kind when the kind is taken out
-/// of the project or its package is not installed.
+/// books share; a series has more than one book, the volumes in their order, and the name of
+/// the series ("series", left out when empty). An element names its kind with the package that
+/// defines it, so it keeps its kind when the kind is taken out of the project or its package is
+/// not installed.
 ///
 /// <title>.klh:
 /// @code{.json}
@@ -523,7 +524,8 @@ struct BookProject {
     QDateTime modified;               ///< When the project was last saved
     std::optional<ProjectType> type;  ///< Book type; none in a user project
     QList<KindReference> kinds;       ///< Kinds taken from other types; in a user project, all
-    QList<ProjectBook> books;         ///< Books; one for now, more in a series
+    QList<ProjectBook> books;         ///< Books: one, or the volumes of a series in their order
+    QString series;                   ///< Name of the series of its books; empty: none given
     ProjectWorkshop workshop;         ///< Workshop shared by the books
     QList<BookParagraphStyle> paragraphStyles;  ///< Own styles and changed styles of the type
     QJsonObject extra;                ///< Fields this version does not know, saved back
@@ -599,11 +601,30 @@ struct BookProject {
     [[nodiscard]] QList<ElementPlace> movePlacesOf(const BookTypeRegistry& registry,
                                                    const QString& elementId) const;
 
-    /// @brief Move element @p elementId, with the elements inside it, to @p to, one of
+    /// @brief Places in book @p bookId of a series that element @p elementId of another book
+    /// can be moved to, in reading order: the places of its kind in the sections of that book
+    /// and in its groups that can have it; for the element's own book, the places of
     /// movePlacesOf()
+    /// @return The places; empty for an element of the Workshop, a file of a book outside its
+    ///         text, an element whose kind @p registry does not have, or a book the project
+    ///         does not have
+    [[nodiscard]] QList<ElementPlace> movePlacesIn(const BookTypeRegistry& registry,
+                                                   const QString& elementId,
+                                                   const QString& bookId) const;
+
+    /// @brief Move element @p elementId, with the elements inside it, to @p to, one of
+    /// movePlacesOf(), or to @p to in book @p bookId of a series, one of movePlacesIn()
+    /// @param bookId Id of the book of @p to; empty: the element's own book
     /// @return false when the element cannot go there; the project does not change then
     bool moveElementTo(const BookTypeRegistry& registry, const QString& elementId,
-                       const ElementPlace& to);
+                       const ElementPlace& to, const QString& bookId = QString());
+
+    /// @brief Index of book @p bookId in the list of books; -1 when the project has none
+    [[nodiscard]] qsizetype bookIndex(const QString& bookId) const;
+
+    /// @brief Index of the book that has element @p elementId in one of its sections; -1 for
+    /// an element of the Workshop, a file of a book outside its text, or no such element
+    [[nodiscard]] qsizetype bookIndexOf(const QString& elementId) const;
 
     /// @brief Whether an element of the project, or a file of a book outside its text, has the
     /// file @p file
