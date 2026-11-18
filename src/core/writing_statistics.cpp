@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <bit>
+#include <iterator>
 #include <string>
 #include <utility>
 
@@ -254,6 +255,20 @@ void WritingStatistics::setActivity(const QList<WritingActivity>& activity)
     m_byDay.clear();
     m_days.clear();
     addActivity(activity);
+}
+
+WritingStatistics WritingStatistics::ofTexts(const QSet<QString>& elementIds) const
+{
+    QList<WritingActivity> kept;
+    for (const QList<WritingActivity>& day : m_byDay) {
+        std::copy_if(day.cbegin(), day.cend(), std::back_inserter(kept),
+                     [&elementIds](const WritingActivity& entry) {
+                         return !entry.elementId.isEmpty() && elementIds.contains(entry.elementId);
+                     });
+    }
+    WritingStatistics texts(m_rules);
+    texts.setActivity(kept);
+    return texts;
 }
 
 void WritingStatistics::addActivity(const QList<WritingActivity>& activity)

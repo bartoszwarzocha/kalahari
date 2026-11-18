@@ -14,6 +14,8 @@
 #include <QTimer>
 
 #include <algorithm>
+#include <functional>
+#include <utility>
 
 namespace kalahari::gui {
 
@@ -113,6 +115,9 @@ void WritingStatsModel::setBook(core::ProjectDatabase* database, const QString& 
     m_database = database;
     m_bookId = database != nullptr ? bookId : QString();
     m_bookReadOnly = database != nullptr && readOnly;
+    // One book until setVolume() says which volume of a series
+    m_goalsKey.clear();
+    m_volumeTexts.clear();
     if (m_collector) {
         m_collector->setBookId(m_bookId);
     }
@@ -130,8 +135,50 @@ void WritingStatsModel::readBook()
     }
     m_bookRecord.setActivity(
         m_database->writingActivity(FIRST_DAY, LAST_DAY));
-    m_goals = core::BookGoals::fromJson(
-        m_database->getSetting(QString::fromLatin1(core::BookGoals::SETTING_KEY)).toString());
+    m_goals = core::BookGoals::fromJson(m_database->getSetting(goalsKey()).toString());
+}
+
+QString WritingStatsModel::goalsKey() const
+{
+    return m_goalsKey.isEmpty() ? QString::fromLatin1(core::BookGoals::SETTING_KEY) : m_goalsKey;
+}
+
+void WritingStatsModel::setVolume(const QString& goalsKey, const QSet<QString>& elementIds)
+{
+    if (goalsKey == m_goalsKey && elementIds == m_volumeTexts) {
+        return;
+    }
+    const bool otherGoals = goalsKey != m_goalsKey;
+    m_goalsKey = goalsKey;
+    m_volumeTexts = goalsKey.isEmpty() ? QSet<QString>() : elementIds;
+    if (otherGoals) {
+        m_goals = {};
+        if (m_database != nullptr && m_database->isOpen()) {
+            m_goals =
+                core::BookGoals::fromJson(m_database->getSetting(this->goalsKey()).toString());
+        }
+        emit goalsChanged();
+    }
+    schedule();
+}
+
+core::WritingStatistics WritingStatsModel::volumeStatistics() const
+{
+    if (m_goalsKey.isEmpty()) {
+        return bookStatistics();
+    }
+    return bookStatistics().ofTexts(m_volumeTexts);
+}
+
+void WritingStatsModel::setSeriesWordsSource(std::function<int()> source)
+{
+    m_seriesWords = std::move(source);
+    schedule();
+}
+
+int WritingStatsModel::seriesWords() const
+{
+    return m_database != nullptr && m_seriesWords ? m_seriesWords() : -1;
 }
 
 void WritingStatsModel::setBookWordsSource(std::function<int()> source)
@@ -147,7 +194,7 @@ int WritingStatsModel::bookWords() const
 
 int WritingStatsModel::bookWordsAtStartOfToday() const
 {
-    return bookWords() - bookStatistics().textGrowth(today());
+    return bookWords() - volumeStatistics().textGrowth(today());
 }
 
 bool WritingStatsModel::setGoals(const core::BookGoals& goals)
@@ -160,7 +207,7 @@ bool WritingStatsModel::setGoals(const core::BookGoals& goals)
     if (sorted == m_goals) {
         return true;
     }
-    m_database->setSetting(QString::fromLatin1(core::BookGoals::SETTING_KEY), sorted.toJson());
+    m_database->setSetting(goalsKey(), sorted.toJson());
     m_goals = sorted;
     emit goalsChanged();
     schedule();

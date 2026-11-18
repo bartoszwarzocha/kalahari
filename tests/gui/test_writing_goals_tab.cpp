@@ -9,6 +9,7 @@
 
 #include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/project_database.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/writing_activity.h"
 #include "kalahari/core/writing_goals.h"
@@ -18,6 +19,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/panels/writing_goals_tab.h"
+#include "kalahari/gui/panels/writing_stats_panel.h"
 #include "kalahari/gui/widgets/stats_painter.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
 #include "kalahari/gui/writing_stats_model.h"
@@ -43,6 +45,7 @@
 #include <QTreeWidget>
 
 #include <functional>
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
@@ -493,4 +496,123 @@ TEST_CASE("Writing goals: the page fills the whole width of the window",
         INFO("width " << width << ", intro " << intro->width());
         CHECK(intro->mapTo(tab, QPoint(intro->width(), 0)).x() >= width - 60);
     }
+}
+
+TEST_CASE("Writing goals: a volume of a series, its goals, its words and the whole series",
+          "[gui][statistics][goals][series]")
+{
+    // Today: 300 words in a chapter of the first volume, 120 in a chapter of the second one
+    Goals goals;
+    REQUIRE(goals.database.open(goals.dir.path()));
+    core::WritingActivity sand;
+    sand.date = NOW.date();
+    sand.slot = core::activitySlotOf(QTime(10, 0));
+    sand.bookId = QStringLiteral("book");
+    sand.elementId = QStringLiteral("ch-1");
+    sand.written = 300;
+    core::WritingActivity dune = sand;
+    dune.slot = core::activitySlotOf(QTime(11, 0));
+    dune.elementId = QStringLiteral("dune-1");
+    dune.written = 120;
+    REQUIRE(goals.database.addWritingActivity({sand, dune}));
+    goals.model.setBook(&goals.database, QStringLiteral("book"));
+    WritingStatsModel& model = goals.model;
+    CHECK(model.seriesWords() == -1);
+    CHECK(model.volumeStatistics().day(NOW.date()).written == 420);
+    core::BookGoals first;
+    first.targetWords = 90000;
+    REQUIRE(model.setGoals(first));
+
+    // The second volume: its goals in a setting of its own, the words of its texts
+    int changed = 0;
+    QObject::connect(&model, &WritingStatsModel::goalsChanged, &model, [&changed]() {
+        ++changed;
+    });
+    const QString dunesKey = QStringLiteral("writing.goals.dunes");
+    model.setVolume(dunesKey, {QStringLiteral("dune-1")});
+    CHECK(changed == 1);
+    CHECK(model.goals().targetWords == 0);
+    CHECK(model.volumeStatistics().day(NOW.date()).written == 120);
+    CHECK(model.bookStatistics().day(NOW.date()).written == 420);
+    CHECK(model.bookWordsAtStartOfToday() == BOOK_WORDS - 120);
+    core::BookGoals second;
+    second.targetWords = 40000;
+    REQUIRE(model.setGoals(second));
+    CHECK(core::BookGoals::fromJson(goals.database.getSetting(dunesKey).toString()).targetWords ==
+          40000);
+    CHECK(core::BookGoals::fromJson(
+              goals.database.getSetting(QString::fromLatin1(core::BookGoals::SETTING_KEY))
+                  .toString())
+              .targetWords == 90000);
+    // The same volume again: its goals are not read again
+    const int before = changed;
+    model.setVolume(dunesKey, {QStringLiteral("dune-1")});
+    CHECK(changed == before);
+
+    // The words of the whole series in the view of the book
+    model.setSeriesWordsSource([]() { return 70000; });
+    CHECK(model.seriesWords() == 70000);
+    gui::WritingStatsPanel panel;
+    panel.setModel(&model);
+    panel.show();
+    panel.setView(gui::WritingStatsPanel::View::Book);
+    CHECK(panel.details().contains(QStringLiteral("Words in the whole series: %1")
+                                       .arg(gui::stats_painter::words(70000))));
+    CHECK(panel.details().contains(QStringLiteral("Length of the book: %1")
+                                       .arg(gui::stats_painter::words(40000))));
+
+    // Back to one book: its goals as before, all its texts
+    model.setVolume(QString(), {});
+    CHECK(model.goals().targetWords == 90000);
+    CHECK(model.volumeStatistics().day(NOW.date()).written == 420);
+}
+
+TEST_CASE("Writing goals: the current volume of a series chooses the goals and the words",
+          "[gui][statistics][goals][series]")
+{
+    test::OpenNovel novel(QStringLiteral("Sand"));
+    novel.pm.setChapterContent(novel.chapterId,
+                               QStringLiteral("<kml><p>One two three four</p></kml>"));
+    REQUIRE(novel.pm.saveChapterContent(novel.chapterId));
+    const QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const gui::WritingStatsCoordinator coordinator(novel.pm, test::commands(), nullptr, nullptr,
+                                                   {}, nullptr,
+                                                   dir.filePath(QStringLiteral("journal.db")));
+    WritingStatsModel& model = *coordinator.model();
+    REQUIRE(model.hasBook());
+    CHECK(model.seriesWords() == -1);
+    const int sandWords = model.bookWords();
+    CHECK(sandWords >= 4);
+    core::BookGoals sand;
+    sand.targetWords = 90000;
+    REQUIRE(model.setGoals(sand));
+
+    // A second volume: the first one stays current, with its goals; the series counts both
+    core::NewBook request;
+    request.title = QStringLiteral("Dunes");
+    const QString dunes = novel.pm.addBook(request);
+    REQUIRE_FALSE(dunes.isEmpty());
+    CHECK(model.goals().targetWords == 90000);
+    CHECK(model.bookWords() == sandWords);
+
+    // The second volume current: its own goals, kept in the book
+    REQUIRE(novel.pm.setCurrentBook(dunes));
+    CHECK(model.goals().targetWords == 0);
+    core::BookGoals second;
+    second.targetWords = 40000;
+    REQUIRE(model.setGoals(second));
+    const core::ProjectBook* volume = novel.pm.book();
+    REQUIRE(volume != nullptr);
+    core::ProjectDatabase* database = novel.pm.getDatabase();
+    REQUIRE(database != nullptr);
+    CHECK(core::BookGoals::fromJson(
+              database->getSetting(core::BookGoals::settingKeyOf(*volume)).toString())
+              .targetWords == 40000);
+    CHECK(model.seriesWords() == sandWords + model.bookWords());
+
+    // The first volume again: its goals
+    REQUIRE(novel.pm.setCurrentBook(novel.pm.project()->books.constFirst().id));
+    CHECK(model.goals().targetWords == 90000);
+    CHECK(model.bookWords() == sandWords);
 }

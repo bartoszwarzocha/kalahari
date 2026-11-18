@@ -15,6 +15,8 @@
 
 #include <QDateTime>
 #include <QObject>
+#include <QSet>
+#include <QString>
 
 #include <functional>
 #include <utility>
@@ -78,7 +80,7 @@ public:
     [[nodiscard]] editor::StatisticsCollector* collector() const;
 
     /// @brief The open book: its database and its id (nullptr: no book); its record is read
-    /// and its goals with it
+    /// and its goals with it, as of one book (setVolume() then names a volume of a series)
     /// @param readOnly The book is open read-only (ProjectManager::isReadOnly()): its database
     /// is a copy that goes when it closes, so its goals and badges do not change
     void setBook(core::ProjectDatabase* database, const QString& bookId, bool readOnly = false);
@@ -111,6 +113,22 @@ public:
     /// @brief Keep new goals of the open book in its project.db
     /// @return false without a book or when they cannot be written
     bool setGoals(const core::BookGoals& goals);
+
+    /// @brief The volume of a series whose goals and words the book has: its goals in the
+    ///        setting @p goalsKey (core::BookGoals::settingKeyOf()), its texts @p elementIds;
+    ///        an empty key: one book, its goals in core::BookGoals::SETTING_KEY and all its
+    ///        texts. The goals are read again when they are of another volume.
+    void setVolume(const QString& goalsKey, const QSet<QString>& elementIds);
+
+    /// @brief The record of the texts of the volume (setVolume()), with what is not saved yet;
+    ///        bookStatistics() of one book
+    [[nodiscard]] core::WritingStatistics volumeStatistics() const;
+
+    /// @brief How the words of the whole series are counted now; -1: not a series
+    void setSeriesWordsSource(std::function<int()> source);
+
+    /// @brief The words of the whole series now; -1 without one
+    [[nodiscard]] int seriesWords() const;
 
     /// @brief The writer's rules (Settings > Statistics and Goals)
     [[nodiscard]] const core::WritingRules& rules() const { return m_rules; }
@@ -176,6 +194,9 @@ private:
     /// @brief Read the record of the open book and its goals
     void readBook();
 
+    /// @brief The setting of the goals of the open book or of the volume
+    [[nodiscard]] QString goalsKey() const;
+
     core::WritingRules m_rules;
     core::WritingJournal m_journal;
     core::WritingStatistics m_journalRecord;  ///< Saved in the journal
@@ -188,6 +209,9 @@ private:
     // of freed memory
     editor::StatisticsCollector* m_collector{nullptr};
     std::function<int()> m_bookWords;
+    std::function<int()> m_seriesWords;
+    QString m_goalsKey;          ///< The setting of the goals of the volume; empty: one book
+    QSet<QString> m_volumeTexts;  ///< The texts of the volume (m_goalsKey not empty)
     std::function<QDateTime()> m_clock;
     QTimer* m_changeTimer{nullptr};  ///< schedule()
     QTimer* m_minuteTimer{nullptr};  ///< The time goes on

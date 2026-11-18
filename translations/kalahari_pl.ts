@@ -26827,6 +26827,11 @@ After the length of the book. In Polish: słów</extracomment>
         <extracomment>In Polish: Kliknij odznakę, aby zobaczyć wszystkie odznaki i wyzwania.</extracomment>
         <translation>Kliknij odznakę, aby zobaczyć wszystkie odznaki i wyzwania.</translation>
     </message>
+    <message>
+        <source>Words in the whole series</source>
+        <extracomment>A detail of the view Book of the statistics, in a series of books. In Polish: Słowa w całej serii</extracomment>
+        <translation>Słowa w całej serii</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::ChallengeDialog</name>

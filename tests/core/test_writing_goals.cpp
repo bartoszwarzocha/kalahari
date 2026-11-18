@@ -7,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <kalahari/core/book_project.h>
 #include <kalahari/core/project_database.h>
 #include <kalahari/core/writing_goals.h>
 #include <kalahari/core/writing_journal.h>
@@ -213,5 +214,36 @@ TEST_CASE("Writing record: the record of a book in its project.db", "[core][stat
     goals.targetWords = 90000;
     db.setSetting(BookGoals::SETTING_KEY, goals.toJson());
     REQUIRE(BookGoals::fromJson(db.getSetting(BookGoals::SETTING_KEY).toString()) == goals);
+    db.close();
+}
+
+TEST_CASE("Writing goals: each volume of a series keeps its goals in a setting of its own",
+          "[core][statistics][series]")
+{
+    // The book the project began with keeps the setting it had before the series
+    ProjectBook first;
+    first.id = QStringLiteral("sand");
+    first.folder = QString::fromLatin1(BookProject::BOOK_FOLDER);
+    CHECK(BookGoals::settingKeyOf(first) == QString::fromLatin1(BookGoals::SETTING_KEY));
+
+    // Another volume: a setting by its id, also when it goes first in the series
+    ProjectBook second;
+    second.id = QStringLiteral("dunes");
+    second.folder = QStringLiteral("book2");
+    CHECK(BookGoals::settingKeyOf(second) == QStringLiteral("writing.goals.dunes"));
+
+    const QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    ProjectDatabase db;
+    REQUIRE(db.open(dir.path()));
+    BookGoals sand;
+    sand.targetWords = 90000;
+    BookGoals dunes;
+    dunes.targetWords = 40000;
+    db.setSetting(BookGoals::settingKeyOf(first), sand.toJson());
+    db.setSetting(BookGoals::settingKeyOf(second), dunes.toJson());
+    CHECK(BookGoals::fromJson(db.getSetting(BookGoals::SETTING_KEY).toString()) == sand);
+    CHECK(BookGoals::fromJson(db.getSetting(BookGoals::settingKeyOf(second)).toString()) ==
+          dunes);
     db.close();
 }

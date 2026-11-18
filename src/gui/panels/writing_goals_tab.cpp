@@ -597,7 +597,7 @@ void WritingGoalsTab::showCalculation()
         text = tr("The book has %1 and %2 are left.").arg(words(bookWords), words(left));
     }
     const double average =
-        m_model->bookStatistics().averagePerWritingDay(today.addDays(-27), today);
+        m_model->volumeStatistics().averagePerWritingDay(today.addDays(-27), today);
     const QDate forecast = core::forecastDate(rules, today, left, average);
     text += QLatin1Char(' ');
     if (forecast.isValid()) {

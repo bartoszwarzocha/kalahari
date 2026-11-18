@@ -20,6 +20,8 @@
 
 namespace kalahari::core {
 
+struct ProjectBook;
+
 /// @brief A deadline of a book: a part of it, or all of it, due by a day
 struct WritingDeadline {
     QString name;         ///< What is due, in the writer's words ("Chapters 1-10 for the editor")
@@ -34,6 +36,11 @@ struct WritingDeadline {
 struct BookGoals {
     /// @brief The setting of project.db that keeps them, as JSON
     static constexpr const char* SETTING_KEY = "writing.goals";
+
+    /// @brief The setting that keeps the goals of @p book of a series: SETTING_KEY for the
+    ///        book the project began with (in BookProject::BOOK_FOLDER), so that a book keeps
+    ///        its goals when it becomes a series; "writing.goals.<its id>" for another volume
+    [[nodiscard]] static QString settingKeyOf(const ProjectBook& book);
 
     int targetWords = 0;                ///< The length of the book in words; 0: none
     QDate deadline;                     ///< The day the book is due; invalid: none

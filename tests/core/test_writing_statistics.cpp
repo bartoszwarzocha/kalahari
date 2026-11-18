@@ -463,3 +463,30 @@ TEST_CASE("Writing totals", "[core][statistics]")
     totals += more;
     REQUIRE(totals.written == 1000);
 }
+
+TEST_CASE("Writing statistics: the record of only the texts of a volume of a series",
+          "[core][statistics][series]")
+{
+    WritingRules rules;
+    rules.counting = GoalCounting::Written;
+    WritingStatistics stats(rules);
+    stats.setActivity({entry(nov(2), QTime(10, 0), 1000, 0, 0, "chapter-1"),
+                       entry(nov(2), QTime(11, 0), 300, 50, 0, "chapter-2"),
+                       entry(nov(4), QTime(10, 0), 200, 0, 0, "chapter-2"),
+                       entry(nov(4), QTime(12, 0), 70, 0, 0, QString())});
+    REQUIRE(stats.day(nov(2)).written == 1300);
+    REQUIRE(stats.day(nov(4)).written == 270);
+
+    // Only the second chapter: its words, its growth, by the same rules
+    const WritingStatistics second = stats.ofTexts({QStringLiteral("chapter-2")});
+    CHECK(second.rules().counting == GoalCounting::Written);
+    CHECK(second.day(nov(2)).written == 300);
+    CHECK(second.day(nov(2)).deleted == 50);
+    CHECK(second.textGrowth(nov(2)) == 250);
+    CHECK(second.day(nov(4)).written == 200);
+    CHECK(second.period(nov(2), nov(8)).counted(second.rules().counting) == 500);
+
+    // What has no text is in no volume; no texts, no record
+    CHECK(stats.ofTexts({QString()}).record().isEmpty());
+    CHECK(stats.ofTexts({}).record().isEmpty());
+}
