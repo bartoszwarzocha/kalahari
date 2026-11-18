@@ -187,4 +187,24 @@ QString PublishingNames::pagesText(int characters) {
     return tr("about %1 standard pages").arg(number);
 }
 
+QString PublishingNames::targetSourceText(const core::PublishingData& data,
+                                          const core::PublishingTemplate* templ, int target,
+                                          bool inWords) {
+    if ((inWords ? data.targetWords : data.targetCharacters) > 0) {
+        //: The target length of a text for publishers is its own. In Polish: Docelowa długość
+        //: tego tekstu.
+        return tr("The target length of this text.");
+    }
+    const QString length = CoverNames::lengthText(target, inWords);
+    if (templ != nullptr && (inWords ? templ->targetWords : templ->targetCharacters) > 0) {
+        //: The target length of a text for publishers from its template: %1 the template, %2
+        //: the length. In Polish: Docelowa długość z szablonu „%1”: %2
+        return tr("The target length of the template \"%1\": %2")
+            .arg(templ->name.text(programLanguage()), length);
+    }
+    //: The target length of a text for publishers from the Settings: %1 the length. In
+    //: Polish: Docelowa długość z Ustawień: %1
+    return tr("The target length from the Settings: %1").arg(length);
+}
+
 }  // namespace kalahari::gui

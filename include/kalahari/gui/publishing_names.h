@@ -15,6 +15,8 @@
 namespace kalahari::core {
 class ProjectManager;
 struct KindRef;
+struct PublishingData;
+struct PublishingTemplate;
 }  // namespace kalahari::core
 
 namespace kalahari::gui {
@@ -72,6 +74,14 @@ public:
     /// @brief The standard pages of @p characters characters with spaces in a sentence:
     /// "about 0.6 of a standard page", "about 2.5 standard pages"
     static QString pagesText(int characters);
+
+    /// @brief Where the target length @p target of text @p data comes from, in the unit
+    /// @p inWords: "The target length of this text.", "The target length of the template
+    /// \"One page – five steps\": 1,800 characters", "The target length from the Settings: ..."
+    /// @param templ Its template; nullptr for none
+    static QString targetSourceText(const core::PublishingData& data,
+                                    const core::PublishingTemplate* templ, int target,
+                                    bool inWords);
 };
 
 }  // namespace kalahari::gui

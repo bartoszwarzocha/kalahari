@@ -419,22 +419,8 @@ void PitchPanel::updateLength() {
     m_manualNote->setVisible(pattern && m_data.manual);
     m_composeButton->setEnabled(!m_book.isReadOnly());
     // Where the target comes from
-    const int own = words ? m_data.targetWords : m_data.targetCharacters;
-    const QString length = CoverNames::lengthText(target, words);
-    if (own > 0) {
-        //: The target length of a text for publishers is its own. In Polish: Docelowa długość
-        //: tego tekstu.
-        m_targetSource->setText(tr("The target length of this text."));
-    } else if (templ && (words ? templ->targetWords : templ->targetCharacters) > 0) {
-        //: The target length of a text for publishers from its template: %1 the template, %2
-        //: the length. In Polish: Docelowa długość z szablonu „%1”: %2
-        m_targetSource->setText(tr("The target length of the template \"%1\": %2")
-                                    .arg(templ->name.text(programLanguage()), length));
-    } else {
-        //: The target length of a text for publishers from the Settings: %1 the length. In
-        //: Polish: Docelowa długość z Ustawień: %1
-        m_targetSource->setText(tr("The target length from the Settings: %1").arg(length));
-    }
+    m_targetSource->setText(PublishingNames::targetSourceText(
+        m_data, templ ? &*templ : nullptr, target, words));
 }
 
 std::optional<core::PublishingTemplate> PitchPanel::currentTemplate() const {

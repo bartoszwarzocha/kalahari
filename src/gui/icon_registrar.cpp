@@ -267,6 +267,7 @@ void registerAllIcons() {
     // The button on the graph of the statistics bar that puts now in the middle
     iconRegistry.registerIcon("stats.nowInMiddle", "resources/icons/twotone/align_horizontal_center.svg", "Now in the Middle");
     iconRegistry.registerIcon("tools.readability", "resources/icons/twotone/auto_stories.svg", "Readability Analysis");
+    iconRegistry.registerIcon("tools.publishing.templatePoints", "resources/icons/twotone/fact_check.svg", "Template Points");
     iconRegistry.registerIcon("tools.toolbarManager", "resources/icons/twotone/build.svg", "Toolbar Manager");
 
     // -------------------------------------------------------------------------
@@ -375,6 +376,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.imageFilter", "resources/icons/twotone/palette.svg", "Filter");
     iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("menu.plugins", "resources/icons/twotone/extension.svg", "Plugins");
+    iconRegistry.registerIcon("menu.publishing", "resources/icons/twotone/outbox.svg", "Texts for Publishers");
     iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");
     iconRegistry.registerIcon("menu.viewMode", "resources/icons/twotone/visibility.svg", "View Mode");
     iconRegistry.registerIcon("menu.zoom", "resources/icons/twotone/zoom_in.svg", "Zoom");

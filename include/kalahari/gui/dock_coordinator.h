@@ -462,6 +462,10 @@ private:
     /// @brief Setup VIEW menu panel actions
     void setupViewMenuActions();
 
+    /// @brief Tools > Texts for Publishers > Template Points: the Properties panel open with
+    /// the keys in the points of the template of the text in front
+    void connectTemplatePoints();
+
     /// @brief Connect panel toggle command to dock widget
     /// @param cmdId Command ID (e.g., "view.navigator")
     /// @param dock Dock widget to control
