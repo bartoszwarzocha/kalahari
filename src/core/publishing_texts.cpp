@@ -685,6 +685,27 @@ bool PublishingSet::includes(const QString& part) const {
     return !off.contains(part);
 }
 
+PublishingSet PublishingSet::withPart(const QString& part, bool on) const {
+    PublishingSet set = *this;
+    set.off.removeAll(part);
+    if (!on && PublishingTexts::setParts().contains(part)) {
+        set.off << part;
+    }
+    return set;
+}
+
+PublishingSet PublishingSet::withPartMoved(const QString& part, int step) const {
+    PublishingSet set = *this;
+    set.order = parts();
+    const qsizetype from = set.order.indexOf(part);
+    const qsizetype to = from + step;
+    if (from < 0 || to < 0 || to >= set.order.size()) {
+        return *this;
+    }
+    set.order.move(from, to);
+    return set;
+}
+
 PublishingSet PublishingSet::defaults() {
     const auto chosen = SettingsManager::getInstance().get<nlohmann::json>(
         PublishingTexts::SET_SETTING, nlohmann::json::array());

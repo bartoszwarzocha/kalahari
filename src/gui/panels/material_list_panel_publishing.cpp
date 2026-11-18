@@ -63,6 +63,10 @@ void MaterialListPanel::createPublishingCommands() {
 void MaterialListPanel::updatePublishingCommands() {
     const bool publishing = MaterialList::isPublishing(m_list);
     m_fromCoverButton->setVisible(publishing);
+    //: Shows the set for a publisher, the second view of the list of the texts for
+    //: publishers. In Polish: Zestaw dla wydawnictwa
+    m_planButton->setToolTip(publishing ? MaterialList::tr("Set for the Publisher")
+                                        : MaterialList::tr("Cover Plan"));
     if (!publishing) {
         return;
     }

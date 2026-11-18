@@ -195,6 +195,13 @@ struct PublishingSet {
     /// @brief Whether part @p part is in the set (not off)
     [[nodiscard]] bool includes(const QString& part) const;
 
+    /// @brief The set with part @p part in it (@p on) or left out
+    [[nodiscard]] PublishingSet withPart(const QString& part, bool on) const;
+
+    /// @brief The set with part @p part moved by @p step places in its order (-1: up, 1:
+    /// down); the same set when the part is at that end or unknown
+    [[nodiscard]] PublishingSet withPartMoved(const QString& part, int step) const;
+
     /// @brief The set of a new book: all parts, in the order of the settings
     /// (PublishingTexts::SET_SETTING), those not in the settings left out
     static PublishingSet defaults();

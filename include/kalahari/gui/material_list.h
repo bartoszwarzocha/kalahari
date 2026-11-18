@@ -228,10 +228,12 @@ public:
     /// @brief Show the tiles of @p list, or its table (LISTS_SETTING)
     static void setTilesShown(const QString& list, bool tiles);
 
-    /// @brief Whether the list of the cover shows the plan of the cover (LISTS_SETTING)
+    /// @brief Whether the list of the cover shows the plan of the cover, the list of the texts
+    /// for publishers its set (LISTS_SETTING)
     static bool planShown(const QString& list);
 
-    /// @brief Show the plan of the cover in @p list, or its table or tiles (LISTS_SETTING)
+    /// @brief Show the plan of the cover or the set for a publisher in @p list, or its table
+    /// or tiles (LISTS_SETTING)
     static void setPlanShown(const QString& list, bool plan);
 
     /// @brief Whether the table of the list of the cover, or of the texts for publishers, has

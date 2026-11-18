@@ -228,6 +228,7 @@ set(KALAHARI_SOURCES
     gui/name_labels.cpp    # The cases and kinds of the names of the book dictionary, in the program's language
     gui/cover_names.cpp    # The materials of the cover in the program's words
     gui/publishing_names.cpp # The texts for publishers in the program's words
+    gui/publishing_set.cpp   # The set for a publisher in the program's words
     gui/source_names.cpp   # The sources in the program's words
     gui/pdf_files.cpp      # PDF files: whether the program shows them, their first page and data
     gui/quick_insert_items.cpp  # What the list of quick insert offers: cards, fragments, characters
@@ -384,6 +385,7 @@ set(KALAHARI_SOURCES
     gui/widgets/plot_board_view_paint.cpp  # PlotBoardView - the cards painted
     gui/widgets/plot_card_editor.cpp  # PlotCardEditor - a card of the plot board edited (F2)
     gui/widgets/cover_plan.cpp  # CoverPlan - the plan of the cover with its materials in their places
+    gui/widgets/publishing_set_view.cpp  # PublishingSetView - the set for a publisher as a page
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
     gui/widgets/wrapping_button.cpp  # A button that wraps its text only where it does not fit
     gui/widgets/flow_layout.cpp  # A row of buttons that wraps on a narrow panel
@@ -444,6 +446,7 @@ set(KALAHARI_SOURCES
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
     gui/panels/material_list_panel_clippings.cpp  # MaterialListPanel - the commands of the clippings
     gui/panels/material_list_panel_publishing.cpp  # MaterialListPanel - the commands of the texts for publishers
+    gui/panels/material_list_panel_set.cpp  # MaterialListPanel - the set for a publisher
     gui/panels/clipping_origin_box.cpp  # ClippingOriginBox - where a clipping comes from, in the Properties
     gui/panels/book_dictionary_panel.cpp  # BookDictionaryPanel - the book dictionary on a tab
     gui/panels/plot_board_panel.cpp  # PlotBoardPanel - the tab of the plot board and the outline
@@ -650,6 +653,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_board_view.h  # PlotBoardView with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_card_editor.h  # PlotCardEditor with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/cover_plan.h  # CoverPlan with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/publishing_set_view.h  # PublishingSetView with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h

@@ -27,6 +27,7 @@
 #include "kalahari/gui/widgets/card_cell_delegate.h"
 #include "kalahari/gui/widgets/cover_plan.h"
 #include "kalahari/gui/widgets/flow_layout.h"
+#include "kalahari/gui/widgets/publishing_set_view.h"
 
 #include <QAbstractTableModel>
 #include <QAction>
@@ -1205,6 +1206,8 @@ void MaterialListPanel::createLayout() {
     m_plan = new CoverPlan(m_planArea);
     m_planArea->setWidget(m_plan);
     m_stack->addWidget(m_planArea);
+    // The set for a publisher
+    createSetPage();
     layout->addWidget(m_stack, 1);
 
     // How many are shown, and how they are sorted
@@ -1214,6 +1217,8 @@ void MaterialListPanel::createLayout() {
     footerLayout->setContentsMargins(8, 2, 8, 2);
     m_footer = new QLabel(footer);
     m_footer->setObjectName(QStringLiteral("materialListCount"));
+    // What the keys of the set do takes more than one line in a narrow window
+    m_footer->setWordWrap(true);
     m_sorting = new QLabel(footer);
     m_sorting->setObjectName(QStringLiteral("materialListSorting"));
     footerLayout->addWidget(m_footer);
@@ -1418,7 +1423,8 @@ void MaterialListPanel::refreshIcons() {
     m_tableButton->setIcon(iconOf("materials.table"));
     m_tilesButton->setIcon(iconOf("materials.tiles"));
     m_columnsButton->setIcon(iconOf("materials.columns"));
-    m_planButton->setIcon(iconOf("materials.coverPlan"));
+    m_planButton->setIcon(iconOf(MaterialList::isPublishing(m_list) ? "materials.publishingSet"
+                                                                    : "materials.coverPlan"));
     m_groupsButton->setIcon(iconOf("materials.groups"));
     m_fromCoverButton->setIcon(iconOf("material.cover"));
     m_settingsButton->setIcon(iconOf("dock.settings"));
@@ -1470,6 +1476,10 @@ void MaterialListPanel::focusList() {
         m_plan->focusCurrent();
         return;
     }
+    if (m_stack->currentWidget() == m_setPage) {
+        m_set->focusCurrent();
+        return;
+    }
     view()->setFocus(Qt::OtherFocusReason);
 }
 
@@ -1485,7 +1495,9 @@ QSortFilterProxyModel* MaterialListPanel::rows() const {
 void MaterialListPanel::showTiles(bool tiles) {
     tiles = tiles && MaterialList::hasTiles(m_list);
     const QString current = currentMaterial();
-    const bool focused = view()->hasFocus() || m_plan->isAncestorOf(QApplication::focusWidget());
+    const bool focused =
+        view()->hasFocus() || m_planArea->isAncestorOf(QApplication::focusWidget()) ||
+        m_setPage->isAncestorOf(QApplication::focusWidget());
     m_planButton->setChecked(false);
     m_stack->setCurrentWidget(tiles ? static_cast<QWidget*>(m_tiles)
                                     : static_cast<QWidget*>(m_table));
@@ -1506,6 +1518,7 @@ void MaterialListPanel::showTiles(bool tiles) {
         selectMaterial(current);
         m_loading = loading;
     }
+    applySetShown();
     if (focused) {
         focusList();
     }
@@ -1513,25 +1526,27 @@ void MaterialListPanel::showTiles(bool tiles) {
 }
 
 void MaterialListPanel::showPlan(bool plan) {
-    plan = plan && MaterialList::isCover(m_list);
-    if (MaterialList::isCover(m_list) && MaterialList::planShown(m_list) != plan) {
+    const bool hasPlan = MaterialList::isCover(m_list) || MaterialList::isPublishing(m_list);
+    plan = plan && hasPlan;
+    if (hasPlan && MaterialList::planShown(m_list) != plan) {
         MaterialList::setPlanShown(m_list, plan);
     }
     if (!plan) {
-        if (m_stack->currentWidget() == m_planArea) {
+        if (planShowing()) {
             showTiles(MaterialList::tilesShown(m_list));
         }
         return;
     }
     const bool focused = view()->hasFocus();
-    m_stack->setCurrentWidget(m_planArea);
-    setFocusProxy(m_plan);
+    m_stack->setCurrentWidget(planPage());
+    setFocusProxy(planWidget());
     m_tableButton->setChecked(false);
     m_tilesButton->setChecked(false);
     m_planButton->setChecked(true);
     m_columnsButton->setEnabled(false);
     m_columnFiltersButton->setEnabled(false);
     m_groupsButton->setEnabled(false);
+    applySetShown();
     applyFilters();
     if (focused) {
         focusList();
@@ -1949,8 +1964,9 @@ void MaterialListPanel::load() {
         line->setVisible(tiles);
     }
     // The lists of the cover and of the texts for publishers: their groups, the filter Kind
-    // and Add with the kinds; the plan of the cover
-    m_planButton->setVisible(cover);
+    // and Add with the kinds; the plan of the cover, the set for a publisher
+    const bool plan = cover || MaterialList::isPublishing(m_list);
+    m_planButton->setVisible(plan);
     m_groupsButton->setVisible(groups);
     m_partLabel->setVisible(groups);
     m_partBox->setVisible(groups);
@@ -1963,7 +1979,7 @@ void MaterialListPanel::load() {
     if (groups) {
         showGroups(m_groupsButton->isChecked());
     }
-    if (cover && MaterialList::planShown(m_list)) {
+    if (plan && MaterialList::planShown(m_list)) {
         showPlan(true);
     }
     updateHidden();
@@ -2248,6 +2264,9 @@ void MaterialListPanel::updateFooter() {
     m_footer->setText(MaterialList::tr("Shown: %1 of %2")
                           .arg(QLocale().toString(shownMaterials()),
                                QLocale().toString(m_model->materialCount())));
+    if (updateSetFooter()) {
+        return;
+    }
     if (m_stack->currentWidget() == m_planArea) {
         m_sorting->setText(MaterialList::tr("Cover Plan"));
         return;
@@ -2391,6 +2410,10 @@ int MaterialListPanel::shownMaterials() const {
 }
 
 void MaterialListPanel::updatePlan() {
+    if (m_stack->currentWidget() == m_setPage) {
+        updateSet();
+        return;
+    }
     if (m_stack->currentWidget() != m_planArea) {
         return;
     }
@@ -2422,9 +2445,7 @@ void MaterialListPanel::updateHidden() {
     const bool hidden = MaterialList::isHidden(m_list);
     m_pages->setCurrentWidget(hidden ? m_hiddenPage : m_pages->widget(0));
     setFocusProxy(hidden ? static_cast<QWidget*>(m_showKindButton)
-                         : (m_stack->currentWidget() == m_planArea
-                                ? static_cast<QWidget*>(m_plan)
-                                : static_cast<QWidget*>(view())));
+                         : (planShowing() ? planWidget() : static_cast<QWidget*>(view())));
     if (!hidden) {
         return;
     }

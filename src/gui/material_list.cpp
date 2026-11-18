@@ -890,7 +890,7 @@ void MaterialList::setTilesShown(const QString& list, bool tiles) {
 }
 
 bool MaterialList::planShown(const QString& list) {
-    if (!isCover(list)) {
+    if (!isCover(list) && !isPublishing(list)) {
         return false;
     }
     const json kept = listSettings(list);

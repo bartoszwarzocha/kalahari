@@ -6,13 +6,12 @@
 ///        Cover, the filter Kind, Add and the set in the menu of a text
 
 #include "kalahari_tests/gui/document_window.h"
+#include "kalahari_tests/gui/publishing_test_utils.h"
 #include "kalahari_tests/test_support/window_parts.h"
 
-#include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/publishing_texts.h"
-#include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/material_list_coordinator.h"
@@ -26,12 +25,7 @@
 #include <QSortFilterProxyModel>
 #include <QToolButton>
 
-#include <nlohmann/json_fwd.hpp>
-
-#include <array>
-#include <cstdio>
 #include <string>
-#include <vector>
 
 namespace core = kalahari::core;
 namespace gui = kalahari::gui;
@@ -45,65 +39,6 @@ namespace {
 
 /// The list of the texts for publishers: "kalahari.base:publishing"
 constexpr QLatin1String LIST("kalahari.base:publishing");
-
-/// A text for publishers of the open book: @p part with @p title and @p text
-QString addText(const char* part, const QString& title, const QString& text,
-                const QString& templateReference = QString()) {
-    auto& pm = test::book();
-    const QString id =
-        pm.addPublishingText(QString::fromLatin1(part), templateReference, title);
-    REQUIRE_FALSE(id.isEmpty());
-    pm.setChapterContent(id, QStringLiteral("<kml><p>%1</p></kml>").arg(text));
-    REQUIRE(pm.saveChapterContent(id));
-    return id;
-}
-
-/// A material of the cover of the open book: @p part with @p text
-QString addCover(const QString& title, const char* part, const QString& text) {
-    auto& pm = test::book();
-    core::NewMaterial material;
-    material.title = title;
-    material.cover.part = QString::fromLatin1(part);
-    const core::KindRef kind =
-        pm.bookTypes().findKind(QStringLiteral("kalahari.base"), QStringLiteral("cover"));
-    const QString id = pm.addMaterial(material, kind);
-    REQUIRE_FALSE(id.isEmpty());
-    REQUIRE(pm.setDescription(id, text));
-    return id;
-}
-
-/// The settings of the lists as they were before a test, back after it
-class KeptSettings {
-public:
-    KeptSettings() {
-        for (const char* key : KEYS) {
-            m_values.push_back(settings().get<nlohmann::json>(key, nlohmann::json()));
-        }
-        settings().set<nlohmann::json>(MaterialList::HIDDEN_SETTING, nlohmann::json::array());
-        settings().set<nlohmann::json>(MaterialList::LISTS_SETTING, nlohmann::json::object());
-        settings().set<std::string>(CoverMaterial::UNIT_SETTING, "characters");
-    }
-    ~KeptSettings() {
-        try {
-            for (std::size_t i = 0; i < KEYS.size(); ++i) {
-                settings().set<nlohmann::json>(KEYS.at(i), m_values.at(i));
-            }
-        } catch (...) {
-            (void)std::fputs("KeptSettings: the settings of the test stay\n", stderr);
-        }
-    }
-    KeptSettings(const KeptSettings&) = delete;
-    KeptSettings& operator=(const KeptSettings&) = delete;
-    KeptSettings(KeptSettings&&) = delete;
-    KeptSettings& operator=(KeptSettings&&) = delete;
-
-private:
-    static constexpr std::array<const char*, 4> KEYS{
-        MaterialList::HIDDEN_SETTING, CoverMaterial::UNIT_SETTING, MaterialList::LISTS_SETTING,
-        PublishingTexts::TARGETS_SETTING};
-    static core::SettingsManager& settings() { return core::SettingsManager::getInstance(); }
-    std::vector<nlohmann::json> m_values;
-};
 
 /// The names of the groups of the rows of @p panel, in their order
 QStringList headingsOf(const MaterialListPanel& panel) {
@@ -185,20 +120,20 @@ QStringList itemsOf(const QComboBox& box) {
 TEST_CASE("Texts for publishers: the list in groups by kind, with the texts of the Cover",
           "[gui][publishing][materials]") {
     gui::registerAllIcons();
-    const KeptSettings kept;
+    const test::PublishingSettings kept;
     test::OpenNovel novel(QStringLiteral("Sand"));
     auto& pm = novel.pm;
-    const QString pitch = addText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 1"),
+    const QString pitch = test::addPublishingText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 1"),
                                   QStringLiteral("When the well runs dry, Leila must find water."),
                                   QStringLiteral("kalahari.novel:when_must"));
-    const QString other = addText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 2"),
+    const QString other = test::addPublishingText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 2"),
                                   QStringLiteral("A map of sand."));
     const QString synopsis =
-        addText(PublishingTexts::SYNOPSIS, QStringLiteral("Synopsis – version 1"),
+        test::addPublishingText(PublishingTexts::SYNOPSIS, QStringLiteral("Synopsis – version 1"),
                 QStringLiteral("Leila crosses the desert and finds the last well."));
     const QString blurb =
-        addCover(QStringLiteral("Description 1"), CoverMaterial::BLURB, QStringLiteral("Road."));
-    const QString tagline = addCover(QStringLiteral("Tagline 1"), CoverMaterial::TAGLINE,
+        test::addCoverText(QStringLiteral("Description 1"), CoverMaterial::BLURB, QStringLiteral("Road."));
+    const QString tagline = test::addCoverText(QStringLiteral("Tagline 1"), CoverMaterial::TAGLINE,
                                      QStringLiteral("Sand remembers."));
     REQUIRE(pm.setPublishingState(other, QString::fromLatin1(PublishingTexts::REJECTED)));
     CHECK(MaterialList::isPublishing(LIST));
@@ -217,7 +152,8 @@ TEST_CASE("Texts for publishers: the list in groups by kind, with the texts of t
     // In groups at first: the sentences, the synopses, then the texts of the Cover
     CHECK(panel->groupsButton()->isVisibleTo(panel));
     CHECK(panel->groupsButton()->isChecked());
-    CHECK_FALSE(panel->planButton()->isVisibleTo(panel));
+    // The set for a publisher is its second view
+    CHECK(panel->planButton()->isVisibleTo(panel));
     CHECK(headingsOf(*panel) ==
           QStringList{"Sentences about the book · 2", "Synopses · 1",
                       "Cover descriptions · from the Cover · 1", "Taglines · from the Cover · 1"});
@@ -287,17 +223,17 @@ TEST_CASE("Texts for publishers: the list in groups by kind, with the texts of t
 TEST_CASE("Texts for publishers: the menu of a text, the set and the Cover",
           "[gui][publishing][materials]") {
     gui::registerAllIcons();
-    const KeptSettings kept;
+    const test::PublishingSettings kept;
     test::OpenNovel novel(QStringLiteral("Sand"));
     auto& pm = novel.pm;
-    const QString first = addText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 1"),
+    const QString first = test::addPublishingText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 1"),
                                   QStringLiteral("A well."));
-    const QString second = addText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 2"),
+    const QString second = test::addPublishingText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 2"),
                                    QStringLiteral("A map."));
     const QString chosen =
-        addCover(QStringLiteral("Description 1"), CoverMaterial::BLURB, QStringLiteral("Road."));
+        test::addCoverText(QStringLiteral("Description 1"), CoverMaterial::BLURB, QStringLiteral("Road."));
     const QString draft =
-        addCover(QStringLiteral("Description 2"), CoverMaterial::BLURB, QStringLiteral("Sand."));
+        test::addCoverText(QStringLiteral("Description 2"), CoverMaterial::BLURB, QStringLiteral("Sand."));
     REQUIRE(pm.setCoverState(chosen, QString::fromLatin1(CoverMaterial::CHOSEN)));
 
     test::Window window;

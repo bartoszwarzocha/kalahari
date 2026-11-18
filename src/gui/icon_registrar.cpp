@@ -586,6 +586,8 @@ void registerAllIcons() {
                               "Group by Kind");
     iconRegistry.registerIcon("materials.coverPlan", "resources/icons/twotone/import_contacts.svg",
                               "Cover Plan");
+    iconRegistry.registerIcon("materials.publishingSet", "resources/icons/twotone/outbox.svg",
+                              "Set for the Publisher");
     iconRegistry.registerIcon("materials.showKind", "resources/icons/twotone/visibility.svg",
                               "Show the Kind");
 

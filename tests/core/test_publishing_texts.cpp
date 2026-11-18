@@ -262,6 +262,26 @@ TEST_CASE("Texts for publishers: the parts of a set", "[core][publishing]") {
     CHECK(set.includes(QStringLiteral("pitch")));
     CHECK_FALSE(set.includes(QStringLiteral("blurb")));
 
+    // A part left out and one included again; a part the program does not know stays out of
+    // what is left out
+    const PublishingSet without = set.withPart(QStringLiteral("pitch"), false);
+    CHECK(without.off == QStringList{QStringLiteral("blurb"), QStringLiteral("pitch")});
+    CHECK(without.withPart(QStringLiteral("blurb"), true).off ==
+          QStringList{QStringLiteral("pitch")});
+    CHECK(set.withPart(QStringLiteral("letter"), false).off == set.off);
+    // A part moved up and down; at an end, or unknown, the set stays as it is
+    const PublishingSet moved = set.withPartMoved(QStringLiteral("tagline"), -1);
+    CHECK(moved.order == QStringList{QStringLiteral("synopsis"), QStringLiteral("tagline"),
+                                     QStringLiteral("pitch"), QStringLiteral("blurb"),
+                                     QStringLiteral("aboutAuthor")});
+    CHECK(moved.withPartMoved(QStringLiteral("tagline"), 1).order ==
+          QStringList{QStringLiteral("synopsis"), QStringLiteral("pitch"),
+                      QStringLiteral("tagline"), QStringLiteral("blurb"),
+                      QStringLiteral("aboutAuthor")});
+    CHECK(set.withPartMoved(QStringLiteral("synopsis"), -1) == set);
+    CHECK(set.withPartMoved(QStringLiteral("aboutAuthor"), 1) == set);
+    CHECK(set.withPartMoved(QStringLiteral("letter"), 1) == set);
+
     // A new book: all parts, in the order of the Settings
     const PublishingSet fresh = PublishingSet::defaults();
     CHECK(fresh.order == PublishingTexts::setParts());
