@@ -794,6 +794,9 @@ MainWindow::MainWindow(QWidget* parent)
         [this]() { return getCurrentEditor(); },
         m_captionCoordinator, m_footnoteCoordinator, this, this);
     m_bookExportCoordinator->connectCommands();
+    // Export Set... of the set for a publisher: the window of the export with the set
+    connect(m_materialListCoordinator, &MaterialListCoordinator::exportSetRequested,
+            m_bookExportCoordinator, &BookExportCoordinator::exportSet);
 
     // The commands of the plugins in the menus (Tools > Plugins by default) and their panels
     // in docks on the right, closed until opened; they follow the plugins turned on and off

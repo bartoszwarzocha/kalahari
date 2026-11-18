@@ -14,8 +14,10 @@
 #include "kalahari/core/extension_points.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/book_export.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/gui/book_export_coordinator.h"
+#include "kalahari/gui/dialogs/archive_dialogs.h"
 #include "kalahari/gui/dialogs/export_book_dialog.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/utils/file_location.h"
@@ -366,6 +368,61 @@ TEST_CASE("Export Book: without a book only the text in front", "[gui][dialogs][
     CHECK(dialog.nameField()->text() == QStringLiteral("Notes.md"));
 }
 
+TEST_CASE("Export Book: the set for a publisher, its fourth source", "[gui][dialogs][export]") {
+    const SettingsKept kept;
+    core::SettingsManager::getInstance().set<std::string>("export.content", "book");
+    core::SettingsManager::getInstance().set<bool>("export.newPage", true);
+    const QTemporaryDir dir;
+    ExportBookDialog::Book book = sampleBook();
+    {
+        // A set without a text is not there
+        const ExportBookDialog none(book, editor::ExportFormat::Docx, dir.path(), {});
+        CHECK_FALSE(onItsTab(none.setButton()));
+    }
+    book.setTitle = QStringLiteral("Wind over the Oasis – set for the publisher");
+    book.setParts = 3;
+    QStringList written;
+    ExportBookDialog::Choice used;
+    ExportBookDialog dialog(book, editor::ExportFormat::Docx, dir.path(),
+                            [&](const QString& path, const ExportBookDialog::Choice& choice,
+                                const gui::dialogs::ArchiveDialog::Progress&,
+                                editor::ExportResult* result, editor::ExportProblem*) {
+                                written << QFileInfo(path).fileName();
+                                used = choice;
+                                result->file = path;
+                                return true;
+                            });
+    CHECK(onItsTab(dialog.setButton()));
+    CHECK(dialog.setButton()->text() == QStringLiteral("Set for the &publisher (3 parts)"));
+    CHECK(dialog.bookButton()->isChecked());
+
+    // The set: one text with its own name; its parts follow one another on the pages
+    dialog.setContent(ExportBookDialog::Content::Set);
+    CHECK(dialog.choice().content == ExportBookDialog::Content::Set);
+    CHECK(dialog.nameField()->text() ==
+          QStringLiteral("Wind over the Oasis – set for the publisher.docx"));
+    CHECK(dialog.headingDescription() ==
+          QStringLiteral("Saves the text \"Wind over the Oasis – set for the publisher\" as a "
+                         "Word document."));
+    CHECK_FALSE(dialog.textList()->isEnabled());
+    CHECK_FALSE(dialog.newPageBox()->isEnabled());
+    CHECK_FALSE(dialog.choice().newPage);
+    dialog.setFormat(editor::ExportFormat::Markdown);
+    CHECK(dialog.nameField()->text() ==
+          QStringLiteral("Wind over the Oasis – set for the publisher.md"));
+
+    // The next window opens with the book again, each text from a new page
+    dialog.accept();
+    CHECK(written == QStringList{QStringLiteral("Wind over the Oasis – set for the publisher.md")});
+    CHECK(used.content == ExportBookDialog::Content::Set);
+    const auto& settings = core::SettingsManager::getInstance();
+    CHECK(settings.get<std::string>("export.content") == "book");
+    CHECK(settings.get<bool>("export.newPage"));
+    const ExportBookDialog next(book, editor::ExportFormat::Docx, dir.path(), {});
+    CHECK(next.bookButton()->isChecked());
+    CHECK(next.newPageBox()->isEnabled());
+}
+
 TEST_CASE("Export Book: the formats of the plugins in the list, with their own tabs",
           "[gui][dialogs][export]") {
     SettingsKept kept;
@@ -458,6 +515,9 @@ TEST_CASE("Export Book: the tabs of each format, the window whole on a small scr
                                                QStringLiteral("draft"), QString(), 2, true});
     }
     book.frontTitle = QStringLiteral("The Well, where the caravan waited three days for the wind");
+    // With the set for a publisher beside the whole book and the chosen texts
+    book.setTitle = QStringLiteral("Wind over the Oasis – set for the publisher");
+    book.setParts = 4;
 
     // The tabs shown, the keys of the window, and its size with each tab in front
     const auto check = [&](editor::ExportFormat format) {

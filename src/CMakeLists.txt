@@ -437,6 +437,7 @@ set(KALAHARI_SOURCES
     gui/panels/paragraph_cards_box.cpp  # ParagraphCardsBox - the cards of the paragraph at the cursor
     gui/panels/card_panel.cpp     # CardPanel - the full card on a tab beside the chapters
     gui/panels/pitch_panel.cpp  # PitchPanel - the card of a sentence about the book
+    gui/panels/publishing_set_page.cpp  # PublishingSetPage - the set for a publisher in Properties
     gui/panels/publishing_text_box.cpp  # PublishingTextBox - a text for publishers in Properties
     gui/panels/card_parts.cpp  # The small parts of the cards of the materials
     gui/panels/source_boxes.cpp  # The groups of the card of a source and of a quote
@@ -557,6 +558,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_file_dialog.h  # NewFileDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pitch_panel.h  # PitchPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_set_page.h  # PublishingSetPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_text_box.h  # PublishingTextBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_meter.h  # LengthMeter with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT

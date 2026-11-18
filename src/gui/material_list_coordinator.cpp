@@ -20,6 +20,8 @@
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/publishing_set_page.h"
 #include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/source_names.h"
 #include "kalahari/gui/utils/file_location.h"
@@ -129,6 +131,7 @@ MaterialListCoordinator::MaterialListCoordinator(core::ProjectManager& book,
             &MaterialListCoordinator::refresh);
     connect(m_centralTabs, &QTabWidget::currentChanged, this,
             &MaterialListCoordinator::onCurrentTabChanged);
+    connectSetPage();
 
     // The setting may change on another thread: the Navigator is built on this one
     m_settingsListener = core::SettingsManager::getInstance().subscribe(
@@ -223,6 +226,35 @@ void MaterialListCoordinator::refreshNow() {
             panel->setProperty(STALE_PROPERTY, true);
         }
     }
+    // The set for a publisher in the Properties panel follows the same changes
+    if (PropertiesPanel* properties = m_navigator->propertiesPanel();
+        properties != nullptr &&
+        properties->currentPage() == PropertiesPanel::Page::PublishingSet) {
+        properties->publishingSetPage()->refresh();
+    }
+}
+
+void MaterialListCoordinator::connectSetPage() {
+    PropertiesPanel* properties = m_navigator->propertiesPanel();
+    if (properties == nullptr) {
+        return;
+    }
+    PublishingSetPage* page = properties->publishingSetPage();
+    // A part chosen in the contents is chosen on the page of the set too
+    connect(page, &PublishingSetPage::partChosen, this, [this](const QString& part) {
+        for (MaterialListPanel* panel : lists()) {
+            if (MaterialList::isPublishing(panel->list())) {
+                panel->showSetPart(part);
+            }
+        }
+    });
+    connect(page, &PublishingSetPage::requestOpen, this, &MaterialListCoordinator::open);
+    connect(page, &PublishingSetPage::requestExportSet, this,
+            &MaterialListCoordinator::exportSetRequested);
+    connect(page, &PublishingSetPage::requestSettings, this,
+            &MaterialListCoordinator::settingsRequested);
+    connect(page, &PublishingSetPage::message, this,
+            [this](const QString& text) { m_statusBar->showMessage(text, MESSAGE_TIMEOUT); });
 }
 
 void MaterialListCoordinator::onTreeSettingChanged() {
@@ -314,6 +346,18 @@ void MaterialListCoordinator::connectList(MaterialListPanel* panel) {
     connect(panel, &MaterialListPanel::requestPublishingState, this,
             &MaterialListCoordinator::setPublishingState);
     connect(panel, &MaterialListPanel::requestSetPick, this, &MaterialListCoordinator::pickForSet);
+    // The set shown, a part chosen in it: the Properties panel shows the set, brought to the
+    // front as a material chosen
+    connect(panel, &MaterialListPanel::requestSetProperties, this, [this](const QString& part) {
+        if (PropertiesPanel* properties = m_navigator->propertiesPanel()) {
+            properties->showPublishingSetProperties(part);
+        }
+        if (m_showProperties) {
+            m_showProperties(false);
+        }
+    });
+    connect(panel, &MaterialListPanel::requestExportSet, this,
+            &MaterialListCoordinator::exportSetRequested);
     connect(panel, &MaterialListPanel::requestShowInCover, this,
             &MaterialListCoordinator::showInCover);
     connect(panel, &MaterialListPanel::requestShowKind, this, &MaterialListCoordinator::showKind);

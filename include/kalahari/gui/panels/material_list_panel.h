@@ -146,6 +146,10 @@ public:
     /// @brief Export Set...: the window of the export with the set
     [[nodiscard]] QToolButton* exportSetButton() const { return m_exportSetButton; }
 
+    /// @brief Choose part @p part on the page of the set, scrolled to it (the part chosen in
+    /// the Properties panel)
+    void showSetPart(const QString& part);
+
     /// @brief Copy Entries of the list Sources; hidden in the other lists
     [[nodiscard]] QToolButton* entriesButton() const { return m_entriesButton; }
 

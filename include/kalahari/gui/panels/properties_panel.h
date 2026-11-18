@@ -52,6 +52,7 @@ class EditorPanel;
 class LinkedMaterialsBox;
 class ParagraphCardsBox;
 class PlotFieldsBox;
+class PublishingSetPage;
 class PublishingTextBox;
 class MaterialPage;
 class SectionNamesEdit;
@@ -82,7 +83,8 @@ public:
         Part = 4,       ///< Part aggregate statistics view
         Editor = 5,     ///< Editor statistics view (selection/document stats)
         Material = 6,   ///< The short card of a material of the Workshop
-        Card = 7        ///< The short card of a character, a location or an item
+        Card = 7,       ///< The short card of a character, a location or an item
+        PublishingSet = 8  ///< The set for a publisher (PublishingSetPage)
     };
 
     /// @brief Constructor
@@ -101,6 +103,9 @@ public:
 
     /// @brief The short card of a character, a location or an item
     [[nodiscard]] CardPage* cardPage() const { return m_cardPage; }
+
+    /// @brief The set for a publisher
+    [[nodiscard]] PublishingSetPage* publishingSetPage() const { return m_publishingSetPage; }
 
     /// @brief The card at the cursor of a text of the book, on the Editor page or the Chapter
     ///        page of the text in front
@@ -150,6 +155,9 @@ public slots:
     /// @brief Show the short card of card @p elementId of the Workshop: a character, a
     /// location or an item
     void showCardProperties(const QString& elementId);
+
+    /// @brief Show the set for a publisher of the book with part @p part chosen
+    void showPublishingSetProperties(const QString& part);
 
     /// @brief Give the keys to the first field of the page shown, scrolled to it (Alt+Enter in
     /// the Navigator): the title of the book, of an element or of a material; the materials of
@@ -558,6 +566,7 @@ private:
     // The card of a material
     MaterialPage* m_materialPage = nullptr;
     CardPage* m_cardPage = nullptr;  ///< The short card of a character, a location or an item
+    PublishingSetPage* m_publishingSetPage = nullptr;
     CursorCardBox* m_cursorCard = nullptr;  ///< The card at the cursor (placeTextGroups())
     ParagraphCardsBox* m_paragraphCards = nullptr;  ///< The paragraph's cards (placeTextGroups())
 

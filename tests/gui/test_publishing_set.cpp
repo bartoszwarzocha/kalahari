@@ -12,31 +12,49 @@
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/publishing_texts.h"
+#include "kalahari/editor/book_export.h"
+#include "kalahari/gui/book_export_coordinator.h"
+#include "kalahari/gui/dialogs/export_book_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/material_list_coordinator.h"
 #include "kalahari/gui/panels/material_list_panel.h"
+#include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/publishing_set_page.h"
+#include "kalahari/gui/widgets/length_meter.h"
 #include "kalahari/gui/widgets/publishing_set_view.h"
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <QApplication>
 #include <QClipboard>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QDir>
+#include <QFile>
+#include <QGroupBox>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QListWidget>
+#include <QProgressBar>
+#include <QPushButton>
+#include <QStatusBar>
 #include <QTableView>
+#include <QTemporaryDir>
 #include <QToolButton>
 
 namespace core = kalahari::core;
+namespace editor = kalahari::editor;
 namespace gui = kalahari::gui;
 namespace test = kalahari::test;
 using core::CoverMaterial;
 using core::PublishingTexts;
 using gui::MaterialList;
 using gui::MaterialListPanel;
+using gui::PropertiesPanel;
 using gui::PublishingSetCard;
+using gui::PublishingSetPage;
 
 namespace {
 
@@ -59,6 +77,43 @@ QStringList itemsOf(const QComboBox& box) {
     return items;
 }
 
+/// The texts of the set of the open book
+struct SetTexts {
+    QString first;     ///< The sentence chosen
+    QString second;    ///< Another sentence
+    QString synopsis;  ///< The synopsis chosen
+    QString blurb;     ///< The description of the cover chosen for it
+};
+
+/// Two sentences, the first chosen, a synopsis and a description of the cover, both chosen;
+/// no tagline and no note about the author
+SetTexts addSetTexts(core::ProjectManager& pm) {
+    SetTexts texts;
+    texts.first = test::addPublishingText(
+        PublishingTexts::PITCH, QStringLiteral("Sentence – version 1"),
+        QStringLiteral("When the well runs dry, Leila must find water."));
+    texts.second = test::addPublishingText(
+        PublishingTexts::PITCH, QStringLiteral("Sentence – version 2"), QStringLiteral("Sand."));
+    texts.synopsis = test::addPublishingText(
+        PublishingTexts::SYNOPSIS, QStringLiteral("Synopsis – version 1"),
+        QStringLiteral("Leila crosses the desert."));
+    texts.blurb = test::addCoverText(QStringLiteral("Description 1"), CoverMaterial::BLURB,
+                                     QStringLiteral("A road through the sand."));
+    REQUIRE(pm.setPublishingState(texts.first, QString::fromLatin1(PublishingTexts::CHOSEN)));
+    REQUIRE(pm.setPublishingState(texts.synopsis, QString::fromLatin1(PublishingTexts::CHOSEN)));
+    REQUIRE(pm.setCoverState(texts.blurb, QString::fromLatin1(CoverMaterial::CHOSEN)));
+    return texts;
+}
+
+/// The texts of the rows of @p list
+QStringList rowsOf(const QListWidget& list) {
+    QStringList rows;
+    for (int row = 0; row < list.count(); ++row) {
+        rows << list.item(row)->text();
+    }
+    return rows;
+}
+
 }  // namespace
 
 TEST_CASE("Set for the publisher: the second view of the list of the texts",
@@ -67,19 +122,7 @@ TEST_CASE("Set for the publisher: the second view of the list of the texts",
     const test::PublishingSettings kept;
     test::OpenNovel novel(QStringLiteral("Sand"));
     auto& pm = novel.pm;
-    const QString first = test::addPublishingText(
-        PublishingTexts::PITCH, QStringLiteral("Sentence – version 1"),
-        QStringLiteral("When the well runs dry, Leila must find water."));
-    const QString second = test::addPublishingText(
-        PublishingTexts::PITCH, QStringLiteral("Sentence – version 2"), QStringLiteral("Sand."));
-    const QString synopsis = test::addPublishingText(
-        PublishingTexts::SYNOPSIS, QStringLiteral("Synopsis – version 1"),
-        QStringLiteral("Leila crosses the desert."));
-    const QString blurb = test::addCoverText(QStringLiteral("Description 1"), CoverMaterial::BLURB,
-                                             QStringLiteral("A road through the sand."));
-    REQUIRE(pm.setPublishingState(first, QString::fromLatin1(PublishingTexts::CHOSEN)));
-    REQUIRE(pm.setPublishingState(synopsis, QString::fromLatin1(PublishingTexts::CHOSEN)));
-    REQUIRE(pm.setCoverState(blurb, QString::fromLatin1(CoverMaterial::CHOSEN)));
+    const auto [first, second, synopsis, blurb] = addSetTexts(pm);
 
     test::Window window;
     gui::MaterialListCoordinator lists(pm, window.tabs, &window.navigator, &window.statusBar,
@@ -179,4 +222,168 @@ TEST_CASE("Set for the publisher: the second view of the list of the texts",
     CHECK_FALSE(MaterialList::planShown(LIST));
     CHECK(panel->searchField()->isVisibleTo(panel));
     CHECK(panel->view() == static_cast<QAbstractItemView*>(panel->table()));
+}
+
+TEST_CASE("Set for the publisher in the Properties panel: its contents, the part chosen, Export",
+          "[gui][publishing][materials][properties]") {
+    gui::registerAllIcons();
+    const test::PublishingSettings kept;
+    test::OpenNovel novel(QStringLiteral("Sand"));
+    auto& pm = novel.pm;
+    const auto [first, second, synopsis, blurb] = addSetTexts(pm);
+
+    test::Window window;
+    int shown = 0;
+    gui::MaterialListCoordinator lists(pm, window.tabs, &window.navigator, &window.statusBar,
+                                       [&shown](bool) { ++shown; });
+    MaterialListPanel* panel = lists.openList(LIST, false);
+    REQUIRE(panel != nullptr);
+    // The set shown: the Properties panel shows it, brought to the front
+    panel->showPlan(true);
+    CHECK(window.properties->currentPage() == PropertiesPanel::Page::PublishingSet);
+    CHECK(shown == 1);
+    PublishingSetPage* page = window.properties->publishingSetPage();
+    REQUIRE(page != nullptr);
+    CHECK(page->part() == QStringLiteral("pitch"));
+    CHECK(page->summaryLabel()->text() == QStringLiteral("5 parts · 95 characters in all"));
+    QListWidget* contents = page->contentsList();
+    CHECK(rowsOf(*contents) ==
+          QStringList{QStringLiteral("Sentence about the book · 46 ch."),
+                      QStringLiteral("Tagline · no version"),
+                      QStringLiteral("Cover description · 24 ch."),
+                      QStringLiteral("Synopsis · 25 ch."),
+                      QStringLiteral("About the author · no version")});
+    CHECK(contents->item(0)->checkState() == Qt::Checked);
+    CHECK(contents->currentRow() == 0);
+    CHECK_FALSE(page->upButton()->isEnabled());
+    CHECK(page->downButton()->isEnabled());
+    // The part chosen: its version, where it comes from, its length against its target
+    CHECK(page->partGroup()->title() == QStringLiteral("Part Chosen: Sentence about the book"));
+    CHECK(page->versionLabel()->text() == QStringLiteral("Sentence – version 1"));
+    CHECK(page->sourceLabel()->text() == QStringLiteral("Texts for Publishers"));
+    CHECK(page->meter()->countsLabel()->text().startsWith(
+        QStringLiteral("46 characters with spaces")));
+    CHECK(page->meter()->bar()->isVisibleTo(page));
+
+    // Down: the next part, chosen on the page of the set too; without a version
+    window.properties->focusFirstField();
+    press(contents, Qt::Key_Down);
+    CHECK(page->part() == QStringLiteral("tagline"));
+    CHECK(panel->setView()->current() == QStringLiteral("tagline"));
+    CHECK(page->findChild<QLabel*>(QStringLiteral("publishingSetNoVersion"))->isVisibleTo(page));
+    CHECK_FALSE(page->openButton()->isVisibleTo(page));
+    // Space leaves it out; the page of the set and its heading follow
+    press(contents, Qt::Key_Space);
+    CHECK_FALSE(pm.publishingSet().includes(QStringLiteral("tagline")));
+    CHECK(contents->item(1)->checkState() == Qt::Unchecked);
+    CHECK(page->summaryLabel()->text() == QStringLiteral("4 parts · 95 characters in all"));
+    CHECK(panel->setHeading()->text().contains(QStringLiteral("4 of 5")));
+    // Alt+Down moves it, the keys stay with it
+    press(contents, Qt::Key_Down, Qt::AltModifier);
+    CHECK(pm.publishingSet().parts() ==
+          QStringList{QStringLiteral("pitch"), QStringLiteral("blurb"),
+                      QStringLiteral("tagline"), QStringLiteral("synopsis"),
+                      QStringLiteral("aboutAuthor")});
+    CHECK(contents->currentRow() == 2);
+    CHECK(page->part() == QStringLiteral("tagline"));
+    CHECK(panel->setView()->parts().at(2) == QStringLiteral("tagline"));
+    // Alt+Up and the button move it back
+    press(contents, Qt::Key_Up, Qt::AltModifier);
+    CHECK(pm.publishingSet().parts().at(1) == QStringLiteral("tagline"));
+    page->downButton()->click();
+    CHECK(pm.publishingSet().parts().at(2) == QStringLiteral("tagline"));
+    page->upButton()->click();
+    CHECK(pm.publishingSet().parts() == PublishingTexts::setParts());
+    // A click on its check includes it again
+    contents->item(1)->setCheckState(Qt::Checked);
+    CHECK(pm.publishingSet().includes(QStringLiteral("tagline")));
+
+    // Enter opens the version of the part; Open does the same
+    QStringList opened;
+    QObject::connect(page, &PublishingSetPage::requestOpen,
+                     [&opened](const QString& elementId) { opened << elementId; });
+    press(contents, Qt::Key_Down);
+    CHECK(page->part() == QStringLiteral("blurb"));
+    CHECK(page->sourceLabel()->text() == QStringLiteral("Cover"));
+    press(contents, Qt::Key_Return);
+    CHECK(opened == QStringList{blurb});
+    page->openButton()->click();
+    CHECK(opened.size() == 2);
+
+    // A part chosen on the page of the set shows here
+    press(panel->setView()->card(QStringLiteral("blurb")), Qt::Key_Down);
+    CHECK(page->part() == QStringLiteral("synopsis"));
+    CHECK(contents->currentRow() == 3);
+    CHECK(page->versionLabel()->text() == QStringLiteral("Synopsis – version 1"));
+
+    // Copy All, Export Set... and the gear
+    page->copyAllButton()->click();
+    CHECK(QApplication::clipboard()->text().startsWith(QStringLiteral("Sand\nAuthor\n\n")));
+    CHECK(window.statusBar.currentMessage() ==
+          QStringLiteral("Copied the set for the publisher"));
+    int exports = 0;
+    int settings = 0;
+    QObject::connect(&lists, &gui::MaterialListCoordinator::exportSetRequested,
+                     [&exports]() { ++exports; });
+    QObject::connect(&lists, &gui::MaterialListCoordinator::settingsRequested,
+                     [&settings]() { ++settings; });
+    page->exportButton()->click();
+    panel->exportSetButton()->click();
+    page->settingsButton()->click();
+    CHECK(exports == 2);
+    CHECK(settings == 1);
+}
+
+TEST_CASE("Set for the publisher: the fourth source of the export, with the headings of its parts",
+          "[gui][publishing][export]") {
+    using gui::dialogs::ExportBookDialog;
+    const test::PublishingSettings kept;
+    test::OpenNovel novel(QStringLiteral("Sand"));
+    auto& pm = novel.pm;
+    (void)addSetTexts(pm);
+    test::Window window;
+    const gui::BookExportCoordinator coordinator(
+        pm, test::commands(), window.tabs, []() -> gui::EditorPanel* { return nullptr; },
+        nullptr, nullptr, &window.window);
+
+    // The window of the export: the set as one text, with the parts that have a text
+    const ExportBookDialog::Book shown = coordinator.dialogBook();
+    CHECK(shown.setTitle == QStringLiteral("Sand – set for the publisher"));
+    CHECK(shown.setParts == 3);
+
+    // The title of the book with its author, then each part under its name
+    ExportBookDialog::Choice choice;
+    choice.content = ExportBookDialog::Content::Set;
+    choice.format = editor::ExportFormat::Markdown;
+    const editor::BookExport book = coordinator.bookExport(choice);
+    REQUIRE(book.items.size() == 4);
+    CHECK(book.items[0].title == QStringLiteral("Sand"));
+    CHECK(book.items[0].titleStyle == QStringLiteral("heading_1"));
+    CHECK(book.items[0].kml.contains(QStringLiteral("Author")));
+    CHECK(book.items[1].title == QStringLiteral("Sentence about the book"));
+    CHECK(book.items[1].titleStyle == QStringLiteral("heading_2"));
+    CHECK(book.items[1].kml.contains(
+        QStringLiteral("When the well runs dry, Leila must find water.")));
+    CHECK(book.items[2].title == QStringLiteral("Cover description"));
+    CHECK(book.items[3].title == QStringLiteral("Synopsis"));
+
+    // A Markdown file: the headings of the parts
+    const QTemporaryDir dir;
+    const QString path = QDir(dir.path()).filePath(QStringLiteral("set.md"));
+    editor::ExportResult result;
+    editor::ExportProblem problem;
+    REQUIRE(editor::exportMarkdown(book, path, QString(), {}, &result, &problem));
+    QFile file(path);
+    REQUIRE(file.open(QIODevice::ReadOnly));
+    const QString text = QString::fromUtf8(file.readAll());
+    INFO(text.toStdString());
+    CHECK(text.startsWith(QStringLiteral("# Sand\n\nAuthor\n\n## Sentence about the book\n\n"
+                                         "When the well runs dry, Leila must find water.\n")));
+    CHECK(text.contains(QStringLiteral("## Cover description\n\nA road through the sand.\n")));
+    CHECK(text.contains(QStringLiteral("## Synopsis\n\nLeila crosses the desert.\n")));
+
+    // A part left out of the set is not in the file
+    REQUIRE(pm.setPublishingSet(pm.publishingSet().withPart(QStringLiteral("synopsis"), false)));
+    CHECK(coordinator.bookExport(choice).items.size() == 3);
+    CHECK(coordinator.dialogBook().setParts == 2);
 }

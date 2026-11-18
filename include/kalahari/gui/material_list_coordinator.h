@@ -99,6 +99,10 @@ signals:
     /// @brief A list of cards asked for the settings of the cards (Settings > Cards)
     void cardSettingsRequested();
 
+    /// @brief The set for a publisher asked for the window of the export with the set
+    /// (Export Set...)
+    void exportSetRequested();
+
 private slots:
     /// @brief What the Materials of the Navigator show changed (NavigatorPanel::
     /// MATERIALS_TREE_SETTING): the Navigator is built again
@@ -110,6 +114,8 @@ private slots:
 
 private:
     void refreshNow();
+    /// @brief The set for a publisher in the Properties panel does what it asks
+    void connectSetPage();
     void connectList(MaterialListPanel* panel);
     void updateTab(MaterialListPanel* panel);
     /// @brief The list in front is filled again if it missed a change

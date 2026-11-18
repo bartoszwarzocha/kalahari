@@ -16,6 +16,7 @@
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/panels/paragraph_cards_box.h"
 #include "kalahari/gui/panels/plot_fields_box.h"
+#include "kalahari/gui/panels/publishing_set_page.h"
 #include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -191,6 +192,8 @@ void PropertiesPanel::setupUI() {
     m_stackedWidget->addWidget(createEditorPage());      // Page::Editor = 5
     m_stackedWidget->addWidget(createMaterialPage());    // Page::Material = 6
     m_stackedWidget->addWidget(createCardPage());        // Page::Card = 7
+    m_publishingSetPage = new PublishingSetPage(m_book);
+    m_stackedWidget->addWidget(m_publishingSetPage);     // Page::PublishingSet = 8
 
     mainLayout->addWidget(m_stackedWidget);
     setLayout(mainLayout);
@@ -977,6 +980,14 @@ void PropertiesPanel::showCardProperties(const QString& elementId) {
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Card));
 }
 
+void PropertiesPanel::showPublishingSetProperties(const QString& part) {
+    m_currentChapterId.clear();
+    m_currentSectionType.clear();
+    m_currentPartId.clear();
+    m_publishingSetPage->showSet(part);
+    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::PublishingSet));
+}
+
 void PropertiesPanel::focusFirstField() {
     switch (currentPage()) {
         case Page::Project:
@@ -990,6 +1001,9 @@ void PropertiesPanel::focusFirstField() {
             break;
         case Page::Card:
             focusTitle(m_cardPage->nameEdit());
+            break;
+        case Page::PublishingSet:
+            m_publishingSetPage->focusContents();
             break;
         // A section or a part has no field: its materials
         case Page::Section:
@@ -1180,9 +1194,6 @@ void PropertiesPanel::refresh() {
     Page currentPage = static_cast<Page>(m_stackedWidget->currentIndex());
 
     switch (currentPage) {
-        case Page::NoProject:
-            // Nothing to refresh
-            break;
         case Page::Project:
             populateProjectFields();
             break;
@@ -1223,6 +1234,11 @@ void PropertiesPanel::refresh() {
         case Page::Card:
             refreshCard();
             break;
+        case Page::PublishingSet:
+            m_publishingSetPage->refresh();
+            break;
+        default:
+            break;  // No project: nothing to refresh
     }
 }
 
@@ -1251,11 +1267,8 @@ void PropertiesPanel::refreshMaterial(const QString& elementId) {
         case Page::Part:
             m_partMaterials->refresh();
             break;
-        case Page::NoProject:
-        case Page::Project:
-        case Page::Editor:
-        case Page::Card:
-            break;
+        default:
+            break;  // The other pages show no materials
     }
 }
 
@@ -1283,10 +1296,7 @@ void PropertiesPanel::updateWordCounts() {
                 populatePartFields(m_currentPartId);
             }
             break;
-        case Page::NoProject:
-        case Page::Editor:
-        case Page::Material:
-        case Page::Card:
+        default:
             break;  // No counts of the book
     }
 }

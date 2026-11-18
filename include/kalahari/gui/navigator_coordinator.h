@@ -103,6 +103,9 @@ public:
     NavigatorCoordinator(NavigatorCoordinator&&) = delete;
     NavigatorCoordinator& operator=(NavigatorCoordinator&&) = delete;
 
+    /// @brief The Properties panel of its window
+    [[nodiscard]] PropertiesPanel* propertiesPanel() const { return m_propertiesPanel; }
+
     /// @brief Get the current element ID being edited
     [[nodiscard]] QString currentElementId() const { return m_currentElementId; }
 

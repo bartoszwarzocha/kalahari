@@ -40,6 +40,9 @@ struct PublishingSetItem {
     QList<PublishingSetVersion> versions;  ///< What can be its version, in their order
     QString text;       ///< Its text; empty: none yet
     QString length;     ///< Its length with its target: "165 / 200 ch."
+    int characters = 0;  ///< Its characters with spaces
+    int words = 0;       ///< Its words
+    int target = 0;      ///< Its target length in the unit of the cover; 0: none
 };
 
 /// @brief A part of the set on its page: its name, its version, its length, Copy, Open and

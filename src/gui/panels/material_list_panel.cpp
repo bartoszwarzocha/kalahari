@@ -2444,8 +2444,8 @@ void MaterialListPanel::updatePlan() {
 void MaterialListPanel::updateHidden() {
     const bool hidden = MaterialList::isHidden(m_list);
     m_pages->setCurrentWidget(hidden ? m_hiddenPage : m_pages->widget(0));
-    setFocusProxy(hidden ? static_cast<QWidget*>(m_showKindButton)
-                         : (planShowing() ? planWidget() : static_cast<QWidget*>(view())));
+    QWidget* shown = planShowing() ? planWidget() : static_cast<QWidget*>(view());
+    setFocusProxy(hidden ? static_cast<QWidget*>(m_showKindButton) : shown);
     if (!hidden) {
         return;
     }

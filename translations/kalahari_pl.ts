@@ -23726,6 +23726,31 @@ Where a quote comes from: a source and its page. In Polish: Źródło</extracomm
         <extracomment>Shows a description or a tagline in the list of the cover. In Polish: Pokaż w &amp;Okładce</extracomment>
         <translation>Pokaż w &amp;Okładce</translation>
     </message>
+    <message>
+        <source>Set for the Publisher</source>
+        <extracomment>Shows the set for a publisher, the second view of the list of the texts for publishers. In Polish: Zestaw dla wydawnictwa</extracomment>
+        <translation>Zestaw dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Copy All</source>
+        <extracomment>Copies the whole set for a publisher. In Polish: Kopiuj wszystko</extracomment>
+        <translation>Kopiuj wszystko</translation>
+    </message>
+    <message>
+        <source>Export Set...</source>
+        <extracomment>Opens the window of the export with the set for a publisher. In Polish: Eksportuj zestaw...</extracomment>
+        <translation>Eksportuj zestaw...</translation>
+    </message>
+    <message>
+        <source>The arrows choose a part, Enter opens its text, Space includes it or leaves it out</source>
+        <extracomment>The footer of the set for a publisher: what its keys do. In Polish: Strzałki wybierają część, Enter otwiera jej tekst, Spacja włącza ją albo wyłącza</extracomment>
+        <translation>Strzałki wybierają część, Enter otwiera jej tekst, Spacja włącza ją albo wyłącza</translation>
+    </message>
+    <message>
+        <source>&amp;In the Set</source>
+        <extracomment>Includes a part in the set for a publisher, or leaves it out. In Polish: &amp;W zestawie</extracomment>
+        <translation>&amp;W zestawie</translation>
+    </message>
 </context>
 <context>
     <name>LinkRoles</name>
@@ -28302,6 +28327,11 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <extracomment>The tooltip of File &gt; Print while it is greyed out. In Polish: Otwórz książkę albo tekst, który chcesz wydrukować</extracomment>
         <translation>Otwórz książkę albo tekst, który chcesz wydrukować</translation>
     </message>
+    <message>
+        <source>%1 – set for the publisher</source>
+        <extracomment>The set for a publisher as the name of its file; %1: the title of the book. In Polish: %1 – zestaw dla wydawnictwa</extracomment>
+        <translation>%1 – zestaw dla wydawnictwa</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::BookOutputDialog</name>
@@ -28462,6 +28492,15 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>The size and the margins: Settings › Editor › Pages and Margins.</source>
         <extracomment>Under the page of the print. In Polish: Rozmiar i marginesy: Ustawienia › Edytor › Strony i marginesy.</extracomment>
         <translation>Rozmiar i marginesy: Ustawienia › Edytor › Strony i marginesy.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Set for the &amp;publisher (%n parts)</source>
+        <extracomment>%n: the parts of the set for a publisher that have a text. In Polish: Zes&amp;taw dla wydawnictwa (%n część / części / części)</extracomment>
+        <translation>
+            <numerusform>Zes&amp;taw dla wydawnictwa (%n część)</numerusform>
+            <numerusform>Zes&amp;taw dla wydawnictwa (%n części)</numerusform>
+            <numerusform>Zes&amp;taw dla wydawnictwa (%n części)</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -36374,6 +36413,186 @@ In Polish: pasmo „%1”</extracomment>
         <source>%1 · target: %2</source>
         <extracomment>The note about the template of a new text for publishers: %1 its pattern or its points, %2 the target length. In Polish: %1 · docelowo %2</extracomment>
         <translation>%1 · docelowo %2</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PublishingSetContents</name>
+    <message>
+        <source>%1 ★</source>
+        <extracomment>A version of a part of the set for a publisher chosen for the set: %1 its title. In Polish: %1 ★</extracomment>
+        <translation>%1 ★</translation>
+    </message>
+    <message>
+        <source>%1 ★ on the cover</source>
+        <extracomment>A description or a tagline chosen for the cover, among the versions of its part of the set for a publisher: %1 its title. In Polish: %1 ★ na okładce</extracomment>
+        <translation>%1 ★ na okładce</translation>
+    </message>
+    <message>
+        <source>Set for the Publisher · %1 of %2</source>
+        <extracomment>The name of the set for a publisher with how many of its parts it has: %1 those in it, %2 all. In Polish: Zestaw dla wydawnictwa · %1 z %2</extracomment>
+        <translation>Zestaw dla wydawnictwa · %1 z %2</translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln parts</source>
+        <extracomment>The parts in the set for a publisher, before their length in all. In Polish: %Ln część / %Ln części / %Ln części</extracomment>
+        <translation>
+            <numerusform>%Ln część</numerusform>
+            <numerusform>%Ln części</numerusform>
+            <numerusform>%Ln części</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln words in all</source>
+        <extracomment>The length of the texts of the set for a publisher in all. In Polish: %Ln słowo razem / %Ln słowa razem / %Ln słów razem; %Ln znak razem / %Ln znaki razem / %Ln znaków razem</extracomment>
+        <translation>
+            <numerusform>%Ln słowo razem</numerusform>
+            <numerusform>%Ln słowa razem</numerusform>
+            <numerusform>%Ln słów razem</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%Ln characters in all</source>
+        <translation>
+            <numerusform>%Ln znak razem</numerusform>
+            <numerusform>%Ln znaki razem</numerusform>
+            <numerusform>%Ln znaków razem</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Cover</source>
+        <extracomment>Where a part of the set for a publisher comes from: the materials of the cover. In Polish: Okładka</extracomment>
+        <translation>Okładka</translation>
+    </message>
+    <message>
+        <source>The back matter of the book</source>
+        <extracomment>Where the note about the author in the set for a publisher comes from. In Polish: strony końcowe książki</extracomment>
+        <translation>Strony końcowe książki</translation>
+    </message>
+    <message>
+        <source>Texts for Publishers</source>
+        <extracomment>Where a sentence or a synopsis of the set for a publisher comes from. In Polish: Teksty dla wydawnictwa</extracomment>
+        <translation>Teksty dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Copied the set for the publisher</source>
+        <extracomment>The status bar after Copy All of the set for a publisher. In Polish: Skopiowano zestaw dla wydawnictwa</extracomment>
+        <translation>Skopiowano zestaw dla wydawnictwa</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PublishingSetPage</name>
+    <message>
+        <source>Set for the Publisher</source>
+        <extracomment>The heading of the set for a publisher in the Properties panel. In Polish: Zestaw dla wydawnictwa</extracomment>
+        <translation>Zestaw dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Contents of the Set</source>
+        <extracomment>The group of the parts of the set for a publisher in the Properties panel. In Polish: Zawartość zestawu</extracomment>
+        <translation>Zawartość zestawu</translation>
+    </message>
+    <message>
+        <source>Move Up (%1)</source>
+        <extracomment>Moves a part of the set for a publisher up. In Polish: W górę (Alt+↑)</extracomment>
+        <translation>W górę (%1)</translation>
+    </message>
+    <message>
+        <source>Move Down (%1)</source>
+        <extracomment>Moves a part of the set for a publisher down. In Polish: W dół (Alt+↓)</extracomment>
+        <translation>W dół (%1)</translation>
+    </message>
+    <message>
+        <source>Space includes a part or leaves it out, Alt+Up and Alt+Down move it. The set keeps this in the book; the contents for new books are in the Settings.</source>
+        <extracomment>Under the contents of the set for a publisher. In Polish: Spacja włącza i wyłącza część, Alt+↑ i Alt+↓ ją przestawiają. Zestaw zapamiętuje to w książce; zawartość dla nowych książek ustawia się w Ustawieniach.</extracomment>
+        <translation>Spacja włącza i wyłącza część, Alt+↑ i Alt+↓ ją przestawiają. Zestaw zapamiętuje to w książce; zawartość dla nowych książek ustawia się w Ustawieniach.</translation>
+    </message>
+    <message>
+        <source>Version:</source>
+        <extracomment>The version of the part chosen of the set for a publisher. In Polish: Wersja:</extracomment>
+        <translation>Wersja:</translation>
+    </message>
+    <message>
+        <source>Source:</source>
+        <extracomment>Where the text of the part chosen of the set comes from. In Polish: Skąd:</extracomment>
+        <translation>Skąd:</translation>
+    </message>
+    <message>
+        <source>Open (%1)</source>
+        <extracomment>Opens the version of the part chosen of the set for a publisher. In Polish: Otwórz (%1)</extracomment>
+        <translation>Otwórz (%1)</translation>
+    </message>
+    <message>
+        <source>This part has no version chosen yet.</source>
+        <extracomment>The part chosen of the set for a publisher has no version. In Polish: Ta część nie ma jeszcze wybranej wersji.</extracomment>
+        <translation>Ta część nie ma jeszcze wybranej wersji.</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <extracomment>The group of the export of the set for a publisher. In Polish: Eksport</extracomment>
+        <translation>Eksport</translation>
+    </message>
+    <message>
+        <source>Texts for Publishers Settings</source>
+        <extracomment>The gear of the set for a publisher: Settings &gt; Navigator. In Polish: Ustawienia tekstów dla wydawnictwa</extracomment>
+        <translation>Ustawienia tekstów dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>The window of the export is that of File &gt; Export; the set is its fourth source beside the whole book, the texts chosen and the text in front. DOCX and Markdown files get the headings of the parts of the set.</source>
+        <extracomment>Under Export of the set for a publisher. In Polish: Okno eksportu to to samo okno co Plik › Eksportuj; zestaw jest w nim czwartym źródłem obok całej książki, wybranych tekstów i tekstu na wierzchu. Pliki DOCX i Markdown dostają nagłówki części zestawu.</extracomment>
+        <translation>Okno eksportu to to samo okno co Plik › Eksportuj; zestaw jest w nim czwartym źródłem obok całej książki, wybranych tekstów i tekstu na wierzchu. Pliki DOCX i Markdown dostają nagłówki części zestawu.</translation>
+    </message>
+    <message>
+        <source>Copy All</source>
+        <extracomment>Copies the whole set for a publisher. In Polish: Kopiuj wszystko</extracomment>
+        <translation>Kopiuj wszystko</translation>
+    </message>
+    <message>
+        <source>Export Set...</source>
+        <extracomment>Opens the window of the export with the set for a publisher. In Polish: Eksportuj zestaw...</extracomment>
+        <translation>Eksportuj zestaw...</translation>
+    </message>
+    <message>
+        <source>no version</source>
+        <extracomment>A part of the set for a publisher without a version, in its contents. In Polish: brak wersji</extracomment>
+        <translation>brak wersji</translation>
+    </message>
+    <message>
+        <source>Part Chosen: %1</source>
+        <extracomment>The group of the part chosen of the set for a publisher; %1 its name. In Polish: Wybrana część: %1</extracomment>
+        <translation>Wybrana część: %1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PublishingSetView</name>
+    <message>
+        <source>The book has no such text yet.</source>
+        <extracomment>A part of the set for a publisher that the book has no text of yet. In Polish: Książka nie ma jeszcze tego tekstu.</extracomment>
+        <translation>Książka nie ma jeszcze tego tekstu.</translation>
+    </message>
+    <message>
+        <source>left out of the set</source>
+        <extracomment>A part left out of the set for a publisher, for a screen reader. In Polish: poza zestawem</extracomment>
+        <translation>poza zestawem</translation>
+    </message>
+    <message>
+        <source>from the Cover</source>
+        <extracomment>The mark of a description or a tagline of the set for a publisher, which the cover has. In Polish: z Okładki</extracomment>
+        <translation>z Okładki</translation>
+    </message>
+    <message>
+        <source>Version</source>
+        <extracomment>The list of the versions of a part of the set for a publisher, for a screen reader. In Polish: Wersja</extracomment>
+        <translation>Wersja</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <extracomment>Copies the text of a part of the set for a publisher. In Polish: Kopiuj</extracomment>
+        <translation>Kopiuj</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <extracomment>Opens the text of a part of the set for a publisher where it is written. In Polish: Otwórz</extracomment>
+        <translation>Otwórz</translation>
     </message>
 </context>
 </TS>

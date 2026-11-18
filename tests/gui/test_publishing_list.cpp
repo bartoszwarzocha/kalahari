@@ -123,18 +123,20 @@ TEST_CASE("Texts for publishers: the list in groups by kind, with the texts of t
     const test::PublishingSettings kept;
     test::OpenNovel novel(QStringLiteral("Sand"));
     auto& pm = novel.pm;
-    const QString pitch = test::addPublishingText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 1"),
-                                  QStringLiteral("When the well runs dry, Leila must find water."),
-                                  QStringLiteral("kalahari.novel:when_must"));
-    const QString other = test::addPublishingText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 2"),
-                                  QStringLiteral("A map of sand."));
-    const QString synopsis =
-        test::addPublishingText(PublishingTexts::SYNOPSIS, QStringLiteral("Synopsis – version 1"),
-                QStringLiteral("Leila crosses the desert and finds the last well."));
-    const QString blurb =
-        test::addCoverText(QStringLiteral("Description 1"), CoverMaterial::BLURB, QStringLiteral("Road."));
+    const QString pitch = test::addPublishingText(
+        PublishingTexts::PITCH, QStringLiteral("Sentence – version 1"),
+        QStringLiteral("When the well runs dry, Leila must find water."),
+        QStringLiteral("kalahari.novel:when_must"));
+    const QString other = test::addPublishingText(PublishingTexts::PITCH,
+                                                  QStringLiteral("Sentence – version 2"),
+                                                  QStringLiteral("A map of sand."));
+    const QString synopsis = test::addPublishingText(
+        PublishingTexts::SYNOPSIS, QStringLiteral("Synopsis – version 1"),
+        QStringLiteral("Leila crosses the desert and finds the last well."));
+    const QString blurb = test::addCoverText(QStringLiteral("Description 1"), CoverMaterial::BLURB,
+                                             QStringLiteral("Road."));
     const QString tagline = test::addCoverText(QStringLiteral("Tagline 1"), CoverMaterial::TAGLINE,
-                                     QStringLiteral("Sand remembers."));
+                                               QStringLiteral("Sand remembers."));
     REQUIRE(pm.setPublishingState(other, QString::fromLatin1(PublishingTexts::REJECTED)));
     CHECK(MaterialList::isPublishing(LIST));
     CHECK(MaterialList::hasGroups(LIST));
@@ -226,14 +228,16 @@ TEST_CASE("Texts for publishers: the menu of a text, the set and the Cover",
     const test::PublishingSettings kept;
     test::OpenNovel novel(QStringLiteral("Sand"));
     auto& pm = novel.pm;
-    const QString first = test::addPublishingText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 1"),
-                                  QStringLiteral("A well."));
-    const QString second = test::addPublishingText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 2"),
-                                   QStringLiteral("A map."));
-    const QString chosen =
-        test::addCoverText(QStringLiteral("Description 1"), CoverMaterial::BLURB, QStringLiteral("Road."));
-    const QString draft =
-        test::addCoverText(QStringLiteral("Description 2"), CoverMaterial::BLURB, QStringLiteral("Sand."));
+    const QString first = test::addPublishingText(PublishingTexts::PITCH,
+                                                  QStringLiteral("Sentence – version 1"),
+                                                  QStringLiteral("A well."));
+    const QString second = test::addPublishingText(PublishingTexts::PITCH,
+                                                   QStringLiteral("Sentence – version 2"),
+                                                   QStringLiteral("A map."));
+    const QString chosen = test::addCoverText(QStringLiteral("Description 1"), CoverMaterial::BLURB,
+                                              QStringLiteral("Road."));
+    const QString draft = test::addCoverText(QStringLiteral("Description 2"), CoverMaterial::BLURB,
+                                             QStringLiteral("Sand."));
     REQUIRE(pm.setCoverState(chosen, QString::fromLatin1(CoverMaterial::CHOSEN)));
 
     test::Window window;

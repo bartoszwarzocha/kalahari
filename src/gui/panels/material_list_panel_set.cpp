@@ -32,6 +32,9 @@ namespace kalahari::gui {
 
 namespace {
 
+/// The margin of the bar of the set at its sides, as that of the footer of the list
+constexpr int BAR_MARGIN_X = 8;
+
 /// The part @p part of @p items; nullptr: none
 const PublishingSetItem* itemOf(const QList<PublishingSetItem>& items, const QString& part) {
     const auto found = std::find_if(items.cbegin(), items.cend(),
@@ -65,16 +68,17 @@ void MaterialListPanel::createSetPage() {
     auto* bar = new QWidget(m_setPage);
     bar->setObjectName(QStringLiteral("materialListSetBar"));
     auto* barLayout = new FlowLayout(bar, 4, 2);
-    barLayout->setContentsMargins(8, 2, 8, 2);
+    barLayout->setContentsMargins(BAR_MARGIN_X, 2, BAR_MARGIN_X, 2);
     m_setHeading = new QLabel(bar);
     m_setHeading->setObjectName(QStringLiteral("materialListSetHeading"));
-    //: Copies the whole set for a publisher. In Polish: Kopiuj &wszystko
+    // No access keys: Alt with a letter is the menus' in the window
+    //: Copies the whole set for a publisher. In Polish: Kopiuj wszystko
     m_copyAllButton = barButton("materialListCopyAll", "edit.copy",
-                                MaterialList::tr("Copy &All"), bar);
+                                MaterialList::tr("Copy All"), bar);
     //: Opens the window of the export with the set for a publisher. In Polish: Eksportuj
-    //: &zestaw...
+    //: zestaw...
     m_exportSetButton = barButton("materialListExportSet", "file.export.docx",
-                                  MaterialList::tr("E&xport Set..."), bar);
+                                  MaterialList::tr("Export Set..."), bar);
     barLayout->addWidget(m_setHeading);
     barLayout->addWidget(m_copyAllButton);
     barLayout->addWidget(m_exportSetButton);
@@ -154,6 +158,14 @@ bool MaterialListPanel::updateSetFooter() {
     return true;
 }
 
+void MaterialListPanel::showSetPart(const QString& part) {
+    m_set->setCurrent(part);
+    if (auto* area = m_setPage->findChild<QScrollArea*>(QStringLiteral("materialListSetArea"));
+        area != nullptr && m_set->card(part) != nullptr) {
+        area->ensureWidgetVisible(m_set->card(part));
+    }
+}
+
 void MaterialListPanel::toggleSetPart(const QString& part) {
     const core::PublishingSet set = m_book.publishingSet();
     m_book.setPublishingSet(set.withPart(part, !set.includes(part)));
@@ -170,13 +182,9 @@ void MaterialListPanel::copySetPart(const QString& part) {
 }
 
 void MaterialListPanel::copySet() {
-    if (PublishingSetContents::textsOf(m_book).isEmpty()) {
-        return;
+    if (const QString done = PublishingSetContents::copyAll(m_book); !done.isEmpty()) {
+        emit message(done);
     }
-    QGuiApplication::clipboard()->setText(PublishingSetContents::plainTextOf(m_book));
-    //: The status bar after Copy All of the set for a publisher. In Polish: Skopiowano zestaw
-    //: dla wydawnictwa
-    emit message(MaterialList::tr("Copied the set for the publisher"));
 }
 
 void MaterialListPanel::openSetPart(const QString& part) {

@@ -24,6 +24,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <utility>
 
 namespace kalahari::gui {
 
@@ -35,6 +36,7 @@ constexpr int CARD_SPACING = 6;
 constexpr int PAGE_MARGIN_X = 24;
 constexpr int PAGE_MARGIN_Y = 20;
 constexpr int PAGE_SPACING = 14;
+constexpr int VIEW_MARGIN = 8;  ///< The space around the page
 constexpr int VERSIONS_CHARACTERS = 28;  ///< The narrowest list of versions, in characters
 constexpr double TITLE_SCALE = 1.6;
 constexpr double CURRENT_BORDER = 2.0;
@@ -239,10 +241,11 @@ PublishingSetView::PublishingSetView(QWidget* parent)
     : QWidget(parent)
     , m_page(new QFrame(this))
     , m_title(new QLabel(m_page))
-    , m_about(new QLabel(m_page)) {
+    , m_about(new QLabel(m_page))
+    , m_partsLayout(new QVBoxLayout) {
     setObjectName(QStringLiteral("publishingSetView"));
     auto* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(8, 8, 8, 8);
+    layout->setContentsMargins(VIEW_MARGIN, VIEW_MARGIN, VIEW_MARGIN, VIEW_MARGIN);
     m_page->setObjectName(QStringLiteral("publishingSetPage"));
     m_page->setFrameShape(QFrame::StyledPanel);
     m_page->setAutoFillBackground(true);
@@ -268,7 +271,6 @@ PublishingSetView::PublishingSetView(QWidget* parent)
     title->addWidget(m_about);
     pageLayout->addLayout(title);
 
-    m_partsLayout = new QVBoxLayout;
     m_partsLayout->setSpacing(PAGE_SPACING);
     pageLayout->addLayout(m_partsLayout);
     pageLayout->addStretch();
@@ -307,8 +309,14 @@ void PublishingSetView::setItems(const QList<PublishingSetItem>& items) {
 
 void PublishingSetView::connectCard(PublishingSetCard* card) {
     card->installEventFilter(this);
-    connect(card, &PublishingSetCard::clicked, this,
-            [this](const QString& part) { choose(part, false); });
+    // A click shows the part in the Properties panel again, also the part already chosen
+    connect(card, &PublishingSetCard::clicked, this, [this](const QString& part) {
+        const bool same = part == m_current;
+        choose(part, false);
+        if (same) {
+            emit currentChanged(m_current);
+        }
+    });
     connect(card, &PublishingSetCard::doubleClicked, this, &PublishingSetView::activated);
     connect(card, &PublishingSetCard::openRequested, this, &PublishingSetView::activated);
     connect(card, &PublishingSetCard::copyRequested, this, &PublishingSetView::copyRequested);
