@@ -30,6 +30,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QLocale>
 #include <QTimer>
 
 #include <nlohmann/json.hpp>
@@ -200,14 +201,16 @@ TEST_CASE("Add Element: a text for publishers of its kind and template, or a tex
           "One page – five steps | Full synopsis – up to three pages | Chapter by chapter | "
           "No template");
     CHECK(choice->note()->text().startsWith(QStringLiteral("Points: ")));
-    CHECK(choice->note()->text().endsWith(QStringLiteral(" · target: 1,800 ch.")));
+    // The number as the locale of the test writes it, with or without a group separator
+    const QString chars1800 = QLocale().toString(1800) + QStringLiteral(" ch.");
+    CHECK(choice->note()->text().endsWith(QStringLiteral(" · target: ") + chars1800));
     choice->setTemplate(QStringLiteral("kalahari.novel:each_chapter"));
     CHECK(choice->note()->text() ==
           QStringLiteral("A point for each text of the book · target: 600 ch. for each text"));
     choice->setTemplate(QString());
     CHECK(dialog.publishingTemplate().isEmpty());
     CHECK(choice->note()->text() ==
-          QStringLiteral("Only the text; the target length from the Settings: 1,800 ch."));
+          QStringLiteral("Only the text; the target length from the Settings: ") + chars1800);
 
     // A description goes to the cover: a material of the cover, without a template
     choice->setPart(QStringLiteral("blurb"));

@@ -200,8 +200,8 @@ void SettingsDialog::createNavigationTree() {
     addPage(navigator, tr("Cover"),
             [this]() { return new NavigatorPage(m_book, NavigatorPage::Part::Cover); });
     //: Settings > Navigator > Texts for Publishers: the lengths, the template of a synopsis and
-    //: the set. Short: the list of the pages is as wide as its longest name. In Polish: Teksty
-    //: dla wydawnictwa
+    //: the set. Short: the list of the pages is as wide as its longest name. In Polish: Dla
+    //: wydawnictwa
     m_pageItems[PUBLISHING_PAGE] = addPage(navigator, tr("Texts for Publishers"), [this]() {
         return new NavigatorPage(m_book, NavigatorPage::Part::Publishing);
     });

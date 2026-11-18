@@ -13258,8 +13258,8 @@ The page of the downloads for the materials with a web address. In Polish: Mater
     </message>
     <message>
         <source>Texts for Publishers</source>
-        <extracomment>Settings &gt; Navigator &gt; Texts for Publishers: the lengths, the template of a synopsis and the set. Short: the list of the pages is as wide as its longest name. In Polish: Teksty dla wydawnictwa</extracomment>
-        <translation>Teksty dla wydawnictwa</translation>
+        <extracomment>Settings &gt; Navigator &gt; Texts for Publishers: the lengths, the template of a synopsis and the set. Short: the list of the pages is as wide as its longest name. In Polish: Dla wydawnictwa</extracomment>
+        <translation>Dla wydawnictwa</translation>
     </message>
 </context>
 <context>
