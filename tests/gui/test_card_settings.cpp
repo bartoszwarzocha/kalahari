@@ -3,7 +3,8 @@
 
 /// @file test_card_settings.cpp
 /// @brief Settings > Cards: the full card in two columns or on tabs, the shape of the
-/// portraits and what a portrait without a picture shows, the fields of new books
+/// portraits and what a portrait without a picture shows, the fields of new books, the
+/// portraits of parts
 
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari_tests/changed_setting.h"
@@ -16,7 +17,10 @@
 #include "kalahari/core/card_field_set.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/avatar.h"
+#include "kalahari/gui/avatar_art.h"
 #include "kalahari/gui/dialogs/card_fields_dialog.h"
+#include "kalahari/gui/dialogs/portrait_palettes_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/panels/card_page.h"
@@ -27,6 +31,7 @@
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/widgets/card_chapters_box.h"
 #include "kalahari/gui/widgets/own_fields_box.h"
+#include "kalahari/gui/widgets/palette_edit.h"
 #include "kalahari/gui/widgets/relations_box.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -304,6 +309,87 @@ TEST_CASE("Settings > Cards: the portraits of the list of cards and of the card 
     setChoice(gui::CardPage::SHAPE_SETTING, gui::CardPage::SHAPE_CIRCLE);
     CHECK(listPortrait(pm, list).pixelColor(0, 0).alpha() == 0);
     CHECK(atCursor->portraitLabel()->pixmap().toImage().pixelColor(0, 0).alpha() == 0);
+}
+
+TEST_CASE("Settings > Cards: the style, the frame and the palettes of the portraits of parts",
+          "[gui][cards][settings][avatar]") {
+    gui::registerAllIcons();
+    using json = nlohmann::json;
+    using gui::Avatar;
+    using gui::AvatarLook;
+    using gui::AvatarPalettes;
+    const ChangedSetting<std::string> style(Avatar::STYLE_SETTING, AvatarLook::FLAT);
+    const ChangedSetting<std::string> frame(Avatar::FRAME_SETTING, Avatar::FRAME_BUST);
+    const ChangedSetting<json> palettes(AvatarPalettes::SETTING,
+                                        AvatarPalettes::defaults().toSetting());
+    const test::OpenNovel novel(QStringLiteral("Portraits of parts"));
+
+    gui::CardsPage page;
+    page.load();
+    CHECK(shownIn(page.portraitStyleList()) == QLatin1String(AvatarLook::FLAT));
+    CHECK(shownIn(page.portraitFrameList()) == QLatin1String(Avatar::FRAME_BUST));
+    CHECK(page.portraitStyleList()->count() == 2);
+    CHECK(page.portraitFrameList()->count() == 2);
+    CHECK_FALSE(page.isChanged());
+
+    // The style of new portraits and the frame of the window Portrait
+    pick(page.portraitStyleList(), AvatarLook::LINE);
+    pick(page.portraitFrameList(), Avatar::FRAME_FULL);
+    CHECK(page.isChanged());
+    page.apply();
+    CHECK(Avatar::newStyle() == QLatin1String(AvatarLook::LINE));
+    CHECK(core::SettingsManager::getInstance().get<std::string>(Avatar::FRAME_SETTING, "") ==
+          Avatar::FRAME_FULL);
+    CHECK_FALSE(page.isChanged());
+
+    // The palettes: in the window Portrait Palettes, saved by Apply; Restore Defaults there
+    // gives back the colors of the program
+    const QString hair = QStringLiteral("hair");
+    const QString blue = QStringLiteral("#123456");
+    int answered = 0;
+    bool restored = false;
+    QTimer timer;
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&]() {
+        auto* dialog = qobject_cast<gui::dialogs::PortraitPalettesDialog*>(test::shownDialog());
+        if (dialog == nullptr || dialog->property("answered").toBool()) {
+            return;
+        }
+        dialog->setProperty("answered", true);
+        ++answered;
+        CHECK(dialog->paletteEdit(QStringLiteral("other")) == nullptr);
+        gui::PaletteEdit* edit = dialog->paletteEdit(hair);
+        REQUIRE(edit != nullptr);
+        if (answered == 1) {
+            edit->setColors({blue});
+        } else {
+            CHECK(edit->colors() == QStringList{blue});
+            dialog->restoreButton()->click();
+            restored = edit->colors() == AvatarPalettes::defaults().colors(hair);
+        }
+        QMetaObject::invokeMethod(dialog->acceptButton(), "click", Qt::QueuedConnection);
+    });
+    timer.start();
+    page.portraitPalettesButton()->click();
+    CHECK(answered == 1);
+    CHECK(page.isChanged());
+    CHECK(AvatarPalettes::current().colors(hair) != QStringList{blue});
+    page.apply();
+    CHECK(AvatarPalettes::current().colors(hair) == QStringList{blue});
+    CHECK(AvatarPalettes::current().colors(QStringLiteral("skin")) ==
+          AvatarPalettes::defaults().colors(QStringLiteral("skin")));
+
+    page.portraitPalettesButton()->click();
+    timer.stop();
+    CHECK(answered == 2);
+    CHECK(restored);
+    page.apply();
+    CHECK(AvatarPalettes::current() == AvatarPalettes::defaults());
+
+    // A setting without a palette, or with a wrong color: the colors of the program
+    const AvatarPalettes partial =
+        AvatarPalettes::fromSetting(json{{"hair", json::array({"wrong"})}, {"eyes", 3}});
+    CHECK(partial == AvatarPalettes::defaults());
 }
 
 }  // namespace kalahari

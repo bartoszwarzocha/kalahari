@@ -23,6 +23,10 @@ bool CardData::isEmpty() const {
     return values.isEmpty() && color.isEmpty() && portraits.isEmpty() && extra.isEmpty();
 }
 
+const CardPortrait* CardData::mainPortrait() const {
+    return portraits.isEmpty() ? nullptr : &portraits.constFirst();
+}
+
 QString CardData::portraitImage() const {
     return portraits.isEmpty() ? QString() : portraits.constFirst().image;
 }

@@ -18,6 +18,7 @@
 #include <QEventLoop>
 #include <QKeyEvent>
 #include <QMenu>
+#include <QPointer>
 #include <QResizeEvent>
 #include <QStringList>
 #include <QTextBlock>
@@ -146,6 +147,43 @@ private:
     static constexpr int POLL_MS = 5;
     QStringList& m_texts;
     QString m_choice;
+};
+
+/// While it lives, the popup menus that show get no window on the screen, as with
+/// PopupMenuReader, for a test that reads them itself. On Windows a popup shown while the
+/// application has no active window takes the foreground (QTBUG-44928), and the application,
+/// deactivated as soon as another one takes it, closes all its popups
+/// (QEvent::ApplicationDeactivate): with the tests run side by side, a menu waiting a few
+/// seconds for the words of a misspelled one was closed before the test could read it.
+/// The test takes the menu from shown(): Qt 6.8 and later leave a popup without a window on
+/// the screen out of QApplication::activePopupWidget().
+class OffScreenPopups : public QObject {
+public:
+    OffScreenPopups() { QCoreApplication::instance()->installEventFilter(this); }
+    ~OffScreenPopups() override { QCoreApplication::instance()->removeEventFilter(this); }
+    OffScreenPopups(const OffScreenPopups&) = delete;
+    OffScreenPopups& operator=(const OffScreenPopups&) = delete;
+    OffScreenPopups(OffScreenPopups&&) = delete;
+    OffScreenPopups& operator=(OffScreenPopups&&) = delete;
+
+    /// The menu shown last, while it is open; nullptr: none
+    [[nodiscard]] QMenu* shown() const {
+        return m_shown != nullptr && m_shown->isVisible() ? m_shown.data() : nullptr;
+    }
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        // The show event comes before the menu's window is put on the screen
+        if (auto* menu = qobject_cast<QMenu*>(watched);
+            menu != nullptr && event->type() == QEvent::Show) {
+            menu->setAttribute(Qt::WA_DontShowOnScreen);
+            m_shown = menu;
+        }
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    QPointer<QMenu> m_shown;
 };
 
 /// Presses @p key in the first popup menu that shows, as the writer would, and closes the

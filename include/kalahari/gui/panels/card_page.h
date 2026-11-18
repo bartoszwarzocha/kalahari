@@ -23,6 +23,7 @@ class QDragEnterEvent;
 class QDropEvent;
 class QFormLayout;
 class QGroupBox;
+class QImage;
 class QLabel;
 class QLineEdit;
 class QMenu;
@@ -54,10 +55,13 @@ class RelationsBox;
 /// its own, the place to work on it
 ///
 /// - Its portrait: the first of its portraits (core::CardData::portraits), a picture of the
-///   materials of the book, else its initials on its color. A click, Space, Enter or the menu
-///   key opens the menu of the portrait: a picture of the materials, a picture from a file (it
-///   becomes a material linked with the card) or no portrait (the picture stays in the
-///   materials).
+///   materials of the book or a portrait put together from parts (Avatar), else its initials
+///   on its color. A click, Space, Enter or the menu key opens the menu of the portrait: a
+///   character's portrait put together in the window Portrait (composePortrait()), a picture
+///   of the materials, a picture from a file (it becomes a material linked with the card), the
+///   portraits of the card (the main one, a new one), the portrait put together saved as a
+///   picture in the materials, or no portrait (the picture stays in the materials). The full
+///   card shows the other portraits with the arrows under its portrait.
 /// - Its name (the title of the element) and its short description ("In short", the
 ///   description of the element).
 /// - The fields of its kind (core::ElementKind::fields): those shown on the card on the full
@@ -164,11 +168,12 @@ public:
     /// data; the card owns it then
     void setDescriptionWidget(QWidget* description);
 
-    /// @brief The portrait of @p element at @p side pixels: its picture, cut to a square, or
-    /// its initials on its color
+    /// @brief The portrait of @p element at @p side pixels: its picture, cut to a square, the
+    /// portrait put together from parts, or its initials on its color
+    /// @param index Which of the portraits of the card; the main one when it has no such one
     [[nodiscard]] static QPixmap portraitOf(const core::ProjectManager& book,
                                             const core::ProjectElement& element, int side,
-                                            qreal pixelRatio);
+                                            qreal pixelRatio, qsizetype index = 0);
 
     /// @brief The initials of @p title: the first letters of its first two words, in capitals
     [[nodiscard]] static QString initialsOf(const QString& title);
@@ -180,6 +185,13 @@ public:
 
     /// @brief The portrait, a button with its menu
     [[nodiscard]] QToolButton* portraitButton() const { return m_portrait; }
+    /// @brief The portrait shown, of the portraits of the card (the main one, 0, at first)
+    [[nodiscard]] qsizetype shownPortrait() const { return m_shownPortrait; }
+    /// @brief The arrows to the portrait before and after, and the label between them, under
+    /// the portrait of the full card with more than one; nullptr on the short card
+    [[nodiscard]] QToolButton* previousPortraitButton() const { return m_previousPortrait; }
+    [[nodiscard]] QToolButton* nextPortraitButton() const { return m_nextPortrait; }
+    [[nodiscard]] QLabel* portraitLabel() const { return m_portraitLabel; }
     /// @brief The name
     [[nodiscard]] QLineEdit* nameEdit() const { return m_nameEdit; }
     /// @brief In short
@@ -239,6 +251,21 @@ public slots:
 
     /// @brief Take out the portrait shown; its picture stays in the materials
     void removePortrait();
+
+    /// @brief Put a portrait of the card together in the window Portrait
+    /// @param index The portrait put together from parts to change; another one: a new one
+    void composePortrait(qsizetype index);
+
+    /// @brief Show the portrait @p step portraits after the one shown (before for a negative
+    /// one), around the end
+    void showOtherPortrait(int step);
+
+    /// @brief Make the portrait shown the main one of the card, first of its portraits
+    void setMainPortrait();
+
+    /// @brief Save the portrait shown, put together from parts, as a picture in the materials,
+    /// linked with the card
+    void savePortraitPicture();
 
     /// @brief Open the color window for the color of the card
     void chooseColor();
@@ -361,6 +388,25 @@ private:
     /// @p current, the portrait shown, is checked
     void fillPictures(QMenu* pictures, const QString& current);
 
+    /// @brief Compose Portrait... at the top of the menu of the portrait of @p element, a
+    /// character
+    void addComposeAction(const core::ProjectElement& element);
+
+    /// @brief The submenu of the portraits of the card of @p element and Save Portrait as a
+    /// Picture
+    void addPortraitsMenu(const core::ProjectElement& element);
+
+    /// @brief The arrows under the portrait of the full card and the label between them, in
+    /// @p parent
+    [[nodiscard]] QWidget* portraitArrows(QWidget* parent);
+
+    /// @brief The arrows under the portrait of the full card, for the portraits of @p element
+    void showPortraitArrows(const core::ProjectElement& element);
+
+    /// @brief Add picture @p image to the materials, linked with the card, titled @p title
+    /// @return Its id; empty when it could not be added (said so)
+    QString addPicture(const QImage& image, const QString& title);
+
     /// @brief Choose the file of a new portrait in the system window
     void choosePortraitFile();
 
@@ -415,6 +461,7 @@ private:
     QString m_elementId;
     QString m_kindKey;          ///< The kind whose fields the form has: "kalahari.base:item"
     QString m_portraitKey;      ///< What the portrait shown was drawn from
+    qsizetype m_shownPortrait = 0;  ///< Which of the portraits of the card is shown
     bool m_updating = false;    ///< The fields are being filled: no saving
     QHash<QString, QWidget*> m_editors;  ///< Field id -> its control
     QHash<const QObject*, QString> m_fieldOf;  ///< A control of lines or of a card -> its field
@@ -422,6 +469,10 @@ private:
     QGroupBox* m_infoGroup = nullptr;      ///< Short card: its group, "Character Information"
     QToolButton* m_portrait = nullptr;
     QMenu* m_portraitMenu = nullptr;
+    QToolButton* m_previousPortrait = nullptr;  ///< Full card: the portrait before
+    QToolButton* m_nextPortrait = nullptr;      ///< Full card: the portrait after
+    QLabel* m_portraitLabel = nullptr;          ///< Full card: the label of the portrait shown
+    QWidget* m_portraitArrows = nullptr;        ///< Full card: the arrows and the label
     QLineEdit* m_nameEdit = nullptr;
     QLabel* m_kindIcon = nullptr;          ///< Full card: the icon of the kind
     QLabel* m_subtitleLabel = nullptr;

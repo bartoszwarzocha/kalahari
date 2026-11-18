@@ -221,7 +221,7 @@ TEST_CASE("Cards: their data in the book file", "[core][cards]") {
           "card": { "values": { "role": "main", "age": "29", "race": "człowiek" },
                     "color": "#c0504d",
                     "portraits": [ { "image": "e2", "label": "główny" },
-                                   { "image": "e3", "avatar": { "face": "oval" } } ],
+                                   { "image": "e3", "frame": { "x": 10 } } ],
                     "board": { "column": 2 } } },
         { "id": "e2", "kind": "kalahari.base:picture", "title": "Anna",
           "file": "workshop/anna.png" },
@@ -252,7 +252,7 @@ TEST_CASE("Cards: their data in the book file", "[core][cards]") {
     CHECK(card.hasPortrait(QStringLiteral("e3")));
     CHECK_FALSE(card.hasPortrait(QStringLiteral("e1")));
     // Fields this version does not know are kept, and saved back
-    CHECK(card.portraits.at(1).extra.keys() == QStringList{QStringLiteral("avatar")});
+    CHECK(card.portraits.at(1).extra.keys() == QStringList{QStringLiteral("frame")});
     CHECK(card.extra.keys() == QStringList{QStringLiteral("board")});
     CHECK(anna.extra.isEmpty());
 
@@ -302,11 +302,58 @@ TEST_CASE("Cards: problems of their data", "[core][cards]") {
     CHECK(problemOf(R"({ "id": "e1", "kind": "kalahari.base:character",
                          "card": { "portraits": [ "e2" ] } })") ==
           QStringLiteral("workshop.elements[0].card.portraits[0]: must be an object with "
-                         "\"image\""));
+                         "\"image\" or \"avatar\""));
     CHECK(problemOf(R"({ "id": "e1", "kind": "kalahari.base:character",
                          "card": { "portraits": [ { "label": "young" } ] } })") ==
-          QStringLiteral("workshop.elements[0].card.portraits[0].image: must be a text that is "
-                         "not empty"));
+          QStringLiteral("workshop.elements[0].card.portraits[0]: must have \"image\" or "
+                         "\"avatar\""));
+    CHECK(problemOf(R"({ "id": "e1", "kind": "kalahari.base:character",
+                         "card": { "portraits": [ { "avatar": "oval" } ] } })") ==
+          QStringLiteral("workshop.elements[0].card.portraits[0].avatar: must be an object of "
+                         "the parts and colors; workshop.elements[0].card.portraits[0]: must "
+                         "have \"image\" or \"avatar\""));
+}
+
+TEST_CASE("Cards: portraits put together from parts, in the book file", "[core][cards]") {
+    const QByteArray element = R"({ "id": "e1", "kind": "kalahari.base:character",
+        "card": { "portraits": [
+            { "label": "main", "style": "line", "since": 3,
+              "avatar": { "face": "oval", "hair": "mohawk", "skin": "#eec6a6", "wings": 2 } },
+            { "image": "e31", "label": "youth" } ] } })";
+    QStringList problems;
+    const auto project = BookProject::fromJson(jsonOf(projectWith(element)), problems);
+    REQUIRE(project);
+    CHECK(problems.isEmpty());
+    const CardData& card = project->workshop.elements[0].card;
+    REQUIRE(card.portraits.size() == 2);
+    const CardPortrait& main = card.portraits[0];
+    CHECK(main.isComposed());
+    CHECK(main.label == QStringLiteral("main"));
+    CHECK(main.style == QStringLiteral("line"));
+    // The parts this version does not know, and the values, come back as they were
+    CHECK(main.avatar.value(QStringLiteral("hair")).toString() == QStringLiteral("mohawk"));
+    CHECK(main.avatar.value(QStringLiteral("wings")).toInt() == 2);
+    CHECK(main.extra.value(QStringLiteral("since")).toInt() == 3);
+    CHECK(card.mainPortrait() == card.portraits.data());
+    // The main portrait has no picture; the second one is a picture
+    CHECK(card.portraitImage().isEmpty());
+    CHECK_FALSE(card.portraits[1].isComposed());
+    CHECK(card.hasPortrait(QStringLiteral("e31")));
+
+    const QJsonArray written =
+        project->toJson()[QStringLiteral("workshop")][QStringLiteral("elements")][0]
+                         [QStringLiteral("card")][QStringLiteral("portraits")]
+                             .toArray();
+    REQUIRE(written.size() == 2);
+    const QJsonObject first = written[0].toObject();
+    CHECK_FALSE(first.contains(QStringLiteral("image")));
+    CHECK(first[QStringLiteral("style")].toString() == QStringLiteral("line"));
+    CHECK(first[QStringLiteral("avatar")].toObject() == main.avatar);
+    CHECK(first[QStringLiteral("since")].toInt() == 3);
+    const QJsonObject second = written[1].toObject();
+    CHECK(second[QStringLiteral("image")].toString() == QStringLiteral("e31"));
+    CHECK_FALSE(second.contains(QStringLiteral("avatar")));
+    CHECK_FALSE(second.contains(QStringLiteral("style")));
 }
 
 TEST_CASE("Cards: the relations the writer named, in the book file", "[core][cards]") {
@@ -503,7 +550,7 @@ TEST_CASE("Cards: adding a card, its fields, color and portraits in an open book
     REQUIRE_FALSE(portrait.isEmpty());
     CardData data = pm.findElement(anna)->card;
     data.color = QStringLiteral("#abcdef");
-    data.portraits = {CardPortrait{portrait, QString(), {}}};
+    data.portraits = {CardPortrait{portrait, QString(), QString(), {}, {}}};
     REQUIRE(pm.setCard(anna, data));
     CHECK(changes.count() == 4);
 

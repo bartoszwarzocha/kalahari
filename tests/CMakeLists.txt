@@ -196,6 +196,9 @@ set(TEST_SOURCES
     gui/test_properties_panel.cpp                # Properties panel: the counts of the editor in front
     gui/test_material_card.cpp                   # The card of a material, its preview and Link
     gui/test_card_page.cpp                       # The cards of characters, locations and items
+    gui/test_avatar.cpp                          # Portraits put together from parts
+    gui/test_portrait_dialog.cpp                 # The window Portrait: a portrait of parts
+    gui/test_card_portraits.cpp                  # The portraits of parts on the cards
     gui/test_relation_dialog.cpp                 # The window Relation and the relations of a card
     gui/test_card_fields_dialog.cpp              # The window Card Fields and Fields... of the full card
     gui/test_card_settings.cpp                   # Settings > Cards: the full card layout, the portraits, the fields of new books
@@ -544,6 +547,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/color_palettes.cpp           # The palettes of the color window
     ${CMAKE_SOURCE_DIR}/src/gui/section_words.cpp                    # Parts of the book in sentences
     ${CMAKE_SOURCE_DIR}/src/gui/kind_names.cpp                       # Kinds of elements in sentences
+    ${CMAKE_SOURCE_DIR}/src/gui/avatar.cpp                           # The parts of a portrait
+    ${CMAKE_SOURCE_DIR}/src/gui/avatar_art.cpp                       # Their drawings
+    ${CMAKE_SOURCE_DIR}/src/gui/avatar_palettes.cpp                  # Their colors
+    ${CMAKE_SOURCE_DIR}/src/gui/avatar_words.cpp                     # The look in words
     ${CMAKE_SOURCE_DIR}/src/gui/name_labels.cpp                      # Cases and kinds of names
     ${CMAKE_SOURCE_DIR}/src/gui/cover_names.cpp                      # The materials of the cover in words
     ${CMAKE_SOURCE_DIR}/src/gui/source_names.cpp                     # The sources in words
@@ -582,6 +589,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/character_dialogs.cpp        # The keys of a character, a replacement
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/link_dialog.cpp              # What a material is about
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/relation_dialog.cpp          # A relation of a card
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/portrait_dialog.cpp          # A portrait of parts
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/portrait_palettes_dialog.cpp # The palettes of portraits
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/paragraph_card_dialog.cpp    # A paragraph linked with a card
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/card_fields_dialog.cpp       # The fields of the cards of each kind
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/card_field_dialogs.cpp       # A field of the writer, the values of its list
@@ -596,6 +605,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/card_chapters_box.cpp        # The chapters a card is in
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/card_cell_delegate.cpp       # The cells of a list of cards that F2 edits
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_page.cpp                 # The card of a character, a location, an item
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/card_page_portraits.cpp       # The portraits of a card
     ${CMAKE_SOURCE_DIR}/src/gui/panels/cursor_card_box.cpp           # The card at the cursor in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/panels/paragraph_cards_box.cpp  # ParagraphCardsBox - the cards of the paragraph at the cursor
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_panel.cpp                # The full card on a tab
@@ -800,6 +810,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/relation_dialog.h  # RelationDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/portrait_dialog.h  # PortraitDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/portrait_palettes_dialog.h  # With Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_card_dialog.h  # ParagraphCardDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/card_fields_dialog.h  # CardFieldsDialog, CardFieldDialog, CardChoicesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
