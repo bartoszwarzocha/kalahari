@@ -30,14 +30,21 @@
 /// book. How the texts of the cover are counted, in characters with spaces or in words, and
 /// the target lengths of a description, a tagline and an opinion in each unit
 /// (core::CoverMaterial). The Navigator, the lists and the cards follow them at once.
+///
+/// The texts for publishers: the target lengths of a sentence about the book and of a
+/// synopsis without a template, in both units (the unit of the cover's texts counts), whether a
+/// synopsis also gives its length in standard pages and the parts of the set of a new book
+/// (core::PublishingTexts).
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/material_list.h"
+#include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/link_roles.h"
+#include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 
 #include <QCheckBox>
@@ -47,6 +54,7 @@
 #include <QLabel>
 #include <QSpinBox>
 #include <QStackedWidget>
+#include <QString>
 #include <QVBoxLayout>
 
 #include <nlohmann/json.hpp>
@@ -85,10 +93,22 @@ constexpr const char* WORDS = "words";
 /// The longest target of a text of the cover, in characters or in words
 constexpr int MAXIMUM_TARGET = 100000;
 
+/// Room between the name of a text and the box of its target length
+constexpr int TARGET_SPACING = 8;
+
+/// Room between the two columns of the parts of a set
+constexpr int SET_COLUMN_SPACING = 16;
+
 /// The values of NavigatorPanel::QUICK_MATERIALS_SETTING
 constexpr const char* LINK = "link";
 constexpr const char* ADD = "add";
 constexpr const char* WINDOW = "window";
+
+/// Whether @p value (the setting core::PublishingTexts::SET_SETTING) lists @p part
+bool listsPart(const json& value, const QString& part) {
+    const json name(part.toStdString());
+    return value.is_array() && std::find(value.begin(), value.end(), name) != value.end();
+}
 
 } // namespace
 
@@ -108,6 +128,9 @@ NavigatorPage::NavigatorPage(const core::ProjectManager& book, Part part, QWidge
         break;
     case Part::Cover:
         createCover();
+        break;
+    case Part::Publishing:
+        createPublishing();
         break;
     }
     pageLayout()->addStretch();
@@ -357,7 +380,7 @@ void NavigatorPage::createCover()
         auto* unitPage = new QWidget();
         auto* grid = new QGridLayout(unitPage);
         grid->setContentsMargins(0, 0, 0, 0);
-        grid->setHorizontalSpacing(8);
+        grid->setHorizontalSpacing(TARGET_SPACING);
         grid->setVerticalSpacing(4);
         int row = 0;
         for (const char* part : {core::CoverMaterial::BLURB, core::CoverMaterial::TAGLINE,
@@ -399,6 +422,133 @@ void NavigatorPage::createCover()
     };
     connect(m_coverUnit, &QComboBox::currentIndexChanged, this, showUnit);
     whenLoaded(showUnit);
+}
+
+void NavigatorPage::createPublishing()
+{
+    using core::PublishingTexts;
+    //: The group of Settings > Navigator > Texts for Publishers. In Polish: Długości
+    QFormLayout* lengths = addGroup(tr("Lengths"));
+    addPublishingTargets(lengths);
+
+    //: Whether the length of a synopsis is also given in standard pages. In Polish: także w
+    //: stronach znormalizowanych
+    auto* pages = new QCheckBox(tr("in standard pages too"));
+    pages->setObjectName(QStringLiteral("navigatorPublishingPages"));
+    //: In Polish: Długość s&treszczenia:
+    addField(lengths, tr("Length of a s&ynopsis:"), pages, PublishingTexts::PAGES_SETTING);
+    //: In Polish: Strona znormalizowana ma 1800 znaków ze spacjami.
+    addFieldNote(lengths, tr("A standard page has 1800 characters with spaces."));
+
+    //: The group of Settings > Navigator > Texts for Publishers. In Polish: Zestaw dla
+    //: wydawnictwa
+    addSetChoice(addGroup(tr("Set for Publishers")));
+}
+
+void NavigatorPage::addPublishingTargets(QFormLayout* group)
+{
+    using core::PublishingTexts;
+    // The targets of the texts without a template in both units, one under the other, so that
+    // the page fits a narrow window: the unit counted is that of the page Cover, which can
+    // change before this page is applied
+    auto* targets = new QWidget();
+    auto* grid = new QGridLayout(targets);
+    grid->setContentsMargins(0, 0, 0, 0);
+    grid->setHorizontalSpacing(TARGET_SPACING);
+    grid->setVerticalSpacing(4);
+    int row = 0;
+    for (const bool words : {false, true}) {
+        //: In Polish: Docelowa długość w słowach: / Docelowa długość w znakach ze spacjami:
+        auto* unitLabel = new QLabel(words ? tr("Target length in words:")
+                                           : tr("Target length in characters with spaces:"));
+        unitLabel->setWordWrap(true);
+        grid->addWidget(unitLabel, row, 0, 1, 3);
+        ++row;
+        for (const QString& part : PublishingTexts::parts()) {
+            const QString partName = PublishingNames::partName(part);
+            auto* label = new QLabel(partName);
+            auto* spin = new QSpinBox();
+            spin->setRange(1, MAXIMUM_TARGET);
+            spin->setObjectName(QStringLiteral("navigatorPublishingTarget_%1_%2")
+                                    .arg(part, words ? QStringLiteral("words")
+                                                     : QStringLiteral("characters")));
+            spin->setAccessibleName(tr("%1, %2").arg(partName, CoverNames::unitName(words)));
+            label->setBuddy(spin);
+            grid->addWidget(label, row, 0);
+            grid->addWidget(spin, row, 1);
+            bind(spin, PublishingTexts::targetSettingOf(part, words));
+            ++row;
+        }
+    }
+    grid->setColumnStretch(2, 1);
+    group->addRow(targets);
+    //: In Polish: Dla tekstów bez szablonu; szablon ma własną docelową długość, a tekst może
+    //: mieć swoją. Liczy się jednostka ze strony Okładka, bo opis na okładkę i hasło są w obu
+    //: miejscach.
+    addNote(group, tr("For texts without a template; a template has its own target length, and "
+                      "a text can have its own. The unit of the page Cover counts, because the "
+                      "cover description and the tagline are in both places."));
+}
+
+void NavigatorPage::addSetChoice(QFormLayout* group)
+{
+    using core::PublishingTexts;
+    auto* parts = new QWidget();
+    auto* grid = new QGridLayout(parts);
+    grid->setContentsMargins(0, 0, 0, 0);
+    grid->setHorizontalSpacing(SET_COLUMN_SPACING);
+    grid->setVerticalSpacing(4);
+    int index = 0;
+    for (const QString& part : PublishingTexts::setParts()) {
+        auto* box = new QCheckBox(PublishingNames::partName(part));
+        box->setObjectName(QStringLiteral("navigatorPublishingSet_") + part);
+        box->setProperty("part", part);
+        grid->addWidget(box, index / 2, index % 2);
+        m_setBoxes << box;
+        ++index;
+    }
+    grid->setColumnStretch(2, 1);
+    //: In Polish: W &nowych książkach:
+    auto* label = new QLabel(tr("In &new books:"));
+    label->setBuddy(m_setBoxes.first());
+    group->addRow(label, parts);
+    //: In Polish: Książka zmienia swój zestaw w widoku zestawu; jego kolejność i części
+    //: zapisują się w książce.
+    addNote(group, tr("A book changes its own set in the view of the set; its order and its "
+                      "parts are saved in the book."));
+
+    auto& settings = core::SettingsManager::getInstance();
+    Binding set;
+    set.key = []() { return std::string(PublishingTexts::SET_SETTING); };
+    // In the order of the boxes, so that a set kept in another order is not a change
+    set.stored = [&settings]() {
+        const json value = settings.get<json>(PublishingTexts::SET_SETTING, json::array());
+        json chosen = json::array();
+        for (const QString& part : PublishingTexts::setParts()) {
+            if (listsPart(value, part)) {
+                chosen.push_back(part.toStdString());
+            }
+        }
+        return chosen;
+    };
+    set.shown = [this]() {
+        json value = json::array();
+        for (const QCheckBox* box : m_setBoxes) {
+            if (box->isChecked()) {
+                value.push_back(box->property("part").toString().toStdString());
+            }
+        }
+        return value;
+    };
+    set.show = [this](const json& value) {
+        for (QCheckBox* box : m_setBoxes) {
+            box->setChecked(listsPart(value, box->property("part").toString()));
+        }
+    };
+    set.store = [&settings](const json& value) {
+        settings.set<json>(PublishingTexts::SET_SETTING, value);
+    };
+    bindCustom(std::move(set));
 }
 
 } // namespace kalahari::gui

@@ -1234,8 +1234,9 @@ struct KeptMaterialSettings {
 
 /// @brief The kinds of the Workshop of a novel that Add Element can add, in their order
 constexpr const char* WORKSHOP_KINDS = "Character | Location | Item | Working note | Clipping | "
-                                       "Cover | Quote | Web page | Picture | Document | "
-                                       "Publication | Recording | Other file";
+                                       "Cover | Text for publishers | Quote | Web page | "
+                                       "Picture | Document | Publication | Recording | "
+                                       "Other file";
 
 /// @brief Add Element on @p scope of the book, @p id the group or the element of the scope
 gui::AddTarget addingOn(gui::AddTarget::Scope scope, const QString& id = QString(),

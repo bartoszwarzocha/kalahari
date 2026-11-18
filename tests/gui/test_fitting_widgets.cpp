@@ -10,12 +10,15 @@
 #include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
 
+#include <QHBoxLayout>
 #include <QImage>
 #include <QLayoutItem>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QToolButton>
 #include <QWidget>
+
+#include <memory>
 
 using namespace kalahari::gui;
 
@@ -116,6 +119,31 @@ TEST_CASE("Flow layout: an item that expands takes the room left in its row",
         CHECK(field->width() == 200);
         CHECK(button->x() == 210);
     }
+}
+
+TEST_CASE("Flow layout: a label and its field stay together, and go with the panel",
+          "[gui][widgets]") {
+    auto panel = std::make_unique<QWidget>();
+    auto* layout = new FlowLayout(panel.get(), 10, 10);
+    layout->addWidget(box(panel.get(), 120));
+    for (const int width : {40, 60}) {
+        auto* pair = new QHBoxLayout();
+        pair->setContentsMargins(0, 0, 0, 0);
+        pair->setSpacing(4);
+        pair->addWidget(box(panel.get(), width));
+        pair->addWidget(box(panel.get(), width));
+        layout->addLayout(pair);
+    }
+    QWidget* last = box(panel.get(), 50);
+    layout->addWidget(last);
+    REQUIRE(layout->count() == 4);
+
+    // Narrow: each pair in a line of its own, its two boxes side by side
+    layout->setGeometry(QRect(0, 0, 130, layout->heightForWidth(130)));
+    CHECK(last->y() > 0);
+    // The pairs take themselves out of the layout while it deletes them, with their boxes
+    panel.reset();
+    SUCCEED("the panel, its layout and the pairs are gone");
 }
 
 // =============================================================================

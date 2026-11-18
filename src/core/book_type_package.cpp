@@ -8,6 +8,7 @@
 
 #include "kalahari/core/card_package.h"
 #include "kalahari/core/package_json.h"
+#include "kalahari/core/publishing_texts.h"
 
 #include <QDir>
 #include <QFile>
@@ -17,9 +18,9 @@
 #include <QJsonParseError>
 #include <QRegularExpression>
 #include <algorithm>
-#include <cmath>
 #include <initializer_list>
 #include <iterator>
+#include <optional>
 #include <utility>
 
 namespace kalahari::core {
@@ -30,6 +31,7 @@ using package_json::addProblem;
 using package_json::checkKeys;
 using package_json::isIdentifier;
 using package_json::isLanguageCode;
+using package_json::isWholeNumber;
 using package_json::matches;
 using package_json::readIdList;
 using package_json::readText;
@@ -56,14 +58,6 @@ bool isVersion(const QString& text) {
 /// "#RRGGBB" or "#AARRGGBB", as StyleResolver reads them
 bool isColor(const QString& text) {
     return matches(text, "^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$");
-}
-
-bool isWholeNumber(const QJsonValue& value) {
-    if (!value.isDouble()) {
-        return false;
-    }
-    const double number = value.toDouble();
-    return std::isfinite(number) && std::floor(number) == number;
 }
 
 std::optional<QJsonObject> readJsonObject(const QString& path, const QString& field,
@@ -856,7 +850,7 @@ std::optional<BookTypePackage> BookTypePackage::read(const QString& directory,
     checkKeys(*manifest, manifestFile,
               {"format", "id", "version", "role", "name", "description", "icon", "uses", "kinds",
                "relations", "front", "main", "back", "workshop", "primary", "start", "partsLayer",
-               "styles"},
+               "styles", "publishingTemplates"},
               problems);
 
     BookTypePackage package;
@@ -976,6 +970,9 @@ std::optional<BookTypePackage> BookTypePackage::read(const QString& directory,
         package.stylesFile = styles.toString();
         readStyles(package.directory, package.stylesFile, package, problems);
     }
+
+    package.publishingTemplates = PublishingTemplate::listFromPackageJson(
+        manifest->value(QStringLiteral("publishingTemplates")), package.id, problems);
 
     if (problems.size() > problemsBefore) {
         return std::nullopt;

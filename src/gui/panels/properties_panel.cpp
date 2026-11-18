@@ -16,6 +16,8 @@
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/panels/paragraph_cards_box.h"
 #include "kalahari/gui/panels/plot_fields_box.h"
+#include "kalahari/gui/panels/publishing_set_page.h"
+#include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -132,6 +134,9 @@ PropertiesPanel::PropertiesPanel(core::ProjectManager& book, QWidget* parent)
     connect(m_cursorDebounceTimer, &QTimer::timeout,
             this, &PropertiesPanel::updateEditorStatistics);
     connect(m_cursorDebounceTimer, &QTimer::timeout, this, &PropertiesPanel::updateCursorCard);
+    // The length of a text for publishers follows its editor, as the counts do
+    connect(m_cursorDebounceTimer, &QTimer::timeout, m_publishingBox,
+            &PublishingTextBox::updateLength);
 
     // The words of the book follow new rules of counting at once, wherever they are chosen,
     // and the group of the versions the versions turned on or off; the listener runs on the
@@ -187,6 +192,8 @@ void PropertiesPanel::setupUI() {
     m_stackedWidget->addWidget(createEditorPage());      // Page::Editor = 5
     m_stackedWidget->addWidget(createMaterialPage());    // Page::Material = 6
     m_stackedWidget->addWidget(createCardPage());        // Page::Card = 7
+    m_publishingSetPage = new PublishingSetPage(m_book);
+    m_stackedWidget->addWidget(m_publishingSetPage);     // Page::PublishingSet = 8
 
     mainLayout->addWidget(m_stackedWidget);
     setLayout(mainLayout);
@@ -415,6 +422,12 @@ QWidget* PropertiesPanel::createChapterPage() {
     infoLayout->addRow(m_chapterFirstPageLeft);
 
     layout->addWidget(infoGroup);
+
+    // A text for publishers (placeTextGroups(), populateChapterFields())
+    m_publishingBox = new PublishingTextBox(m_book, scrollContent);
+    connect(m_publishingBox, &PublishingTextBox::publishingChanged, this,
+            &PropertiesPanel::materialChanged);
+    layout->addWidget(m_publishingBox);
 
     // Where a clipping comes from (populateChapterFields())
     m_clippingOrigin = new ClippingOriginBox(m_book, scrollContent);
@@ -967,6 +980,14 @@ void PropertiesPanel::showCardProperties(const QString& elementId) {
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Card));
 }
 
+void PropertiesPanel::showPublishingSetProperties(const QString& part) {
+    m_currentChapterId.clear();
+    m_currentSectionType.clear();
+    m_currentPartId.clear();
+    m_publishingSetPage->showSet(part);
+    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::PublishingSet));
+}
+
 void PropertiesPanel::focusFirstField() {
     switch (currentPage()) {
         case Page::Project:
@@ -981,6 +1002,9 @@ void PropertiesPanel::focusFirstField() {
         case Page::Card:
             focusTitle(m_cardPage->nameEdit());
             break;
+        case Page::PublishingSet:
+            m_publishingSetPage->focusContents();
+            break;
         // A section or a part has no field: its materials
         case Page::Section:
             focusMaterials(m_sectionMaterials);
@@ -992,6 +1016,19 @@ void PropertiesPanel::focusFirstField() {
         case Page::NoProject:
             break;
     }
+}
+
+bool PropertiesPanel::focusTemplatePoints() {
+    // The page of the text in front, unless its own page is shown
+    const Page page = currentPage();
+    if (describedTextId().isEmpty() || (page != Page::Chapter && page != Page::Editor)) {
+        showEditorProperties();
+    }
+    if (m_publishingBox->elementId().isEmpty() || m_publishingBox->points().isEmpty()) {
+        return false;
+    }
+    focusInPage(m_publishingBox->points().constFirst());
+    return true;
 }
 
 void PropertiesPanel::showNoProject() {
@@ -1040,9 +1077,13 @@ void PropertiesPanel::showEditorProperties() {
     // A text of the book in front has its versions under its counts, as the Navigator's
     // choice of it has them
     placeTextGroups(m_editorPageLayout);
-    showVersions(m_activeEditorPanel != nullptr
-                     ? m_activeEditorPanel->property("elementId").toString()
-                     : QString());
+    const QString textId = m_activeEditorPanel != nullptr
+                               ? m_activeEditorPanel->property("elementId").toString()
+                               : QString();
+    showVersions(textId);
+    m_publishingBox->showText(textId, m_activeEditorPanel != nullptr
+                                          ? m_activeEditorPanel->getBookEditor()
+                                          : nullptr);
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Editor));
 }
 
@@ -1060,7 +1101,12 @@ void PropertiesPanel::placeTextGroups(QVBoxLayout* layout) {
                 other->removeWidget(group);
             }
         }
+        if (other != nullptr) {
+            other->removeWidget(m_publishingBox);
+        }
     }
+    // A text for publishers under the information of its element, or under its counts
+    layout->insertWidget(layout == m_editorPageLayout ? 2 : 1, m_publishingBox);
     // In this order, over the stretch at the bottom of the page
     int at = layout->count() - 1;
     for (QWidget* group : groups) {
@@ -1148,9 +1194,6 @@ void PropertiesPanel::refresh() {
     Page currentPage = static_cast<Page>(m_stackedWidget->currentIndex());
 
     switch (currentPage) {
-        case Page::NoProject:
-            // Nothing to refresh
-            break;
         case Page::Project:
             populateProjectFields();
             break;
@@ -1191,6 +1234,11 @@ void PropertiesPanel::refresh() {
         case Page::Card:
             refreshCard();
             break;
+        case Page::PublishingSet:
+            m_publishingSetPage->refresh();
+            break;
+        default:
+            break;  // No project: nothing to refresh
     }
 }
 
@@ -1219,11 +1267,8 @@ void PropertiesPanel::refreshMaterial(const QString& elementId) {
         case Page::Part:
             m_partMaterials->refresh();
             break;
-        case Page::NoProject:
-        case Page::Project:
-        case Page::Editor:
-        case Page::Card:
-            break;
+        default:
+            break;  // The other pages show no materials
     }
 }
 
@@ -1251,10 +1296,7 @@ void PropertiesPanel::updateWordCounts() {
                 populatePartFields(m_currentPartId);
             }
             break;
-        case Page::NoProject:
-        case Page::Editor:
-        case Page::Material:
-        case Page::Card:
+        default:
             break;  // No counts of the book
     }
 }
@@ -1713,6 +1755,9 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     m_chapterFirstPageLeft->setChecked(element->firstPageLeft);
     m_chapterNotesEdit->setPlainText(pm.notes(elementId));
     m_clippingOrigin->showClipping(elementId);
+    m_publishingBox->showText(elementId, describedTextId() == elementId
+                                             ? m_activeEditorPanel->getBookEditor()
+                                             : nullptr);
 
     // An element of a book open read-only is read only, here too
     const bool readOnly = pm.isReadOnly();

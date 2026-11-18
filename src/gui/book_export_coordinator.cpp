@@ -12,19 +12,27 @@
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/extension_points.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/plugin_host.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/book_export.h"
 #include "kalahari/editor/book_pages.h"
 #include "kalahari/editor/book_print.h"
+#include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/gui/book_styles.h"
 #include "kalahari/gui/caption_coordinator.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/dialogs/archive_dialogs.h"
+#include "kalahari/gui/dialogs/book_output_dialog.h"
+#include "kalahari/gui/dialogs/export_book_dialog.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/footnote_coordinator.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/publishing_set.h"
 #include "kalahari/gui/utils/language_names.h"
 #include "kalahari/gui/utils/program_folders.h"
 
@@ -40,6 +48,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <utility>
 
 namespace kalahari::gui {
@@ -54,6 +63,11 @@ constexpr const char* PRINT_COMMAND = "file.print";
 
 /// The style of the title of a part (a group of the book), when the book has it
 const QString PART_TITLE_STYLE = QStringLiteral("part_title");
+
+/// The styles of the title of the book and of the names of the parts of the set for a
+/// publisher: the headings of the first and of the second level
+constexpr const char* SET_TITLE_STYLE = "heading_1";
+constexpr const char* SET_PART_STYLE = "heading_2";
 /// The style of the title of a text, when the book has it
 const QString CHAPTER_TITLE_STYLE = QStringLiteral("chapter_title");
 
@@ -163,6 +177,22 @@ void setPaper(QPrinter& printer, const QPageSize& paper, bool sideways) {
 
 /// The lasting identifier of the e-book of the open book: the same for the book in each export,
 /// another for each book (a UUID made of the project's and the book's ids)
+/// The set for a publisher of @p projects in @p shown, as one text: its title and its parts
+void addSetOf(const core::ProjectManager& projects, dialogs::ExportBookDialog::Book& shown) {
+    shown.setParts = static_cast<int>(PublishingSetContents::textsOf(projects).size());
+    if (shown.setParts > 0) {
+        //: The set for a publisher as the name of its file; %1: the title of the book. In
+        //: Polish: %1 – zestaw dla wydawnictwa
+        shown.setTitle = BookExportCoordinator::tr("%1 – set for the publisher").arg(shown.title);
+    }
+}
+
+/// Plain text @p text in KML: each line a paragraph
+QString kmlOfText(const QString& text) {
+    return QStringLiteral("<kml>") + editor::ClipboardHandler::textToKml(text) +
+           QStringLiteral("</kml>");
+}
+
 QString bookIdentifier(const core::ProjectManager& projects) {
     const core::BookProject* project = projects.project();
     const core::ProjectBook* book = projects.isProjectOpen() ? projects.book() : nullptr;
@@ -240,64 +270,85 @@ QString BookExportCoordinator::whyNotPrint() const {
 }
 
 void BookExportCoordinator::exportBook(editor::ExportFormat format) {
+    exportContent(format, std::nullopt);
+}
+
+void BookExportCoordinator::exportSet() {
+    exportContent(editor::ExportFormat::Docx, dialogs::BookOutputDialog::Content::Set);
+}
+
+void BookExportCoordinator::exportContent(
+    editor::ExportFormat format, std::optional<dialogs::BookOutputDialog::Content> content) {
     if (!whyNotExport().isEmpty()) {
         return;
     }
-    auto& logger = core::Logger::getInstance();
     dialogs::ExportBookDialog dialog(
         dialogBook(), format, ProgramFolders::startFolder(ProgramFolders::Operation::ExportBook),
-        [this, &logger](const QString& path, const dialogs::ExportBookDialog::Choice& choice,
-                        const dialogs::ArchiveDialog::Progress& progress,
-                        editor::ExportResult* result, editor::ExportProblem* problem) {
-            bool written = false;
-            if (const auto exporter = dialogs::ExportBookDialog::exporterOf(choice.formatId)) {
-                // The plugin reads what the writer chose in the window (kalahari_api: the
-                // book given to export_document())
-                const core::PluginHost::ExportScope scope(pluginBookOf(bookExport(choice)));
-                written = exportWithPlugin(*exporter, choice.formatId, path, progress, result,
-                                           problem);
-                if (written) {
-                    logger.info("Export: the plugin {} wrote {}", exporter->getPluginId(),
-                                path.toStdString());
-                } else {
-                    for (const QString& line : problem->lines) {
-                        logger.error("Export: {}", line.toStdString());
-                    }
-                }
-                return written;
-            }
-            const editor::BookExport book = bookExport(choice);
-            switch (choice.format) {
-                case editor::ExportFormat::Docx:
-                    written = editor::exportDocx(book, path, progress, result, problem);
-                    break;
-                case editor::ExportFormat::Pdf:
-                    written = editor::exportPdf(book, path, progress, result, problem);
-                    break;
-                case editor::ExportFormat::Markdown:
-                    written = editor::exportMarkdown(book, path, choice.imagesFolder, progress,
-                                                     result, problem);
-                    break;
-                case editor::ExportFormat::Epub:
-                    // The book keeps the ISBN and the publisher of its e-book
-                    if (m_book.isProjectOpen() &&
-                        choice.content != dialogs::ExportBookDialog::Content::Front) {
-                        m_book.setBookPublication(choice.isbn, choice.publisher);
-                    }
-                    written = editor::exportEpub(book, path, progress, result, problem);
-                    break;
-            }
-            if (written) {
-                logger.info("Export: {} texts to {}", book.items.size(), path.toStdString());
-            } else {
-                for (const QString& line : problem->lines) {
-                    logger.error("Export: {}", line.toStdString());
-                }
-            }
-            return written;
+        [this](const QString& path, const dialogs::ExportBookDialog::Choice& choice,
+               const dialogs::ArchiveDialog::Progress& progress, editor::ExportResult* result,
+               editor::ExportProblem* problem) {
+            return writeExport(path, choice, progress, result, problem);
         },
         m_window);
+    // The content asked for; else the one the window chose
+    dialog.setContent(content.value_or(dialog.layoutChoice().content));
     dialog.exec();
+}
+
+bool BookExportCoordinator::writeExport(const QString& path,
+                                        const dialogs::ExportBookDialog::Choice& choice,
+                                        const dialogs::ArchiveDialog::Progress& progress,
+                                        editor::ExportResult* result,
+                                        editor::ExportProblem* problem) {
+    auto& logger = core::Logger::getInstance();
+    bool written = false;
+    if (const auto exporter = dialogs::ExportBookDialog::exporterOf(choice.formatId)) {
+        // The plugin reads what the writer chose in the window (kalahari_api: the book given
+        // to export_document())
+        const core::PluginHost::ExportScope scope(pluginBookOf(bookExport(choice)));
+        written = exportWithPlugin(*exporter, choice.formatId, path, progress, result, problem);
+        if (written) {
+            logger.info("Export: the plugin {} wrote {}", exporter->getPluginId(),
+                        path.toStdString());
+        }
+    } else {
+        const editor::BookExport book = bookExport(choice);
+        written = writeFile(book, path, choice, progress, result, problem);
+        if (written) {
+            logger.info("Export: {} texts to {}", book.items.size(), path.toStdString());
+        }
+    }
+    if (!written) {
+        for (const QString& line : problem->lines) {
+            logger.error("Export: {}", line.toStdString());
+        }
+    }
+    return written;
+}
+
+bool BookExportCoordinator::writeFile(const editor::BookExport& book, const QString& path,
+                                      const dialogs::ExportBookDialog::Choice& choice,
+                                      const dialogs::ArchiveDialog::Progress& progress,
+                                      editor::ExportResult* result,
+                                      editor::ExportProblem* problem) {
+    switch (choice.format) {
+        case editor::ExportFormat::Docx:
+            return editor::exportDocx(book, path, progress, result, problem);
+        case editor::ExportFormat::Pdf:
+            return editor::exportPdf(book, path, progress, result, problem);
+        case editor::ExportFormat::Markdown:
+            return editor::exportMarkdown(book, path, choice.imagesFolder, progress, result,
+                                          problem);
+        case editor::ExportFormat::Epub:
+            // The book keeps the ISBN and the publisher of its e-book
+            if (m_book.isProjectOpen() &&
+                (choice.content == dialogs::ExportBookDialog::Content::Book ||
+                 choice.content == dialogs::ExportBookDialog::Content::Chosen)) {
+                m_book.setBookPublication(choice.isbn, choice.publisher);
+            }
+            return editor::exportEpub(book, path, progress, result, problem);
+    }
+    return false;  // A format the program does not write
 }
 
 void BookExportCoordinator::printBook() {
@@ -325,10 +376,12 @@ void BookExportCoordinator::printBook() {
             }
             QPrinter printer(info, QPrinter::HighResolution);
             // The name of the print in the queue of the printer
-            const QString title =
-                choice.content == dialogs::BookOutputDialog::Content::Front || book.title.isEmpty()
-                    ? book.frontTitle
-                    : book.title;
+            QString title = book.title;
+            if (choice.content == dialogs::BookOutputDialog::Content::Front || title.isEmpty()) {
+                title = book.frontTitle;
+            } else if (choice.content == dialogs::BookOutputDialog::Content::Set) {
+                title = book.setTitle;
+            }
             printer.setDocName(title.isEmpty() ? QStringLiteral("Kalahari") : title);
             const bool printed = printOn(printer, choice, pages, sides, progress, problem);
             if (printed) {
@@ -365,6 +418,7 @@ dialogs::ExportBookDialog::Book BookExportCoordinator::dialogBook() const {
         if (cover.description != nullptr) {
             book.description = cover.description->description;
         }
+        addSetOf(projects, book);
         // The texts with their groups, as the Navigator shows them
         const std::function<void(const QList<core::ProjectElement>&, int)> addRows =
             [&](const QList<core::ProjectElement>& elements, int level) {
@@ -519,6 +573,10 @@ editor::BookExport BookExportCoordinator::bookExport(
     if (projectBook == nullptr) {
         return book;
     }
+    if (layout.content == Content::Set) {
+        addSetItems(book);
+        return book;
+    }
 
     // The book, or its texts chosen in the window, in reading order with their groups
     const QSet<QString> chosen(layout.chosen.cbegin(), layout.chosen.cend());
@@ -534,6 +592,24 @@ editor::BookExport BookExportCoordinator::bookExport(
                                                     !item.footnotes.endnotesHere;
                                          });
     return book;
+}
+
+void BookExportCoordinator::addSetItems(editor::BookExport& book) const {
+    // The title of the book with its author, then each part under its name
+    editor::ExportItem title;
+    title.kind = editor::ExportItemKind::Text;
+    title.title = PublishingSetContents::titleOf(m_book);
+    title.titleStyle = QString::fromLatin1(SET_TITLE_STYLE);
+    title.kml = kmlOfText(PublishingSetContents::aboutOf(m_book));
+    book.items.push_back(title);
+    for (const core::PublishingSetText& part : PublishingSetContents::textsOf(m_book)) {
+        editor::ExportItem item;
+        item.kind = editor::ExportItemKind::Text;
+        item.title = part.heading;
+        item.titleStyle = QString::fromLatin1(SET_PART_STYLE);
+        item.kml = kmlOfText(part.text);
+        book.items.push_back(item);
+    }
 }
 
 editor::ExportItem BookExportCoordinator::textItem(

@@ -199,6 +199,12 @@ void SettingsDialog::createNavigationTree() {
     //: Settings > Navigator > Cover: the cover of the book in the Navigator. In Polish: Okładka
     addPage(navigator, tr("Cover"),
             [this]() { return new NavigatorPage(m_book, NavigatorPage::Part::Cover); });
+    //: Settings > Navigator > Texts for Publishers: the lengths, the template of a synopsis and
+    //: the set. Short: the list of the pages is as wide as its longest name. In Polish: Dla
+    //: wydawnictwa
+    m_pageItems[PUBLISHING_PAGE] = addPage(navigator, tr("Texts for Publishers"), [this]() {
+        return new NavigatorPage(m_book, NavigatorPage::Part::Publishing);
+    });
     //: Settings > Cards: the cards of characters, locations and items. In Polish: Karty
     m_pageItems[CARDS_PAGE] = addPage(nullptr, tr("Cards"), []() { return new CardsPage(); });
     //: The page of the materials: how they open, the preview of PDF files and the sources. In

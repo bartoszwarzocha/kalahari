@@ -15,6 +15,13 @@ namespace {
 
 using json = nlohmann::json;
 
+/// The default target lengths of the texts for publishers without a template: a sentence
+/// about the book (about two lines) and a synopsis (a standard page)
+constexpr int PITCH_CHARACTERS = 200;
+constexpr int PITCH_WORDS = 35;
+constexpr int SYNOPSIS_CHARACTERS = 1800;
+constexpr int SYNOPSIS_WORDS = 300;
+
 std::map<std::string, json> buildDefaults() {
     return {
         // Main window
@@ -217,6 +224,21 @@ std::map<std::string, json> buildDefaults() {
         {"materials.cover.targets.tagline.words", 10},
         {"materials.cover.targets.opinion.characters", 200},
         {"materials.cover.targets.opinion.words", 35},
+        // The texts for publishers (Settings > Navigator > Texts for Publishers): the default
+        // target length of a sentence about the book and of a synopsis without a template in
+        // each unit (that of the cover), whether a synopsis gives its length in standard pages
+        // too, where the points of a template are ("beside" the text, in the Properties, or
+        // "inText", as headings), the parts of the set of a new book in their order, and the
+        // writer's own templates (core::PublishingTexts)
+        {"materials.publishing.targets.pitch.characters", PITCH_CHARACTERS},
+        {"materials.publishing.targets.pitch.words", PITCH_WORDS},
+        {"materials.publishing.targets.synopsis.characters", SYNOPSIS_CHARACTERS},
+        {"materials.publishing.targets.synopsis.words", SYNOPSIS_WORDS},
+        {"materials.publishing.pages", true},
+        {"materials.publishing.templatePoints", "beside"},
+        {"materials.publishing.set",
+         json::array({"pitch", "tagline", "blurb", "synopsis", "aboutAuthor"})},
+        {"materials.publishing.templates", json::array()},
         // The kinds of materials the Navigator does not show, in every book: kinds with their
         // packages ("kalahari.base:cover"); their materials stay in the books (MaterialList)
         {"materials.hiddenKinds", json::array()},

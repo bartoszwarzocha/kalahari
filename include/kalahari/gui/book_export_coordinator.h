@@ -22,6 +22,7 @@
 #include <QStringList>
 
 #include <functional>
+#include <optional>
 #include <vector>
 
 class QPrinter;
@@ -96,6 +97,10 @@ public:
     /// @brief Open the window of the export, with @p format chosen
     void exportBook(editor::ExportFormat format);
 
+    /// @brief Open the window of the export with the set for a publisher chosen, as a Word
+    ///        document (Export Set... of the set)
+    void exportSet();
+
     /// @brief Open the window of the print, with the printers of the system
     void printBook();
 
@@ -140,6 +145,26 @@ public:
                                  editor::ExportResult* result, editor::ExportProblem* problem);
 
 private:
+    /// @brief Open the window of the export with @p format and, when given, @p content chosen
+    void exportContent(editor::ExportFormat format,
+                       std::optional<dialogs::BookOutputDialog::Content> content);
+
+    /// @brief Add to @p book the set for a publisher of the book: the title of the book with
+    ///        its author, then each part with a text under its name
+    void addSetItems(editor::BookExport& book) const;
+
+    /// @brief Write @p path as @p choice says, with a plugin's exporter or the program's own;
+    ///        false, with what went wrong in @p problem, when it cannot
+    bool writeExport(const QString& path, const dialogs::ExportBookDialog::Choice& choice,
+                     const dialogs::ArchiveDialog::Progress& progress,
+                     editor::ExportResult* result, editor::ExportProblem* problem);
+
+    /// @brief Write @p book to @p path in the program's own format of @p choice
+    bool writeFile(const editor::BookExport& book, const QString& path,
+                   const dialogs::ExportBookDialog::Choice& choice,
+                   const dialogs::ArchiveDialog::Progress& progress,
+                   editor::ExportResult* result, editor::ExportProblem* problem);
+
     /// @brief The open texts of the book, by their elements, as their editors have them
     [[nodiscard]] QHash<QString, const editor::BookEditor*> openEditors() const;
 

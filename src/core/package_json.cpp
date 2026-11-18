@@ -12,6 +12,7 @@
 #include <QRegularExpression>
 
 #include <algorithm>
+#include <cmath>
 #include <initializer_list>
 
 namespace kalahari::core::package_json {
@@ -31,6 +32,14 @@ bool isIdentifier(const QString& text) {
 
 bool isLanguageCode(const QString& text) {
     return matches(text, "^[a-z]{2,3}(_[A-Z]{2})?$");
+}
+
+bool isWholeNumber(const QJsonValue& value) {
+    if (!value.isDouble()) {
+        return false;
+    }
+    const double number = value.toDouble();
+    return std::isfinite(number) && std::floor(number) == number;
 }
 
 void checkKeys(const QJsonObject& object, const QString& field,

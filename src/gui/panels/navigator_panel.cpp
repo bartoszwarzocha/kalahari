@@ -28,6 +28,7 @@
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/material_source.h"
 #include "kalahari/gui/paste_target.h"
+#include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/gui/utils/access_keys.h"
@@ -1227,6 +1228,10 @@ QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
         element.cover.part != QLatin1String(core::CoverMaterial::REFERENCE)) {
         const QString part = CoverNames::partIconId(element.cover.part);
         return part.isEmpty() ? kind.kind->icon : part;
+    }
+    // A text for publishers shows what it is
+    if (core::ProjectManager::isPublishingText(element)) {
+        return PublishingNames::partIconId(element.publishing.part);
     }
     // A material shows where it comes from: a picture or another file, a web page, a picture
     // on the web, neither
@@ -3185,7 +3190,8 @@ QList<core::KindRef> NavigatorPanel::namedKindsOf(const QTreeWidgetItem* item) c
         // The kinds of the node the program makes elements of; a node of several kinds (the
         // Workshop, Materials) leaves the kinds of materials, many of the same weight, to the
         // window, as the front and back sections do. The clippings come from Edit > Cut to
-        // Clippings: one is added by hand only in the window.
+        // Clippings: one is added by hand only in the window; a text for publishers there too,
+        // where its part is chosen.
         const QList<core::KindRef> available = pm.kindsFor(core::BookPlace::Workshop);
         const QList<core::KindRef> all =
             target->kinds.isEmpty() && project
@@ -3193,9 +3199,12 @@ QList<core::KindRef> NavigatorPanel::namedKindsOf(const QTreeWidgetItem* item) c
                 : target->kinds;
         const bool several = all.size() > 1;
         const core::KindRef clipping = pm.clippingKind();
+        const core::KindRef publishing = pm.publishingKind();
         for (const core::KindRef& kind : all) {
-            const bool isClipping = clipping && kind.kind == clipping.kind;
-            if (offered(available, kind) && !(several && (kind.kind->isMaterial() || isClipping))) {
+            const bool inWindow = kind.kind->isMaterial() ||
+                                  (clipping && kind.kind == clipping.kind) ||
+                                  (publishing && kind.kind == publishing.kind);
+            if (offered(available, kind) && !(several && inWindow)) {
                 append(kind);
             }
         }

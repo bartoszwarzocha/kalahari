@@ -230,6 +230,9 @@ TEST_CASE("Print: the tabs, the keys and the size of the window", "[gui][dialogs
                                               QStringLiteral("draft"), QString(), 1, true});
     }
     book.frontTitle = QStringLiteral("The Well, where the caravan waited three days for the wind");
+    // With the set for a publisher beside the whole book and the chosen texts
+    book.setTitle = QStringLiteral("Wind over the Oasis – set for the publisher");
+    book.setParts = 4;
     PageMaker pages;
 
     const auto check = [&]() {

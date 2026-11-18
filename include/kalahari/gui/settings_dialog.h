@@ -85,6 +85,8 @@ public:
     static constexpr const char* NAVIGATOR_PAGE = "navigator";
     /// Navigator > Adding (the menus of the nodes and the Add Element window)
     static constexpr const char* NAVIGATOR_ADDING_PAGE = "navigator.adding";
+    /// Navigator > Texts for Publishers (the gear of the texts for publishers)
+    static constexpr const char* PUBLISHING_PAGE = "navigator.publishing";
     static constexpr const char* CARDS_PAGE = "cards";               ///< Cards
     static constexpr const char* MATERIALS_PAGE = "materials";       ///< Materials
     static constexpr const char* PLOT_BOARD_PAGE = "plotBoard";      ///< Plot Board

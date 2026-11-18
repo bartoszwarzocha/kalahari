@@ -13,16 +13,21 @@
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/kind_words.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/card_list.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/link_names.h"
 #include "kalahari/gui/material_file.h"
+#include "kalahari/gui/material_list.h"
 #include "kalahari/gui/panels/card_page.h"
+#include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/gui/widgets/card_cell_delegate.h"
 #include "kalahari/gui/widgets/cover_plan.h"
+#include "kalahari/gui/widgets/flow_layout.h"
+#include "kalahari/gui/widgets/publishing_set_view.h"
 
 #include <QAbstractTableModel>
 #include <QAction>
@@ -53,6 +58,7 @@
 #include <QScrollBar>
 #include <QSignalBlocker>
 #include <QSortFilterProxyModel>
+#include <QSpacerItem>
 #include <QStackedWidget>
 #include <QStyle>
 #include <QStyledItemDelegate>
@@ -100,6 +106,11 @@ constexpr int CARD_ICON = 24;
 
 /// Characters of a text from which its tooltip wraps it in lines
 constexpr int LONG_TIP = 60;
+/// The gap after the kind at the start of the commands, and between the filters
+constexpr int TOOLS_GAP = 6;
+constexpr int FILTERS_SPACING = 8;
+/// The margins of the row of the commands at its sides
+constexpr int TOOLS_MARGIN_X = 6;
 
 /// The size of the tile of a card in @p font: its portrait, its name, its kind and In Short
 QSize cardTileSize(const QFont& font) {
@@ -150,7 +161,10 @@ int widthOf(const QString& id) {
     if (id == QLatin1String(MaterialList::QUOTE)) {
         return 360;
     }
+    // The words of a material of the cover or of a text for publishers too
     if (id == QLatin1String(MaterialList::TITLE) || id == QLatin1String(MaterialList::LINKS) ||
+        id == QLatin1String(MaterialList::COVER_TEXT) ||
+        id == QLatin1String(MaterialList::PUBLISHING_TEXT) ||
         id == QLatin1String(MaterialList::DETAILS) ||
         id == QLatin1String(MaterialList::DESCRIPTION) ||
         id == QLatin1String(MaterialList::ADDRESS)) {
@@ -182,12 +196,34 @@ QPixmap thumbnailOf(const QString& path, int rotation, const QSize& size) {
     return pixmap;
 }
 
-/// The place of the group of the materials of the cover of @p part in the list: the parts in
-/// their order, then those the program does not know
+/// The place of the group of @p part in the list: the texts for publishers, a sentence and a
+/// synopsis, first; then the parts of the cover in their order, then those the program does
+/// not know
 int groupOrderOf(const QString& part) {
+    if (const QStringList& texts = core::PublishingTexts::parts(); texts.contains(part)) {
+        return static_cast<int>(texts.indexOf(part) - texts.size());
+    }
     const QStringList& parts = core::CoverMaterial::parts();
     return parts.contains(part) ? static_cast<int>(parts.indexOf(part))
                                 : static_cast<int>(parts.size());
+}
+
+/// Copy in the menu of @p row: the words of a text for publishers, of a description or of a
+/// tagline, or the material
+QString copyCommandOf(const MaterialRow& row) {
+    if (row.publishing || row.fromCover) {
+        //: Copies the words of a text for publishers, of a description or of a tagline. In
+        //: Polish: Kopiuj &tekst
+        return MaterialList::tr("Copy &Text");
+    }
+    //: In Polish: &Kopiuj
+    return MaterialList::tr("&Copy");
+}
+
+/// The name of the group of @p row: of a text for publishers or of a part of the cover
+QString groupNameOf(const MaterialRow& row) {
+    return row.publishing || row.fromCover ? PublishingNames::groupName(row.group)
+                                           : CoverNames::groupName(row.group);
 }
 
 /// Whether Edit of @p row gives the keys to its text: the words of a quote, the text of a
@@ -460,13 +496,16 @@ public:
         m_rows = rows;
         m_portraits.clear();
         m_materials = static_cast<int>(rows.size());
-        // The list of the cover has a row that names each group of its materials
+        // The lists of the cover and of the texts for publishers have a row that names each
+        // group of their rows
         if (groups) {
             QHash<QString, int> counts;
             QStringList parts;
+            QHash<QString, QString> names;
             for (const MaterialRow& row : rows) {
                 if (!counts.contains(row.group)) {
                     parts << row.group;
+                    names.insert(row.group, groupNameOf(row));
                 }
                 ++counts[row.group];
             }
@@ -476,7 +515,7 @@ public:
                 //: The row that names a group of the list of the cover: %1 its name, %2 its
                 //: number of materials. In Polish: %1 · %2
                 heading.heading = MaterialList::tr("%1 · %2")
-                                      .arg(CoverNames::groupName(part),
+                                      .arg(names.value(part),
                                            QLocale().toString(counts.value(part)));
                 m_rows << heading;
             }
@@ -995,12 +1034,15 @@ void MaterialListPanel::createLayout() {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
-    // The kind and the commands of the material chosen
+    // The kind and the commands of the material chosen, the gear at the right; the commands
+    // go on in the next line where the panel is narrow (1366x768 at 150%)
     auto* tools = new QWidget(content);
     tools->setObjectName(QStringLiteral("materialListTools"));
-    auto* toolsLayout = new QHBoxLayout(tools);
-    toolsLayout->setContentsMargins(6, 4, 6, 4);
-    toolsLayout->setSpacing(2);
+    auto* toolsRow = new QHBoxLayout(tools);
+    toolsRow->setContentsMargins(TOOLS_MARGIN_X, 4, TOOLS_MARGIN_X, 4);
+    toolsRow->setSpacing(2);
+    auto* commands = new QWidget(tools);
+    auto* toolsLayout = new FlowLayout(commands, 2, 2);
     auto* icon = new QLabel(tools);
     icon->setObjectName(QStringLiteral("materialListIcon"));
     m_heading = new QLabel(tools);
@@ -1021,7 +1063,7 @@ void MaterialListPanel::createLayout() {
         tool->setToolButtonStyle(text ? Qt::ToolButtonTextBesideIcon : Qt::ToolButtonIconOnly);
         return tool;
     };
-    toolsLayout->addSpacing(6);
+    toolsLayout->addItem(new QSpacerItem(TOOLS_GAP, 0));
     toolsLayout->addWidget(separator(tools));
     m_addButton = button("materialListAdd", true);
     m_editButton = button("materialListEdit", true);
@@ -1036,6 +1078,7 @@ void MaterialListPanel::createLayout() {
     m_groupsButton = button("materialListGroups", true);
     m_settingsButton = button("materialListSettings", false);
     m_restoreButton = button("materialListRestore", true);
+    m_fromCoverButton = button("materialListFromCover", true);
     m_tableButton->setCheckable(true);
     m_tilesButton->setCheckable(true);
     m_planButton->setCheckable(true);
@@ -1054,16 +1097,17 @@ void MaterialListPanel::createLayout() {
     toolsLayout->addWidget(separator(tools));
     toolsLayout->addWidget(m_columnsButton);
     toolsLayout->addWidget(m_groupsButton);
-    toolsLayout->addStretch();
-    toolsLayout->addWidget(m_settingsButton);
+    toolsLayout->addWidget(m_fromCoverButton);
+    toolsRow->addWidget(commands, 1);
+    toolsRow->addWidget(m_settingsButton, 0, Qt::AlignTop);
     layout->addWidget(tools);
 
-    // The search and the filters
+    // The search and the filters, in as many lines as the width needs; a label stays with its
+    // field
     auto* filters = new QWidget(content);
     filters->setObjectName(QStringLiteral("materialListFilters"));
-    auto* filtersLayout = new QHBoxLayout(filters);
+    auto* filtersLayout = new FlowLayout(filters, FILTERS_SPACING, 2);
     filtersLayout->setContentsMargins(6, 2, 6, 4);
-    filtersLayout->setSpacing(8);
     m_search = new QLineEdit(filters);
     m_search->setObjectName(QStringLiteral("materialListSearch"));
     m_search->setClearButtonEnabled(true);
@@ -1102,14 +1146,17 @@ void MaterialListPanel::createLayout() {
     //: In Polish: Wyczyść filtry
     m_clearButton->setText(MaterialList::tr("Clear Filters"));
     filtersLayout->addWidget(m_search);
-    filtersLayout->addWidget(m_partLabel);
-    filtersLayout->addWidget(m_partBox);
-    filtersLayout->addWidget(linkedLabel);
-    filtersLayout->addWidget(m_linkedWith);
+    for (const auto& [label, field] : {std::pair<QLabel*, QWidget*>{m_partLabel, m_partBox},
+                                       std::pair<QLabel*, QWidget*>{linkedLabel, m_linkedWith}}) {
+        auto* pair = new QHBoxLayout();
+        pair->setSpacing(FILTERS_SPACING);
+        pair->addWidget(label);
+        pair->addWidget(field);
+        filtersLayout->addLayout(pair);
+    }
     filtersLayout->addWidget(m_withoutLinks);
     filtersLayout->addWidget(m_columnFiltersButton);
     filtersLayout->addWidget(m_clearButton);
-    filtersLayout->addStretch();
     layout->addWidget(filters);
 
     // The table and the tiles
@@ -1159,6 +1206,8 @@ void MaterialListPanel::createLayout() {
     m_plan = new CoverPlan(m_planArea);
     m_planArea->setWidget(m_plan);
     m_stack->addWidget(m_planArea);
+    // The set for a publisher
+    createSetPage();
     layout->addWidget(m_stack, 1);
 
     // How many are shown, and how they are sorted
@@ -1168,6 +1217,8 @@ void MaterialListPanel::createLayout() {
     footerLayout->setContentsMargins(8, 2, 8, 2);
     m_footer = new QLabel(footer);
     m_footer->setObjectName(QStringLiteral("materialListCount"));
+    // What the keys of the set do takes more than one line in a narrow window
+    m_footer->setWordWrap(true);
     m_sorting = new QLabel(footer);
     m_sorting->setObjectName(QStringLiteral("materialListSorting"));
     footerLayout->addWidget(m_footer);
@@ -1331,6 +1382,7 @@ void MaterialListPanel::createCommands() {
     });
     connect(m_settingsButton, &QToolButton::clicked, this, &MaterialListPanel::openSettings);
     createClippingCommands();
+    createPublishingCommands();
     connect(m_columnsButton, &QToolButton::clicked, this, [this]() {
         showColumnsMenu(m_columnsButton->mapToGlobal(QPoint(0, m_columnsButton->height())));
     });
@@ -1371,8 +1423,10 @@ void MaterialListPanel::refreshIcons() {
     m_tableButton->setIcon(iconOf("materials.table"));
     m_tilesButton->setIcon(iconOf("materials.tiles"));
     m_columnsButton->setIcon(iconOf("materials.columns"));
-    m_planButton->setIcon(iconOf("materials.coverPlan"));
+    m_planButton->setIcon(iconOf(MaterialList::isPublishing(m_list) ? "materials.publishingSet"
+                                                                    : "materials.coverPlan"));
     m_groupsButton->setIcon(iconOf("materials.groups"));
+    m_fromCoverButton->setIcon(iconOf("material.cover"));
     m_settingsButton->setIcon(iconOf("dock.settings"));
     m_restoreButton->setIcon(iconOf("clipping.restore"));
     m_showKindButton->setIcon(iconOf("materials.showKind"));
@@ -1422,6 +1476,10 @@ void MaterialListPanel::focusList() {
         m_plan->focusCurrent();
         return;
     }
+    if (m_stack->currentWidget() == m_setPage) {
+        m_set->focusCurrent();
+        return;
+    }
     view()->setFocus(Qt::OtherFocusReason);
 }
 
@@ -1437,7 +1495,9 @@ QSortFilterProxyModel* MaterialListPanel::rows() const {
 void MaterialListPanel::showTiles(bool tiles) {
     tiles = tiles && MaterialList::hasTiles(m_list);
     const QString current = currentMaterial();
-    const bool focused = view()->hasFocus() || m_plan->isAncestorOf(QApplication::focusWidget());
+    const bool focused =
+        view()->hasFocus() || m_planArea->isAncestorOf(QApplication::focusWidget()) ||
+        m_setPage->isAncestorOf(QApplication::focusWidget());
     m_planButton->setChecked(false);
     m_stack->setCurrentWidget(tiles ? static_cast<QWidget*>(m_tiles)
                                     : static_cast<QWidget*>(m_table));
@@ -1458,6 +1518,7 @@ void MaterialListPanel::showTiles(bool tiles) {
         selectMaterial(current);
         m_loading = loading;
     }
+    applySetShown();
     if (focused) {
         focusList();
     }
@@ -1465,25 +1526,27 @@ void MaterialListPanel::showTiles(bool tiles) {
 }
 
 void MaterialListPanel::showPlan(bool plan) {
-    plan = plan && MaterialList::isCover(m_list);
-    if (MaterialList::isCover(m_list) && MaterialList::planShown(m_list) != plan) {
+    const bool hasPlan = MaterialList::isCover(m_list) || MaterialList::isPublishing(m_list);
+    plan = plan && hasPlan;
+    if (hasPlan && MaterialList::planShown(m_list) != plan) {
         MaterialList::setPlanShown(m_list, plan);
     }
     if (!plan) {
-        if (m_stack->currentWidget() == m_planArea) {
+        if (planShowing()) {
             showTiles(MaterialList::tilesShown(m_list));
         }
         return;
     }
     const bool focused = view()->hasFocus();
-    m_stack->setCurrentWidget(m_planArea);
-    setFocusProxy(m_plan);
+    m_stack->setCurrentWidget(planPage());
+    setFocusProxy(planWidget());
     m_tableButton->setChecked(false);
     m_tilesButton->setChecked(false);
     m_planButton->setChecked(true);
     m_columnsButton->setEnabled(false);
     m_columnFiltersButton->setEnabled(false);
     m_groupsButton->setEnabled(false);
+    applySetShown();
     applyFilters();
     if (focused) {
         focusList();
@@ -1491,7 +1554,7 @@ void MaterialListPanel::showPlan(bool plan) {
 }
 
 void MaterialListPanel::showGroups(bool groups) {
-    if (!MaterialList::isCover(m_list)) {
+    if (!MaterialList::hasGroups(m_list)) {
         return;
     }
     if (m_groupsButton->isChecked() != groups) {
@@ -1502,12 +1565,12 @@ void MaterialListPanel::showGroups(bool groups) {
         MaterialList::setGroupsShown(m_list, groups);
     }
     // The groups say what the materials are: the column Kind waits for the table without them
-    if (const int part = columnOf(QString::fromLatin1(MaterialList::COVER_PART)); part >= 0) {
+    const QString partColumn = MaterialList::partColumnOf(m_list);
+    if (const int part = columnOf(partColumn); part >= 0) {
         m_header->setSectionHidden(
-            part, groups || !MaterialList::shownColumns(m_book, m_list).contains(
-                                QString::fromLatin1(MaterialList::COVER_PART)));
+            part, groups || !MaterialList::shownColumns(m_book, m_list).contains(partColumn));
         if (!m_header->isSectionHidden(part) && m_header->sectionSize(part) < 20) {
-            m_header->resizeSection(part, widthOf(QString::fromLatin1(MaterialList::COVER_PART)));
+            m_header->resizeSection(part, widthOf(partColumn));
         }
         m_header->placeFields();
     }
@@ -1615,16 +1678,14 @@ void MaterialListPanel::fillMenu(QMenu& menu) {
                         [this, id]() { emit requestShowInFolder(id); });
             }
         }
-        // A material of the cover is chosen for it, rejected, or a draft again
-        if (MaterialList::isCover(m_list) || !row->group.isEmpty()) {
-            addCoverActions(menu, *row);
-        }
+        // A material of the cover is chosen for it, rejected, or a draft again; a text for
+        // publishers for the set
+        addStateItems(menu, *row);
         addClippingItems(menu, *row);
         menu.addSeparator();
-        //: In Polish: &Kopiuj
         QAction* copy = menu.addAction(
             art.getIcon(QStringLiteral("edit.copy"), core::IconContext::Menu),
-            withKeys(MaterialList::tr("&Copy"), QKeyCombination(Qt::ControlModifier, Qt::Key_C)));
+            withKeys(copyCommandOf(*row), QKeyCombination(Qt::ControlModifier, Qt::Key_C)));
         connect(copy, &QAction::triggered, this, &MaterialListPanel::copyCurrent);
         if (!row->text) {
             //: In Polish: &Powiąż...
@@ -1872,8 +1933,9 @@ void MaterialListPanel::load() {
                                                  QLatin1String(MaterialList::THUMBNAIL);
                                       });
     const bool cover = MaterialList::isCover(m_list);
+    const bool groups = MaterialList::hasGroups(m_list);
     m_cards = CardList::isCardList(m_list);
-    m_model->setContents(m_columns, MaterialList::rowsOf(m_book, m_list), !pictures, cover);
+    m_model->setContents(m_columns, MaterialList::rowsOf(m_book, m_list), !pictures, groups);
     applyRowSizes(pictures);
     // The cells of the cards are edited in the table
     QStringList columnIds;
@@ -1901,22 +1963,24 @@ void MaterialListPanel::load() {
     if (auto* line = findChild<QFrame*>(QStringLiteral("materialListViewSeparator"))) {
         line->setVisible(tiles);
     }
-    // The list of the cover: its groups, the filter Kind, the plan and Add with the kinds
-    m_planButton->setVisible(cover);
-    m_groupsButton->setVisible(cover);
-    m_partLabel->setVisible(cover);
-    m_partBox->setVisible(cover);
+    // The lists of the cover and of the texts for publishers: their groups, the filter Kind
+    // and Add with the kinds; the plan of the cover, the set for a publisher
+    const bool plan = cover || MaterialList::isPublishing(m_list);
+    m_planButton->setVisible(plan);
+    m_groupsButton->setVisible(groups);
+    m_partLabel->setVisible(groups);
+    m_partBox->setVisible(groups);
     fillCoverChoices();
     {
         const QSignalBlocker blocker(m_groupsButton);
         m_groupsButton->setChecked(MaterialList::groupsShown(m_list));
     }
     showTiles(MaterialList::tilesShown(m_list));
-    if (cover) {
+    if (groups) {
         showGroups(m_groupsButton->isChecked());
-        if (MaterialList::planShown(m_list)) {
-            showPlan(true);
-        }
+    }
+    if (plan && MaterialList::planShown(m_list)) {
+        showPlan(true);
     }
     updateHidden();
     refreshIcons();
@@ -2061,7 +2125,7 @@ void MaterialListPanel::applyColumns() {
             m_header->moveSection(visual, place);
         }
     }
-    if (const int part = columnOf(QString::fromLatin1(MaterialList::COVER_PART));
+    if (const int part = columnOf(MaterialList::partColumnOf(m_list));
         part >= 0 && MaterialList::groupsShown(m_list)) {
         m_header->setSectionHidden(part, true);
     }
@@ -2088,8 +2152,8 @@ void MaterialListPanel::applyFilters() {
     m_loading = true;
     m_filter->setFilters(m_search->text(), m_linkedWith->currentData().toString(),
                          m_withoutLinks->isChecked(), columnFilter, groupsApply(),
-                         MaterialList::isCover(m_list) ? m_partBox->currentData().toString()
-                                                       : QString());
+                         MaterialList::hasGroups(m_list) ? m_partBox->currentData().toString()
+                                                         : QString());
     if (!current.isEmpty()) {
         selectMaterial(current);
     }
@@ -2185,6 +2249,7 @@ void MaterialListPanel::updateCommands() {
     m_linkButton->setEnabled(row != nullptr && !row->text && changing);
     m_deleteButton->setEnabled(row != nullptr && changing);
     updateClippingCommands(row);
+    updatePublishingCommands();
 }
 
 void MaterialListPanel::updateHeading() {
@@ -2199,6 +2264,9 @@ void MaterialListPanel::updateFooter() {
     m_footer->setText(MaterialList::tr("Shown: %1 of %2")
                           .arg(QLocale().toString(shownMaterials()),
                                QLocale().toString(m_model->materialCount())));
+    if (updateSetFooter()) {
+        return;
+    }
     if (m_stack->currentWidget() == m_planArea) {
         m_sorting->setText(MaterialList::tr("Cover Plan"));
         return;
@@ -2266,8 +2334,8 @@ void MaterialListPanel::showColumnsMenu(const QPoint& globalPos) {
 
 void MaterialListPanel::keepColumns() {
     QStringList shown = shownColumns();
-    // The column Kind of the cover, hidden by the groups, stays where the writer had it
-    const QString part = QString::fromLatin1(MaterialList::COVER_PART);
+    // The column Kind, hidden by the groups, stays where the writer had it
+    const QString part = MaterialList::partColumnOf(m_list);
     if (groupsApply() && !shown.contains(part)) {
         const QStringList before = MaterialList::shownColumns(m_book, m_list);
         if (const qsizetype at = before.indexOf(part); at >= 0) {
@@ -2327,7 +2395,7 @@ int MaterialListPanel::columnOf(const QString& columnId) const {
 }
 
 bool MaterialListPanel::groupsApply() const {
-    return MaterialList::isCover(m_list) && m_groupsButton->isChecked() &&
+    return MaterialList::hasGroups(m_list) && m_groupsButton->isChecked() &&
            m_stack->currentWidget() == m_table;
 }
 
@@ -2342,6 +2410,10 @@ int MaterialListPanel::shownMaterials() const {
 }
 
 void MaterialListPanel::updatePlan() {
+    if (m_stack->currentWidget() == m_setPage) {
+        updateSet();
+        return;
+    }
     if (m_stack->currentWidget() != m_planArea) {
         return;
     }
@@ -2372,10 +2444,8 @@ void MaterialListPanel::updatePlan() {
 void MaterialListPanel::updateHidden() {
     const bool hidden = MaterialList::isHidden(m_list);
     m_pages->setCurrentWidget(hidden ? m_hiddenPage : m_pages->widget(0));
-    setFocusProxy(hidden ? static_cast<QWidget*>(m_showKindButton)
-                         : (m_stack->currentWidget() == m_planArea
-                                ? static_cast<QWidget*>(m_plan)
-                                : static_cast<QWidget*>(view())));
+    QWidget* shown = planShowing() ? planWidget() : static_cast<QWidget*>(view());
+    setFocusProxy(hidden ? static_cast<QWidget*>(m_showKindButton) : shown);
     if (!hidden) {
         return;
     }
@@ -2396,6 +2466,10 @@ void MaterialListPanel::updateHidden() {
 }
 
 void MaterialListPanel::fillCoverChoices() {
+    if (MaterialList::isPublishing(m_list)) {
+        fillPublishingChoices();
+        return;
+    }
     const QString chosen = m_states.value(m_list).part;
     {
         const QSignalBlocker blocker(m_partBox);

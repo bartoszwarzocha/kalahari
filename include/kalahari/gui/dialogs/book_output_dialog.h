@@ -50,7 +50,8 @@ public:
     enum class Content {
         Book,    ///< The whole book
         Chosen,  ///< The texts chosen in the list
-        Front    ///< The text in front
+        Front,   ///< The text in front
+        Set      ///< The set for a publisher of the book: its parts under their names
     };
 
     /// @brief A row of the list of the texts, in reading order
@@ -77,6 +78,9 @@ public:
         QString coverFile;   ///< Its picture; empty: none
         QString isbn;        ///< The ISBN of its e-book, as the book keeps it; empty: none
         QString publisher;   ///< Its publisher, as the book keeps it; empty: none
+        QString setTitle;    ///< The set for a publisher as the name of its file: "Sand – set
+                             ///< for the publisher"; empty: the set has no text
+        int setParts = 0;    ///< The parts of the set with a text
     };
 
     /// @brief The choices of the tabs of the texts and of the layout
@@ -103,6 +107,7 @@ public:
     QRadioButton* bookButton() const { return m_bookButton; }
     QRadioButton* chosenButton() const { return m_chosenButton; }
     QRadioButton* frontButton() const { return m_frontButton; }
+    [[nodiscard]] QRadioButton* setButton() const { return m_setButton; }
 
     /// @brief The list of the texts of the book, with their check boxes
     QTreeWidget* textList() const;
@@ -148,6 +153,13 @@ protected:
 
     /// @brief What the window says about the book
     const Book& book() const { return m_book; }
+
+    /// @brief The title of what goes to the file or to the printer: of the book, of the text
+    ///        in front or of the set for a publisher
+    [[nodiscard]] QString contentTitle() const;
+
+    /// @brief Whether what goes is one text: the text in front or the set for a publisher
+    [[nodiscard]] bool oneText() const;
 
     /// @brief A new tab at the end, a grid whose second column stretches
     QGridLayout* newTab(const QString& title);
@@ -212,6 +224,7 @@ private:
     QRadioButton* m_bookButton = nullptr;
     QRadioButton* m_chosenButton = nullptr;
     QRadioButton* m_frontButton = nullptr;
+    QRadioButton* m_setButton = nullptr;
     QWidget* m_chosenBox = nullptr;
     RowList* m_textList = nullptr;
     QLabel* m_chosenNote = nullptr;

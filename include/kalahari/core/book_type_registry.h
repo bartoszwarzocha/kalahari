@@ -13,6 +13,7 @@
 #include <QString>
 #include <QStringList>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace kalahari::core {
@@ -117,6 +118,16 @@ public:
 
     /// @brief Character styles of package @p packageId and of the packages it uses
     [[nodiscard]] QList<PackageCharacterStyle> characterStyles(const QString& packageId) const;
+
+    /// @brief Templates of the texts for publishers of package @p packageId, then of the
+    /// packages it uses, in the order of their packages; the templates of a part (a sentence,
+    /// a synopsis) come from the first of these packages that has templates of that part
+    [[nodiscard]] QList<PublishingTemplate> publishingTemplates(const QString& packageId) const;
+
+    /// @brief Template of a package that @p reference names ("kalahari.novel:one_page",
+    /// PublishingTemplate::reference()); nullopt for none, and for the writer's own template
+    [[nodiscard]] std::optional<PublishingTemplate> findPublishingTemplate(
+        const QString& reference) const;
 
 private:
     enum class CheckState { Unchecked, Checking, Valid, Invalid };

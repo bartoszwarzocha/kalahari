@@ -37,6 +37,7 @@ set(TEST_SOURCES
     core/test_card_name_index.cpp     # Which card a name at a place of a text is
     core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
+    core/test_publishing_texts.cpp    # The texts for publishers: their data, templates, lengths and the set
     core/test_card_data.cpp           # The cards of the Workshop: their fields, data in the book and colors
     core/test_card_relations.cpp      # The relations between cards, and the fields that name a card by one
     core/test_card_field_set.cpp      # The fields of the cards as a book has them, and those new books start with
@@ -210,6 +211,12 @@ set(TEST_SOURCES
     gui/test_cursor_card.cpp          # The card at the cursor in the Properties panel
     gui/test_paragraph_cards.cpp      # A paragraph linked with a card: the window, the signs, the commands
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
+    gui/test_publishing_list.cpp                 # The list of the texts for publishers
+    gui/test_publishing_set.cpp                  # The set for a publisher, the second view of the list
+    gui/test_publishing_add.cpp                  # Add Element of a text for publishers
+    gui/test_pitch_panel.cpp                     # The card of a sentence about the book
+    gui/test_publishing_text_box.cpp             # A text for publishers in the Properties panel
+    gui/test_publishing_settings.cpp             # The names of the texts for publishers and their settings
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
     gui/test_source_cards.cpp                    # The cards of the sources and quotes, the list Sources
     gui/test_source_lookup.cpp                   # The description of a source from a catalog on the web
@@ -303,6 +310,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book_dictionary_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/material_kinds.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cover_material.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/publishing_texts.cpp
     ${CMAKE_SOURCE_DIR}/src/core/card_data.cpp
     ${CMAKE_SOURCE_DIR}/src/core/source_description.cpp
     ${CMAKE_SOURCE_DIR}/src/core/bibliography.cpp
@@ -317,6 +325,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/utils/svg_converter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager_card_fields.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/project_manager_publishing.cpp
     ${CMAKE_SOURCE_DIR}/src/core/recent_books_manager.cpp
     # OpenSpec #00041: SQLite Project Database
     ${CMAKE_SOURCE_DIR}/src/core/project_database.cpp
@@ -517,11 +526,13 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/assistant_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/info_bar.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/cover_plan.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/publishing_set_view.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/standalone_info_bar.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/path_label.cpp  # The paths of the recent books
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/wrapping_label.cpp  # Texts that wrap only where they must
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/wrapping_button.cpp  # Buttons that wrap only where they must
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp  # Rows of buttons that wrap on a narrow panel
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/length_meter.cpp  # The length of a text against its target
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/segmented_layout.cpp  # Joined buttons on a narrow panel
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/height_for_width_scroll_area.cpp  # Filters that scroll in a low panel
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/tool_button_columns.cpp
@@ -553,6 +564,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/avatar_words.cpp                     # The look in words
     ${CMAKE_SOURCE_DIR}/src/gui/name_labels.cpp                      # Cases and kinds of names
     ${CMAKE_SOURCE_DIR}/src/gui/cover_names.cpp                      # The materials of the cover in words
+    ${CMAKE_SOURCE_DIR}/src/gui/publishing_names.cpp                 # The texts for publishers in words
+    ${CMAKE_SOURCE_DIR}/src/gui/publishing_set.cpp                   # The set for a publisher in words
     ${CMAKE_SOURCE_DIR}/src/gui/source_names.cpp                     # The sources in words
     ${CMAKE_SOURCE_DIR}/src/gui/pdf_files.cpp                        # PDF files as shown
     ${CMAKE_SOURCE_DIR}/src/gui/quick_insert_items.cpp               # What quick insert offers
@@ -560,6 +573,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/element_place_picker.cpp     # The place of an element in the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/add_to_book_dialog.cpp       # A file as a new element of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_file_dialog.cpp          # A new element of the open book
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/publishing_choice.cpp  # The part and the template of a new text for publishers
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/move_element_dialog.cpp      # A new place in the book for an element
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/delete_dialogs.cpp           # What goes from the book, and its files
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/dialog_parts.cpp             # Parts of the own dialogs
@@ -609,6 +623,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/cursor_card_box.cpp           # The card at the cursor in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/panels/paragraph_cards_box.cpp  # ParagraphCardsBox - the cards of the paragraph at the cursor
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_panel.cpp                # The full card on a tab
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/pitch_panel.cpp  # The card of a sentence about the book
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/publishing_set_page.cpp  # The set for a publisher in Properties
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/publishing_text_box.cpp  # A text for publishers in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/palette_edit.cpp             # A palette of colors to change
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_parts.cpp                # The small parts of the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/source_boxes.cpp              # The groups of the card of a source
@@ -617,10 +634,13 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/image_preview_panel.cpp       # The preview of a material's picture
     ${CMAKE_SOURCE_DIR}/src/gui/material_list.cpp                    # The lists of the materials
     ${CMAKE_SOURCE_DIR}/src/gui/material_list_clippings.cpp          # The columns of the clippings
+    ${CMAKE_SOURCE_DIR}/src/gui/material_list_publishing.cpp         # The texts for publishers
     ${CMAKE_SOURCE_DIR}/src/gui/clipping_texts.cpp                   # What the program says of a clipping
     ${CMAKE_SOURCE_DIR}/src/gui/card_list.cpp                        # The lists of the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel.cpp       # The list of a kind of materials
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel_clippings.cpp  # The commands of the clippings
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel_publishing.cpp  # The commands of the texts for publishers
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel_set.cpp  # The set for a publisher
     ${CMAKE_SOURCE_DIR}/src/gui/panels/clipping_origin_box.cpp       # Where a clipping comes from
     ${CMAKE_SOURCE_DIR}/src/gui/plot_board.cpp                       # What the plot board shows
     ${CMAKE_SOURCE_DIR}/src/gui/plot_board_titles.cpp                # The numbers in the titles
@@ -764,6 +784,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/cover_plan.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/publishing_set_view.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h
@@ -784,6 +805,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_file_dialog.h  # NewFileDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pitch_panel.h  # PitchPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_set_page.h  # PublishingSetPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_text_box.h  # PublishingTextBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_meter.h  # LengthMeter with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT

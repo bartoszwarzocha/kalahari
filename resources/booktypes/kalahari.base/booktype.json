@@ -373,6 +373,22 @@
         "en": { "singular": "cover material", "plural": "cover materials", "indefinite": "a cover material" }
       }
     },
+    "publishing": {
+      "form": "text", "places": ["workshop"], "icon": "material.publishing",
+      "workshopGroup": "resources",
+      "name": { "pl": "Tekst dla wydawnictwa", "en": "Text for publishers" },
+      "plural": { "pl": "Teksty dla wydawnictwa", "en": "Texts for publishers" },
+      "words": {
+        "pl": { "gender": "masculine", "singular": "tekst dla wydawnictwa",
+                "plural": "teksty dla wydawnictwa", "genitive": "tekstu dla wydawnictwa",
+                "dative": "tekstowi dla wydawnictwa", "accusative": "tekst dla wydawnictwa",
+                "instrumental": "tekstem dla wydawnictwa", "locative": "tekście dla wydawnictwa",
+                "genitivePlural": "tekstów dla wydawnictwa" },
+        "en": { "singular": "text for publishers", "plural": "texts for publishers",
+                "indefinite": "a text for publishers" }
+      },
+      "title": { "pl": "Tekst dla wydawnictwa %n", "en": "Text for publishers %n" }
+    },
     "quote": {
       "form": "window", "editor": "material", "places": ["workshop"], "icon": "format.style.quote",
       "workshopGroup": "resources",
@@ -589,8 +605,8 @@
   "main":     ["chapter", "part"],
   "back":     ["afterword", "acknowledgments", "glossary", "about_author", "toc"],
   "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "clipping",
-               "cover", "quote", "web_page", "picture", "document", "publication", "recording",
-               "other_file"],
+               "cover", "publishing", "quote", "web_page", "picture", "document", "publication",
+               "recording", "other_file"],
   "primary":  "chapter",
   "styles":   "styles.json"
 }

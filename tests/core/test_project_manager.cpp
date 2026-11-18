@@ -1811,9 +1811,10 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     CHECK(references(pm.kindsFor(BookPlace::Workshop)) ==
           "kalahari.base:mindmap, kalahari.base:timeline, kalahari.base:character, "
           "kalahari.base:location, kalahari.base:item, kalahari.base:work_note, "
-          "kalahari.base:clipping, kalahari.base:cover, kalahari.base:quote, "
-          "kalahari.base:web_page, kalahari.base:picture, kalahari.base:document, "
-          "kalahari.base:publication, kalahari.base:recording, kalahari.base:other_file");
+          "kalahari.base:clipping, kalahari.base:cover, kalahari.base:publishing, "
+          "kalahari.base:quote, kalahari.base:web_page, kalahari.base:picture, "
+          "kalahari.base:document, kalahari.base:publication, kalahari.base:recording, "
+          "kalahari.base:other_file");
     CHECK(ProjectManager::canAdd(note));
     CHECK(ProjectManager::canAdd(material));
     CHECK(ProjectManager::canAdd(otherFile));
