@@ -18,6 +18,7 @@
 #include <QEventLoop>
 #include <QKeyEvent>
 #include <QMenu>
+#include <QPointer>
 #include <QResizeEvent>
 #include <QStringList>
 #include <QTextBlock>
@@ -154,6 +155,8 @@ private:
 /// deactivated as soon as another one takes it, closes all its popups
 /// (QEvent::ApplicationDeactivate): with the tests run side by side, a menu waiting a few
 /// seconds for the words of a misspelled one was closed before the test could read it.
+/// The test takes the menu from shown(): Qt 6.8 and later leave a popup without a window on
+/// the screen out of QApplication::activePopupWidget().
 class OffScreenPopups : public QObject {
 public:
     OffScreenPopups() { QCoreApplication::instance()->installEventFilter(this); }
@@ -163,15 +166,24 @@ public:
     OffScreenPopups(OffScreenPopups&&) = delete;
     OffScreenPopups& operator=(OffScreenPopups&&) = delete;
 
+    /// The menu shown last, while it is open; nullptr: none
+    [[nodiscard]] QMenu* shown() const {
+        return m_shown != nullptr && m_shown->isVisible() ? m_shown.data() : nullptr;
+    }
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override {
         // The show event comes before the menu's window is put on the screen
         if (auto* menu = qobject_cast<QMenu*>(watched);
             menu != nullptr && event->type() == QEvent::Show) {
             menu->setAttribute(Qt::WA_DontShowOnScreen);
+            m_shown = menu;
         }
         return QObject::eventFilter(watched, event);
     }
+
+private:
+    QPointer<QMenu> m_shown;
 };
 
 /// Presses @p key in the first popup menu that shows, as the writer would, and closes the

@@ -324,12 +324,11 @@ MenuSeen contextMenu(BookEditor& editor, const std::optional<QPoint>& point,
     MenuSeen seen;
     int ticks = 0;
     QTimer poll;
-    QObject::connect(&poll, &QTimer::timeout, [&seen, &ticks, &poll, chooseFirstBold]() {
-        auto* menu = qobject_cast<QMenu*>(QApplication::activePopupWidget());
+    QObject::connect(&poll, &QTimer::timeout, [&offScreen, &seen, &ticks, &poll,
+                                               chooseFirstBold]() {
+        // The menu from its show event: Qt 6.8 and later do not count it among the popups
+        QMenu* menu = offScreen.shown();
         if (menu == nullptr) {
-            if (++ticks > 400) {
-                poll.stop();
-            }
             return;
         }
         // The words of a misspelled one come in the menu once the dictionary found them
