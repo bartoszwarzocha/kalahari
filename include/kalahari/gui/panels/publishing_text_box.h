@@ -22,6 +22,7 @@ class QCheckBox;
 class QComboBox;
 class QLabel;
 class QSpinBox;
+class QToolButton;
 class QVBoxLayout;
 class QWidget;
 
@@ -51,6 +52,10 @@ public:
     /// @param book The book of its window
     /// @param parent Parent widget
     explicit PublishingTextBox(core::ProjectManager& book, QWidget* parent = nullptr);
+    ~PublishingTextBox() override;
+
+    PublishingTextBox(const PublishingTextBox&) = delete;
+    PublishingTextBox& operator=(const PublishingTextBox&) = delete;
 
     /// @brief Show element @p elementId when it is a text for publishers; else hide
     /// @param editor The editor of the text, whose words not yet saved it counts; nullptr:
@@ -71,6 +76,9 @@ public:
 
     /// @brief The templates of its part, "No template" last
     [[nodiscard]] QComboBox* templateBox() const { return m_templateBox; }
+
+    /// @brief Opens the window of the templates (Templates of Texts for Publishers)
+    [[nodiscard]] QToolButton* templatesButton() const { return m_templatesButton; }
 
     /// @brief The points of its template, in order; none without a template with points
     [[nodiscard]] const QList<QCheckBox*>& points() const { return m_points; }
@@ -124,6 +132,7 @@ private:
     LengthMeter* m_meter = nullptr;
     QLabel* m_targetSource = nullptr;
     QComboBox* m_templateBox = nullptr;
+    QToolButton* m_templatesButton = nullptr;  ///< Opens the window of the templates
     QWidget* m_pointsArea = nullptr;
     QVBoxLayout* m_pointsLayout = nullptr;
     QList<QCheckBox*> m_points;
@@ -133,6 +142,7 @@ private:
     QSpinBox* m_targetSpin = nullptr;
     QLabel* m_targetUnit = nullptr;
     QLabel* m_inSetLabel = nullptr;
+    int m_settingsListener = -1;  ///< The targets and the writer's templates changed
 };
 
 }  // namespace kalahari::gui

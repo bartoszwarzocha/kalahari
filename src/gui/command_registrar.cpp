@@ -970,6 +970,10 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // (DockCoordinator gives it its callback); Esc gives them back to the text
     //: In Polish: &Punkty szablonu
     REG_CMD("tools.publishing.templatePoints", QT_TRANSLATE_NOOP("CommandRegistrar", "Template &Points"), "TOOLS/Texts for Publishers/Template Points", 62, true, 0);
+    // The window of the templates of the book types and the writer's own (DockCoordinator gives
+    // it its callback)
+    //: In Polish: &Szablony...
+    REG_CMD("tools.publishing.templates", QT_TRANSLATE_NOOP("CommandRegistrar", "&Templates..."), "TOOLS/Texts for Publishers/Templates...", 63, false, 0);
 
     REG_CMD("tools.backupNow", QT_TRANSLATE_NOOP("CommandRegistrar", "&Backup Now"), "TOOLS/Backup Now", 100, false, 2);
     REG_CMD("tools.autoSaveSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "&Auto-Save Settings..."), "TOOLS/Auto-Save Settings...", 110, true, 1);

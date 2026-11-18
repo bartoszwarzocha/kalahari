@@ -8,6 +8,7 @@
 
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/dialogs/publishing_templates_dialog.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/utils/panel_toggle.h"
@@ -836,6 +837,13 @@ void DockCoordinator::connectTemplatePoints() {
         }
     };
     m_commands.updateActionState("tools.publishing.templatePoints");
+    if (Command* templates = m_commands.getCommand("tools.publishing.templates")) {
+        // The changes reach the open lists, cards and boxes through the settings
+        templates->execute = [this]() {
+            dialogs::PublishingTemplatesDialog::editTemplates(&m_book, m_mainWindow);
+        };
+        m_commands.updateActionState("tools.publishing.templates");
+    }
 }
 
 void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget* dock) {

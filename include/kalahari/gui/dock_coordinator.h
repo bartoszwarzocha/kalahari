@@ -463,7 +463,8 @@ private:
     void setupViewMenuActions();
 
     /// @brief Tools > Texts for Publishers > Template Points: the Properties panel open with
-    /// the keys in the points of the template of the text in front
+    /// the keys in the points of the template of the text in front; Templates...: the window
+    /// of the templates
     void connectTemplatePoints();
 
     /// @brief Connect panel toggle command to dock widget

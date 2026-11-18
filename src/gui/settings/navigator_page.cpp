@@ -38,6 +38,7 @@
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/cover_names.h"
+#include "kalahari/gui/dialogs/publishing_templates_dialog.h"
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -51,7 +52,9 @@
 #include <QComboBox>
 #include <QFormLayout>
 #include <QGridLayout>
+#include <QHBoxLayout>
 #include <QLabel>
+#include <QPushButton>
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QString>
@@ -443,6 +446,23 @@ void NavigatorPage::createPublishing()
     //: The group of Settings > Navigator > Texts for Publishers. In Polish: Zestaw dla
     //: wydawnictwa
     addSetChoice(addGroup(tr("Set for Publishers")));
+
+    //: The group of Settings > Navigator > Texts for Publishers. In Polish: Szablony
+    QFormLayout* templates = addGroup(tr("Templates"));
+    //: Opens the window of the templates of the texts for publishers. In Polish: Sza&blony...
+    auto* templatesButton = new QPushButton(tr("Te&mplates..."));
+    templatesButton->setObjectName(QStringLiteral("navigatorPublishingTemplates"));
+    connect(templatesButton, &QPushButton::clicked, this, [this]() {
+        dialogs::PublishingTemplatesDialog::editTemplates(nullptr, window());
+    });
+    auto* row = new QHBoxLayout();
+    row->addWidget(templatesButton);
+    row->addStretch(1);
+    templates->addRow(row);
+    //: In Polish: Szablony typów książek i Twoje własne, w osobnym oknie. Twoje szablony
+    //: zapisują się od razu i działają we wszystkich Twoich książkach.
+    addNote(templates, tr("The templates of the book types and your own, in a window of their "
+                          "own. Your templates are kept at once and work in all your books."));
 }
 
 void NavigatorPage::addPublishingTargets(QFormLayout* group)

@@ -56,9 +56,10 @@ inline QString addCoverText(const QString& title, const char* part, const QStrin
     return id;
 }
 
-/// The settings of the lists, of the unit of the lengths, of their targets and of the set as
-/// they were before a test, back after it; during it no kind is hidden, the lists keep
-/// nothing and the lengths are in characters
+/// The settings of the lists, of the unit of the lengths, of their targets, of the set and of
+/// the writer's templates as they were before a test, back after it; during it no kind is
+/// hidden, the lists keep nothing, the lengths are in characters and the writer has no
+/// templates
 class PublishingSettings {
 public:
     PublishingSettings() {
@@ -70,6 +71,8 @@ public:
         settings().set<nlohmann::json>(gui::MaterialList::LISTS_SETTING,
                                        nlohmann::json::object());
         settings().set<std::string>(core::CoverMaterial::UNIT_SETTING, "characters");
+        settings().set<nlohmann::json>(core::PublishingTexts::TEMPLATES_SETTING,
+                                       nlohmann::json::array());
     }
     ~PublishingSettings() {
         try {
@@ -86,10 +89,10 @@ public:
     PublishingSettings& operator=(PublishingSettings&&) = delete;
 
 private:
-    static constexpr std::array<const char*, 5> KEYS{
+    static constexpr std::array<const char*, 6> KEYS{
         gui::MaterialList::HIDDEN_SETTING, core::CoverMaterial::UNIT_SETTING,
         gui::MaterialList::LISTS_SETTING, core::PublishingTexts::TARGETS_SETTING,
-        core::PublishingTexts::SET_SETTING};
+        core::PublishingTexts::SET_SETTING, core::PublishingTexts::TEMPLATES_SETTING};
     static core::SettingsManager& settings() { return core::SettingsManager::getInstance(); }
     std::vector<nlohmann::json> m_values;
 };

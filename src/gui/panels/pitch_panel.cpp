@@ -11,6 +11,7 @@
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/publishing_texts.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/gui/command_registry.h"
@@ -103,6 +104,21 @@ PitchPanel::PitchPanel(core::ProjectManager& book, CommandRegistry& commands,
     // A change made elsewhere: the state chosen in the list, the set
     connect(&m_book, &core::ProjectManager::projectChanged, this, &PitchPanel::showData);
     connect(&m_book, &core::ProjectManager::publishingSetChanged, this, &PitchPanel::showData);
+    // The writer's templates changed in the window of the templates, perhaps of another book
+    // window; the listener runs on the thread that changes them
+    m_settingsListener =
+        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
+            if (key == PublishingTexts::TEMPLATES_SETTING) {
+                QMetaObject::invokeMethod(
+                    this,
+                    [this]() {
+                        fillTemplates();
+                        buildFields();
+                        showData();
+                    },
+                    Qt::QueuedConnection);
+            }
+        });
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             [this]() {
                 if (auto* icon = findChild<QLabel*>(QStringLiteral("pitchIcon"))) {
@@ -113,6 +129,10 @@ PitchPanel::PitchPanel(core::ProjectManager& book, CommandRegistry& commands,
                                         .pixmap(size, size));
                 }
             });
+}
+
+PitchPanel::~PitchPanel() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 }
 
 QLineEdit* PitchPanel::field(const QString& fieldId) const {
@@ -186,12 +206,7 @@ QWidget* PitchPanel::createPattern(QWidget* parent) {
     m_templateBox = new QComboBox(section);
     m_templateBox->setObjectName(QStringLiteral("pitchTemplate"));
     templateLabel->setBuddy(m_templateBox);
-    for (const core::PublishingTemplate& templ : m_book.publishingTemplates()) {
-        if (templ.part == QLatin1String(PublishingTexts::PITCH)) {
-            m_templateBox->addItem(templ.name.text(programLanguage()), templ.reference());
-        }
-    }
-    m_templateBox->addItem(PublishingNames::noTemplateName(), QString());
+    fillTemplates();
     top->addWidget(templateLabel);
     top->addWidget(m_templateBox);
     layout->addLayout(top);
@@ -204,6 +219,17 @@ QWidget* PitchPanel::createPattern(QWidget* parent) {
     layout->addWidget(m_patternHint);
     connect(m_templateBox, &QComboBox::activated, this, &PitchPanel::saveTemplate);
     return section;
+}
+
+void PitchPanel::fillTemplates() {
+    const QSignalBlocker blocker(m_templateBox);
+    m_templateBox->clear();
+    for (const core::PublishingTemplate& templ : m_book.publishingTemplates()) {
+        if (templ.part == QLatin1String(PublishingTexts::PITCH)) {
+            m_templateBox->addItem(templ.name.text(programLanguage()), templ.reference());
+        }
+    }
+    m_templateBox->addItem(PublishingNames::noTemplateName(), QString());
 }
 
 QWidget* PitchPanel::createSentence(QWidget* parent) {
