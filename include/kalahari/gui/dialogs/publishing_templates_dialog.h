@@ -70,7 +70,7 @@ public:
     ///        of a template with a point for each text
     /// @param parent Parent widget
     PublishingTemplatesDialog(QList<PublishingTemplateGroup> builtIn,
-                              QList<PublishingBookType> types, const QString& bookType,
+                              QList<PublishingBookType> types, QString bookType,
                               QList<std::pair<QString, QString>> texts,
                               QWidget* parent = nullptr);
 

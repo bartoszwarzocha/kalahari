@@ -209,16 +209,30 @@ protected:
         if (!next.isValid() || next.flags().testFlag(Qt::ItemIsEnabled)) {
             return next;
         }
-        const bool forward =
-            action == MoveDown || action == MovePageDown || action == MoveEnd || action == MoveNext;
-        for (const int step : {forward ? 1 : -1, forward ? -1 : 1}) {
-            for (int row = next.row() + step; row >= 0 && row < count(); row += step) {
-                if (item(row)->flags().testFlag(Qt::ItemIsEnabled)) {
-                    return indexFromItem(item(row));
-                }
+        const int step = movesForward(action) ? 1 : -1;
+        for (const int direction : {step, -step}) {
+            if (const int row = templateRow(next.row() + direction, direction); row >= 0) {
+                return indexFromItem(item(row));
             }
         }
         return currentIndex();
+    }
+
+private:
+    /// Whether @p action goes down the list
+    static bool movesForward(CursorAction action) {
+        return action == MoveDown || action == MovePageDown || action == MoveEnd ||
+               action == MoveNext;
+    }
+
+    /// The first row of a template from @p row on, going by @p step; -1 for none
+    [[nodiscard]] int templateRow(int row, int step) const {
+        for (; row >= 0 && row < count(); row += step) {
+            if (item(row)->flags().testFlag(Qt::ItemIsEnabled)) {
+                return row;
+            }
+        }
+        return -1;
     }
 };
 
@@ -266,13 +280,13 @@ void runPointKey(PublishingTemplatesDialog& dialog, TemplateKey key) {
 
 PublishingTemplatesDialog::PublishingTemplatesDialog(QList<PublishingTemplateGroup> builtIn,
                                                      QList<PublishingBookType> types,
-                                                     const QString& bookType,
+                                                     QString bookType,
                                                      QList<std::pair<QString, QString>> texts,
                                                      QWidget* parent)
     : KalahariDialog(parent)
     , m_builtIn(std::move(builtIn))
     , m_types(std::move(types))
-    , m_bookType(bookType)
+    , m_bookType(std::move(bookType))
     , m_texts(std::move(texts))
     , m_own(PublishingTexts::ownTemplates()) {
     setObjectName(QStringLiteral("publishingTemplatesDialog"));
@@ -440,7 +454,7 @@ void PublishingTemplatesDialog::createBasics(QFormLayout* fields) {
     auto* typesLabel = new QLabel(tr("Book t&ypes:"), m_form);
     fields->addRow(typesLabel, createTypes(m_form));
     typesLabel->setBuddy(m_typeChecks.value(0));
-    //: The target length of a template. In Polish: &Długość:
+    //: The target length of a template. In Polish: Dług&ość:
     auto* lengthLabel = new QLabel(tr("&Length:"), m_form);
     fields->addRow(lengthLabel, createLength(m_form));
     lengthLabel->setBuddy(m_charactersBox);
@@ -495,7 +509,7 @@ QWidget* PublishingTemplatesDialog::createLength(QWidget* form) {
     m_wordsBox = spin("publishingTemplateWords");
     //: After the target length in characters. In Polish: znaków ze spacjami
     auto* characters = new QLabel(tr("characters with spaces"), length);
-    //: After the target length in words. In Polish: &słów
+    //: After the target length in words. In Polish: słó&w
     auto* words = new QLabel(tr("&words"), length);
     words->setBuddy(m_wordsBox);
     row->addWidget(m_charactersBox);
@@ -534,11 +548,11 @@ void PublishingTemplatesDialog::createPoints(QFormLayout* fields) {
     m_pointButtons = new QWidget(m_pointsSection);
     auto* buttons = new QVBoxLayout(m_pointButtons);
     buttons->setContentsMargins(0, 0, 0, 0);
-    //: In Polish: Dodaj p&unkt
+    //: In Polish: Doda&j punkt
     m_addPointButton = makeButton(tr("Add P&oint"), "publishingTemplateAddPoint", "common.add",
                                   m_pointButtons);
     m_addPointButton->setToolTip(ShortcutRules::keysText(Qt::Key_Insert));
-    //: In Polish: Usuń pu&nkt
+    //: In Polish: Usuń &punkt
     m_removePointButton = makeButton(tr("R&emove Point"), "publishingTemplateRemovePoint",
                                      "common.remove", m_pointButtons);
     m_removePointButton->setToolTip(ShortcutRules::keysText(Qt::Key_Delete));
@@ -556,7 +570,7 @@ void PublishingTemplatesDialog::createPoints(QFormLayout* fields) {
     }
     buttons->addStretch();
     row->addWidget(m_pointButtons);
-    //: The points of a template of a synopsis. In Polish: Pu&nkty:
+    //: The points of a template of a synopsis. In Polish: Punkt&y:
     auto* label = new QLabel(tr("Po&ints:"), m_form);
     label->setBuddy(m_pointsTable);
     fields->addRow(label, m_pointsSection);
@@ -587,7 +601,7 @@ void PublishingTemplatesDialog::createPattern(QFormLayout* fields) {
     layout->addWidget(hintLabel(tr("The fields go in braces: {hero}. Each gets a box on the "
                                    "card of the sentence."),
                                 m_patternSection));
-    //: The pattern of a sentence about the book. In Polish: &Wzór:
+    //: The pattern of a sentence about the book. In Polish: W&zór:
     auto* patternLabel = new QLabel(tr("Patte&rn:"), m_form);
     patternLabel->setBuddy(m_patternEdit);
     fields->addRow(patternLabel, m_patternSection);
@@ -605,7 +619,7 @@ void PublishingTemplatesDialog::createPattern(QFormLayout* fields) {
                                                             QHeaderView::ResizeToContents);
     m_fieldsTable->setColumnWidth(FIELD_NAME_COLUMN,
                                   fontMetrics().averageCharWidth() * FIELD_CHARACTERS);
-    //: The fields of the pattern. In Polish: &Pola:
+    //: The fields of the pattern. In Polish: Po&la:
     auto* label = new QLabel(tr("&Fields:"), m_form);
     label->setBuddy(m_fieldsTable);
     fields->addRow(label, m_fieldsTable);
@@ -707,7 +721,8 @@ void PublishingTemplatesDialog::showTypes(const PublishingTemplate& templ, bool 
                                            return each.id == templ.package;
                                        });
         //: Where the book types of a template of a book type are. %1: the type, "Novel". In
-        //: Polish: %1 – szablon typu książki, który się nie zmienia. Utwórz kopię, by go zmienić.
+        //: Polish: %1 – szablon typu książki, który się nie zmienia. Utwórz kopię, by go
+        //: zmienić.
         m_typeLabel->setText(tr("%1 – a template of the book type, which does not change. Make "
                                 "a Copy to change it.")
                                  .arg(type != m_types.cend() ? type->name : templ.package));

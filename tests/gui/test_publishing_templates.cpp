@@ -5,10 +5,12 @@
 /// @brief Templates of Texts for Publishers: the templates of the book type and the writer's
 ///        own, made, copied, changed and deleted with the keys
 
+#include "kalahari_tests/gui/dialog_checks.h"
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari_tests/gui/publishing_test_utils.h"
 #include "kalahari_tests/polish.h"
 #include "kalahari_tests/test_support/window_parts.h"
+
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/publishing_texts.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -61,8 +63,8 @@ QStringList rowsOf(const QListWidget& list) {
     QStringList rows;
     for (int row = 0; row < list.count(); ++row) {
         const QListWidgetItem* item = list.item(row);
-        rows << (item->flags() == Qt::NoItemFlags ? QLatin1Char('[') + item->text() + QLatin1Char(']')
-                                                  : item->text());
+        const bool group = item->flags() == Qt::NoItemFlags;
+        rows << (group ? QLatin1Char('[') + item->text() + QLatin1Char(']') : item->text());
     }
     return rows;
 }
@@ -115,6 +117,8 @@ void checkFits(const core::ProjectManager& pm, const char* language) {
     INFO("own " << own.width() << "x" << own.height());
     CHECK(own.width() <= 911);
     CHECK(own.height() <= MAX_HEIGHT);
+    // Each access key once, of the points and of the pattern too
+    test::checkKeys(dialog);
 }
 
 /// Type @p text in the cell of @p table being changed and press Enter
@@ -139,7 +143,7 @@ TEST_CASE("Templates of Texts for Publishers: the templates of the book type and
           "[gui][publishing][dialogs]") {
     gui::registerAllIcons();
     const test::PublishingSettings kept;
-    test::OpenNovel novel(QStringLiteral("Sand"));
+    const test::OpenNovel novel(QStringLiteral("Sand"));
     auto& pm = novel.pm;
     PublishingTemplatesDialog dialog(PublishingTemplatesDialog::builtInOf(&pm),
                                      PublishingTemplatesDialog::installedTypes(),
@@ -166,7 +170,8 @@ TEST_CASE("Templates of Texts for Publishers: the templates of the book type and
     CHECK(dialog.nameEdit()->isReadOnly());
     CHECK_FALSE(dialog.partBox()->isEnabled());
     CHECK(dialog.typeLabel()->isVisible());
-    CHECK(dialog.typeLabel()->text().startsWith(QStringLiteral("Novel – a template of the book type")));
+    CHECK(dialog.typeLabel()->text().startsWith(
+        QStringLiteral("Novel – a template of the book type")));
     CHECK(dialog.charactersBox()->isReadOnly());
     CHECK(dialog.pointsTable()->rowCount() == 5);
     CHECK_FALSE(dialog.pointsTable()->item(0, PublishingTemplatesDialog::POINT_NAME_COLUMN)
@@ -337,7 +342,8 @@ TEST_CASE("Templates of Texts for Publishers: without a book, the templates of e
     CHECK(rows.contains(QStringLiteral("[Novel – Built-in]")));
     CHECK(rows.contains(QStringLiteral("[Short Story Collection – Built-in]")));
     CHECK(rows.last() == QStringLiteral("[My Templates]"));
-    CHECK(dialog.headingDescription().startsWith(QStringLiteral("The templates of the book types")));
+    CHECK(dialog.headingDescription().startsWith(
+        QStringLiteral("The templates of the book types")));
     // A new template is for every type
     dialog.newButton()->click();
     REQUIRE(PublishingTexts::ownTemplates().size() == 1);
