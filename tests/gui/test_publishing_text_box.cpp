@@ -34,9 +34,14 @@
 #include <QLabel>
 #include <QSpinBox>
 
+#include <algorithm>
+#include <cstdio>
 #include <string>
 
-using namespace kalahari;
+namespace core = kalahari::core;
+namespace editor = kalahari::editor;
+namespace gui = kalahari::gui;
+namespace test = kalahari::test;
 using core::PublishingTexts;
 using gui::PublishingTextBox;
 
@@ -53,11 +58,13 @@ public:
         try {
             settings().set<std::string>(core::CoverMaterial::UNIT_SETTING, m_unit);
         } catch (...) {
-            std::fputs("CharactersUnit: the unit of the test stays\n", stderr);
+            (void)std::fputs("CharactersUnit: the unit of the test stays\n", stderr);
         }
     }
     CharactersUnit(const CharactersUnit&) = delete;
     CharactersUnit& operator=(const CharactersUnit&) = delete;
+    CharactersUnit(CharactersUnit&&) = delete;
+    CharactersUnit& operator=(CharactersUnit&&) = delete;
 
 private:
     static core::SettingsManager& settings() { return core::SettingsManager::getInstance(); }
@@ -78,6 +85,13 @@ std::string doneOf(const core::ProjectManager& pm, const QString& id) {
     const core::ProjectElement* element = pm.findElement(id);
     REQUIRE(element != nullptr);
     return element->publishing.done.join(QStringLiteral(" | ")).toStdString();
+}
+
+/// Whether a label of @p box gives the keys to @p field with Alt and its letter
+bool hasLabel(const PublishingTextBox& box, const QWidget* field) {
+    const QList<QLabel*> labels = box.findChildren<QLabel*>();
+    return std::any_of(labels.cbegin(), labels.cend(),
+                       [field](const QLabel* label) { return label->buddy() == field; });
 }
 
 /// Press and let go of @p key in @p widget
@@ -107,7 +121,7 @@ bool canActivateWindows() {
 TEST_CASE("Texts for publishers: a synopsis in the Properties panel, its template and points",
           "[gui][publishing][synopsisbox]") {
     gui::registerAllIcons();
-    CharactersUnit unit;
+    const CharactersUnit unit;
     test::OpenNovel novel(QStringLiteral("Sand"));
     auto& pm = novel.pm;
     const QString id = pm.addPublishingText(QString::fromLatin1(PublishingTexts::SYNOPSIS),
@@ -169,7 +183,11 @@ TEST_CASE("Texts for publishers: a synopsis in the Properties panel, its templat
     CHECK(box->targetSourceLabel()->text().startsWith(
         QStringLiteral("The target length from the Settings")));
 
-    // Its own target, its state and whether the set has it
+    // Its own target, its state and whether the set has it; Alt and the letter of each label
+    // give the keys to its field
+    CHECK(hasLabel(*box, box->templateBox()));
+    CHECK(hasLabel(*box, box->stateBox()));
+    CHECK(hasLabel(*box, box->targetSpin()));
     box->targetSpin()->setValue(900);
     CHECK(pm.findElement(id)->publishing.targetCharacters == 900);
     CHECK(box->meter()->targetLabel()->text() == gui::CoverNames::targetText(900, false));
@@ -188,7 +206,7 @@ TEST_CASE("Texts for publishers: a synopsis in the editor, its length as typed; 
           "Points and Esc",
           "[gui][publishing][synopsisbox]") {
     gui::registerAllIcons();
-    CharactersUnit unit;
+    const CharactersUnit unit;
     test::OpenNovel novel(QStringLiteral("Sand"));
     auto& pm = novel.pm;
     const QString id = pm.addPublishingText(QString::fromLatin1(PublishingTexts::SYNOPSIS),

@@ -461,6 +461,13 @@ void setListSetting(const QString& list, const char* name, const json& value) {
     settings.set<json>(MaterialList::LISTS_SETTING, lists);
 }
 
+/// The words of text for publishers @p elementId of @p book, else its @p title
+QString publishingWordsOf(const core::ProjectManager& book, const QString& elementId,
+                          const QString& title) {
+    const QString text = book.publishingTextOf(elementId).trimmed();
+    return text.isEmpty() ? title : text;
+}
+
 } // namespace
 
 QStringList MaterialList::kinds(const core::ProjectManager& book) {
@@ -658,10 +665,8 @@ QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
                 //: A summary of a material in All Materials. In Polish: Szczegóły
                 << column(DETAILS, tr("Details")) << column(LINKS, links)
                 << column(DESCRIPTION, description, false) << column(MODIFIED, modified, false);
-    } else if (kindId == QLatin1String(core::Clippings::KIND)) {
-        columns << clippingColumns();
-    } else if (kindId == QLatin1String(core::PublishingTexts::KIND)) {
-        columns << publishingColumns();
+    } else if (const QList<MaterialColumn> own = ownColumnsOf(kindId); !own.isEmpty()) {
+        columns << own;
     } else if (list == QLatin1String(SOURCES)) {
         //: The kind of the material of a source: publication, web page. In Polish: Typ
         //: materiału
@@ -750,6 +755,16 @@ QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
 
     appendFieldColumns(columns, elementsOf(book, list));
     return columns;
+}
+
+QList<MaterialColumn> MaterialList::ownColumnsOf(const QString& kindId) {
+    if (kindId == QLatin1String(core::Clippings::KIND)) {
+        return clippingColumns();
+    }
+    if (kindId == QLatin1String(core::PublishingTexts::KIND)) {
+        return publishingColumns();
+    }
+    return {};
 }
 
 void MaterialList::appendFieldColumns(QList<MaterialColumn>& columns,
@@ -956,8 +971,7 @@ QString MaterialList::copyTextOf(const core::ProjectManager& book, const QString
     }
     // The words of a text for publishers
     if (core::ProjectManager::isPublishingText(*element)) {
-        const QString text = pm.publishingTextOf(elementId).trimmed();
-        return text.isEmpty() ? element->title : text;
+        return publishingWordsOf(pm, elementId, element->title);
     }
     const core::KindRef kind = pm.kindOf(*element);
     if (baseKindOf(kind) == QLatin1String(core::MaterialKinds::QUOTE) &&

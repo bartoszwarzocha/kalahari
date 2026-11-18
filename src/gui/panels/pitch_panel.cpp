@@ -10,10 +10,13 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/publishing_texts.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/clipboard_handler.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/widgets/flow_layout.h"
 #include "kalahari/gui/widgets/length_meter.h"
@@ -32,6 +35,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <optional>
 
 namespace kalahari::gui {
 
@@ -44,6 +48,24 @@ constexpr int SAVE_DELAY_MS = 700;
 
 /// The largest own target length
 constexpr int MAX_TARGET = 100000;
+
+/// The margins of the card and the gaps between its parts
+constexpr int CARD_MARGIN_X = 12;
+constexpr int CARD_MARGIN_Y = 10;
+constexpr int CARD_SPACING = 8;
+
+/// The title of the sentence, larger than the text around it
+constexpr double TITLE_SCALE = 1.2;
+
+/// Between the words and the fields of the pattern, and between their lines
+constexpr int PATTERN_SPACING = 4;
+constexpr int PATTERN_LINE_SPACING = 6;
+
+/// Before whether the set has the sentence, after its state
+constexpr int IN_SET_GAP = 16;
+
+/// The narrowest field of the pattern, in characters
+constexpr int FIELD_MIN_CHARACTERS = 12;
 
 /// A heading of a section of the card
 QLabel* headingOf(const QString& text, QWidget* parent) {
@@ -101,8 +123,8 @@ void PitchPanel::buildCard() {
     auto* card = new QWidget(this);
     card->setObjectName(QStringLiteral("pitchCard"));
     auto* layout = new QVBoxLayout(card);
-    layout->setContentsMargins(12, 10, 12, 10);
-    layout->setSpacing(8);
+    layout->setContentsMargins(CARD_MARGIN_X, CARD_MARGIN_Y, CARD_MARGIN_X, CARD_MARGIN_Y);
+    layout->setSpacing(CARD_SPACING);
 
     // The header: the icon, the title and what the card is
     auto* header = new QHBoxLayout();
@@ -120,7 +142,7 @@ void PitchPanel::buildCard() {
     m_titleEdit->setAccessibleName(tr("Title"));
     QFont titleFont = m_titleEdit->font();
     titleFont.setBold(true);
-    titleFont.setPointSizeF(titleFont.pointSizeF() * 1.2);
+    titleFont.setPointSizeF(titleFont.pointSizeF() * TITLE_SCALE);
     m_titleEdit->setFont(titleFont);
     m_titleEdit->setFrame(false);
     auto* what = hintOf(card);
@@ -175,7 +197,7 @@ QWidget* PitchPanel::createPattern(QWidget* parent) {
     layout->addLayout(top);
     m_patternArea = new QWidget(section);
     m_patternArea->setObjectName(QStringLiteral("pitchPattern"));
-    m_patternLayout = new FlowLayout(m_patternArea, 4, 6);
+    m_patternLayout = new FlowLayout(m_patternArea, PATTERN_SPACING, PATTERN_LINE_SPACING);
     m_patternLayout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(m_patternArea);
     m_patternHint = hintOf(section);
@@ -262,7 +284,7 @@ QWidget* PitchPanel::createData(QWidget* parent) {
     m_inSetLabel->setObjectName(QStringLiteral("pitchInSet"));
     layout->addWidget(stateLabel);
     layout->addWidget(m_stateBox);
-    layout->addSpacing(16);
+    layout->addSpacing(IN_SET_GAP);
     layout->addWidget(m_inSetLabel, 1);
     connect(m_stateBox, &QComboBox::activated, this, &PitchPanel::saveState);
     return section;
@@ -274,9 +296,10 @@ void PitchPanel::buildFields() {
         delete item;
     }
     m_fields.clear();
-    const std::optional<core::PublishingTemplate> templ = currentTemplate();
-    // The pattern in the language of the book, which the sentence is written in
-    const QString pattern = templ ? templ->pattern.text(m_book.bookLanguage()) : QString();
+    // The pattern in the language of the book, which the sentence is written in; none without
+    // a template
+    const core::PublishingTemplate templ = currentTemplate().value_or(core::PublishingTemplate{});
+    const QString pattern = templ.pattern.text(m_book.bookLanguage());
     m_patternArea->setVisible(!pattern.isEmpty());
     if (pattern.isEmpty()) {
         //: The card of a sentence about the book without a template. In Polish: Bez szablonu
@@ -305,11 +328,11 @@ void PitchPanel::buildFields() {
         from = match.capturedEnd();
         const QString id = match.captured(1).mid(1, match.capturedLength(1) - 2);
         const auto definition =
-            std::find_if(templ->fields.cbegin(), templ->fields.cend(),
+            std::find_if(templ.fields.cbegin(), templ.fields.cend(),
                          [&id](const core::PublishingTemplateField& each) {
                              return each.id == id;
                          });
-        if (definition == templ->fields.cend() || m_fields.contains(id)) {
+        if (definition == templ.fields.cend() || m_fields.contains(id)) {
             continue;
         }
         auto* box = new QWidget(m_patternArea);
@@ -321,8 +344,9 @@ void PitchPanel::buildFields() {
         edit->setPlaceholderText(definition->hint.text(programLanguage()));
         edit->setAccessibleName(definition->name.text(programLanguage()));
         edit->setText(m_data.fields.value(id));
+        edit->setCursorPosition(0);  // a value longer than the field shows from its start
         edit->setReadOnly(readOnly);
-        edit->setMinimumWidth(edit->fontMetrics().averageCharWidth() * 12);
+        edit->setMinimumWidth(edit->fontMetrics().averageCharWidth() * FIELD_MIN_CHARACTERS);
         auto* caption = hintOf(box);
         caption->setText(definition->name.text(programLanguage()));
         boxLayout->addWidget(edit);
@@ -360,6 +384,12 @@ void PitchPanel::showData() {
         m_titleEdit->setText(element->title);
     }
     m_titleEdit->setReadOnly(readOnly);
+    showPattern(shownTemplate);
+    showState();
+    updateLength();
+}
+
+void PitchPanel::showPattern(const QString& shownTemplate) {
     {
         const QSignalBlocker blocker(m_templateBox);
         int index = m_templateBox->findData(m_data.templateId);
@@ -370,7 +400,7 @@ void PitchPanel::showData() {
         }
         m_templateBox->setCurrentIndex(index);
     }
-    m_templateBox->setEnabled(!readOnly);
+    m_templateBox->setEnabled(!m_book.isReadOnly());
     if (m_fields.isEmpty() || shownTemplate != m_data.templateId) {
         buildFields();
     } else {
@@ -378,9 +408,14 @@ void PitchPanel::showData() {
             const QString value = m_data.fields.value(it.key());
             if (!it.value()->hasFocus() && it.value()->text() != value) {
                 it.value()->setText(value);
+                it.value()->setCursorPosition(0);
             }
         }
     }
+}
+
+void PitchPanel::showState() {
+    const bool readOnly = m_book.isReadOnly();
     {
         const QSignalBlocker blocker(m_stateBox);
         const int index = m_stateBox->findData(m_data.state);
@@ -405,7 +440,6 @@ void PitchPanel::showData() {
     //: W zestawie: nie
     m_inSetLabel->setText(inSet ? tr("In the set: yes – this version")
                                 : tr("In the set: no"));
-    updateLength();
 }
 
 void PitchPanel::updateLength() {

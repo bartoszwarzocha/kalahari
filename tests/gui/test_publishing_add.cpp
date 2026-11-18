@@ -8,15 +8,19 @@
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari_tests/test_support/window_parts.h"
 
+#include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/add_target.h"
 #include "kalahari/gui/dialogs/new_file_dialog.h"
 #include "kalahari/gui/dialogs/publishing_choice.h"
 #include "kalahari/gui/icon_registrar.h"
+#include "kalahari/gui/material_list.h"
 #include "kalahari/gui/material_list_coordinator.h"
 #include "kalahari/gui/panels/material_list_panel.h"
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <QAbstractButton>
@@ -29,6 +33,7 @@
 #include <QTimer>
 
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <array>
 #include <cstdio>
@@ -36,7 +41,9 @@
 #include <string>
 #include <vector>
 
-using namespace kalahari;
+namespace core = kalahari::core;
+namespace gui = kalahari::gui;
+namespace test = kalahari::test;
 using core::PublishingTexts;
 using gui::dialogs::NewFileDialog;
 using gui::dialogs::PublishingChoice;
@@ -61,11 +68,13 @@ public:
                 settings().set<nlohmann::json>(KEYS.at(i), m_values.at(i));
             }
         } catch (...) {
-            std::fputs("KeptSettings: the settings of the test stay\n", stderr);
+            (void)std::fputs("KeptSettings: the settings of the test stay\n", stderr);
         }
     }
     KeptSettings(const KeptSettings&) = delete;
     KeptSettings& operator=(const KeptSettings&) = delete;
+    KeptSettings(KeptSettings&&) = delete;
+    KeptSettings& operator=(KeptSettings&&) = delete;
 
 private:
     static constexpr std::array<const char*, 5> KEYS{
@@ -147,8 +156,8 @@ bool answering(const std::function<void()>& command,
 TEST_CASE("Add Element: a text for publishers of its kind and template, or a text of the Cover",
           "[gui][newfile][addelement][publishing]") {
     gui::registerAllIcons();
-    test::OpenNovel book(QStringLiteral("Sand"));
-    KeptSettings kept;
+    const test::OpenNovel book(QStringLiteral("Sand"));
+    const KeptSettings kept;
     const core::BookTypeRegistry& types = book.pm.bookTypes();
 
     // Other kinds do not have it
@@ -230,11 +239,11 @@ TEST_CASE("Add Element: a text for publishers of its kind and template, or a tex
     CHECK(settings.get<std::string>(PublishingChoice::PART_SETTING, "") == "synopsis");
     CHECK(settings.get<nlohmann::json>(PublishingChoice::TEMPLATE_SETTING, nlohmann::json()) ==
           nlohmann::json{{"synopsis", "kalahari.novel:each_chapter"}});
-    NewFileDialog last(workshop(QString(), true), types);
+    const NewFileDialog last(workshop(QString(), true), types);
     CHECK(last.publishingPart() == QStringLiteral("synopsis"));
     CHECK(last.publishingTemplate() == QStringLiteral("kalahari.novel:each_chapter"));
     // The part asked for, with the template it had
-    NewFileDialog asked(workshop(QStringLiteral("pitch"), true), types);
+    const NewFileDialog asked(workshop(QStringLiteral("pitch"), true), types);
     CHECK(asked.publishingPart() == QStringLiteral("pitch"));
     CHECK(asked.publishingTemplate() == QStringLiteral("kalahari.novel:when_must"));
 }
@@ -244,7 +253,7 @@ TEST_CASE("Add Element: Add of the list of the texts for publishers adds a text 
           "[gui][newfile][addelement][publishing]") {
     gui::registerAllIcons();
     test::OpenNovel book(QStringLiteral("Sand"));
-    KeptSettings kept;
+    const KeptSettings kept;
     auto& pm = book.pm;
     test::Window window;
     gui::MaterialListCoordinator lists(pm, window.tabs, &window.navigator, &window.statusBar,

@@ -20,9 +20,9 @@
 
 #include <QDir>
 #include <QFile>
-#include <QList>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QList>
 #include <QTemporaryDir>
 
 #include <nlohmann/json_fwd.hpp>

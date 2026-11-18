@@ -371,6 +371,10 @@ private:
     /// publishers; Choose for the Set and Show in the Cover in that of a description or a
     /// tagline of the cover; nothing for another material
     void addPublishingItems(QMenu& menu, const MaterialRow& row);
+    /// @brief The state of @p row in its menu: of a text for publishers and of a description
+    /// or a tagline in their list (addPublishingItems()), of a material of the cover in its own
+    /// (addCoverActions()); nothing for another material
+    void addStateItems(QMenu& menu, const MaterialRow& row);
 
     QString m_list;
     QHash<QString, State> m_states;

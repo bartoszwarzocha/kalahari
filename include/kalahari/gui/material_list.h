@@ -278,6 +278,10 @@ public:
     /// the title and the links hidden
     static QList<MaterialColumn> publishingColumns();
 
+    /// @brief The columns of a kind @p kindId with columns of its own: the clippings, the
+    /// texts for publishers; none for another kind
+    static QList<MaterialColumn> ownColumnsOf(const QString& kindId);
+
     /// @brief What text @p element for publishers of the book open in @p book shows in the
     /// columns of its list; nothing for an element that is not a text for publishers
     static void setPublishingTexts(MaterialRow& row, const core::ProjectManager& book,

@@ -20,11 +20,13 @@
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/link_names.h"
 #include "kalahari/gui/material_file.h"
+#include "kalahari/gui/material_list.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/gui/widgets/card_cell_delegate.h"
 #include "kalahari/gui/widgets/cover_plan.h"
+#include "kalahari/gui/widgets/flow_layout.h"
 
 #include <QAbstractTableModel>
 #include <QAction>
@@ -55,6 +57,7 @@
 #include <QScrollBar>
 #include <QSignalBlocker>
 #include <QSortFilterProxyModel>
+#include <QSpacerItem>
 #include <QStackedWidget>
 #include <QStyle>
 #include <QStyledItemDelegate>
@@ -102,6 +105,11 @@ constexpr int CARD_ICON = 24;
 
 /// Characters of a text from which its tooltip wraps it in lines
 constexpr int LONG_TIP = 60;
+/// The gap after the kind at the start of the commands, and between the filters
+constexpr int TOOLS_GAP = 6;
+constexpr int FILTERS_SPACING = 8;
+/// The margins of the row of the commands at its sides
+constexpr int TOOLS_MARGIN_X = 6;
 
 /// The size of the tile of a card in @p font: its portrait, its name, its kind and In Short
 QSize cardTileSize(const QFont& font) {
@@ -152,7 +160,10 @@ int widthOf(const QString& id) {
     if (id == QLatin1String(MaterialList::QUOTE)) {
         return 360;
     }
+    // The words of a material of the cover or of a text for publishers too
     if (id == QLatin1String(MaterialList::TITLE) || id == QLatin1String(MaterialList::LINKS) ||
+        id == QLatin1String(MaterialList::COVER_TEXT) ||
+        id == QLatin1String(MaterialList::PUBLISHING_TEXT) ||
         id == QLatin1String(MaterialList::DETAILS) ||
         id == QLatin1String(MaterialList::DESCRIPTION) ||
         id == QLatin1String(MaterialList::ADDRESS)) {
@@ -194,6 +205,18 @@ int groupOrderOf(const QString& part) {
     const QStringList& parts = core::CoverMaterial::parts();
     return parts.contains(part) ? static_cast<int>(parts.indexOf(part))
                                 : static_cast<int>(parts.size());
+}
+
+/// Copy in the menu of @p row: the words of a text for publishers, of a description or of a
+/// tagline, or the material
+QString copyCommandOf(const MaterialRow& row) {
+    if (row.publishing || row.fromCover) {
+        //: Copies the words of a text for publishers, of a description or of a tagline. In
+        //: Polish: Kopiuj &tekst
+        return MaterialList::tr("Copy &Text");
+    }
+    //: In Polish: &Kopiuj
+    return MaterialList::tr("&Copy");
 }
 
 /// The name of the group of @p row: of a text for publishers or of a part of the cover
@@ -1010,12 +1033,15 @@ void MaterialListPanel::createLayout() {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
-    // The kind and the commands of the material chosen
+    // The kind and the commands of the material chosen, the gear at the right; the commands
+    // go on in the next line where the panel is narrow (1366x768 at 150%)
     auto* tools = new QWidget(content);
     tools->setObjectName(QStringLiteral("materialListTools"));
-    auto* toolsLayout = new QHBoxLayout(tools);
-    toolsLayout->setContentsMargins(6, 4, 6, 4);
-    toolsLayout->setSpacing(2);
+    auto* toolsRow = new QHBoxLayout(tools);
+    toolsRow->setContentsMargins(TOOLS_MARGIN_X, 4, TOOLS_MARGIN_X, 4);
+    toolsRow->setSpacing(2);
+    auto* commands = new QWidget(tools);
+    auto* toolsLayout = new FlowLayout(commands, 2, 2);
     auto* icon = new QLabel(tools);
     icon->setObjectName(QStringLiteral("materialListIcon"));
     m_heading = new QLabel(tools);
@@ -1036,7 +1062,7 @@ void MaterialListPanel::createLayout() {
         tool->setToolButtonStyle(text ? Qt::ToolButtonTextBesideIcon : Qt::ToolButtonIconOnly);
         return tool;
     };
-    toolsLayout->addSpacing(6);
+    toolsLayout->addItem(new QSpacerItem(TOOLS_GAP, 0));
     toolsLayout->addWidget(separator(tools));
     m_addButton = button("materialListAdd", true);
     m_editButton = button("materialListEdit", true);
@@ -1071,16 +1097,16 @@ void MaterialListPanel::createLayout() {
     toolsLayout->addWidget(m_columnsButton);
     toolsLayout->addWidget(m_groupsButton);
     toolsLayout->addWidget(m_fromCoverButton);
-    toolsLayout->addStretch();
-    toolsLayout->addWidget(m_settingsButton);
+    toolsRow->addWidget(commands, 1);
+    toolsRow->addWidget(m_settingsButton, 0, Qt::AlignTop);
     layout->addWidget(tools);
 
-    // The search and the filters
+    // The search and the filters, in as many lines as the width needs; a label stays with its
+    // field
     auto* filters = new QWidget(content);
     filters->setObjectName(QStringLiteral("materialListFilters"));
-    auto* filtersLayout = new QHBoxLayout(filters);
+    auto* filtersLayout = new FlowLayout(filters, FILTERS_SPACING, 2);
     filtersLayout->setContentsMargins(6, 2, 6, 4);
-    filtersLayout->setSpacing(8);
     m_search = new QLineEdit(filters);
     m_search->setObjectName(QStringLiteral("materialListSearch"));
     m_search->setClearButtonEnabled(true);
@@ -1119,14 +1145,17 @@ void MaterialListPanel::createLayout() {
     //: In Polish: Wyczyść filtry
     m_clearButton->setText(MaterialList::tr("Clear Filters"));
     filtersLayout->addWidget(m_search);
-    filtersLayout->addWidget(m_partLabel);
-    filtersLayout->addWidget(m_partBox);
-    filtersLayout->addWidget(linkedLabel);
-    filtersLayout->addWidget(m_linkedWith);
+    for (const auto& [label, field] : {std::pair<QLabel*, QWidget*>{m_partLabel, m_partBox},
+                                       std::pair<QLabel*, QWidget*>{linkedLabel, m_linkedWith}}) {
+        auto* pair = new QHBoxLayout();
+        pair->setSpacing(FILTERS_SPACING);
+        pair->addWidget(label);
+        pair->addWidget(field);
+        filtersLayout->addLayout(pair);
+    }
     filtersLayout->addWidget(m_withoutLinks);
     filtersLayout->addWidget(m_columnFiltersButton);
     filtersLayout->addWidget(m_clearButton);
-    filtersLayout->addStretch();
     layout->addWidget(filters);
 
     // The table and the tiles
@@ -1636,21 +1665,12 @@ void MaterialListPanel::fillMenu(QMenu& menu) {
         }
         // A material of the cover is chosen for it, rejected, or a draft again; a text for
         // publishers for the set
-        if (row->publishing || row->fromCover) {
-            addPublishingItems(menu, *row);
-        } else if (MaterialList::isCover(m_list) || !row->group.isEmpty()) {
-            addCoverActions(menu, *row);
-        }
+        addStateItems(menu, *row);
         addClippingItems(menu, *row);
         menu.addSeparator();
-        //: In Polish: &Kopiuj
-        //: Copies the words of a text for publishers, of a description or of a tagline. In
-        //: Polish: Kopiuj &tekst
-        const QString copyText = row->publishing || row->fromCover ? MaterialList::tr("Copy &Text")
-                                                                   : MaterialList::tr("&Copy");
         QAction* copy = menu.addAction(
             art.getIcon(QStringLiteral("edit.copy"), core::IconContext::Menu),
-            withKeys(copyText, QKeyCombination(Qt::ControlModifier, Qt::Key_C)));
+            withKeys(copyCommandOf(*row), QKeyCombination(Qt::ControlModifier, Qt::Key_C)));
         connect(copy, &QAction::triggered, this, &MaterialListPanel::copyCurrent);
         if (!row->text) {
             //: In Polish: &Powiąż...

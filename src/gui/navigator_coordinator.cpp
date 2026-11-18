@@ -43,6 +43,7 @@
 #include "kalahari/core/package_card.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/material_kinds.h"
+#include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/window_editor_provider.h"
 #include "kalahari/editor/book_editor.h"

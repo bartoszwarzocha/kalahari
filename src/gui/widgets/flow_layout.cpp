@@ -13,6 +13,7 @@
 #include <QWidget>
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 
 namespace kalahari::gui {
@@ -37,8 +38,9 @@ FlowLayout::FlowLayout(QWidget* parent, int spacing, int lineSpacing)
 }
 
 FlowLayout::~FlowLayout() {
-    qDeleteAll(m_items);
-    m_items.clear();
+    // A layout among the items takes itself out of the list while it is deleted (QLayout's
+    // destructor calls removeItem()), so the list is emptied before they go
+    qDeleteAll(std::exchange(m_items, {}));
 }
 
 void FlowLayout::addItem(QLayoutItem* item) {

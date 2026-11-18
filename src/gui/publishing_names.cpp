@@ -16,7 +16,6 @@
 #include <QList>
 #include <QLocale>
 
-#include <algorithm>
 #include <optional>
 
 namespace kalahari::gui {
@@ -115,16 +114,17 @@ QString PublishingNames::newTitle(const core::ProjectManager& book, const QStrin
             titles << text->title;
         }
     }
-    // The next number, past a title the writer kept
-    int number = static_cast<int>(titles.size()) + 1;
-    QString title;
-    do {
+    const auto titleOf = [&part](int number) {
         //: The title of a new text for publishers: %1 its part, %2 its number. In Polish: %1 –
         //: wersja %2
-        title = tr("%1 – version %2").arg(partName(part)).arg(number);
+        return tr("%1 – version %2").arg(partName(part)).arg(number);
+    };
+    // The next number, past a title the writer kept
+    int number = static_cast<int>(titles.size()) + 1;
+    while (titles.contains(titleOf(number))) {
         ++number;
-    } while (titles.contains(title));
-    return title;
+    }
+    return titleOf(number);
 }
 
 QString PublishingNames::noTemplateName() {

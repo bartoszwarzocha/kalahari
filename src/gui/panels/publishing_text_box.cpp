@@ -115,7 +115,9 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
     target->addWidget(m_targetUnit);
     //: The own target length of a text for publishers in the Properties panel. In Polish:
     //: Docelowa dłu&gość:
-    data->addRow(tr("Target le&ngth:"), target);
+    auto* targetLabel = new QLabel(tr("Target le&ngth:"));
+    targetLabel->setBuddy(m_targetSpin);
+    data->addRow(targetLabel, target);
     m_inSetLabel->setObjectName(QStringLiteral("publishingInSet"));
     data->addRow(m_inSetLabel);
     layout->addLayout(data);

@@ -102,6 +102,11 @@ private:
     /// @brief The widgets after what the book keeps of the sentence, the field with the keys
     /// left as it is
     void showData();
+    /// @brief The template chosen, and the fields again for a template other than
+    /// @p shownTemplate, the one shown before
+    void showPattern(const QString& shownTemplate);
+    /// @brief The state, the own target and whether the set has the sentence
+    void showState();
     /// @brief The length of the sentence, the note of a sentence changed by hand
     void updateLength();
     /// @brief The template of the sentence; nullopt for none

@@ -8,7 +8,9 @@
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari_tests/test_support/window_parts.h"
 
+#include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/cover_material.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/icon_registrar.h"
@@ -24,14 +26,16 @@
 #include <QSortFilterProxyModel>
 #include <QToolButton>
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <array>
 #include <cstdio>
 #include <string>
 #include <vector>
 
-using namespace kalahari;
+namespace core = kalahari::core;
+namespace gui = kalahari::gui;
+namespace test = kalahari::test;
 using core::CoverMaterial;
 using core::PublishingTexts;
 using gui::MaterialList;
@@ -40,7 +44,7 @@ using gui::MaterialListPanel;
 namespace {
 
 /// The list of the texts for publishers: "kalahari.base:publishing"
-const QString LIST = QStringLiteral("kalahari.base:publishing");
+constexpr QLatin1String LIST("kalahari.base:publishing");
 
 /// A text for publishers of the open book: @p part with @p title and @p text
 QString addText(const char* part, const QString& title, const QString& text,
@@ -85,11 +89,13 @@ public:
                 settings().set<nlohmann::json>(KEYS.at(i), m_values.at(i));
             }
         } catch (...) {
-            std::fputs("KeptSettings: the settings of the test stay\n", stderr);
+            (void)std::fputs("KeptSettings: the settings of the test stay\n", stderr);
         }
     }
     KeptSettings(const KeptSettings&) = delete;
     KeptSettings& operator=(const KeptSettings&) = delete;
+    KeptSettings(KeptSettings&&) = delete;
+    KeptSettings& operator=(KeptSettings&&) = delete;
 
 private:
     static constexpr std::array<const char*, 4> KEYS{
@@ -158,7 +164,8 @@ std::string menuOf(MaterialListPanel& panel, const QString& elementId) {
         if (action->isSeparator()) {
             continue;
         }
-        QString text = action->text().section(QLatin1Char('\t'), 0, 0).remove(QLatin1Char('&'));
+        const QString text =
+            action->text().section(QLatin1Char('\t'), 0, 0).remove(QLatin1Char('&'));
         items << (action->isEnabled() ? text : text + QStringLiteral(" (off)"));
     }
     return items.join(QStringLiteral(" | ")).toStdString();
@@ -178,7 +185,7 @@ QStringList itemsOf(const QComboBox& box) {
 TEST_CASE("Texts for publishers: the list in groups by kind, with the texts of the Cover",
           "[gui][publishing][materials]") {
     gui::registerAllIcons();
-    KeptSettings kept;
+    const KeptSettings kept;
     test::OpenNovel novel(QStringLiteral("Sand"));
     auto& pm = novel.pm;
     const QString pitch = addText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 1"),
@@ -280,7 +287,7 @@ TEST_CASE("Texts for publishers: the list in groups by kind, with the texts of t
 TEST_CASE("Texts for publishers: the menu of a text, the set and the Cover",
           "[gui][publishing][materials]") {
     gui::registerAllIcons();
-    KeptSettings kept;
+    const KeptSettings kept;
     test::OpenNovel novel(QStringLiteral("Sand"));
     auto& pm = novel.pm;
     const QString first = addText(PublishingTexts::PITCH, QStringLiteral("Sentence – version 1"),

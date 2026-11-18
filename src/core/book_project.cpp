@@ -960,6 +960,18 @@ BookFootnotes readFootnotes(const QJsonValue& value, const QString& field,
     return footnotes;
 }
 
+/// The set for publishers of a book, its field "publishingSet"; nullopt without it
+std::optional<PublishingSet> readPublishingSet(Fields& fields, QStringList& problems) {
+    const QJsonValue set = fields.take("publishingSet");
+    if (set.isObject()) {
+        return PublishingSet::fromJson(set.toObject(), fields.path("publishingSet"), problems);
+    }
+    if (!set.isUndefined()) {
+        fields.problem("publishingSet", QStringLiteral("must be an object"));
+    }
+    return std::nullopt;
+}
+
 ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
                      QStringList& problems) {
     ProjectBook book;
@@ -1020,12 +1032,7 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
         book.footnotes = readFootnotes(footnotes, fields.path("footnotes"), problems);
     }
     book.bibliographyStyle = fields.string("bibliographyStyle");
-    if (const QJsonValue set = fields.take("publishingSet"); set.isObject()) {
-        book.publishingSet =
-            PublishingSet::fromJson(set.toObject(), fields.path("publishingSet"), problems);
-    } else if (!set.isUndefined()) {
-        fields.problem("publishingSet", QStringLiteral("must be an object"));
-    }
+    book.publishingSet = readPublishingSet(fields, problems);
     book.isbn = fields.string("isbn");
     book.publisher = fields.string("publisher");
     book.extra = fields.rest();

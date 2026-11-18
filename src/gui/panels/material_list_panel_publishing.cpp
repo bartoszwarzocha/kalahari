@@ -77,7 +77,7 @@ void MaterialListPanel::updatePublishingCommands() {
 
 void MaterialListPanel::fillPublishingChoices() {
     auto& art = core::ArtProvider::getInstance();
-    QStringList parts = PublishingTexts::parts();
+    const QStringList parts = PublishingTexts::parts();
     const QStringList cover{QString::fromLatin1(PublishingTexts::TAGLINE),
                             QString::fromLatin1(PublishingTexts::BLURB)};
     const QString chosen = m_states.value(m_list).part;
@@ -117,6 +117,14 @@ void MaterialListPanel::fillPublishingChoices() {
     }
     m_addButton->setMenu(m_addMenu);
     m_addButton->setPopupMode(QToolButton::MenuButtonPopup);
+}
+
+void MaterialListPanel::addStateItems(QMenu& menu, const MaterialRow& row) {
+    if (row.publishing || row.fromCover) {
+        addPublishingItems(menu, row);
+    } else if (MaterialList::isCover(m_list) || !row.group.isEmpty()) {
+        addCoverActions(menu, row);
+    }
 }
 
 void MaterialListPanel::addPublishingItems(QMenu& menu, const MaterialRow& row) {

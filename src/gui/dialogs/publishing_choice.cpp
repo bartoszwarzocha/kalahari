@@ -8,6 +8,7 @@
 
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/cover_material.h"
+#include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/kind_names.h"
@@ -23,6 +24,7 @@
 #include <QVBoxLayout>
 
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <algorithm>
 #include <optional>
@@ -34,6 +36,9 @@ namespace {
 
 using core::PublishingTexts;
 using nlohmann::json;
+
+/// Between the parts, their lines and the rows of the window
+constexpr int SPACING = 6;
 
 /// The pattern of @p templ with the names of its fields in brackets: "When [event], [hero]
 /// must..."
@@ -72,17 +77,19 @@ std::optional<QString> keptTemplateOf(const QString& part) {
 
 PublishingChoice::PublishingChoice(QList<core::PublishingTemplate> templates, bool cover,
                                    QWidget* parent)
-    : QGroupBox(parent), m_templates(std::move(templates)), m_cover(cover) {
+    : QGroupBox(parent),
+      m_templates(std::move(templates)),
+      m_cover(cover),
+      m_partButtons(new QButtonGroup(this)) {
     setObjectName(QStringLiteral("publishingChoice"));
     //: The parts of a new text for publishers, buttons that the arrows go through, and its
     //: template. In Polish: Rodzaj tekstu
     setTitle(tr("Kind of Text"));
     auto* layout = new QVBoxLayout(this);
-    layout->setSpacing(6);
+    layout->setSpacing(SPACING);
     auto* chips = new QWidget(this);
-    auto* chipsLayout = new FlowLayout(chips, 6, 6);
+    auto* chipsLayout = new FlowLayout(chips, SPACING, SPACING);
     chipsLayout->setContentsMargins(0, 0, 0, 0);
-    m_partButtons = new QButtonGroup(this);
     const QStringList all = parts();
     auto& art = core::ArtProvider::getInstance();
     for (qsizetype index = 0; index < all.size(); ++index) {
@@ -103,7 +110,7 @@ PublishingChoice::PublishingChoice(QList<core::PublishingTemplate> templates, bo
     layout->addWidget(chips);
 
     auto* templateRow = new QHBoxLayout();
-    templateRow->setSpacing(6);
+    templateRow->setSpacing(SPACING);
     //: The list of the templates of a new text for publishers. In Polish: Sza&blon:
     m_templateLabel = new QLabel(tr("Te&mplate:"), this);
     m_templateBox = new QComboBox(this);

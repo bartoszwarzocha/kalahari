@@ -26,9 +26,13 @@
 #include <QSpinBox>
 #include <QTabWidget>
 
+#include <cstdio>
 #include <string>
 
-using namespace kalahari;
+namespace core = kalahari::core;
+namespace editor = kalahari::editor;
+namespace gui = kalahari::gui;
+namespace test = kalahari::test;
 using core::PublishingTexts;
 using gui::PitchPanel;
 
@@ -57,11 +61,13 @@ public:
         try {
             settings().set<std::string>(core::CoverMaterial::UNIT_SETTING, m_unit);
         } catch (...) {
-            std::fputs("CharactersUnit: the unit of the test stays\n", stderr);
+            (void)std::fputs("CharactersUnit: the unit of the test stays\n", stderr);
         }
     }
     CharactersUnit(const CharactersUnit&) = delete;
     CharactersUnit& operator=(const CharactersUnit&) = delete;
+    CharactersUnit(CharactersUnit&&) = delete;
+    CharactersUnit& operator=(CharactersUnit&&) = delete;
 
 private:
     static core::SettingsManager& settings() { return core::SettingsManager::getInstance(); }
@@ -73,7 +79,7 @@ private:
 TEST_CASE("Sentence about the book: its card composes it of the fields of its pattern",
           "[gui][publishing][pitch]") {
     gui::registerAllIcons();
-    CharactersUnit unit;
+    const CharactersUnit unit;
     test::OpenNovel novel(QStringLiteral("Sand"));
     auto& pm = novel.pm;
     const QString id = pm.addPublishingText(QString::fromLatin1(PublishingTexts::PITCH),
@@ -138,6 +144,8 @@ TEST_CASE("Sentence about the book: its card composes it of the fields of its pa
     CHECK(pm.findElement(id)->publishing.templateId == QStringLiteral("kalahari.novel:hero_goal"));
     REQUIRE(panel->field(QStringLiteral("who")) != nullptr);
     CHECK(panel->field(QStringLiteral("hero"))->text() == QStringLiteral("Young Leila"));
+    // From its start, as a value longer than the field is
+    CHECK(panel->field(QStringLiteral("hero"))->cursorPosition() == 0);
     CHECK(sentenceOf(*panel) == "Young Leila, …, wants find water, but ….");
     CHECK(panel->field(QStringLiteral("event")) == nullptr);
     // Without a template the sentence is written as it is

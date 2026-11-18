@@ -82,8 +82,7 @@ QString ProjectManager::addPublishingText(const QString& part, const QString& te
         m_project->kinds.append(
             KindReference{.packageId = kind.package->id, .kindId = kind.kind->id});
     }
-    const QString textId =
-        addElement(kind, title, BookPlace::Workshop, QString(), -1, {}, QString());
+    QString textId = addElement(kind, title, BookPlace::Workshop, QString(), -1, {}, QString());
     if (textId.isEmpty()) {
         *m_project = before;
         return {};

@@ -20,24 +20,32 @@
 
 namespace kalahari::gui {
 
-LengthMeter::LengthMeter(QWidget* parent) : QWidget(parent) {
+namespace {
+
+/// The lowest height of the bar; it is half a line high
+constexpr int MIN_BAR_HEIGHT = 6;
+
+}  // namespace
+
+LengthMeter::LengthMeter(QWidget* parent)
+    : QWidget(parent),
+      m_counts(new QLabel(this)),
+      m_target(new QLabel(this)),
+      m_bar(new QProgressBar(this)) {
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(3);
     auto* row = new QHBoxLayout();
-    m_counts = new QLabel(this);
     m_counts->setObjectName(QStringLiteral("lengthCounts"));
     m_counts->setWordWrap(true);
-    m_target = new QLabel(this);
     m_target->setObjectName(QStringLiteral("lengthTarget"));
     m_target->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     row->addWidget(m_counts, 1);
     row->addWidget(m_target);
     layout->addLayout(row);
-    m_bar = new QProgressBar(this);
     m_bar->setObjectName(QStringLiteral("lengthBar"));
     m_bar->setTextVisible(false);
-    m_bar->setMaximumHeight(std::max(6, fontMetrics().height() / 2));
+    m_bar->setMaximumHeight(std::max(MIN_BAR_HEIGHT, fontMetrics().height() / 2));
     //: In Polish: Długość względem celu
     m_bar->setAccessibleName(tr("Length against the target"));
     layout->addWidget(m_bar);
