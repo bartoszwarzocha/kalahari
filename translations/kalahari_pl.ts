@@ -5537,6 +5537,11 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
         <extracomment>In Polish: Zamiana w książce została ponowiona.</extracomment>
         <translation>Zamiana w książce została ponowiona.</translation>
     </message>
+    <message>
+        <source>%1, volume %2</source>
+        <extracomment>A text among the matches of the whole series, with the number of its volume. In Polish: %1, tom %2</extracomment>
+        <translation>%1, tom %2</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::CaptionCoordinator</name>
@@ -13166,6 +13171,25 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
     <message>
         <source>All Forms (%1)</source>
         <translation>Wszystkie odmiany (%1)</translation>
+    </message>
+    <message>
+        <source>Series</source>
+        <extracomment>The option of the Search panel in a series of books, short; its tooltip. In Polish: Seria / Szukaj w całej serii, nie tylko w bieżącym tomie</extracomment>
+        <translation>Seria</translation>
+    </message>
+    <message>
+        <source>Find in the whole series, not only in the current volume</source>
+        <translation>Szukaj w całej serii, nie tylko w bieżącym tomie</translation>
+    </message>
+    <message>
+        <source>Replace All in Series</source>
+        <extracomment>The button of the Search panel when it finds in the whole series. In Polish: Zamień wszystko w serii</extracomment>
+        <translation>Zamień wszystko w serii</translation>
+    </message>
+    <message>
+        <source>Replace all the matches in all the texts of the series</source>
+        <extracomment>The tooltip of Replace All in Series. In Polish: Zamień wszystkie trafienia we wszystkich tekstach serii</extracomment>
+        <translation>Zamień wszystkie trafienia we wszystkich tekstach serii</translation>
     </message>
 </context>
 <context>

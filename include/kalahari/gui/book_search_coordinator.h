@@ -347,6 +347,18 @@ private:
     /// @brief Forget what was found and read: another book, or none
     void reset();
 
+    /// @brief Another volume of a series became current: its matches, unless the search goes
+    ///        through the whole series
+    void onCurrentBookChanged();
+
+    /// @brief The option Whole Series of the panel in a series only; the matches again when it
+    ///        goes with the series
+    void showSeries();
+
+    /// @brief The texts to search, in reading order: of the current volume of a series, or of
+    ///        all its volumes with the option Whole Series, each title with its volume then
+    void queueTexts();
+
     core::ProjectManager& m_book;  ///< The book of its window
     CommandRegistry& m_commands;   ///< The commands of its window
     QTabWidget* m_centralTabs = nullptr;

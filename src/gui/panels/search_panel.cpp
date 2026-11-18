@@ -181,6 +181,14 @@ SearchPanel::SearchPanel(QWidget* parent) : QWidget(parent) {
     //: Odm / Wszystkie odmiany (%1)
     m_formsButton = addOption(tr("Forms"), tr("All Forms (%1)").arg(keysOf(3)));
     m_formsButton->setMaximumWidth(QWIDGETSIZE_MAX);  // as wide as its text
+    //: The option of the Search panel in a series of books, short; its tooltip. In Polish:
+    //: Seria / Szukaj w całej serii, nie tylko w bieżącym tomie
+    m_seriesButton = addOption(tr("Series"),
+                               tr("Find in the whole series, not only in the current volume"));
+    m_seriesButton->setObjectName(QStringLiteral("searchWholeSeries"));
+    m_seriesButton->setMaximumWidth(QWIDGETSIZE_MAX);
+    m_seriesButton->hide();
+    connect(m_seriesButton, &QToolButton::toggled, this, &SearchPanel::updateReplaceButton);
     findItems->addWidget(options);
     layout->addWidget(findRow);
 
@@ -257,7 +265,8 @@ SearchPanel::SearchPanel(QWidget* parent) : QWidget(parent) {
     setTabOrder(m_caseButton, m_wordButton);
     setTabOrder(m_wordButton, m_regexButton);
     setTabOrder(m_regexButton, m_formsButton);
-    setTabOrder(m_formsButton, m_replaceField);
+    setTabOrder(m_formsButton, m_seriesButton);
+    setTabOrder(m_seriesButton, m_replaceField);
     setTabOrder(m_replaceField, m_replaceButton);
     setTabOrder(m_replaceButton, m_tree);
 
@@ -265,6 +274,7 @@ SearchPanel::SearchPanel(QWidget* parent) : QWidget(parent) {
                             static_cast<QWidget*>(m_caseButton), static_cast<QWidget*>(m_wordButton),
                             static_cast<QWidget*>(m_regexButton),
                             static_cast<QWidget*>(m_formsButton),
+                            static_cast<QWidget*>(m_seriesButton),
                             static_cast<QWidget*>(m_replaceField),
                             static_cast<QWidget*>(m_replaceButton), static_cast<QWidget*>(m_tree)}) {
         widget->installEventFilter(this);
@@ -305,6 +315,26 @@ void SearchPanel::setOptions(const editor::SearchOptions& options) {
     m_regexButton->setChecked(options.useRegex);
     m_formsButton->setChecked(options.allForms);
     m_quiet = false;
+}
+
+void SearchPanel::setSeries(bool series) {
+    if (!series) {
+        m_quiet = true;
+        m_seriesButton->setChecked(false);
+        m_quiet = false;
+    }
+    m_seriesButton->setVisible(series);
+}
+
+bool SearchPanel::wholeSeries() const {
+    return !m_seriesButton->isHidden() && m_seriesButton->isChecked();
+}
+
+void SearchPanel::updateReplaceButton() {
+    //: The button of the Search panel when it finds in the whole series. In Polish: Zamień
+    //: wszystko w serii
+    m_replaceButton->setFullText(wholeSeries() ? tr("Replace All in Series")
+                                               : tr("Replace All in Book"));
 }
 
 void SearchPanel::focusSearchField() {
@@ -400,11 +430,15 @@ void SearchPanel::setCurrentHit(const HitIndex& hit) {
 
 void SearchPanel::setReplaceEnabled(bool enabled, const QString& whyNot) {
     m_replaceButton->setEnabled(enabled);
-    //: The tooltip of Replace All in Book. In Polish: Zamień wszystkie trafienia we wszystkich
-    //: tekstach książki
-    m_replaceButton->setToolTip(enabled || whyNot.isEmpty()
-                                    ? tr("Replace all the matches in all the texts of the book")
-                                    : whyNot);
+    const QString all =
+        wholeSeries()
+            //: The tooltip of Replace All in Series. In Polish: Zamień wszystkie trafienia we
+            //: wszystkich tekstach serii
+            ? tr("Replace all the matches in all the texts of the series")
+            //: The tooltip of Replace All in Book. In Polish: Zamień wszystkie trafienia we
+            //: wszystkich tekstach książki
+            : tr("Replace all the matches in all the texts of the book");
+    m_replaceButton->setToolTip(enabled || whyNot.isEmpty() ? all : whyNot);
 }
 
 void SearchPanel::setMarkColor(const QColor& color) {

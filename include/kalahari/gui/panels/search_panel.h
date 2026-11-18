@@ -59,6 +59,8 @@ struct SearchPanelText {
 /// Keys: Down in the field goes to the first match; in the tree Up and Down choose a match,
 /// which an open text shows, Enter goes to it in the text (opened if it is not) with the keys,
 /// a click goes to it with the keys staying in the panel; Esc goes back to the text.
+class WrappingButton;
+
 class SearchPanel : public QWidget {
     Q_OBJECT
 
@@ -94,6 +96,13 @@ public:
 
     /// @brief Set the options, without asking for a search
     void setOptions(const editor::SearchOptions& options);
+
+    /// @brief A series (@p series): the option Whole Series beside the others, which finds in
+    ///        all its volumes and not only in the current one; hidden and off for one book
+    void setSeries(bool series);
+
+    /// @brief Whether the search goes through the whole series: a series, the option on
+    [[nodiscard]] bool wholeSeries() const;
 
     /// @brief The keys into the field of what to find, its text selected
     void focusSearchField();
@@ -158,13 +167,17 @@ private:
     /// @brief Ask for the search now (Enter, an option), not after the delay
     void searchNow();
 
+    /// @brief Replace All in Book, or in Series when the search goes through the whole series
+    void updateReplaceButton();
+
     QLineEdit* m_searchField = nullptr;
     QToolButton* m_caseButton = nullptr;
     QToolButton* m_wordButton = nullptr;
     QToolButton* m_regexButton = nullptr;
     QToolButton* m_formsButton = nullptr;
+    QToolButton* m_seriesButton = nullptr;  ///< setSeries()
     QLineEdit* m_replaceField = nullptr;
-    QPushButton* m_replaceButton = nullptr;
+    WrappingButton* m_replaceButton = nullptr;
     QLabel* m_statusLabel = nullptr;
     QTreeWidget* m_tree = nullptr;
     QTimer* m_searchTimer = nullptr;

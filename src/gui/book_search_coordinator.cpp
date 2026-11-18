@@ -172,8 +172,18 @@ BookSearchCoordinator::BookSearchCoordinator(core::ProjectManager& book, Command
         publish();
     }
 
-    // Another book, or none: what was found and read is of the old one
+    // Another book, or none: what was found and read is of the old one; a series has the
+    // option Whole Series, and the matches of the current volume follow it
     auto& projects = m_book;
+    connect(&projects, &core::ProjectManager::projectOpened, this,
+            &BookSearchCoordinator::showSeries);
+    connect(&projects, &core::ProjectManager::projectChanged, this,
+            &BookSearchCoordinator::showSeries);
+    connect(&projects, &core::ProjectManager::projectClosed, this,
+            &BookSearchCoordinator::showSeries);
+    connect(&projects, &core::ProjectManager::currentBookChanged, this,
+            &BookSearchCoordinator::onCurrentBookChanged);
+    showSeries();
     connect(&projects, &core::ProjectManager::projectOpened, this, &BookSearchCoordinator::reset);
     connect(&projects, &core::ProjectManager::projectClosed, this, &BookSearchCoordinator::reset);
     // Format > Footnote Layout...: other numbers of the notes the matches are in
@@ -296,7 +306,7 @@ void BookSearchCoordinator::search() {
     m_query.reset();
 
     const QString text = m_panel != nullptr ? m_panel->searchText() : QString();
-    if (!m_book.isProjectOpen() || text.isEmpty()) {
+    if (m_panel == nullptr || !m_book.isProjectOpen() || text.isEmpty()) {
         publish();
         return;
     }
@@ -307,12 +317,45 @@ void BookSearchCoordinator::search() {
     m_engine.setSearchText(text);
     m_engine.setOptions(m_query->options);
     if (m_engine.canSearch()) {
-        for (const BookTextElement& element : bookTextElements(m_book)) {
-            m_queue.append({element.element->id, element.element->title});
-        }
+        queueTexts();
     }
     m_published.restart();
     searchSlice();  // the first texts at once
+}
+
+void BookSearchCoordinator::queueTexts() {
+    const bool wholeSeries = m_panel != nullptr && m_panel->wholeSeries();
+    const QList<core::ProjectBook>& volumes = m_book.project()->books;
+    for (qsizetype index = 0; index < volumes.size(); ++index) {
+        const core::ProjectBook& volume = volumes.at(index);
+        if (!wholeSeries && &volume != m_book.book()) {
+            continue;
+        }
+        for (const BookTextElement& element : bookTextElements(m_book, &volume)) {
+            const QString& title = element.element->title;
+            //: A text among the matches of the whole series, with the number of its volume.
+            //: In Polish: %1, tom %2
+            m_queue.append({element.element->id,
+                            wholeSeries ? tr("%1, volume %2").arg(title).arg(index + 1) : title});
+        }
+    }
+}
+
+void BookSearchCoordinator::onCurrentBookChanged() {
+    if (m_panel != nullptr && !m_panel->wholeSeries()) {
+        searchAgain();
+    }
+}
+
+void BookSearchCoordinator::showSeries() {
+    if (m_panel == nullptr) {
+        return;
+    }
+    const bool before = m_panel->wholeSeries();
+    m_panel->setSeries(m_book.isProjectOpen() && m_book.isSeries());
+    if (before && !m_panel->wholeSeries()) {
+        searchAgain();
+    }
 }
 
 void BookSearchCoordinator::searchAgain() {
