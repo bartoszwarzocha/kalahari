@@ -289,6 +289,17 @@ QAction* NavigatorPanel::addDeleteVolumeAction(QMenu& menu, const QTreeWidgetIte
     return action;
 }
 
+void NavigatorPanel::addTakeOutVolumeAction(QMenu& menu, const QTreeWidgetItem* item) {
+    const QString bookId = bookIdOf(item);
+    QAction* action = menu.addAction(
+        core::ArtProvider::getInstance().getIcon("book.takeOutVolume", core::IconContext::Menu),
+        //: The command of a volume in the Navigator: the volume copied out as a book of its
+        //: own. In Polish: Wydziel jako osobną &książkę...
+        tr("Take &Out as a Book..."));
+    connect(action, &QAction::triggered, this,
+            [this, bookId]() { emit requestTakeOutVolume(bookId); });
+}
+
 QList<QAction*> NavigatorPanel::addBookActions(QMenu& menu, const QTreeWidgetItem* item) {
     if (showsVolumes()) {
         return addVolumeActions(menu, item);
@@ -316,6 +327,7 @@ QList<QAction*> NavigatorPanel::addVolumeRemovalActions(QMenu& menu,
     if (!showsVolumes()) {
         return {};
     }
+    addTakeOutVolumeAction(menu, item);
     return {addDeleteVolumeAction(menu, item)};
 }
 

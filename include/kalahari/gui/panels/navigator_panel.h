@@ -530,6 +530,9 @@ signals:
     /// @brief Delete Volume... (Delete) on volume @p bookId of a series
     void requestDeleteVolume(const QString& bookId);
 
+    /// @brief Take Out as a Book... on volume @p bookId of a series
+    void requestTakeOutVolume(const QString& bookId);
+
     /// @brief Series Properties... on the node of a series, and a click on it: its name and
     /// its volumes in the Properties panel
     void requestSeriesProperties();
@@ -805,6 +808,10 @@ private:
     /// @brief Add Delete Volume... of the volume of @p item to @p menu
     QAction* addDeleteVolumeAction(QMenu& menu, const QTreeWidgetItem* item);
 
+    /// @brief Add Take Out as a Book... of the volume of @p item to @p menu; it does not change
+    /// the series, so a book open read-only has it too
+    void addTakeOutVolumeAction(QMenu& menu, const QTreeWidgetItem* item);
+
     /// @brief Add the commands of the node of the book @p item to @p menu: Rename... and New
     /// Volume... of a book, the commands of the volume (addVolumeActions()) in a series
     /// @return The commands, which change the book
@@ -815,8 +822,8 @@ private:
     [[nodiscard]] QString bookPropertiesText() const;
 
     /// @brief Add the commands that take the volume of @p item out of its series to @p menu:
-    /// Delete Volume...; none for a book
-    /// @return The commands, which change the book
+    /// Take Out as a Book... and Delete Volume...; none for a book
+    /// @return The commands that change the book: Delete Volume...
     QList<QAction*> addVolumeRemovalActions(QMenu& menu, const QTreeWidgetItem* item);
 
     /// @brief Add the commands of the project's node to @p menu: New Volume... and Series

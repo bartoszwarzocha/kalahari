@@ -40,6 +40,7 @@ set(TEST_SOURCES
     core/test_publishing_texts.cpp    # The texts for publishers: their data, templates, lengths and the set
     core/test_series.cpp              # A series: several books of one project with one Workshop
     core/test_volume_materials.cpp    # A series: the cover and the publishing texts of each volume
+    core/test_series_join.cpp         # A series: a volume taken out, a book joined as a volume
     core/test_card_data.cpp           # The cards of the Workshop: their fields, data in the book and colors
     core/test_card_relations.cpp      # The relations between cards, and the fields that name a card by one
     core/test_card_field_set.cpp      # The fields of the cards as a book has them, and those new books start with
@@ -219,6 +220,7 @@ set(TEST_SOURCES
     gui/test_publishing_templates.cpp            # The window of the templates of the texts for publishers
     gui/test_series_window.cpp                   # A series in the window: Navigator, New Volume, Properties
     gui/test_series_cover.cpp                    # A series: the cover of each volume
+    gui/test_series_join.cpp                     # A series: a volume taken out, a book joined
     gui/test_publishing_add.cpp                  # Add Element of a text for publishers
     gui/test_pitch_panel.cpp                     # The card of a sentence about the book
     gui/test_publishing_text_box.cpp             # A text for publishers in the Properties panel
@@ -318,6 +320,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/cover_material.cpp
     ${CMAKE_SOURCE_DIR}/src/core/publishing_texts.cpp
     ${CMAKE_SOURCE_DIR}/src/core/volume_materials.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/volume_copies.cpp
     ${CMAKE_SOURCE_DIR}/src/core/card_data.cpp
     ${CMAKE_SOURCE_DIR}/src/core/source_description.cpp
     ${CMAKE_SOURCE_DIR}/src/core/bibliography.cpp
@@ -587,6 +590,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/add_to_book_dialog.cpp       # A file as a new element of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_file_dialog.cpp          # A new element of the open book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_volume_dialog.cpp        # A new volume of a series
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/take_out_volume_dialog.cpp   # A volume taken out
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/publishing_choice.cpp  # The part and the template of a new text for publishers
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/publishing_templates_dialog.cpp  # The templates of the texts for publishers
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/move_element_dialog.cpp      # A new place in the book for an element
@@ -822,6 +826,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_file_dialog.h  # NewFileDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_volume_dialog.h  # NewVolumeDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/take_out_volume_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_templates_dialog.h  # PublishingTemplatesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pitch_panel.h  # PitchPanel with Q_OBJECT

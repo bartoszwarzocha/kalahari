@@ -324,6 +324,14 @@ public slots:
     /// Trash, or for good when the writer says so
     void onRequestDeleteVolume(const QString& bookId);
 
+    /// @brief Take Out as a Book...: the open texts of volume @p bookId and of the Workshop
+    /// are saved, and the window TakeOutVolumeDialog writes the new book
+    /// (core::ProjectManager::takeOutBook()), deletes the volume from the series when the
+    /// writer checks it (as onRequestDeleteVolume() without its question), and puts the book on
+    /// the Dashboard; then the book opens in a new window (requestOpenBookInNewWindow()), unless
+    /// the writer unchecked it
+    void onRequestTakeOutVolume(const QString& bookId);
+
     /// @brief Ask for a new name of the node of the book or of the Workshop and give it; saves
     /// the .klh file
     ///
@@ -431,6 +439,10 @@ signals:
     /// @brief Emitted when document is modified (needs save)
     void documentModified();
 
+    /// @brief The book of @p manifest (its .klh file) opens in a new window, as a volume taken
+    /// out of the series does
+    void requestOpenBookInNewWindow(const QString& manifest);
+
     /// @brief Emitted when navigator should be refreshed
     void refreshNavigatorRequested();
 
@@ -483,6 +495,20 @@ private:
     /// to delete the volume anyway
     /// @return Whether the volume can be deleted
     bool saveTextsOfVolume(const core::ProjectBook& book);
+
+    /// @brief Save the open texts of volume @p book and of the Workshop before Take Out as a
+    /// Book...; when some cannot be saved, ask whether to take the volume out anyway
+    /// @return Whether the volume can be taken out
+    bool saveTextsForTakeOut(const core::ProjectBook& book);
+
+    /// @brief Save the open texts of @p elements and of the elements inside them (saveTextsOf())
+    /// @return The titles of the texts whose changes could not be saved, each indented
+    QStringList saveOpenTexts(const QList<const core::ProjectElement*>& elements);
+
+    /// @brief Volume @p bookId goes from the series (core::ProjectManager::removeBook()), its
+    /// tabs close and its files go to the system's Trash, or for good when the writer says so
+    /// @return false when the project could not be saved: the volume stays
+    bool removeVolume(const QString& bookId);
 
     /// @brief Ask whether to delete @p files of "Unassigned Files", and delete them
     void deleteUnassigned(const QList<core::UnassignedFile>& files);

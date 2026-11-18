@@ -86,6 +86,7 @@ set(KALAHARI_CORE_SOURCES
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
     core/publishing_texts.cpp   # The texts for publishers: data, templates, lengths, the set
     core/volume_materials.cpp   # The cover and the texts for publishers of each volume
+    core/volume_copies.cpp      # A volume of a series as a book of its own, and its files
     core/card_data.cpp          # The cards of the Workshop: the values of their fields, colors
     core/source_description.cpp # The bibliographic description of a source, its bookmarks
     core/bibliography.cpp       # The entries of a bibliography and the references in the text
@@ -216,6 +217,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/add_to_book_dialog.cpp  # AddToBookDialog - a file as a new element of the book
     gui/dialogs/new_file_dialog.cpp  # NewFileDialog - New File: a new element of the open book
     gui/dialogs/new_volume_dialog.cpp  # NewVolumeDialog - Book > New Volume...: a new book of a series
+    gui/dialogs/take_out_volume_dialog.cpp  # TakeOutVolumeDialog - a volume as a book of its own
     gui/dialogs/publishing_choice.cpp  # PublishingChoice - the part and the template of a new text for publishers
     gui/dialogs/publishing_templates_dialog.cpp  # PublishingTemplatesDialog - the templates of the texts for publishers
     gui/dialogs/move_element_dialog.cpp  # MoveElementDialog - a new place in the book for an element
@@ -574,6 +576,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_file_dialog.h  # NewFileDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_volume_dialog.h  # NewVolumeDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/take_out_volume_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_templates_dialog.h  # PublishingTemplatesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pitch_panel.h  # PitchPanel with Q_OBJECT

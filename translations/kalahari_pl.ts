@@ -10565,6 +10565,30 @@ Mimo to usunąć tom? Pliki zachowają tekst zapisany wcześniej.</translation>
         <extracomment>In Polish: Usunięto tom z serii: %1</extracomment>
         <translation>Usunięto tom z serii: %1</translation>
     </message>
+    <message>
+        <source>The changes in these texts could not be saved to their files:
+%1
+
+Take out the volume anyway? The new book gets the text saved before.</source>
+        <extracomment>In Polish: Zmian w tych tekstach nie udało się zapisać w ich plikach:
+%1
+
+Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</extracomment>
+        <translation>Zmian w tych tekstach nie udało się zapisać w ich plikach:
+%1
+
+Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</translation>
+    </message>
+    <message>
+        <source>Take Out Volume</source>
+        <extracomment>The title of the question of Take Out as a Book... In Polish: Wydziel tom</extracomment>
+        <translation>Wydziel tom</translation>
+    </message>
+    <message>
+        <source>Take Out &amp;Anyway</source>
+        <extracomment>In Polish: Wydziel &amp;mimo to</extracomment>
+        <translation>Wydziel &amp;mimo to</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPage</name>
@@ -11245,6 +11269,11 @@ Mimo to usunąć tom? Pliki zachowają tekst zapisany wcześniej.</translation>
         <source>Series P&amp;roperties...</source>
         <extracomment>The command of the node of a series in the Navigator: its name and its volumes in the Properties panel. In Polish: &amp;Właściwości serii...</extracomment>
         <translation>&amp;Właściwości serii...</translation>
+    </message>
+    <message>
+        <source>Take &amp;Out as a Book...</source>
+        <extracomment>The command of a volume in the Navigator: the volume copied out as a book of its own. In Polish: Wydziel jako osobną &amp;książkę...</extracomment>
+        <translation>Wydziel jako osobną &amp;książkę...</translation>
     </message>
 </context>
 <context>
@@ -38925,6 +38954,149 @@ In Polish: Nie udało się zapisać nazwy serii: nie można zapisać projektu.</
         <source>“%1” is a draft again</source>
         <extracomment>The status bar, after a material is given to another volume: the one chosen there before for its place is a draft again; %1 its title. In Polish: „%1” wraca do roboczych</extracomment>
         <translation>„%1” wraca do roboczych</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::TakeOutVolumeDialog</name>
+    <message>
+        <source>Take Out Volume</source>
+        <extracomment>The title of the window of Take Out as a Book... of a volume. In Polish: Wydziel tom</extracomment>
+        <translation>Wydziel tom</translation>
+    </message>
+    <message>
+        <source>Volume %1 &quot;%2&quot; as a book of its own.</source>
+        <extracomment>%1: the number of the volume, %2: its title. In Polish: Tom %1 „%2” jako osobna książka.</extracomment>
+        <translation>Tom %1 „%2” jako osobna książka.</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <extracomment>A group of the window: where the new book goes. In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Folder:</source>
+        <extracomment>In Polish: Folder:</extracomment>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Choose the folder in the system window</source>
+        <extracomment>In Polish: Wybierz folder w oknie systemu</extracomment>
+        <translation>Wybierz folder w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>New Book</source>
+        <extracomment>A group of the window: what the new book gets. In Polish: Nowa książka</extracomment>
+        <translation>Nowa książka</translation>
+    </message>
+    <message>
+        <source>Volume:</source>
+        <extracomment>A row of the new book. In Polish: Tom:</extracomment>
+        <translation>Tom:</translation>
+    </message>
+    <message>
+        <source>The texts of the volume with their versions and images, its cover, its texts for publishers and its goals.</source>
+        <extracomment>In Polish: Teksty tomu z ich wersjami i obrazami, jego okładka, teksty dla wydawnictwa i cele.</extracomment>
+        <translation>Teksty tomu z ich wersjami i obrazami, jego okładka, teksty dla wydawnictwa i cele.</translation>
+    </message>
+    <message>
+        <source>Workshop:</source>
+        <extracomment>A row of the new book. In Polish: Warsztat:</extracomment>
+        <translation>Warsztat:</translation>
+    </message>
+    <message>
+        <source>The Workshop of the series, without the covers and the texts for publishers of the other volumes and without the links to their texts.</source>
+        <extracomment>In Polish: Warsztat serii bez okładek i tekstów dla wydawnictwa innych tomów i bez powiązań z ich tekstami.</extracomment>
+        <translation>Warsztat serii bez okładek i tekstów dla wydawnictwa innych tomów i bez powiązań z ich tekstami.</translation>
+    </message>
+    <message>
+        <source>The record of writing stays with the series, and the new book starts its own.</source>
+        <extracomment>Under the rows of the new book. In Polish: Historia pisania zostaje w serii, a nowa książka zaczyna własną.</extracomment>
+        <translation>Historia pisania zostaje w serii, a nowa książka zaczyna własną.</translation>
+    </message>
+    <message>
+        <source>After Taking Out</source>
+        <extracomment>A group of the window. In Polish: Po wydzieleniu</extracomment>
+        <translation>Po wydzieleniu</translation>
+    </message>
+    <message>
+        <source>&amp;Delete the volume from the series</source>
+        <extracomment>In Polish: &amp;Usuń tom z serii</extracomment>
+        <translation>&amp;Usuń tom z serii</translation>
+    </message>
+    <message>
+        <source>Its files go to the {bin}, as with Delete Volume...; the new book has copies of them.</source>
+        <extracomment>Under the check box that deletes the volume. In Polish: Jego pliki trafią do Kosza, jak przy „Usuń tom...”; nowa książka ma ich kopie.</extracomment>
+        <translation>Jego pliki trafią do Kosza, jak przy „Usuń tom...”; nowa książka ma ich kopie.</translation>
+    </message>
+    <message>
+        <source>The book is open read-only: the volume stays in the series.</source>
+        <extracomment>Under the check box that deletes the volume, in a book open read-only. In Polish: Książka jest otwarta tylko do odczytu: tom zostaje w serii.</extracomment>
+        <translation>Książka jest otwarta tylko do odczytu: tom zostaje w serii.</translation>
+    </message>
+    <message>
+        <source>&amp;Open the new book in a new window</source>
+        <extracomment>In Polish: &amp;Otwórz nową książkę w nowym oknie</extracomment>
+        <translation>&amp;Otwórz nową książkę w nowym oknie</translation>
+    </message>
+    <message>
+        <source>The progress and the result will show here.</source>
+        <extracomment>In Polish: Postęp i wynik pokażą się tutaj.</extracomment>
+        <translation>Postęp i wynik pokażą się tutaj.</translation>
+    </message>
+    <message>
+        <source>&amp;Take Out</source>
+        <extracomment>The button that takes the volume out. In Polish: &amp;Wydziel</extracomment>
+        <translation>&amp;Wydziel</translation>
+    </message>
+    <message>
+        <source>The volume could not be taken out.</source>
+        <extracomment>In Polish: Nie udało się wydzielić tomu.</extracomment>
+        <translation>Nie udało się wydzielić tomu.</translation>
+    </message>
+    <message>
+        <source>Volume &quot;%1&quot; is now a book of its own in the folder %2.</source>
+        <extracomment>%1: the title of the volume, %2: the folder of the new book. In Polish: Tom „%1” jest teraz osobną książką w folderze %2.</extracomment>
+        <translation>Tom „%1” jest teraz osobną książką w folderze %2.</translation>
+    </message>
+    <message>
+        <source>The series no longer has the volume.</source>
+        <extracomment>After the result. In Polish: Seria nie ma już tego tomu.</extracomment>
+        <translation>Seria nie ma już tego tomu.</translation>
+    </message>
+    <message>
+        <source>The book opens in a new window when you close this one.</source>
+        <extracomment>After the result. In Polish: Książka otworzy się w nowym oknie, gdy zamkniesz to okno.</extracomment>
+        <translation>Książka otworzy się w nowym oknie, gdy zamkniesz to okno.</translation>
+    </message>
+    <message>
+        <source>The book is on the Dashboard and in File &gt; Recent Books.</source>
+        <extracomment>After the result. In Polish: Książkę znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</extracomment>
+        <translation>Książkę znajdziesz na Pulpicie programu i w menu Plik &gt; Ostatnie książki.</translation>
+    </message>
+    <message>
+        <source>The volume stays in the series: the project could not be saved.</source>
+        <extracomment>Under the result, when the volume could not be deleted from the series. In Polish: Tom zostaje w serii: nie udało się zapisać projektu.</extracomment>
+        <translation>Tom zostaje w serii: nie udało się zapisać projektu.</translation>
+    </message>
+    <message>
+        <source>Place of the Book</source>
+        <extracomment>The title of the system window that chooses where the new book goes. In Polish: Miejsce książki</extracomment>
+        <translation>Miejsce książki</translation>
+    </message>
+    <message>
+        <source>The title of the volume gives no name of a folder. Change the title in the properties of the volume.</source>
+        <extracomment>Under the folder, when the title of the volume cannot name a folder. In Polish: Z tytułu tomu nie powstanie nazwa folderu. Zmień tytuł we właściwościach tomu.</extracomment>
+        <translation>Z tytułu tomu nie powstanie nazwa folderu. Zmień tytuł we właściwościach tomu.</translation>
+    </message>
+    <message>
+        <source>The folder &quot;%1&quot; is already here and is not empty. Choose another place for the book.</source>
+        <extracomment>%1: the name of the folder of the book. In Polish: W tym miejscu jest już folder „%1” i nie jest pusty. Wybierz dla książki inne miejsce.</extracomment>
+        <translation>W tym miejscu jest już folder „%1” i nie jest pusty. Wybierz dla książki inne miejsce.</translation>
+    </message>
+    <message>
+        <source>The book goes to the folder &quot;%1&quot;.</source>
+        <extracomment>%1: the name of the folder of the book. In Polish: Książka powstanie w folderze „%1”.</extracomment>
+        <translation>Książka powstanie w folderze „%1”.</translation>
     </message>
 </context>
 </TS>

@@ -7,13 +7,18 @@
 
 #include "kalahari/core/project_manager.h"
 
+#include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/chapter_document.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/project_database.h"
+#include "kalahari/core/volume_copies.h"
 #include "kalahari/core/volume_materials.h"
+#include "kalahari/core/writing_goals.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -22,6 +27,7 @@
 #include <QSet>
 #include <QString>
 #include <QStringList>
+#include <QTimeZone>
 #include <QUuid>
 
 #include <algorithm>
@@ -333,6 +339,88 @@ bool ProjectManager::setMaterialBook(const QString& elementId, const QString& bo
     // The sets of the volumes have other versions
     emit publishingSetChanged();
     return true;
+}
+
+QString ProjectManager::takeOutBook(const QString& bookId, const QString& parentDir,
+                                    bool createSubfolder, QStringList* problems) {
+    QStringList found;
+    const QString projectDir = takeOutFolder(bookId, parentDir, createSubfolder, found);
+    QString manifest;
+    if (!projectDir.isEmpty()) {
+        const bool folderExisted = QFileInfo::exists(projectDir);
+        manifest = writeTakenOut(bookId, projectDir, found);
+        if (manifest.isEmpty()) {
+            removeNewProject(projectDir, folderExisted);
+        }
+    }
+    for (const QString& problem : found) {
+        Logger::getInstance().warn("takeOutBook: {}", problem.toStdString());
+    }
+    if (problems != nullptr) {
+        problems->append(found);
+    }
+    return manifest;
+}
+
+QString ProjectManager::takeOutFolder(const QString& bookId, const QString& parentDir,
+                                      bool createSubfolder, QStringList& problems) const {
+    const qsizetype index = m_project ? m_project->bookIndex(bookId) : -1;
+    if (index < 0 || m_project->books.size() < 2) {
+        problems.append(QStringLiteral("%1: no such book of a series").arg(bookId));
+        return {};
+    }
+    QString projectDir =
+        newProjectFolder(parentDir, m_project->books.at(index).title, createSubfolder);
+    if (projectDir.isEmpty() || !canHoldNewProject(projectDir)) {
+        problems.append(QStringLiteral("%1: the folder exists and is not empty")
+                            .arg(QDir::toNativeSeparators(projectDir)));
+        return {};
+    }
+    return projectDir;
+}
+
+QString ProjectManager::writeTakenOut(const QString& bookId, const QString& projectDir,
+                                      QStringList& problems) {
+    std::optional<TakenOutVolume> taken = VolumeCopies::takeOut(*m_project, bookId);
+    const ProjectBook& volume = m_project->books.at(m_project->bookIndex(bookId));
+    if (!taken || !QDir().mkpath(projectDir)) {
+        problems.append(QStringLiteral("%1: the folder cannot be made")
+                            .arg(QDir::toNativeSeparators(projectDir)));
+        return {};
+    }
+    // The copies of the packages of the type, and the book dictionary
+    const QString types = QString::fromLatin1(BookProject::TYPES_FOLDER);
+    taken->folders.append({types, types});
+    taken->files.append({BookDictionary::fileName(), BookDictionary::fileName()});
+    if (!VolumeCopies::copy(getProjectPath(), projectDir, taken->files, taken->folders,
+                            problems)) {
+        return {};
+    }
+    BookProject& project = taken->project;
+    project.created =
+        QDateTime::fromSecsSinceEpoch(QDateTime::currentSecsSinceEpoch(), QTimeZone::utc());
+    project.modified = project.created;
+    QString manifest = manifestPathOf(projectDir, volume.title);
+    if (!project.save(manifest)) {
+        problems.append(QStringLiteral("%1: the file cannot be written")
+                            .arg(QDir::toNativeSeparators(manifest)));
+        return {};
+    }
+    // The goals of the book, in its own project.db
+    const QString goals = m_database && m_database->isOpen()
+                              ? m_database->getSetting(BookGoals::settingKeyOf(volume)).toString()
+                              : QString();
+    if (!goals.isEmpty()) {
+        ProjectDatabase database;
+        if (!database.open(projectDir)) {
+            problems.append(QStringLiteral("%1: the database cannot be made")
+                                .arg(QDir::toNativeSeparators(projectDir)));
+            return {};
+        }
+        database.setSetting(QString::fromLatin1(BookGoals::SETTING_KEY), goals);
+        database.close();
+    }
+    return manifest;
 }
 
 QList<ElementPlace> ProjectManager::movePlacesIn(const QString& elementId,

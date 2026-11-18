@@ -932,6 +932,22 @@ public:
     ///         have, or when the file cannot be written
     std::optional<ProjectBook> removeBook(const QString& bookId);
 
+    /// @brief Write book @p bookId of the series as a book of its own, in a new project that
+    /// is not opened; the series stays as it is
+    ///
+    /// The new project is made as createProject() makes one, in @p parentDir or in its folder
+    /// named after the title of the book there (@p createSubfolder), with a .klh file named
+    /// after it. It has the book as VolumeCopies::takeOut() gives it, the files of its elements
+    /// with their versions, the images of the book, the copies of the packages of the type, the
+    /// book dictionary and the goals of the book (BookGoals). The record of writing stays with
+    /// the series. The texts are copied as their files have them: save them first.
+    /// @param problems Gets what went wrong; may be nullptr
+    /// @return The path of the .klh file of the new project; empty when the project has no
+    ///         such book or no other one, the folder cannot hold a new project or a file
+    ///         cannot be written (what was written is removed then)
+    QString takeOutBook(const QString& bookId, const QString& parentDir, bool createSubfolder,
+                        QStringList* problems = nullptr);
+
     /// @brief Give material @p elementId of the cover, or text @p elementId for publishers, to
     /// volume @p bookId of the series, or to the whole series (empty), and save the .klh file
     ///
@@ -1710,6 +1726,23 @@ private:
     /// @brief The text a new element of @p kind starts with: its template's, with the title
     /// and the author of @p book in place of "{title}" and "{author}"; empty without a template
     static QString startingText(const KindRef& kind, const ProjectBook& book);
+
+    /// @brief The .klh file of a new project in @p projectDir, named after @p title
+    static QString manifestPathOf(const QString& projectDir, const QString& title);
+
+    /// @brief The folder of the project of book @p bookId taken out of the series
+    /// (takeOutBook()): its title in @p parentDir, or @p parentDir itself
+    /// @return The folder; empty, with what is wrong in @p problems, when the series has no
+    ///         such book or the folder exists and is not empty
+    [[nodiscard]] QString takeOutFolder(const QString& bookId, const QString& parentDir,
+                                        bool createSubfolder, QStringList& problems) const;
+
+    /// @brief Write the project of book @p bookId taken out of the series (takeOutBook()) to
+    /// the folder @p projectDir, which can hold a new project
+    /// @return The path of its .klh file; empty, with what failed in @p problems, when a file
+    ///         cannot be written
+    QString writeTakenOut(const QString& bookId, const QString& projectDir,
+                          QStringList& problems);
 
     /// @brief Remove what was made of a new project that cannot be created: its folder goes
     /// back to how it was, empty when it existed (@p folderExisted), else it is removed

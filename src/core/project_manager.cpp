@@ -632,8 +632,7 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
     // The cards start with the fields that the Settings give new books
     giveDefaultCardFields(project);
 
-    QString manifestPath = QDir(projectDir).filePath(
-        safeFileName(request.title) + QLatin1String(BookProject::FILE_EXTENSION));
+    QString manifestPath = manifestPathOf(projectDir, request.title);
     logger.info("Creating project at: {}", manifestPath.toStdString());
 
     // Numbers of the default titles, for each kind: "Chapter 1", "Part I"
@@ -829,6 +828,11 @@ QString ProjectManager::newProjectFolder(const QString& parentDir, const QString
         return QString();
     }
     return QDir::cleanPath(createSubfolder ? QDir(parentDir).filePath(fileName) : parentDir);
+}
+
+QString ProjectManager::manifestPathOf(const QString& projectDir, const QString& title) {
+    return QDir(projectDir).filePath(safeFileName(title) +
+                                     QLatin1String(BookProject::FILE_EXTENSION));
 }
 
 bool ProjectManager::canHoldNewProject(const QString& folder) {

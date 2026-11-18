@@ -420,6 +420,11 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestMoveVolume);
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestDeleteVolume,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestDeleteVolume);
+    // A volume taken out as a book of its own, which opens in a new window
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestTakeOutVolume,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestTakeOutVolume);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::requestOpenBookInNewWindow, this,
+            [this](const QString& manifest) { openBookInNewWindow(manifest); });
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestNewVolume,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestNewVolume);
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenVolume,

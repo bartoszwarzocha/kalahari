@@ -2,7 +2,8 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file navigator_coordinator_series.cpp
-/// @brief NavigatorCoordinator: the volumes of a series – a new one, their order, their removal
+/// @brief NavigatorCoordinator: the volumes of a series – a new one, their order, their removal,
+///        a volume taken out as a book of its own
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
@@ -10,13 +11,16 @@
 #include "kalahari/core/kind_words.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/recent_books_manager.h"
 #include "kalahari/gui/dialogs/delete_dialogs.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_volume_dialog.h"
+#include "kalahari/gui/dialogs/take_out_volume_dialog.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 
+#include <QCheckBox>
 #include <QDialog>
 #include <QDir>
 #include <QHash>
@@ -116,6 +120,25 @@ QString deleteVolumeQuestion(qsizetype index, const QString& title, const QStrin
     return question;
 }
 
+/// The question of Take Out as a Book... when the changes of the texts @p unsaved could not be
+/// saved: whether to take the volume out anyway
+bool takeOutAnyway(QWidget* window, const QStringList& unsaved) {
+    //: In Polish: Zmian w tych tekstach nie udało się zapisać w ich plikach:\n%1\n\nMimo to
+    //: wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.
+    const QString question =
+        NavigatorCoordinator::tr("The changes in these texts could not be saved to their "
+                                 "files:\n%1\n\nTake out the volume anyway? The new book gets "
+                                 "the text saved before.")
+            .arg(unsaved.join(QLatin1Char('\n')));
+    //: The title of the question of Take Out as a Book... In Polish: Wydziel tom
+    const QString title = NavigatorCoordinator::tr("Take Out Volume");
+    //: In Polish: Wydziel &mimo to
+    const QString button = NavigatorCoordinator::tr("Take Out &Anyway");
+    return dialogs::MessageDialog::confirm(window, title, question, button,
+                                           dialogs::MessageDialog::Kind::Warning,
+                                           dialogs::MessageDialog::DefaultButton::Cancel);
+}
+
 }  // namespace
 
 void NavigatorCoordinator::onRequestNewVolume() {
@@ -210,13 +233,19 @@ void NavigatorCoordinator::onRequestOpenVolume(const QString& bookId) {
     onElementSelected(first->id, first->title);
 }
 
-bool NavigatorCoordinator::saveTextsOfVolume(const core::ProjectBook& book) {
+QStringList NavigatorCoordinator::saveOpenTexts(
+    const QList<const core::ProjectElement*>& elements) {
     QStringList unsaved;
-    for (const core::ProjectElement* element : topElementsOf(book)) {
+    for (const core::ProjectElement* element : elements) {
         for (const core::ProjectElement* text : saveTextsOf(*element)) {
             unsaved << QStringLiteral("  ") + text->title;
         }
     }
+    return unsaved;
+}
+
+bool NavigatorCoordinator::saveTextsOfVolume(const core::ProjectBook& book) {
+    const QStringList unsaved = saveOpenTexts(topElementsOf(book));
     if (unsaved.isEmpty()) {
         return true;
     }
@@ -246,29 +275,39 @@ void NavigatorCoordinator::onRequestDeleteVolume(const QString& bookId) {
     if (index < 0 || project->books.size() < 2) {
         return;
     }
-    // A copy: removing it changes the project. Its files, listed before it goes, go after it
-    const core::ProjectBook volume = project->books.at(index);
-    const QStringList files = filesOfVolume(pm, volume);
+    const core::ProjectBook& volume = project->books.at(index);
     //: The title of the questions of Delete Volume... In Polish: Usuń tom
     const QString title = tr("Delete Volume");
     //: The button of the question of Delete Volume... In Polish: &Usuń tom
     const QString button = tr("&Delete Volume");
-    if (!dialogs::MessageDialog::confirm(window, title,
-                                         deleteVolumeQuestion(index, volume.title, files),
-                                         button, dialogs::MessageDialog::Kind::Warning,
-                                         dialogs::MessageDialog::DefaultButton::Cancel) ||
+    if (!dialogs::MessageDialog::confirm(
+            window, title, deleteVolumeQuestion(index, volume.title, filesOfVolume(pm, volume)),
+            button, dialogs::MessageDialog::Kind::Warning,
+            dialogs::MessageDialog::DefaultButton::Cancel) ||
         !saveTextsOfVolume(volume)) {
         return;
     }
-
-    const std::optional<core::ProjectBook> removed = pm.removeBook(bookId);
-    if (!removed) {
-        core::Logger::getInstance().error("NavigatorCoordinator: Failed to delete a volume");
+    if (!removeVolume(bookId)) {
         //: In Polish: Nie udało się usunąć tomu: nie można zapisać projektu.
         dialogs::MessageDialog::warning(window, title,
                                         tr("Could not delete the volume: the project could not "
                                            "be saved."));
-        return;
+    }
+}
+
+bool NavigatorCoordinator::removeVolume(const QString& bookId) {
+    auto& pm = m_book;
+    const core::BookProject* project = pm.project();
+    const qsizetype index = project != nullptr ? project->bookIndex(bookId) : -1;
+    if (index < 0) {
+        return false;
+    }
+    // Its files, listed before it goes, go after it
+    const QStringList files = filesOfVolume(pm, project->books.at(index));
+    const std::optional<core::ProjectBook> removed = pm.removeBook(bookId);
+    if (!removed) {
+        core::Logger::getInstance().error("NavigatorCoordinator: Failed to delete a volume");
+        return false;
     }
     const core::ProjectBook& gone = *removed;
     core::Logger::getInstance().info("NavigatorCoordinator: Deleted volume: {}",
@@ -288,6 +327,59 @@ void NavigatorCoordinator::onRequestDeleteVolume(const QString& bookId) {
     m_statusBar->showMessage(tr("Volume deleted from the series: %1").arg(gone.title),
                              MESSAGE_TIME);
     emit documentModified();
+    return true;
+}
+
+bool NavigatorCoordinator::saveTextsForTakeOut(const core::ProjectBook& book) {
+    // The new book gets the files as the writer sees them: the texts of the volume, and the
+    // notes and the clippings of the Workshop
+    QList<const core::ProjectElement*> elements = topElementsOf(book);
+    if (const core::BookProject* project = m_book.project()) {
+        for (const core::ProjectElement& element : project->workshop.elements) {
+            elements << &element;
+        }
+    }
+    const QStringList unsaved = saveOpenTexts(elements);
+    return unsaved.isEmpty() || takeOutAnyway(qobject_cast<QWidget*>(parent()), unsaved);
+}
+
+void NavigatorCoordinator::onRequestTakeOutVolume(const QString& bookId) {
+    auto& pm = m_book;
+    auto* window = qobject_cast<QWidget*>(parent());
+    const core::BookProject* project = pm.project();
+    const qsizetype index = project != nullptr ? project->bookIndex(bookId) : -1;
+    if (index < 0 || project->books.size() < 2) {
+        return;
+    }
+    const core::ProjectBook& volume = project->books.at(index);
+    if (!saveTextsForTakeOut(volume)) {
+        return;
+    }
+
+    // The new book goes beside the folder of the series, at first
+    const dialogs::TakeOutVolumeDialog::Volume shown{static_cast<int>(index) + 1, volume.title,
+                                                     !pm.isReadOnly()};
+    const QString folder =
+        QDir::cleanPath(QDir(pm.getProjectPath()).absoluteFilePath(QStringLiteral("..")));
+    dialogs::TakeOutVolumeDialog dialog(
+        shown, folder,
+        [this, bookId](const QString& parentDir, bool deleteVolume) {
+            dialogs::TakeOutVolumeDialog::Outcome outcome;
+            outcome.manifest = m_book.takeOutBook(bookId, parentDir, true, &outcome.problems);
+            if (outcome.manifest.isEmpty()) {
+                return outcome;
+            }
+            core::Logger::getInstance().info("NavigatorCoordinator: Volume taken out: {}",
+                                             outcome.manifest.toStdString());
+            core::RecentBooksManager::getInstance().addRecentFile(outcome.manifest);
+            outcome.volumeDeleted = deleteVolume && removeVolume(bookId);
+            return outcome;
+        },
+        window);
+    dialog.exec();
+    if (!dialog.manifest().isEmpty() && dialog.openBox()->isChecked()) {
+        emit requestOpenBookInNewWindow(dialog.manifest());
+    }
 }
 
 }  // namespace kalahari::gui
