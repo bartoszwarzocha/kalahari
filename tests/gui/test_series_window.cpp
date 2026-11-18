@@ -448,8 +448,8 @@ TEST_CASE("Series: the page of a volume says its number", "[gui][series][propert
           QStringLiteral("Dunes"));
 }
 
-TEST_CASE("Series: Add Element, Move and the drops of the Navigator work in the volume of the "
-          "element",
+TEST_CASE("Series: Add Element works in the current volume, Move and the drops of the "
+          "Navigator in the volume of the element and in the others",
           "[gui][series][navigator]") {
     gui::registerAllIcons();
     const test::OpenNovel novel(QStringLiteral("Sand"));
@@ -490,7 +490,7 @@ TEST_CASE("Series: Add Element, Move and the drops of the Navigator work in the 
     CHECK(mainTitles(moveDunes.sections).isEmpty());
     REQUIRE(novel.pm.setCurrentBook(dunes));
 
-    // A drop: in the volume of the element, never in another one
+    // A drop: in the volume of the element, and in another one at its places
     const test::Window window;
     const gui::NavigatorPanel& panel = *window.navigatorPanel;
     const QTreeWidgetItem* storm = nullptr;
@@ -505,10 +505,16 @@ TEST_CASE("Series: Add Element, Move and the drops of the Navigator work in the 
     REQUIRE(sandMain->text(0) == dunesMain->text(0));
     const core::BookProject& project = *novel.pm.project();
     using Spot = gui::NavigatorPanel::DropSpot;
-    CHECK_FALSE(gui::NavigatorPanel::dropPlaceOf(project, novel.pm.bookTypes(), storm, dunesMain,
-                                                 Spot::On));
-    CHECK_FALSE(gui::NavigatorPanel::dropPlaceOf(project, novel.pm.bookTypes(), storm,
-                                                 dunesMain->child(0), Spot::Above));
+    // On the main section of another volume: where a chapter is added there, after its
+    // chapter; above that chapter: first
+    const std::optional<core::ElementPlace> onDunes = gui::NavigatorPanel::dropPlaceOf(
+        project, novel.pm.bookTypes(), storm, dunesMain, Spot::On);
+    REQUIRE(onDunes.has_value());
+    CHECK(*onDunes == core::ElementPlace{core::BookPlace::Main, QString(), 1});
+    const std::optional<core::ElementPlace> aboveDunes = gui::NavigatorPanel::dropPlaceOf(
+        project, novel.pm.bookTypes(), storm, dunesMain->child(0), Spot::Above);
+    REQUIRE(aboveDunes.has_value());
+    CHECK(*aboveDunes == core::ElementPlace{core::BookPlace::Main, QString(), 0});
     // Above the first chapter of its own volume
     REQUIRE(sandTitles.indexOf(QStringLiteral("The Storm")) > 0);
     const std::optional<core::ElementPlace> first = gui::NavigatorPanel::dropPlaceOf(
@@ -516,4 +522,172 @@ TEST_CASE("Series: Add Element, Move and the drops of the Navigator work in the 
     REQUIRE(first.has_value());
     CHECK(first->place == core::BookPlace::Main);
     CHECK(first->index == 0);
+}
+
+TEST_CASE("Series: Move... chooses the volume, with the places of each volume",
+          "[gui][series][dialogs]") {
+    gui::registerAllIcons();
+    const test::OpenNovel novel(QStringLiteral("Sand"));
+    using gui::dialogs::MoveElementDialog;
+
+    // A book: no list of the volumes
+    const MoveElementDialog::Book single = MoveElementDialog::openBook(novel.pm, novel.chapterId);
+    CHECK(single.volumes.isEmpty());
+    const MoveElementDialog book(single, novel.pm.bookTypes());
+    CHECK(book.volumeBox() == nullptr);
+    CHECK(book.volume().isEmpty());
+
+    const QString sand = novel.pm.book()->id;
+    const QString dunes = addVolume(novel.pm, QStringLiteral("Dunes"));
+    const MoveElementDialog::Book series = MoveElementDialog::openBook(novel.pm, novel.chapterId);
+    REQUIRE(series.volumes.size() == 2);
+    CHECK(series.volume == 0);
+    CHECK(series.volumes.at(1).name == QStringLiteral("Volume 2: Dunes"));
+    MoveElementDialog dialog(series, novel.pm.bookTypes());
+    REQUIRE(dialog.volumeBox() != nullptr);
+    CHECK(dialog.volumeBox()->count() == 2);
+    CHECK(dialog.volumeBox()->currentIndex() == 0);
+    CHECK(dialog.volume() == sand);
+    CHECK_FALSE(dialog.movesElement());
+    const auto texts = [&dialog]() {
+        QStringList all;
+        for (const QLabel* label : dialog.findChildren<QLabel*>()) {
+            all << label->text();
+        }
+        return all.join(QLatin1Char('\n'));
+    };
+    CHECK(texts().contains(QStringLiteral("Current place: volume 1, ")));
+
+    // Another volume: where a chapter is added to its main section, after its chapter
+    dialog.volumeBox()->setCurrentIndex(1);
+    CHECK(dialog.volume() == dunes);
+    CHECK(dialog.place() == core::ElementPlace{core::BookPlace::Main, QString(), 1});
+    CHECK(dialog.movesElement());
+    CHECK(dialog.acceptButton()->isEnabled());
+    CHECK(mainTitles(series.volumes.at(1).sections).size() == 1);
+    // Its first place too
+    dialog.picker()->setPlace({core::BookPlace::Main, QString(), 0});
+    CHECK(dialog.place() == core::ElementPlace{core::BookPlace::Main, QString(), 0});
+    CHECK(dialog.movesElement());
+
+    // Back in its own volume: at its place, which moves nothing
+    dialog.volumeBox()->setCurrentIndex(0);
+    CHECK(dialog.place() == series.from);
+    CHECK_FALSE(dialog.movesElement());
+    CHECK_FALSE(dialog.acceptButton()->isEnabled());
+}
+
+TEST_CASE("Series: the window Move with the volumes fits a small screen, in English and in "
+          "Polish",
+          "[gui][series][dialogs]") {
+    gui::registerAllIcons();
+    const test::OpenNovel novel(QStringLiteral("A rather long title of the first book"));
+    addVolume(novel.pm, QStringLiteral("A rather long title of the second book of the series"));
+    using gui::dialogs::MoveElementDialog;
+    const auto check = [&novel](const char* language) {
+        INFO("In " << language);
+        MoveElementDialog dialog(MoveElementDialog::openBook(novel.pm, novel.chapterId),
+                                 novel.pm.bookTypes());
+        REQUIRE(dialog.volumeBox() != nullptr);
+        test::layOut(dialog);
+        test::checkSmallScreen(dialog);
+        test::checkKeys(dialog);
+        dialog.close();
+    };
+    check("English");
+    {
+        // The window keeps its lines in a font of higher lines, as Windows has
+        const test::AppFontOfPixels font(13);
+        check("English, in a font of 13 pixels");
+    }
+    const test::Polish polish;
+    REQUIRE(polish.loaded());
+    check("Polish");
+    const test::AppFontOfPixels font(13);
+    check("Polish, in a font of 13 pixels");
+}
+
+TEST_CASE("Series: an element moved to another volume, with Move... or a drop",
+          "[gui][series][navigator]") {
+    gui::registerAllIcons();
+    const test::OpenNovel novel(QStringLiteral("Sand"));
+    const QString dunes = addVolume(novel.pm, QStringLiteral("Dunes"));
+    test::Window window;
+    window.navigator.refreshNavigator();
+    QObject::connect(window.navigatorPanel, &gui::NavigatorPanel::elementMovedTo,
+                     &window.navigator, &gui::NavigatorCoordinator::onElementMovedTo);
+
+    // A drop at the start of the main section of the second volume
+    emit window.navigatorPanel->elementMovedTo(
+        novel.chapterId, {core::BookPlace::Main, QString(), 0}, dunes);
+    const core::BookProject& project = *novel.pm.project();
+    CHECK(project.bookIndexOf(novel.chapterId) == 1);
+    CHECK(project.books.at(1).mainElements.constFirst().id == novel.chapterId);
+    // The Navigator shows it there, in the current volume
+    const QTreeWidgetItem* current = window.navigatorPanel->tree()->currentItem();
+    REQUIRE(current != nullptr);
+    CHECK(current->data(0, Qt::UserRole).toString() == novel.chapterId);
+    CHECK(gui::NavigatorPanel::bookIdOf(current) == dunes);
+    CHECK(novel.pm.book()->id == dunes);
+
+    // Move... takes it back to the end of the main section of the first volume
+    const gui::dialogs::MoveElementDialog::Book book =
+        gui::dialogs::MoveElementDialog::openBook(novel.pm, novel.chapterId);
+    REQUIRE(book.volumes.size() == 2);
+    CHECK(book.volume == 1);
+    const qsizetype sandEnd = book.volumes.at(0).sections.at(1).elements.size();
+    window.navigator.onElementMovedTo(novel.chapterId,
+                                      {core::BookPlace::Main, QString(), sandEnd},
+                                      project.books.at(0).id);
+    CHECK(project.bookIndexOf(novel.chapterId) == 0);
+    CHECK(project.books.at(0).mainElements.constLast().id == novel.chapterId);
+}
+
+TEST_CASE("Series: a volume dragged in the Navigator goes above or below another one",
+          "[gui][series][navigator]") {
+    gui::registerAllIcons();
+    const test::OpenNovel novel(QStringLiteral("Sand"));
+    const QString sand = novel.pm.book()->id;
+    test::Window window;
+    gui::NavigatorPanel& panel = *window.navigatorPanel;
+    const core::BookProject& project = *novel.pm.project();
+    using Spot = gui::NavigatorPanel::DropSpot;
+
+    // A book alone is not dragged
+    window.navigator.refreshNavigator();
+    REQUIRE(panel.bookItem(sand) != nullptr);
+    CHECK_FALSE(panel.bookItem(sand)->flags().testFlag(Qt::ItemIsDragEnabled));
+
+    // Each after the current one, the first: Sand, Oasis, Dunes
+    const QString dunes = addVolume(novel.pm, QStringLiteral("Dunes"));
+    const QString oasis = addVolume(novel.pm, QStringLiteral("Oasis"));
+    window.navigator.refreshNavigator();
+
+    // The volumes are dragged, the root takes them
+    const QTreeWidgetItem* sandItem = panel.bookItem(sand);
+    const QTreeWidgetItem* oasisItem = panel.bookItem(oasis);
+    const QTreeWidgetItem* dunesItem = panel.bookItem(dunes);
+    REQUIRE(sandItem != nullptr);
+    REQUIRE(oasisItem != nullptr);
+    REQUIRE(dunesItem != nullptr);
+    CHECK(sandItem->flags().testFlag(Qt::ItemIsDragEnabled));
+    CHECK(panel.tree()->topLevelItem(0)->flags().testFlag(Qt::ItemIsDropEnabled));
+
+    // Below the next one: one place later; above it: where it is
+    CHECK(gui::NavigatorPanel::volumeDropIndexOf(project, sandItem, oasisItem, Spot::Below) == 1);
+    CHECK_FALSE(gui::NavigatorPanel::volumeDropIndexOf(project, sandItem, oasisItem, Spot::Above));
+    CHECK(gui::NavigatorPanel::volumeDropIndexOf(project, dunesItem, sandItem, Spot::Above) == 0);
+    CHECK(gui::NavigatorPanel::volumeDropIndexOf(project, sandItem, dunesItem, Spot::Below) == 2);
+    CHECK_FALSE(gui::NavigatorPanel::volumeDropIndexOf(project, sandItem, dunesItem, Spot::On));
+    CHECK_FALSE(
+        gui::NavigatorPanel::volumeDropIndexOf(project, sandItem->child(1), dunesItem,
+                                               Spot::Above));
+
+    // The drop asks for the move, as Volume Earlier and Later do
+    QObject::connect(&panel, &gui::NavigatorPanel::requestMoveVolume, &window.navigator,
+                     &gui::NavigatorCoordinator::onRequestMoveVolume);
+    emit panel.requestMoveVolume(dunes, -2);
+    CHECK(project.books.at(0).id == dunes);
+    CHECK(project.books.at(1).id == sand);
+    CHECK(project.books.at(2).id == oasis);
 }

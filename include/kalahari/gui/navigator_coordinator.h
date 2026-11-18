@@ -271,11 +271,13 @@ public slots:
     /// @param elementId Element ID
     void onRequestMoveTo(const QString& elementId);
 
-    /// @brief Move an element dragged in the Navigator to another place of the book, with the
-    /// elements inside it; saves the .klh file
+    /// @brief Move an element dragged in the Navigator to another place of the book, or to
+    /// another volume of a series, with the elements inside it; saves the .klh file
     /// @param elementId Element ID
-    /// @param place Its new place, in the book without it
-    void onElementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place);
+    /// @param place Its new place, in the book without it or in volume @p bookId
+    /// @param bookId Id of the volume of @p place; empty: the element's own book
+    void onElementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place,
+                          const QString& bookId = QString());
 
     /// @brief Add an element in the Add Element window, with the kinds of @p target, the
     /// place of the Navigator or of the editor it was opened on; saves the .klh file
@@ -485,9 +487,11 @@ private:
     /// @brief Ask whether to delete @p files of "Unassigned Files", and delete them
     void deleteUnassigned(const QList<core::UnassignedFile>& files);
 
-    /// @brief Move element @p elementId to @p place of the book without it, and show it there;
-    /// the writer is told when the book cannot be saved
-    void moveElementTo(const QString& elementId, const core::ElementPlace& place);
+    /// @brief Move element @p elementId to @p place of the book without it, or of volume
+    /// @p bookId of a series, and show it there; the writer is told when the book cannot be
+    /// saved
+    void moveElementTo(const QString& elementId, const core::ElementPlace& place,
+                       const QString& bookId = QString());
 
     /// @brief The Add Element window on @p target, which @p prepare fills before it opens (a
     /// material dropped on the Navigator), and the element added with it: a material opens on

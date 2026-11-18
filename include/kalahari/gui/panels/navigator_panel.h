@@ -97,8 +97,10 @@ namespace gui {
 ///
 /// An element is dragged to any place of the book its kind can have (dropPlaceOf()), also in
 /// another group or section; a collapsed group or section under it opens after a moment, so
-/// that it can go inside. The drop asks for the move (elementMovedTo()), and the tree shows
-/// the book as it is once it is loaded again.
+/// that it can go inside. In a series it also goes to the places of another volume. The drop
+/// asks for the move (elementMovedTo()), and the tree shows the book as it is once it is
+/// loaded again. A volume of a series is dragged above or below another one
+/// (volumeDropIndexOf(), requestMoveVolume()).
 ///
 /// The files of the book outside its text, such as notes, which the finished book does not
 /// have, are in a group of their own after the sections, "Other Files" (core::ProjectBook::files).
@@ -341,7 +343,8 @@ public:
     /// there: a chapter before the epilogue. In a book without sections, the line between the
     /// last element of a section and the first one of the next is in both of them: the
     /// element goes to the first one that can have it. The element goes only where its kind can
-    /// be (core::BookProject::movePlacesOf()).
+    /// be (core::BookProject::movePlacesOf()). In another volume of a series, it goes to the
+    /// places of that volume (core::BookProject::movePlacesIn()).
     /// @param registry Kinds of the elements
     /// @return The place; none when the element cannot go there or stays where it is
     static std::optional<core::ElementPlace> dropPlaceOf(const core::BookProject& project,
@@ -349,6 +352,16 @@ public:
                                                          const QTreeWidgetItem* dragged,
                                                          const QTreeWidgetItem* target,
                                                          DropSpot spot);
+
+    /// @brief The new index of the volume of item @p dragged among the volumes of a series when
+    /// it is dropped at @p spot of the volume of item @p target
+    /// (core::ProjectManager::moveBook()): above it, the place of the target; below it, the
+    /// place after the target
+    /// @return The index; none when the items are not volumes, or the volume stays where it is
+    static std::optional<qsizetype> volumeDropIndexOf(const core::BookProject& project,
+                                                      const QTreeWidgetItem* dragged,
+                                                      const QTreeWidgetItem* target,
+                                                      DropSpot spot);
 
     /// @brief Clear tree (when no document is loaded)
     void clearDocument();
@@ -536,11 +549,15 @@ signals:
     /// @param index Its new index in its list (a part of the book or a group)
     void elementMoved(const QString& elementId, int index);
 
-    /// @brief Emitted when an element is dragged to another place of the book
+    /// @brief Emitted when an element is dragged to another place of the book, or to another
+    /// volume of a series
     /// @param elementId Element ID
-    /// @param place Its new place, in the book without it (dropPlaceOf())
+    /// @param place Its new place, in the book without it or in volume @p bookId
+    ///        (dropPlaceOf())
+    /// @param bookId Id of the volume the element was dropped in; empty: its own book
     /// @note The tree does not change; it shows the new order once it is loaded again
-    void elementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place);
+    void elementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place,
+                        const QString& bookId = QString());
 
     /// @brief Request to choose a new place of an element in the book (Move...)
     /// @param elementId Element ID
@@ -763,9 +780,9 @@ private:
     /// outside the books
     void chooseBookOf(const QTreeWidgetItem* item);
 
-    /// @brief The index of the book of element @p elementId when @p target is in it or in no
-    /// book (dropPlaceOf()); -1 for a target in another volume of a series, whose places the
-    /// element does not have
+    /// @brief The index of the book whose places a drop on @p target gives element
+    /// @p elementId (dropPlaceOf()): the book of @p target, or of the element for a target in
+    /// no book; -1 when neither is in @p project
     [[nodiscard]] static qsizetype dropBookOf(const core::BookProject& project,
                                               const QString& elementId,
                                               const QTreeWidgetItem* target);

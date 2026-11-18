@@ -223,7 +223,7 @@ void ElementPlacePicker::fillPlaces()
     if (m_registry && m_kind) {
         for (const PickerSection& section : std::as_const(m_sections)) {
             addPlacesIn(section.place, section.elements, QString(),
-                        m_movedFrom ? m_kind.kind->allows(section.place)
+                        m_moved ? m_kind.kind->allows(section.place)
                                     : m_kind.offeredIn(section.place));
         }
     }
@@ -285,6 +285,14 @@ void ElementPlacePicker::setPlace(const core::ElementPlace& place)
 void ElementPlacePicker::setMovedFrom(const core::ElementPlace& place)
 {
     m_movedFrom = place;
+    m_moved = true;
+    fillPlaces();
+}
+
+void ElementPlacePicker::setMovedFromElsewhere()
+{
+    m_movedFrom.reset();
+    m_moved = true;
     fillPlaces();
 }
 

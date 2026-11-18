@@ -19870,6 +19870,16 @@ The button that moves the element. In Polish: Przenieś</extracomment>
         <extracomment>In Polish: Jako ostatni element {group:genitive} „%1”</extracomment>
         <translation>Jako ostatni element {group:genitive} „%1”</translation>
     </message>
+    <message>
+        <source>Current place: volume %1, %2.</source>
+        <extracomment>Under the list of the book, in a series; %1: the number of the volume of the element, %2: where it is there, &quot;at the end of the main section&quot;. In Polish: Obecne miejsce: tom %1, %2.</extracomment>
+        <translation>Obecne miejsce: tom %1, %2.</translation>
+    </message>
+    <message>
+        <source>&amp;Volume:</source>
+        <extracomment>The list of the volumes of a series in the window Move. In Polish: &amp;Tom:</extracomment>
+        <translation>&amp;Tom:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::NameDialog</name>

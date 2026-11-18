@@ -214,6 +214,34 @@ std::optional<kalahari::core::BookPlace> sectionPlaceOf(const QString& type) {
     return std::nullopt;
 }
 
+/// The first of @p candidates that element @p elementId of @p project can have in book
+/// @p book: none when the element stays where it is, also on a line between two sections
+/// where it is already (@p sameLine); in another volume of a series, any place its kind can
+/// have there (BookProject::movePlacesIn())
+std::optional<kalahari::core::ElementPlace> firstDropPlace(
+    const kalahari::core::BookProject& project,
+    const kalahari::core::BookTypeRegistry& registry, const QString& elementId,
+    qsizetype book, const QList<kalahari::core::ElementPlace>& candidates,
+    const QList<kalahari::core::ElementPlace>& sameLine) {
+    const bool elsewhere = book != project.bookIndexOf(elementId);
+    const std::optional<kalahari::core::ElementPlace> from =
+        elsewhere ? std::nullopt : project.placeOf(elementId);
+    if (from.has_value() && sameLine.contains(*from)) {
+        return std::nullopt;
+    }
+    const QList<kalahari::core::ElementPlace> places =
+        elsewhere ? project.movePlacesIn(registry, elementId, project.books.at(book).id)
+                  : project.movePlacesOf(registry, elementId);
+    const auto first = std::find_if(candidates.cbegin(), candidates.cend(),
+                                    [&places](const kalahari::core::ElementPlace& candidate) {
+                                        return places.contains(candidate);
+                                    });
+    if (first == candidates.cend() || (from.has_value() && *first == *from)) {
+        return std::nullopt;
+    }
+    return *first;
+}
+
 /// The parts of a book, in reading order
 const QList<kalahari::core::BookPlace>& bookParts() {
     static const QList<kalahari::core::BookPlace> parts{kalahari::core::BookPlace::Front,
@@ -437,9 +465,17 @@ public:
     NavigatorTree(const kalahari::core::ProjectManager& book, QWidget* parent)
         : QTreeWidget(parent), m_book(book) {}
 
-    /// Called after a drop with the dragged element and its new place
-    std::function<void(const QString& elementId, const kalahari::core::ElementPlace& place)>
+    /// Called after a drop with the dragged element, its new place and the id of the volume
+    /// of a series it was dropped in (empty: its own book)
+    std::function<void(const QString& elementId, const kalahari::core::ElementPlace& place,
+                       const QString& bookId)>
         onMove;
+
+    /// The function called after a drop with the dragged volume of a series and its new index
+    /// among the volumes
+    void setOnMoveVolume(std::function<void(const QString& bookId, qsizetype index)> moveVolume) {
+        m_onMoveVolume = std::move(moveVolume);
+    }
 
     /// Called with the materials dropped from outside the program or pasted, and the link of
     /// the node they were dropped or pasted on (empty: none)
@@ -484,7 +520,8 @@ protected:
             return;
         }
         QTreeWidget::dragMoveEvent(event);
-        if (event->isAccepted() && !dropPlace(event->position().toPoint())) {
+        const QPoint pos = event->position().toPoint();
+        if (event->isAccepted() && !dropPlace(pos) && !volumeDrop(pos)) {
             event->ignore();
         }
     }
@@ -559,8 +596,9 @@ protected:
             }
             return;
         }
-        const std::optional<kalahari::core::ElementPlace> place =
-            dropPlace(event->position().toPoint());
+        const QPoint pos = event->position().toPoint();
+        const std::optional<kalahari::core::ElementPlace> place = dropPlace(pos);
+        const std::optional<qsizetype> volumeIndex = volumeDrop(pos);
         const QTreeWidgetItem* dragged = selectedItems().value(0);
         const QString elementId = dragged ? dragged->data(0, Qt::UserRole).toString() : QString();
 
@@ -570,10 +608,17 @@ protected:
         setState(NoState);
         viewport()->update();
 
+        // After the drag has ended: the move loads the tree again
         if (place && !elementId.isEmpty() && onMove) {
-            // After the drag has ended: the move loads the tree again
-            QTimer::singleShot(0, this,
-                               [this, elementId, to = *place]() { onMove(elementId, to); });
+            const QString bookId = kalahari::gui::NavigatorPanel::bookIdOf(itemAt(pos));
+            QTimer::singleShot(0, this, [this, elementId, to = *place, bookId]() {
+                onMove(elementId, to, bookId);
+            });
+        } else if (volumeIndex && m_onMoveVolume) {
+            const QString bookId = kalahari::gui::NavigatorPanel::bookIdOf(dragged);
+            QTimer::singleShot(0, this, [this, bookId, to = *volumeIndex]() {
+                m_onMoveVolume(bookId, to);
+            });
         }
     }
 
@@ -614,34 +659,51 @@ private:
                    : QString();
     }
 
+    /// Where the line or the frame of the drop is; none beside the items
+    [[nodiscard]] std::optional<kalahari::gui::NavigatorPanel::DropSpot> dropSpot() const {
+        using Spot = kalahari::gui::NavigatorPanel::DropSpot;
+        switch (dropIndicatorPosition()) {
+        case AboveItem:
+            return Spot::Above;
+        case BelowItem:
+            return Spot::Below;
+        case OnItem:
+            return Spot::On;
+        case OnViewport:  // Beside the items
+            break;
+        }
+        return std::nullopt;
+    }
+
     /// The new place of the dragged element when it is dropped at @p pos; none when it cannot
     /// go there or stays where it is
     [[nodiscard]] std::optional<kalahari::core::ElementPlace> dropPlace(const QPoint& pos) const {
-        using Spot = kalahari::gui::NavigatorPanel::DropSpot;
-        Spot spot = Spot::On;
-        switch (dropIndicatorPosition()) {
-        case AboveItem:
-            spot = Spot::Above;
-            break;
-        case BelowItem:
-            spot = Spot::Below;
-            break;
-        case OnItem:
-            break;
-        case OnViewport:  // Beside the items
-            return std::nullopt;
-        }
         const auto& pm = m_book;
         const kalahari::core::BookProject* project = pm.project();
-        if (!project) {
+        const std::optional<kalahari::gui::NavigatorPanel::DropSpot> spot = dropSpot();
+        if (project == nullptr || !spot.has_value()) {
             return std::nullopt;
         }
         return kalahari::gui::NavigatorPanel::dropPlaceOf(*project, pm.bookTypes(),
                                                           selectedItems().value(0), itemAt(pos),
-                                                          spot);
+                                                          *spot);
+    }
+
+    /// The new index of the dragged volume of a series when it is dropped at @p pos; none when
+    /// it is no volume or stays where it is
+    [[nodiscard]] std::optional<qsizetype> volumeDrop(const QPoint& pos) const {
+        const kalahari::core::BookProject* project = m_book.project();
+        const std::optional<kalahari::gui::NavigatorPanel::DropSpot> spot = dropSpot();
+        if (project == nullptr || !spot.has_value()) {
+            return std::nullopt;
+        }
+        return kalahari::gui::NavigatorPanel::volumeDropIndexOf(
+            *project, selectedItems().value(0), itemAt(pos), *spot);
     }
 
     const kalahari::core::ProjectManager& m_book;  ///< The book the tree shows
+    /// Called after a drop with the dragged volume of a series and its new index
+    std::function<void(const QString& bookId, qsizetype index)> m_onMoveVolume;
     QBasicTimer m_openTimer;  ///< Opens the item under the dragged element
     QPoint m_openPos;         ///< Where the dragged element is in the viewport
     bool m_outsideDrop = false;            ///< Files or addresses are dragged over the tree
@@ -753,14 +815,23 @@ NavigatorPanel::NavigatorPanel(core::ProjectManager& book, QWidget* parent)
     // Create tree widget
     auto* tree = new NavigatorTree(m_book, this);
     tree->setItemDelegate(new CountDelegate(tree));
-    tree->onMove = [this](const QString& elementId, const core::ElementPlace& place) {
+    tree->onMove = [this](const QString& elementId, const core::ElementPlace& place,
+                          const QString& bookId) {
         core::Logger::getInstance().info("NavigatorPanel: Element {} dragged to place {} of {}",
                                          elementId.toStdString(), place.index,
                                          place.groupId.isEmpty()
                                              ? core::bookPlaceName(place.place).toStdString()
                                              : place.groupId.toStdString());
-        emit elementMovedTo(elementId, place);
+        emit elementMovedTo(elementId, place, bookId);
     };
+    // A volume of a series dragged among the others: as Volume Earlier and Later
+    tree->setOnMoveVolume([this](const QString& bookId, qsizetype index) {
+        const core::BookProject* project = m_book.project();
+        const qsizetype from = project != nullptr ? project->bookIndex(bookId) : -1;
+        if (from >= 0) {
+            emit requestMoveVolume(bookId, static_cast<int>(index - from));
+        }
+    });
     // Files, web addresses and pictures from outside the program are new materials, linked
     // with the node of the book they were dropped or pasted on (QUICK_MATERIALS_SETTING)
     tree->takesMaterials = [this]() {
@@ -1089,7 +1160,8 @@ std::optional<core::ElementPlace> NavigatorPanel::dropPlaceOf(
     if (!from) {
         return std::nullopt;
     }
-    // The places are in the book of the element; a volume of a series keeps its elements
+    // The places are in the book of the target: the book of the element, or another volume
+    // of a series
     const qsizetype book = dropBookOf(project, elementId, target);
     if (book < 0) {
         return std::nullopt;
@@ -1172,18 +1244,7 @@ std::optional<core::ElementPlace> NavigatorPanel::dropPlaceOf(
         }
     }
 
-    // The first place its kind can have; none when the element stays where it is, also on a
-    // line between two sections where it is already
-    const QList<core::ElementPlace> places = project.movePlacesOf(registry, elementId);
-    if (sameLine.contains(*from)) {
-        return std::nullopt;
-    }
-    for (const core::ElementPlace& candidate : std::as_const(candidates)) {
-        if (places.contains(candidate)) {
-            return candidate == *from ? std::nullopt : std::optional(candidate);
-        }
-    }
-    return std::nullopt;
+    return firstDropPlace(project, registry, elementId, book, candidates, sameLine);
 }
 
 namespace {

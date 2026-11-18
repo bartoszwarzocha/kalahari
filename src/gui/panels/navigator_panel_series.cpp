@@ -81,12 +81,31 @@ QString NavigatorPanel::bookIdOf(const QTreeWidgetItem* item) {
 
 qsizetype NavigatorPanel::dropBookOf(const core::BookProject& project, const QString& elementId,
                                      const QTreeWidgetItem* target) {
-    const qsizetype book = project.bookIndexOf(elementId);
-    const QString targetBook = bookIdOf(target);
-    if (book < 0 || targetBook.isEmpty() || targetBook == project.books.at(book).id) {
-        return book;
+    const qsizetype targetBook = project.bookIndex(bookIdOf(target));
+    return targetBook >= 0 ? targetBook : project.bookIndexOf(elementId);
+}
+
+std::optional<qsizetype> NavigatorPanel::volumeDropIndexOf(const core::BookProject& project,
+                                                           const QTreeWidgetItem* dragged,
+                                                           const QTreeWidgetItem* target,
+                                                           DropSpot spot) {
+    const auto volumeIndex = [&project](const QTreeWidgetItem* item) {
+        return item != nullptr && item->data(0, TYPE_ROLE).toString() == BOOK_TYPE
+                   ? project.bookIndex(item->data(0, BOOK_ROLE).toString())
+                   : -1;
+    };
+    const qsizetype from = volumeIndex(dragged);
+    const qsizetype at = volumeIndex(target);
+    if (from < 0 || at < 0 || spot == DropSpot::On) {
+        return std::nullopt;
     }
-    return -1;
+    // Above the target its place, below it the place after it; the volume leaves its own
+    // place first
+    qsizetype to = spot == DropSpot::Above ? at : at + 1;
+    if (to > from) {
+        --to;
+    }
+    return to == from ? std::nullopt : std::optional<qsizetype>(to);
 }
 
 void NavigatorPanel::requestBookProperties(const QString& type) {
@@ -146,6 +165,11 @@ QTreeWidgetItem* NavigatorPanel::addBookItem(QTreeWidgetItem* rootItem,
     bookItem->setIcon(0, core::ArtProvider::getInstance().getIcon(getIconIdForType(BOOK_TYPE),
                                                                  core::IconContext::TreeView));
     bookItem->setFlags(bookItem->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled);
+    if (index >= 0) {
+        // A volume of a series is dragged among the others, whose places are in the root
+        bookItem->setFlags(bookItem->flags() | Qt::ItemIsDragEnabled);
+        rootItem->setFlags(rootItem->flags() | Qt::ItemIsDropEnabled);
+    }
 
     if (book != nullptr && !book->partsLayer) {
         // A book without sections: the elements of its three sections in reading order. The
