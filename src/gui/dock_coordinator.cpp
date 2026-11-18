@@ -46,6 +46,7 @@
 #include <QAction>
 #include <QRect>
 #include <QScreen>
+#include <QStatusBar>
 #include <QSplitter>
 
 #include <algorithm>
@@ -87,6 +88,9 @@ constexpr const char* PARAGRAPH_FOLDED_KEY = "panels.paragraphFolded";
 
 /// @brief The setting of the border of the parts of the Properties panel
 constexpr const char* PROPERTIES_SPLIT_KEY = "panels.propertiesSplit";
+
+/// How long a message of a command stays in the status bar (ms)
+constexpr int STATUS_MESSAGE_MS = 4000;
 
 /// @brief The title on the title bar of a panel: cut with an ellipsis in a narrow panel, and
 /// whole in its tooltip then, so a long title ("Paragraph and Styles") does not keep the
@@ -789,6 +793,7 @@ void DockCoordinator::setupViewMenuActions() {
         command->isChecked = [this]() { return isParagraphOpen(); };
         registry.updateActionState("view.paragraph");
     }
+    connectTemplatePoints();
 
     // The panel toggles of the View > Panels submenu (built by MenuBuilder from the
     // commands) follow the docks' visibility
@@ -810,6 +815,27 @@ void DockCoordinator::setupViewMenuActions() {
         }
         updateParagraphAction();
     }
+}
+
+void DockCoordinator::connectTemplatePoints() {
+    Command* command = m_commands.getCommand("tools.publishing.templatePoints");
+    if (command == nullptr) {
+        return;
+    }
+    command->execute = [this]() {
+        m_propertiesDock->show();
+        m_propertiesDock->raise();
+        if (m_propertiesDock->isFloating()) {
+            m_propertiesDock->activateWindow();
+        }
+        if (!m_propertiesPanel->focusTemplatePoints()) {
+            //: Tools > Texts for Publishers > Template Points, when the text in front has none.
+            //: In Polish: Tekst na wierzchu nie ma punktów szablonu.
+            m_mainWindow->statusBar()->showMessage(
+                tr("The text in front has no template points."), STATUS_MESSAGE_MS);
+        }
+    };
+    m_commands.updateActionState("tools.publishing.templatePoints");
 }
 
 void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget* dock) {

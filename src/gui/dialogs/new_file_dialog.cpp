@@ -11,14 +11,18 @@
 #include "kalahari/core/kind_words.h"
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/window_editor_provider.h"
+#include "kalahari/gui/add_target.h"
 #include "kalahari/gui/cover_names.h"
+#include "kalahari/gui/dialogs/publishing_choice.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/material_downloader.h"
 #include "kalahari/gui/material_file.h"
 #include "kalahari/gui/material_source.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/section_words.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/utils/program_folders.h"
@@ -675,6 +679,17 @@ NewFileDialog::Book NewFileDialog::openBook(const core::ProjectManager& pm,
     return book;
 }
 
+void NewFileDialog::setPublishing(Book& book, const core::ProjectManager& pm,
+                                  const AddTarget& target)
+{
+    book.publishingPart = target.publishingPart;
+    book.publishingTemplates = pm.publishingTemplates();
+    book.publishingTitle = [&pm](const QString& part) {
+        return core::PublishingTexts::parts().contains(part) ? PublishingNames::newTitle(pm, part)
+                                                             : CoverNames::newTitle(pm, part);
+    };
+}
+
 NewFileDialog::Book NewFileDialog::forAdding(const core::ProjectManager& pm,
                                              const AddTarget& target, AddChooser chooser)
 {
@@ -683,6 +698,7 @@ NewFileDialog::Book NewFileDialog::forAdding(const core::ProjectManager& pm,
     }
     Book book;
     book.coverTitle = [&pm](const QString& part) { return CoverNames::newTitle(pm, part); };
+    setPublishing(book, pm, target);
     book.adding = true;
     book.chooser = chooser;
     book.coverPart = target.coverPart;
@@ -818,6 +834,7 @@ NewFileDialog::Book NewFileDialog::forPlace(const core::ProjectManager& pm,
 {
     Book book;
     book.coverTitle = [&pm](const QString& part) { return CoverNames::newTitle(pm, part); };
+    setPublishing(book, pm, target);
     book.adding = true;
     book.coverPart = target.coverPart;
     const core::BookProject* project = pm.project();
@@ -983,6 +1000,7 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     // source of a new material is chosen before its title, which follows it
     choices->addWidget(createKindsGroup(content), 3);
     choices->addWidget(createCoverGroup(content));
+    choices->addWidget(createPublishingGroup(content));
     choices->addWidget(createSourceGroup(content));
     choices->addLayout(createTitleRow(content));
     choices->addWidget(createPlaceGroup(content), 2);
@@ -1108,6 +1126,10 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
 
 core::KindRef NewFileDialog::kind() const
 {
+    // A description or a tagline for publishers is a material of the cover
+    if (const NewFileKind* cover = coverEntry(); cover != nullptr && publishingGoesToCover()) {
+        return cover->kind;
+    }
     const NewFileKind* entry = chosen();
     return entry ? entry->kind : core::KindRef{};
 }
@@ -1272,6 +1294,10 @@ void NewFileDialog::done(int result)
     if (result == QDialog::Accepted && isCover(chosen())) {
         core::SettingsManager::getInstance().set<std::string>(COVER_PART_SETTING,
                                                               m_coverPart.toStdString());
+    }
+    // The part and the template of a text for publishers too
+    if (result == QDialog::Accepted && isPublishing(chosen())) {
+        m_publishing->keep();
     }
     KalahariDialog::done(result);
 }
@@ -1536,7 +1562,66 @@ std::optional<NewFileDialog::MaterialOrigin> NewFileDialog::originOfChosen() con
 
 QString NewFileDialog::coverPart() const
 {
+    if (publishingGoesToCover()) {
+        return m_publishing->part();
+    }
     return isCover(chosen()) ? m_coverPart : QString();
+}
+
+QString NewFileDialog::publishingPart() const
+{
+    return isPublishing(chosen()) && !m_publishing->coverPart() ? m_publishing->part()
+                                                                : QString();
+}
+
+QString NewFileDialog::publishingTemplate() const
+{
+    return isPublishing(chosen()) ? m_publishing->templateReference() : QString();
+}
+
+PublishingChoice* NewFileDialog::createPublishingGroup(QWidget* parent)
+{
+    // A description and a tagline go to the cover when the window offers its kind
+    m_publishing = new PublishingChoice(m_book.publishingTemplates, coverEntry() != nullptr,
+                                        parent);
+    m_publishing->setPart(m_book.publishingPart);
+    connect(m_publishing, &PublishingChoice::partChanged, this, [this]() {
+        if (const NewFileKind* entry = chosen(); entry != nullptr && !m_titleChanged) {
+            m_titleEdit->setText(startTitleOf(*entry));
+        }
+    });
+    m_publishing->hide();
+    return m_publishing;
+}
+
+bool NewFileDialog::isPublishing(const NewFileKind* entry)
+{
+    return entry != nullptr && PublishingNames::isPublishingKind(entry->kind);
+}
+
+bool NewFileDialog::publishingGoesToCover() const
+{
+    return isPublishing(chosen()) && m_publishing->coverPart();
+}
+
+const NewFileKind* NewFileDialog::coverEntry() const
+{
+    const auto found = std::find_if(m_book.kinds.cbegin(), m_book.kinds.cend(),
+                                    [](const NewFileKind& entry) {
+                                        return isCover(&entry) && entry.unavailable.isEmpty();
+                                    });
+    return found != m_book.kinds.cend() ? &*found : nullptr;
+}
+
+QString NewFileDialog::startTitleOf(const NewFileKind& entry) const
+{
+    if (isMaterial(&entry)) {
+        return sourceTitle();
+    }
+    if (isPublishing(&entry) && m_book.publishingTitle) {
+        return m_book.publishingTitle(m_publishing->part());
+    }
+    return entry.title;
 }
 
 void NewFileDialog::setCoverPart(const QString& part)
@@ -1995,6 +2080,7 @@ void NewFileDialog::onKindChanged()
     m_statusBox->setVisible(status);
     m_sourceGroup->setVisible(isMaterial(entry));
     m_coverGroup->setVisible(isCover(entry));
+    m_publishing->setVisible(isPublishing(entry));
     const bool group = entry && entry->kind.kind->form == core::ElementForm::Group;
     if (!group) {
         m_takeBox->hide();
@@ -2032,9 +2118,10 @@ void NewFileDialog::onKindChanged()
             ->setChecked(true);
     }
 
-    // The title follows the kind, or the source of a material, until the writer changes it
+    // The title follows the kind, the source of a material or the part of a text for
+    // publishers, until the writer changes it
     if (!m_titleChanged) {
-        m_titleEdit->setText(isMaterial(entry) ? sourceTitle() : entry->title);
+        m_titleEdit->setText(startTitleOf(*entry));
     }
     if (isMaterial(entry)) {
         showSource();

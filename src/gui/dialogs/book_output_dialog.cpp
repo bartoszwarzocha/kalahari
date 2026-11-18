@@ -144,6 +144,11 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
     //: %1: the title of the text of the tab in front. In Polish: Tekst na wie&rzchu: „%1”
     m_frontButton = new QRadioButton(
         tr("&Text in front: \"%1\"").arg(literal(m_book.frontTitle)), contentBox);
+    //: %n: the parts of the set for a publisher that have a text. In Polish: Zes&taw dla
+    //: wydawnictwa (%n część / części / części)
+    m_setButton = new QRadioButton(tr("Set for the &publisher (%n parts)", nullptr,
+                                      m_book.setParts),
+                                   contentBox);
     // The book and the chosen texts side by side; the text in front, whose title may be long,
     // under them
     int row = 0;
@@ -151,6 +156,7 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
     bookOrChosen->setSpacing(fontMetrics().averageCharWidth() * 3);
     bookOrChosen->addWidget(m_bookButton);
     bookOrChosen->addWidget(m_chosenButton);
+    bookOrChosen->addWidget(m_setButton);
     bookOrChosen->addStretch();
     content->addLayout(bookOrChosen, row++, 0, 1, 2);
     content->addWidget(m_frontButton, row++, 0, 1, 2);
@@ -200,12 +206,16 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
             updateFields();
         }
     });
-    for (QRadioButton* button : {m_bookButton, m_chosenButton, m_frontButton}) {
+    for (QRadioButton* button : {m_bookButton, m_chosenButton, m_frontButton, m_setButton}) {
         connect(button, &QRadioButton::toggled, this, [this](bool on) {
             if (on) {
                 // The list stays in its place, so the tab keeps its look; it works with
                 // Chosen texts
                 m_chosenBox->setEnabled(m_chosenButton->isChecked());
+                // The parts of the set follow one another on the pages
+                if (m_newPageBox != nullptr) {
+                    m_newPageBox->setEnabled(!m_setButton->isChecked());
+                }
                 dropFailure();
                 contentChanged();
             }
@@ -217,6 +227,7 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
     m_chosenButton->setVisible(!m_book.title.isEmpty());
     m_chosenBox->setVisible(!m_book.title.isEmpty());
     m_frontButton->setVisible(!m_book.frontTitle.isEmpty());
+    m_setButton->setVisible(!m_book.title.isEmpty() && !m_book.setTitle.isEmpty());
 }
 
 void BookOutputDialog::fillTextList()
@@ -449,9 +460,12 @@ void BookOutputDialog::rememberLayout(const std::string& contentKey) const
 {
     auto& settings = core::SettingsManager::getInstance();
     const Layout now = layoutChoice();
-    settings.set<std::string>(contentKey, nameOfValue(contentNames(), now.content));
+    // The set for a publisher is chosen each time: the window opens with the book again
+    if (now.content != Content::Set) {
+        settings.set<std::string>(contentKey, nameOfValue(contentNames(), now.content));
+        settings.set<bool>("export.newPage", now.newPage);
+    }
     settings.set<bool>("export.titles", now.titles);
-    settings.set<bool>("export.newPage", now.newPage);
     settings.set<bool>("export.pageNumbers", now.pageNumbers);
     settings.set<std::string>("export.font", now.fontFamily.toStdString());
     settings.set<std::string>("export.runningHead",
@@ -466,6 +480,8 @@ BookOutputDialog::Layout BookOutputDialog::layoutChoice() const
         layout.content = Content::Front;
     } else if (m_chosenButton->isChecked()) {
         layout.content = Content::Chosen;
+    } else if (m_setButton->isChecked()) {
+        layout.content = Content::Set;
     }
     for (const QTreeWidgetItem* item : leaves()) {
         if (item->checkState(0) == Qt::Checked) {
@@ -473,7 +489,7 @@ BookOutputDialog::Layout BookOutputDialog::layoutChoice() const
         }
     }
     layout.titles = m_titlesBox->isChecked();
-    layout.newPage = m_newPageBox->isChecked();
+    layout.newPage = m_newPageBox->isChecked() && layout.content != Content::Set;
     layout.pageNumbers = m_pageNumbersBox->isChecked();
     layout.fontFamily = m_fontBox->currentData().toString();
     layout.runningHead =
@@ -512,7 +528,23 @@ void BookOutputDialog::setContent(Content content)
         case Content::Front:
             m_frontButton->setChecked(true);
             break;
+        case Content::Set:
+            m_setButton->setChecked(true);
+            break;
     }
+}
+
+QString BookOutputDialog::contentTitle() const
+{
+    if (m_frontButton->isChecked()) {
+        return m_book.frontTitle;
+    }
+    return m_setButton->isChecked() ? m_book.setTitle : m_book.title;
+}
+
+bool BookOutputDialog::oneText() const
+{
+    return m_frontButton->isChecked() || m_setButton->isChecked();
 }
 
 QTreeWidget* BookOutputDialog::textList() const

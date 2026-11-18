@@ -967,9 +967,10 @@ void ExportBookDialog::showFormat()
 
 void ExportBookDialog::contentChanged()
 {
-    const bool front = frontButton()->isChecked();
+    // The set for a publisher goes as one text with its title
+    const bool front = oneText();
     const QString id = m_formatBox->currentData().toString();
-    const QString title = front ? book().frontTitle : book().title;
+    const QString title = contentTitle();
     QString description;
     if (id == QLatin1String(DOCX_ID)) {
         description = front
@@ -1154,8 +1155,7 @@ QString ExportBookDialog::baseName() const
 
 QString ExportBookDialog::suggestedName() const
 {
-    const QString title = frontButton()->isChecked() ? book().frontTitle : book().title;
-    const QString name = safeName(title);
+    const QString name = safeName(contentTitle());
     //: The name of the exported file of a book without a title. In Polish: Książka
     return name.isEmpty() ? tr("Book") : name;
 }

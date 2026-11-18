@@ -267,6 +267,7 @@ void registerAllIcons() {
     // The button on the graph of the statistics bar that puts now in the middle
     iconRegistry.registerIcon("stats.nowInMiddle", "resources/icons/twotone/align_horizontal_center.svg", "Now in the Middle");
     iconRegistry.registerIcon("tools.readability", "resources/icons/twotone/auto_stories.svg", "Readability Analysis");
+    iconRegistry.registerIcon("tools.publishing.templatePoints", "resources/icons/twotone/fact_check.svg", "Template Points");
     iconRegistry.registerIcon("tools.toolbarManager", "resources/icons/twotone/build.svg", "Toolbar Manager");
 
     // -------------------------------------------------------------------------
@@ -375,6 +376,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.imageFilter", "resources/icons/twotone/palette.svg", "Filter");
     iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("menu.plugins", "resources/icons/twotone/extension.svg", "Plugins");
+    iconRegistry.registerIcon("menu.publishing", "resources/icons/twotone/outbox.svg", "Texts for Publishers");
     iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");
     iconRegistry.registerIcon("menu.viewMode", "resources/icons/twotone/visibility.svg", "View Mode");
     iconRegistry.registerIcon("menu.zoom", "resources/icons/twotone/zoom_in.svg", "Zoom");
@@ -455,6 +457,15 @@ void registerAllIcons() {
     // The materials of the cover: the kind, and what each material is
     iconRegistry.registerIcon("material.cover", "resources/icons/twotone/book_cover.svg",
                               "Cover");
+    // The texts for publishers: the kind, a sentence about the book, a synopsis, the set
+    iconRegistry.registerIcon("material.publishing", "resources/icons/twotone/outbox.svg",
+                              "Texts for Publishers");
+    iconRegistry.registerIcon("material.publishingPitch", "resources/icons/twotone/subtitles.svg",
+                              "Sentence About the Book");
+    iconRegistry.registerIcon("material.publishingSynopsis",
+                              "resources/icons/twotone/article.svg", "Synopsis");
+    iconRegistry.registerIcon("material.publishingSet", "resources/icons/twotone/view_agenda.svg",
+                              "Set for Publishers");
     iconRegistry.registerIcon("material.coverBlurb", "resources/icons/twotone/subject.svg",
                               "Cover Description");
     iconRegistry.registerIcon("material.coverTagline", "resources/icons/twotone/short_text.svg",
@@ -575,6 +586,8 @@ void registerAllIcons() {
                               "Group by Kind");
     iconRegistry.registerIcon("materials.coverPlan", "resources/icons/twotone/import_contacts.svg",
                               "Cover Plan");
+    iconRegistry.registerIcon("materials.publishingSet", "resources/icons/twotone/outbox.svg",
+                              "Set for the Publisher");
     iconRegistry.registerIcon("materials.showKind", "resources/icons/twotone/visibility.svg",
                               "Show the Kind");
 

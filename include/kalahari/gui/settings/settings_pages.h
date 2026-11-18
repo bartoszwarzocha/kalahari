@@ -524,18 +524,19 @@ private:
 /// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,
 /// what the top of the Add Element window chooses from, what the Materials show and where a
 /// list of materials opens, what a material dropped gives, and whether its links name
-/// paragraphs; the
-/// kinds of materials the Navigator shows (MaterialList::HIDDEN_SETTING) and how the texts of
-/// the cover are counted, with the targets of their kinds (core::CoverMaterial)
+/// paragraphs; the kinds of materials the Navigator shows (MaterialList::HIDDEN_SETTING), how
+/// the texts of the cover are counted, with the targets of their kinds (core::CoverMaterial),
+/// and the texts for publishers (core::PublishingTexts)
 class NavigatorPage : public SettingsPage {
     Q_OBJECT
 public:
     /// @brief The pages of Settings > Navigator, each with its own groups
     enum class Part {
-        Adding,  ///< The menus of the nodes, the Add Element window, dropped and pasted
-        Lists,   ///< What the Materials show, where the list of a kind opens, the links
-        Kinds,   ///< The kinds of materials the Navigator shows
-        Cover    ///< The lengths of the texts of the cover
+        Adding,     ///< The menus of the nodes, the Add Element window, dropped and pasted
+        Lists,      ///< What the Materials show, where the list of a kind opens, the links
+        Kinds,      ///< The kinds of materials the Navigator shows
+        Cover,      ///< The lengths of the texts of the cover
+        Publishing  ///< The texts for publishers: their lengths and the set
     };
 
     /// @param book The book of its window, whose numbers of materials the kinds show
@@ -547,11 +548,20 @@ private:
     void createLists();
     void createKinds();
     void createCover();
+    /// @brief The texts for publishers: the target lengths of the texts without a template,
+    /// the standard pages of a synopsis and the parts of the set of a new book
+    /// (core::PublishingTexts)
+    void createPublishing();
+    /// @brief The target lengths of the texts without a template in both units, in @p group
+    void addPublishingTargets(QFormLayout* group);
+    /// @brief The parts of the set of a new book, in @p group
+    void addSetChoice(QFormLayout* group);
 
     QList<QCheckBox*> m_kindBoxes;  ///< The kinds of materials shown, with their "kind"
     QComboBox* m_coverUnit = nullptr;  ///< The texts of the cover counted in characters or words
     QList<QSpinBox*> m_characterTargets;  ///< The targets of the texts of the cover in characters
     QList<QSpinBox*> m_wordTargets;       ///< In words
+    QList<QCheckBox*> m_setBoxes;  ///< The parts of the set of a new book, with their "part"
     const core::ProjectManager& m_book;  ///< The book of its window
 };
 

@@ -11,6 +11,7 @@
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/publishing_texts.h"
 #include "kalahari/gui/add_target.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/widgets/element_place_picker.h"
@@ -43,6 +44,8 @@ class ProjectManager;
 }  // namespace kalahari::core
 
 namespace kalahari::gui::dialogs {
+
+class PublishingChoice;
 
 /// @brief A kind that the New File window offers in one part of the book: its tile, and what
 /// the window says of it
@@ -151,6 +154,16 @@ public:
         /// The title of a new material of the cover of a part, from the book
         /// (CoverNames::newTitle()); none: no title
         std::function<QString(const QString& part)> coverTitle;
+        /// A text for publishers: the part chosen at the start (core::PublishingTexts::PITCH...;
+        /// TAGLINE and BLURB go to the cover); empty: the one chosen last
+        QString publishingPart;
+        /// The templates of the texts for publishers of the book
+        /// (core::ProjectManager::publishingTemplates())
+        QList<core::PublishingTemplate> publishingTemplates;
+        /// The title of a new text for publishers of a part, from the book
+        /// (PublishingNames::newTitle(), of a description or a tagline CoverNames::newTitle());
+        /// none: the title of its kind
+        std::function<QString(const QString& part)> publishingTitle;
     };
 
     /// @brief The kinds and the parts of the book open in @p pm; at the start the main text
@@ -170,6 +183,11 @@ public:
     /// (right after its element, inside its group). Without it, only the kinds of that place.
     static Book forAdding(const core::ProjectManager& pm, const AddTarget& target,
                           AddChooser chooser);
+
+    /// @brief What @p book needs for a text for publishers in @p pm: the part @p target asks
+    /// for, the templates and the titles
+    static void setPublishing(Book& book, const core::ProjectManager& pm,
+                              const AddTarget& target);
 
     /// @brief A window in place of the system's window of files that chooses the file of a
     /// material, for tests: it gets the folder the system's window would open in and returns
@@ -234,6 +252,15 @@ public:
     /// @brief Choose part @p part of a new material of the cover
     void setCoverPart(const QString& part);
 
+    /// @brief The part of a new text for publishers (core::PublishingTexts::PITCH, SYNOPSIS);
+    /// empty for other elements and for a description or a tagline, which are materials of the
+    /// cover (kind(), coverPart())
+    [[nodiscard]] QString publishingPart() const;
+
+    /// @brief The template of a new text for publishers (core::PublishingTemplate::reference());
+    /// empty for none and for other elements
+    [[nodiscard]] QString publishingTemplate() const;
+
     /// @brief The source of a new material; File for other elements
     [[nodiscard]] MaterialOrigin materialOrigin() const;
 
@@ -291,6 +318,9 @@ public:
     /// @brief The parts of a new material of the cover, with their buttons; hidden for other
     /// tiles
     [[nodiscard]] QGroupBox* coverGroup() const { return m_coverGroup; }
+
+    /// @brief The part and the template of a new text for publishers
+    [[nodiscard]] PublishingChoice* publishingChoice() const { return m_publishing; }
 
     /// @brief The buttons of the parts of a new material of the cover, with the ids of their
     /// indexes in core::CoverMaterial::parts()
@@ -402,6 +432,18 @@ private:
     QGroupBox* createCoverGroup(QWidget* parent);
     /// @brief Whether a new element of @p entry is a material of the cover
     static bool isCover(const NewFileKind* entry);
+    /// @brief The part and the template of a new text for publishers
+    PublishingChoice* createPublishingGroup(QWidget* parent);
+    /// @brief Whether a new element of @p entry is a text for publishers
+    static bool isPublishing(const NewFileKind* entry);
+    /// @brief Whether the text for publishers chosen is a description or a tagline, which are
+    /// materials of the cover
+    [[nodiscard]] bool publishingGoesToCover() const;
+    /// @brief The kind of the materials of the cover the window offers; nullptr: none
+    [[nodiscard]] const NewFileKind* coverEntry() const;
+    /// @brief The title a new element of @p entry starts with: of a material from its source,
+    /// of a text for publishers from its part, else the title of its kind
+    [[nodiscard]] QString startTitleOf(const NewFileKind& entry) const;
     /// @brief The source a new material of the chosen tile starts with: of its kind, of the part
     /// of a material of the cover; none for a kind without a source of its own
     [[nodiscard]] std::optional<MaterialOrigin> originOfChosen() const;
@@ -539,6 +581,7 @@ private:
     QGroupBox* m_coverGroup = nullptr;
     QButtonGroup* m_coverButtons = nullptr;
     QString m_coverPart;  ///< The part chosen
+    PublishingChoice* m_publishing = nullptr;  ///< A text for publishers: its part, its template
     QGroupBox* m_sourceGroup = nullptr;
     QButtonGroup* m_sourceButtons = nullptr;
     QStackedWidget* m_sourcePages = nullptr;  ///< The path, the address or the note of none

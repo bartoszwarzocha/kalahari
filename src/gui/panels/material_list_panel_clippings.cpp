@@ -3,7 +3,7 @@
 
 /// @file material_list_panel_clippings.cpp
 /// @brief The commands of the list of the clippings: Restore to Its Place, Go to Its Place and
-///        the gear of their settings
+///        the gear of their settings, and the gear of the texts for publishers
 
 #include "kalahari/gui/panels/material_list_panel.h"
 
@@ -84,9 +84,13 @@ void MaterialListPanel::addClippingItems(QMenu& menu, const MaterialRow& row) {
 }
 
 void MaterialListPanel::openSettings() {
-    if (MaterialList::isClippings(m_list) &&
-        dialogs::KalahariDialog::openSettings(
-            this, QString::fromLatin1(SettingsDialog::CLIPPINGS_PAGE))) {
+    QString page;
+    if (MaterialList::isClippings(m_list)) {
+        page = QString::fromLatin1(SettingsDialog::CLIPPINGS_PAGE);
+    } else if (MaterialList::isPublishing(m_list)) {
+        page = QString::fromLatin1(SettingsDialog::PUBLISHING_PAGE);
+    }
+    if (!page.isEmpty() && dialogs::KalahariDialog::openSettings(this, page)) {
         return;
     }
     emit requestSettings();

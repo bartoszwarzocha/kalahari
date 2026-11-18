@@ -45,6 +45,7 @@
 #include <algorithm>
 #include <cerrno>
 #include <iterator>
+#include <optional>
 #include <utility>
 
 #include <zip.h>
@@ -1692,6 +1693,7 @@ QString ProjectManager::addMaterial(const NewMaterial& material, const KindRef& 
     element.title = material.title;
     element.url = material.url;
     element.cover = material.cover;
+    element.publishing = material.publishing;
     element.description = material.description;
     element.source = material.source;
     element.quote = material.quote;

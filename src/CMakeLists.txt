@@ -83,6 +83,7 @@ set(KALAHARI_CORE_SOURCES
     core/book_dictionary_file.cpp  # Its file
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
+    core/publishing_texts.cpp   # The texts for publishers: data, templates, lengths, the set
     core/card_data.cpp          # The cards of the Workshop: the values of their fields, colors
     core/source_description.cpp # The bibliographic description of a source, its bookmarks
     core/bibliography.cpp       # The entries of a bibliography and the references in the text
@@ -191,6 +192,7 @@ set(KALAHARI_SOURCES
     core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
     core/card_relations.cpp # The relations between the cards of a book (uses ProjectManager)
     core/project_manager_card_fields.cpp # ProjectManager: the fields of the cards of the book
+    core/project_manager_publishing.cpp # ProjectManager: the texts for publishers of the book
     core/package_card.cpp   # Cards of the packages a book uses: names and icons (IconRegistry)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus
@@ -210,6 +212,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/color_palettes.cpp  # The palettes of the color window
     gui/dialogs/add_to_book_dialog.cpp  # AddToBookDialog - a file as a new element of the book
     gui/dialogs/new_file_dialog.cpp  # NewFileDialog - New File: a new element of the open book
+    gui/dialogs/publishing_choice.cpp  # PublishingChoice - the part and the template of a new text for publishers
     gui/dialogs/move_element_dialog.cpp  # MoveElementDialog - a new place in the book for an element
     gui/dialogs/delete_dialogs.cpp  # DeleteFromBookDialog, DeleteFilesDialog - what goes, and its files
     gui/dialogs/dialog_parts.cpp  # Parts of the own dialogs: a list as high as its rows, a note, Copy
@@ -228,6 +231,8 @@ set(KALAHARI_SOURCES
     gui/avatar_words.cpp   # The look of a portrait in words
     gui/name_labels.cpp    # The cases and kinds of the names of the book dictionary, in the program's language
     gui/cover_names.cpp    # The materials of the cover in the program's words
+    gui/publishing_names.cpp # The texts for publishers in the program's words
+    gui/publishing_set.cpp   # The set for a publisher in the program's words
     gui/source_names.cpp   # The sources in the program's words
     gui/pdf_files.cpp      # PDF files: whether the program shows them, their first page and data
     gui/quick_insert_items.cpp  # What the list of quick insert offers: cards, fragments, characters
@@ -262,6 +267,7 @@ set(KALAHARI_SOURCES
     gui/link_names.cpp  # The titles, icons and places of the links of a material
     gui/material_list.cpp  # MaterialList - the lists of the materials: their kinds, columns and rows
     gui/material_list_clippings.cpp  # MaterialList - the columns of the clippings
+    gui/material_list_publishing.cpp  # MaterialList - the columns of the texts for publishers
     gui/clipping_texts.cpp  # What the program says of a clipping
     gui/card_list.cpp  # CardList - the lists of the cards: their columns and rows
     gui/version_texts.cpp  # What the program says of a version of a text
@@ -385,9 +391,11 @@ set(KALAHARI_SOURCES
     gui/widgets/plot_board_view_paint.cpp  # PlotBoardView - the cards painted
     gui/widgets/plot_card_editor.cpp  # PlotCardEditor - a card of the plot board edited (F2)
     gui/widgets/cover_plan.cpp  # CoverPlan - the plan of the cover with its materials in their places
+    gui/widgets/publishing_set_view.cpp  # PublishingSetView - the set for a publisher as a page
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
     gui/widgets/wrapping_button.cpp  # A button that wraps its text only where it does not fit
     gui/widgets/flow_layout.cpp  # A row of buttons that wraps on a narrow panel
+    gui/widgets/length_meter.cpp  # LengthMeter - the length of a text against its target
     gui/widgets/segmented_layout.cpp  # Joined buttons, one under another on a narrow panel
     gui/widgets/height_for_width_scroll_area.cpp  # Rows that wrap, and scroll in a low panel
     gui/widgets/shortcut_recorder.cpp  # A field that records key presses
@@ -435,6 +443,9 @@ set(KALAHARI_SOURCES
     gui/panels/cursor_card_box.cpp  # CursorCardBox - the card at the cursor in the Properties panel
     gui/panels/paragraph_cards_box.cpp  # ParagraphCardsBox - the cards of the paragraph at the cursor
     gui/panels/card_panel.cpp     # CardPanel - the full card on a tab beside the chapters
+    gui/panels/pitch_panel.cpp  # PitchPanel - the card of a sentence about the book
+    gui/panels/publishing_set_page.cpp  # PublishingSetPage - the set for a publisher in Properties
+    gui/panels/publishing_text_box.cpp  # PublishingTextBox - a text for publishers in Properties
     gui/panels/card_parts.cpp  # The small parts of the cards of the materials
     gui/panels/source_boxes.cpp  # The groups of the card of a source and of a quote
     gui/panels/source_description_box.cpp  # SourceDescriptionBox - the description of a source on its card
@@ -442,6 +453,8 @@ set(KALAHARI_SOURCES
     gui/panels/image_preview_panel.cpp  # ImagePreviewPanel - the preview of a material's picture on a tab
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
     gui/panels/material_list_panel_clippings.cpp  # MaterialListPanel - the commands of the clippings
+    gui/panels/material_list_panel_publishing.cpp  # MaterialListPanel - the commands of the texts for publishers
+    gui/panels/material_list_panel_set.cpp  # MaterialListPanel - the set for a publisher
     gui/panels/clipping_origin_box.cpp  # ClippingOriginBox - where a clipping comes from, in the Properties
     gui/panels/book_dictionary_panel.cpp  # BookDictionaryPanel - the book dictionary on a tab
     gui/panels/plot_board_panel.cpp  # PlotBoardPanel - the tab of the plot board and the outline
@@ -550,6 +563,11 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/color_dialog.h  # ColorDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_file_dialog.h  # NewFileDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pitch_panel.h  # PitchPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_set_page.h  # PublishingSetPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_text_box.h  # PublishingTextBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_meter.h  # LengthMeter with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
@@ -646,6 +664,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_board_view.h  # PlotBoardView with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_card_editor.h  # PlotCardEditor with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/cover_plan.h  # CoverPlan with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/publishing_set_view.h  # PublishingSetView with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h

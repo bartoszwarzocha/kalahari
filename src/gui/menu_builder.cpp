@@ -67,6 +67,11 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Filter") return QObject::tr("&Filter");
     if (technicalName == "Statistics") return QObject::tr("&Statistics");
     if (technicalName == "Plugins") return QObject::tr("P&lugins");
+    if (technicalName == "Texts for Publishers") {
+        //: The submenu of Tools for the texts for publishers. In Polish: Teksty d&la
+        //: wydawnictwa
+        return QObject::tr("Texts &for Publishers");
+    }
     if (technicalName == "Assistant Actions") return QObject::tr("Assistant A&ctions");
     if (technicalName == "View Mode") return QObject::tr("View &Mode");
     if (technicalName == "Zoom") return QObject::tr("&Zoom");
@@ -116,6 +121,7 @@ QString MenuBuilder::submenuIconId(const std::string& technicalName) {
         {"Filter", QStringLiteral("menu.imageFilter")},
         {"Statistics", QStringLiteral("menu.statistics")},
         {"Plugins", QStringLiteral("menu.plugins")},
+        {"Texts for Publishers", QStringLiteral("menu.publishing")},
         {"Assistant Actions", QStringLiteral("menu.assistantActions")},
         {"View Mode", QStringLiteral("menu.viewMode")},
         {"Zoom", QStringLiteral("menu.zoom")},

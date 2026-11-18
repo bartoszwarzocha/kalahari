@@ -758,9 +758,10 @@ void PrintBookDialog::scheduleLayout()
 void PrintBookDialog::contentChanged()
 {
     const Printer* printer = currentPrinter();
-    const bool front = frontButton()->isChecked();
+    // The set for a publisher is printed as one text with its title
+    const bool front = oneText();
     const bool chosen = chosenButton()->isChecked();
-    const QString title = front ? book().frontTitle : book().title;
+    const QString title = contentTitle();
     QString description;
     if (printer != nullptr && front) {
         //: %1: the title of the text, %2: the printer. In Polish: Drukuje tekst „%1” na

@@ -32,6 +32,9 @@ void addProblem(QStringList& problems, const QString& field, const QString& mess
 /// @brief Whether @p text is a language code: "en", "pl", "pt_BR"
 [[nodiscard]] bool isLanguageCode(const QString& text);
 
+/// @brief Whether @p value is a number without a fraction: 3, not 3.5 or "3"
+[[nodiscard]] bool isWholeNumber(const QJsonValue& value);
+
 /// @brief Report the keys of @p object that are not in @p known: a misspelt key would be
 /// ignored
 void checkKeys(const QJsonObject& object, const QString& field,

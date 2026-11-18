@@ -11,6 +11,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
+  for Publishers, with its number in the Navigator: the sentences about the book and the
+  synopses, each a text of the book in as many versions as the writer wants, with a template of
+  the book type or none. Add Element asks for the part (a sentence about the book or a synopsis;
+  a cover description and a tagline go to the Cover, as materials of the cover) and its
+  template, with its pattern or its points and its target length; a new text is called
+  "<part> – version <n>". The list has the texts in groups by part, the descriptions and the
+  taglines of the Cover too (From the Cover), the columns Template, State and Length with its
+  target, and in the menu of a row Choose for the Set, Reject, Back to Draft, Copy Text and Show
+  in the Cover; its gear opens Settings > Navigator > Texts for Publishers (the target lengths of
+  the texts without a template, the length of a synopsis in standard pages too, the parts of the
+  set in new books). A sentence about the book opens on a card of its own: the template, the
+  fields of its pattern (Tab goes through them) and the sentence composed of them at once, until
+  the writer changes it by hand (Compose from the Fields composes it again), its length against
+  the target, the state and its own target. A synopsis is written in the editor, like a
+  chapter; beside it the Properties panel shows its length as it is typed, against the target
+  and in standard pages (1800 characters with spaces), where the target comes from, the template
+  and its points, which the writer ticks off (Space) and the book keeps at once, the state,
+  whether the set has it and its own target. Tools > Texts for Publishers > Template Points
+  brings the keys to the points, and Esc takes them back to the text. The second view of the
+  list, Set for the Publisher, shows the set as a page: the title of the book, then each part
+  in its order with its version (a list to choose another), its length, Copy and Open and its
+  text; a part left out of the set is pale (Up and Down choose a part, Space includes it or
+  leaves it out, Enter opens it). Beside it the Properties panel shows the contents of the set,
+  where Space includes the part chosen or leaves it out and Alt+Up and Alt+Down move it, the
+  part chosen with its version, its source and its length against the target, Copy All and
+  Export Set...; Export Book and Print Book have the set as their fourth source, the title and
+  the author, then each part under its name (headings in Word and Markdown). All of it in
+  Polish too.
 - **Portraits of characters put together from parts** - 2026-11-17. Compose Portrait... on the
   menu of the portrait of a card opens the window Portrait: a portrait put together from ready
   parts, without drawing. On the left the preview, the frame (the bust of the card or the whole

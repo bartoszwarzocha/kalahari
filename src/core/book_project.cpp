@@ -9,6 +9,7 @@
 #include <kalahari/core/card_field_set.h>
 #include <kalahari/core/clipping.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/publishing_texts.h>
 #include <kalahari/core/source_description.h>
 #include <QFile>
 #include <QFileInfo>
@@ -741,6 +742,20 @@ void readQuote(Fields& fields, ProjectElement& element, QStringList& problems) {
     data.extra = quoteFields.rest();
 }
 
+/// What a text for publishers is, with the fields of "publishing" this version does not know
+void readPublishing(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue publishing = fields.take("publishing");
+    if (publishing.isUndefined()) {
+        return;
+    }
+    if (!publishing.isObject()) {
+        fields.problem("publishing", QStringLiteral("must be an object"));
+        return;
+    }
+    element.publishing =
+        PublishingData::fromJson(publishing.toObject(), fields.path("publishing"), problems);
+}
+
 ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& seen,
                            QStringList& problems) {
     ProjectElement element;
@@ -783,6 +798,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     readBookmarks(fields, element, problems);
     readHighlights(fields, element, problems);
     readQuote(fields, element, problems);
+    readPublishing(fields, element, problems);
     element.extra = fields.rest();
     return element;
 }
@@ -954,6 +970,18 @@ BookFootnotes readFootnotes(const QJsonValue& value, const QString& field,
     return footnotes;
 }
 
+/// The set for publishers of a book, its field "publishingSet"; nullopt without it
+std::optional<PublishingSet> readPublishingSet(Fields& fields, QStringList& problems) {
+    const QJsonValue set = fields.take("publishingSet");
+    if (set.isObject()) {
+        return PublishingSet::fromJson(set.toObject(), fields.path("publishingSet"), problems);
+    }
+    if (!set.isUndefined()) {
+        fields.problem("publishingSet", QStringLiteral("must be an object"));
+    }
+    return std::nullopt;
+}
+
 ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
                      QStringList& problems) {
     ProjectBook book;
@@ -1014,6 +1042,7 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
         book.footnotes = readFootnotes(footnotes, fields.path("footnotes"), problems);
     }
     book.bibliographyStyle = fields.string("bibliographyStyle");
+    book.publishingSet = readPublishingSet(fields, problems);
     book.isbn = fields.string("isbn");
     book.publisher = fields.string("publisher");
     book.extra = fields.rest();
@@ -1469,6 +1498,11 @@ QJsonObject elementToJson(const ProjectElement& element) {
         json.insert(QLatin1String("plot"), plotToJson(element.plot));
     }
     writeSource(json, element);
+    if (element.publishing.isEmpty()) {
+        json.remove(QLatin1String("publishing"));
+    } else {
+        json.insert(QLatin1String("publishing"), element.publishing.toJson());
+    }
     writeCard(json, element);
     return json;
 }
@@ -1563,6 +1597,11 @@ QJsonObject bookToJson(const ProjectBook& book) {
         json.remove(QLatin1String("footnotes"));
     }
     setOrRemove(json, "bibliographyStyle", book.bibliographyStyle);
+    if (book.publishingSet) {
+        json.insert(QLatin1String("publishingSet"), book.publishingSet->toJson());
+    } else {
+        json.remove(QLatin1String("publishingSet"));
+    }
     setOrRemove(json, "isbn", book.isbn);
     setOrRemove(json, "publisher", book.publisher);
     return json;
@@ -1949,7 +1988,7 @@ bool ProjectElement::operator==(const ProjectElement& other) const {
            rotation == other.rotation && cover == other.cover && clipping == other.clipping &&
            card == other.card && plot == other.plot && source == other.source &&
            bookmarks == other.bookmarks && highlights == other.highlights &&
-           lastPage == other.lastPage && quote == other.quote &&
+           lastPage == other.lastPage && quote == other.quote && publishing == other.publishing &&
            viewExtra == other.viewExtra && extra == other.extra;
 }
 
