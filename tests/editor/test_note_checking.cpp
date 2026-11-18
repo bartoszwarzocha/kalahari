@@ -319,6 +319,8 @@ struct MenuSeen {
 /// the mouse at a point; choose its first item in bold (a word to put in place) if asked
 MenuSeen contextMenu(BookEditor& editor, const std::optional<QPoint>& point,
                      bool chooseFirstBold) {
+    // A menu on the screen could close by itself while it waits for the words (Windows)
+    const OffScreenPopups offScreen;
     MenuSeen seen;
     int ticks = 0;
     QTimer poll;

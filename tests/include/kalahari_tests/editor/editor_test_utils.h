@@ -148,6 +148,32 @@ private:
     QString m_choice;
 };
 
+/// While it lives, the popup menus that show get no window on the screen, as with
+/// PopupMenuReader, for a test that reads them itself. On Windows a popup shown while the
+/// application has no active window takes the foreground (QTBUG-44928), and the application,
+/// deactivated as soon as another one takes it, closes all its popups
+/// (QEvent::ApplicationDeactivate): with the tests run side by side, a menu waiting a few
+/// seconds for the words of a misspelled one was closed before the test could read it.
+class OffScreenPopups : public QObject {
+public:
+    OffScreenPopups() { QCoreApplication::instance()->installEventFilter(this); }
+    ~OffScreenPopups() override { QCoreApplication::instance()->removeEventFilter(this); }
+    OffScreenPopups(const OffScreenPopups&) = delete;
+    OffScreenPopups& operator=(const OffScreenPopups&) = delete;
+    OffScreenPopups(OffScreenPopups&&) = delete;
+    OffScreenPopups& operator=(OffScreenPopups&&) = delete;
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        // The show event comes before the menu's window is put on the screen
+        if (auto* menu = qobject_cast<QMenu*>(watched);
+            menu != nullptr && event->type() == QEvent::Show) {
+            menu->setAttribute(Qt::WA_DontShowOnScreen);
+        }
+        return QObject::eventFilter(watched, event);
+    }
+};
+
 /// Presses @p key in the first popup menu that shows, as the writer would, and closes the
 /// later ones, while it lives (the menus get no window on the screen, as with
 /// PopupMenuReader). A first menu the key leaves open is closed after it.
