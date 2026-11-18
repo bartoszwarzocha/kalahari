@@ -446,6 +446,32 @@ void checkFieldWindowsFit(const core::ProjectManager& pm, const char* language) 
 
 }  // namespace
 
+TEST_CASE("Card fields window: a series has the fields of its volumes, under its name",
+          "[gui][cards][card_fields][series]") {
+    gui::registerAllIcons();
+    const test::OpenNovel novel(QStringLiteral("Fields"));
+    auto& pm = novel.pm;
+    const auto noteOf = [](const CardFieldsDialog& dialog) {
+        const auto* note = dialog.findChild<QLabel*>(QStringLiteral("cardFieldsNote"));
+        REQUIRE(note != nullptr);
+        return note->text();
+    };
+    CHECK(noteOf(CardFieldsDialog(pm, CHARACTER)) ==
+          QStringLiteral("The fields of this book – \"Fields\""));
+
+    // A series without a name of its own: the title of its first volume
+    core::NewBook request;
+    request.title = QStringLiteral("Dunes");
+    const QString dunes = pm.addBook(request);
+    REQUIRE_FALSE(dunes.isEmpty());
+    REQUIRE(pm.setCurrentBook(dunes));
+    CHECK(noteOf(CardFieldsDialog(pm, CHARACTER)) ==
+          QStringLiteral("The fields of this series – \"Fields\""));
+    REQUIRE(pm.setSeriesName(QStringLiteral("Desert")));
+    CHECK(noteOf(CardFieldsDialog(pm, CHARACTER)) ==
+          QStringLiteral("The fields of this series – \"Desert\""));
+}
+
 TEST_CASE("Card fields window: fits a small screen, in English and in Polish",
           "[gui][cards][card_fields]") {
     gui::registerAllIcons();

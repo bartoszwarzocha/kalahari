@@ -139,15 +139,16 @@ private:
     };
 
     /// @brief What both windows have: the kind, the table, the buttons
-    void createContent(bool forBook, const QString& bookTitle);
+    /// @param bookNote Which book (or series) has the fields, beside Save as defaults
+    void createContent(bool forBook, const QString& bookNote);
 
     /// @brief The row of the buttons under the table
     void createButtons();
 
-    /// @brief Under the buttons: Save as defaults for new books, beside the title of the book
-    /// @p bookTitle, and beside the buttons that close the window, where the own fields of a
-    /// card go; for the fields of new books, what they are
-    void createNotes(bool forBook, const QString& bookTitle);
+    /// @brief Under the buttons: Save as defaults for new books, beside @p bookNote (which
+    /// book or series has the fields), and beside the buttons that close the window, where
+    /// the own fields of a card go; for the fields of new books, what they are
+    void createNotes(bool forBook, const QString& bookNote);
 
     /// @brief Fill the list of the kinds with @p kinds and show @p current
     void fillKinds(const QList<KindFields>& kinds, const QString& current);

@@ -268,6 +268,22 @@ std::optional<Qt::Key> tableKeyOf(const QEvent* event) {
     return found != TABLE_KEYS.end() ? std::optional<Qt::Key>(*found) : std::nullopt;
 }
 
+/// Which book of @p book has the fields of the cards, beside Save as defaults: a series, whose
+/// volumes share the Workshop, by its name
+QString bookNoteOf(const core::ProjectManager& book) {
+    if (book.isSeries()) {
+        //: Beside Save as defaults for new books in a series, whose volumes have the same
+        //: cards; %1 is the name of the series. In Polish: Pola tej serii – „%1”
+        return CardFieldsDialog::tr("The fields of this series – \"%1\"").arg(book.seriesName());
+    }
+    const core::BookProject* project = book.project();
+    const QString title =
+        project != nullptr && !project->books.isEmpty() ? project->books.first().title : QString();
+    //: Beside Save as defaults for new books; %1 is the title of the book. In Polish: Pola tej
+    //: książki – „%1”
+    return CardFieldsDialog::tr("The fields of this book – \"%1\"").arg(title);
+}
+
 }  // namespace
 
 CardFieldsDialog::CardFieldsDialog(const core::ProjectManager& book, const QString& kind,
@@ -278,10 +294,7 @@ CardFieldsDialog::CardFieldsDialog(const core::ProjectManager& book, const QStri
     for (const core::KindRef& each : bookCardKinds(book)) {
         kinds << KindFields{each, book.cardFieldSet(each), book.cardValueIds(each)};
     }
-    const core::BookProject* project = book.project();
-    createContent(true, project != nullptr && !project->books.isEmpty()
-                            ? project->books.first().title
-                            : QString());
+    createContent(true, bookNoteOf(book));
     fillKinds(kinds, kind);
 }
 
@@ -296,7 +309,7 @@ CardFieldsDialog::CardFieldsDialog(const core::CardFieldSets& defaults, QWidget*
     fillKinds(kinds, QString());
 }
 
-void CardFieldsDialog::createContent(bool forBook, const QString& bookTitle) {
+void CardFieldsDialog::createContent(bool forBook, const QString& bookNote) {
     setObjectName(QStringLiteral("cardFieldsDialog"));
     setHeadingIcon(QStringLiteral("card.fields"));
     setCompactHeading(true);
@@ -351,7 +364,7 @@ void CardFieldsDialog::createContent(bool forBook, const QString& bookTitle) {
     contentLayout()->addWidget(m_table, 1);
     createButtons();
 
-    createNotes(forBook, bookTitle);
+    createNotes(forBook, bookNote);
     acceptButton()->setEnabled(!m_readOnly);
 
     m_menu = new QMenu(this);
@@ -372,7 +385,7 @@ void CardFieldsDialog::createContent(bool forBook, const QString& bookTitle) {
     });
 }
 
-void CardFieldsDialog::createNotes(bool forBook, const QString& bookTitle) {
+void CardFieldsDialog::createNotes(bool forBook, const QString& bookNote) {
     const auto grey = [this](const QString& text, const char* name) {
         auto* note = new QLabel(text, this);
         note->setObjectName(QString::fromLatin1(name));
@@ -398,11 +411,7 @@ void CardFieldsDialog::createNotes(bool forBook, const QString& bookTitle) {
     m_defaultsCheck->setObjectName(QStringLiteral("cardFieldsDefaults"));
     m_defaultsCheck->setEnabled(!m_readOnly);
     row->addWidget(m_defaultsCheck);
-    //: Beside Save as defaults for new books; %1 is the title of the book. In Polish: Pola tej
-    //: książki – „%1”
-    row->addWidget(grey(tr("The fields of this book – \"%1\"").arg(bookTitle),
-                        "cardFieldsNote"),
-                   1);
+    row->addWidget(grey(bookNote, "cardFieldsNote"), 1);
     contentLayout()->addLayout(row);
     //: Beside the buttons of the window Card Fields. In Polish: Własne pola jednej karty: menu
     //: pola > „Dodaj do wszystkich kart tego rodzaju”

@@ -29,6 +29,7 @@
 #include "kalahari/gui/settings_coordinator.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/spelling_coordinator.h"
+#include "kalahari/gui/utils/language_names.h"
 #include "kalahari/gui/widgets/central_tabs.h"
 #include "kalahari_tests/test_support/window_parts.h"
 
@@ -618,6 +619,34 @@ TEST_CASE("Book dictionary page: a book open read-only", "[gui][dictionary][page
 // =============================================================================
 // The commands and the windows
 // =============================================================================
+
+TEST_CASE("Book dictionary page: a series by its name, with the language of the current volume",
+          "[gui][dictionary][page][series]") {
+    const KeptSettings kept;
+    const OpenBook open;
+    core::ProjectManager& book = OpenBook::book();
+    core::NewBook request;
+    request.title = QStringLiteral("Dunes");
+    request.language = QStringLiteral("en");
+    const QString dunes = book.addBook(request);
+    REQUIRE_FALSE(dunes.isEmpty());
+    REQUIRE(book.setSeriesName(QStringLiteral("Desert")));
+    QStatusBar statusBar;
+    QTabWidget tabs;
+    BookDictionaryCoordinator coordinator(book, kalahari::test::commands(), &tabs, nullptr,
+                                          &statusBar);
+    const BookDictionaryPanel* panel = coordinator.openDictionary(false);
+    REQUIRE(panel != nullptr);
+    const auto* subtitle = child<QLabel>(*panel, "bookDictionarySubtitle");
+    const auto expected = [](const char* language) {
+        return QStringLiteral("Desert · forms: %1 (the language of the book)")
+            .arg(gui::utils::languageName(QString::fromLatin1(language)));
+    };
+    CHECK(subtitle->text() == expected("pl"));
+    // Another current volume: the language of its forms
+    REQUIRE(book.setCurrentBook(dunes));
+    CHECK(subtitle->text() == expected("en"));
+}
 
 TEST_CASE("Book dictionary: its page on a tab, and Book > Book Dictionary...",
           "[gui][dictionary][coordinator]") {

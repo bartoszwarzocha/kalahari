@@ -117,12 +117,14 @@ BookDictionaryCoordinator::BookDictionaryCoordinator(core::ProjectManager& book,
       m_statusBar(statusBar),
       m_book(book),
       m_commands(commands) {
-    // The page follows the dictionary
-    connect(&m_book, &core::ProjectManager::bookDictionaryChanged, this, [this]() {
+    // The page follows the dictionary, and the language of the current volume of a series
+    const auto refreshShown = [this]() {
         if (BookDictionaryPanel* shown = panel()) {
             shown->refresh();
         }
-    });
+    };
+    connect(&m_book, &core::ProjectManager::bookDictionaryChanged, this, refreshShown);
+    connect(&m_book, &core::ProjectManager::currentBookChanged, this, refreshShown);
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             [this]() {
                 if (BookDictionaryPanel* shown = panel()) {

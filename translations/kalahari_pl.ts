@@ -34332,6 +34332,11 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>Failed to save changes.</source>
         <translation>Nie udało się zapisać zmian.</translation>
     </message>
+    <message>
+        <source>The fields of this series – &quot;%1&quot;</source>
+        <extracomment>Beside Save as defaults for new books in a series, whose volumes have the same cards; %1 is the name of the series. In Polish: Pola tej serii – „%1”</extracomment>
+        <translation>Pola tej serii – „%1”</translation>
+    </message>
 </context>
 <context>
     <name>MindMapMenus</name>
