@@ -5,6 +5,7 @@
 /// @brief Templates of Texts for Publishers: the templates of the book type and the writer's
 ///        own, made, copied, changed and deleted with the keys
 
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari_tests/gui/dialog_checks.h"
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari_tests/gui/publishing_test_utils.h"
@@ -24,6 +25,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QGuiApplication>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
@@ -141,6 +143,12 @@ void typeInCell(const QTableWidget& table, const QString& text) {
 TEST_CASE("Templates of Texts for Publishers: the templates of the book type and the writer's "
           "own, with the keys",
           "[gui][publishing][dialogs]") {
+    // The keys need an active window, which the offscreen platform and Windows give; the test
+    // runs on a Mac do not
+    const QString platform = QGuiApplication::platformName();
+    if (platform != QStringLiteral("offscreen") && platform != QStringLiteral("windows")) {
+        SKIP("needs an active window: run with QT_QPA_PLATFORM=offscreen");
+    }
     gui::registerAllIcons();
     const test::PublishingSettings kept;
     const test::OpenNovel novel(QStringLiteral("Sand"));
@@ -150,7 +158,9 @@ TEST_CASE("Templates of Texts for Publishers: the templates of the book type and
                                      QStringLiteral("kalahari.novel"), pm.mainTexts());
     dialog.show();
     dialog.activateWindow();
-    QCoreApplication::processEvents();
+    REQUIRE(test::waitUntil([&dialog] { return dialog.isActiveWindow(); }));
+    // The questions are answered (test::answering()); this window is none of them
+    dialog.setProperty("handled", true);
     QListWidget& list = *dialog.templateList();
 
     // The templates of the novel, then the writer's, who has none yet
