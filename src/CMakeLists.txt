@@ -85,6 +85,7 @@ set(KALAHARI_CORE_SOURCES
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
     core/publishing_texts.cpp   # The texts for publishers: data, templates, lengths, the set
+    core/volume_materials.cpp   # The cover and the texts for publishers of each volume
     core/card_data.cpp          # The cards of the Workshop: the values of their fields, colors
     core/source_description.cpp # The bibliographic description of a source, its bookmarks
     core/bibliography.cpp       # The entries of a bibliography and the references in the text
@@ -237,6 +238,7 @@ set(KALAHARI_SOURCES
     gui/cover_names.cpp    # The materials of the cover in the program's words
     gui/publishing_names.cpp # The texts for publishers in the program's words
     gui/publishing_set.cpp   # The set for a publisher in the program's words
+    gui/volume_names.cpp     # The volumes of the cover and the texts for publishers in words
     gui/source_names.cpp   # The sources in the program's words
     gui/pdf_files.cpp      # PDF files: whether the program shows them, their first page and data
     gui/quick_insert_items.cpp  # What the list of quick insert offers: cards, fragments, characters

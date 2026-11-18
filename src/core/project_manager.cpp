@@ -16,6 +16,7 @@
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/clipping.h>
+#include <kalahari/core/cover_material.h>
 #include <kalahari/core/link_roles.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/material_kinds.h>
@@ -27,6 +28,7 @@
 #include <kalahari/core/standalone_file.h>
 #include <kalahari/core/text_file.h>
 #include <kalahari/core/text_statistics.h>
+#include <kalahari/core/volume_materials.h>
 #include <kalahari/core/window_editor_provider.h>
 #include <kalahari/editor/clipboard_handler.h>
 
@@ -1731,6 +1733,7 @@ QString ProjectManager::addMaterial(const NewMaterial& material, const KindRef& 
     element.description = material.description;
     element.source = material.source;
     element.quote = material.quote;
+    element.bookId = volumeOfNew(element);
     const QString role = LinkRoles::suggestedFor(kind.kind->id);
     for (const QString& link : material.links) {
         if (element.linkTo(link) == nullptr && m_project->hasLinkTarget(link)) {
@@ -3131,22 +3134,10 @@ bool ProjectManager::setCoverState(const QString& elementId, const QString& stat
     const BookProject before = *m_project;
     ProjectElement* element = findElement(elementId);
     element->cover.state = state;
-    QStringList others;
-    if (state == QLatin1String(CoverMaterial::CHOSEN) &&
-        CoverMaterial::choosesOne(element->cover.part)) {
-        const QString part = element->cover.part;
-        const QString place = element->cover.place;
-        QList<ProjectElement*> workshop;
-        appendAll(m_project->workshop.elements, workshop);
-        for (ProjectElement* other : workshop) {
-            if (other->id != elementId && other->cover.part == part &&
-                other->cover.place == place &&
-                other->cover.state == QLatin1String(CoverMaterial::CHOSEN)) {
-                other->cover.state.clear();
-                others << other->id;
-            }
-        }
-    }
+    // Another one chosen for its part and place of the cover of its volume becomes a draft
+    const QStringList others = state == QLatin1String(CoverMaterial::CHOSEN)
+                                   ? VolumeMaterials::unchooseOthers(*m_project, *element)
+                                   : QStringList();
     if (*m_project == before) {
         return true;
     }

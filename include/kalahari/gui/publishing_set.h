@@ -17,6 +17,7 @@
 
 namespace kalahari::core {
 class ProjectManager;
+struct ProjectBook;
 }  // namespace kalahari::core
 
 namespace kalahari::gui {
@@ -30,15 +31,21 @@ public:
     /// shows them (PublishingSetView): each with its versions, its text and its length
     static QList<PublishingSetItem> itemsOf(const core::ProjectManager& book);
 
-    /// @brief The parts in the set that have a text, each under its name: what Copy All and
-    /// the export give
-    static QList<core::PublishingSetText> textsOf(const core::ProjectManager& book);
+    /// @brief The parts in the set of volume @p volume of the book open in @p book (nullptr:
+    /// of its current book) that have a text, each under its name: what Copy All and the
+    /// export give
+    static QList<core::PublishingSetText> textsOf(const core::ProjectManager& book,
+                                                  const core::ProjectBook* volume = nullptr);
 
-    /// @brief The title of the book open in @p book
-    static QString titleOf(const core::ProjectManager& book);
+    /// @brief The title of volume @p volume of the book open in @p book (nullptr: of its
+    /// current book)
+    static QString titleOf(const core::ProjectManager& book,
+                           const core::ProjectBook* volume = nullptr);
 
-    /// @brief What the set says under the title: the author of the book; empty: none
-    static QString aboutOf(const core::ProjectManager& book);
+    /// @brief What the set says under the title: the author of volume @p volume of the book
+    /// open in @p book (nullptr: of its current book); empty: none
+    static QString aboutOf(const core::ProjectManager& book,
+                           const core::ProjectBook* volume = nullptr);
 
     /// @brief The whole set as plain text: the title, the author, then each part under its
     /// name (Copy All)

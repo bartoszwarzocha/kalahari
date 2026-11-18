@@ -220,10 +220,61 @@ QString copyCommandOf(const MaterialRow& row) {
     return MaterialList::tr("&Copy");
 }
 
-/// The name of the group of @p row: of a text for publishers or of a part of the cover
+/// The name of the group of @p row: of a text for publishers or of a part of the cover; in a
+/// series with its volume
 QString groupNameOf(const MaterialRow& row) {
-    return row.publishing || row.fromCover ? PublishingNames::groupName(row.group)
-                                           : CoverNames::groupName(row.group);
+    const QString part = row.publishing || row.fromCover ? PublishingNames::groupName(row.group)
+                                                         : CoverNames::groupName(row.group);
+    //: The name of a group of the list of the cover or of the texts for publishers of a
+    //: series: %1 its volume, or the whole series, %2 what its materials are. In Polish: %1 –
+    //: %2
+    return row.volume.isEmpty() ? part : MaterialList::tr("%1 – %2").arg(row.volume, part);
+}
+
+/// Whether @p first and @p second are in one group of the list of the cover or of the texts
+/// for publishers: of one part, and of one volume of a series
+bool sameGroup(const MaterialRow& first, const MaterialRow& second) {
+    return first.group == second.group && first.volumeOrder == second.volumeOrder;
+}
+
+/// The place of the group of @p row in the list: by its volume of a series, then by its part
+std::pair<int, int> groupPlaceOf(const MaterialRow& row) {
+    return {row.volumeOrder, groupOrderOf(row.group)};
+}
+
+/// The rows that name the groups of @p rows in the list of the cover or of the texts for
+/// publishers, each with its name and its number of materials, in the order of the rows
+QList<MaterialRow> headingsOf(const QList<MaterialRow>& rows) {
+    QList<MaterialRow> headings;
+    QList<int> counts;
+    for (const MaterialRow& row : rows) {
+        const auto same = std::find_if(headings.cbegin(), headings.cend(),
+                                       [&row](const MaterialRow& heading) {
+                                           return sameGroup(heading, row);
+                                       });
+        if (same != headings.cend()) {
+            ++counts[same - headings.cbegin()];
+            continue;
+        }
+        MaterialRow heading;
+        heading.group = row.group;
+        heading.volume = row.volume;
+        heading.volumeOrder = row.volumeOrder;
+        heading.publishing = row.publishing;
+        heading.fromCover = row.fromCover;
+        headings << heading;
+        counts << 1;
+    }
+    for (qsizetype i = 0; i < headings.size(); ++i) {
+        MaterialRow& heading = headings[i];
+        //: The row that names a group of the list of the cover: %1 its name, %2 its
+        //: number of materials. In Polish: %1 · %2
+        heading.heading = MaterialList::tr("%1 · %2").arg(groupNameOf(heading),
+                                                          QLocale().toString(counts.at(i)));
+        heading.publishing = false;
+        heading.fromCover = false;
+    }
+    return headings;
 }
 
 /// Whether Edit of @p row gives the keys to its text: the words of a quote, the text of a
@@ -499,26 +550,7 @@ public:
         // The lists of the cover and of the texts for publishers have a row that names each
         // group of their rows
         if (groups) {
-            QHash<QString, int> counts;
-            QStringList parts;
-            QHash<QString, QString> names;
-            for (const MaterialRow& row : rows) {
-                if (!counts.contains(row.group)) {
-                    parts << row.group;
-                    names.insert(row.group, groupNameOf(row));
-                }
-                ++counts[row.group];
-            }
-            for (const QString& part : std::as_const(parts)) {
-                MaterialRow heading;
-                heading.group = part;
-                //: The row that names a group of the list of the cover: %1 its name, %2 its
-                //: number of materials. In Polish: %1 · %2
-                heading.heading = MaterialList::tr("%1 · %2")
-                                      .arg(names.value(part),
-                                           QLocale().toString(counts.value(part)));
-                m_rows << heading;
-            }
+            m_rows << headingsOf(rows);
         }
         m_leadColumn = -1;
         // The icon of a material is beside its kind in All Materials, else beside its title;
@@ -789,7 +821,7 @@ protected:
             }
             for (int other = 0; other < model->rowCount(); ++other) {
                 const MaterialRow* material = model->materialAt(other);
-                if (material != nullptr && material->group == row->group && accepts(*material)) {
+                if (material != nullptr && sameGroup(*material, *row) && accepts(*material)) {
                     return true;
                 }
             }
@@ -832,8 +864,8 @@ protected:
             const MaterialRow* second = model->rowAt(right.row());
             if (first != nullptr && second != nullptr) {
                 const bool ascending = sortOrder() == Qt::AscendingOrder;
-                const int a = groupOrderOf(first->group);
-                const int b = groupOrderOf(second->group);
+                const std::pair<int, int> a = groupPlaceOf(*first);
+                const std::pair<int, int> b = groupPlaceOf(*second);
                 if (a != b) {
                     return ascending ? a < b : a > b;
                 }
@@ -2417,11 +2449,13 @@ void MaterialListPanel::updatePlan() {
     if (m_stack->currentWidget() != m_planArea) {
         return;
     }
+    // The cover of the current volume of a series: its own materials and the whole series'
     QList<CoverPlanItem> items;
+    const int volume = static_cast<int>(m_book.currentBookIndex() + 1);
     for (int proxyRow = 0; proxyRow < m_filter->rowCount(); ++proxyRow) {
         const MaterialRow* row =
             m_model->materialAt(m_filter->mapToSource(m_filter->index(proxyRow, 0)).row());
-        if (row == nullptr) {
+        if (row == nullptr || (row->volumeOrder != 0 && row->volumeOrder != volume)) {
             continue;
         }
         CoverPlanItem item;

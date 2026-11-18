@@ -10,6 +10,7 @@
 #include <kalahari/core/cover_material.h>
 #include <kalahari/core/package_json.h>
 #include <kalahari/core/settings_manager.h>
+#include <kalahari/core/volume_materials.h>
 
 #include <QByteArray>
 #include <QChar>
@@ -390,32 +391,43 @@ void collectAll(QList<ProjectElement>& elements, QList<ProjectElement*>& found) 
     forEachIn(elements, [&found](ProjectElement& element) { found << &element; });
 }
 
-/// The version of a sentence or a synopsis chosen for the set
-const ProjectElement* chosenText(const BookProject& project, const QString& part) {
-    const QList<const ProjectElement*> texts = PublishingTexts::textsOf(project, part);
-    const auto chosen = std::find_if(texts.cbegin(), texts.cend(), [](const ProjectElement* text) {
-        return text->publishing.state == QLatin1String(PublishingTexts::CHOSEN);
-    });
-    return chosen != texts.cend() ? *chosen : nullptr;
+/// The version of a sentence or a synopsis chosen for the set of @p book: of its volume
+/// first, else of the whole series
+const ProjectElement* chosenText(const BookProject& project, const ProjectBook& book,
+                                 const QString& part) {
+    const ProjectElement* ofSeries = nullptr;
+    for (const ProjectElement* text : PublishingTexts::versionsOf(project, part, &book)) {
+        if (text->publishing.state != QLatin1String(PublishingTexts::CHOSEN)) {
+            continue;
+        }
+        if (!VolumeMaterials::volumeOf(project, *text).isEmpty()) {
+            return text;
+        }
+        if (ofSeries == nullptr) {
+            ofSeries = text;
+        }
+    }
+    return ofSeries;
 }
 
-/// The description or the tagline chosen for the cover: for @p place first, else for another
-/// place
-const ProjectElement* chosenForCover(const BookProject& project, const QString& part,
-                                     const char* place) {
-    const ProjectElement* other = nullptr;
-    for (const ProjectElement* material : PublishingTexts::versionsOf(project, part)) {
+/// The description or the tagline chosen for the cover of @p book: of its volume first, else
+/// of the whole series; of each, for @p place first, else for another place
+const ProjectElement* chosenForCover(const BookProject& project, const ProjectBook& book,
+                                     const QString& part, const char* place) {
+    const ProjectElement* best = nullptr;
+    int bestRank = 0;
+    for (const ProjectElement* material : PublishingTexts::versionsOf(project, part, &book)) {
         if (material->cover.state != QLatin1String(CoverMaterial::CHOSEN)) {
             continue;
         }
-        if (material->cover.place == QLatin1String(place)) {
-            return material;
-        }
-        if (other == nullptr) {
-            other = material;
+        const int rank = (VolumeMaterials::volumeOf(project, *material).isEmpty() ? 2 : 0) +
+                         (material->cover.place == QLatin1String(place) ? 0 : 1);
+        if (best == nullptr || rank < bestRank) {
+            best = material;
+            bestRank = rank;
         }
     }
-    return other;
+    return best;
 }
 
 /// The first note about the author in the back part of @p book
@@ -433,15 +445,15 @@ const ProjectElement* aboutAuthorOf(const ProjectBook& book) {
 const ProjectElement* chosenVersion(const BookProject& project, const ProjectBook& book,
                                     const QString& part) {
     if (part == QLatin1String(PublishingTexts::TAGLINE)) {
-        return chosenForCover(project, part, CoverMaterial::FRONT);
+        return chosenForCover(project, book, part, CoverMaterial::FRONT);
     }
     if (part == QLatin1String(PublishingTexts::BLURB)) {
-        return chosenForCover(project, part, CoverMaterial::BACK);
+        return chosenForCover(project, book, part, CoverMaterial::BACK);
     }
     if (part == QLatin1String(PublishingTexts::ABOUT_AUTHOR)) {
         return aboutAuthorOf(book);
     }
-    return chosenText(project, part);
+    return chosenText(project, book, part);
 }
 
 /// Markdown that a paragraph would start with: a heading, a list, a quote
@@ -902,30 +914,29 @@ QStringList PublishingTexts::setState(BookProject& project, const QString& eleme
         return {};
     }
     (*text)->publishing.state = state;
-    QStringList drafts;
     if (state != QLatin1String(CHOSEN)) {
-        return drafts;
+        return {};
     }
-    for (ProjectElement* other : workshop) {
-        if (other != *text && other->publishing.part == (*text)->publishing.part &&
-            other->publishing.state == QLatin1String(CHOSEN)) {
-            other->publishing.state.clear();
-            drafts << other->id;
-        }
-    }
-    return drafts;
+    return VolumeMaterials::unchooseOthers(project, **text);
 }
 
 QList<const ProjectElement*> PublishingTexts::versionsOf(const BookProject& project,
-                                                         const QString& part) {
+                                                         const QString& part,
+                                                         const ProjectBook* book) {
+    QList<const ProjectElement*> versions;
     if (part == QLatin1String(TAGLINE) || part == QLatin1String(BLURB)) {
-        QList<const ProjectElement*> materials;
         collect(project.workshop.elements,
                 [&part](const ProjectElement& element) { return element.cover.part == part; },
-                materials);
-        return materials;
+                versions);
+    } else if (parts().contains(part)) {
+        versions = textsOf(project, part);
     }
-    return parts().contains(part) ? textsOf(project, part) : QList<const ProjectElement*>();
+    if (book != nullptr) {
+        versions.removeIf([&project, book](const ProjectElement* version) {
+            return !VolumeMaterials::isFor(project, *version, *book);
+        });
+    }
+    return versions;
 }
 
 QList<PublishingSetPart> PublishingTexts::resolveSet(const BookProject& project,
@@ -935,7 +946,7 @@ QList<PublishingSetPart> PublishingTexts::resolveSet(const BookProject& project,
     for (const QString& part : set.parts()) {
         PublishingSetPart each{part, {}, set.includes(part), false};
         const QString pick = set.picks.value(part);
-        const QList<const ProjectElement*> versions = versionsOf(project, part);
+        const QList<const ProjectElement*> versions = versionsOf(project, part, &book);
         const bool pickIsVersion =
             !pick.isEmpty() &&
             std::any_of(versions.cbegin(), versions.cend(),

@@ -39,6 +39,7 @@ set(TEST_SOURCES
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
     core/test_publishing_texts.cpp    # The texts for publishers: their data, templates, lengths and the set
     core/test_series.cpp              # A series: several books of one project with one Workshop
+    core/test_volume_materials.cpp    # A series: the cover and the publishing texts of each volume
     core/test_card_data.cpp           # The cards of the Workshop: their fields, data in the book and colors
     core/test_card_relations.cpp      # The relations between cards, and the fields that name a card by one
     core/test_card_field_set.cpp      # The fields of the cards as a book has them, and those new books start with
@@ -217,6 +218,7 @@ set(TEST_SOURCES
     gui/test_publishing_set.cpp                  # The set for a publisher, the second view of the list
     gui/test_publishing_templates.cpp            # The window of the templates of the texts for publishers
     gui/test_series_window.cpp                   # A series in the window: Navigator, New Volume, Properties
+    gui/test_series_cover.cpp                    # A series: the cover of each volume
     gui/test_publishing_add.cpp                  # Add Element of a text for publishers
     gui/test_pitch_panel.cpp                     # The card of a sentence about the book
     gui/test_publishing_text_box.cpp             # A text for publishers in the Properties panel
@@ -315,6 +317,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/material_kinds.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cover_material.cpp
     ${CMAKE_SOURCE_DIR}/src/core/publishing_texts.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/volume_materials.cpp
     ${CMAKE_SOURCE_DIR}/src/core/card_data.cpp
     ${CMAKE_SOURCE_DIR}/src/core/source_description.cpp
     ${CMAKE_SOURCE_DIR}/src/core/bibliography.cpp
@@ -575,6 +578,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/cover_names.cpp                      # The materials of the cover in words
     ${CMAKE_SOURCE_DIR}/src/gui/publishing_names.cpp                 # The texts for publishers in words
     ${CMAKE_SOURCE_DIR}/src/gui/publishing_set.cpp                   # The set for a publisher in words
+    ${CMAKE_SOURCE_DIR}/src/gui/volume_names.cpp                     # Volumes of the cover
     ${CMAKE_SOURCE_DIR}/src/gui/source_names.cpp                     # The sources in words
     ${CMAKE_SOURCE_DIR}/src/gui/pdf_files.cpp                        # PDF files as shown
     ${CMAKE_SOURCE_DIR}/src/gui/quick_insert_items.cpp               # What quick insert offers

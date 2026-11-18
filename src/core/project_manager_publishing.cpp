@@ -13,6 +13,7 @@
 #include "kalahari/core/chapter_document.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/publishing_texts.h"
+#include "kalahari/core/volume_materials.h"
 #include "kalahari/editor/text_skeleton.h"
 
 #include <QFile>
@@ -92,7 +93,12 @@ QString ProjectManager::addPublishingText(const QString& part, const QString& te
     PublishingData data;
     data.part = part;
     data.templateId = templateReference;
-    if (!setPublishing(textId, data)) {
+    const bool saved =
+        changeDetails("addPublishingText", textId, [this, &data](ProjectElement& text) {
+            text.publishing = data;
+            text.bookId = volumeOfNew(text);
+        });
+    if (!saved) {
         // Without its part it would be no text for publishers: the book goes back as it was
         logger.error("addPublishingText: '{}' could not be saved as a text for publishers",
                      title.toStdString());
@@ -145,12 +151,14 @@ bool ProjectManager::setPublishingState(const QString& elementId, const QString&
     }
     // The project as it was, to put back when the file cannot be written
     const BookProject before = *m_project;
+    const QString part = found->publishing.part;
+    const qsizetype setBook = m_project->bookIndex(setBookOf(elementId)->id);
     const QStringList others = PublishingTexts::setState(*m_project, elementId, state);
-    // The set takes the text chosen, not another version it picked
+    // The set of its book takes the text chosen, not another version it picked
     bool unpicked = false;
-    if (ProjectBook* current = book(); state == QLatin1String(PublishingTexts::CHOSEN) &&
-                                       current != nullptr && current->publishingSet) {
-        unpicked = current->publishingSet->picks.remove(found->publishing.part) > 0;
+    if (ProjectBook& owner = m_project->books[setBook];
+        state == QLatin1String(PublishingTexts::CHOSEN) && owner.publishingSet) {
+        unpicked = owner.publishingSet->picks.remove(part) > 0;
     }
     if (*m_project == before) {
         return true;
@@ -183,13 +191,17 @@ bool ProjectManager::setPublishingSet(const PublishingSet& set) {
     if (refusesChange("setPublishingSet")) {
         return false;
     }
-    if (current->publishingSet == set) {
+    return setPublishingSetOf(*current, set);
+}
+
+bool ProjectManager::setPublishingSetOf(ProjectBook& book, const PublishingSet& set) {
+    if (book.publishingSet == set) {
         return true;
     }
-    const std::optional<PublishingSet> previous = current->publishingSet;
-    current->publishingSet = set;
+    const std::optional<PublishingSet> previous = book.publishingSet;
+    book.publishingSet = set;
     if (!saveManifest()) {
-        current->publishingSet = previous;
+        book.publishingSet = previous;
         return false;
     }
     emit publishingSetChanged();
@@ -197,37 +209,53 @@ bool ProjectManager::setPublishingSet(const PublishingSet& set) {
 }
 
 bool ProjectManager::pickForPublishingSet(const QString& elementId) {
-    const ProjectBook* current = book();
     const ProjectElement* element = findElement(elementId);
-    if (!m_project || current == nullptr || element == nullptr) {
+    const ProjectBook* owner = setBookOf(elementId);
+    if (owner == nullptr || element == nullptr || refusesChange("pickForPublishingSet")) {
         return false;
     }
     const QString part =
         isPublishingText(*element) ? element->publishing.part : element->cover.part;
-    if (!PublishingTexts::versionsOf(*m_project, part).contains(element)) {
+    if (!PublishingTexts::versionsOf(*m_project, part, owner).contains(element)) {
         Logger::getInstance().warn("pickForPublishingSet: Not a version of a part of the set: {}",
                                    elementId.toStdString());
         return false;
     }
     // Without a pick, the set has the version chosen; a pick names another one
-    PublishingSet set = publishingSet();
+    PublishingSet set = owner->publishingSet.value_or(PublishingSet::defaults());
     set.picks.remove(part);
-    const QList<PublishingSetPart> parts = PublishingTexts::resolveSet(*m_project, *current, set);
+    const QList<PublishingSetPart> parts = PublishingTexts::resolveSet(*m_project, *owner, set);
     const bool taken = std::any_of(parts.cbegin(), parts.cend(), [&](const PublishingSetPart& p) {
         return p.part == part && p.elementId == elementId;
     });
     if (!taken) {
         set.picks.insert(part, elementId);
     }
-    return setPublishingSet(set);
+    return setPublishingSetOf(m_project->books[m_project->bookIndex(owner->id)], set);
 }
 
-QList<PublishingSetPart> ProjectManager::publishingSetParts() const {
-    const ProjectBook* current = book();
-    if (!m_project || current == nullptr) {
+QList<PublishingSetPart> ProjectManager::publishingSetParts(const ProjectBook* volume) const {
+    const ProjectBook* shown = volume != nullptr ? volume : book();
+    if (!m_project || shown == nullptr) {
         return {};
     }
-    return PublishingTexts::resolveSet(*m_project, *current, publishingSet());
+    return PublishingTexts::resolveSet(*m_project, *shown,
+                                       shown->publishingSet.value_or(PublishingSet::defaults()));
+}
+
+const ProjectBook* ProjectManager::setBookOf(const QString& elementId) const {
+    const ProjectElement* material = findElement(elementId);
+    if (!m_project || material == nullptr) {
+        return book();
+    }
+    const qsizetype volume =
+        m_project->bookIndex(VolumeMaterials::volumeOf(*m_project, *material));
+    return volume >= 0 ? &m_project->books.at(volume) : book();
+}
+
+QList<PublishingSetPart> ProjectManager::publishingSetPartsOf(const QString& elementId) const {
+    const ProjectBook* owner = setBookOf(elementId);
+    return owner != nullptr ? publishingSetParts(owner) : QList<PublishingSetPart>();
 }
 
 QString ProjectManager::publishingTextOf(const QString& elementId) const {

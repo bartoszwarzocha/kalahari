@@ -61,6 +61,12 @@ struct MaterialRow {
     bool publishing = false;         ///< A text for publishers (core::PublishingData)
     bool fromCover = false;          ///< In the list of the texts for publishers: a
                                      ///< description or a tagline of the cover
+    QString volume;                  ///< Of a material of the cover or a text for publishers
+                                     ///< of a series: the name of its volume, or of the whole
+                                     ///< series (VolumeNames::nameOf()); empty: no series
+    int volumeOrder = 0;             ///< Its place: 0 the whole series, 1 the first volume...
+                                     ///< (VolumeNames::orderOf()); the groups of a series go
+                                     ///< by it first
 };
 
 /// @brief The lists of the materials of the book open in @p book: the kinds of the Materials of its
@@ -116,6 +122,8 @@ public:
     static constexpr const char* PUBLISHING_TEMPLATE = "publishingTemplate";  ///< Its template
     static constexpr const char* PUBLISHING_STATE = "publishingState";  ///< Chosen for the set...
     static constexpr const char* PUBLISHING_LENGTH = "publishingLength";  ///< With its target
+    /// The cover and the texts for publishers of a series: the volume, or the whole series
+    static constexpr const char* VOLUME = "volume";
     static constexpr const char* CLIPPING_FROM = "from";  ///< A clipping: the text it was cut from
     static constexpr const char* CLIPPING_CUT = "cut";    ///< A clipping: when it was cut
     static constexpr const char* CLIPPING_NOTE = "note";  ///< A clipping: its note
@@ -288,6 +296,18 @@ public:
     /// columns of its list; nothing for an element that is not a text for publishers
     static void setPublishingTexts(MaterialRow& row, const core::ProjectManager& book,
                                    const core::ProjectElement& element);
+
+    /// @brief The column of the volume of the lists of the cover and of the texts for
+    /// publishers (VOLUME) in @p columns of @p list, before what the rows are
+    /// (partColumnOf()), when the book open in @p book is a series
+    static void addVolumeColumn(const core::ProjectManager& book, const QString& list,
+                                QList<MaterialColumn>& columns);
+
+    /// @brief What material @p element of the cover, or text @p element for publishers, of the
+    /// series open in @p book shows of its volume; nothing for another material, or in a book
+    /// that is no series
+    static void setVolumeTexts(MaterialRow& row, const core::ProjectManager& book,
+                               const core::ProjectElement& element);
 
     /// @brief What a description or a tagline @p element of the cover shows in the columns of
     /// the list of the texts for publishers, as a row from the cover

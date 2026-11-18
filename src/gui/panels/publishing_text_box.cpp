@@ -7,10 +7,12 @@
 #include "kalahari/gui/panels/publishing_text_box.h"
 
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/volume_materials.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/text_skeleton.h"
 #include "kalahari/gui/cover_names.h"
@@ -19,6 +21,7 @@
 #include "kalahari/gui/panels/card_parts.h"
 #include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/utils/layout_utils.h"
+#include "kalahari/gui/volume_names.h"
 #include "kalahari/gui/widgets/length_meter.h"
 
 #include <QCheckBox>
@@ -83,6 +86,7 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
       m_pointsArea(new QWidget(this)),
       m_pointsLayout(new QVBoxLayout(m_pointsArea)),
       m_pointsHint(hintOf(this)),
+      m_volumeBox(new QComboBox(this)),
       m_stateBox(new QComboBox(this)),
       m_targetSpin(new QSpinBox(this)),
       m_targetUnit(new QLabel(this)),
@@ -122,7 +126,12 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
     layout->addWidget(m_pointsHint);
 
     auto* fields = new QFormLayout();
+    m_fields = fields;
     fields->setContentsMargins(0, SECTION_GAP, 0, 0);
+    m_volumeBox->setObjectName(QStringLiteral("publishingVolume"));
+    //: The volume of a series a text for publishers is for, or the whole series, in the
+    //: Properties panel. In Polish: &Tom:
+    fields->addRow(tr("&Volume:"), m_volumeBox);
     m_stateBox->setObjectName(QStringLiteral("publishingState"));
     for (const char* state : {"", PublishingTexts::CHOSEN, PublishingTexts::REJECTED}) {
         m_stateBox->addItem(PublishingNames::stateName(QString::fromLatin1(state)),
@@ -150,6 +159,7 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
 
     connect(m_templateBox, &QComboBox::activated, this, &PublishingTextBox::saveTemplate);
     connect(m_stateBox, &QComboBox::activated, this, &PublishingTextBox::saveState);
+    connect(m_volumeBox, &QComboBox::activated, this, &PublishingTextBox::saveVolume);
     connect(m_targetSpin, &QSpinBox::valueChanged, this, &PublishingTextBox::saveTarget);
     connect(m_templatesButton, &QToolButton::clicked, this, [this]() {
         dialogs::PublishingTemplatesDialog::editTemplates(&m_book, window());
@@ -245,6 +255,7 @@ void PublishingTextBox::showData() {
         m_stateBox->setCurrentIndex(m_stateBox->findData(m_data.state));
     }
     m_stateBox->setEnabled(!readOnly);
+    showVolume(*element);
     const bool words = core::CoverMaterial::countsWords();
     {
         const QSignalBlocker blocker(m_targetSpin);
@@ -252,7 +263,7 @@ void PublishingTextBox::showData() {
     }
     m_targetSpin->setReadOnly(readOnly);
     m_targetUnit->setText(CoverNames::unitName(words));
-    const QList<core::PublishingSetPart> parts = m_book.publishingSetParts();
+    const QList<core::PublishingSetPart> parts = m_book.publishingSetPartsOf(m_elementId);
     const bool inSet = std::any_of(parts.cbegin(), parts.cend(), [this](const auto& part) {
         return part.elementId == m_elementId;
     });
@@ -418,6 +429,34 @@ void PublishingTextBox::saveState() {
     }
     if (m_book.setPublishingState(m_elementId, state)) {
         emit publishingChanged(m_elementId);
+    }
+    showData();
+}
+
+void PublishingTextBox::showVolume(const core::ProjectElement& element) {
+    const core::BookProject* project = m_book.project();
+    const bool series = project != nullptr && m_book.isSeries();
+    m_fields->setRowVisible(m_volumeBox, series);
+    if (series) {
+        VolumeNames::fillBox(*m_volumeBox, m_book,
+                             core::VolumeMaterials::volumeOf(*project, element));
+    }
+    m_volumeBox->setEnabled(!m_book.isReadOnly());
+}
+
+void PublishingTextBox::saveVolume() {
+    const core::ProjectElement* element = m_book.findElement(m_elementId);
+    const QString volume = m_volumeBox->currentData().toString();
+    if (element == nullptr || m_book.isReadOnly() ||
+        core::VolumeMaterials::volumeOf(*m_book.project(), *element) == volume) {
+        return;
+    }
+    QStringList drafts;
+    if (m_book.setMaterialBook(m_elementId, volume, &drafts)) {
+        emit publishingChanged(m_elementId);
+        for (const QString& draft : drafts) {
+            emit publishingChanged(draft);
+        }
     }
     showData();
 }

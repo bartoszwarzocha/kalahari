@@ -12,6 +12,7 @@
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/chapter_document.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/volume_materials.h"
 
 #include <QDir>
 #include <QFile>
@@ -34,6 +35,14 @@ namespace {
 
 /// The most books a project looks for a free folder among: book2 ... book9999
 constexpr int MOST_BOOKS = 9999;
+
+/// Whether @p material can be for volume @p bookId of @p project: a material of the cover or a
+/// text for publishers, and a book of the project, or the whole series (an empty id)
+bool canBeFor(const BookProject& project, const ProjectElement* material,
+              const QString& bookId) {
+    return material != nullptr && VolumeMaterials::isVolumeMaterial(*material) &&
+           (bookId.isEmpty() || project.bookIndex(bookId) >= 0);
+}
 
 /// Whether the template of @p kind has the title or the author of the book, as the template of
 /// the title page has
@@ -211,11 +220,16 @@ QString ProjectManager::addBook(const NewBook& request) {
         removeWritten(written);
         return {};
     }
-    // The current book stays the current one also when the new book goes before it
+    // The current book stays the current one also when the new book goes before it; the
+    // materials of the cover and the texts for publishers of a book that becomes a series are
+    // for its first volume
     m_currentBook = book()->id;
+    const QList<ProjectElement> workshop = m_project->workshop.elements;
+    VolumeMaterials::toFirstVolume(*m_project);
     m_project->books.insert(at, added);
     if (!saveManifest()) {
         m_project->books.removeAt(at);
+        m_project->workshop.elements = workshop;
         removeWritten(written);
         return {};
     }
@@ -259,6 +273,7 @@ std::optional<ProjectBook> ProjectManager::removeBook(const QString& bookId) {
     const bool wasCurrent = currentBookIndex() == index;
     const QSet<QString> gone = linkTargetsOf(*m_project, index);
     ProjectBook removed = m_project->books.takeAt(index);
+    VolumeMaterials::release(*m_project, bookId);
 
     // The links of the other elements to its elements and sections go with it
     const bool unlinked = unlinkFrom(*m_project, gone);
@@ -285,6 +300,41 @@ std::optional<ProjectBook> ProjectManager::removeBook(const QString& bookId) {
     return removed;
 }
 
+bool ProjectManager::setMaterialBook(const QString& elementId, const QString& bookId,
+                                     QStringList* drafts) {
+    if (drafts != nullptr) {
+        drafts->clear();
+    }
+    if (!m_project || refusesChange("setMaterialBook")) {
+        return false;
+    }
+    if (!canBeFor(*m_project, findElement(elementId), bookId)) {
+        Logger::getInstance().warn("setMaterialBook: No material {} of the cover or for "
+                                   "publishers, or no book {}",
+                                   elementId.toStdString(), bookId.toStdString());
+        return false;
+    }
+    // The project as it was, to put back when the file cannot be written; the material is
+    // found again after the copy, in the lists of the project's own
+    const BookProject before = *m_project;
+    ProjectElement* material = findElement(elementId);
+    material->bookId = bookId;
+    const QStringList others = VolumeMaterials::unchooseOthers(*m_project, *material);
+    if (*m_project == before) {
+        return true;
+    }
+    if (!saveManifest()) {
+        *m_project = before;
+        return false;
+    }
+    if (drafts != nullptr) {
+        *drafts = others;
+    }
+    // The sets of the volumes have other versions
+    emit publishingSetChanged();
+    return true;
+}
+
 QList<ElementPlace> ProjectManager::movePlacesIn(const QString& elementId,
                                                  const QString& bookId) const {
     return m_project ? m_project->movePlacesIn(bookTypes(), elementId, bookId)
@@ -294,6 +344,13 @@ QList<ElementPlace> ProjectManager::movePlacesIn(const QString& elementId,
 QString ProjectManager::otherBookThan(const QString& elementId, const QString& bookId) const {
     const ProjectBook* own = bookOf(elementId);
     return own != nullptr && own->id == bookId ? QString() : bookId;
+}
+
+QString ProjectManager::volumeOfNew(const ProjectElement& element) const {
+    const ProjectBook* current = book();
+    return isSeries() && current != nullptr && VolumeMaterials::isVolumeMaterial(element)
+               ? current->id
+               : QString();
 }
 
 QString ProjectManager::freeBookFolder() const {

@@ -300,6 +300,9 @@ struct ProjectElement {
                                      ///< empty: not said
     PublishingData publishing;       ///< Of a text for publishers: what it is, its
                                      ///< template and its state; empty: none
+    QString bookId;                  ///< Of a material of the cover or a text for
+                                     ///< publishers of a series: the id of the volume it is
+                                     ///< for (VolumeMaterials); empty: the whole series
     QJsonObject viewExtra;           ///< Fields of its "view" this version does not know
     QJsonObject extra;               ///< Fields this version does not know, saved back
 

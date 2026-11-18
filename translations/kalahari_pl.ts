@@ -23315,6 +23315,16 @@ Notatka: %2</translation>
         <extracomment>The tooltip of Preview for a file that is no picture nor PDF. In Polish: Program pokazuje tylko obrazy i pliki PDF</extracomment>
         <translation>Program pokazuje tylko obrazy i pliki PDF</translation>
     </message>
+    <message>
+        <source>&amp;Volume:</source>
+        <extracomment>The volume of a series a material of the cover is for, or the whole series. In Polish: &amp;Tom:</extracomment>
+        <translation>&amp;Tom:</translation>
+    </message>
+    <message>
+        <source>Volume Not Saved</source>
+        <extracomment>In Polish: Nie zapisano tomu</extracomment>
+        <translation>Nie zapisano tomu</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NameFormsTable</name>
@@ -24001,6 +24011,11 @@ Where a quote comes from: a source and its page. In Polish: Źródło</extracomm
         <source>&amp;In the Set</source>
         <extracomment>Includes a part in the set for a publisher, or leaves it out. In Polish: &amp;W zestawie</extracomment>
         <translation>&amp;W zestawie</translation>
+    </message>
+    <message>
+        <source>Volume</source>
+        <extracomment>The volume of a series a material of the cover or a text for publishers is for, or the whole series. In Polish: Tom</extracomment>
+        <translation>Tom</translation>
     </message>
 </context>
 <context>
@@ -38191,6 +38206,11 @@ In Polish: pasmo „%1”</extracomment>
         <extracomment>The button beside the template that opens the window of the templates. In Polish: Szablony tekstów dla wydawnictwa...</extracomment>
         <translation>Szablony tekstów dla wydawnictwa...</translation>
     </message>
+    <message>
+        <source>&amp;Volume:</source>
+        <extracomment>The volume of a series a text for publishers is for, or the whole series, in the Properties panel. In Polish: &amp;Tom:</extracomment>
+        <translation>&amp;Tom:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::PublishingChoice</name>
@@ -38882,6 +38902,24 @@ In Polish: Nie udało się zapisać nazwy serii: nie można zapisać projektu.</
         <source>The pages of the front and back sections of volume %1 with their text, the title page with the title of the new volume, and the first chapter.</source>
         <extracomment>%1: the number of the volume. In Polish: Strony sekcji początkowej i końcowej tomu %1 wraz z tekstem, strona tytułowa z tytułem nowego tomu i pierwszy rozdział.</extracomment>
         <translation>Strony sekcji początkowej i końcowej tomu %1 wraz z tekstem, strona tytułowa z tytułem nowego tomu i pierwszy rozdział.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::VolumeNames</name>
+    <message>
+        <source>Whole series</source>
+        <extracomment>The volume of a material of the cover or a text for publishers that is for all the volumes of a series. In Polish: Cała seria</extracomment>
+        <translation>Cała seria</translation>
+    </message>
+    <message>
+        <source>“%1” is now for: %2</source>
+        <extracomment>The status bar: a material of the cover or a text for publishers is for another volume of the series, or for the whole series; %1 its title, %2 the volume. In Polish: „%1” dotyczy teraz: %2</extracomment>
+        <translation>„%1” dotyczy teraz: %2</translation>
+    </message>
+    <message>
+        <source>“%1” is a draft again</source>
+        <extracomment>The status bar, after a material is given to another volume: the one chosen there before for its place is a draft again; %1 its title. In Polish: „%1” wraca do roboczych</extracomment>
+        <translation>„%1” wraca do roboczych</translation>
     </message>
 </context>
 </TS>

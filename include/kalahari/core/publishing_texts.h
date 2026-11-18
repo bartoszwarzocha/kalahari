@@ -346,7 +346,8 @@ struct PublishingTexts {
     static QList<const ProjectElement*> textsOf(const BookProject& project, const QString& part);
 
     /// @brief Give text @p elementId of @p project the state @p state (CHOSEN, REJECTED; empty:
-    /// a draft); one chosen takes the place of the text of its part chosen before
+    /// a draft); one chosen takes the place of the text of its part chosen before for its
+    /// volume of a series (VolumeMaterials)
     /// @return The texts that are drafts again
     static QStringList setState(BookProject& project, const QString& elementId,
                                 const QString& state);
@@ -354,13 +355,17 @@ struct PublishingTexts {
     /// @brief The versions that can be the part @p part of a set (setParts()): the texts of the
     /// part, or the materials of the cover of a description or a tagline, in the order of the
     /// Workshop; the note about the author has none
+    /// @param book Only the versions for this book of a series: of its volume and of the whole
+    ///        series (VolumeMaterials::isFor()); nullptr: all
     static QList<const ProjectElement*> versionsOf(const BookProject& project,
-                                                   const QString& part);
+                                                   const QString& part,
+                                                   const ProjectBook* book = nullptr);
 
     /// @brief The parts of set @p set of book @p book of @p project, in its order, each with
-    /// the element of its text: the set's pick while it is a version of the part, else the
-    /// version chosen (for the back cover, for the front, for a tagline and a description of
-    /// more places), else the first note about the author of the book's back part
+    /// the element of its text: the set's pick while it is a version of the part for the book,
+    /// else the version chosen (for the back cover, for the front, for a tagline and a
+    /// description of more places; of the book's volume of a series first, else of the whole
+    /// series), else the first note about the author of the book's back part
     static QList<PublishingSetPart> resolveSet(const BookProject& project,
                                                const ProjectBook& book,
                                                const PublishingSet& set);

@@ -18,6 +18,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/volume_materials.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/book_export.h"
 #include "kalahari/editor/book_pages.h"
@@ -93,43 +94,58 @@ struct CoverOfBook {
     const core::ProjectElement* description = nullptr;  ///< None: no description is chosen
 };
 
-/// The chosen materials of the cover in the Workshop (and in its libraries): the design of the
-/// front (else of the whole cover) with its picture, the description of the back (else of a
-/// flap)
-CoverOfBook coverOfBook(const core::ProjectManager& projects) {
+/// The place of chosen material @p element of the cover of @p project as the design of the
+/// front of an e-book: the design of the front before that of the whole cover, of its volume
+/// before one of the whole series; -1: no such design
+int designRank(const core::BookProject& project, const core::ProjectElement& element) {
     using core::CoverMaterial;
+    const core::CoverData& data = element.cover;
+    const bool front = data.place == QLatin1String(CoverMaterial::FRONT);
+    if (data.part != QLatin1String(CoverMaterial::DESIGN) || element.file.isEmpty() ||
+        (!front && data.place != QLatin1String(CoverMaterial::WHOLE))) {
+        return -1;
+    }
+    return (core::VolumeMaterials::volumeOf(project, element).isEmpty() ? 2 : 0) +
+           (front ? 0 : 1);
+}
+
+/// The place of chosen material @p element of the cover of @p project as the description of
+/// an e-book: the description of the back before that of a flap, of its volume before one of
+/// the whole series; -1: no description with a text
+int descriptionRank(const core::BookProject& project, const core::ProjectElement& element) {
+    using core::CoverMaterial;
+    const core::CoverData& data = element.cover;
+    if (data.part != QLatin1String(CoverMaterial::BLURB) ||
+        element.description.trimmed().isEmpty()) {
+        return -1;
+    }
+    return (core::VolumeMaterials::volumeOf(project, element).isEmpty() ? 2 : 0) +
+           (data.place == QLatin1String(CoverMaterial::BACK) ? 0 : 1);
+}
+
+/// The chosen materials of the cover of @p volume in the Workshop (and in its libraries): the
+/// design of the front (else of the whole cover) with its picture, the description of the back
+/// (else of a flap); of the volume of a series first, else of the whole series
+CoverOfBook coverOfBook(const core::ProjectManager& projects, const core::ProjectBook& volume) {
     CoverOfBook cover;
     const core::BookProject* project = projects.project();
     if (project == nullptr) {
         return cover;
     }
-    bool frontDesign = false;
-    bool backDescription = false;
-    const std::function<void(const QList<core::ProjectElement>&)> visit =
-        [&](const QList<core::ProjectElement>& elements) {
-            for (const core::ProjectElement& element : elements) {
-                visit(element.elements);
-                const core::CoverData& data = element.cover;
-                if (data.state != QLatin1String(CoverMaterial::CHOSEN)) {
-                    continue;
-                }
-                if (data.part == QLatin1String(CoverMaterial::DESIGN) && !element.file.isEmpty() &&
-                    !frontDesign &&
-                    (data.place == QLatin1String(CoverMaterial::FRONT) ||
-                     (data.place == QLatin1String(CoverMaterial::WHOLE) &&
-                      cover.design == nullptr))) {
-                    cover.design = &element;
-                    frontDesign = data.place == QLatin1String(CoverMaterial::FRONT);
-                } else if (data.part == QLatin1String(CoverMaterial::BLURB) &&
-                           !element.description.trimmed().isEmpty() && !backDescription &&
-                           (data.place == QLatin1String(CoverMaterial::BACK) ||
-                            cover.description == nullptr)) {
-                    cover.description = &element;
-                    backDescription = data.place == QLatin1String(CoverMaterial::BACK);
-                }
-            }
-        };
-    visit(project->workshop.elements);
+    int design = -1;
+    int description = -1;
+    for (const core::ProjectElement* element :
+         core::VolumeMaterials::chosenForCover(*project, volume)) {
+        if (const int rank = designRank(*project, *element);
+            rank >= 0 && (design < 0 || rank < design)) {
+            cover.design = element;
+            design = rank;
+        } else if (const int place = descriptionRank(*project, *element);
+                   place >= 0 && (description < 0 || place < description)) {
+            cover.description = element;
+            description = place;
+        }
+    }
     return cover;
 }
 
@@ -180,8 +196,9 @@ void setPaper(QPrinter& printer, const QPageSize& paper, bool sideways) {
 }
 
 /// The set for a publisher of @p projects in @p shown, as one text: its title and its parts
-void addSetOf(const core::ProjectManager& projects, dialogs::ExportBookDialog::Book& shown) {
-    shown.setParts = static_cast<int>(PublishingSetContents::textsOf(projects).size());
+void addSetOf(const core::ProjectManager& projects, const core::ProjectBook& volume,
+              dialogs::ExportBookDialog::Book& shown) {
+    shown.setParts = static_cast<int>(PublishingSetContents::textsOf(projects, &volume).size());
     if (shown.setParts > 0) {
         //: The set for a publisher as the name of its file; %1: the title of the book. In
         //: Polish: %1 – zestaw dla wydawnictwa
@@ -285,8 +302,8 @@ QList<ExportRow> rowsOf(const core::ProjectManager& projects, const core::Projec
     return rows;
 }
 
-/// What the window says about @p volume of the open project: its data, the cover, its set
-/// for a publisher when it is the current book, its texts, and the volumes of a series
+/// What the window says about @p volume of the open project: its data, its cover, its set
+/// for a publisher, its texts, and the volumes of a series
 dialogs::ExportBookDialog::Book bookOfVolume(const core::ProjectManager& projects,
                                              const core::ProjectBook& volume) {
     dialogs::ExportBookDialog::Book book;
@@ -298,7 +315,7 @@ dialogs::ExportBookDialog::Book bookOfVolume(const core::ProjectManager& project
     book.language = volume.language.isEmpty() ? QString() : utils::languageName(volume.language);
     book.isbn = volume.isbn;
     book.publisher = volume.publisher;
-    const CoverOfBook cover = coverOfBook(projects);
+    const CoverOfBook cover = coverOfBook(projects, volume);
     if (cover.design != nullptr) {
         book.coverTitle = cover.design->title;
         book.coverFile = projects.filePathOf(*cover.design);
@@ -306,10 +323,8 @@ dialogs::ExportBookDialog::Book bookOfVolume(const core::ProjectManager& project
     if (cover.description != nullptr) {
         book.description = cover.description->description;
     }
-    // The set for a publisher of the current book (PublishingSetContents)
-    if (&volume == projects.book()) {
-        addSetOf(projects, book);
-    }
+    // Its set for a publisher (PublishingSetContents)
+    addSetOf(projects, volume, book);
     book.rows = rowsOf(projects, volume);
     // A series: its volumes in the list Volume
     if (projects.isSeries()) {
@@ -589,7 +604,8 @@ editor::BookExport BookExportCoordinator::bookExport(
     book.epub.isbn = choice.isbn;
     book.epub.publisher = choice.publisher;
     if (projectBook != nullptr) {
-        if (const CoverOfBook cover = coverOfBook(projects); cover.description != nullptr) {
+        if (const CoverOfBook cover = coverOfBook(projects, *projectBook);
+            cover.description != nullptr) {
             book.epub.description = cover.description->description;
         }
         // The book's own identifier for the whole book; a part of it is another e-book
@@ -642,7 +658,7 @@ editor::BookExport BookExportCoordinator::bookExport(
         return book;
     }
     if (layout.content == Content::Set) {
-        addSetItems(book);
+        addSetItems(*projectBook, book);
         return book;
     }
 
@@ -662,15 +678,16 @@ editor::BookExport BookExportCoordinator::bookExport(
     return book;
 }
 
-void BookExportCoordinator::addSetItems(editor::BookExport& book) const {
+void BookExportCoordinator::addSetItems(const core::ProjectBook& volume,
+                                        editor::BookExport& book) const {
     // The title of the book with its author, then each part under its name
     editor::ExportItem title;
     title.kind = editor::ExportItemKind::Text;
-    title.title = PublishingSetContents::titleOf(m_book);
+    title.title = PublishingSetContents::titleOf(m_book, &volume);
     title.titleStyle = QString::fromLatin1(SET_TITLE_STYLE);
-    title.kml = kmlOfText(PublishingSetContents::aboutOf(m_book));
+    title.kml = kmlOfText(PublishingSetContents::aboutOf(m_book, &volume));
     book.items.push_back(title);
-    for (const core::PublishingSetText& part : PublishingSetContents::textsOf(m_book)) {
+    for (const core::PublishingSetText& part : PublishingSetContents::textsOf(m_book, &volume)) {
         editor::ExportItem item;
         item.kind = editor::ExportItemKind::Text;
         item.title = part.heading;

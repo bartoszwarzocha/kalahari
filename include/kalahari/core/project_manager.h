@@ -909,7 +909,9 @@ public:
     /// gets the text elements of the front and back sections of the book before it, in their
     /// sections: an element whose kind's template has the title or the author of the book (the
     /// title page) is made anew from the template, with the data of the new book; the others
-    /// get a copy of their text. The current book stays the current one.
+    /// get a copy of their text. The current book stays the current one. When a book becomes a
+    /// series, its materials of the cover and its texts for publishers are for its first
+    /// volume (VolumeMaterials::toFirstVolume()).
     /// @return The id of the new book; empty when no project is open, the book is read-only,
     ///         its title is empty or a file cannot be written (the project stays as it was)
     QString addBook(const NewBook& request);
@@ -922,11 +924,24 @@ public:
     /// @brief Take book @p bookId out of the series and save the .klh file
     ///
     /// The links to its elements and to its sections go with it, as removeElement() takes
-    /// them; the files of its elements stay on the disk (filesOf() lists them). The first book
-    /// becomes the current one when the current book goes.
+    /// them; the files of its elements stay on the disk (filesOf() lists them). Its materials
+    /// of the cover and texts for publishers are for the whole series then, as drafts
+    /// (VolumeMaterials::release()). The first book becomes the current one when the current
+    /// book goes.
     /// @return The book; nullopt for the last book of the project, a book the project does not
     ///         have, or when the file cannot be written
     std::optional<ProjectBook> removeBook(const QString& bookId);
+
+    /// @brief Give material @p elementId of the cover, or text @p elementId for publishers, to
+    /// volume @p bookId of the series, or to the whole series (empty), and save the .klh file
+    ///
+    /// One chosen stays chosen: the others chosen for its place in the volume it goes to
+    /// become drafts (VolumeMaterials::unchooseOthers()).
+    /// @param drafts Gets the materials that are drafts again; may be nullptr
+    /// @return false for an element that is no such material, a book the project does not
+    ///         have, or when the file cannot be written; the materials stay as they were then
+    bool setMaterialBook(const QString& elementId, const QString& bookId,
+                         QStringList* drafts = nullptr);
 
     /// @brief Places in book @p bookId that element @p elementId of another book can be moved
     /// to (BookProject::movePlacesIn())
@@ -979,8 +994,8 @@ public:
                             QStringList* drafts = nullptr);
 
     /// @brief Make @p elementId, a text for publishers or a description or a tagline of the
-    /// cover, the version of its part in the book's set: the set picks it, or takes it without
-    /// a pick when it is the version chosen (setPublishingSet())
+    /// cover, the version of its part in the set of its book (setBookOf()): the set picks it,
+    /// or takes it without a pick when it is the version chosen (setPublishingSet())
     /// @return false for an element that is no version of a part of the set, or when the file
     ///         cannot be written; the set stays as it was then
     bool pickForPublishingSet(const QString& elementId);
@@ -995,9 +1010,20 @@ public:
     ///         the book keeps its set then
     bool setPublishingSet(const PublishingSet& set);
 
-    /// @brief The parts of the book's set, each with the element of its text
-    /// (PublishingTexts::resolveSet()); none without a project
-    [[nodiscard]] QList<PublishingSetPart> publishingSetParts() const;
+    /// @brief The parts of the set of book @p volume of the project (nullptr: of the current
+    /// book), each with the element of its text (PublishingTexts::resolveSet()); none without
+    /// a project
+    [[nodiscard]] QList<PublishingSetPart> publishingSetParts(
+        const ProjectBook* volume = nullptr) const;
+
+    /// @brief The book whose set material @p elementId of the cover, or text @p elementId for
+    /// publishers, is a version for: the volume of the series it is for, else (a material of
+    /// the whole series, a book that is no series) the current book; nullptr without a project
+    [[nodiscard]] const ProjectBook* setBookOf(const QString& elementId) const;
+
+    /// @brief The parts of the set of the book of material @p elementId (setBookOf()), each
+    /// with the element of its text; none without a project
+    [[nodiscard]] QList<PublishingSetPart> publishingSetPartsOf(const QString& elementId) const;
 
     /// @brief The text of text @p elementId for publishers or of another element of the set: its
     /// paragraphs, one per line, for an element with a text of its own (a chapter file), else
@@ -1700,6 +1726,14 @@ private:
     /// @brief The first folder of book2, book3... that no book of the project has and that is
     /// not on the disk, for a new book of a series
     [[nodiscard]] QString freeBookFolder() const;
+
+    /// @brief The volume new material @p element is for: the current book of a series for a
+    /// material of the cover or a text for publishers (VolumeMaterials), else none
+    [[nodiscard]] QString volumeOfNew(const ProjectElement& element) const;
+
+    /// @brief Give book @p book of the project the set @p set and save the .klh file
+    /// (publishingSetChanged()); false when the file cannot be written
+    bool setPublishingSetOf(ProjectBook& book, const PublishingSet& set);
 
     /// @brief Give new book @p book the elements it starts with (addBook()): the pages of the
     /// front and back sections of @p source when @p pages, then its first chapter

@@ -11,11 +11,17 @@
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/publishing_texts.h"
+#include "kalahari/core/volume_materials.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/publishing_names.h"
+#include "kalahari/gui/volume_names.h"
 
+#include <QList>
 #include <QString>
 #include <QStringList>
+#include <QVariant>
+
+#include <algorithm>
 
 namespace kalahari::gui {
 
@@ -100,6 +106,33 @@ void MaterialList::setPublishingTexts(MaterialRow& row, const core::ProjectManag
     setCell(row, PUBLISHING_LENGTH,
             PublishingNames::lengthText(length, book.publishingTargetOf(element.id, words), words),
             length);
+}
+
+void MaterialList::addVolumeColumn(const core::ProjectManager& book, const QString& list,
+                                   QList<MaterialColumn>& columns) {
+    if (!hasGroups(list) || !book.isSeries()) {
+        return;
+    }
+    const QString part = partColumnOf(list);
+    const auto before =
+        std::find_if(columns.cbegin(), columns.cend(),
+                     [&part](const MaterialColumn& each) { return each.id == part; });
+    //: The volume of a series a material of the cover or a text for publishers is for, or the
+    //: whole series. In Polish: Tom
+    columns.insert(before - columns.cbegin(), MaterialColumn{.id = QString::fromLatin1(VOLUME),
+                                                             .title = tr("Volume"),
+                                                             .shown = true,
+                                                             .sortable = true});
+}
+
+void MaterialList::setVolumeTexts(MaterialRow& row, const core::ProjectManager& book,
+                                  const core::ProjectElement& element) {
+    if (!book.isSeries() || !core::VolumeMaterials::isVolumeMaterial(element)) {
+        return;
+    }
+    row.volume = VolumeNames::nameOf(book, element);
+    row.volumeOrder = VolumeNames::orderOf(book, element);
+    setCell(row, VOLUME, row.volume, row.volumeOrder);
 }
 
 void MaterialList::setPublishingCoverTexts(MaterialRow& row, const core::ProjectElement& element) {
