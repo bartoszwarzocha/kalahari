@@ -1443,6 +1443,7 @@ void MainWindow::registerCommands() {
     // A new book of the series, or the second volume that makes a book a series
     callbacks.onNewVolume =
         callOn(m_navigatorCoordinator, &NavigatorCoordinator::onRequestNewVolume);
+    callbacks.onJoinVolume = [this]() { joinBookAsVolume(); };
     // The kinds of the Workshop: the window with all of them, that one chosen
     callbacks.onNewWorkshopElement = [this](const QString& kindId) {
         if (!m_navigatorCoordinator) {
@@ -1737,8 +1738,10 @@ void MainWindow::registerCommands() {
         };
         properties->disabledReason = whyReadOnly;
     }
-    // A new volume, as the properties of the book: in a book that can be changed
+    // A new volume and a book joined as a volume, as the properties of the book: in a book
+    // that can be changed
     enableLike(registry, "book.newVolume", "book.properties");
+    enableLike(registry, "book.joinVolume", "book.newVolume");
     // Add... adds to the book open, after the element in front or anywhere in it; it leads the
     // menu, in bold, as in the menus of the Navigator
     if (auto* add = registry.getCommand("book.addElement")) {
@@ -1895,6 +1898,17 @@ void MainWindow::registerCommands() {
     logger.debug("Commands registered successfully ({} commands)", count);
 }
 
+void MainWindow::joinBookAsVolume() {
+    if (m_navigatorCoordinator == nullptr) {
+        return;
+    }
+    // The volume gets the text the writer sees in the window of the book
+    m_navigatorCoordinator->onRequestJoinVolume([this](const QString& manifest) {
+        MainWindow* other = windowOfBook(manifest);
+        return other == nullptr || other == this ||
+               other->m_documentCoordinator->saveAllChanges();
+    });
+}
 
 void MainWindow::createMenus() {
     auto& logger = core::Logger::getInstance();
@@ -3339,6 +3353,7 @@ void MainWindow::updateBookCommands() {
     registry.updateActionState("book.addElement");
     registry.updateActionState("book.newChapter");
     registry.updateActionState("book.newVolume");
+    registry.updateActionState("book.joinVolume");
     for (const auto& [commandId, kindId] : WORKSHOP_COMMANDS) {
         registry.updateActionState(commandId);
     }

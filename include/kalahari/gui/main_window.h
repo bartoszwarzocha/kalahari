@@ -252,6 +252,10 @@ private:
     /// @note Must be called BEFORE createMenus() and createToolbars()
     void registerCommands();
 
+    /// @brief Book > Join Book as Volume...: NavigatorCoordinator::onRequestJoinVolume(), with
+    /// the changes of the book saved first when another window has it open
+    void joinBookAsVolume();
+
     /// @brief Create menu bar from CommandRegistry
     ///
     /// Uses MenuBuilder to dynamically build menus from registered commands.

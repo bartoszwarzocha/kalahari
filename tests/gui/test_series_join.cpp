@@ -3,15 +3,23 @@
 
 /// @file test_series_join.cpp
 /// @brief A series in the window: a volume taken out as a book of its own (Take Out as a
-/// Book... of a volume, the window Take Out Volume)
+/// Book... of a volume, the window Take Out Volume) and a book joined as a volume (Book > Join
+/// Book as Volume..., the window Join Book as Volume)
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/book_type_package.h>
+#include <kalahari/core/book_type_registry.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/file_trash.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/recent_books_manager.h>
+#include <kalahari/core/volume_copies.h>
+#include <kalahari/gui/command.h>
+#include <kalahari/gui/command_registrar.h>
+#include <kalahari/gui/command_registry.h>
+#include <kalahari/gui/dialogs/join_book_dialog.h>
 #include <kalahari/gui/dialogs/take_out_volume_dialog.h>
 #include <kalahari/gui/icon_registrar.h>
 #include <kalahari/gui/navigator_coordinator.h>
@@ -26,10 +34,13 @@
 #include "test_support/dialog_checks.h"
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QList>
 #include <QPushButton>
+#include <QStatusBar>
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -42,6 +53,7 @@
 namespace core = kalahari::core;
 namespace gui = kalahari::gui;
 namespace test = kalahari::test;
+using gui::dialogs::JoinBookDialog;
 using gui::dialogs::TakeOutVolumeDialog;
 
 namespace {
@@ -87,16 +99,17 @@ QTreeWidgetItem* itemWithText(const gui::NavigatorPanel& panel, const QString& t
     return nullptr;
 }
 
-/// Run @p command, handing the window Take Out Volume it shows to @p fill, then taking the
-/// volume out, with its result in @p result, and closing the window
-/// @return The number of the windows Take Out Volume shown
-int takingOut(const std::function<void()>& command,
-              const std::function<void(TakeOutVolumeDialog&)>& fill, QString* result = nullptr) {
+/// Run @p command, handing the window @p Dialog it shows to @p fill, then doing its work, with
+/// its result in @p result, and closing the window
+/// @return The number of the windows @p Dialog shown
+template <typename Dialog>
+int working(const std::function<void()>& command, const std::function<void(Dialog&)>& fill,
+            QString* result = nullptr) {
     int shown = 0;
     QTimer timer;
     timer.setInterval(10);
     QObject::connect(&timer, &QTimer::timeout, [&shown, &fill, result]() {
-        auto* dialog = qobject_cast<TakeOutVolumeDialog*>(test::shownDialog());
+        auto* dialog = qobject_cast<Dialog*>(test::shownDialog());
         if (dialog == nullptr || dialog->property("handled").toBool()) {
             return;
         }
@@ -117,6 +130,61 @@ int takingOut(const std::function<void()>& command,
     timer.start();
     command();
     return shown;
+}
+
+/// Take a volume out, as working() does
+int takingOut(const std::function<void()>& command,
+              const std::function<void(TakeOutVolumeDialog&)>& fill, QString* result = nullptr) {
+    return working<TakeOutVolumeDialog>(command, fill, result);
+}
+
+/// Join a book, as working() does
+int joining(const std::function<void()>& command,
+            const std::function<void(JoinBookDialog&)>& fill, QString* result = nullptr) {
+    return working<JoinBookDialog>(command, fill, result);
+}
+
+/// The kind of the characters of @p pm
+core::KindRef character(const core::ProjectManager& pm) {
+    return pm.bookTypes().findKind(QStringLiteral("kalahari.base"), QStringLiteral("character"));
+}
+
+/// A book @p title of type @p type in the folder @p folder, with the characters @p cards and
+/// the volumes @p volumes after the first one, written by a manager of its own
+/// @return Its .klh file
+QString writeBook(const QString& folder, const QString& title, const QStringList& cards = {},
+                  const QStringList& volumes = {},
+                  const QString& type = QStringLiteral("kalahari.novel")) {
+    core::ProjectManager other;
+    core::ProjectManager::loadBookTypes(
+        {QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    REQUIRE(other.createProject(folder, title, QStringLiteral("Author"), QStringLiteral("en"),
+                                false, type));
+    for (const QString& card : cards) {
+        REQUIRE_FALSE(
+            other.addElement(character(other), card, core::BookPlace::Workshop).isEmpty());
+    }
+    for (const QString& volume : volumes) {
+        addVolume(other, volume);
+    }
+    const QString manifest = other.getManifestPath();
+    REQUIRE(other.closeProject(false));
+    return manifest;
+}
+
+/// The work of the window Join Book as Volume that joins nothing: it puts in @p calls what it
+/// gets, and gives the id of @p outcomes of the call, empty: a failure
+JoinBookDialog::Joiner recording(QList<QStringList>& calls, const QStringList& outcomes) {
+    return [&calls, outcomes](const QString& manifest, qsizetype index,
+                              const QList<core::CardPair>& pairs) {
+        QStringList call{manifest, QString::number(index)};
+        for (const core::CardPair& pair : pairs) {
+            call << pair.card + QLatin1Char('=') + pair.seriesCard;
+        }
+        calls << call;
+        return JoinBookDialog::Outcome{outcomes.value(calls.size() - 1),
+                                       {QStringLiteral("a problem")}};
+    };
 }
 
 }  // namespace
@@ -315,4 +383,205 @@ TEST_CASE("Series: Take Out as a Book... keeps the volume unless asked, and open
               window.navigator.onRequestTakeOutVolume(novel.pm.book()->id);
           },
                     [](TakeOutVolumeDialog&) {}) == 0);
+}
+
+TEST_CASE("Series: the window Join Book as Volume says why a book cannot join, and lists the "
+          "same cards",
+          "[gui][series][join]") {
+    gui::registerAllIcons();
+    const test::OpenNovel novel(QStringLiteral("Sand"));
+    const QString anna =
+        novel.pm.addElement(character(novel.pm), QStringLiteral("Anna"), core::BookPlace::Workshop);
+    REQUIRE_FALSE(anna.isEmpty());
+    const QTemporaryDir books;
+    REQUIRE(books.isValid());
+    const QDir folder(books.path());
+    REQUIRE(folder.mkpath(QStringLiteral("dunes")));
+    const QString dunes = writeBook(folder.filePath(QStringLiteral("dunes")),
+                                    QStringLiteral("Dunes"),
+                                    {QStringLiteral("anna"), QStringLiteral("Ola")});
+
+    QList<QStringList> calls;
+    JoinBookDialog dialog(novel.pm, recording(calls, {QString(), QStringLiteral("dunes-id")}));
+    dialog.show();
+
+    // Without a book: nothing to join, the places among the volumes, at first the last one
+    CHECK(dialog.manifest().isEmpty());
+    CHECK(dialog.fileNote().isEmpty());
+    CHECK(dialog.bookText().isEmpty());
+    CHECK_FALSE(dialog.acceptButton()->isEnabled());
+    CHECK_FALSE(dialog.cardList()->isVisibleTo(&dialog));
+    REQUIRE(dialog.placeBox()->count() == 2);
+    CHECK(dialog.placeBox()->itemText(0) == QStringLiteral("before volume 1 \"Sand\" – volume 1"));
+    CHECK(dialog.placeBox()->currentText() ==
+          QStringLiteral("after volume 1 \"Sand\" – volume 2"));
+
+    // The book: what it is, and its card of the series' kind and title, checked
+    dialog.setManifest(dunes);
+    CHECK(dialog.fileNote().isEmpty());
+    CHECK(dialog.bookText() == QStringLiteral("Title: Dunes\nAuthor: Author"));
+    CHECK(dialog.acceptButton()->isEnabled());
+    CHECK(dialog.cardList()->isVisibleTo(&dialog));
+    REQUIRE(dialog.cardList()->topLevelItemCount() == 1);
+    QTreeWidgetItem* pair = dialog.cardList()->topLevelItem(0);
+    CHECK(pair->text(0) == QStringLiteral("anna"));
+    CHECK(pair->text(1) == QStringLiteral("character"));
+    REQUIRE(dialog.sameCards().size() == 1);
+    const QString bookAnna = dialog.sameCards().constFirst().card;
+    CHECK(dialog.sameCards().constFirst().seriesCard == anna);
+    pair->setCheckState(0, Qt::Unchecked);
+    CHECK(dialog.sameCards().isEmpty());
+    pair->setCheckState(0, Qt::Checked);
+
+    // A failure stays in the window, and the book can be joined again
+    dialog.placeBox()->setCurrentIndex(0);
+    dialog.accept();
+    REQUIRE(calls.size() == 1);
+    CHECK(calls.constFirst() ==
+          QStringList({dunes, QStringLiteral("0"), bookAnna + QLatin1Char('=') + anna}));
+    CHECK_FALSE(dialog.isDone());
+    CHECK(dialog.resultText() == QStringLiteral("The book could not be joined."));
+    CHECK(dialog.bookId().isEmpty());
+    CHECK(dialog.acceptButton()->isEnabled());
+    dialog.accept();
+    REQUIRE(calls.size() == 2);
+    CHECK(dialog.isDone());
+    CHECK(dialog.resultText() ==
+          QStringLiteral("The book \"Dunes\" is now volume 1 of the series."));
+    CHECK(dialog.bookId() == QStringLiteral("dunes-id"));
+    dialog.close();
+
+    // Books that cannot join: a series, one of another type, the series' own book, a file that
+    // is no book
+    REQUIRE(folder.mkpath(QStringLiteral("series")));
+    REQUIRE(folder.mkpath(QStringLiteral("poems")));
+    const QString series =
+        writeBook(folder.filePath(QStringLiteral("series")), QStringLiteral("Winds"), {},
+                  {QStringLiteral("Winds 2")});
+    const QString poems = writeBook(folder.filePath(QStringLiteral("poems")),
+                                    QStringLiteral("Poems"), {}, {},
+                                    QStringLiteral("kalahari.poetry"));
+    const QString broken = folder.filePath(QStringLiteral("broken.klh"));
+    {
+        QFile file(broken);
+        REQUIRE(file.open(QIODevice::WriteOnly));
+        file.write("no book");
+    }
+    JoinBookDialog refusing(novel.pm, recording(calls, {}));
+    const auto refused = [&refusing](const QString& manifest) {
+        refusing.setManifest(manifest);
+        CHECK_FALSE(refusing.acceptButton()->isEnabled());
+        CHECK_FALSE(refusing.cardList()->isVisibleTo(&refusing));
+        return refusing.fileNote();
+    };
+    CHECK(refused(series) ==
+          QStringLiteral("This book is a series: only a book of one volume can join."));
+    CHECK(refused(poems) ==
+          QStringLiteral("The book is of another type: only a book of the same type can join."));
+    CHECK(refused(novel.pm.getManifestPath()) ==
+          QStringLiteral("The series has this book already: it is the same book, or a volume "
+                         "taken out of the series that is still in it."));
+    CHECK(refused(broken).startsWith(QStringLiteral("Kalahari cannot read this book.")));
+    CHECK(refusing.bookText().isEmpty());
+    CHECK(calls.size() == 2);
+}
+
+TEST_CASE("Series: the window Join Book as Volume fits a small screen, in English and in Polish",
+          "[gui][series][join]") {
+    gui::registerAllIcons();
+    const test::OpenNovel novel(QStringLiteral("A rather long title of the first volume"));
+    const QStringList names{QStringLiteral("Anna Maria Kowalska-Wiśniewska"),
+                            QStringLiteral("Ola"), QStringLiteral("Piotr"),
+                            QStringLiteral("Zofia"), QStringLiteral("Jan"),
+                            QStringLiteral("Ewa"), QStringLiteral("Marek")};
+    for (const QString& name : names) {
+        REQUIRE_FALSE(
+            novel.pm.addElement(character(novel.pm), name, core::BookPlace::Workshop).isEmpty());
+    }
+    addVolume(novel.pm, QStringLiteral("A rather long title of the second volume"));
+    const QTemporaryDir books;
+    REQUIRE(books.isValid());
+    const QString dunes = writeBook(books.path(), QStringLiteral("Dunes"), names);
+    const auto check = [&novel, &dunes](const char* language) {
+        INFO("In " << language);
+        QList<QStringList> calls;
+        JoinBookDialog dialog(novel.pm, recording(calls, {}));
+        dialog.setManifest(dunes);
+        REQUIRE(dialog.cardList()->topLevelItemCount() == 7);
+        test::layOut(dialog);
+        test::checkSmallScreen(dialog);
+        test::checkKeys(dialog);
+        dialog.close();
+    };
+    check("English");
+    {
+        // The window keeps its lines in a font of higher lines, as Windows has
+        const test::AppFontOfPixels font(13);
+        check("English, in a font of 13 pixels");
+    }
+    const test::Polish polish;
+    REQUIRE(polish.loaded());
+    check("Polish");
+    const test::AppFontOfPixels font(13);
+    check("Polish, in a font of 13 pixels");
+}
+
+TEST_CASE("Series: Book > Join Book as Volume... joins the book chosen, saving its window first, "
+          "and the Navigator shows the volume",
+          "[gui][series][join]") {
+    gui::registerAllIcons();
+    const test::OpenNovel novel(QStringLiteral("Sand"));
+    test::Window window;
+    const QTemporaryDir books;
+    REQUIRE(books.isValid());
+    const QString dunes = writeBook(books.path(), QStringLiteral("Dunes"));
+
+    // The command of the Book menu
+    {
+        gui::CommandRegistry& registry = test::commands();
+        registry.clear();
+        gui::CommandCallbacks callbacks;
+        int asked = 0;
+        callbacks.onJoinVolume = [&asked]() { ++asked; };
+        gui::registerAllCommands(registry, callbacks);
+        const gui::Command* command = registry.getCommand("book.joinVolume");
+        REQUIRE(command != nullptr);
+        CHECK(command->menuText == "&Join Book as Volume...");
+        CHECK(command->menuPath == "BOOK/Join Book as Volume...");
+        registry.executeCommand("book.joinVolume");
+        CHECK(asked == 1);
+        registry.clear();
+    }
+
+    // The window of the book cannot save its changes: the book does not join
+    QStringList saved;
+    bool saves = false;
+    const gui::BookSaver saver = [&saved, &saves](const QString& manifest) {
+        saved << manifest;
+        return saves;
+    };
+    QString result;
+    const auto join = [&window, &saver]() { window.navigator.onRequestJoinVolume(saver); };
+    const auto choose = [&dunes](JoinBookDialog& dialog) { dialog.setManifest(dunes); };
+    CHECK(joining(join, choose, &result) == 1);
+    CHECK(saved == QStringList{dunes});
+    CHECK(result == QStringLiteral("The book could not be joined."));
+    CHECK(novel.pm.project()->books.size() == 1);
+
+    // It can: the volume at the end, shown in the Navigator, with its first chapter
+    saves = true;
+    int modified = 0;
+    QObject::connect(&window.navigator, &gui::NavigatorCoordinator::documentModified,
+                     [&modified]() { ++modified; });
+    CHECK(joining(join, choose, &result) == 1);
+    CHECK(saved == QStringList({dunes, dunes}));
+    CHECK(result == QStringLiteral("The book \"Dunes\" is now volume 2 of the series."));
+    REQUIRE(novel.pm.project()->books.size() == 2);
+    const core::ProjectBook& volume = novel.pm.project()->books.at(1);
+    CHECK(volume.title == QStringLiteral("Dunes"));
+    CHECK(itemWithText(*window.navigatorPanel, QStringLiteral("Volume 2: Dunes")) != nullptr);
+    CHECK(window.statusBar.currentMessage() == QStringLiteral("Book joined as volume 2: Dunes"));
+    CHECK(modified == 1);
+    REQUIRE_FALSE(volume.mainElements.isEmpty());
+    CHECK(QFileInfo::exists(novel.pm.filePathOf(volume.mainElements.constFirst())));
 }

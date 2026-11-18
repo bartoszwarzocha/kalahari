@@ -3,7 +3,7 @@
 
 /// @file navigator_coordinator_series.cpp
 /// @brief NavigatorCoordinator: the volumes of a series – a new one, their order, their removal,
-///        a volume taken out as a book of its own
+///        a volume taken out as a book of its own, a book joined as a volume
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
@@ -12,7 +12,9 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/recent_books_manager.h"
+#include "kalahari/core/volume_copies.h"
 #include "kalahari/gui/dialogs/delete_dialogs.h"
+#include "kalahari/gui/dialogs/join_book_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_volume_dialog.h"
 #include "kalahari/gui/dialogs/take_out_volume_dialog.h"
@@ -380,6 +382,44 @@ void NavigatorCoordinator::onRequestTakeOutVolume(const QString& bookId) {
     if (!dialog.manifest().isEmpty() && dialog.openBox()->isChecked()) {
         emit requestOpenBookInNewWindow(dialog.manifest());
     }
+}
+
+void NavigatorCoordinator::onRequestJoinVolume(const BookSaver& saveBook) {
+    auto& pm = m_book;
+    if (!pm.isProjectOpen() || pm.isReadOnly()) {
+        core::Logger::getInstance().warn(
+            "NavigatorCoordinator: Join a book requested without a book that can be changed");
+        return;
+    }
+    const auto join = [this, &saveBook](const QString& manifest, qsizetype index,
+                                        const QList<core::CardPair>& sameCards) {
+        dialogs::JoinBookDialog::Outcome outcome;
+        if (saveBook && !saveBook(manifest)) {
+            outcome.problems << QStringLiteral("%1: the changes of the book in its window could "
+                                               "not be saved")
+                                    .arg(QDir::toNativeSeparators(manifest));
+            return outcome;
+        }
+        outcome.bookId = m_book.joinBook(manifest, index, sameCards, &outcome.problems);
+        return outcome;
+    };
+    dialogs::JoinBookDialog dialog(pm, join, qobject_cast<QWidget*>(parent()));
+    dialog.exec();
+    const QString bookId = dialog.bookId();
+    const core::BookProject* project = pm.project();
+    const qsizetype index = project != nullptr ? project->bookIndex(bookId) : -1;
+    if (index < 0) {
+        return;
+    }
+    refreshNavigator();
+    m_navigatorPanel->revealBook(bookId);
+    m_propertiesPanel->refresh();
+    //: %1: the number of the volume, %2: its title.
+    //: In Polish: Dołączono książkę jako tom %1: %2
+    m_statusBar->showMessage(tr("Book joined as volume %1: %2")
+                                 .arg(QString::number(index + 1), project->books.at(index).title),
+                             MESSAGE_TIME);
+    emit documentModified();
 }
 
 }  // namespace kalahari::gui

@@ -95,6 +95,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("book.newVolume", "resources/icons/twotone/book.svg", "New Volume");
     iconRegistry.registerIcon("book.takeOutVolume", "resources/icons/twotone/create_new_folder.svg",
                               "Take Out as a Book");
+    iconRegistry.registerIcon("book.joinVolume", "resources/icons/twotone/layers.svg",
+                              "Join Book as Volume");
     iconRegistry.registerIcon("book.newScene", "resources/icons/twotone/theaters.svg", "New Scene");
     iconRegistry.registerIcon("book.newCharacter", "resources/icons/twotone/person.svg", "New Character");
     iconRegistry.registerIcon("book.newLocation", "resources/icons/twotone/place.svg", "New Location");

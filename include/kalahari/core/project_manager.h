@@ -65,6 +65,7 @@
 #include "kalahari/core/source_description.h"
 #include "kalahari/core/backup_manager.h"
 #include "kalahari/core/text_statistics.h"
+#include "kalahari/core/volume_copies.h"
 
 namespace kalahari::editor {
 struct SkeletonPoint;
@@ -948,6 +949,32 @@ public:
     QString takeOutBook(const QString& bookId, const QString& parentDir, bool createSubfolder,
                         QStringList* problems = nullptr);
 
+    /// @brief Why @p book, read from its .klh file (BookProject::load()), cannot join the open
+    /// project as a volume (VolumeCopies::joinProblem()); JoinProblem::Series without one
+    [[nodiscard]] JoinProblem joinProblemOf(const BookProject& book) const;
+
+    /// @brief The cards of the Workshop of @p book that have the kind and the title of a card
+    /// of the open project (VolumeCopies::sameCards())
+    [[nodiscard]] QList<CardPair> sameCardsOf(const BookProject& book) const;
+
+    /// @brief Join the book of the .klh file @p manifestPath to the open project as a volume,
+    /// and save the .klh file; the book stays as it is, and the current book stays current
+    ///
+    /// The volume is the book as VolumeCopies::join() gives it, in the first free folder of
+    /// "book2", "book3"..., with the files of its elements and their versions and its images;
+    /// the copies of the packages the open project lacks come along. Its book dictionary joins
+    /// that of the project (VolumeCopies::joinDictionary()), and its goals become those of the
+    /// volume (BookGoals); its record of writing stays in its own folder. The texts are copied
+    /// as their files have them.
+    /// @param index Its place among the volumes; -1: the last
+    /// @param sameCards The cards of the book that are cards of the open project
+    /// @param problems Gets what went wrong; may be nullptr
+    /// @return The id of the volume; empty when no book that can be changed is open, the book
+    ///         cannot be read or cannot join it, or a file cannot be written (what was written
+    ///         is removed then, and the project stays as it was)
+    QString joinBook(const QString& manifestPath, qsizetype index,
+                     const QList<CardPair>& sameCards, QStringList* problems = nullptr);
+
     /// @brief Give material @p elementId of the cover, or text @p elementId for publishers, to
     /// volume @p bookId of the series, or to the whole series (empty), and save the .klh file
     ///
@@ -1651,6 +1678,10 @@ private:
     /// @brief Read the word counts and notes of the text elements from their chapter files
     void loadElementStates();
 
+    /// @brief Read the word counts and notes of the text elements that have none yet, as a
+    /// book joined as a volume brings them (loadElementStates())
+    void loadNewElementStates();
+
     /// @brief State of text element @p elementId; nullptr when it is not one
     ElementState* stateOf(const QString& elementId);
 
@@ -1743,6 +1774,24 @@ private:
     ///         cannot be written
     QString writeTakenOut(const QString& bookId, const QString& projectDir,
                           QStringList& problems);
+
+    /// @brief Join @p book, read from the folder @p bookDir, to the open project as @p request
+    /// says (joinBook()); what was written is removed when a file cannot be written
+    /// @return The id of the volume; empty, with what failed in @p problems, when it cannot
+    QString writeJoined(const BookProject& book, const QString& bookDir,
+                        const JoinRequest& request, QStringList& problems);
+
+    /// @brief The book dictionary of the book in folder @p bookDir joins that of the open
+    /// project, the names of its cards of @p cards naming the project's cards
+    void joinDictionaryOf(const QString& bookDir, const QHash<QString, QString>& cards);
+
+    /// @brief The goals of the book in folder @p bookDir become those of book @p bookId of the
+    /// open project
+    void joinGoalsOf(const QString& bookDir, const QString& bookId);
+
+    /// @brief Remove the files @p written of a book that could not join, and the folders they
+    /// leave empty; the folder of the volume @p folder goes whole
+    void removeJoined(const QStringList& written, const QString& folder) const;
 
     /// @brief Remove what was made of a new project that cannot be created: its folder goes
     /// back to how it was, empty when it existed (@p folderExisted), else it is removed

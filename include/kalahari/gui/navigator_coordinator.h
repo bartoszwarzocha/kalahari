@@ -62,6 +62,10 @@ class NewFileDialog;
 class NewQuoteDialog;
 } // namespace dialogs
 
+/// @brief Saves the changes of the book of the .klh file it gets when another window has it
+/// open; false when some could not be saved (NavigatorCoordinator::onRequestJoinVolume())
+using BookSaver = std::function<bool(const QString&)>;
+
 /// @brief Coordinates navigator panel interactions
 ///
 /// Manages:
@@ -331,6 +335,12 @@ public slots:
     /// the Dashboard; then the book opens in a new window (requestOpenBookInNewWindow()), unless
     /// the writer unchecked it
     void onRequestTakeOutVolume(const QString& bookId);
+
+    /// @brief Book > Join Book as Volume...: the window JoinBookDialog joins the book chosen as
+    /// a new volume (core::ProjectManager::joinBook()), which the Navigator then shows
+    /// @param saveBook Saves the changes of the book chosen when another window has it open;
+    /// when it cannot, the book does not join
+    void onRequestJoinVolume(const BookSaver& saveBook);
 
     /// @brief Ask for a new name of the node of the book or of the Workshop and give it; saves
     /// the .klh file

@@ -3,7 +3,7 @@
 
 /// @file project_manager_series.cpp
 /// @brief ProjectManager: a series, several books of one project with one Workshop – its name,
-/// new books, their order and removal
+/// new books, their order and removal, a book taken out of it and a book joined to it
 
 #include "kalahari/core/project_manager.h"
 
@@ -22,11 +22,13 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QHash>
 #include <QLatin1String>
 #include <QList>
 #include <QSet>
 #include <QString>
 #include <QStringList>
+#include <QTemporaryDir>
 #include <QTimeZone>
 #include <QUuid>
 
@@ -41,6 +43,27 @@ namespace {
 
 /// The most books a project looks for a free folder among: book2 ... book9999
 constexpr int MOST_BOOKS = 9999;
+
+/// The file of the database of a project, in its folder (ProjectDatabase)
+constexpr const char* DATABASE_FILE = "project.db";
+
+/// The goals of the book in folder @p bookDir (BookGoals), read from a copy of its database:
+/// opening a database may change it, and the book stays as it is; empty: none
+QString goalsOfBook(const QString& bookDir) {
+    const QString database = QDir(bookDir).filePath(QString::fromLatin1(DATABASE_FILE));
+    const QTemporaryDir copy;
+    if (!QFileInfo::exists(database) || !copy.isValid() ||
+        !QFile::copy(database, QDir(copy.path()).filePath(QString::fromLatin1(DATABASE_FILE)))) {
+        return {};
+    }
+    ProjectDatabase other;
+    if (!other.open(copy.path())) {
+        return {};
+    }
+    QString goals = other.getSetting(QString::fromLatin1(BookGoals::SETTING_KEY)).toString();
+    other.close();
+    return goals;
+}
 
 /// Whether @p material can be for volume @p bookId of @p project: a material of the cover or a
 /// text for publishers, and a book of the project, or the whole series (an empty id)
@@ -541,6 +564,109 @@ std::optional<ProjectElement> ProjectManager::newTextIn(const ProjectBook& book,
     }
     written.append(path);
     return element;
+}
+
+// =============================================================================
+// A book joined as a volume
+// =============================================================================
+
+JoinProblem ProjectManager::joinProblemOf(const BookProject& book) const {
+    return m_project ? VolumeCopies::joinProblem(*m_project, book) : JoinProblem::Series;
+}
+
+QList<CardPair> ProjectManager::sameCardsOf(const BookProject& book) const {
+    if (!m_project) {
+        return {};
+    }
+    const auto card = [this](const ProjectElement& element) { return isCard(element); };
+    return VolumeCopies::sameCards(*m_project, book, card);
+}
+
+QString ProjectManager::joinBook(const QString& manifestPath, qsizetype index,
+                                 const QList<CardPair>& sameCards, QStringList* problems) {
+    QStringList found;
+    QString bookId;
+    if (!m_project || refusesChange("joinBook")) {
+        found.append(QStringLiteral("no book that can be changed is open"));
+    } else if (const std::optional<BookProject> book = BookProject::load(manifestPath, found)) {
+        const QDir projectDir(getProjectPath());
+        const JoinRequest request{
+            index, freeBookFolder(), sameCards,
+            [&projectDir](const QString& path) { return projectDir.exists(path); }};
+        bookId = writeJoined(*book, QFileInfo(manifestPath).absolutePath(), request, found);
+    }
+    for (const QString& problem : found) {
+        Logger::getInstance().warn("joinBook: {}", problem.toStdString());
+    }
+    if (problems != nullptr) {
+        problems->append(found);
+    }
+    return bookId;
+}
+
+QString ProjectManager::writeJoined(const BookProject& book, const QString& bookDir,
+                                    const JoinRequest& request, QStringList& problems) {
+    std::optional<JoinedVolume> joined = VolumeCopies::join(*m_project, book, request);
+    if (!joined) {
+        problems.append(QStringLiteral("%1: the book cannot join the series")
+                            .arg(QDir::toNativeSeparators(bookDir)));
+        return {};
+    }
+    QStringList written;
+    if (!VolumeCopies::copy(bookDir, getProjectPath(), joined->files, joined->folders, problems,
+                            &written)) {
+        removeJoined(written, request.folder);
+        return {};
+    }
+    const BookProject before = *m_project;
+    *m_project = joined->project;
+    if (!saveManifest()) {
+        *m_project = before;
+        removeJoined(written, request.folder);
+        problems.append(QStringLiteral("the project file cannot be written"));
+        return {};
+    }
+    loadNewElementStates();
+    joinDictionaryOf(bookDir, joined->ids);
+    joinGoalsOf(bookDir, joined->bookId);
+    // The cards of the series that are cards of the book gained the links of theirs
+    emit linksChanged();
+    Logger::getInstance().info("joinBook: Joined '{}' (id: {}) as book {} of {}",
+                               QDir::toNativeSeparators(bookDir).toStdString(),
+                               joined->bookId.toStdString(),
+                               m_project->bookIndex(joined->bookId) + 1, m_project->books.size());
+    return joined->bookId;
+}
+
+void ProjectManager::joinDictionaryOf(const QString& bookDir,
+                                      const QHash<QString, QString>& cards) {
+    const QString path = QDir(bookDir).filePath(BookDictionary::fileName());
+    BookDictionary other;
+    if (!QFileInfo::exists(path) || !other.load(path) || other.isEmpty()) {
+        return;
+    }
+    changeBookDictionary([&other, &cards](BookDictionary& own) {
+        VolumeCopies::joinDictionary(own, other, cards);
+    });
+}
+
+void ProjectManager::joinGoalsOf(const QString& bookDir, const QString& bookId) {
+    const qsizetype index = m_project->bookIndex(bookId);
+    const QString goals = goalsOfBook(bookDir);
+    if (index >= 0 && !goals.isEmpty() && m_database && m_database->isOpen()) {
+        m_database->setSetting(BookGoals::settingKeyOf(m_project->books.at(index)), goals);
+    }
+}
+
+void ProjectManager::removeJoined(const QStringList& written, const QString& folder) const {
+    const QDir projectDir(getProjectPath());
+    for (const QString& file : written) {
+        QFile::remove(file);
+        projectDir.rmpath(projectDir.relativeFilePath(QFileInfo(file).absolutePath()));
+    }
+    if (!folder.isEmpty()) {
+        QDir(projectDir.filePath(folder)).removeRecursively();
+    }
 }
 
 }  // namespace kalahari::core

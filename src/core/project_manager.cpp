@@ -3986,13 +3986,20 @@ void ProjectManager::convertOldMaterials() {
 }
 
 void ProjectManager::loadElementStates() {
-    auto& logger = Logger::getInstance();
     m_elementStates.clear();
+    loadNewElementStates();
+    Logger::getInstance().debug("Read the word counts and notes of {} chapter files",
+                                m_elementStates.size());
+}
+
+void ProjectManager::loadNewElementStates() {
+    auto& logger = Logger::getInstance();
     if (!m_project) {
         return;
     }
     for (const ProjectElement* element : allElements(*m_project)) {
-        if (element->file.isEmpty() || formOf(*element) != ElementForm::Text) {
+        if (element->file.isEmpty() || formOf(*element) != ElementForm::Text ||
+            m_elementStates.contains(element->id)) {
             continue;
         }
         ElementState state;
@@ -4007,7 +4014,6 @@ void ProjectManager::loadElementStates() {
         }
         m_elementStates.insert(element->id, state);
     }
-    logger.debug("Read the word counts and notes of {} chapter files", m_elementStates.size());
 }
 
 ProjectManager::ElementState* ProjectManager::stateOf(const QString& elementId) {

@@ -1418,6 +1418,11 @@
         <source>New &amp;Volume...</source>
         <translation>Nowy &amp;tom...</translation>
     </message>
+    <message>
+        <source>&amp;Join Book as Volume...</source>
+        <extracomment>In Polish: Dołącz książkę &amp;jako tom...</extracomment>
+        <translation>Dołącz książkę &amp;jako tom...</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -10588,6 +10593,11 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
         <source>Take Out &amp;Anyway</source>
         <extracomment>In Polish: Wydziel &amp;mimo to</extracomment>
         <translation>Wydziel &amp;mimo to</translation>
+    </message>
+    <message>
+        <source>Book joined as volume %1: %2</source>
+        <extracomment>%1: the number of the volume, %2: its title. In Polish: Dołączono książkę jako tom %1: %2</extracomment>
+        <translation>Dołączono książkę jako tom %1: %2</translation>
     </message>
 </context>
 <context>
@@ -39097,6 +39107,147 @@ In Polish: Nie udało się zapisać nazwy serii: nie można zapisać projektu.</
         <source>The book goes to the folder &quot;%1&quot;.</source>
         <extracomment>%1: the name of the folder of the book. In Polish: Książka powstanie w folderze „%1”.</extracomment>
         <translation>Książka powstanie w folderze „%1”.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::JoinBookDialog</name>
+    <message>
+        <source>Join Book as Volume</source>
+        <extracomment>The title of the window of Book &gt; Join Book as Volume... In Polish: Dołącz książkę jako tom</extracomment>
+        <translation>Dołącz książkę jako tom</translation>
+    </message>
+    <message>
+        <source>A Kalahari book as a new volume, its Workshop joined to the series&apos;.</source>
+        <extracomment>In Polish: Książka programu Kalahari jako nowy tom, a jej Warsztat połączony z Warsztatem serii.</extracomment>
+        <translation>Książka programu Kalahari jako nowy tom, a jej Warsztat połączony z Warsztatem serii.</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <extracomment>A group of the window: the book that joins. In Polish: Książka</extracomment>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>File:</source>
+        <extracomment>In Polish: Plik:</extracomment>
+        <translation>Plik:</translation>
+    </message>
+    <message>
+        <source>Choose the book with Browse...</source>
+        <extracomment>In the empty field of the book. In Polish: Wybierz książkę przyciskiem „Przeglądaj...”</extracomment>
+        <translation>Wybierz książkę przyciskiem „Przeglądaj...”</translation>
+    </message>
+    <message>
+        <source>Choose the book in the system window</source>
+        <extracomment>In Polish: Wybierz książkę w oknie systemowym</extracomment>
+        <translation>Wybierz książkę w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>Title:</source>
+        <extracomment>A row of the book. In Polish: Tytuł:</extracomment>
+        <translation>Tytuł:</translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <extracomment>In Polish: Autor:</extracomment>
+        <translation>Autor:</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <extracomment>A group of the window: where the volume goes. In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>before volume 1 &quot;%1&quot; – volume 1</source>
+        <extracomment>A place of the volume: %1 the title of the first volume. In Polish: przed tomem 1 „%1” – tom 1</extracomment>
+        <translation>przed tomem 1 „%1” – tom 1</translation>
+    </message>
+    <message>
+        <source>after volume %1 &quot;%2&quot; – volume %3</source>
+        <extracomment>A place of the volume: %1 the number of the volume before it, %2 its title, %3 the number of the new one. In Polish: po tomie %1 „%2” – tom %3</extracomment>
+        <translation>po tomie %1 „%2” – tom %3</translation>
+    </message>
+    <message>
+        <source>&amp;Place:</source>
+        <extracomment>In Polish: &amp;Miejsce:</extracomment>
+        <translation>&amp;Miejsce:</translation>
+    </message>
+    <message>
+        <source>Same cards</source>
+        <extracomment>The list of the cards of the book that have the kind and the title of a card of the series. In Polish: Te same karty</extracomment>
+        <translation>Te same karty</translation>
+    </message>
+    <message>
+        <source>A checked card is the series&apos; card, which keeps what it has and gains the links of the book&apos;s card; an unchecked one is a card of its own.</source>
+        <extracomment>Under the list of the same cards. In Polish: Zaznaczona karta jest kartą serii, która zachowuje to, co ma, i dostaje powiązania karty książki; niezaznaczona będzie osobną kartą.</extracomment>
+        <translation>Zaznaczona karta jest kartą serii, która zachowuje to, co ma, i dostaje powiązania karty książki; niezaznaczona będzie osobną kartą.</translation>
+    </message>
+    <message>
+        <source>The book stays as it is, with its record of writing: the series gets copies of its files.</source>
+        <extracomment>Under the place of the volume. In Polish: Książka zostaje bez zmian, z historią pisania: seria dostaje kopie jej plików.</extracomment>
+        <translation>Książka zostaje bez zmian, z historią pisania: seria dostaje kopie jej plików.</translation>
+    </message>
+    <message>
+        <source>The changes of a book open in another window are saved first.</source>
+        <extracomment>In Polish: Zmiany książki otwartej w innym oknie zostaną najpierw zapisane.</extracomment>
+        <translation>Zmiany książki otwartej w innym oknie zostaną najpierw zapisane.</translation>
+    </message>
+    <message>
+        <source>&amp;Join</source>
+        <extracomment>The button that joins the book. In Polish: &amp;Dołącz</extracomment>
+        <translation>&amp;Dołącz</translation>
+    </message>
+    <message>
+        <source>Title: %1
+Author: %2</source>
+        <extracomment>In Polish: Tytuł: %1
+Autor: %2</extracomment>
+        <translation>Tytuł: %1
+Autor: %2</translation>
+    </message>
+    <message>
+        <source>The book could not be joined.</source>
+        <extracomment>In Polish: Nie udało się dołączyć książki.</extracomment>
+        <translation>Nie udało się dołączyć książki.</translation>
+    </message>
+    <message>
+        <source>The book &quot;%1&quot; is now volume %2 of the series.</source>
+        <extracomment>%1: the title of the book, %2: its number in the series. In Polish: Książka „%1” jest teraz tomem %2 serii.</extracomment>
+        <translation>Książka „%1” jest teraz tomem %2 serii.</translation>
+    </message>
+    <message>
+        <source>Choose the Book</source>
+        <extracomment>The title of the system window that chooses the book. In Polish: Wybierz książkę</extracomment>
+        <translation>Wybierz książkę</translation>
+    </message>
+    <message>
+        <source>Kalahari Book (*.klh)</source>
+        <extracomment>In Polish: Książka Kalahari (*.klh)</extracomment>
+        <translation>Książka Kalahari (*.klh)</translation>
+    </message>
+    <message>
+        <source>Same Cards (%1)</source>
+        <extracomment>A group of the window; %1: how many cards it lists. In Polish: Te same karty (%1)</extracomment>
+        <translation>Te same karty (%1)</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot read this book.</source>
+        <extracomment>Under a book that cannot be read. In Polish: Kalahari nie może odczytać tej książki.</extracomment>
+        <translation>Kalahari nie może odczytać tej książki.</translation>
+    </message>
+    <message>
+        <source>This book is a series: only a book of one volume can join.</source>
+        <extracomment>In Polish: Ta książka jest serią: dołączyć można tylko książkę jednotomową.</extracomment>
+        <translation>Ta książka jest serią: dołączyć można tylko książkę jednotomową.</translation>
+    </message>
+    <message>
+        <source>The book is of another type: only a book of the same type can join.</source>
+        <extracomment>In Polish: Ta książka jest innego typu: dołączyć można tylko książkę tego samego typu.</extracomment>
+        <translation>Ta książka jest innego typu: dołączyć można tylko książkę tego samego typu.</translation>
+    </message>
+    <message>
+        <source>The series has this book already: it is the same book, or a volume taken out of the series that is still in it.</source>
+        <extracomment>In Polish: Seria ma już tę książkę: to ta sama książka albo tom wydzielony z serii, który wciąż w niej jest.</extracomment>
+        <translation>Seria ma już tę książkę: to ta sama książka albo tom wydzielony z serii, który wciąż w niej jest.</translation>
     </message>
 </context>
 </TS>

@@ -132,6 +132,8 @@ struct CommandCallbacks {
                                                 ///< main texts of the book: New Story...)
     std::function<void()> onNewVolume;          ///< Book > New Volume...: a new book of the
                                                 ///< series
+    std::function<void()> onJoinVolume;         ///< Book > Join Book as Volume...: a book
+                                                ///< copied in as a volume
     /// Book > New Character..., New Location..., New Item..., New Mind Map..., New
     /// Timeline...: Add Element in the Workshop with the kind of the base package of that id
     /// ("character")

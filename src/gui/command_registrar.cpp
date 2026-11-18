@@ -443,6 +443,16 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                       IconSet(),
                       callbacks.onNewVolume);
 
+    // A book of the program copied into the series as a new volume, its Workshop joined to the
+    // series' (MainWindow)
+    REG_CMD_TOOL_ICON("book.joinVolume",
+                      //: In Polish: Dołącz książkę &jako tom...
+                      QT_TRANSLATE_NOOP("CommandRegistrar", "&Join Book as Volume..."),
+                      "BOOK/Join Book as Volume...", 16, false, 1,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onJoinVolume);
+
     REG_CMD("book.newScene", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Scene..."), "BOOK/New Scene...", 20, false, 1);
 
     // The kinds of the Workshop: Add Element with the kind chosen, when the program has its
