@@ -348,14 +348,8 @@ void MaterialListCoordinator::connectList(MaterialListPanel* panel) {
     connect(panel, &MaterialListPanel::requestSetPick, this, &MaterialListCoordinator::pickForSet);
     // The set shown, a part chosen in it: the Properties panel shows the set, brought to the
     // front as a material chosen
-    connect(panel, &MaterialListPanel::requestSetProperties, this, [this](const QString& part) {
-        if (PropertiesPanel* properties = m_navigator->propertiesPanel()) {
-            properties->showPublishingSetProperties(part);
-        }
-        if (m_showProperties) {
-            m_showProperties(false);
-        }
-    });
+    connect(panel, &MaterialListPanel::requestSetProperties, this,
+            &MaterialListCoordinator::showSetProperties);
     connect(panel, &MaterialListPanel::requestExportSet, this,
             &MaterialListCoordinator::exportSetRequested);
     connect(panel, &MaterialListPanel::requestShowInCover, this,
@@ -581,6 +575,15 @@ void MaterialListCoordinator::pickForSet(const QString& elementId) {
     m_statusBar->showMessage(
         MaterialList::tr("\"%1\" is now in the set for publishers.").arg(title),
         LONG_MESSAGE_TIMEOUT);
+}
+
+void MaterialListCoordinator::showSetProperties(const QString& part) {
+    if (PropertiesPanel* properties = m_navigator->propertiesPanel()) {
+        properties->showPublishingSetProperties(part);
+    }
+    if (m_showProperties) {
+        m_showProperties(false);
+    }
 }
 
 void MaterialListCoordinator::showInCover(const QString& elementId) {

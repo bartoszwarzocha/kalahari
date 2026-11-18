@@ -134,6 +134,9 @@ private:
     /// @brief Make description or tagline @p elementId of the cover the version of its part
     /// in the set for publishers
     void pickForSet(const QString& elementId);
+    /// @brief Show the set for a publisher with part @p part chosen in the Properties panel,
+    /// brought to the front as for a material chosen
+    void showSetProperties(const QString& part);
     /// @brief Show material @p elementId in the list of its kind, the cover
     void showInCover(const QString& elementId);
     void showInFolder(const QString& elementId);

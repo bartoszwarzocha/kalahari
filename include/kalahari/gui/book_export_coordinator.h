@@ -153,6 +153,18 @@ private:
     ///        its author, then each part with a text under its name
     void addSetItems(editor::BookExport& book) const;
 
+    /// @brief Write @p path as @p choice says, with a plugin's exporter or the program's own;
+    ///        false, with what went wrong in @p problem, when it cannot
+    bool writeExport(const QString& path, const dialogs::ExportBookDialog::Choice& choice,
+                     const dialogs::ArchiveDialog::Progress& progress,
+                     editor::ExportResult* result, editor::ExportProblem* problem);
+
+    /// @brief Write @p book to @p path in the program's own format of @p choice
+    bool writeFile(const editor::BookExport& book, const QString& path,
+                   const dialogs::ExportBookDialog::Choice& choice,
+                   const dialogs::ArchiveDialog::Progress& progress,
+                   editor::ExportResult* result, editor::ExportProblem* problem);
+
     /// @brief The open texts of the book, by their elements, as their editors have them
     [[nodiscard]] QHash<QString, const editor::BookEditor*> openEditors() const;
 
