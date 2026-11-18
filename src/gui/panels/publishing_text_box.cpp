@@ -95,15 +95,15 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
     m_pointsHint->setObjectName(QStringLiteral("publishingPointsHint"));
     layout->addWidget(m_pointsHint);
 
-    auto* data = new QFormLayout();
-    data->setContentsMargins(0, SECTION_GAP, 0, 0);
+    auto* fields = new QFormLayout();
+    fields->setContentsMargins(0, SECTION_GAP, 0, 0);
     m_stateBox->setObjectName(QStringLiteral("publishingState"));
     for (const char* state : {"", PublishingTexts::CHOSEN, PublishingTexts::REJECTED}) {
         m_stateBox->addItem(PublishingNames::stateName(QString::fromLatin1(state)),
                             QString::fromLatin1(state));
     }
     //: The state of a text for publishers in the Properties panel. In Polish: &Stan:
-    data->addRow(tr("&State:"), m_stateBox);
+    fields->addRow(tr("&State:"), m_stateBox);
     auto* target = new QHBoxLayout();
     m_targetSpin->setObjectName(QStringLiteral("publishingTarget"));
     m_targetSpin->setRange(0, MAX_TARGET);
@@ -117,10 +117,10 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
     //: Docelowa dłu&gość:
     auto* targetLabel = new QLabel(tr("Target le&ngth:"));
     targetLabel->setBuddy(m_targetSpin);
-    data->addRow(targetLabel, target);
+    fields->addRow(targetLabel, target);
     m_inSetLabel->setObjectName(QStringLiteral("publishingInSet"));
-    data->addRow(m_inSetLabel);
-    layout->addLayout(data);
+    fields->addRow(m_inSetLabel);
+    layout->addLayout(fields);
 
     connect(m_templateBox, &QComboBox::activated, this, &PublishingTextBox::saveTemplate);
     connect(m_stateBox, &QComboBox::activated, this, &PublishingTextBox::saveState);
@@ -318,16 +318,16 @@ std::optional<core::PublishingTemplate> PublishingTextBox::currentTemplate() con
     return m_book.publishingTemplate(m_data.templateId);
 }
 
-bool PublishingTextBox::save(const core::PublishingData& data) {
+bool PublishingTextBox::save(const core::PublishingData& publishing) {
     const core::ProjectElement* element = m_book.findElement(m_elementId);
     if (element == nullptr || m_book.isReadOnly()) {
         return false;
     }
-    m_data = data;
-    if (element->publishing == data) {
+    m_data = publishing;
+    if (element->publishing == publishing) {
         return true;
     }
-    if (!m_book.setPublishing(m_elementId, data)) {
+    if (!m_book.setPublishing(m_elementId, publishing)) {
         return false;
     }
     emit publishingChanged(m_elementId);
@@ -335,21 +335,21 @@ bool PublishingTextBox::save(const core::PublishingData& data) {
 }
 
 void PublishingTextBox::saveTemplate() {
-    core::PublishingData data = m_data;
-    data.templateId = m_templateBox->currentData().toString();
-    if (data.templateId != m_data.templateId && save(data)) {
+    core::PublishingData changed = m_data;
+    changed.templateId = m_templateBox->currentData().toString();
+    if (changed.templateId != m_data.templateId && save(changed)) {
         showPoints();
         updateLength();
     }
 }
 
 void PublishingTextBox::savePoint(const QString& pointId, bool done) {
-    core::PublishingData data = m_data;
-    data.done.removeAll(pointId);
+    core::PublishingData changed = m_data;
+    changed.done.removeAll(pointId);
     if (done) {
-        data.done << pointId;
+        changed.done << pointId;
     }
-    save(data);
+    save(changed);
 }
 
 void PublishingTextBox::saveState() {
@@ -364,10 +364,10 @@ void PublishingTextBox::saveState() {
 }
 
 void PublishingTextBox::saveTarget() {
-    core::PublishingData data = m_data;
-    (core::CoverMaterial::countsWords() ? data.targetWords : data.targetCharacters) =
+    core::PublishingData changed = m_data;
+    (core::CoverMaterial::countsWords() ? changed.targetWords : changed.targetCharacters) =
         m_targetSpin->value();
-    save(data);
+    save(changed);
     updateLength();
 }
 

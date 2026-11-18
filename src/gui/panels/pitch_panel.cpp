@@ -237,9 +237,9 @@ QWidget* PitchPanel::createSentence(QWidget* parent) {
     manual->addWidget(m_composeButton);
     layout->addWidget(m_manualNote);
     connect(m_composeButton, &QPushButton::clicked, this, [this]() {
-        core::PublishingData data = m_data;
-        data.manual = false;
-        if (save(data)) {
+        core::PublishingData changed = m_data;
+        changed.manual = false;
+        if (save(changed)) {
             compose();
         }
     });
@@ -502,13 +502,13 @@ void PitchPanel::onTextChanged() {
         return;
     }
     // Changed by hand: the fields no longer make it
-    core::PublishingData data = m_data;
-    data.manual = true;
-    save(data);
+    core::PublishingData changed = m_data;
+    changed.manual = true;
+    save(changed);
     updateLength();
 }
 
-bool PitchPanel::save(const core::PublishingData& data) {
+bool PitchPanel::save(const core::PublishingData& publishing) {
     if (m_book.isReadOnly()) {
         return false;
     }
@@ -516,11 +516,11 @@ bool PitchPanel::save(const core::PublishingData& data) {
     if (element == nullptr) {
         return false;
     }
-    m_data = data;
-    if (element->publishing == data) {
+    m_data = publishing;
+    if (element->publishing == publishing) {
         return true;
     }
-    if (!m_book.setPublishing(m_elementId, data)) {
+    if (!m_book.setPublishing(m_elementId, publishing)) {
         return false;
     }
     emit publishingChanged(m_elementId);
@@ -548,13 +548,13 @@ void PitchPanel::saveTitle() {
 }
 
 void PitchPanel::saveTemplate() {
-    core::PublishingData data = m_data;
-    data.templateId = m_templateBox->currentData().toString();
-    if (data.templateId == m_data.templateId) {
+    core::PublishingData changed = m_data;
+    changed.templateId = m_templateBox->currentData().toString();
+    if (changed.templateId == m_data.templateId) {
         return;
     }
     // The values of the fields stay, for the fields of the same names
-    if (save(data)) {
+    if (save(changed)) {
         buildFields();
         if (!m_data.manual) {
             compose();
@@ -564,10 +564,10 @@ void PitchPanel::saveTemplate() {
 }
 
 void PitchPanel::saveTarget() {
-    core::PublishingData data = m_data;
-    (core::CoverMaterial::countsWords() ? data.targetWords : data.targetCharacters) =
+    core::PublishingData changed = m_data;
+    (core::CoverMaterial::countsWords() ? changed.targetWords : changed.targetCharacters) =
         m_targetSpin->value();
-    save(data);
+    save(changed);
     updateLength();
 }
 

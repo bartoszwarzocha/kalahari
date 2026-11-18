@@ -118,8 +118,9 @@ private:
     /// @brief The text of the editor changed: changed by hand, unless it is the sentence
     /// composed
     void onTextChanged();
-    /// @brief Save @p data of the sentence with the book; false when it was not saved
-    bool save(const core::PublishingData& data);
+    /// @brief Save @p publishing, the data of the sentence, with the book; false when it was
+    ///        not saved
+    bool save(const core::PublishingData& publishing);
     void saveTitle();
     void saveTemplate();
     void saveTarget();

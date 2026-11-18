@@ -109,8 +109,9 @@ private:
     /// @brief The check boxes of @p points with their hints; of a template of each text
     /// (@p eachText) its hint once over them
     void buildPoints(const QList<core::PublishingTemplatePoint>& points, bool eachText);
-    /// @brief Save @p data of the text with the book; false when it was not saved
-    bool save(const core::PublishingData& data);
+    /// @brief Save @p publishing, the data of the text, with the book; false when it was not
+    ///        saved
+    bool save(const core::PublishingData& publishing);
     void saveTemplate();
     void savePoint(const QString& pointId, bool done);
     void saveState();
