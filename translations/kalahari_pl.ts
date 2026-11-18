@@ -12322,6 +12322,11 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <extracomment>The menu of the card of a scene in the plan. In Polish: &amp;Usuń z planu</extracomment>
         <translation>&amp;Usuń z planu</translation>
     </message>
+    <message>
+        <source>Vol&amp;ume:</source>
+        <extracomment>The list over the plot board: the volume of the series whose texts it shows. In Polish: To&amp;m:</extracomment>
+        <translation>To&amp;m:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotBoardView</name>

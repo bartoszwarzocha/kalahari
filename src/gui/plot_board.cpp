@@ -290,8 +290,9 @@ std::string PlotBoard::outlineSetting(const char* column) {
 QList<PlotBand> PlotBoard::bandsOf(const core::ProjectManager& book,
                                    const QHash<QString, QString>& unsaved,
                                    const QString& variant) {
-    const core::BookProject* project = book.project();
-    if (project == nullptr || project->books.isEmpty()) {
+    // The current volume of a series
+    const core::ProjectBook* volume = book.book();
+    if (volume == nullptr) {
         return {};
     }
     CardSource source;
@@ -302,7 +303,7 @@ QList<PlotBand> PlotBoard::bandsOf(const core::ProjectManager& book,
     source.variant = variant.isEmpty() ? scenesVariant() : variant;
     QList<PlotBand> bands;
     int number = 0;
-    for (const core::ProjectElement& element : project->books.constFirst().mainElements) {
+    for (const core::ProjectElement& element : volume->mainElements) {
         const core::ElementForm form = book.formOf(element);
         if (form == core::ElementForm::Group) {
             PlotBand band;

@@ -17,6 +17,7 @@
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/plot_board_panel.h"
 #include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/widgets/plot_board_view.h"
@@ -25,6 +26,7 @@
 #include <QObject>
 #include <QStatusBar>
 #include <QString>
+#include <QStringList>
 #include <QTabWidget>
 #include <QTimer>
 #include <QUndoCommand>
@@ -42,6 +44,20 @@ namespace {
 
 /// @brief How long the status bar shows what the board says
 constexpr int MESSAGE_TIMEOUT = 3000;
+
+/// @brief The names of the volumes of the series open in @p book, in their order; none for one
+/// book
+QStringList volumeNames(const core::ProjectManager& book) {
+    QStringList names;
+    if (!book.isSeries()) {
+        return names;
+    }
+    const QList<core::ProjectBook>& volumes = book.project()->books;
+    for (qsizetype index = 0; index < volumes.size(); ++index) {
+        names << NavigatorPanel::volumeName(volumes.at(index), index);
+    }
+    return names;
+}
 
 /// @brief The id of the icon of the tab of the board (also Book > Plot Board)
 constexpr const char* BOARD_ICON = "view.plotBoard";
@@ -96,6 +112,9 @@ PlotBoardCoordinator::PlotBoardCoordinator(core::ProjectManager& book, QTabWidge
 
     connect(&m_book, &core::ProjectManager::projectChanged, this,
             &PlotBoardCoordinator::onProjectChanged);
+    // A series: the texts of the current volume
+    connect(&m_book, &core::ProjectManager::currentBookChanged, this,
+            &PlotBoardCoordinator::refresh);
     connect(&m_book, &core::ProjectManager::projectOpened, this, &PlotBoardCoordinator::forget);
     connect(&m_book, &core::ProjectManager::projectClosed, this, &PlotBoardCoordinator::forget);
     connect(m_navigator, &NavigatorCoordinator::refreshNavigatorRequested, this,
@@ -155,6 +174,12 @@ PlotBoardPanel* PlotBoardCoordinator::board() const {
 }
 
 void PlotBoardCoordinator::showOnBoard(const QString& elementId) {
+    // An element of another volume of a series: the board shows that volume, at once
+    if (const core::ProjectBook* volume = m_book.bookOf(PlotBoard::textOf(elementId));
+        volume != nullptr && volume != m_book.book()) {
+        m_book.setCurrentBook(volume->id);
+        m_stale = true;
+    }
     PlotBoardPanel* panel = openBoard(QString(), true);
     if (panel == nullptr || elementId.isEmpty() || panel->setCurrentCard(elementId)) {
         return;
@@ -185,6 +210,7 @@ void PlotBoardCoordinator::refreshNow() {
     if (!m_marked.isEmpty() && m_book.findElement(PlotBoard::textOf(m_marked)) == nullptr) {
         m_marked.clear();
     }
+    m_panel->setVolumes(volumeNames(m_book), static_cast<int>(m_book.currentBookIndex()));
     m_panel->setReadOnly(m_book.isReadOnly());
     m_panel->setSuggestions(PlotBoard::povSuggestions(m_book),
                             PlotBoard::placeSuggestions(m_book));
@@ -217,6 +243,14 @@ void PlotBoardCoordinator::forget() {
         m_panel->showMessage(QString(), false);
     }
     refresh();
+}
+
+void PlotBoardCoordinator::showVolume(int index) {
+    const core::BookProject* project = m_book.project();
+    if (project != nullptr && index >= 0 && index < project->books.size()) {
+        // currentBookChanged() fills the board again
+        m_book.setCurrentBook(project->books.at(index).id);
+    }
 }
 
 void PlotBoardCoordinator::connectBoard(PlotBoardPanel* panel) {
@@ -261,6 +295,7 @@ void PlotBoardCoordinator::connectBoard(PlotBoardPanel* panel) {
     connect(panel, &PlotBoardPanel::scenesVariantChanged, this, &PlotBoardCoordinator::refresh);
     connect(panel, &PlotBoardPanel::settingsRequested, this,
             &PlotBoardCoordinator::settingsRequested);
+    connect(panel, &PlotBoardPanel::volumeChosen, this, &PlotBoardCoordinator::showVolume);
 }
 
 void PlotBoardCoordinator::updateTab() {

@@ -17,11 +17,16 @@
 #include <kalahari/gui/dialogs/new_file_dialog.h>
 #include <kalahari/gui/dialogs/new_volume_dialog.h>
 #include <kalahari/gui/icon_registrar.h>
+#include <kalahari/gui/menu_builder.h>
 #include <kalahari/gui/navigator_coordinator.h>
 #include <kalahari/gui/panels/editor_panel.h>
 #include <kalahari/gui/panels/navigator_panel.h>
+#include <kalahari/gui/panels/plot_board_panel.h>
 #include <kalahari/gui/panels/properties_panel.h>
 #include <kalahari/gui/panels/series_page.h>
+#include <kalahari/gui/plot_board.h>
+#include <kalahari/gui/plot_board_coordinator.h>
+#include <kalahari/gui/plot_outline_model.h>
 #include <kalahari/gui/widgets/element_place_picker.h>
 
 #include "kalahari_tests/gui/dialog_checks.h"
@@ -37,6 +42,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QModelIndex>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QStringList>
@@ -690,4 +696,131 @@ TEST_CASE("Series: a volume dragged in the Navigator goes above or below another
     CHECK(project.books.at(0).id == dunes);
     CHECK(project.books.at(1).id == sand);
     CHECK(project.books.at(2).id == oasis);
+}
+
+namespace {
+
+/// The texts of the items of @p box, in their order
+QStringList itemTexts(const QComboBox& box) {
+    QStringList texts;
+    for (int item = 0; item < box.count(); ++item) {
+        texts << box.itemText(item);
+    }
+    return texts;
+}
+
+/// The titles of the cards on the plot board of @p panel, in their order
+QStringList cardTitles(const gui::PlotBoardPanel& panel) {
+    QStringList titles;
+    for (const gui::PlotCard& card : gui::PlotBoard::cardsOf(panel.bands())) {
+        titles << card.title;
+    }
+    return titles;
+}
+
+/// The titles of the rows of the outline of @p panel, in their order
+QStringList outlineTitles(const gui::PlotBoardPanel& panel) {
+    QStringList titles;
+    const gui::PlotOutlineModel& model = *panel.outlineModel();
+    for (int row = 0; row < model.rowCount(); ++row) {
+        titles << model.index(row, gui::PlotOutlineModel::TITLE_COLUMN).data().toString();
+    }
+    return titles;
+}
+
+/// The access keys of the menus of the menu bar, in the language of the program
+QStringList menuKeys() {
+    QStringList keys;
+    for (const char* menu : {"FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TABLE", "IMAGE",
+                             "TOOLS", "ASSISTANT", "VIEW", "WINDOW", "HELP"}) {
+        keys << QString(test::accessKey(gui::MenuBuilder::menuText(menu)));
+    }
+    return keys;
+}
+
+}  // namespace
+
+TEST_CASE("Series: the plot board and the outline show the current volume, chosen in the list "
+          "Volume",
+          "[gui][series][plotboard]") {
+    gui::registerAllIcons();
+    const test::OpenNovel novel(QStringLiteral("Sand"));
+    test::Window window;
+    gui::PlotBoardCoordinator boards{novel.pm, window.tabs, &window.navigator, &window.statusBar,
+                                     [](bool /*keys*/) {}};
+    gui::PlotBoardPanel* panel =
+        boards.openBoard(QString::fromLatin1(gui::PlotBoard::VIEW_BOARD), true);
+    REQUIRE(panel != nullptr);
+    QComboBox* volumes = panel->volumeBox();
+    REQUIRE(volumes != nullptr);
+    // One book: no list
+    CHECK_FALSE(volumes->isVisibleTo(panel));
+    CHECK(cardTitles(*panel).contains(QStringLiteral("The Storm")));
+
+    // A second volume with "The Oasis"; the first one stays current
+    const QString sand = novel.pm.book()->id;
+    const QString dunes = addVolume(novel.pm, QStringLiteral("Dunes"));
+    REQUIRE(novel.pm.setCurrentBook(dunes));
+    const QString oasis = novel.pm.addElement(novel.pm.chapterKindFor(core::BookPlace::Main),
+                                              QStringLiteral("The Oasis"), core::BookPlace::Main);
+    REQUIRE_FALSE(oasis.isEmpty());
+    REQUIRE(novel.pm.setCurrentBook(sand));
+    QCoreApplication::processEvents();
+    CHECK(volumes->isVisibleTo(panel));
+    CHECK(itemTexts(*volumes) == QStringList{QStringLiteral("Volume 1: Sand"),
+                                          QStringLiteral("Volume 2: Dunes")});
+    CHECK(volumes->currentIndex() == 0);
+    CHECK(cardTitles(*panel).contains(QStringLiteral("The Storm")));
+    CHECK_FALSE(cardTitles(*panel).contains(QStringLiteral("The Oasis")));
+
+    // The second volume chosen in the list: its texts on the board and in the outline, and it
+    // is the current volume
+    volumes->setCurrentIndex(1);
+    emit volumes->activated(1);
+    QCoreApplication::processEvents();
+    CHECK(novel.pm.book()->id == dunes);
+    CHECK(volumes->currentIndex() == 1);
+    CHECK(cardTitles(*panel).contains(QStringLiteral("The Oasis")));
+    CHECK_FALSE(cardTitles(*panel).contains(QStringLiteral("The Storm")));
+    panel->showView(QString::fromLatin1(gui::PlotBoard::VIEW_OUTLINE));
+    CHECK(outlineTitles(*panel).contains(QStringLiteral("The Oasis")));
+    CHECK_FALSE(outlineTitles(*panel).contains(QStringLiteral("The Storm")));
+
+    // Show on the Plot Board of a text of the first volume: the board shows that volume
+    boards.showOnBoard(novel.chapterId);
+    QCoreApplication::processEvents();
+    CHECK(novel.pm.book()->id == sand);
+    CHECK(volumes->currentIndex() == 0);
+    CHECK(panel->currentCard() == novel.chapterId);
+
+    // Another volume current elsewhere: the board shows it when it comes back
+    REQUIRE(novel.pm.setCurrentBook(dunes));
+    QCoreApplication::processEvents();
+    CHECK(volumes->currentIndex() == 1);
+    CHECK(outlineTitles(*panel).contains(QStringLiteral("The Oasis")));
+}
+
+TEST_CASE("Series: the list Volume of the plot board has a key of its own, in English and in "
+          "Polish",
+          "[gui][series][plotboard]") {
+    const auto check = []() {
+        const gui::PlotBoardPanel panel;
+        const QLabel* label = nullptr;
+        for (const QLabel* found : panel.findChildren<QLabel*>()) {
+            if (found->buddy() == panel.volumeBox()) {
+                label = found;
+            }
+        }
+        REQUIRE(label != nullptr);
+        const QString key(test::accessKey(label->text()));
+        INFO(label->text().toStdString());
+        CHECK_FALSE(key.isEmpty());
+        CHECK_FALSE(menuKeys().contains(key));
+        test::checkKeys(panel);
+        return label->text();
+    };
+    CHECK(check() == QStringLiteral("Vol&ume:"));
+    const test::Polish polish;
+    REQUIRE(polish.loaded());
+    CHECK(check() == QStringLiteral("To&m:"));
 }

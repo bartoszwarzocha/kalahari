@@ -165,6 +165,9 @@ private:
     void onProjectChanged();
     /// @brief Another book, or none: the board forgets what it remembers
     void forget();
+    /// @brief Volume @p index of the series chosen in the list Volume: it becomes the current
+    /// volume, whose texts the board shows
+    void showVolume(int index);
 
     void open(const QString& elementId);
     void edit(const QString& elementId, const PlotCardEdit& edit);
