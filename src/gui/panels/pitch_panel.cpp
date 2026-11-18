@@ -37,6 +37,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <string>
 
 namespace kalahari::gui {
 

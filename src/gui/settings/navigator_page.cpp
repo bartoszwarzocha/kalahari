@@ -102,6 +102,10 @@ constexpr int TARGET_SPACING = 8;
 /// Room between the two columns of the parts of a set
 constexpr int SET_COLUMN_SPACING = 16;
 
+/// The values of core::PublishingTexts::POINTS_SETTING
+constexpr const char* POINTS_BESIDE = "beside";
+constexpr const char* POINTS_IN_TEXT = "inText";
+
 /// The values of NavigatorPanel::QUICK_MATERIALS_SETTING
 constexpr const char* LINK = "link";
 constexpr const char* ADD = "add";
@@ -463,6 +467,25 @@ void NavigatorPage::createPublishing()
     //: zapisują się od razu i działają we wszystkich Twoich książkach.
     addNote(templates, tr("The templates of the book types and your own, in a window of their "
                           "own. Your templates are kept at once and work in all your books."));
+
+    QComboBox* points = addChoice(
+        templates,
+        //: The choice of the group Templates. In Polish: &Punkty streszczenia:
+        tr("&Points of a synopsis:"),
+        //: In Polish: Obok tekstu
+        {{tr("Beside the text"), QLatin1String(POINTS_BESIDE),
+          //: In Polish: Punkty szablonu są listą w panelu Właściwości. Narzędzia > Teksty dla
+          //: wydawnictwa > Wstaw szkielet wstawia je do tekstu, gdy chcesz.
+          tr("The points of the template are a list in the Properties panel. Tools > Texts for "
+             "Publishers > Insert Skeleton puts them in the text when you want.")},
+         //: In Polish: W tekście, jako nagłówki
+         {tr("In the text, as headings"), QLatin1String(POINTS_IN_TEXT),
+          //: In Polish: Nowe streszczenie zaczyna się od nagłówków punktów, każdy z szarą
+          //: podpowiedzią, która znika, gdy piszesz. Długość i zestaw pomijają nagłówki.
+          tr("A new synopsis starts with the headings of the points, each with a gray hint that "
+             "goes when you type. The length and the set leave the headings out.")}},
+        PublishingTexts::POINTS_SETTING);
+    points->setObjectName(QStringLiteral("navigatorPublishingPoints"));
 }
 
 void NavigatorPage::addPublishingTargets(QFormLayout* group)

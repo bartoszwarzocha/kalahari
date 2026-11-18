@@ -15,6 +15,7 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/publishing_texts.h>
 #include <kalahari/core/settings_manager.h>
+#include <kalahari/editor/text_skeleton.h>
 
 #include "kalahari_tests/test_support/window_parts.h"
 
@@ -50,6 +51,7 @@ using kalahari::core::PublishingTemplate;
 using kalahari::core::PublishingTemplatePoint;
 using kalahari::core::PublishingTexts;
 using kalahari::core::SettingsManager;
+using kalahari::editor::SkeletonPoint;
 
 namespace {
 
@@ -935,6 +937,65 @@ TEST_CASE("ProjectManager adds texts for publishers of their kind, after the Cov
     CHECK(pm.addPublishingText(QString::fromLatin1(PublishingTexts::PITCH), QString(),
                                QStringLiteral("Lost"))
               .isEmpty());
+}
+
+TEST_CASE("ProjectManager starts a synopsis with the skeleton of its template when the points "
+          "are in the text",
+          "[core][publishing]") {
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Karawana", "Ewa Lis", "pl", true, "kalahari.novel"));
+    const QString synopsis = QString::fromLatin1(PublishingTexts::SYNOPSIS);
+    const QString onePage = QStringLiteral("kalahari.novel:one_page");
+    const QString heading = QStringLiteral("style=\"template_point\"");
+
+    // The skeleton of a template, in the language of the book
+    const QList<SkeletonPoint> skeleton = pm.templateSkeleton(onePage);
+    REQUIRE(skeleton.size() == 5);
+    CHECK(skeleton.first() ==
+          SkeletonPoint{QStringLiteral("hero"), QStringLiteral("Bohater i świat"),
+                        QStringLiteral("Kim jest bohater, gdzie i kiedy toczy się akcja.")});
+    CHECK(pm.templateSkeleton(QStringLiteral("kalahari.novel:when_must")).isEmpty());
+    CHECK(pm.templateSkeleton(QStringLiteral("kalahari.novel:missing")).isEmpty());
+    CHECK(pm.templateSkeleton(QString()).isEmpty());
+
+    // Beside the text, as the program starts: an empty text
+    const QString beside = [&pm, &synopsis, &onePage]() {
+        const ChangedSetting<std::string> points(PublishingTexts::POINTS_SETTING, "beside");
+        return pm.addPublishingText(synopsis, onePage, QStringLiteral("Obok"));
+    }();
+    REQUIRE_FALSE(beside.isEmpty());
+    CHECK_FALSE(pm.chapterText(beside).contains(heading));
+
+    // In the text: the headings with their hints, saved in its file
+    const ChangedSetting<std::string> inText(PublishingTexts::POINTS_SETTING, "inText");
+    const QString text = pm.addPublishingText(synopsis, onePage, QStringLiteral("W tekście"));
+    REQUIRE_FALSE(text.isEmpty());
+    const QString kml = pm.loadChapterContent(text);
+    CHECK(kml.count(heading) == 5);
+    CHECK(kml.contains(QStringLiteral("point=\"hero\"")));
+    CHECK(kml.contains(
+        QStringLiteral("hint=\"Kim jest bohater, gdzie i kiedy toczy się akcja.\"")));
+    CHECK(kml.contains(QStringLiteral(">Bohater i świat</p>")));
+    // No text of the writer: no length, nothing to copy
+    CHECK(pm.publishingTextOf(text).trimmed().isEmpty());
+    CHECK(PublishingTexts::lengthOf(pm.publishingTextOf(text), false) == 0);
+    // The writer's words count, the headings do not
+    pm.setChapterContent(text, QStringLiteral("<kml><p style=\"template_point\" point=\"hero\">"
+                                              "Bohater i świat</p><p>Leila idzie.</p></kml>"));
+    CHECK(pm.publishingTextOf(text) == QStringLiteral("Leila idzie."));
+
+    // Without a template, and a sentence: no skeleton
+    const QString plain = pm.addPublishingText(synopsis, QString(), QStringLiteral("Bez"));
+    REQUIRE_FALSE(plain.isEmpty());
+    CHECK_FALSE(pm.chapterText(plain).contains(heading));
+    const QString pitch =
+        pm.addPublishingText(QString::fromLatin1(PublishingTexts::PITCH),
+                             QStringLiteral("kalahari.novel:when_must"), QStringLiteral("Zdanie"));
+    REQUIRE_FALSE(pitch.isEmpty());
+    CHECK_FALSE(pm.chapterText(pitch).contains(heading));
+
+    REQUIRE(pm.closeProject(false));
 }
 
 TEST_CASE("A user project without the texts for publishers among its kinds takes them",

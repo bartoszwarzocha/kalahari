@@ -14,6 +14,7 @@
 #include "kalahari/editor/text_footnotes.h"
 #include "kalahari/editor/text_images.h"
 #include "kalahari/editor/text_link.h"
+#include "kalahari/editor/text_skeleton.h"
 #include "kalahari/core/logger.h"
 
 #include <QDateTime>
@@ -313,6 +314,14 @@ bool KmlDocumentModel::paragraphCaptionAbove(size_t index) const
     return index < m_paragraphs.size() && m_paragraphs[index].captionAbove;
 }
 
+std::optional<SkeletonPoint> KmlDocumentModel::paragraphTemplatePoint(size_t index) const
+{
+    if (index >= m_paragraphs.size()) {
+        return std::nullopt;
+    }
+    return m_paragraphs[index].point;
+}
+
 std::optional<ListItem> KmlDocumentModel::paragraphList(size_t index) const
 {
     if (index >= m_paragraphs.size()) {
@@ -501,6 +510,12 @@ void KmlDocumentModel::readParagraphAttributes(QXmlStreamReader& reader, Paragra
     para.format = paragraphFormatFromKml(attrs);
     para.captionAbove =
         attrs.value(QStringLiteral("caption")).toString().trimmed().toLower() == u"above";
+    // A heading of a point of the skeleton: the id of the point and its hint
+    if (const QString point = attrs.value(QStringLiteral("point")).toString().trimmed();
+        !point.isEmpty()) {
+        para.point =
+            SkeletonPoint{point, QString(), attrs.value(QStringLiteral("hint")).toString()};
+    }
 }
 
 void KmlDocumentModel::parseParagraphElement(QXmlStreamReader& reader, Paragraph& para)

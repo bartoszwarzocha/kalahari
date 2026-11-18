@@ -32,6 +32,7 @@ class ProjectManager;
 
 namespace kalahari::editor {
 class BookEditor;
+struct SkeletonPoint;
 }  // namespace kalahari::editor
 
 namespace kalahari::gui {
@@ -94,6 +95,13 @@ public:
 
     /// @brief Whether the text is the version of its part in the set
     [[nodiscard]] QLabel* inSetLabel() const { return m_inSetLabel; }
+
+    /// @brief The editor of the text shown; nullptr: none (the text as the book has it)
+    [[nodiscard]] editor::BookEditor* editor() const { return m_editor; }
+
+    /// @brief The points of its template as the headings of a skeleton, in the language of
+    ///        the book; none without a template with points
+    [[nodiscard]] QList<editor::SkeletonPoint> skeletonPoints() const;
 
 signals:
     /// @brief What the book keeps of the text changed here: its template, points, state or

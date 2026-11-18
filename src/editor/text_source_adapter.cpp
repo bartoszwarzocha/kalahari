@@ -8,6 +8,7 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_data.h>
 #include <kalahari/editor/text_link.h>
+#include <kalahari/editor/text_skeleton.h>
 #include <kalahari/editor/text_tables.h>
 #include <QPainter>
 #include <QTextDocument>
@@ -15,6 +16,7 @@
 #include <QTextTable>
 #include <QAbstractTextDocumentLayout>
 #include <algorithm>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -103,6 +105,17 @@ std::vector<AnnotationMark> QTextDocumentSource::paragraphAnnotationMarks(size_t
 
 std::vector<FormattingMark> QTextDocumentSource::paragraphFormattingMarks(size_t index) const {
     return formattingMarksOf(blockAt(index));
+}
+
+ParagraphHint QTextDocumentSource::paragraphHint(size_t index) const {
+    const QTextBlock block = blockAt(index);
+    QString text = skeletonHintOf(block);
+    if (text.isEmpty()) {
+        return {};
+    }
+    const KalahariTextDocumentLayout* layout = kalahariLayout();
+    return {std::move(text),
+            layout != nullptr ? layout->paragraphFont(block) : m_document->defaultFont()};
 }
 
 std::vector<ColoredText> QTextDocumentSource::paragraphColors(size_t index) const {

@@ -969,11 +969,25 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // The keys to the points of the template of the synopsis in front, in the Properties panel
     // (DockCoordinator gives it its callback); Esc gives them back to the text
     //: In Polish: &Punkty szablonu
-    REG_CMD("tools.publishing.templatePoints", QT_TRANSLATE_NOOP("CommandRegistrar", "Template &Points"), "TOOLS/Texts for Publishers/Template Points", 62, true, 0);
+    REG_CMD("tools.publishing.templatePoints",
+            QT_TRANSLATE_NOOP("CommandRegistrar", "Template &Points"),
+            "TOOLS/Texts for Publishers/Template Points", 62, false, 0);
+    // The skeleton of the synopsis in front: the headings of the points of its template with
+    // their hints at the cursor, and away again (DockCoordinator gives them their callbacks)
+    //: In Polish: &Wstaw szkielet
+    REG_CMD("tools.publishing.insertSkeleton",
+            QT_TRANSLATE_NOOP("CommandRegistrar", "Insert &Skeleton"),
+            "TOOLS/Texts for Publishers/Insert Skeleton", 63, false, 0);
+    //: In Polish: &Usuń nagłówki i podpowiedzi
+    REG_CMD("tools.publishing.removeSkeleton",
+            QT_TRANSLATE_NOOP("CommandRegistrar", "&Remove Headings and Hints"),
+            "TOOLS/Texts for Publishers/Remove Headings and Hints", 64, true, 0);
     // The window of the templates of the book types and the writer's own (DockCoordinator gives
     // it its callback)
     //: In Polish: &Szablony...
-    REG_CMD("tools.publishing.templates", QT_TRANSLATE_NOOP("CommandRegistrar", "&Templates..."), "TOOLS/Texts for Publishers/Templates...", 63, false, 0);
+    REG_CMD("tools.publishing.templates",
+            QT_TRANSLATE_NOOP("CommandRegistrar", "&Templates..."),
+            "TOOLS/Texts for Publishers/Templates...", 65, false, 0);
 
     REG_CMD("tools.backupNow", QT_TRANSLATE_NOOP("CommandRegistrar", "&Backup Now"), "TOOLS/Backup Now", 100, false, 2);
     REG_CMD("tools.autoSaveSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "&Auto-Save Settings..."), "TOOLS/Auto-Save Settings...", 110, true, 1);

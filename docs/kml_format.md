@@ -86,6 +86,7 @@ reading.
 | `page-break-before` | Flag | Starts on a new page |
 | `widow-control` | Flag | No single line of it alone at the top or bottom of a page; on without the attribute |
 | `caption` | `above` | A caption above its image (see [Captions](#captions-cross-references-and-the-list-of-figures)); without it a caption is below its image |
+| `point`, `hint` | Text | A heading of a point of a skeleton: the id of the point in its template and what to write under it (see [The skeleton of a text for publishers](#the-skeleton-of-a-text-for-publishers)) |
 
 A paragraph without `align` has no alignment of its own and is shown with the alignment of its
 style; a style without one has the editor's default: justified, with the last line aligned to
@@ -96,7 +97,8 @@ The attributes from `indent-left` to `widow-control` are the paragraph's own for
 (Format > Paragraph): a part without its attribute is as the paragraph's style gives it, and
 the editor writes only the parts the paragraph has of its own, in the order of the table. The
 layout scales the lengths as it scales the style's own: in the proportion of the editor's font
-size to the size of Normal in the style pack. The editor writes `caption` after them.
+size to the size of Normal in the style pack. The editor writes `caption`, `point` and `hint`
+after them.
 
 - A number is written with at most two decimals and a point (`indent-first="-18"`,
   `line-height="1.15"`). A value outside its range is brought into it; one that is not a
@@ -113,7 +115,8 @@ size to the size of Normal in the style pack. The editor writes `caption` after 
 The styles are those of the book's type: its style pack (`resources/booktypes/*/styles.json`)
 gives their names, fonts, sizes, spacing and alignment. The types that come with Kalahari use
 the base pack, with the styles `normal`, `heading_1`, `heading_2`, `heading_3`, `quote`,
-`dialogue`, `code`, `caption` and `footnote`; each adds its own styles or changes these.
+`dialogue`, `code`, `caption`, `footnote` and `template_point`; each adds its own styles or
+changes these.
 
 | Written as | Style |
 |------------|-------|
@@ -127,6 +130,27 @@ the base pack, with the styles `normal`, `heading_1`, `heading_2`, `heading_3`, 
   editor writes them as `<p>` and `<h1>`.
 - A style the book's type does not have is kept: the paragraph is shown in Normal and written
   back with its `style`, so the text loses nothing when it moves to a book of another type.
+
+### The skeleton of a text for publishers
+
+Tools > Texts for Publishers > Insert Skeleton puts the points of the template of a synopsis in
+its text: each a heading in the style Template Point (`template_point`) with an empty paragraph
+under it.
+
+```xml
+<p style="template_point" point="hero" hint="Who the hero is, where and when.">Hero and world</p>
+<p></p>
+```
+
+- `point` is the id of the point in its template, `hint` what to write under it. The editor
+  shows the hint, gray and in italics, in the empty paragraph after the heading until the
+  writer types there; it is no text: the print, the export, the counts and the search never see
+  it.
+- The length of the text, the set for a publisher and its copies leave the paragraphs in the
+  style `template_point` out. Remove Headings and Hints takes the headings away with their empty
+  paragraphs; the paragraphs the writer wrote under them stay.
+- Enter at the end of a heading gives a paragraph in Normal, without `point` and `hint`. A paragraph with
+  `point` in another style is no heading of a point: the attributes are kept and written back.
 
 ## Horizontal line and breaks
 

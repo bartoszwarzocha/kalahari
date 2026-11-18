@@ -467,6 +467,10 @@ private:
     /// of the templates
     void connectTemplatePoints();
 
+    /// @brief Tools > Texts for Publishers > Insert Skeleton and Remove Headings and Hints, in
+    /// the editor of the text in front
+    void connectSkeleton();
+
     /// @brief Connect panel toggle command to dock widget
     /// @param cmdId Command ID (e.g., "view.navigator")
     /// @param dock Dock widget to control

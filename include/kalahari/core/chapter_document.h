@@ -268,6 +268,10 @@ public:
     ///         breaks in them as QChar::LineSeparator - the same text the editor shows
     static QString kmlToPlainText(const QString& kml);
 
+    /// @brief The text of @p kml as kmlToPlainText() gives it, without the paragraphs in the
+    ///        style @p skippedStyle (the headings of the points of a text for publishers)
+    static QString kmlToPlainText(const QString& kml, QStringView skippedStyle);
+
     /// @brief The words of a text's KML under any rules of counting, as the editor counts
     ///        them: of its paragraphs (kmlToPlainText()) and of the texts of its footnotes and
     ///        endnotes (WordTally::noteWords)

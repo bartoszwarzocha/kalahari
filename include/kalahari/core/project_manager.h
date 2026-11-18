@@ -66,6 +66,10 @@
 #include "kalahari/core/backup_manager.h"
 #include "kalahari/core/text_statistics.h"
 
+namespace kalahari::editor {
+struct SkeletonPoint;
+}  // namespace kalahari::editor
+
 namespace kalahari::core {
 
 /// @brief Work mode enumeration for application state
@@ -867,7 +871,9 @@ public:
     /// the place of its kind is
     ///
     /// Every book can have texts for publishers: a book whose kinds do not have them takes
-    /// their kind with the first one. Saves the .klh file.
+    /// their kind with the first one. Saves the .klh file. When the points of a template are
+    /// in the text (PublishingTexts::pointsInText()), the text starts with the skeleton of its
+    /// template (templateSkeleton(), editor::skeletonKml()).
     /// @return The id of the new text; empty when no book is open or it is read-only, @p part
     ///         is not a part of a text, the base package has no texts for publishers, or a
     ///         file cannot be written; the book stays as it was then
@@ -931,6 +937,11 @@ public:
     /// @brief The texts of the main part of the book, in reading order, as their ids and
     /// titles: the points of a template of each text (PublishingTemplate::pointsFor())
     [[nodiscard]] QList<std::pair<QString, QString>> mainTexts() const;
+
+    /// @brief The skeleton of the template @p reference in the book's language: its points
+    /// for mainTexts() (PublishingTemplate::pointsFor()), each with its heading and hint; none
+    /// for no template and for a template of a part without points
+    [[nodiscard]] QList<editor::SkeletonPoint> templateSkeleton(const QString& reference) const;
 
     /// @brief The target length of text @p elementId for publishers in words or in characters
     /// (PublishingTexts::targetOf()); 0 for no element or no target
@@ -1557,6 +1568,16 @@ private:
 
     /// @brief Words of text element @p elementId under @p rules, as wordCount() gives them
     [[nodiscard]] int wordsUnder(const QString& elementId, const WordCountRules& rules) const;
+
+    /// @brief The KML of text element @p elementId: the text kept with its changes
+    /// (setChapterContent()), else that of its chapter file; none for another element and an
+    /// unreadable file
+    [[nodiscard]] std::optional<QString> textKmlOf(const QString& elementId) const;
+
+    /// @brief Give the new text @p textId for publishers the skeleton of its template
+    /// @p templateReference (templateSkeleton()) and save it, when the points of a template are
+    /// in the text (PublishingTexts::pointsInText()) and the template has points
+    void startWithSkeleton(const QString& textId, const QString& templateReference);
 
     /// @brief Write the title, status and notes of @p element to its chapter file, and
     /// @p kml when given; the file keeps its other data

@@ -6,11 +6,13 @@
 
 #include "kalahari/gui/panels/publishing_text_box.h"
 
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/text_skeleton.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/publishing_templates_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -28,11 +30,13 @@
 #include <QLabel>
 #include <QSignalBlocker>
 #include <QSpinBox>
+#include <QTextDocument>
 #include <QToolButton>
 #include <QVBoxLayout>
 
 #include <algorithm>
 #include <optional>
+#include <string>
 #include <string_view>
 
 namespace kalahari::gui {
@@ -332,9 +336,10 @@ void PublishingTextBox::updateLength() {
     if (m_elementId.isEmpty()) {
         return;
     }
-    // The words in the editor, also those not saved yet
-    const QString text =
-        !m_editor.isNull() ? m_editor->plainText() : m_book.publishingTextOf(m_elementId);
+    // The words in the editor, also those not saved yet, without the headings of a skeleton
+    const QTextDocument* document = !m_editor.isNull() ? m_editor->textDocument() : nullptr;
+    const QString text = document != nullptr ? editor::textWithoutSkeleton(*document)
+                                             : m_book.publishingTextOf(m_elementId);
     const bool words = core::CoverMaterial::countsWords();
     const int target = m_book.publishingTargetOf(m_elementId, words);
     const bool pages = m_data.part == QLatin1String(PublishingTexts::SYNOPSIS) &&
@@ -356,6 +361,13 @@ bool PublishingTextBox::eventFilter(QObject* watched, QEvent* event) {
         return true;
     }
     return QGroupBox::eventFilter(watched, event);
+}
+
+QList<editor::SkeletonPoint> PublishingTextBox::skeletonPoints() const {
+    if (!PublishingTexts::hasPoints(m_data.part)) {
+        return {};
+    }
+    return m_book.templateSkeleton(m_data.templateId);
 }
 
 std::optional<core::PublishingTemplate> PublishingTextBox::currentTemplate() const {

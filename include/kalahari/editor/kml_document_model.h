@@ -20,6 +20,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
+#include <kalahari/editor/text_skeleton.h>
 #include <kalahari/editor/text_tables.h>
 
 #include <QHash>
@@ -117,6 +118,11 @@ public:
     /// @param index Paragraph index (0-based)
     [[nodiscard]] bool paragraphCaptionAbove(size_t index) const;
 
+    /// @brief The point a heading of the skeleton is (point="p1" hint="..."; text_skeleton.h)
+    /// @param index Paragraph index (0-based)
+    /// @return Its id and hint; nothing for a paragraph without one or if index is out of range
+    [[nodiscard]] std::optional<SkeletonPoint> paragraphTemplatePoint(size_t index) const;
+
     /// @brief The paragraph's place in a list: an item of <ol> or <ul>
     /// @param index Paragraph index (0-based)
     /// @return The item, its list numbered from 1 in the order of the lists of the KML
@@ -177,6 +183,7 @@ private:
         std::optional<ListItem> list;           ///< Its place in a list
         std::optional<TableCellPlace> cell;     ///< Its cell in a table
         bool captionAbove = false;              ///< A caption above its image
+        std::optional<SkeletonPoint> point;     ///< Of a heading of a point: its id and hint
     };
 
     /// @brief The table being read: its shape, its rows so far, and the columns taken in

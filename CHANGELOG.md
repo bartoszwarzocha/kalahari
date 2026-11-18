@@ -38,8 +38,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   where Space includes the part chosen or leaves it out and Alt+Up and Alt+Down move it, the
   part chosen with its version, its source and its length against the target, Copy All and
   Export Set...; Export Book and Print Book have the set as their fourth source, the title and
-  the author, then each part under its name (headings in Word and Markdown). All of it in
-  Polish too.
+  the author, then each part under its name (headings in Word and Markdown). The window
+  Templates of Texts for Publishers (Tools > Texts for Publishers > Templates..., or the button
+  in Settings > Navigator > Texts for Publishers) shows the templates of the book's type, which
+  do not change, and the writer's own, kept at once and in all books: New, Make a Copy and
+  Delete, the name, the part, the book types, the target length, and the points of a synopsis
+  or the pattern of a sentence with its fields. Tools > Texts for Publishers > Insert Skeleton
+  puts the points of the template of a synopsis in its text, as headings in the style Template
+  Point, each with a gray hint under it until the writer types there; Remove Headings and Hints
+  takes them away and leaves what was written under them. The length, the set and its copies
+  leave the headings out. Settings > Navigator > Texts for Publishers chooses where the points
+  of a synopsis are: beside the text, as before, or in the text, where a new synopsis starts
+  with its skeleton. All of it in Polish too.
 - **Portraits of characters put together from parts** - 2026-11-17. Compose Portrait... on the
   menu of the portrait of a card opens the window Portrait: a portrait put together from ready
   parts, without drawing. On the left the preview, the frame (the bust of the card or the whole
