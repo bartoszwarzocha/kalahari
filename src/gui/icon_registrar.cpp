@@ -92,6 +92,7 @@ void registerAllIcons() {
     // -------------------------------------------------------------------------
     iconRegistry.registerIcon("book.addElement", "resources/icons/twotone/add_box.svg", "Add Element");
     iconRegistry.registerIcon("book.newChapter", "resources/icons/twotone/article.svg", "New Chapter");
+    iconRegistry.registerIcon("book.newVolume", "resources/icons/twotone/book.svg", "New Volume");
     iconRegistry.registerIcon("book.newScene", "resources/icons/twotone/theaters.svg", "New Scene");
     iconRegistry.registerIcon("book.newCharacter", "resources/icons/twotone/person.svg", "New Character");
     iconRegistry.registerIcon("book.newLocation", "resources/icons/twotone/place.svg", "New Location");

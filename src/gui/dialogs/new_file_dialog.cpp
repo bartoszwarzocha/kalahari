@@ -641,7 +641,7 @@ NewFileDialog::Book NewFileDialog::openBook(const core::ProjectManager& pm,
                               projectBook->partsLayer ? projectBook->sectionName(place)
                                                       : QString(),
                               SectionWords::forPart(projectBook, place),
-                              project->elementsIn(place)});
+                              project->elementsIn(place, pm.currentBookIndex())});
         book.groupNames.append(projectBook->partsLayer ? projectBook->sectionName(place)
                                                        : SectionWords::groupName(place));
 
@@ -760,7 +760,7 @@ NewFileDialog::Book NewFileDialog::forAdding(const core::ProjectManager& pm,
                               projectBook->partsLayer ? projectBook->sectionName(place)
                                                       : QString(),
                               SectionWords::forPart(projectBook, place),
-                              project->elementsIn(place)});
+                              project->elementsIn(place, pm.currentBookIndex())});
         book.groupNames.append(projectBook->partsLayer ? projectBook->sectionName(place)
                                                        : SectionWords::groupName(place));
         const bool here = place == book.start;
@@ -902,7 +902,7 @@ NewFileDialog::Book NewFileDialog::forPlace(const core::ProjectManager& pm,
                                   projectBook->partsLayer ? projectBook->sectionName(place)
                                                           : QString(),
                                   SectionWords::forPart(projectBook, place),
-                                  project->elementsIn(place)});
+                                  project->elementsIn(place, pm.currentBookIndex())});
             // The tiles of a group are named after it: "In the part "Part I""
             book.groupNames.append(
                 group ? core::fillWords(

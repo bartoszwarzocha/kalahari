@@ -130,6 +130,8 @@ struct CommandCallbacks {
                                                 ///< in front
     std::function<void()> onNewChapter;         ///< Book > New Chapter... (named after the
                                                 ///< main texts of the book: New Story...)
+    std::function<void()> onNewVolume;          ///< Book > New Volume...: a new book of the
+                                                ///< series
     /// Book > New Character..., New Location..., New Item..., New Mind Map..., New
     /// Timeline...: Add Element in the Workshop with the kind of the base package of that id
     /// ("character")

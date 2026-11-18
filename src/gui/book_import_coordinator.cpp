@@ -328,7 +328,8 @@ dialogs::ImportBookDialog::Book BookImportCoordinator::dialogBook() const {
         // A book without sections has no rows of its parts
         book.sections.append(
             {place, projectBook->partsLayer ? projectBook->sectionName(place) : QString(),
-             SectionWords::forPart(projectBook, place), project->elementsIn(place)});
+             SectionWords::forPart(projectBook, place),
+             project->elementsIn(place, pm.currentBookIndex())});
     }
     book.kinds = importKindsOf(pm);
     if (book.kinds.main) {

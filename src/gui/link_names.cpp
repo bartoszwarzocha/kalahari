@@ -111,8 +111,9 @@ QString linkPlace(const core::ProjectManager& book, const QString& link) {
             return group->title;
         }
     }
-    return project->books.isEmpty() ? QString()
-                                    : project->books.first().sectionName(at->place);
+    // The section of the element's own book, a volume of a series
+    const qsizetype index = project->bookIndexOf(link);
+    return index < 0 ? QString() : project->books.at(index).sectionName(at->place);
 }
 
 QString linkRoleName(const QString& role) {

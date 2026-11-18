@@ -434,6 +434,15 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                       IconSet(),
                       callbacks.onNewChapter);
 
+    // A new book of the series, with the same Workshop; the book becomes its first volume
+    // (MainWindow)
+    REG_CMD_TOOL_ICON("book.newVolume",
+                      QT_TRANSLATE_NOOP("CommandRegistrar", "New &Volume..."),
+                      "BOOK/New Volume...", 15, false, 1,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onNewVolume);
+
     REG_CMD("book.newScene", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Scene..."), "BOOK/New Scene...", 20, false, 1);
 
     // The kinds of the Workshop: Add Element with the kind chosen, when the program has its

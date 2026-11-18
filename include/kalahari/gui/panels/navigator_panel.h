@@ -22,14 +22,18 @@
 #include <QColor>
 #include <QHash>
 #include <QIcon>
+#include <QKeyCombination>
+#include <QList>
 #include <QMap>
 #include <QSet>
 #include <QString>
 #include <QStringList>
 
+#include <functional>
 #include <optional>
 
 class QAction;
+class QMenu;
 class QTreeWidget;
 class QTreeWidgetItem;
 class QLineEdit;
@@ -63,6 +67,12 @@ namespace gui {
 /// sections shows the elements of the three sections one after another under the book's item.
 /// Supports icons, element selection, and automatic theme refresh.
 /// OpenSpec #00034 Phase C: Added editor synchronization (highlight current chapter).
+///
+/// A series (more than one book in the project) has the name of the series on its project
+/// node, "Series Structure" in the header, and a node for each volume in their order ("Volume
+/// 1: Sand"), each with its sections, elements and files; the current volume
+/// (core::ProjectManager::book()) is bold, and a node chosen in a volume makes that volume the
+/// current one. The node of a book keeps the id of the book (BOOK_ROLE).
 ///
 /// The Workshop, which the finished book does not have, has a group for each of its kinds in
 /// the order of the book's type, named after the kind ("Working notes"), with the elements in
@@ -121,7 +131,7 @@ public:
     /// @brief Clear current highlight (OpenSpec #00034 Phase C)
     void clearHighlight();
 
-    /// @brief Load the first book of a project into the tree
+    /// @brief Load a project into the tree: its book, or the volumes of its series
     /// @param project Project to display
     /// @param registry Packages whose kinds give the elements their form and icon
     /// @note The files that no element has come with setUnassignedFiles()
@@ -245,6 +255,31 @@ public:
 
     /// @brief The name of the node of @p book: the writer's own, or "Book"
     static QString bookName(const core::ProjectBook& book);
+
+    /// The id of the book of the node of a book (Qt::UserRole + 9)
+    static constexpr int BOOK_ROLE = Qt::UserRole + 9;
+
+    /// @brief The name of the node of the volume @p book of a series, at place @p index of its
+    /// volumes (from 0): "Volume 1: Sand", or "Volume 1" for a volume without a title
+    [[nodiscard]] static QString volumeName(const core::ProjectBook& book, qsizetype index);
+
+    /// @brief The name of the series of @p project: the writer's own, or the title of its
+    /// first book (core::ProjectManager::seriesName())
+    [[nodiscard]] static QString seriesName(const core::BookProject& project);
+
+    /// @brief The id of the book of @p item: of the node of a book or of a node inside it;
+    /// empty for the project, the Workshop and the other nodes
+    [[nodiscard]] static QString bookIdOf(const QTreeWidgetItem* item);
+
+    /// @brief The node of book @p bookId; nullptr when the tree has none
+    [[nodiscard]] QTreeWidgetItem* bookItem(const QString& bookId) const;
+
+    /// @brief Show the current volume of a series (core::ProjectManager::book()) in bold, and
+    /// the other volumes not
+    void showCurrentBook();
+
+    /// @brief Choose the node of book @p bookId and show it, open
+    void revealBook(const QString& bookId);
 
     /// @brief The name of the node of the Workshop of @p project: the writer's own, or
     /// "Workshop"
@@ -472,6 +507,20 @@ signals:
     /// @param shown Whether the Navigator shows the sections
     void requestShowSections(bool shown);
 
+    /// @brief New Volume... on the node of a series or of a volume, as Book > New Volume...
+    void requestNewVolume();
+
+    /// @brief Volume Earlier (@p step -1, Alt+Up) or Volume Later (@p step 1, Alt+Down) on
+    /// volume @p bookId of a series
+    void requestMoveVolume(const QString& bookId, int step);
+
+    /// @brief Delete Volume... (Delete) on volume @p bookId of a series
+    void requestDeleteVolume(const QString& bookId);
+
+    /// @brief Series Properties... on the node of a series, and a click on it: its name and
+    /// its volumes in the Properties panel
+    void requestSeriesProperties();
+
     /// @brief Request to rename a section of the book
     /// @param sectionType "section_frontmatter", "section_body" or "section_backmatter"
     void requestRenameSection(const QString& sectionType);
@@ -579,6 +628,10 @@ private slots:
     /// @brief Add Show on the Plot Board to @p menu for element @p elementId (empty: the
     /// book): only an element of the main section has a card there, followed by a separator
     void addPlotBoardAction(QMenu& menu, const QString& elementId);
+
+    /// @brief Add Rename... of a node to @p menu, which runs @p rename; it works in an open
+    /// project
+    QAction* addRenameAction(QMenu& menu, const std::function<void()>& rename);
 
     // Context menu action handlers
     void onContextMenuOpen();
@@ -699,6 +752,77 @@ private:
     /// @brief The card each card of the Workshop stands under in the tree of its kind
     /// (core::CardRelations::treeOf()); none when the setting says "list"
     [[nodiscard]] QHash<QString, QString> cardTreesOf(const core::BookProject& project) const;
+
+    /// @brief Add the node of @p book (none: of a book not open yet) under @p rootItem, with its
+    /// sections, elements and files; @p index is its place among the volumes of a series, -1
+    /// in a project with one book
+    QTreeWidgetItem* addBookItem(QTreeWidgetItem* rootItem, const core::ProjectBook* book,
+                                 qsizetype index, const core::BookTypeRegistry& registry);
+
+    /// @brief Make the book of @p item the current book of the series; nothing for a node
+    /// outside the books
+    void chooseBookOf(const QTreeWidgetItem* item);
+
+    /// @brief The index of the book of element @p elementId when @p target is in it or in no
+    /// book (dropPlaceOf()); -1 for a target in another volume of a series, whose places the
+    /// element does not have
+    [[nodiscard]] static qsizetype dropBookOf(const core::BookProject& project,
+                                              const QString& elementId,
+                                              const QTreeWidgetItem* target);
+
+    /// @brief The properties of the node @p type ("document" or "book"): of the series for
+    /// the node of a series, else of the book
+    void requestBookProperties(const QString& type);
+
+    /// @brief Whether the tree shows the volumes of a series: more than one node of a book
+    [[nodiscard]] bool showsVolumes() const;
+
+    /// @brief Add New Volume... to @p menu
+    QAction* addNewVolumeAction(QMenu& menu) const;
+
+    /// @brief Add the commands of the volume of @p item to @p menu: New Volume..., Volume
+    /// Earlier and Volume Later
+    /// @return The commands, which change the book
+    QList<QAction*> addVolumeActions(QMenu& menu, const QTreeWidgetItem* item);
+
+    /// @brief Add Delete Volume... of the volume of @p item to @p menu
+    QAction* addDeleteVolumeAction(QMenu& menu, const QTreeWidgetItem* item);
+
+    /// @brief Add the commands of the node of the book @p item to @p menu: Rename... and New
+    /// Volume... of a book, the commands of the volume (addVolumeActions()) in a series
+    /// @return The commands, which change the book
+    QList<QAction*> addBookActions(QMenu& menu, const QTreeWidgetItem* item);
+
+    /// @brief The text of the properties of the node of a book: Volume Properties... in a
+    /// series, else Book Properties...
+    [[nodiscard]] QString bookPropertiesText() const;
+
+    /// @brief Add the commands that take the volume of @p item out of its series to @p menu:
+    /// Delete Volume...; none for a book
+    /// @return The commands, which change the book
+    QList<QAction*> addVolumeRemovalActions(QMenu& menu, const QTreeWidgetItem* item);
+
+    /// @brief Add the commands of the project's node to @p menu: New Volume... and Series
+    /// Properties... of a series, else Project Properties..., which waits for the types of
+    /// books; the commands that change the book go to @p changing
+    void addProjectActions(QMenu& menu, QList<QAction*>& changing);
+
+    /// @brief The keys of a volume of a series on its node @p item: Alt+Up and Alt+Down move
+    /// it, Delete deletes it; run only when @p run
+    /// @return Whether the keys are those of a volume there
+    bool runVolumeKey(QKeyCombination keys, const QTreeWidgetItem* item, bool run);
+
+    /// @brief @p text of a command of a context menu with its keys @p keys in the column of
+    /// the keys, unless the program shows no keys in menus
+    [[nodiscard]] static QString menuText(const QString& text, QKeyCombination keys);
+
+    /// @brief The key of @p item among the open nodes (expandedItemIds()) when it is a volume
+    /// of a series or a node of it without an id (a section): "book:<book id>:<type>"; empty
+    /// for the other nodes
+    [[nodiscard]] QString bookNodeKey(const QTreeWidgetItem* item) const;
+
+    /// @brief The node of @p key (bookNodeKey()); nullptr when the tree has none
+    [[nodiscard]] QTreeWidgetItem* itemOfBookNodeKey(const QString& key) const;
 
     /// @brief Add the group "Other Files" with the files of the book outside its text, @p files,
     /// under @p parent; nothing when the book has none

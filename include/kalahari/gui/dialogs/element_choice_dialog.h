@@ -18,6 +18,7 @@ class QTreeWidgetItem;
 namespace kalahari {
 namespace core {
 class ProjectManager;
+struct BookProject;
 struct ProjectElement;
 }  // namespace core
 
@@ -52,6 +53,9 @@ protected:
 
 private:
     void addElements(QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements);
+
+    /// @brief The node of the book, or of each volume of a series, with its elements
+    void addBooks(const core::BookProject& project);
     void applyFilter(const QString& text);
     void updateAccept();
 

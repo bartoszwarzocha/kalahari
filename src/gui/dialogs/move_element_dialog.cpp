@@ -41,10 +41,12 @@ MoveElementDialog::Book MoveElementDialog::openBook(const core::ProjectManager& 
                                                     const QString& elementId) {
     Book book;
     const core::BookProject* project = projects.project();
-    const core::ProjectBook* projectBook = projects.book();
-    if (!project || !projectBook) {
+    // The places are in the book of the element, a volume of a series
+    const qsizetype index = project != nullptr ? project->bookIndexOf(elementId) : -1;
+    if (index < 0) {
         return book;
     }
+    const core::ProjectBook* projectBook = &project->books.at(index);
     const std::optional<core::ElementPlace> from = project->placeOf(elementId);
     if (!from || from->place == core::BookPlace::Workshop) {
         return book;
@@ -65,7 +67,7 @@ MoveElementDialog::Book MoveElementDialog::openBook(const core::ProjectManager& 
                               projectBook->partsLayer ? projectBook->sectionName(place)
                                                       : QString(),
                               SectionWords::forPart(projectBook, place),
-                              without.elementsIn(place)});
+                              without.elementsIn(place, index)});
     }
     return book;
 }

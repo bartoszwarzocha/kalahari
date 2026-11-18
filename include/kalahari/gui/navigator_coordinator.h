@@ -303,6 +303,25 @@ public slots:
     /// tab and for the Dashboard
     [[nodiscard]] AddTarget addTargetHere() const;
 
+    /// @brief Book > New Volume...: the New Volume window, and the volume added with it
+    /// (core::ProjectManager::addBook()), which becomes the current one with its first chapter
+    /// open; in a project with one book the window also names the series
+    /// (navigator_coordinator_series.cpp)
+    void onRequestNewVolume();
+
+    /// @brief Volume Earlier and Volume Later: volume @p bookId goes @p step places up (-1) or
+    /// down (1) the list of the volumes (core::ProjectManager::moveBook())
+    void onRequestMoveVolume(const QString& bookId, int step);
+
+    /// @brief Open of the page of the series: volume @p bookId becomes the current one, with
+    /// its first chapter open; the volume is shown in the Navigator
+    void onRequestOpenVolume(const QString& bookId);
+
+    /// @brief Delete Volume...: after a question, volume @p bookId goes from the series
+    /// (core::ProjectManager::removeBook()), its tabs close and its files go to the system's
+    /// Trash, or for good when the writer says so
+    void onRequestDeleteVolume(const QString& bookId);
+
     /// @brief Ask for a new name of the node of the book or of the Workshop and give it; saves
     /// the .klh file
     ///
@@ -457,6 +476,11 @@ private:
     /// @param forGood Set to whether a file was deleted for good; nullptr: not wanted
     /// @return The files that are still on the disk
     QStringList deleteFiles(const QStringList& files, bool trash, bool* forGood = nullptr);
+
+    /// @brief Save the open texts of volume @p book; when some cannot be saved, ask whether
+    /// to delete the volume anyway
+    /// @return Whether the volume can be deleted
+    bool saveTextsOfVolume(const core::ProjectBook& book);
 
     /// @brief Ask whether to delete @p files of "Unassigned Files", and delete them
     void deleteUnassigned(const QList<core::UnassignedFile>& files);
