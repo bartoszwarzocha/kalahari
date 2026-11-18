@@ -28,6 +28,7 @@ class QWidget;
 
 namespace kalahari::core {
 class ProjectManager;
+struct ProjectBook;
 }  // namespace kalahari::core
 namespace kalahari::gui {
 class CommandRegistry;
@@ -103,9 +104,11 @@ public:
     bool setCaptions(const core::BookCaptions& captions);
 
     /// @brief The texts of the book with their captions, in reading order: front, main, back
-    [[nodiscard]] std::vector<BookText> bookTexts() const;
+    /// @param volume The volume of a series whose texts they are; nullptr: the current book
+    [[nodiscard]] std::vector<BookText> bookTexts(const core::ProjectBook* volume = nullptr) const;
 
-    /// @brief The context of a text of the book (its element) or of a text outside it
+    /// @brief The context of a text of the book (its element) or of a text outside it; a text
+    ///        of a volume of a series is numbered in its volume, with its labels
     [[nodiscard]] editor::CaptionContext contextFor(const QString& elementId) const;
 
     /// @brief How many cross-references of the book name the captions of these ids (the open
@@ -171,9 +174,17 @@ private:
     ///        they change
     [[nodiscard]] const CachedText& savedText(const QString& elementId) const;
 
-    /// @brief The context of the text at @p index of @p texts
-    [[nodiscard]] editor::CaptionContext contextAt(const std::vector<BookText>& texts,
-                                                   int index) const;
+    /// @brief Give @p text the captions and the cross-references of its text: as @p editor
+    ///        has them when it is open, else as its file has them (savedText())
+    void readCaptions(BookText& text, const editor::BookEditor* editor) const;
+
+    /// @brief The context of the text at @p index of @p texts, the texts of @p volume
+    [[nodiscard]] editor::CaptionContext contextAt(const std::vector<BookText>& texts, int index,
+                                                   const core::ProjectBook* volume) const;
+
+    /// @brief The labels and the numbering of the captions of @p volume (its own, else the
+    ///        Settings')
+    [[nodiscard]] static core::BookCaptions captionsOf(const core::ProjectBook* volume);
 
     /// @brief The book keeps the Settings' labels and numbering once it has its first caption
     void keepCaptionsOnce();

@@ -27,6 +27,7 @@ class QWidget;
 
 namespace kalahari::core {
 class ProjectManager;
+struct ProjectBook;
 }  // namespace kalahari::core
 namespace kalahari::gui {
 class CommandRegistry;
@@ -113,10 +114,16 @@ public:
     bool setFootnotes(const core::BookFootnotes& footnotes);
 
     /// @brief The texts of the book with their notes, in reading order: front, main, back
-    [[nodiscard]] std::vector<BookText> bookTexts() const;
+    /// @param volume The volume of a series whose texts they are; nullptr: the current book
+    [[nodiscard]] std::vector<BookText> bookTexts(const core::ProjectBook* volume = nullptr) const;
 
-    /// @brief The context of a text of the book (its element) or of a text outside it (empty)
+    /// @brief The context of a text of the book (its element) or of a text outside it (empty);
+    ///        a text of a volume of a series is numbered in its volume, in its formats
     [[nodiscard]] editor::FootnoteContext contextFor(const QString& elementId) const;
+
+    /// @brief How @p volume numbers its notes (its own, else as footnotes() without a book's
+    ///        own)
+    [[nodiscard]] static core::BookFootnotes footnotesOf(const core::ProjectBook* volume);
 
     /// @brief Give every open text its context now
     void refresh();

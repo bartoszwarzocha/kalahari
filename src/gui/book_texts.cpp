@@ -36,9 +36,13 @@ void collectTexts(const core::ProjectManager& projects,
 
 }  // namespace
 
-std::vector<BookTextElement> bookTextElements(const core::ProjectManager& book) {
+std::vector<BookTextElement> bookTextElements(const core::ProjectManager& book,
+                                              const core::ProjectBook* volume) {
     std::vector<BookTextElement> texts;
-    const core::ProjectBook* opened = book.isProjectOpen() ? book.book() : nullptr;
+    const core::ProjectBook* opened = volume;
+    if (opened == nullptr && book.isProjectOpen()) {
+        opened = book.book();
+    }
     if (opened == nullptr) {
         return texts;
     }
@@ -47,6 +51,14 @@ std::vector<BookTextElement> bookTextElements(const core::ProjectManager& book) 
     collectTexts(book, opened->mainElements, core::BookPlace::Main, mainKind, texts);
     collectTexts(book, opened->backElements, core::BookPlace::Back, mainKind, texts);
     return texts;
+}
+
+const core::ProjectBook* volumeOfText(const core::ProjectManager& book, const QString& elementId) {
+    if (!book.isProjectOpen()) {
+        return nullptr;
+    }
+    const core::ProjectBook* own = elementId.isEmpty() ? nullptr : book.bookOf(elementId);
+    return own != nullptr ? own : book.book();
 }
 
 std::optional<QString> savedTextIfChanged(const core::ProjectManager& book,

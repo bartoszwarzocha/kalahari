@@ -11,6 +11,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/text_captions.h"
 #include "kalahari/gui/book_texts.h"
 #include "kalahari/gui/caption_settings.h"
 #include "kalahari/gui/command_registry.h"
@@ -20,13 +21,16 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/read_only_book.h"
 
+#include <QHash>
 #include <QPointer>
 #include <QTabWidget>
 #include <QTextBlock>
 #include <QTextDocument>
 
 #include <algorithm>
+#include <map>
 #include <utility>
+#include <vector>
 
 namespace kalahari::gui {
 
@@ -148,9 +152,14 @@ const CaptionCoordinator::CachedText& CaptionCoordinator::savedText(const QStrin
     return cached;
 }
 
-std::vector<CaptionCoordinator::BookText> CaptionCoordinator::bookTexts() const {
+core::BookCaptions CaptionCoordinator::captionsOf(const core::ProjectBook* volume) {
+    return volume != nullptr && volume->captions ? *volume->captions : settingsBookCaptions();
+}
+
+std::vector<CaptionCoordinator::BookText> CaptionCoordinator::bookTexts(
+    const core::ProjectBook* volume) const {
     std::vector<BookText> texts;
-    const std::vector<BookTextElement> elements = bookTextElements(m_book);
+    const std::vector<BookTextElement> elements = bookTextElements(m_book, volume);
     if (elements.empty()) {
         return texts;
     }
@@ -178,25 +187,30 @@ std::vector<CaptionCoordinator::BookText> CaptionCoordinator::bookTexts() const 
             inBack = true;
             text.backStart = true;
         }
-        if (const editor::BookEditor* editor = open.value(element->id, nullptr)) {
-            text.entries = editor->captionEntries();
-            if (editor->textDocument() != nullptr) {
-                text.references = editor::crossReferenceCounts(*editor->textDocument());
-            }
-        } else {
-            const CachedText& saved = savedText(element->id);
-            text.entries = saved.entries;
-            text.references = saved.references;
-        }
+        readCaptions(text, open.value(element->id, nullptr));
         texts.push_back(std::move(text));
     }
     return texts;
 }
 
+void CaptionCoordinator::readCaptions(BookText& text, const editor::BookEditor* editor) const {
+    if (editor == nullptr) {
+        const CachedText& saved = savedText(text.elementId);
+        text.entries = saved.entries;
+        text.references = saved.references;
+        return;
+    }
+    text.entries = editor->captionEntries();
+    if (editor->textDocument() != nullptr) {
+        text.references = editor::crossReferenceCounts(*editor->textDocument());
+    }
+}
+
 editor::CaptionContext CaptionCoordinator::contextAt(const std::vector<BookText>& texts,
-                                                     int index) const {
+                                                     int index,
+                                                     const core::ProjectBook* volume) const {
     editor::CaptionContext context;
-    context.numbering = numberingsOf(captions());
+    context.numbering = numberingsOf(captionsOf(volume));
     if (index >= 0 && index < static_cast<int>(texts.size())) {
         context.chapter = texts[static_cast<size_t>(index)].chapter;
     }
@@ -243,11 +257,9 @@ editor::CaptionContext CaptionCoordinator::contextAt(const std::vector<BookText>
 }
 
 editor::CaptionContext CaptionCoordinator::contextFor(const QString& elementId) const {
-    const std::vector<BookText> texts = bookTexts();
-    const auto found = std::find_if(texts.cbegin(), texts.cend(), [&elementId](const BookText& text) {
-        return !elementId.isEmpty() && text.elementId == elementId;
-    });
-    return contextAt(texts, found != texts.cend() ? static_cast<int>(found - texts.cbegin()) : -1);
+    const core::ProjectBook* volume = volumeOfText(m_book, elementId);
+    const std::vector<BookText> texts = bookTexts(volume);
+    return contextAt(texts, textIndexOf(texts, elementId), volume);
 }
 
 int CaptionCoordinator::referenceCount(const QStringList& ids) const {
@@ -278,16 +290,17 @@ void CaptionCoordinator::refreshSoon() {
 void CaptionCoordinator::refresh() {
     m_refreshTimer.stop();
     attachEditors();
-    const std::vector<BookText> texts = bookTexts();
+    // Each open text among the texts of its volume: a series numbers each volume on its own
+    std::map<const core::ProjectBook*, std::vector<BookText>> volumes;
     for (const auto& [elementId, editor] : openEditors()) {
-        int index = -1;
-        for (int i = 0; i < static_cast<int>(texts.size()); ++i) {
-            if (!elementId.isEmpty() && texts[static_cast<size_t>(i)].elementId == elementId) {
-                index = i;
-                break;
-            }
+        const core::ProjectBook* volume = volumeOfText(m_book, elementId);
+        auto [known, added] = volumes.try_emplace(volume);
+        if (added) {
+            known->second = bookTexts(volume);
         }
-        const editor::CaptionContext context = contextAt(texts, index);
+        const std::vector<BookText>& texts = known->second;
+        const editor::CaptionContext context =
+            contextAt(texts, textIndexOf(texts, elementId), volume);
         if (editor->captionContext() != context) {
             editor->setCaptionContext(context);
         }

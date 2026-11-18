@@ -11,11 +11,13 @@
 
 #include <QString>
 
+#include <algorithm>
 #include <optional>
 #include <vector>
 
 namespace kalahari::core {
 class ProjectManager;
+struct ProjectBook;
 } // namespace kalahari::core
 
 namespace kalahari::gui {
@@ -30,8 +32,29 @@ struct BookTextElement {
 
 /// @brief The texts of the book open in @p book in reading order: the front part, the main part
 ///        and the back part, the texts of their groups among them; none without a book
+/// @param volume The volume of a series whose texts they are; nullptr: the current book
+///        (core::ProjectManager::book())
 /// @note The elements are the book's: valid while it stays as it is
-std::vector<BookTextElement> bookTextElements(const core::ProjectManager& book);
+std::vector<BookTextElement> bookTextElements(const core::ProjectManager& book,
+                                              const core::ProjectBook* volume = nullptr);
+
+/// @brief The volume of a series whose texts element @p elementId numbers its notes and
+///        captions with: its own book, or the current book for an element of no book
+///        (core::ProjectManager::bookOf()); nullptr without a book
+const core::ProjectBook* volumeOfText(const core::ProjectManager& book, const QString& elementId);
+
+/// @brief The place of the text of element @p elementId among @p texts, anything with an
+///        @c elementId; -1 when it is not among them or the id is empty
+template <typename Text>
+[[nodiscard]] int textIndexOf(const std::vector<Text>& texts, const QString& elementId) {
+    if (elementId.isEmpty()) {
+        return -1;
+    }
+    const auto found = std::find_if(texts.cbegin(), texts.cend(), [&elementId](const Text& text) {
+        return text.elementId == elementId;
+    });
+    return found != texts.cend() ? static_cast<int>(found - texts.cbegin()) : -1;
+}
 
 /// @brief The KML of a text of the book that is not open, when it changed: the unsaved text
 ///        the program keeps, else its file

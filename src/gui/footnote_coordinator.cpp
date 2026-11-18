@@ -20,10 +20,13 @@
 #include "kalahari/gui/read_only_book.h"
 
 #include <QApplication>
+#include <QHash>
 #include <QTabWidget>
 
 #include <algorithm>
+#include <map>
 #include <utility>
+#include <vector>
 
 namespace kalahari::gui {
 
@@ -147,9 +150,14 @@ const FootnoteCoordinator::CachedText& FootnoteCoordinator::savedText(
     return cached;
 }
 
-std::vector<FootnoteCoordinator::BookText> FootnoteCoordinator::bookTexts() const {
+core::BookFootnotes FootnoteCoordinator::footnotesOf(const core::ProjectBook* volume) {
+    return volume != nullptr && volume->footnotes ? *volume->footnotes : core::BookFootnotes{};
+}
+
+std::vector<FootnoteCoordinator::BookText> FootnoteCoordinator::bookTexts(
+    const core::ProjectBook* volume) const {
     std::vector<BookText> texts;
-    const std::vector<BookTextElement> elements = bookTextElements(m_book);
+    const std::vector<BookTextElement> elements = bookTextElements(m_book, volume);
     if (elements.empty()) {
         return texts;
     }
@@ -241,12 +249,9 @@ editor::FootnoteContext FootnoteCoordinator::contextFor(const QString& elementId
     if (elementId.isEmpty()) {
         return {};  // a file outside the book: numbered alone
     }
-    const std::vector<BookText> texts = bookTexts();
-    const auto found = std::find_if(texts.cbegin(), texts.cend(), [&elementId](const BookText& text) {
-        return text.elementId == elementId;
-    });
-    return contextAt(texts, found != texts.cend() ? static_cast<int>(found - texts.cbegin()) : -1,
-                     footnotes());
+    const core::ProjectBook* volume = volumeOfText(m_book, elementId);
+    const std::vector<BookText> texts = bookTexts(volume);
+    return contextAt(texts, textIndexOf(texts, elementId), footnotesOf(volume));
 }
 
 void FootnoteCoordinator::refreshSoon() {
@@ -256,19 +261,18 @@ void FootnoteCoordinator::refreshSoon() {
 void FootnoteCoordinator::refresh() {
     m_refreshTimer.stop();
     attachEditors();
-    const std::vector<BookText> texts = bookTexts();
-    const core::BookFootnotes book = footnotes();
+    // Each open text among the texts of its volume: a series numbers each volume on its own
+    std::map<const core::ProjectBook*, std::vector<BookText>> volumes;
     for (const auto& [elementId, editor] : openEditors()) {
         editor::FootnoteContext context;  // a file outside the book: numbered alone
         if (!elementId.isEmpty()) {
-            int index = -1;
-            for (int i = 0; i < static_cast<int>(texts.size()); ++i) {
-                if (texts[static_cast<size_t>(i)].elementId == elementId) {
-                    index = i;
-                    break;
-                }
+            const core::ProjectBook* volume = volumeOfText(m_book, elementId);
+            auto [known, added] = volumes.try_emplace(volume);
+            if (added) {
+                known->second = bookTexts(volume);
             }
-            context = contextAt(texts, index, book);
+            const std::vector<BookText>& texts = known->second;
+            context = contextAt(texts, textIndexOf(texts, elementId), footnotesOf(volume));
         }
         editor->setFootnoteContext(context);  // nothing when it is the same
     }
