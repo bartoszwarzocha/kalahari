@@ -73,6 +73,14 @@
       "base_style": "normal",
       "properties": { "fontSize": 10, "lineHeight": 1.2, "alignment": "left",
                       "firstLineIndent": 0 }
+    },
+    {
+      "id": "template_point",
+      "name": { "pl": "Punkt szablonu", "en": "Template Point" },
+      "base_style": "normal", "next_style": "normal",
+      "properties": { "bold": true, "alignment": "left", "firstLineIndent": 0,
+                      "lineHeight": 1.2, "spaceBefore": 12, "spaceAfter": 3,
+                      "keepWithNext": true }
     }
   ],
   "character_styles": [

@@ -16,6 +16,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QLocale>
 #include <QSpinBox>
 
@@ -214,4 +215,30 @@ TEST_CASE("Texts for publishers: the set of a new book in Settings > Navigator",
     CHECK(defaults.includes(QStringLiteral("tagline")));
     CHECK(defaults.includes(QStringLiteral("synopsis")));
     CHECK_FALSE(defaults.includes(QStringLiteral("pitch")));
+}
+
+TEST_CASE("Texts for publishers: where the points of a synopsis are, in Settings > Navigator",
+          "[gui][publishing][settings]") {
+    const KeptSettings kept;
+    gui::NavigatorPage page(kalahari::test::book(), gui::NavigatorPage::Part::Publishing);
+    page.load();
+    auto* points = childOf<QComboBox>(page, QStringLiteral("navigatorPublishingPoints"));
+    // Beside the text, as the program starts; its note says what it means
+    CHECK(points->currentData().toString() == QStringLiteral("beside"));
+    CHECK(points->count() == 2);
+    CHECK(points->accessibleDescription().contains(QStringLiteral("Insert Skeleton")));
+    CHECK_FALSE(PublishingTexts::pointsInText());
+
+    points->setCurrentIndex(points->findData(QStringLiteral("inText")));
+    CHECK(page.isChanged());
+    CHECK(points->accessibleDescription().startsWith(QStringLiteral("A new synopsis starts")));
+    page.apply();
+    CHECK(PublishingTexts::pointsInText());
+
+    gui::NavigatorPage again(kalahari::test::book(), gui::NavigatorPage::Part::Publishing);
+    again.load();
+    CHECK_FALSE(again.isChanged());
+    CHECK(childOf<QComboBox>(again, QStringLiteral("navigatorPublishingPoints"))
+              ->currentData()
+              .toString() == QStringLiteral("inText"));
 }

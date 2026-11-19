@@ -15,6 +15,7 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/clipboard_handler.h"
+#include "kalahari/editor/text_skeleton.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/panels/editor_panel.h"
@@ -263,4 +264,46 @@ TEST_CASE("Texts for publishers: a synopsis in the editor, its length as typed; 
         return data;
     }()));
     CHECK_FALSE(properties->focusTemplatePoints());
+}
+
+TEST_CASE("Texts for publishers: the skeleton of a synopsis in the editor, its length without "
+          "the headings",
+          "[gui][publishing][synopsisbox]") {
+    gui::registerAllIcons();
+    const CharactersUnit unit;
+    test::OpenNovel novel(QStringLiteral("Sand"));
+    auto& pm = novel.pm;
+    const QString id = pm.addPublishingText(QString::fromLatin1(PublishingTexts::SYNOPSIS),
+                                            QStringLiteral("kalahari.novel:one_page"),
+                                            QStringLiteral("Synopsis – version 1"));
+    REQUIRE_FALSE(id.isEmpty());
+    QWidget window;
+    auto* layout = new QHBoxLayout(&window);
+    auto* editorPanel = new gui::EditorPanel(pm, test::commands(), &window);
+    editorPanel->setProperty("elementId", id);
+    auto* properties = new gui::PropertiesPanel(pm, &window);
+    layout->addWidget(editorPanel);
+    layout->addWidget(properties);
+    properties->setActiveEditor(editorPanel);
+    PublishingTextBox* box = properties->frontPublishingBox();
+    REQUIRE(box == properties->publishingBox());
+    CHECK(box->editor() == editorPanel->getBookEditor());
+
+    // The points of its template, in the language of the book
+    const QList<editor::SkeletonPoint> points = box->skeletonPoints();
+    REQUIRE(points.size() == 5);
+    CHECK(points.first().name == QStringLiteral("Hero and world"));
+    CHECK_FALSE(points.first().hint.isEmpty());
+
+    // The headings do not count; the words typed under them do
+    editor::BookEditor* text = editorPanel->getBookEditor();
+    REQUIRE(text->insertTemplateSkeleton(points));
+    CHECK(editor::hasSkeleton(*text->textDocument()));
+    text->insertText(QStringLiteral("Leila goes."));
+    CHECK(test::waitUntil([box]() {
+        return box->meter()->countsLabel()->text().startsWith(
+            QStringLiteral("11 characters with spaces"));
+    }));
+    CHECK(text->removeTemplateSkeleton() == 5);
+    CHECK(text->plainText() == QStringLiteral("Leila goes."));
 }

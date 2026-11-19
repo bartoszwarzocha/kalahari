@@ -50,6 +50,10 @@ public:
     /// @param parent Parent widget
     PitchPanel(core::ProjectManager& book, CommandRegistry& commands, const QString& elementId,
                QWidget* parent = nullptr);
+    ~PitchPanel() override;
+
+    PitchPanel(const PitchPanel&) = delete;
+    PitchPanel& operator=(const PitchPanel&) = delete;
 
     /// @brief The sentence
     [[nodiscard]] QString elementId() const { return m_elementId; }
@@ -95,6 +99,8 @@ private:
     /// @brief The header, the pattern, the sentence with its length, and the data
     void buildCard();
     QWidget* createPattern(QWidget* parent);
+    /// @brief The templates of a sentence in the template box, "No template" last
+    void fillTemplates();
     QWidget* createSentence(QWidget* parent);
     QWidget* createData(QWidget* parent);
     /// @brief The fields of the pattern of the template, with the words between them
@@ -146,6 +152,7 @@ private:
     QComboBox* m_stateBox = nullptr;
     QLabel* m_inSetLabel = nullptr;
     QTimer* m_saveTimer = nullptr;
+    int m_settingsListener = -1;  ///< The writer's templates changed
 };
 
 }  // namespace kalahari::gui

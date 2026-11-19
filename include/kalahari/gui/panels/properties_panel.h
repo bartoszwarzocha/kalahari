@@ -131,6 +131,10 @@ public:
     /// page (Tools > Texts for Publishers > Template Points); false when it has no points
     bool focusTemplatePoints();
 
+    /// @brief The box of the text in front when it is a text for publishers, on its page;
+    ///        nullptr for another text and without one
+    PublishingTextBox* frontPublishingBox();
+
 public slots:
     /// @brief Show project properties view
     ///

@@ -166,6 +166,10 @@ public:
     void setFont(const QFont& font);
     QFont font() const;
 
+    /// @brief The font of the text of @p block without formats of its own: the document font
+    ///        with that of the paragraph's style and its character format over it
+    [[nodiscard]] QFont paragraphFont(const QTextBlock& block) const;
+
     /// @brief Set the view typography; every block waits for layout again when it changes
     void setTypography(const LayoutTypography& typography);
     const LayoutTypography& typography() const { return m_typography; }

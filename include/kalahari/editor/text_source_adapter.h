@@ -35,6 +35,12 @@ namespace kalahari::editor {
 // Forward declarations
 class KalahariTextDocumentLayout;
 
+/// @brief The hint an empty paragraph shows (ITextSource::paragraphHint())
+struct ParagraphHint {
+    QString text;  ///< What to write there; empty: none
+    QFont font;    ///< As the text of the paragraph would be
+};
+
 /// @brief A cell of a table's grid: its row and column, the rows and columns it spans, and
 ///        its background
 struct TableGridCell {
@@ -134,6 +140,12 @@ public:
         size_t /*index*/) const {
         return {};
     }
+
+    /// @brief The hint an empty paragraph shows under a heading of a point of the skeleton
+    ///        (skeletonHintOf()), in the font its text would have
+    /// @param index Paragraph index (0-based)
+    /// @note Sources without a skeleton have none
+    [[nodiscard]] virtual ParagraphHint paragraphHint(size_t /*index*/) const { return {}; }
 
     /// @brief The text of a paragraph with colors of its own, and of its links
     ///        (character_format.h)
@@ -296,6 +308,7 @@ public:
     [[nodiscard]] std::vector<TextHighlight> paragraphHighlights(size_t index) const override;
     [[nodiscard]] std::vector<AnnotationMark> paragraphAnnotationMarks(size_t index) const override;
     [[nodiscard]] std::vector<FormattingMark> paragraphFormattingMarks(size_t index) const override;
+    [[nodiscard]] ParagraphHint paragraphHint(size_t index) const override;
     [[nodiscard]] std::vector<ColoredText> paragraphColors(size_t index) const override;
     void drawListMarker(QPainter* painter, size_t index) const override;
 

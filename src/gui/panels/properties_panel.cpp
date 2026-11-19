@@ -1019,16 +1019,21 @@ void PropertiesPanel::focusFirstField() {
 }
 
 bool PropertiesPanel::focusTemplatePoints() {
+    const PublishingTextBox* box = frontPublishingBox();
+    if (box == nullptr || box->points().isEmpty()) {
+        return false;
+    }
+    focusInPage(box->points().constFirst());
+    return true;
+}
+
+PublishingTextBox* PropertiesPanel::frontPublishingBox() {
     // The page of the text in front, unless its own page is shown
     const Page page = currentPage();
     if (describedTextId().isEmpty() || (page != Page::Chapter && page != Page::Editor)) {
         showEditorProperties();
     }
-    if (m_publishingBox->elementId().isEmpty() || m_publishingBox->points().isEmpty()) {
-        return false;
-    }
-    focusInPage(m_publishingBox->points().constFirst());
-    return true;
+    return m_publishingBox->elementId().isEmpty() ? nullptr : m_publishingBox;
 }
 
 void PropertiesPanel::showNoProject() {

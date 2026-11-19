@@ -268,6 +268,13 @@ void registerAllIcons() {
     iconRegistry.registerIcon("stats.nowInMiddle", "resources/icons/twotone/align_horizontal_center.svg", "Now in the Middle");
     iconRegistry.registerIcon("tools.readability", "resources/icons/twotone/auto_stories.svg", "Readability Analysis");
     iconRegistry.registerIcon("tools.publishing.templatePoints", "resources/icons/twotone/fact_check.svg", "Template Points");
+    iconRegistry.registerIcon("tools.publishing.insertSkeleton",
+                              "resources/icons/twotone/segment.svg", "Insert Skeleton");
+    iconRegistry.registerIcon("tools.publishing.removeSkeleton",
+                              "resources/icons/twotone/subject.svg", "Remove Headings and Hints");
+    iconRegistry.registerIcon("tools.publishing.templates",
+                              "resources/icons/twotone/view_quilt.svg",
+                              "Templates of Texts for Publishers");
     iconRegistry.registerIcon("tools.toolbarManager", "resources/icons/twotone/build.svg", "Toolbar Manager");
 
     // -------------------------------------------------------------------------

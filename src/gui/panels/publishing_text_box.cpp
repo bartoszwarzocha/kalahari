@@ -6,12 +6,17 @@
 
 #include "kalahari/gui/panels/publishing_text_box.h"
 
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/publishing_texts.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/text_skeleton.h"
 #include "kalahari/gui/cover_names.h"
+#include "kalahari/gui/dialogs/publishing_templates_dialog.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/panels/card_parts.h"
 #include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/widgets/length_meter.h"
@@ -25,10 +30,14 @@
 #include <QLabel>
 #include <QSignalBlocker>
 #include <QSpinBox>
+#include <QTextDocument>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 #include <algorithm>
 #include <optional>
+#include <string>
+#include <string_view>
 
 namespace kalahari::gui {
 
@@ -38,6 +47,9 @@ using core::PublishingTexts;
 
 /// The largest own target length
 constexpr int MAX_TARGET = 100000;
+
+/// The settings of the texts for publishers: the targets, the pages, the writer's templates
+constexpr std::string_view PUBLISHING_SETTINGS = "materials.publishing.";
 
 /// How far the hint of a point is from the left edge of its check box, and from the next point
 constexpr int HINT_INDENT = 22;
@@ -67,6 +79,7 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
       m_meter(new LengthMeter(this)),
       m_targetSource(hintOf(this)),
       m_templateBox(new QComboBox(this)),
+      m_templatesButton(new QToolButton(this)),
       m_pointsArea(new QWidget(this)),
       m_pointsLayout(new QVBoxLayout(m_pointsArea)),
       m_pointsHint(hintOf(this)),
@@ -85,8 +98,21 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
     auto* templateRow = new QFormLayout();
     templateRow->setContentsMargins(0, SECTION_GAP, 0, 0);
     m_templateBox->setObjectName(QStringLiteral("publishingTemplate"));
+    m_templatesButton->setObjectName(QStringLiteral("publishingTemplates"));
+    m_templatesButton->setAutoRaise(true);
+    //: The button beside the template that opens the window of the templates. In Polish:
+    //: Szablony tekstów dla wydawnictwa...
+    m_templatesButton->setToolTip(tr("Templates of Texts for Publishers..."));
+    m_templatesButton->setAccessibleName(m_templatesButton->toolTip());
+    card::keepIcon(m_templatesButton, QStringLiteral("tools.publishing.templates"),
+                   core::IconContext::Menu);
+    auto* templateLine = new QHBoxLayout();
+    templateLine->addWidget(m_templateBox, 1);
+    templateLine->addWidget(m_templatesButton);
     //: The template of a text for publishers in the Properties panel. In Polish: Sza&blon:
-    templateRow->addRow(tr("Te&mplate:"), m_templateBox);
+    auto* templateLabel = new QLabel(tr("Te&mplate:"), this);
+    templateLabel->setBuddy(m_templateBox);
+    templateRow->addRow(templateLabel, templateLine);
     layout->addLayout(templateRow);
     m_pointsArea->setObjectName(QStringLiteral("publishingPoints"));
     m_pointsLayout->setContentsMargins(0, 0, 0, 0);
@@ -125,6 +151,27 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
     connect(m_templateBox, &QComboBox::activated, this, &PublishingTextBox::saveTemplate);
     connect(m_stateBox, &QComboBox::activated, this, &PublishingTextBox::saveState);
     connect(m_targetSpin, &QSpinBox::valueChanged, this, &PublishingTextBox::saveTarget);
+    connect(m_templatesButton, &QToolButton::clicked, this, [this]() {
+        dialogs::PublishingTemplatesDialog::editTemplates(&m_book, window());
+    });
+    // The targets of the Settings and the writer's templates: the listener runs on the thread
+    // that changes them
+    m_settingsListener =
+        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
+            if (key.starts_with(PUBLISHING_SETTINGS)) {
+                QMetaObject::invokeMethod(
+                    this,
+                    [this]() {
+                        if (!m_elementId.isEmpty()) {
+                            // The names of the templates and of their points too
+                            fillTemplates();
+                            m_pointIds.clear();
+                            showData();
+                        }
+                    },
+                    Qt::QueuedConnection);
+            }
+        });
     // A change made elsewhere: the state chosen in the list, the set, another template
     for (auto signal : {&core::ProjectManager::projectChanged,
                         &core::ProjectManager::publishingSetChanged}) {
@@ -135,6 +182,10 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
         });
     }
     hide();
+}
+
+PublishingTextBox::~PublishingTextBox() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 }
 
 void PublishingTextBox::showText(const QString& elementId, editor::BookEditor* editor) {
@@ -285,9 +336,10 @@ void PublishingTextBox::updateLength() {
     if (m_elementId.isEmpty()) {
         return;
     }
-    // The words in the editor, also those not saved yet
-    const QString text =
-        !m_editor.isNull() ? m_editor->plainText() : m_book.publishingTextOf(m_elementId);
+    // The words in the editor, also those not saved yet, without the headings of a skeleton
+    const QTextDocument* document = !m_editor.isNull() ? m_editor->textDocument() : nullptr;
+    const QString text = document != nullptr ? editor::textWithoutSkeleton(*document)
+                                             : m_book.publishingTextOf(m_elementId);
     const bool words = core::CoverMaterial::countsWords();
     const int target = m_book.publishingTargetOf(m_elementId, words);
     const bool pages = m_data.part == QLatin1String(PublishingTexts::SYNOPSIS) &&
@@ -309,6 +361,13 @@ bool PublishingTextBox::eventFilter(QObject* watched, QEvent* event) {
         return true;
     }
     return QGroupBox::eventFilter(watched, event);
+}
+
+QList<editor::SkeletonPoint> PublishingTextBox::skeletonPoints() const {
+    if (!PublishingTexts::hasPoints(m_data.part)) {
+        return {};
+    }
+    return m_book.templateSkeleton(m_data.templateId);
 }
 
 std::optional<core::PublishingTemplate> PublishingTextBox::currentTemplate() const {

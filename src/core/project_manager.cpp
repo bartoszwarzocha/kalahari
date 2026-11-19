@@ -2763,23 +2763,25 @@ ElementLink ProjectManager::newLink(const QString& linkedId, const QString& targ
 }
 
 QStringList ProjectManager::paragraphsOf(const QString& elementId) const {
+    const std::optional<QString> kml = textKmlOf(elementId);
+    const QString text = kml ? ChapterDocument::kmlToPlainText(*kml) : QString();
+    return text.isEmpty() ? QStringList() : text.split(QLatin1Char('\n'));
+}
+
+std::optional<QString> ProjectManager::textKmlOf(const QString& elementId) const {
     const ProjectElement* element = findElement(elementId);
     if (element == nullptr || element->file.isEmpty() || formOf(*element) != ElementForm::Text) {
-        return {};
+        return std::nullopt;
     }
     const auto state = m_elementStates.constFind(elementId);
-    QString kml;
     if (state != m_elementStates.cend() && state->loaded) {
-        kml = state->content;
-    } else {
-        const std::optional<ChapterDocument> chapter = ChapterDocument::load(filePathOf(*element));
-        if (!chapter) {
-            return {};
-        }
-        kml = chapter->kml();
+        return state->content;
     }
-    const QString text = ChapterDocument::kmlToPlainText(kml);
-    return text.isEmpty() ? QStringList() : text.split(QLatin1Char('\n'));
+    const std::optional<ChapterDocument> chapter = ChapterDocument::load(filePathOf(*element));
+    if (!chapter) {
+        return std::nullopt;
+    }
+    return chapter->kml();
 }
 
 bool ProjectManager::setRotation(const QString& elementId, int rotation) {

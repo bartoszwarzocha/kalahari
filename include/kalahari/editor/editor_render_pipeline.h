@@ -578,6 +578,11 @@ private:
     void renderFormattingMarks(QPainter* painter, size_t index,
                                const std::vector<FormattingMark>& marks, double widgetY);
 
+    /// @brief Draw the hint of an empty paragraph under a heading of a point of the skeleton
+    ///        (ITextSource::paragraphHint()) in the color of the formatting marks, on its first
+    ///        line, as far as the line reaches; a printed page has none
+    void renderHint(QPainter* painter, size_t index, double widgetY);
+
     /// @brief Render selection highlights
     void renderSelection(QPainter* painter, const QRect& clipRect);
 

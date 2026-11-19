@@ -3443,6 +3443,10 @@ void KalahariTextDocumentLayout::refreshFields(int first, int last, int delta,
     }
 }
 
+QFont KalahariTextDocumentLayout::paragraphFont(const QTextBlock& block) const {
+    return fieldFont(block.position(), block.charFormat());
+}
+
 QFont KalahariTextDocumentLayout::fieldFont(int position, const QTextFormat& format) const {
     QTextCharFormat merged;
     merged.setFont(document()->defaultFont());

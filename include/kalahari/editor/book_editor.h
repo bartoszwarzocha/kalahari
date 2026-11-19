@@ -94,6 +94,7 @@ namespace kalahari::editor {
 // Forward declarations
 class FindReplaceBar;
 class KmlDocumentModel;
+struct SkeletonPoint;
 class SpellCheckService;
 class GrammarCheckService;
 class SharedHistory;
@@ -1376,6 +1377,18 @@ public:
     ///        selection, as one undo step
     /// @return false in a read-only text
     bool insertField(const TextField& field);
+
+    /// @brief Tools > Texts for Publishers > Insert Skeleton: the headings of @p points with
+    ///        their hints at the cursor, in paragraphs of their own (text_skeleton.h), as one
+    ///        undo step; the cursor goes to the empty paragraph under the first heading
+    /// @return false in a read-only text, without points, or in a table
+    bool insertTemplateSkeleton(const QList<SkeletonPoint>& points);
+
+    /// @brief Tools > Texts for Publishers > Remove Headings and Hints: the headings of the
+    ///        points, each with the empty paragraph of its hint, as one undo step; the cursor
+    ///        stays at its character
+    /// @return The headings removed; 0 without any and in a read-only text
+    int removeTemplateSkeleton();
 
     /// @brief The field the field commands act on (of text_fields.h): the one selected alone,
     ///        else the one just before the cursor, else the one just after it; std::nullopt:
