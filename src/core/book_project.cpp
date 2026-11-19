@@ -1825,6 +1825,38 @@ bool canHold(const BookTypeRegistry& registry, const ProjectElement& element,
            kind.kind->allowsInside(element.kind.kindId);
 }
 
+/// Add to @p places, in reading order, the places of an element of @p kind in @p elements of
+/// @p part (the list of group @p groupId, or of the part when it is empty) and in the groups in
+/// them that can have it: the places of the list itself when @p here
+void addPlacesIn(const BookTypeRegistry& registry, const KindRef& kind, BookPlace part,
+                 const QList<ProjectElement>& elements, const QString& groupId, bool here,
+                 QList<ElementPlace>& places) {
+    // The lists still being gone through, the innermost last, each with its next place
+    struct Walk {
+        const QList<ProjectElement>* elements = nullptr;
+        QString groupId;
+        bool here = false;
+        qsizetype next = 0;
+    };
+    QList<Walk> walks{Walk{&elements, groupId, here, 0}};
+    while (!walks.isEmpty()) {
+        const Walk walk = walks.last();
+        const qsizetype i = walk.next;
+        if (i > walk.elements->size()) {
+            walks.removeLast();
+            continue;
+        }
+        walks.last().next = i + 1;
+        if (walk.here && BookProject::canBeAt(registry, *walk.elements, kind, i)) {
+            places.append({part, walk.groupId, i});
+        }
+        if (i < walk.elements->size() && canHold(registry, walk.elements->at(i), kind)) {
+            const ProjectElement& group = walk.elements->at(i);
+            walks.append(Walk{&group.elements, group.id, true, 0});
+        }
+    }
+}
+
 // -----------------------------------------------------------------------------
 // Kinds
 // -----------------------------------------------------------------------------
@@ -2158,39 +2190,56 @@ QList<ElementPlace> BookProject::movePlacesOf(const BookTypeRegistry& registry,
     }
 
     // In reading order: the place before an element, then the places inside it
-    const std::function<void(BookPlace, const QList<ProjectElement>&, const QString&, bool)>
-        addPlaces = [&](BookPlace part, const QList<ProjectElement>& elements,
-                        const QString& groupId, bool here) {
-            for (qsizetype i = 0; i <= elements.size(); ++i) {
-                if (here && canBeAt(registry, elements, kind, i)) {
-                    places.append({part, groupId, i});
-                }
-                if (i < elements.size() && canHold(registry, elements.at(i), kind)) {
-                    addPlaces(part, elements.at(i).elements, elements.at(i).id, true);
-                }
-            }
-        };
     if (from->place == BookPlace::Workshop) {
-        addPlaces(BookPlace::Workshop, without.workshop.elements, QString(),
-                  kind.kind->allows(BookPlace::Workshop));
+        addPlacesIn(registry, kind, BookPlace::Workshop, without.workshop.elements, QString(),
+                    kind.kind->allows(BookPlace::Workshop), places);
         return places;
     }
     for (const BookPart& part : BOOK_PARTS) {
-        addPlaces(part.place, without.elementsIn(part.place, book), QString(),
-                  kind.kind->allows(part.place));
+        addPlacesIn(registry, kind, part.place, without.elementsIn(part.place, book), QString(),
+                    kind.kind->allows(part.place), places);
+    }
+    return places;
+}
+
+QList<ElementPlace> BookProject::movePlacesIn(const BookTypeRegistry& registry,
+                                              const QString& elementId,
+                                              const QString& bookId) const {
+    const qsizetype own = bookOf(*this, elementId);
+    const qsizetype target = bookIndex(bookId);
+    if (own < 0 || target < 0) {
+        return {};
+    }
+    if (target == own) {
+        return movePlacesOf(registry, elementId);
+    }
+    const ProjectElement* element = findElement(elementId);
+    const KindRef kind = element != nullptr ? kindOf(registry, *element) : KindRef{};
+    QList<ElementPlace> places;
+    if (!kind) {
+        return places;
+    }
+    for (const BookPart& part : BOOK_PARTS) {
+        addPlacesIn(registry, kind, part.place, elementsIn(part.place, target), QString(),
+                    kind.kind->allows(part.place), places);
     }
     return places;
 }
 
 bool BookProject::moveElementTo(const BookTypeRegistry& registry, const QString& elementId,
-                                const ElementPlace& to) {
-    if (!movePlacesOf(registry, elementId).contains(to)) {
+                                const ElementPlace& to, const QString& bookId) {
+    // A place in another book of a series, or in the element's own book
+    const qsizetype own = bookOf(*this, elementId);
+    const bool elsewhere = !bookId.isEmpty() && (own < 0 || bookIndex(bookId) != own);
+    const QList<ElementPlace> places =
+        elsewhere ? movePlacesIn(registry, elementId, bookId) : movePlacesOf(registry, elementId);
+    if (!places.contains(to)) {
         return false;
     }
 
     // The project as it was comes back if the element finds no list there
     const BookProject previous = *this;
-    const qsizetype book = bookOf(*this, elementId);
+    const qsizetype book = elsewhere ? bookIndex(bookId) : own;
     std::optional<ProjectElement> element = takeElement(elementId);
     if (!element) {
         return false;
@@ -2202,6 +2251,19 @@ bool BookProject::moveElementTo(const BookTypeRegistry& registry, const QString&
     }
     list->insert(to.index, std::move(*element));
     return true;
+}
+
+qsizetype BookProject::bookIndex(const QString& bookId) const {
+    for (qsizetype book = 0; book < books.size() && !bookId.isEmpty(); ++book) {
+        if (books.at(book).id == bookId) {
+            return book;
+        }
+    }
+    return -1;
+}
+
+qsizetype BookProject::bookIndexOf(const QString& elementId) const {
+    return bookOf(*this, elementId);
 }
 
 bool BookProject::hasFile(const QString& file) const {
@@ -2419,6 +2481,7 @@ QJsonObject BookProject::toJson() const {
         bookList.append(bookToJson(book));
     }
     json.insert(QLatin1String("books"), bookList);
+    setOrRemove(json, "series", series);
     json.insert(QLatin1String("workshop"), workshopToJson(workshop));
 
     // Only a project with styles of its own has the field: other files stay as they were
@@ -2534,6 +2597,7 @@ std::optional<BookProject> BookProject::fromJson(const QJsonObject& json,
         }
     }
 
+    project.series = fields.string("series");
     project.workshop = readWorkshop(fields.take("workshop"), seen, problems);
     project.paragraphStyles = readParagraphStyles(fields.array("paragraphStyles"), problems);
     project.extra = fields.rest();

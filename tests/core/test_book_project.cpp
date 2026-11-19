@@ -205,8 +205,9 @@ BookProject fullProject() {
     project.workshop.grouped = true;
     project.workshop.elements = {character, note};
     project.workshop.extra.insert(QStringLiteral("sort"), QStringLiteral("title"));
-    project.extra.insert(QStringLiteral("series"),
-                         QJsonObject{{QStringLiteral("name"), QStringLiteral("Saga")}});
+    project.series = QStringLiteral("Saga");
+    project.extra.insert(QStringLiteral("shelf"),
+                         QJsonObject{{QStringLiteral("name"), QStringLiteral("Fiction")}});
     return project;
 }
 
@@ -622,7 +623,7 @@ TEST_CASE("Book project: a link with its role, paragraph, excerpt and note",
 
 TEST_CASE("Book project: fields this version does not know are kept", "[core][bookproject]") {
     const char* const text = R"({
-      "format": 2, "id": "p", "series": { "name": "Saga" },
+      "format": 2, "id": "p", "shelf": { "name": "Fiction" },
       "type": { "id": "kalahari.novel", "version": "1.0", "channel": "beta" },
       "kinds": [],
       "books": [
@@ -645,9 +646,9 @@ TEST_CASE("Book project: fields this version does not know are kept", "[core][bo
     const auto textOf = [](const QJsonObject& object, const char* key) {
         return object.value(QLatin1String(key)).toString();
     };
-    CHECK(project.extra.keys() == QStringList{QStringLiteral("series")});
-    CHECK(textOf(project.extra.value(QStringLiteral("series")).toObject(), "name") ==
-          QStringLiteral("Saga"));
+    CHECK(project.extra.keys() == QStringList{QStringLiteral("shelf")});
+    CHECK(textOf(project.extra.value(QStringLiteral("shelf")).toObject(), "name") ==
+          QStringLiteral("Fiction"));
     CHECK(textOf(project.type->extra, "channel") == QStringLiteral("beta"));
     CHECK(textOf(project.books.at(0).extra, "cover") == QStringLiteral("cover.jpg"));
     CHECK(project.books.at(0).sectionNames ==

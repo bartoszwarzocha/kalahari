@@ -194,6 +194,7 @@ set(KALAHARI_SOURCES
     core/card_relations.cpp # The relations between the cards of a book (uses ProjectManager)
     core/project_manager_card_fields.cpp # ProjectManager: the fields of the cards of the book
     core/project_manager_publishing.cpp # ProjectManager: the texts for publishers of the book
+    core/project_manager_series.cpp     # ProjectManager: a series, several books of one project
     core/package_card.cpp   # Cards of the packages a book uses: names and icons (IconRegistry)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus
