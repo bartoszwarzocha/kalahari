@@ -29,7 +29,7 @@ namespace kalahari::gui::dialogs {
 namespace {
 
 /// The characters of the list of the places that the window shows at least
-constexpr int PLACE_LENGTH = 24;
+constexpr int PLACE_LENGTH = 20;
 
 /// A label of a field in a grid: its text, its buddy
 QLabel* fieldLabel(const QString& text, QWidget* field, QWidget* parent) {
@@ -38,12 +38,28 @@ QLabel* fieldLabel(const QString& text, QWidget* field, QWidget* parent) {
     return label;
 }
 
-/// A note under a field or an option: grey, wrapped
+/// The characters of a line of a note: whatever the font, the notes take the same lines and do
+/// not widen the window
+constexpr int NOTE_LENGTH = 42;
+
+/// A note under a field or an option: grey, wrapped at the width of NOTE_LENGTH characters
+class Note : public QLabel {
+public:
+    Note(const QString& text, QWidget* parent) : QLabel(text, parent) {
+        setTextFormat(Qt::PlainText);
+        setWordWrap(true);
+        setForegroundRole(QPalette::PlaceholderText);
+    }
+
+    [[nodiscard]] QSize sizeHint() const override {
+        const int width = fontMetrics().averageCharWidth() * NOTE_LENGTH;
+        return {width, heightForWidth(width)};
+    }
+};
+
+/// A note under a field or an option
 QLabel* noteLabel(const QString& text, QWidget* parent) {
-    auto* note = new QLabel(text, parent);
-    note->setWordWrap(true);
-    note->setForegroundRole(QPalette::PlaceholderText);
-    return note;
+    return new Note(text, parent);
 }
 
 /// The languages of the text a volume can have, as the book's properties offer them
@@ -85,18 +101,19 @@ NewVolumeDialog::NewVolumeDialog(const core::ProjectManager& book, QWidget* pare
     left->addStretch(1);
     auto* right = new QVBoxLayout();
     right->addWidget(startGroup());
-    //: In Polish: Wspólne dla wszystkich tomów: karty postaci, miejsc i przedmiotów, słownik
-    //: książki, mapy myśli, osie czasu, notatki robocze, wycinki i materiały źródłowe. Każdy
-    //: tom ma własną okładkę, teksty dla wydawnictwa, przypisy, podpisy i bibliografię.
+    //: In Polish: Wspólne dla wszystkich tomów: karty, słownik książki, mapy myśli, osie
+    //: czasu, notatki robocze, wycinki i materiały źródłowe. Każdy tom ma własną okładkę,
+    //: teksty dla wydawnictwa, przypisy, podpisy i bibliografię.
     right->addWidget(noteLabel(
-        tr("Shared by all the volumes: the cards of the characters, locations and items, the "
-           "book dictionary, the mind maps, the timelines, the working notes, the clippings and "
-           "the sources. Each volume has its own cover, texts for publishers, footnotes, "
-           "captions and bibliography."),
+        tr("Shared by all the volumes: the cards, the book dictionary, the mind maps, the "
+           "timelines, the working notes, the clippings and the sources. Each volume has its "
+           "own cover, texts for publishers, footnotes, captions and bibliography."),
         this));
     right->addStretch(1);
-    columns->addLayout(left, 1);
-    columns->addLayout(right, 1);
+    // Each column at least as wide as it asks: a narrower one would wrap its notes into more
+    // lines than the window has room for
+    columns->addLayout(left);
+    columns->addLayout(right);
     contentLayout()->addLayout(columns);
 
     connect(m_titleEdit, &QLineEdit::textChanged, this,
@@ -168,8 +185,8 @@ QWidget* NewVolumeDialog::volumeGroup(const core::ProjectManager& book) {
     //: In Polish: &Autor
     grid->addWidget(fieldLabel(tr("A&uthor"), m_authorEdit, group), 1, 0);
     grid->addWidget(m_authorEdit, 1, 1);
-    //: In Polish: &Język tekstu
-    grid->addWidget(fieldLabel(tr("&Language of the text"), m_languageBox, group), 2, 0);
+    //: The language of the text of the volume. In Polish: &Język tekstu
+    grid->addWidget(fieldLabel(tr("&Language"), m_languageBox, group), 2, 0);
     grid->addWidget(m_languageBox, 2, 1);
     //: The place of the new volume among the volumes. In Polish: &Miejsce
     grid->addWidget(fieldLabel(tr("&Place"), m_placeBox, group), 3, 0);
@@ -183,11 +200,9 @@ QWidget* NewVolumeDialog::startGroup() {
     //: tomu
     auto* group = new QGroupBox(tr("Start of the Volume"), this);
     auto* layout = new QVBoxLayout(group);
-    //: In Polish: &Puste sekcje
-    m_emptyButton = new QRadioButton(tr("&Empty sections"), group);
+    //: The sections of a new book. In Polish: &Puste sekcje, tylko pierwszy rozdział
+    m_emptyButton = new QRadioButton(tr("&Empty sections, only the first chapter"), group);
     layout->addWidget(m_emptyButton);
-    //: In Polish: Tylko pierwszy rozdział, jak w nowej książce.
-    layout->addWidget(noteLabel(tr("Only the first chapter, as in a new book."), group));
     m_pagesButton = new QRadioButton(group);
     m_pagesButton->setChecked(true);
     layout->addWidget(m_pagesButton);
@@ -201,11 +216,8 @@ void NewVolumeDialog::updatePlace() {
     if (m_seriesNote != nullptr) {
         // The book is volume 1, or volume 2 after a new volume 1
         //: %1: the title of the book, %2: its number in the series. In Polish: Książka „%1”
-        //: stanie się tomem %2 serii. Plik projektu zostaje ten sam, a Nawigator pokaże tomy
-        //: i jeden wspólny Warsztat.
-        m_seriesNote->setText(tr("The book \"%1\" becomes volume %2 of the series. The file "
-                                 "of the project stays the same, and the Navigator shows the "
-                                 "volumes and one Workshop.")
+        //: stanie się tomem %2 serii.
+        m_seriesNote->setText(tr("The book \"%1\" becomes volume %2 of the series.")
                                   .arg(m_titles.value(0), QString::number(place == 0 ? 2 : 1)));
     }
 
@@ -214,14 +226,12 @@ void NewVolumeDialog::updatePlace() {
     //: %1: the number of the volume the pages come from. In Polish: &Strony z tomu %1, bez
     //: rozdziałów
     m_pagesButton->setText(tr("Pa&ges of volume %1, without chapters").arg(source));
-    //: %1: the number of the volume. In Polish: Te same strony sekcji początkowej i końcowej
-    //: co w tomie %1: strona tytułowa z tytułem nowego tomu, pozostałe (np. prawa autorskie,
-    //: o autorze) z tekstem z tomu %1, a do tego pierwszy rozdział.
-    m_pagesNote->setText(
-        tr("The same pages of the front and back sections as in volume %1: the title page "
-           "with the title of the new volume, the others (such as the copyright page or About "
-           "the Author) with the text of volume %1, and the first chapter.")
-            .arg(source));
+    //: %1: the number of the volume. In Polish: Strony sekcji początkowej i końcowej tomu %1
+    //: wraz z tekstem, strona tytułowa z tytułem nowego tomu i pierwszy rozdział.
+    m_pagesNote->setText(tr("The pages of the front and back sections of volume %1 with their "
+                            "text, the title page with the title of the new volume, and the "
+                            "first chapter.")
+                             .arg(source));
 }
 
 void NewVolumeDialog::updateAcceptButton() {

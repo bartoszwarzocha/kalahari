@@ -27,6 +27,7 @@
 #include "kalahari_tests/gui/dialog_checks.h"
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari_tests/polish.h"
+#include "test_support/dialog_checks.h"
 
 #include <QComboBox>
 #include <QDir>
@@ -229,9 +230,16 @@ TEST_CASE("Series: the window New Volume fits a small screen, in English and in 
         dialog.close();
     };
     check("English");
+    {
+        // The notes keep their lines in a font of higher lines, as Windows has
+        const test::AppFontOfPixels font(13);
+        check("English, in a font of 13 pixels");
+    }
     const test::Polish polish;
     REQUIRE(polish.loaded());
     check("Polish");
+    const test::AppFontOfPixels font(13);
+    check("Polish, in a font of 13 pixels");
 }
 
 TEST_CASE("Series: the Navigator shows the volumes under the name of the series, the current "
@@ -359,7 +367,7 @@ TEST_CASE("Series: a volume goes earlier and later, and is deleted with its file
     CHECK(novel.pm.project()->books.size() == 1);
 }
 
-TEST_CASE("Series: the page of the series in the Properties panel – its name and its volumes",
+TEST_CASE("Series: the page of the series in the Properties panel, its name and its volumes",
           "[gui][series][properties]") {
     gui::registerAllIcons();
     const test::OpenNovel novel(QStringLiteral("Sand"));

@@ -38760,9 +38760,9 @@ In Polish: Nie udało się zapisać nazwy serii: nie można zapisać projektu.</
         <translation>&amp;Dodaj tom</translation>
     </message>
     <message>
-        <source>Shared by all the volumes: the cards of the characters, locations and items, the book dictionary, the mind maps, the timelines, the working notes, the clippings and the sources. Each volume has its own cover, texts for publishers, footnotes, captions and bibliography.</source>
-        <extracomment>In Polish: Wspólne dla wszystkich tomów: karty postaci, miejsc i przedmiotów, słownik książki, mapy myśli, osie czasu, notatki robocze, wycinki i materiały źródłowe. Każdy tom ma własną okładkę, teksty dla wydawnictwa, przypisy, podpisy i bibliografię.</extracomment>
-        <translation>Wspólne dla wszystkich tomów: karty postaci, miejsc i przedmiotów, słownik książki, mapy myśli, osie czasu, notatki robocze, wycinki i materiały źródłowe. Każdy tom ma własną okładkę, teksty dla wydawnictwa, przypisy, podpisy i bibliografię.</translation>
+        <source>Shared by all the volumes: the cards, the book dictionary, the mind maps, the timelines, the working notes, the clippings and the sources. Each volume has its own cover, texts for publishers, footnotes, captions and bibliography.</source>
+        <extracomment>In Polish: Wspólne dla wszystkich tomów: karty, słownik książki, mapy myśli, osie czasu, notatki robocze, wycinki i materiały źródłowe. Każdy tom ma własną okładkę, teksty dla wydawnictwa, przypisy, podpisy i bibliografię.</extracomment>
+        <translation>Wspólne dla wszystkich tomów: karty, słownik książki, mapy myśli, osie czasu, notatki robocze, wycinki i materiały źródłowe. Każdy tom ma własną okładkę, teksty dla wydawnictwa, przypisy, podpisy i bibliografię.</translation>
     </message>
     <message>
         <source>Series</source>
@@ -38800,8 +38800,8 @@ In Polish: Nie udało się zapisać nazwy serii: nie można zapisać projektu.</
         <translation>&amp;Autor</translation>
     </message>
     <message>
-        <source>&amp;Language of the text</source>
-        <extracomment>In Polish: &amp;Język tekstu</extracomment>
+        <source>&amp;Language</source>
+        <extracomment>The language of the text of the volume. In Polish: &amp;Język tekstu</extracomment>
         <translation>&amp;Język tekstu</translation>
     </message>
     <message>
@@ -38815,19 +38815,14 @@ In Polish: Nie udało się zapisać nazwy serii: nie można zapisać projektu.</
         <translation>Początek tomu</translation>
     </message>
     <message>
-        <source>&amp;Empty sections</source>
-        <extracomment>In Polish: &amp;Puste sekcje</extracomment>
-        <translation>&amp;Puste sekcje</translation>
+        <source>&amp;Empty sections, only the first chapter</source>
+        <extracomment>The sections of a new book. In Polish: &amp;Puste sekcje, tylko pierwszy rozdział</extracomment>
+        <translation>&amp;Puste sekcje, tylko pierwszy rozdział</translation>
     </message>
     <message>
-        <source>Only the first chapter, as in a new book.</source>
-        <extracomment>In Polish: Tylko pierwszy rozdział, jak w nowej książce.</extracomment>
-        <translation>Tylko pierwszy rozdział, jak w nowej książce.</translation>
-    </message>
-    <message>
-        <source>The book &quot;%1&quot; becomes volume %2 of the series. The file of the project stays the same, and the Navigator shows the volumes and one Workshop.</source>
-        <extracomment>%1: the title of the book, %2: its number in the series. In Polish: Książka „%1” stanie się tomem %2 serii. Plik projektu zostaje ten sam, a Nawigator pokaże tomy i jeden wspólny Warsztat.</extracomment>
-        <translation>Książka „%1” stanie się tomem %2 serii. Plik projektu zostaje ten sam, a Nawigator pokaże tomy i jeden wspólny Warsztat.</translation>
+        <source>The book &quot;%1&quot; becomes volume %2 of the series.</source>
+        <extracomment>%1: the title of the book, %2: its number in the series. In Polish: Książka „%1” stanie się tomem %2 serii.</extracomment>
+        <translation>Książka „%1” stanie się tomem %2 serii.</translation>
     </message>
     <message>
         <source>Pa&amp;ges of volume %1, without chapters</source>
@@ -38835,9 +38830,9 @@ In Polish: Nie udało się zapisać nazwy serii: nie można zapisać projektu.</
         <translation>&amp;Strony z tomu %1, bez rozdziałów</translation>
     </message>
     <message>
-        <source>The same pages of the front and back sections as in volume %1: the title page with the title of the new volume, the others (such as the copyright page or About the Author) with the text of volume %1, and the first chapter.</source>
-        <extracomment>%1: the number of the volume. In Polish: Te same strony sekcji początkowej i końcowej co w tomie %1: strona tytułowa z tytułem nowego tomu, pozostałe (np. prawa autorskie, o autorze) z tekstem z tomu %1, a do tego pierwszy rozdział.</extracomment>
-        <translation>Te same strony sekcji początkowej i końcowej co w tomie %1: strona tytułowa z tytułem nowego tomu, pozostałe (np. prawa autorskie, o autorze) z tekstem z tomu %1, a do tego pierwszy rozdział.</translation>
+        <source>The pages of the front and back sections of volume %1 with their text, the title page with the title of the new volume, and the first chapter.</source>
+        <extracomment>%1: the number of the volume. In Polish: Strony sekcji początkowej i końcowej tomu %1 wraz z tekstem, strona tytułowa z tytułem nowego tomu i pierwszy rozdział.</extracomment>
+        <translation>Strony sekcji początkowej i końcowej tomu %1 wraz z tekstem, strona tytułowa z tytułem nowego tomu i pierwszy rozdział.</translation>
     </message>
 </context>
 </TS>
