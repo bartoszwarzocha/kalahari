@@ -1007,10 +1007,15 @@ TEST_CASE("Find in Book: a series, in the current volume or in the whole series"
     auto* series = search.panel.findChild<QToolButton*>(QStringLiteral("searchWholeSeries"));
     REQUIRE(series != nullptr);
     const auto replaceText = [&search]() {
-        const QList<gui::WrappingButton*> buttons =
-            search.panel.findChildren<gui::WrappingButton*>();
-        REQUIRE(buttons.size() == 1);
-        return buttons.constFirst()->fullText();
+        // A WrappingButton has no Q_OBJECT, so it is found among the push buttons
+        QStringList texts;
+        for (const QPushButton* button : search.panel.findChildren<QPushButton*>()) {
+            if (const auto* wrapping = dynamic_cast<const gui::WrappingButton*>(button)) {
+                texts << wrapping->fullText();
+            }
+        }
+        REQUIRE(texts.size() == 1);
+        return texts.constFirst();
     };
     // One book: no option Whole Series
     CHECK_FALSE(series->isVisibleTo(&search.panel));

@@ -25,6 +25,7 @@
 #include <QStringList>
 #include <QTemporaryDir>
 
+#include <algorithm>
 #include <optional>
 
 using kalahari::core::BookProject;
@@ -79,13 +80,13 @@ QString elementOf(const QList<PublishingSetPart>& parts, const char* part) {
 
 /// The element @p id of the Workshop of @p project
 const ProjectElement& elementIn(const BookProject& project, const char* id) {
-    for (const ProjectElement& element : project.workshop.elements) {
-        if (element.id == QLatin1String(id)) {
-            return element;
-        }
-    }
-    FAIL("No element " << id);
-    return project.workshop.elements.first();
+    const QList<ProjectElement>& elements = project.workshop.elements;
+    const auto found = std::find_if(elements.cbegin(), elements.cend(), [id](const auto& each) {
+        return each.id == QLatin1String(id);
+    });
+    INFO("The element " << id);
+    REQUIRE(found != elements.cend());
+    return *found;
 }
 
 ProjectManager& projects() {

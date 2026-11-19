@@ -91,13 +91,6 @@ void appendAll(const QList<ProjectElement>& elements, QList<const ProjectElement
     }
 }
 
-void appendAll(QList<ProjectElement>& elements, QList<ProjectElement*>& all) {
-    for (ProjectElement& element : elements) {
-        all.append(&element);
-        appendAll(element.elements, all);
-    }
-}
-
 /// Every element of @p project: of the books in reading order, each followed by the files of
 /// the book outside its text, then of the Workshop
 QList<const ProjectElement*> allElements(const BookProject& project) {
