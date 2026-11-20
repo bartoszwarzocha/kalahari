@@ -128,11 +128,18 @@ jobs:
         cd build
         ctest --output-on-failure --build-config ${{ matrix.build_type }}
 
-    - name: Upload binaries (Release only)
+    # Kalahari.app in a .dmg (scripts/package.py), checked by the program's own check of an
+    # installation. The release of a version takes it from the run of main (release.yml)
+    - name: Package (.dmg)
+      if: matrix.build_type == 'Release'
+      run: python3 scripts/package.py macos --build build --out dist
+
+    - name: Upload package
       if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v4
       with:
-        name: kalahari-macos-${{ matrix.build_type }}
-        path: |
-          build/bin/kalahari*
-        retention-days: 7
+        name: kalahari-macos-packages
+        path: dist/*
+        if-no-files-found: error
+        compression-level: 0  # the package is compressed already
+        retention-days: 30

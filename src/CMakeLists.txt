@@ -358,6 +358,7 @@ set(KALAHARI_SOURCES
     gui/main_window.cpp
     gui/menu_builder.cpp
     gui/program_instance.cpp  # ProgramInstance - a later start hands its request to the program that runs
+    gui/installation.cpp  # Where the installed program keeps its log, and --self-test
     gui/recent_books_menu.cpp
     gui/settings_dialog.cpp
     gui/settings/settings_page.cpp

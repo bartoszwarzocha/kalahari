@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The type of the files of the books of Kalahari (.klh, a JSON file), installed as
+     share/mime/packages/kalahari.xml: the file managers show them as books and open them with
+     the program (kalahari.desktop) -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-kalahari-book">
+    <comment>Kalahari book</comment>
+    <comment xml:lang="pl">Książka programu Kalahari</comment>
+    <sub-class-of type="application/json"/>
+    <generic-icon name="x-office-document"/>
+    <glob pattern="*.klh"/>
+  </mime-type>
+</mime-info>

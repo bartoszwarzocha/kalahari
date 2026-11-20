@@ -308,8 +308,9 @@ message(STATUS "Resources will be copied to output directory via POST_BUILD")
 enable_testing()
 add_subdirectory(tests)
 
-# Installation rules (Phase 5)
-# install(TARGETS kalahari DESTINATION bin)
+# What `cmake --install` puts where, the icon and version of the program file, the bundle of
+# macOS (scripts/package.py makes the packages from it)
+include("${CMAKE_SOURCE_DIR}/cmake/Packaging.cmake")
 
 # Print configuration summary
 message(STATUS "")

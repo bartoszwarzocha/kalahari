@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=Kalahari
+GenericName=Writer's IDE
+GenericName[pl]=Środowisko pracy pisarza
+Comment=Write, plan and publish books
+Comment[pl]=Pisanie, planowanie i wydawanie książek
+Exec=kalahari %f
+Icon=kalahari
+Terminal=false
+Categories=Office;WordProcessor;
+MimeType=application/x-kalahari-book;
+Keywords=book;novel;writing;manuscript;author;
+Keywords[pl]=książka;powieść;pisanie;rękopis;autor;
+StartupNotify=true
+StartupWMClass=kalahari

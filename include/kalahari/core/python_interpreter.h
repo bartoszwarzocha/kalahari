@@ -72,6 +72,14 @@ public:
     /// @return Path to bundled Python runtime
     std::filesystem::path getPythonHome() const;
 
+    /// @brief The folder of the compiled modules of Python (sys.pycache_prefix)
+    /// @return kalahari/python in the cache folder of the user, or an empty path when the
+    ///         system has none (Python then writes them next to the modules)
+    /// @note Not next to the modules: the program does not write into its installation (the
+    ///       uninstaller removes only the files it installed, macOS checks the signature of
+    ///       Kalahari.app), nor into the Python of the system
+    static std::filesystem::path compiledModulesFolder();
+
     /// @brief Execute test Python code to verify integration
     /// Tests: basic execution, imports, variable access
     /// @return Test results as string (for display/logging)

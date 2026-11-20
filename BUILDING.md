@@ -404,6 +404,43 @@ ctest --output-on-failure
 
 ---
 
+## Packages
+
+The installers of the program are made from a **Release** build by `scripts/package.py`, from
+what `cmake --install` puts in the folder of an installation (`cmake/Packaging.cmake`). Every
+package is checked before it is written: the packaged program runs its own check of an
+installation, `kalahari --self-test` (resources, icon, translations, the Qt plugins of images,
+the database and secure connections, the Python of the plugins), and the package is not made
+when a part is missing. The CI makes the packages in the Release jobs of every run (artifacts
+`kalahari-<system>-packages`); a version tag attaches those of main to the draft release
+(`.github/workflows/release.yml`).
+
+| System | Command | Packages |
+|---|---|---|
+| Linux (Ubuntu 24.04, Linux Mint 22 and newer) | `python3 scripts/package.py linux --build build` | `Kalahari-<version>-x86_64.AppImage`, `kalahari_<version>_amd64.deb` |
+| Windows 10/11 x64 | `python scripts/package.py windows --build build-windows` | `Kalahari-<version>-windows-x64-setup.exe`, `Kalahari-<version>-windows-x64.zip` |
+| macOS (Apple Silicon) | `python3 scripts/package.py macos --build build` | `Kalahari-<version>-macos-arm64.dmg` |
+
+The packages go to `dist/` (`--out` gives another folder), each with its `.sha256`.
+
+- **Linux.** Both packages carry the Qt and the Python the program is built with (the AppImage
+  needs no installation; the `.deb` installs into `/opt/kalahari`, with `kalahari` in
+  `/usr/bin`, a menu entry and the type of the `.klh` files). The script downloads
+  linuxdeploy and its Qt plugin (pinned releases, checked by SHA-256) and needs `dpkg-dev`.
+  The windows for choosing a file are the system's own (the GTK theme of Qt and the desktop
+  portal); where the desktop has neither, Qt's own window, with Polish texts, opens.
+- **Windows.** The installer needs NSIS 3 (`makensis`, also the one of Linux:
+  `scripts/package.py windows-installer --stage <folder>`); without it only the ZIP is made.
+  It installs for the current user (no administrator, `%LOCALAPPDATA%\Programs\Kalahari`) or
+  for all users (`Program Files`), adds Kalahari to the Start menu, optionally to the desktop,
+  and opens the `.klh` books in it. `/S` installs silently.
+- **macOS.** `Kalahari.app` with its libraries and Python, signed ad hoc: without a Developer ID
+  of Apple, macOS asks on the first start whether to open it (System Settings > Privacy &
+  Security > Open Anyway).
+
+The icons of the program are made from its logo by `scripts/make_app_icons.py` (needs
+Pillow); run it again after `resources/images/app_logo.png` changes.
+
 ## Manual Testing Checklist
 
 ### Task #00001: Basic GUI Window

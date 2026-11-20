@@ -148,6 +148,7 @@ set(TEST_SOURCES
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
     gui/test_program_instance.cpp                # A later start hands its request to the program that runs
+    gui/test_installation.cpp                    # The log of an installed program, --self-test
     gui/test_recent_book_cards.cpp               # Dashboard: the data of the recent books
     gui/test_save_all.cpp                        # Save All: the book and the files outside it
     gui/test_document_windows.cpp                # The tabs of the texts in windows of their own
@@ -405,6 +406,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/navigator_panel_series.cpp  # The volumes of a series
     ${CMAKE_SOURCE_DIR}/src/gui/recent_books_menu.cpp       # File > Recent Books submenu
     ${CMAKE_SOURCE_DIR}/src/gui/program_instance.cpp        # A later start hands its request over
+    ${CMAKE_SOURCE_DIR}/src/gui/installation.cpp            # The log of an installed program, --self-test
     ${CMAKE_SOURCE_DIR}/src/gui/menu_builder.cpp            # The menus of the commands: the File menu, the titles and order for the shortcuts list
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # Navigator commands on the open project
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator_series.cpp  # The volumes of a series
@@ -1137,6 +1139,11 @@ add_test(NAME scripts.release
 )
 add_test(NAME scripts.release_check
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/release.py check
+)
+# The packages of the program (scripts/package.py): its lists, folders and checks, and the
+# files of the packages agreeing with each other; the CI makes the packages themselves
+add_test(NAME scripts.package
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_package.py
 )
 
 message(STATUS "Configured test target: kalahari-tests")

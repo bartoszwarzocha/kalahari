@@ -4544,9 +4544,9 @@ Niewłaściwa konfiguracja może wpłynąć na stabilność programu.</translati
         <translation>Liczba komunikatów, które panel przechowuje w pamięci. Gdy się zapełni, najstarsze znikają; plik dziennika zachowuje wszystkie.</translation>
     </message>
     <message>
-        <source>The file kalahari.log in the folder of the program keeps the messages of the current session. The buttons of the log panel open its folder, copy the log to the clipboard and clear the panel.</source>
-        <extracomment>In Polish: Plik kalahari.log w folderze programu zapisuje komunikaty bieżącej sesji. Przyciski panelu dziennika otwierają jego folder, kopiują dziennik do schowka i czyszczą panel.</extracomment>
-        <translation>Plik kalahari.log w folderze programu zapisuje komunikaty bieżącej sesji. Przyciski panelu dziennika otwierają jego folder, kopiują dziennik do schowka i czyszczą panel.</translation>
+        <source>The file kalahari.log keeps the messages of the current session: in the folder of the program, or, where the program may not write there (an installation for all users, the packages of Linux, macOS), in the folder of its settings. The buttons of the log panel open its folder, copy the log to the clipboard and clear the panel.</source>
+        <extracomment>In Polish: Plik kalahari.log zapisuje komunikaty bieżącej sesji: w folderze programu, a gdy program nie może tam zapisywać (instalacja dla wszystkich użytkowników, pakiety dla Linuksa, macOS) – w folderze jego ustawień. Przyciski panelu dziennika otwierają jego folder, kopiują dziennik do schowka i czyszczą panel.</extracomment>
+        <translation>Plik kalahari.log zapisuje komunikaty bieżącej sesji: w folderze programu, a gdy program nie może tam zapisywać (instalacja dla wszystkich użytkowników, pakiety dla Linuksa, macOS) – w folderze jego ustawień. Przyciski panelu dziennika otwierają jego folder, kopiują dziennik do schowka i czyszczą panel.</translation>
     </message>
 </context>
 <context>
@@ -22314,6 +22314,11 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     <message>
         <source>Run performance benchmark and exit</source>
         <translation>Wykonaj test wydajności i zakończ</translation>
+    </message>
+    <message>
+        <source>Check the installation of the program (resources, Qt plugins, Python) and exit</source>
+        <extracomment>In Polish: Sprawdź instalację programu (zasoby, wtyczki Qt, Python) i zakończ</extracomment>
+        <translation>Sprawdź instalację programu (zasoby, wtyczki Qt, Python) i zakończ</translation>
     </message>
     <message>
         <source>Open project from path (for --benchmark)</source>
