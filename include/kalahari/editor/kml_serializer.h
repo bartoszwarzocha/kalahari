@@ -72,7 +72,8 @@ public:
     // Main Serialization Methods
     // =========================================================================
 
-    /// @brief Serialize QTextDocument to KML string
+    /// @brief Serialize QTextDocument to KML string: its paragraphs, and its tab guides
+    ///        (tab_guides.h) in the <tab-guides> section before them
     /// @param document The document to serialize
     /// @return KML markup string
     QString toKml(const QTextDocument* document) const;

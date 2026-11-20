@@ -25,6 +25,7 @@
     },
     "episode": {
       "form": "group", "places": ["main"], "icon": "structure.part",
+      "firstPage": "right",
       "name": { "pl": "Odcinek", "en": "Episode" },
       "plural": { "pl": "Odcinki", "en": "Episodes" },
       "words": {

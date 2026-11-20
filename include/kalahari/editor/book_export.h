@@ -21,6 +21,7 @@
 #ifndef KALAHARI_EDITOR_BOOK_EXPORT_H
 #define KALAHARI_EDITOR_BOOK_EXPORT_H
 
+#include <kalahari/core/page_start.h>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/paragraph_styles.h>
@@ -119,7 +120,9 @@ struct ExportItem {
     QString kml;         ///< Its text (ExportItemKind::Text)
     CaptionContext captions;   ///< The numbering of its captions in the book around it
     FootnoteContext footnotes;  ///< The numbering of its notes in the book around it
-    bool firstPageLeft = false;  ///< It starts on a left page (mirror margins)
+    /// The page it starts on with mirror margins and each item from a new page: a right one,
+    /// a left one (a page left empty before it when needed) or the next one; never Auto
+    core::PageStart start = core::PageStart::Right;
 };
 
 /// @brief What goes to the file of an export, and how it looks

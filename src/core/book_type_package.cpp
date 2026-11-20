@@ -8,6 +8,7 @@
 
 #include "kalahari/core/card_package.h"
 #include "kalahari/core/package_json.h"
+#include "kalahari/core/page_start.h"
 #include "kalahari/core/publishing_texts.h"
 
 #include <QDir>
@@ -174,6 +175,24 @@ QMap<QString, KindWords> readWords(const QJsonValue& value, const QString& field
     return words;
 }
 
+/// The page of a printed book the elements of a kind start on ("firstPage"): a text, a part's
+/// title, the table of contents; PageStart::Auto (as the settings say) without it
+PageStart readFirstPage(const QJsonObject& object, const QString& field, QStringList& problems) {
+    const QJsonValue firstPage = object.value(QStringLiteral("firstPage"));
+    if (firstPage.isUndefined()) {
+        return PageStart::Auto;
+    }
+    const std::optional<PageStart> start = firstPage.isString() && !firstPage.toString().isEmpty()
+                                               ? pageStartFromName(firstPage.toString())
+                                               : std::nullopt;
+    if (!start) {
+        addProblem(problems, field + QStringLiteral(".firstPage"),
+                   QStringLiteral("must be \"right\", \"left\" or \"next\""));
+        return PageStart::Auto;
+    }
+    return *start;
+}
+
 std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
                                     const QString& directory, QStringList& problems) {
     const QString field = QStringLiteral("kinds.") + id;
@@ -194,8 +213,8 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
     const QJsonObject object = value.toObject();
     checkKeys(object, field,
               {"form", "name", "plural", "words", "icon", "places", "limit", "title",
-               "numbering", "template", "position", "first", "editor", "generated",
-               "settings", "workshopGroup", "retired", "fields", "chapterRoles"},
+               "numbering", "template", "position", "first", "firstPage", "editor",
+               "generated", "settings", "workshopGroup", "retired", "fields", "chapterRoles"},
               problems);
 
     ElementKind kind;
@@ -319,6 +338,8 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
             kind.first = first.toBool();
         }
     }
+
+    kind.firstPage = readFirstPage(object, field, problems);
 
     const QJsonValue editor = object.value(QStringLiteral("editor"));
     if (kind.form == ElementForm::Window) {

@@ -713,7 +713,7 @@ editor::ExportItem BookExportCoordinator::textItem(
     if (m_footnotes != nullptr) {
         item.footnotes = m_footnotes->contextFor(element.id);
     }
-    item.firstPageLeft = element.firstPageLeft;
+    item.start = m_book.pageStartOf(element);
     return item;
 }
 
@@ -768,7 +768,7 @@ void BookExportCoordinator::addItems(const QList<core::ProjectElement>& elements
                 group.elementId = element.id;
                 group.title = element.title;
                 group.titleStyle = PART_TITLE_STYLE;
-                group.firstPageLeft = element.firstPageLeft;
+                group.start = m_book.pageStartOf(element);
                 items.push_back(std::move(group));
                 std::move(inside.begin(), inside.end(), std::back_inserter(items));
             }

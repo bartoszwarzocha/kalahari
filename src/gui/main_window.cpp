@@ -9,6 +9,7 @@
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/settings_coordinator.h"
 #include "kalahari/gui/shortcut_settings.h"
+#include "kalahari/gui/book_page_numbers.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/document_windows.h"
@@ -74,6 +75,7 @@
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/quick_insert_controller.h"
 #include "kalahari/editor/search_forms.h"
+#include "kalahari/editor/tab_guides.h"
 #include "kalahari/editor/view_modes.h"
 #include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/editor_appearance.h"
@@ -146,6 +148,9 @@ constexpr int READ_ONLY_MESSAGE_MS = 5000;
 
 /// How long the status bar says that Paste Special pasted
 constexpr int PASTED_MESSAGE_MS = 2000;
+
+/// How long the status bar says what a command of the tab guides did
+constexpr int TAB_GUIDE_MESSAGE_MS = 4000;
 
 /// The commands of the Book menu that add an element of a kind of the Workshop, with the id of
 /// the kind in the base package
@@ -360,9 +365,12 @@ MainWindow::MainWindow(QWidget* parent)
     // A chapter title changed in the Properties panel shows on its tab too
     connect(m_dockCoordinator, &DockCoordinator::chapterStatusChanged,
             m_navigatorCoordinator, &NavigatorCoordinator::refreshTabTitle);
-    // ... and whether it starts on a left page, in the margins of its pages
+    // ... and the page it starts on, in the margins and the numbers of its pages
     connect(m_dockCoordinator, &DockCoordinator::chapterFirstPageChanged,
             m_navigatorCoordinator, &NavigatorCoordinator::refreshFirstPage);
+    // The pages of the book counted: the status bar shows the page of the book
+    connect(&m_navigatorCoordinator->pageNumbers(), &BookPageNumbers::counted, this,
+            &MainWindow::updatePageStatus);
     // Add... on a node of the Navigator: the Add Element window with the kinds of the node
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestAdd,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAdd);
@@ -1461,6 +1469,7 @@ void MainWindow::registerCommands() {
     callbacks.onFormatItalic = [this]() { onFormatItalic(); };
     callbacks.onFormatUnderline = [this]() { onFormatUnderline(); };
     callbacks.onFormatStrikethrough = [this]() { onFormatStrikethrough(); };
+    callbacks.onTabGuide = [this](TabGuideCommand command) { onTabGuide(command); };
     callbacks.onClearFormatting = [this]() {
         EditorPanel* editor = getCurrentEditor();
         if (editor && editor->getBookEditor()) {
@@ -2831,6 +2840,66 @@ void MainWindow::onImageCommand(editor::BookEditor& text, ImageCommand command) 
     m_editCoordinator->updateStates();
 }
 
+void MainWindow::onTabGuide(TabGuideCommand command) {
+    EditorPanel* editor = getCurrentEditor();
+    editor::BookEditor* text = editor != nullptr ? editor->getBookEditor() : nullptr;
+    if (text == nullptr) {
+        return;
+    }
+    editor::TabGuideOutcome outcome;
+    switch (command) {
+        case TabGuideCommand::Toggle:
+            outcome = text->toggleTabGuideAtCursor();
+            break;
+        case TabGuideCommand::MoveLeft:
+            outcome = text->moveTabGuide(-1);
+            break;
+        case TabGuideCommand::MoveRight:
+            outcome = text->moveTabGuide(1);
+            break;
+        case TabGuideCommand::RemoveAll:
+            outcome = text->clearTabGuides();
+            break;
+    }
+    if (const QString message = tabGuideMessage(outcome); !message.isEmpty()) {
+        statusBar()->showMessage(message, TAB_GUIDE_MESSAGE_MS);
+    }
+}
+
+QString MainWindow::tabGuideMessage(const editor::TabGuideOutcome& outcome) {
+    using editor::TabGuideResult;
+    const QString at = QLocale().toString(outcome.at);
+    switch (outcome.result) {
+        case TabGuideResult::Added:
+            //: In Polish: Linia tabulatora na %1 mm: Tab wyrównuje do niej tekst
+            return tr("Tab guide at %1 mm: Tab aligns the text to it").arg(at);
+        case TabGuideResult::Removed:
+            //: In Polish: Usunięto linię tabulatora z %1 mm
+            return tr("Tab guide at %1 mm removed").arg(at);
+        case TabGuideResult::Moved:
+            return tr("Tab guide at %1 mm").arg(at);
+        case TabGuideResult::Cleared:
+            return tr("All tab guides removed");
+        case TabGuideResult::NoGuides:
+            //: The menus as the Polish program names them: Format > Wyrównanie > Ustaw lub
+            //: usuń linię tabulatora
+            return tr("The text has no tab guides: Format > Align Text > Set or Remove Tab "
+                      "Guide sets one at the cursor");
+        case TabGuideResult::AtEdge:
+            return tr("A tab guide goes inside the text: move the cursor away from its edge");
+        case TabGuideResult::Full:
+            return tr("The text has %1 tab guides, the most it can have")
+                .arg(editor::MAX_TAB_GUIDES);
+        case TabGuideResult::Blocked:
+            return tr("The tab guide at %1 mm goes no further: another guide or the edge of the "
+                      "text is there")
+                .arg(at);
+        case TabGuideResult::Refused:
+            break;
+    }
+    return {};
+}
+
 void MainWindow::updateEditorActionStates() {
     // Undo, Redo and the clipboard follow the element with the keys
     if (m_editCoordinator) {
@@ -4028,10 +4097,10 @@ void MainWindow::updatePageStatus() {
         m_zoomLabel->hide();
         return;
     }
-    const int total = bookEditor->totalPages();
-    m_pageLabel->setVisible(total > 0);
-    if (total > 0) {
-        m_pageLabel->setText(tr("Page %1 of %2").arg(bookEditor->currentPage()).arg(total));
+    const QString page = editor->pageStatus();
+    m_pageLabel->setVisible(!page.isEmpty());
+    if (!page.isEmpty()) {
+        m_pageLabel->setText(page);
     }
     m_zoomLabel->setText(tr("%1%").arg(qRound(bookEditor->zoomFactor() * 100.0)));
     m_zoomLabel->show();

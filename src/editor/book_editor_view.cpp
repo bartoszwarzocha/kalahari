@@ -715,6 +715,7 @@ void BookEditor::applyPageLayout()
                                           QMarginsF(left, margins.top, right, margins.bottom),
                                           m_appearance.pageLayout.pageGap, margins.mirrored);
     m_renderPipeline->setConfigShowPageNumbers(m_appearance.pageLayout.showPageNumbers);
+    m_renderPipeline->setConfigFirstPageNumber(m_appearance.pageLayout.firstPageNumber);
 }
 
 void BookEditor::startScrollAnimation(qreal targetOffset, int durationMs)

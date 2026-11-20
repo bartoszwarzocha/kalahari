@@ -51,6 +51,14 @@ enum class TableCommand {
     Properties,          ///< Table Properties...: its window
 };
 
+/// @brief The commands of the tab guides of the text with the keys (Format > Align Text)
+enum class TabGuideCommand {
+    Toggle,     ///< Set or Remove Tab Guide: the guide at the cursor taken away, or a new one
+    MoveLeft,   ///< Move Tab Guide Left: the guide nearest the cursor a step left
+    MoveRight,  ///< Move Tab Guide Right
+    RemoveAll,  ///< Remove All Tab Guides
+};
+
 /// @brief The commands of the Image menu (the selected image of the text with the keys)
 enum class ImageCommand {
     Properties,       ///< Image Properties...: its window
@@ -168,6 +176,7 @@ struct CommandCallbacks {
     std::function<void()> onInsertTable;        ///< Insert > Table...
     std::function<void()> onInsertImage;        ///< Insert > Image...
     std::function<void(TableCommand)> onTable;  ///< The Table menu
+    std::function<void(TabGuideCommand)> onTabGuide;  ///< Format > Align Text: the tab guides
     std::function<void(ImageCommand)> onImage;  ///< The Image menu
 
     // Format > Text Effects

@@ -1423,6 +1423,22 @@
         <extracomment>In Polish: Dołącz książkę &amp;jako tom...</extracomment>
         <translation>Dołącz książkę &amp;jako tom...</translation>
     </message>
+    <message>
+        <source>Set or Remove Tab &amp;Guide</source>
+        <translation>Ustaw lub usuń linię &amp;tabulatora</translation>
+    </message>
+    <message>
+        <source>Move Tab Guide Le&amp;ft</source>
+        <translation>Przesuń linię tabulatora w l&amp;ewo</translation>
+    </message>
+    <message>
+        <source>Move Tab Guide Righ&amp;t</source>
+        <translation>Przesuń linię tabulatora w p&amp;rawo</translation>
+    </message>
+    <message>
+        <source>Remove All Tab Guide&amp;s</source>
+        <translation>Usuń &amp;wszystkie linie tabulatorów</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -6108,11 +6124,6 @@ The status bar, after a material is chosen for the cover: the one chosen before 
         <translation>Ustawienia okien</translation>
     </message>
     <message>
-        <source>Page %1 of %2</source>
-        <extracomment>The status bar of a window of its own, as that of the book window. In Polish: Strona %1 z %2</extracomment>
-        <translation>Strona %1 z %2</translation>
-    </message>
-    <message>
         <source>%1%</source>
         <translation>%1%</translation>
     </message>
@@ -7427,6 +7438,11 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <extracomment>The background of a cross-reference whose caption was deleted. In Polish: Odsyłacze do usuniętych podpisów</extracomment>
         <translation>Odsyłacze do usuniętych podpisów</translation>
     </message>
+    <message>
+        <source>Tab guides</source>
+        <extracomment>The dashed vertical lines a Tab aligns the text to (Format &gt; Align Text). In Polish: Linie tabulatorów</extracomment>
+        <translation>Linie tabulatorów</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorCursorPage</name>
@@ -8518,10 +8534,6 @@ Pomaga zobaczyć granice marginesów.</translation>
         <translation>Podgląd stron 2 i 3</translation>
     </message>
     <message>
-        <source>Pages 2 and 3 of a chapter. Page 1 is a right page, so its inner margin is on the left. A chapter can start on a left page: &quot;Starts on a left page&quot; in the Properties panel.</source>
-        <translation>Strony 2 i 3 rozdziału. Strona 1 jest prawa, więc margines wewnętrzny ma po lewej. Rozdział może zaczynać się na lewej stronie: „Zaczyna się na lewej stronie” w panelu Właściwości.</translation>
-    </message>
-    <message>
         <source>Preview:</source>
         <translation>Podgląd:</translation>
     </message>
@@ -8631,6 +8643,64 @@ Pomaga zobaczyć granice marginesów.</translation>
         <extracomment>The group of Settings &gt; Editor &gt; Margin Numbering. In Polish: Wygląd numerów</extracomment>
         <translation>Wygląd numerów</translation>
     </message>
+    <message>
+        <source>Page numbers:</source>
+        <translation>Numeracja stron:</translation>
+    </message>
+    <message>
+        <source>Through the whole book</source>
+        <extracomment>How the pages of a text are numbered in the editor. In Polish: W całej książce</extracomment>
+        <translation>Ciągła w całej książce</translation>
+    </message>
+    <message>
+        <source>The pages are numbered through the whole book, in reading order: the first page of a text has the number after the last page of the text before it. The status bar gives the page of the book and the page of the text.</source>
+        <extracomment>In Polish: Strony są numerowane w całej książce, w kolejności czytania: pierwsza strona tekstu ma numer po ostatniej stronie tekstu przed nim. Pasek stanu podaje stronę książki i stronę tekstu.</extracomment>
+        <translation>Strony są numerowane w całej książce, w kolejności czytania: pierwsza strona tekstu ma numer następny po ostatniej stronie tekstu przed nim. Pasek stanu podaje stronę książki i stronę tekstu.</translation>
+    </message>
+    <message>
+        <source>Each text from 1</source>
+        <extracomment>How the pages of a text are numbered in the editor. In Polish: Każdy tekst od 1</extracomment>
+        <translation>Każdy tekst od 1</translation>
+    </message>
+    <message>
+        <source>Each text has its own page numbers, from 1.</source>
+        <extracomment>In Polish: Każdy tekst ma swoje numery stron, od 1.</extracomment>
+        <translation>Każdy tekst ma własną numerację stron, od 1.</translation>
+    </message>
+    <message>
+        <source>Texts start on:</source>
+        <translation>Teksty zaczynają się na:</translation>
+    </message>
+    <message>
+        <source>A right page</source>
+        <extracomment>Where a chapter starts in the printed book. In Polish: Prawej stronie</extracomment>
+        <translation>Prawej stronie</translation>
+    </message>
+    <message>
+        <source>A text that would start on a left page has an empty left page before it, as in a printed book.</source>
+        <extracomment>In Polish: Przed tekstem, który zaczynałby się na lewej stronie, zostaje pusta lewa strona, jak w drukowanej książce.</extracomment>
+        <translation>Tekst, który zacząłby się na lewej stronie, ma przed sobą pustą lewą stronę – jak w drukowanej książce.</translation>
+    </message>
+    <message>
+        <source>The next page, left or right</source>
+        <extracomment>Where a chapter starts in the printed book. In Polish: Następnej stronie, lewej lub prawej</extracomment>
+        <translation>Następnej stronie, lewej albo prawej</translation>
+    </message>
+    <message>
+        <source>No empty pages between the texts.</source>
+        <extracomment>In Polish: Bez pustych stron między tekstami.</extracomment>
+        <translation>Bez pustych stron między tekstami.</translation>
+    </message>
+    <message>
+        <source>For the chapters and the other texts whose kind has no page of its own; the title page, the dedication or the title of a part start where the book type says. A text can have a page of its own in the Properties panel (&quot;First page&quot;).</source>
+        <extracomment>In Polish: Dotyczy rozdziałów i innych tekstów, których rodzaj nie ma swojej strony; strona tytułowa, dedykacja czy tytuł części zaczynają się tam, gdzie mówi typ książki. Tekst może mieć własną stronę we Właściwościach („Pierwsza strona”).</extracomment>
+        <translation>Dotyczy rozdziałów i innych tekstów, których rodzaj nie ma swojej strony; strona tytułowa, dedykacja czy tytuł części zaczynają się tam, gdzie mówi typ książki. Tekst może mieć własną stronę w panelu Właściwości („Pierwsza strona”).</translation>
+    </message>
+    <message>
+        <source>Pages 2 and 3 of a chapter. Page 1 is a right page, so its inner margin is on the left. A chapter can start on a left page: &quot;First page&quot; in the Properties panel.</source>
+        <extracomment>In Polish: Strony 2 i 3 rozdziału. Strona 1 jest prawa, więc jej wewnętrzny margines jest po lewej. Rozdział może zaczynać się na lewej stronie: „Pierwsza strona” we Właściwościach.</extracomment>
+        <translation>Strony 2 i 3 rozdziału. Strona 1 jest prawa, więc margines wewnętrzny ma po lewej. Rozdział może zaczynać się na lewej stronie: „Pierwsza strona” w panelu Właściwości.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorPanel</name>
@@ -8734,6 +8804,16 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <source>The image could not be saved as &quot;%1&quot;.</source>
         <extracomment>In Polish: Nie udało się zapisać obrazu w pliku „%1”.</extracomment>
         <translation>Nie udało się zapisać obrazu w pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>Page %1 (%2 of %3)</source>
+        <extracomment>The status bar, the pages numbered through the book: the number the page shows, then its page in the text. In Polish: Strona %1 (%2 z %3)</extracomment>
+        <translation>Strona %1 (%2 z %3)</translation>
+    </message>
+    <message>
+        <source>Page %1 of %2</source>
+        <extracomment>The status bar. In Polish: Strona %1 z %2</extracomment>
+        <translation>Strona %1 z %2</translation>
     </message>
 </context>
 <context>
@@ -9955,10 +10035,6 @@ Czy zapisać go przed zamknięciem?</translation>
         <translation>Czy zapisać zmiany w %1?</translation>
     </message>
     <message>
-        <source>Page %1 of %2</source>
-        <translation>Strona %1 z %2</translation>
-    </message>
-    <message>
         <source>%1%</source>
         <translation>%1%</translation>
     </message>
@@ -10087,6 +10163,41 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>%1 (volume %2) - %3</source>
         <extracomment>The title bar of the window with a volume of a series: %1 the title of the volume, %2 its number, %3 the name of the series (&quot;Dunes (volume 2) - Sands - Kalahari&quot;), with the hyphens of the title bar. In Polish: %1 (tom %2) - %3</extracomment>
         <translation>%1 (tom %2) - %3</translation>
+    </message>
+    <message>
+        <source>Tab guide at %1 mm: Tab aligns the text to it</source>
+        <extracomment>In Polish: Linia tabulatora na %1 mm: Tab wyrównuje do niej tekst</extracomment>
+        <translation>Linia tabulatora na %1 mm: Tab wyrównuje do niej tekst</translation>
+    </message>
+    <message>
+        <source>Tab guide at %1 mm removed</source>
+        <extracomment>In Polish: Usunięto linię tabulatora z %1 mm</extracomment>
+        <translation>Usunięto linię tabulatora z %1 mm</translation>
+    </message>
+    <message>
+        <source>Tab guide at %1 mm</source>
+        <translation>Linia tabulatora na %1 mm</translation>
+    </message>
+    <message>
+        <source>All tab guides removed</source>
+        <translation>Usunięto wszystkie linie tabulatorów</translation>
+    </message>
+    <message>
+        <source>The text has no tab guides: Format &gt; Align Text &gt; Set or Remove Tab Guide sets one at the cursor</source>
+        <extracomment>The menus as the Polish program names them: Format &gt; Wyrównanie &gt; Ustaw lub usuń linię tabulatora</extracomment>
+        <translation>Tekst nie ma linii tabulatorów: Format &gt; Wyrównanie &gt; Ustaw lub usuń linię tabulatora ustawia ją przy kursorze</translation>
+    </message>
+    <message>
+        <source>A tab guide goes inside the text: move the cursor away from its edge</source>
+        <translation>Linia tabulatora musi leżeć wewnątrz tekstu: odsuń kursor od jego krawędzi</translation>
+    </message>
+    <message>
+        <source>The text has %1 tab guides, the most it can have</source>
+        <translation>Tekst ma już %1 linii tabulatorów – więcej mieć nie może</translation>
+    </message>
+    <message>
+        <source>The tab guide at %1 mm goes no further: another guide or the edge of the text is there</source>
+        <translation>Linia tabulatora na %1 mm nie przesunie się dalej: jest tam inna linia albo krawędź tekstu</translation>
     </message>
 </context>
 <context>
@@ -12997,17 +13108,8 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <translation>Brak powiązanych materiałów.</translation>
     </message>
     <message>
-        <source>Starts on a left page</source>
-        <translation>Zaczyna się na lewej stronie</translation>
-    </message>
-    <message>
         <source>Change Failed</source>
         <translation>Nie udało się wprowadzić zmiany</translation>
-    </message>
-    <message>
-        <source>With mirror margins (Settings &gt; Editor &gt; Pages and Margins) the first page of {kind:s=this|p=these} {kind} is a left page: its inner margin is on the right. Unchecked: a right page.</source>
-        <extracomment>In Polish: Przy marginesach lustrzanych (Ustawienia &gt; Edytor &gt; Strony i marginesy) pierwsza strona {kind:genitive} jest lewa: margines wewnętrzny ma po prawej. Bez zaznaczenia jest prawa.</extracomment>
-        <translation>Przy marginesach lustrzanych (Ustawienia &gt; Edytor &gt; Strony i marginesy) pierwsza strona {kind:genitive} jest lewa: margines wewnętrzny ma po prawej. Bez zaznaczenia jest prawa.</translation>
     </message>
     <message>
         <source>The style of the bibliography and of the references of this book</source>
@@ -13043,6 +13145,46 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>%1 of %2</source>
         <extracomment>The number of a volume of a series: %1 its number, %2 the volumes. In Polish: %1 z %2</extracomment>
         <translation>%1 z %2</translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <extracomment>The page a text starts on in a printed book. In Polish: Prawa</extracomment>
+        <translation>Prawa</translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <extracomment>In Polish: Lewa</extracomment>
+        <translation>Lewa</translation>
+    </message>
+    <message>
+        <source>Next (left or right)</source>
+        <extracomment>In Polish: Następna (lewa albo prawa)</extracomment>
+        <translation>Następna (lewa albo prawa)</translation>
+    </message>
+    <message>
+        <source>First page:</source>
+        <extracomment>In Polish: Pierwsza strona:</extracomment>
+        <translation>Pierwsza strona:</translation>
+    </message>
+    <message>
+        <source>The page {kind:s=this|p=these} {kind} {kind:s=starts|p=start} on in a printed book, with mirror margins (Settings &gt; Editor &gt; Pages and Margins). Before a right or a left page the program leaves a page empty when needed.</source>
+        <extracomment>In Polish: Strona, na której {kind:m=zaczyna się|f=zaczyna się|n=zaczyna się|p=zaczynają się} {kind} w wydrukowanej książce, przy marginesach lustrzanych (Ustawienia &gt; Edytor &gt; Strony i marginesy). Przed prawą albo lewą stroną program zostawia w razie potrzeby pustą stronę.</extracomment>
+        <translation>Strona, na której {kind:s=zaczyna się|p=zaczynają się} {kind:m=ten|f=ta|n=to|p=te} {kind} w wydrukowanej książce, przy marginesach lustrzanych (Ustawienia &gt; Edytor &gt; Strony i marginesy). Przed prawą albo lewą stroną program zostawia w razie potrzeby pustą stronę.</translation>
+    </message>
+    <message>
+        <source>Automatic (left)</source>
+        <extracomment>The page a text starts on, as its kind says: a left one. In Polish: Automatycznie (lewa)</extracomment>
+        <translation>Automatycznie (lewa)</translation>
+    </message>
+    <message>
+        <source>Automatic (next)</source>
+        <extracomment>In Polish: Automatycznie (następna)</extracomment>
+        <translation>Automatycznie (następna)</translation>
+    </message>
+    <message>
+        <source>Automatic (right)</source>
+        <extracomment>In Polish: Automatycznie (prawa)</extracomment>
+        <translation>Automatycznie (prawa)</translation>
     </message>
 </context>
 <context>
@@ -17349,11 +17491,6 @@ Harmonogram projektu:
         <translation>Nu&amp;mer uwagi</translation>
     </message>
     <message>
-        <source>“3”: the third page of the text, “+2”: two pages on, “-1”: a page back. Next and Previous go to the page after or before.</source>
-        <extracomment>In Polish: „3” – trzecia strona tekstu, „+2” – dwie strony dalej, „-1” – stronę wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej strony.</extracomment>
-        <translation>„3” – trzecia strona tekstu, „+2” – dwie strony dalej, „-1” – jedna strona wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej strony.</translation>
-    </message>
-    <message>
         <source>“3”: the third heading of the text, “+2”: two headings on, “-1”: a heading back. Next and Previous go to the heading after or before.</source>
         <extracomment>In Polish: „3” – trzeci nagłówek tekstu, „+2” – dwa nagłówki dalej, „-1” – nagłówek wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniego nagłówka.</extracomment>
         <translation>„3” – trzeci nagłówek tekstu, „+2” – dwa nagłówki dalej, „-1” – jeden nagłówek wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniego nagłówka.</translation>
@@ -17603,6 +17740,21 @@ Harmonogram projektu:
             <numerusform>Tekst ma %n uwagi.</numerusform>
             <numerusform>Tekst ma %n uwag.</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>“3”: the page with the number 3, “+2”: two pages on, “-1”: a page back. Next and Previous go to the page after or before.</source>
+        <extracomment>In Polish: „3” – strona o numerze 3, „+2” – dwie strony dalej, „-1” – stronę wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej strony.</extracomment>
+        <translation>„3” – strona o numerze 3, „+2” – dwie strony dalej, „-1” – jedna strona wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej strony.</translation>
+    </message>
+    <message>
+        <source>Page %1 (%2 of %3)</source>
+        <extracomment>Where Go To went, the pages numbered through the book: the number the page shows, then its page in the text. In Polish: Strona %1 (%2 z %3)</extracomment>
+        <translation>Strona %1 (%2 z %3)</translation>
+    </message>
+    <message>
+        <source>The text has the pages %1 to %2.</source>
+        <extracomment>The pages numbered through the book. In Polish: Tekst ma strony od %1 do %2.</extracomment>
+        <translation>Tekst ma strony od %1 do %2.</translation>
     </message>
 </context>
 <context>
@@ -28277,6 +28429,7 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
     </message>
     <message>
         <source>Marked with:</source>
+        <extracomment>In Polish: Sposób zaznaczenia:</extracomment>
         <translation>Sposób zaznaczenia:</translation>
     </message>
     <message>
@@ -28285,9 +28438,9 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
         <translation>Kolor zaznaczenia</translation>
     </message>
     <message>
-        <source>The words are marked while the Repetitions panel is shown; the words of the card chosen are framed. View &gt; Repetitions in Text turns it on and off too.</source>
-        <extracomment>In Polish: Sposób zaznaczenia: In Polish: Słowa są zaznaczone, gdy panel „Powtórzenia” jest widoczny; słowa wybranej karty mają obwódkę. Widok &gt; Powtórzenia w tekście też to włącza i wyłącza.</extracomment>
-        <translation>Słowa są zaznaczone, gdy panel „Powtórzenia” jest widoczny; słowa wybranej karty mają obwódkę. Widok &gt; Powtórzenia w tekście też to włącza i wyłącza.</translation>
+        <source>The repeated words are marked in the text in front, with the Repetitions panel closed too; the words of the card chosen in the panel are framed. View &gt; Repetitions in Text turns it on and off too.</source>
+        <extracomment>In Polish: Powtórzone słowa są zaznaczone w tekście na wierzchu, także przy zamkniętym panelu „Powtórzenia”; słowa karty wybranej w panelu mają obwódkę. Widok &gt; Powtórzenia w tekście też to włącza i wyłącza.</extracomment>
+        <translation>Powtórzone słowa są zaznaczone w tekście na wierzchu, także przy zamkniętym panelu „Powtórzenia”; słowa karty wybranej w panelu mają obwódkę. Widok &gt; Powtórzenia w tekście też to włącza i wyłącza.</translation>
     </message>
     <message>
         <source>Colors</source>
@@ -28705,11 +28858,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>Numery &amp;stron na dole strony</translation>
     </message>
     <message>
-        <source>With mirror margins a text starts on a right page, unless its properties say a left one.</source>
-        <extracomment>Under each text from a new page. In Polish: Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że ustawiono lewą.</extracomment>
-        <translation>Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że ustawiono lewą.</translation>
-    </message>
-    <message>
         <source>%1 (editor font)</source>
         <extracomment>The first font of the export: the font of the editor; %1: its name. In Polish: %1 (czcionka edytora)</extracomment>
         <translation>%1 (czcionka edytora)</translation>
@@ -28816,6 +28964,11 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>&amp;Volume:</source>
         <extracomment>The list of the volumes of a series in the windows of the export and of the print. In Polish: To&amp;m:</extracomment>
         <translation>To&amp;m:</translation>
+    </message>
+    <message>
+        <source>With mirror margins a text starts on the page the book type, the Settings and its properties say: a right one, a left one or the next one.</source>
+        <extracomment>Under each text from a new page. In Polish: Przy marginesach lustrzanych tekst zaczyna się na stronie, którą podają typ książki, Ustawienia i jego Właściwości: prawej, lewej lub następnej.</extracomment>
+        <translation>Przy marginesach lustrzanych tekst zaczyna się na stronie, którą wskazują typ książki, Ustawienia i jego właściwości: prawej, lewej albo następnej.</translation>
     </message>
 </context>
 <context>

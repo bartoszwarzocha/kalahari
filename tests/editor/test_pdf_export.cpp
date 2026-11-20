@@ -12,6 +12,7 @@
 #include "test_support/export_samples.h"
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/page_start.h>
 #include <kalahari/editor/book_export.h>
 #include <kalahari/editor/book_pages.h>
 
@@ -297,7 +298,7 @@ TEST_CASE("PDF: the texts on the pages of the book", "[export][pdf]") {
         "Each text on a new page; with mirror margins on a right page unless it starts on a left "
         "one") {
         ExportItem third = textItem(QStringLiteral("e3"), QStringLiteral("Trzy"), longKml(1));
-        third.firstPageLeft = true;
+        third.start = kalahari::core::PageStart::Left;
         BookExport book =
             bookOf({textItem(QStringLiteral("e1"), QStringLiteral("Jeden"), longKml(1)),
                     textItem(QStringLiteral("e2"), QStringLiteral("Dwa"), longKml(1)), third});
@@ -317,6 +318,25 @@ TEST_CASE("PDF: the texts on the pages of the book", "[export][pdf]") {
         plain.layOut();
         CHECK(plain.pageCount() == 3);
         CHECK_FALSE(plain.isBlank(1));
+    }
+
+    SECTION("With mirror margins a text that starts on the next page leaves no page empty") {
+        ExportItem second = textItem(QStringLiteral("e2"), QStringLiteral("Dwa"), longKml(1));
+        second.start = kalahari::core::PageStart::Next;
+        ExportItem third = textItem(QStringLiteral("e3"), QStringLiteral("Trzy"), longKml(1));
+        third.start = kalahari::core::PageStart::Next;
+        BookExport book =
+            bookOf({textItem(QStringLiteral("e1"), QStringLiteral("Jeden"), longKml(1)), second,
+                    third, textItem(QStringLiteral("e4"), QStringLiteral("Cztery"), longKml(1))});
+        book.page.mirrored = true;
+        BookPages pages(book, BookPages::Options{});
+        pages.layOut();
+        // Jeden (right), Dwa (left), Trzy (right), empty, Cztery (right)
+        REQUIRE(pages.pageCount() == 5);
+        CHECK(pages.pageAt(QStringLiteral("e2"), 0) == 1);
+        CHECK(pages.pageAt(QStringLiteral("e3"), 0) == 2);
+        CHECK(pages.isBlank(3));
+        CHECK(pages.pageAt(QStringLiteral("e4"), 0) == 4);
     }
 
     SECTION("A text goes on after the one before it while its page has room") {

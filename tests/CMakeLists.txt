@@ -84,6 +84,7 @@ set(TEST_SOURCES
     editor/test_buffer_commands.cpp        # Cursor position helpers
     editor/test_search_engine.cpp          # OpenSpec #00044 Task 9.4: SearchEngine tests
     editor/test_kml_document_model.cpp     # KML reader tests
+    editor/test_tab_guides.cpp             # Tab guides: KML, layout, commands, drawing
     editor/test_annotations.cpp            # Comments, TODOs and notes: model, file, editing
     editor/test_annotation_cards.cpp       # Annotation cards under the paragraphs
     editor/test_style_resolver.cpp         # Sub-Project C WS4.4: StyleResolver unit tests
@@ -172,6 +173,7 @@ set(TEST_SOURCES
     gui/test_name_dialog.cpp                     # Book dictionary: the forms table, the windows of a name and a rule
     gui/test_book_dictionary_page.cpp            # Book dictionary: its page on a tab, its commands and windows
     gui/test_repetitions_panel.cpp               # Repetitions panel: cards, words, keys, marks, Next Repetition, settings page
+    gui/test_book_page_numbers.cpp               # The first pages of the texts in the book: numbers, sides, status bar, Go To
     gui/test_grammar_coordinator.cpp             # Grammar as you type: where it is checked, command, settings page
     gui/test_grammar_components.cpp              # Java and LanguageTool: versions, downloads, folders
     gui/test_language_tool_server.cpp            # LanguageTool server: started with Java or outside, restarts
@@ -346,6 +348,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     # OpenSpec #00042: Custom Text Editor
     ${CMAKE_SOURCE_DIR}/src/editor/editor_types.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/kml_serializer.cpp  # OpenSpec #00043 Phase 11.2: KmlSerializer
+    ${CMAKE_SOURCE_DIR}/src/editor/tab_guides.cpp      # The tab guides of a text
     ${CMAKE_SOURCE_DIR}/src/editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     ${CMAKE_SOURCE_DIR}/src/editor/annotation.cpp  # Comments, TODOs and notes
     ${CMAKE_SOURCE_DIR}/src/editor/text_link.cpp   # Links in the text
@@ -381,6 +384,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_fields.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_skeleton.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_places.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_tab_guides.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_image_look.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_input.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_search.cpp
@@ -501,6 +505,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/style_draft.cpp             # A style as the window of a style changes it
     ${CMAKE_SOURCE_DIR}/src/gui/caption_settings.cpp        # The settings of new images and captions
     ${CMAKE_SOURCE_DIR}/src/gui/book_texts.cpp              # The texts of the book in reading order
+    ${CMAKE_SOURCE_DIR}/src/gui/book_page_numbers.cpp       # The first pages of the texts in the book
     ${CMAKE_SOURCE_DIR}/src/gui/caption_coordinator.cpp     # The numbered captions of the book
     ${CMAKE_SOURCE_DIR}/src/gui/book_export_coordinator.cpp # The export of the book to DOCX and Markdown
     ${CMAKE_SOURCE_DIR}/src/gui/plugin_coordinator.cpp      # The commands and panels of the plugins
@@ -906,6 +911,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/style_coordinator.h  # StyleCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/caption_coordinator.h  # CaptionCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_export_coordinator.h  # BookExportCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_page_numbers.h  # BookPageNumbers with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plugin_coordinator.h  # PluginCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_import_coordinator.h  # BookImportCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnote_coordinator.h  # FootnoteCoordinator with Q_OBJECT

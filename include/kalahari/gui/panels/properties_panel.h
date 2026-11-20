@@ -37,6 +37,7 @@ class QToolButton;
 
 namespace kalahari::core {
 class ProjectManager;
+struct ProjectElement;
 }  // namespace kalahari::core
 
 namespace kalahari::editor {
@@ -252,8 +253,8 @@ private slots:
     /// @brief Handle chapter status changed
     void onChapterStatusChanged(int index);
 
-    /// @brief The writer set whether the text element starts on a left page
-    void onChapterFirstPageChanged(bool left);
+    /// @brief The writer chose the page the text element starts on (item @p index of the list)
+    void onChapterFirstPageChanged(int index);
 
     /// @brief Handle chapter notes changed (called on focus lost)
     void onChapterNotesChanged();
@@ -285,8 +286,8 @@ signals:
     /// @note Used to notify Navigator to refresh the item's display title (status suffix)
     void chapterStatusChanged(const QString& elementId);
 
-    /// @brief Whether a text element starts on a left page changed in the panel: its open
-    ///        editor places the margins of its pages anew
+    /// @brief The page a text element starts on changed in the panel: the pages of the book
+    ///        are counted anew, and its open editor places the margins of its pages anew
     void chapterFirstPageChanged(const QString& elementId);
 
     /// @brief The writer chose how the Navigator divides the book: sections @p sections
@@ -501,6 +502,10 @@ private:
     /// @brief Select @p status in the chapter's status combo; "draft" when it is not there
     void selectChapterStatus(const QString& status);
 
+    /// @brief Show the first page of @p element in its field: Automatic named after the page
+    ///        of its kind or of the settings (ProjectManager::kindPageStartOf()), or its own
+    void showChapterFirstPage(const core::ProjectElement& element);
+
     /// @brief The group of the versions of the text of element @p elementId: how many, the
     /// last one and its description; hidden for an element whose text has none. While
     /// versions are turned off it says so, and how many can be read in the history.
@@ -555,8 +560,7 @@ private:
     QLineEdit* m_chapterTitleEdit = nullptr;
     QLabel* m_chapterWordCountLabel = nullptr;
     QComboBox* m_chapterStatusCombo = nullptr;
-    QCheckBox* m_chapterFirstPageLeft = nullptr;  ///< The text starts on a left page (mirror
-                                                  ///< margins)
+    QComboBox* m_chapterFirstPage = nullptr;  ///< The page the text starts on (page_start.h)
     QGroupBox* m_chapterNotesGroup = nullptr;
     QTextEdit* m_chapterNotesEdit = nullptr;
     LinkedMaterialsBox* m_chapterMaterials = nullptr;  ///< The materials of the element

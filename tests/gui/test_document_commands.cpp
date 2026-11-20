@@ -56,6 +56,7 @@ CommandCallbacks runningCallbacks() {
     }
     callbacks.onParagraphStyle = [](const QString&) {};
     callbacks.onChangeCase = [](kalahari::editor::CaseChange) {};
+    callbacks.onTabGuide = [](TabGuideCommand) {};
     return callbacks;
 }
 
@@ -98,8 +99,8 @@ TEST_CASE("Document commands: greyed out without a document in front, with their
         CHECK(command->canExecute());
         REQUIRE(registry.getAction(id) != nullptr);
     }
-    // Find, the windows and the formats, the alignments, the styles, the view mode and the
-    // zoom, each with its keys
+    // Find, the windows and the formats, the alignments and the tab guides, the styles, the
+    // view mode and the zoom, each with its keys
     for (const char* id : {"edit.find", "edit.findNext", "edit.findPrevious", "edit.findReplace",
                            "format.font", "format.paragraph", "insert.link", "insert.table",
                            "insert.image", "format.bold", "format.italic", "format.underline",
@@ -110,6 +111,8 @@ TEST_CASE("Document commands: greyed out without a document in front, with their
                            "format.copyFormatting", "format.pasteFormatting",
                            "format.clearFormatting", "format.alignLeft",
                            "format.alignCenter", "format.alignRight", "format.justify",
+                           "format.tabGuide.toggle", "format.tabGuide.moveLeft",
+                           "format.tabGuide.moveRight", "format.tabGuide.removeAll",
                            "format.increaseIndent", "format.decreaseIndent", "format.bullets",
                            "format.numbering", "format.bulletsNumbering",
                            "format.style.heading1",
@@ -172,6 +175,8 @@ TEST_CASE("Document commands: over a read-only chapter those that change it are 
                                    "format.clearFormatting", "format.alignLeft",
                                    "format.alignCenter",
                                    "format.alignRight", "format.justify",
+                                   "format.tabGuide.toggle", "format.tabGuide.moveLeft",
+                                   "format.tabGuide.moveRight", "format.tabGuide.removeAll",
                                    "format.increaseIndent", "format.decreaseIndent",
                                    "format.bullets", "format.numbering",
                                    "format.bulletsNumbering",
