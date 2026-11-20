@@ -479,9 +479,10 @@ StatsCountingPage::StatsCountingPage(QWidget* parent)
 StatsNotificationsPage::StatsNotificationsPage(QWidget* parent)
     : StatsSettingsPage(parent)
 {
-    //: In Polish: Wiadomości pokazują się na pasku na dole okna, z przyciskiem kopiowania.
-    addIntro(tr("The messages show in the bar at the bottom of the window, with a button that "
-                "copies them."));
+    //: In Polish: Wiadomości pokazują się tam, gdzie powiadomienia programu: domyślnie na pasku
+    //: na dole okna (Ustawienia > Powiadomienia).
+    addIntro(tr("The messages show where the program's notifications do: by default in the bar "
+                "at the bottom of the window (Settings > Notifications)."));
 
     QFormLayout* messages = addGroup(tr("Messages"));
     addOption(messages, tr("&Daily goal reached"), "stats.notify.dailyGoal");

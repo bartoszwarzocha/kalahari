@@ -26,6 +26,7 @@
 #include "kalahari/gui/grammar_setup.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/language_tool_server.h"
+#include "kalahari/gui/notifications.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings/grammar_page.h"
 #include "kalahari/gui/settings_dialog.h"
@@ -674,6 +675,24 @@ TEST_CASE("Grammar coordinator: the preparation in the background, the settings 
     setup->setLanguageToolDownload(downloadOf(site, languageToolFileName(), languageTool));
     setup->setLanguage(QStringLiteral("en_US"));
 
+    // The notifications of a book window, here those of the system
+    QStringList notified;
+    NotificationCoordinator::setSystemNotifier(
+        [&notified](const QString& title, const QString& text, Notification::Kind) {
+            notified << title + QStringLiteral(": ") + text;
+            return true;
+        });
+    const struct NotifierGuard {
+        NotifierGuard() = default;
+        ~NotifierGuard() { NotificationCoordinator::setSystemNotifier({}); }
+        NotifierGuard(const NotifierGuard&) = delete;
+        NotifierGuard& operator=(const NotifierGuard&) = delete;
+        NotifierGuard(NotifierGuard&&) = delete;
+        NotifierGuard& operator=(NotifierGuard&&) = delete;
+    } notifierGuard;
+    settings().set<std::string>(NotificationCoordinator::PLACE_SETTING, "system");
+    const NotificationCoordinator notifications(nullptr, {});
+
     EditorGrammarPage page(kalahari::test::book(), &coordinator);
     page.load();
     page.advancedToggle()->setChecked(true);
@@ -706,7 +725,10 @@ TEST_CASE("Grammar coordinator: the preparation in the background, the settings 
     CHECK(settings().get<bool>(GrammarCoordinator::ENABLED_KEY, false));
     CHECK(coordinator.readiness() == Readiness::Ready);
     CHECK(coordinator.isChecking());
-    CHECK(statusBar.currentMessage() == QStringLiteral("Grammar checking is ready"));
+    // A notification, not the status bar, says it is ready
+    QCoreApplication::processEvents();
+    CHECK(notified == QStringList{QStringLiteral("Grammar: Grammar checking is ready")});
+    CHECK(statusBar.currentMessage() != QStringLiteral("Grammar checking is ready"));
     CHECK_FALSE(button->isVisibleTo(&statusBar));
     CHECK(coordinator.server()->state() == ServerState::Running);
     CHECK(waitUntil([&coordinator]() { return coordinator.service()->isActive(); }));

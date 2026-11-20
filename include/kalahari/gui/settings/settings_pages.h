@@ -70,6 +70,21 @@ signals:
     void lengthUnitChanged(const QString& unit);
 };
 
+/// @brief Notifications: where the program's notifications show (the bar at the bottom of
+///        the window, the program's window, the system's notifications or the Assistant
+///        panel), a sample of them, and their colors in the theme in use
+class NotificationsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit NotificationsPage(QWidget* parent = nullptr);
+
+    /// @brief The list of the places
+    [[nodiscard]] QComboBox* placeList() const { return m_placeList; }
+
+private:
+    QComboBox* m_placeList = nullptr;
+};
+
 /// @brief Appearance > General: language and interface font
 class AppearanceGeneralPage : public SettingsPage {
     Q_OBJECT

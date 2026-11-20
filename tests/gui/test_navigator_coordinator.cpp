@@ -29,6 +29,7 @@
 #include <kalahari/gui/icon_registrar.h>
 #include <kalahari/gui/material_downloader.h>
 #include <kalahari/gui/navigator_coordinator.h>
+#include <kalahari/gui/notifications.h>
 #include <kalahari/gui/panels/editor_panel.h>
 #include <kalahari/gui/panels/image_preview_panel.h>
 #include <kalahari/gui/panels/material_page.h>
@@ -3280,13 +3281,43 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
         emit navigator.coordinator.materialDownloader()->finished(result);
         CHECK(pm.findElement(pageId)->title == QStringLiteral("The desert"));
 
-        // A failure nobody asked about goes to the status bar
+        // A failure nobody asked about goes to the status bar without the notifications of a
+        // window
         result.title.clear();
         result.error = QStringLiteral("The server did not answer in time.");
         emit navigator.coordinator.materialDownloader()->finished(result);
-        CHECK(navigator.statusBar->currentMessage() ==
-              QStringLiteral("Nothing was downloaded for \"The desert\": The server did not "
-                             "answer in time."));
+        const QString failed = QStringLiteral(
+            "Nothing was downloaded for \"The desert\": The server did not answer in time.");
+        CHECK(navigator.statusBar->currentMessage() == failed);
+
+        // With them, a warning among them (here as a notification of the system)
+        navigator.statusBar->clearMessage();
+        QStringList notified;
+        gui::NotificationCoordinator::setSystemNotifier(
+            [&notified](const QString& title, const QString& text, gui::Notification::Kind kind) {
+                notified << title + QStringLiteral(": ") + text +
+                                (kind == gui::Notification::Kind::Warning ? QStringLiteral(" (!)")
+                                                                          : QString());
+                return true;
+            });
+        const struct NotifierGuard {
+            NotifierGuard() = default;
+            ~NotifierGuard() { gui::NotificationCoordinator::setSystemNotifier({}); }
+            NotifierGuard(const NotifierGuard&) = delete;
+            NotifierGuard& operator=(const NotifierGuard&) = delete;
+            NotifierGuard(NotifierGuard&&) = delete;
+            NotifierGuard& operator=(NotifierGuard&&) = delete;
+        } notifierGuard;
+        core::SettingsManager::getInstance().set<std::string>(
+            gui::NotificationCoordinator::PLACE_SETTING, "system");
+        gui::NotificationCoordinator notifications(nullptr, {});
+        navigator.coordinator.setNotifications(&notifications);
+        emit navigator.coordinator.materialDownloader()->finished(result);
+        QCoreApplication::processEvents();
+        CHECK(notified ==
+              QStringList{QStringLiteral("Materials: ") + failed + QStringLiteral(" (!)")});
+        CHECK(navigator.statusBar->currentMessage().isEmpty());
+        navigator.coordinator.setNotifications(nullptr);
     }
 
     SECTION("the picture downloaded is the copy, which opens on its preview tab") {
