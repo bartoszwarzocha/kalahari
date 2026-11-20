@@ -66,6 +66,8 @@ reading.
   [Captions, cross-references and the list of figures](#captions-cross-references-and-the-list-of-figures)).
 - **Annotations** – the writer's comments, TODOs and notes – are in an `<annotations>` element,
   a child of the root element before the paragraphs (see [Annotations](#annotations)).
+- **Tab guides** – the lines a Tab aligns the text to – are in a `<tab-guides>` element, a child
+  of the root element before the paragraphs (see [Tab guides](#tab-guides)).
 - Any other element at this level is skipped together with everything inside it, and text
   between paragraphs is ignored.
 
@@ -509,6 +511,44 @@ its number is a field:
 - Elements inside a paragraph other than those described in this document – also a heading
   or an object put inside a paragraph – are skipped together with everything inside them.
 
+## Tab guides
+
+A text may have tab guides: dashed lines down its pages, each at a distance from the left edge
+of the text, that a Tab aligns the text after it to. The editor sets one where the cursor is and
+takes it away again (Format > Align Text > Set or Remove Tab Guide, Alt+Shift+G), moves the
+guide nearest the cursor a millimetre left or right (Alt+Shift+Left, Alt+Shift+Right; on macOS
+Option+Shift+Cmd with G and the arrows) and takes them all away (Remove All Tab Guides); each
+change is one step of Undo. Their color is in
+Settings > Editor > Colors, for each paper. They are in a `<tab-guides>` element, a child of the
+root element before the paragraphs, with a `<guide/>` for each, in millimetres from the left
+edge of the text:
+
+```xml
+<kml>
+  <tab-guides>
+    <guide at="40"/>
+    <guide at="90"/>
+  </tab-guides>
+  <p>Name&#9;John</p>
+</kml>
+```
+
+- A guide is on a whole millimetre, inside the text (more than 0 and at most 500), at least
+  2 mm right of the one before it (one closer to it is left out), and a text has at most 20.
+  The editor writes them in order; a `<guide/>` without a number in `at` is skipped.
+- A Tab of a paragraph goes to the next guide right of it, and after the last one to the tab
+  stops of Settings > Editor, as in a text without guides. The guides are counted from the
+  start of a paragraph's first line: in a paragraph whose first line is indented, a Tab in a
+  line after the first lands off its guide by the indent.
+- The cells of a table have their own edges: a Tab in a cell does not go to the guides.
+- The guides are of the whole text: a part of it copied or a scene moved to another text does
+  not take them, and Replace in the whole book keeps them.
+- Exported to DOCX they are the tab stops of the paragraphs outside a table (`w:tabs`); in a
+  PDF and in the print the text is aligned to them as in the editor, and the lines are not
+  drawn.
+- An older version of the program skips the element, as any element it does not know: it reads
+  the text without the guides, and writes it without them.
+
 ## Line breaks in other formats
 
 Where the text leaves the editor, a line break becomes what the other format has for it, and
@@ -551,6 +591,7 @@ settings `export.*`; the page comes from Settings > Editor > Pages and Margins.
 | `normal`, `quote`, `caption`, `footnote` | Word's built-in Normal, Quote, Caption and Footnote Text, with the values of the book's styles | A paragraph; a quote as `>` |
 | Any other paragraph style | A style of the same name (id in PascalCase), based on its base style, with its next style | A paragraph; `code` as a fenced block |
 | A paragraph's own formatting | `w:pPr`: alignment, indents, spacing, line spacing, keep with next, keep lines together, page break before, widow control | – |
+| The tab guides of a text | The tab stops of its paragraphs outside a table (`w:tabs`), from the left margin | – |
 | `<b>`, `<i>`, `<s>`, `<u>`, `<sub>`, `<sup>` | `w:b`, `w:i`, `w:strike`, `w:u`, `w:vertAlign` | `**`, `*`, `~~`, `<u>`, `<sub>`, `<sup>` (the spaces at the ends stay outside) |
 | Font, size, color, background, small capitals, letter spacing | `w:rFonts`, `w:sz`, `w:color`, `w:shd`, `w:smallCaps`, `w:spacing` | – |
 | `<a href>` | A hyperlink (web and e-mail addresses) | `[text](address)` |
@@ -565,7 +606,7 @@ settings `export.*`; the page comes from Settings > Editor > Pages and Margins.
 | An annotation (option) | A Word comment with its author and date (a to-do done: resolved, `w15:done`); a to-do or a note starts with its kind | – |
 | The table of contents (an element of the book) | Word's TOC field (`TOC \o "1-3" \h \z \u`), filled with the headings; Word updates it when the file opens (`w:updateFields`) | A list of the headings with links to them |
 | The book's title, author and language | `docProps/core.xml` and the language of the text | – |
-| Each text (option) | A section of its own from a new page (a right page with mirror margins, unless the text starts on a left one) with the page size, margins and page numbers of the settings | – |
+| Each text (option) | A section of its own from a new page (with mirror margins the page its start says: a right one, a left one or the next one) with the page size, margins and page numbers of the settings | – |
 
 ## Import from DOCX, Markdown and plain text
 

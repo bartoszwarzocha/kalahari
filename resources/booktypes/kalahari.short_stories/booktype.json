@@ -26,6 +26,7 @@
     },
     "section": {
       "form": "group", "places": ["main"], "icon": "structure.part",
+      "firstPage": "right",
       "name": { "pl": "Dział", "en": "Division" },
       "plural": { "pl": "Działy", "en": "Divisions" },
       "words": {

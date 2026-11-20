@@ -382,10 +382,12 @@ QGridLayout* BookOutputDialog::addLayoutTab(const QString& title, bool narrow)
         withRemark(m_newPageBox,
                    newRemark(m_pagesLayout,
                              //: Under each text from a new page. In Polish: Przy marginesach
-                             //: lustrzanych tekst zaczyna się na prawej stronie, chyba że
-                             //: ustawiono lewą.
-                             tr("With mirror margins a text starts on a right page, unless its "
-                                "properties say a left one.")),
+                             //: lustrzanych tekst zaczyna się na stronie, którą podają typ
+                             //: książki, Ustawienia i jego Właściwości: prawej, lewej lub
+                             //: następnej.
+                             tr("With mirror margins a text starts on the page the book type, "
+                                "the Settings and its properties say: a right one, a left one "
+                                "or the next one.")),
                    m_pageNumbersBox),
         0, 0, 1, 2);
     look->addWidget(m_pagesLayout, row++, 0, 1, 2);

@@ -8,6 +8,7 @@
 #include <kalahari/core/text_diff.h>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_serializer.h>
+#include <kalahari/editor/tab_guides.h>
 #include "kalahari/editor/detail/book_editor_internal.h"
 
 #include <QStringList>
@@ -113,6 +114,7 @@ VersionComparison compareVersions(const QString& olderKml, const QString& newerK
 
     QTextDocument shown;
     shown.setUndoRedoEnabled(false);
+    setTabGuidesOf(shown, tabGuidesOf(newer));  // its lines as the newer version has them
     QTextCursor cursor(&shown);
     cursor.beginEditBlock();
 

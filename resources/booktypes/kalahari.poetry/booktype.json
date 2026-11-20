@@ -13,6 +13,7 @@
   "kinds": {
     "poem": {
       "form": "text", "places": ["main", "cycle"], "icon": "template.chapter",
+      "firstPage": "next",
       "name": { "pl": "Wiersz", "en": "Poem" },
       "plural": { "pl": "Wiersze", "en": "Poems" },
       "words": {
@@ -25,6 +26,7 @@
     },
     "cycle": {
       "form": "group", "places": ["main"], "icon": "structure.part",
+      "firstPage": "right",
       "name": { "pl": "Cykl", "en": "Cycle" },
       "plural": { "pl": "Cykle", "en": "Cycles" },
       "words": {

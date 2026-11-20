@@ -34,6 +34,7 @@
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/package_card.h"
+#include "kalahari/core/page_start.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/database_types.h"
@@ -431,10 +432,20 @@ QWidget* PropertiesPanel::createChapterPage() {
     m_chapterStatusCombo->addItem(tr("Final"), "final");
     infoLayout->addRow(tr("Status:"), m_chapterStatusCombo);
 
-    // Its first page: a right one, unless the writer says it is a left one (mirror margins)
-    m_chapterFirstPageLeft = new QCheckBox(tr("Starts on a left page"), infoGroup);
-    m_chapterFirstPageLeft->setObjectName(QStringLiteral("chapterFirstPageLeft"));
-    infoLayout->addRow(m_chapterFirstPageLeft);
+    // Its first page in a printed book (mirror margins): as its kind says, or the writer's
+    // choice; the text of Auto names the kind's page (populateChapterFields())
+    m_chapterFirstPage = new QComboBox(infoGroup);
+    m_chapterFirstPage->setObjectName(QStringLiteral("chapterFirstPage"));
+    m_chapterFirstPage->addItem(QString(), core::pageStartName(core::PageStart::Auto));
+    //: The page a text starts on in a printed book. In Polish: Prawa
+    m_chapterFirstPage->addItem(tr("Right"), core::pageStartName(core::PageStart::Right));
+    //: In Polish: Lewa
+    m_chapterFirstPage->addItem(tr("Left"), core::pageStartName(core::PageStart::Left));
+    //: In Polish: Następna (lewa albo prawa)
+    m_chapterFirstPage->addItem(tr("Next (left or right)"),
+                                core::pageStartName(core::PageStart::Next));
+    //: In Polish: Pierwsza strona:
+    infoLayout->addRow(tr("First page:"), m_chapterFirstPage);
 
     layout->addWidget(infoGroup);
 
@@ -907,7 +918,7 @@ void PropertiesPanel::connectSignals() {
             this, &PropertiesPanel::onChapterTitleChanged);
     connect(m_chapterStatusCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &PropertiesPanel::onChapterStatusChanged);
-    connect(m_chapterFirstPageLeft, &QCheckBox::toggled,
+    connect(m_chapterFirstPage, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &PropertiesPanel::onChapterFirstPageChanged);
 
     // Notes are saved on focus lost via eventFilter (not on every keystroke)
@@ -1540,15 +1551,22 @@ void PropertiesPanel::onChapterStatusChanged(int index) {
     emit chapterStatusChanged(m_currentChapterId);
 }
 
-void PropertiesPanel::onChapterFirstPageChanged(bool left) {
-    if (m_isUpdating) return;
-    if (m_currentChapterId.isEmpty()) return;
+void PropertiesPanel::onChapterFirstPageChanged(int index) {
+    if (m_isUpdating || m_currentChapterId.isEmpty() || index < 0) {
+        return;
+    }
 
     // ProjectManager saves the project at once
-    if (!m_book.setFirstPageLeft(m_currentChapterId, left)) {
+    const core::PageStart start =
+        core::pageStartFromName(m_chapterFirstPage->itemData(index).toString())
+            .value_or(core::PageStart::Auto);
+    const core::ProjectElement* element = m_book.findElement(m_currentChapterId);
+    const core::PageStart before = element != nullptr ? element->firstPage : core::PageStart::Auto;
+    if (!m_book.setFirstPage(m_currentChapterId, start)) {
         const bool wasUpdating = m_isUpdating;
         m_isUpdating = true;
-        m_chapterFirstPageLeft->setChecked(!left);
+        m_chapterFirstPage->setCurrentIndex(
+            m_chapterFirstPage->findData(core::pageStartName(before)));
         m_isUpdating = wasUpdating;
         dialogs::MessageDialog::warning(this, tr("Change Failed"), tr("Failed to save changes."));
         return;
@@ -1739,6 +1757,29 @@ void PropertiesPanel::showSectionNamesRow() {
         m_projectSectionsCombo->choice() == QLatin1String(core::ProjectBook::CUSTOM_SECTIONS));
 }
 
+void PropertiesPanel::showChapterFirstPage(const core::ProjectElement& element) {
+    // Auto names the page of its kind, or of the settings
+    QString automatic;
+    switch (m_book.kindPageStartOf(element)) {
+        case core::PageStart::Left:
+            //: The page a text starts on, as its kind says: a left one. In Polish:
+            //: Automatycznie (lewa)
+            automatic = tr("Automatic (left)");
+            break;
+        case core::PageStart::Next:
+            //: In Polish: Automatycznie (następna)
+            automatic = tr("Automatic (next)");
+            break;
+        default:
+            //: In Polish: Automatycznie (prawa)
+            automatic = tr("Automatic (right)");
+            break;
+    }
+    m_chapterFirstPage->setItemText(0, automatic);
+    m_chapterFirstPage->setCurrentIndex(
+        std::max(0, m_chapterFirstPage->findData(core::pageStartName(element.firstPage))));
+}
+
 void PropertiesPanel::populateChapterFields(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::populateChapterFields() - Element: {}", elementId.toStdString());
@@ -1770,13 +1811,14 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
         core::fillWords(tr("Word count of {kind:s=this|p=these} {kind}"), nouns));
     //: In Polish: Stan ukończenia {kind:genitive}
     m_chapterStatusCombo->setToolTip(core::fillWords(tr("{Kind} completion status"), nouns));
-    //: In Polish: Przy marginesach lustrzanych (Ustawienia > Edytor > Strony i marginesy)
-    //: pierwsza strona {kind:genitive} jest lewa: margines wewnętrzny ma po prawej. Bez
-    //: zaznaczenia jest prawa.
-    m_chapterFirstPageLeft->setToolTip(core::fillWords(
-        tr("With mirror margins (Settings > Editor > Pages and Margins) the first page of "
-           "{kind:s=this|p=these} {kind} is a left page: its inner margin is on the right. "
-           "Unchecked: a right page."),
+    //: In Polish: Strona, na której {kind:m=zaczyna się|f=zaczyna się|n=zaczyna się|p=zaczynają
+    //: się} {kind} w wydrukowanej książce, przy marginesach lustrzanych (Ustawienia > Edytor >
+    //: Strony i marginesy). Przed prawą albo lewą stroną program zostawia w razie potrzeby
+    //: pustą stronę.
+    m_chapterFirstPage->setToolTip(core::fillWords(
+        tr("The page {kind:s=this|p=these} {kind} {kind:s=starts|p=start} on in a printed "
+           "book, with mirror margins (Settings > Editor > Pages and Margins). Before a right "
+           "or a left page the program leaves a page empty when needed."),
         nouns));
     //: In Polish: Notatki i uwagi do {kind:genitive}
     m_chapterNotesEdit->setToolTip(
@@ -1791,7 +1833,7 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     const bool workshop = at && at->place == core::BookPlace::Workshop;
     const bool text = pm.formOf(*element) == core::ElementForm::Text;
     m_chapterInfoLayout->setRowVisible(m_chapterStatusCombo, !bookFile && !workshop && text);
-    m_chapterInfoLayout->setRowVisible(m_chapterFirstPageLeft, !bookFile && !workshop && text);
+    m_chapterInfoLayout->setRowVisible(m_chapterFirstPage, !bookFile && !workshop && text);
     m_chapterInfoLayout->setRowVisible(m_chapterWordCountLabel, bookFile || text);
     m_chapterNotesGroup->setVisible(!bookFile);
     // The materials about the element; a file of the book is not linked
@@ -1813,7 +1855,7 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     m_chapterTitleEdit->setText(element->title);
     m_chapterWordCountLabel->setText(numberText(pm.wordCount(elementId)));
     selectChapterStatus(core::ProjectManager::statusOf(*element));
-    m_chapterFirstPageLeft->setChecked(element->firstPageLeft);
+    showChapterFirstPage(*element);
     m_chapterNotesEdit->setPlainText(pm.notes(elementId));
     m_clippingOrigin->showClipping(elementId);
     m_publishingBox->showText(elementId, describedTextId() == elementId
@@ -1824,7 +1866,7 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     const bool readOnly = pm.isReadOnly();
     m_chapterTitleEdit->setReadOnly(readOnly);
     m_chapterStatusCombo->setEnabled(!readOnly);
-    m_chapterFirstPageLeft->setEnabled(!readOnly);
+    m_chapterFirstPage->setEnabled(!readOnly);
     m_chapterNotesEdit->setReadOnly(readOnly);
     m_chapterPlot->showElement(elementId);
     showVersions(elementId);

@@ -143,6 +143,7 @@
 #include <kalahari/core/card_field_set.h>
 #include <kalahari/core/clipping.h>
 #include <kalahari/core/cover_material.h>
+#include <kalahari/core/page_start.h>
 #include <kalahari/core/publishing_texts.h>
 #include <kalahari/core/source_description.h>
 #include <QByteArray>
@@ -270,8 +271,9 @@ struct ProjectElement {
                                      ///< whose copy in the book is its file when it has one;
                                      ///< empty: none
     QString status;                  ///< "draft", "revision" or "final"; empty: none (groups)
-    bool firstPageLeft = false;      ///< Its text starts on a left page (mirror margins); in
-                                     ///< the file "firstPage": "left", without it a right page
+    PageStart firstPage = PageStart::Auto;  ///< The page its text starts on (page_start.h);
+                                            ///< in the file "firstPage": "right", "left" or
+                                            ///< "next", without it as its kind says
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
     QString description;             ///< Description of an element of the Workshop without a
                                      ///< text of its own (a material), the short one of a card

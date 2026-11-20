@@ -14,6 +14,7 @@
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/paragraph_data.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/text_fields.h>
@@ -34,6 +35,7 @@
 #include <chrono>
 #include <cmath>
 #include <utility>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -65,6 +67,7 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     colors.inactiveText = appearance.colors.focusInactiveColor(mode);
     colors.formattingMarks = appearance.colors.formattingMarksColor(mode);
     colors.link = appearance.colors.linkColor(mode);
+    colors.tabGuide = appearance.colors.tabGuideColor(mode);
     const bool light = mode == EditorColorMode::Light;
     const EditorColors::TableColors& tables = appearance.colors.tables;
     colors.tableLines = light ? tables.linesLight : tables.linesDark;
@@ -1059,6 +1062,14 @@ void BookEditor::replaceWithKml(const QString& kml)
     cursor.beginEditBlock();
     m_textBuffer->appendUndoItem(new CallbackUndoItem(
         [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
+    // with the tab guides of the new text, before it is laid out
+    if (const std::vector<double> before = tabGuidesOf(*m_textBuffer);
+        before != content.tabGuides()) {
+        m_textBuffer->appendUndoItem(
+            new StateUndoItem([this, before] { applyTabGuides(before); },
+                              [this, after = content.tabGuides()] { applyTabGuides(after); }));
+        applyTabGuides(content.tabGuides());
+    }
     cursor.select(QTextCursor::Document);
     cursor.removeSelectedText();
     cursor.setBlockCharFormat(QTextCharFormat());  // nothing left of the old first paragraph
@@ -1135,6 +1146,7 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     layout->setCaptionContext(m_captionContext);  // the book around the text
     layout->setFieldContext(m_fieldContext);
     layout->setFootnoteContext(m_footnoteContext);
+    setTabGuidesOf(*m_textBuffer, content.tabGuides());  // the tabs of its text go to them
 
     // The numbers on the margin go on from the lines above the view, estimated until the
     // background pass lays them out: the view shows the exact numbers then. Laying out the
@@ -1329,6 +1341,7 @@ const QString& BookEditor::savedKml() const
         content.loadKml(m_savedSource);
         QTextDocument document;
         document.setUndoRedoEnabled(false);
+        setTabGuidesOf(document, content.tabGuides());
         QTextCursor cursor(&document);
         cursor.beginEditBlock();
         appendParagraphs(cursor, content);

@@ -158,6 +158,14 @@ public:
     [[nodiscard]] TableShape table(size_t index) const;
 
     // =========================================================================
+    // Tab guides
+    // =========================================================================
+
+    /// @brief The tab guides of the text (<tab-guides>; tab_guides.h): millimetres from the
+    ///        left edge of the text, as normalizedTabGuides() keeps them; none without them
+    [[nodiscard]] const std::vector<double>& tabGuides() const { return m_tabGuides; }
+
+    // =========================================================================
     // Annotations of a chapter
     // =========================================================================
 
@@ -207,6 +215,18 @@ private:
 
     /// @brief Whether an element at the top level of KML is a paragraph or an object
     static bool isBlockElement(QStringView tag);
+
+    /// @brief Read a section of the text that is not a paragraph: <annotations> or
+    ///        <tab-guides>
+    /// @param reader XML reader positioned at the section's start element; on return it is
+    ///               positioned at its end element
+    /// @return Whether @p tag is such a section (else the reader has not moved)
+    bool parseSection(QStringView tag, QXmlStreamReader& reader);
+
+    /// @brief Read the <tab-guides> section: a <guide at="..."/> for each guide
+    /// @param reader XML reader positioned at the section's start element; on return it is
+    ///               positioned at its end element
+    void parseTabGuides(QXmlStreamReader& reader);
 
     /// @brief Read the <annotations> section: the annotations the anchors refer to
     /// @param reader XML reader positioned at the section's start element; on return it is
@@ -294,6 +314,7 @@ private:
 
     std::vector<Paragraph> m_paragraphs;    ///< All paragraphs
     std::vector<TableShape> m_tables;       ///< The tables, in the order of the KML
+    std::vector<double> m_tabGuides;        ///< The tab guides, millimetres
     int m_lastListId = 0;                   ///< The number of the last list read
     ListDefinition m_lastListDefinition;    ///< The formats of its levels at its end
     QHash<QString, Annotation> m_annotations;  ///< The annotations of the section, by id
