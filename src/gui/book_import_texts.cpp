@@ -6,6 +6,7 @@
 
 #include <kalahari/gui/book_import_texts.h>
 
+#include <kalahari/core/chapter_versions.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/editor/image_store.h>
@@ -70,6 +71,44 @@ QSet<QString> imageFiles(const QString& folder) {
     return names;
 }
 
+/// The notes and the versions of an imported text or part (a part keeps its notes as its
+/// description); what cannot be written is left out, and the log says so
+void addDetails(core::ProjectManager& book, const QString& id, const ImportedText& text) {
+    auto& logger = core::Logger::getInstance();
+    if (!text.notes.isEmpty() && !book.setNotes(id, text.notes)) {
+        logger.warn("Import: the notes of '{}' could not be saved", text.title.toStdString());
+    }
+    if (text.versions.empty()) {
+        return;
+    }
+    std::optional<core::ChapterVersions> versions = book.versionsOf(id);
+    if (!versions) {
+        logger.warn("Import: '{}' can have no versions", text.title.toStdString());
+        return;
+    }
+    for (const ImportedVersion& version : text.versions) {
+        core::ChapterVersion about;
+        about.origin = core::VersionOrigin::Manual;
+        about.name = version.name;
+        if (!versions->add(version.kml, about, version.created)) {
+            logger.warn("Import: a version of '{}' could not be saved", text.title.toStdString());
+        }
+    }
+}
+
+/// The kind of the Workshop of the book with the id @p id; none: the book has none
+core::KindRef workshopKind(const core::ProjectManager& book, const QString& id) {
+    const core::BookProject* project = book.project();
+    if (!project) {
+        return {};
+    }
+    const QList<core::KindRef> kinds = project->kindsIn(book.bookTypes(), core::BookPlace::Workshop);
+    const auto found = std::find_if(kinds.begin(), kinds.end(), [&id](const core::KindRef& kind) {
+        return kind && kind.kind->id == id && !kind.kind->retired;
+    });
+    return found != kinds.end() ? *found : core::KindRef();
+}
+
 /// Add the texts to a list of the book from a place on
 /// @param top Texts of the import itself, not of a part it adds: each one is in @p added; of a
 ///        part only those that go out of it (a prologue) are, as the part takes the others with it
@@ -92,11 +131,13 @@ bool addTexts(core::ProjectManager& book, const std::vector<ImportedText>& texts
             place = *other;
         }
         const std::optional<QString> content = group ? std::nullopt : std::optional<QString>(text.kml);
-        const QString id = book.addElement(text.kind, text.title, place.place, place.groupId, place.index, {}, content);
+        const QString id = book.addElement(text.kind, text.title, place.place, place.groupId, place.index, {}, content,
+                                           group ? QString() : text.status);
         if (id.isEmpty()) {
             core::Logger::getInstance().warn("Import: '{}' could not be added to the book", text.title.toStdString());
             return false;
         }
+        addDetails(book, id, text);
         const bool sameList = place.place == at.place && place.groupId == at.groupId;
         if (added && (top || !sameList)) {
             added->append(id);
@@ -135,6 +176,7 @@ bool addFiles(core::ProjectManager& book, const std::vector<ImportedText>& texts
                 return false;
             }
         }
+        addDetails(book, id, text);
     }
     return true;
 }
@@ -216,6 +258,49 @@ bool addImportedTexts(core::ProjectManager& book, const std::vector<ImportedText
     return done;
 }
 
+int addImportedMaterials(core::ProjectManager& book, const std::vector<ImportedMaterial>& materials,
+                         ImportedElements* added) {
+    auto& logger = core::Logger::getInstance();
+    const QString note = QStringLiteral("work_note");
+    int failed = 0;
+    for (const ImportedMaterial& material : materials) {
+        const bool text = material.kind == note;
+        core::KindRef kind = workshopKind(book, material.kind);
+        if (!kind && !text) {
+            kind = workshopKind(book, QStringLiteral("other_file"));
+        }
+        QString id;
+        if (!kind) {
+            logger.warn("Import: the book has no kind {} for '{}'", material.kind.toStdString(),
+                        material.title.toStdString());
+        } else if (text) {
+            id = book.addElement(kind, material.title, core::BookPlace::Workshop, QString(), -1, {},
+                                 material.kml);
+        } else {
+            core::NewMaterial made;
+            made.title = material.title;
+            made.filePath = material.file;
+            made.description = material.description;
+            id = book.addMaterial(made, kind);
+        }
+        if (id.isEmpty()) {
+            logger.warn("Import: '{}' could not be added to the Workshop", material.title.toStdString());
+            ++failed;
+            continue;
+        }
+        if (added) {
+            added->elements << id;
+        }
+        if (text) {
+            ImportedText details;
+            details.title = material.title;
+            details.notes = material.notes;
+            addDetails(book, id, details);
+        }
+    }
+    return failed;
+}
+
 void clearNewBookStart(core::ProjectManager& book, const std::vector<ImportedText>& texts) {
     const core::ProjectBook* first = book.book();
     if (!first) {
@@ -263,9 +348,11 @@ bool removeImported(core::ProjectManager& book, const ImportedElements& imported
             removedAll = false;
             continue;
         }
-        for (const QString& file : book.filesOf(*element)) {
+        const QStringList files = book.filesOf(*element);
+        for (const QString& file : files) {
             removedAll = QFile::remove(file) && removedAll;
         }
+        removedAll = book.deleteVersionsOf(files, false).isEmpty() && removedAll;
     }
     editor::ImageStore store;
     store.setFolder(book.imagesBaseFolder());

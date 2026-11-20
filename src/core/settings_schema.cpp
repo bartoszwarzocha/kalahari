@@ -424,9 +424,9 @@ std::map<std::string, json> buildDefaults() {
         {"print.sheet.layout", "onePage"},
         {"print.sheet.fit", true},
         {"print.sheet.cropMarks", false},
-        // File > Import > DOCX, Markdown and Plain Text: the writer's last choices of the
-        // window. Where the texts go: "book" (the open book), "newBook" or "otherFiles"; more
-        // files each as one text
+        // File > Import > DOCX, Markdown, Plain Text and Scrivener Project: the writer's last
+        // choices of the window. Where the texts go: "book" (the open book), "newBook" or
+        // "otherFiles"; more files each as one text
         {"import.target", "book"},
         {"import.wholeFiles", true},
         // Download the images that Markdown files and Word documents give by Internet
@@ -435,8 +435,8 @@ std::map<std::string, json> buildDefaults() {
         {"import.webImages", false},
         // Of Word documents: how much of the file's formatting the texts keep, "emphasis"
         // (bold, italic... and centered or right-aligned paragraphs), "all" or "styles". Of
-        // each format (docx, markdown, text): the heading of a text its title only; the
-        // paragraphs that start with a dash in the style Dialogue; the cleanups of the text
+        // each format (docx, markdown, text, scrivener): the heading of a text its title only;
+        // the paragraphs that start with a dash in the style Dialogue; the cleanups of the text
         // (the typography of autocorrect, double spaces, spaces at the start of a paragraph,
         // "* * *" as a scene break) and what the empty paragraphs become: "remove", "keep" or
         // "sceneBreak" (Settings > Files > Import shows them)
@@ -476,6 +476,26 @@ std::map<std::string, json> buildDefaults() {
         {"import.text.parts", ""},
         {"import.text.emptyLines", 3},
         {"import.text.style", "normal"},
+        // A project of Scrivener: the formatting and the cleanups as of the other formats; only
+        // the documents Included in Compile; what divides the scenes of a text, "breaks",
+        // "titles" (the scene's title as a heading) or "none"; the synopses at the start of the
+        // notes, the notes as notes, the comments and inline annotations as annotations, the snapshots as
+        // versions of the texts, the folder Research to the Workshop
+        {"import.scrivener.formatting", "emphasis"},
+        {"import.scrivener.headingAsTitle", true},
+        {"import.scrivener.dialogueStyle", false},
+        {"import.scrivener.typography", true},
+        {"import.scrivener.doubleSpaces", true},
+        {"import.scrivener.leadingSpaces", true},
+        {"import.scrivener.sceneMarkers", true},
+        {"import.scrivener.emptyParagraphs", "remove"},
+        {"import.scrivener.compiledOnly", true},
+        {"import.scrivener.scenes", "breaks"},
+        {"import.scrivener.synopses", true},
+        {"import.scrivener.notes", true},
+        {"import.scrivener.comments", true},
+        {"import.scrivener.snapshots", true},
+        {"import.scrivener.research", true},
         // The writer's last choice of sections for a book type that shows them: a set of
         // names ("sections", "matter", "fragments", "arc"), own names ("custom") or "none"
         {"project.sectionSet", "sections"},

@@ -35,6 +35,8 @@ set(KALAHARI_CORE_SOURCES
     editor/book_import_kml.cpp         # Import of a file into a book: the KML of a text, cleanups
     editor/docx_reader.cpp             # Import of a Word document (DOCX)
     editor/markdown_reader.cpp         # Import of Markdown
+    editor/rtf_reader.cpp              # Import of RTF (Scrivener, Word, TextEdit)
+    editor/scrivener_reader.cpp        # Import of a project of Scrivener
     editor/text_reader.cpp             # Import of plain text: encodings, paragraphs, titles
     editor/epub_writer.cpp             # Export of a book to an EPUB 3 e-book
     core/database_schema_manager.cpp

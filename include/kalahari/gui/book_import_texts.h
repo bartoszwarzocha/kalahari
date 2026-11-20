@@ -16,6 +16,7 @@
 #include <kalahari/core/book_type_registry.h>
 #include <kalahari/editor/book_import.h>
 
+#include <QDateTime>
 #include <QString>
 #include <QStringList>
 
@@ -44,12 +45,34 @@ std::vector<editor::KindTitle> importKindTitles(const QList<core::KindRef>& kind
 std::vector<QString> saveImportedImages(const core::ProjectManager& book, const editor::ImportDocument& document,
                                         QStringList* written);
 
+/// @brief An earlier version of an imported text
+struct ImportedVersion {
+    QString kml;        ///< Its text
+    QString name;       ///< What is said of it (a snapshot's title); empty: nothing
+    QDateTime created;  ///< When it was kept; invalid: at the import
+};
+
 /// @brief A text or a part that an import adds to the book
 struct ImportedText {
     QString title;
     core::KindRef kind;               ///< A text kind; a group kind for a part
     QString kml;                      ///< Its text (a text element); empty: an empty text
     std::vector<ImportedText> texts;  ///< The texts of a part, in order
+    QString status;       ///< Of a text: "draft", "revision" or "final"; empty: "draft"
+    QString notes;        ///< Its notes (of a part, its description); empty: none
+    std::vector<ImportedVersion> versions;  ///< Of a text: its earlier versions, the oldest
+                                            ///< first
+};
+
+/// @brief A material that an import adds to the Workshop of the book
+struct ImportedMaterial {
+    QString kind;         ///< The id of its kind: "work_note" (a text), "picture",
+                          ///< "document", "web_page", "other_file"
+    QString title;
+    QString kml;          ///< Of a work note: its text
+    QString file;         ///< Of the other kinds: the file whose copy it gets; empty: none
+    QString description;  ///< Of the other kinds: its description; empty: none
+    QString notes;        ///< Of a work note: its notes; empty: none
 };
 
 /// @brief Where an import adds its texts
@@ -79,13 +102,22 @@ struct ImportedElements {
 bool addImportedTexts(core::ProjectManager& book, const std::vector<ImportedText>& texts, const ImportPlace& place,
                       ImportedElements* added);
 
+/// @brief Add the materials to the Workshop of the book, in their order; a material whose kind
+///        the book has not is a file of another kind ("other_file"), a work note stays one
+/// @param added Gets the ids of the materials it added (Undo import takes them out); may be
+///        nullptr
+/// @return The materials it could not add: no kind of the book, a file that cannot be read or
+///         written; the others are added
+int addImportedMaterials(core::ProjectManager& book, const std::vector<ImportedMaterial>& materials,
+                         ImportedElements* added);
+
 /// @brief Make room in a new book for the imported texts: the text elements it started with of
 ///        the kinds of @p texts go, and so does a text of its main kind with no text in it
 ///        ("Chapter 1"), with their files
 void clearNewBookStart(core::ProjectManager& book, const std::vector<ImportedText>& texts);
 
-/// @brief Take out of the book what an import added: its elements with their files, the image
-///        files it wrote and the paragraph styles it added
+/// @brief Take out of the book what an import added: its elements with their files and the
+///        versions of their texts, the image files it wrote and the paragraph styles it added
 /// @return false when something could not be taken out or deleted; the rest is
 bool removeImported(core::ProjectManager& book, const ImportedElements& imported);
 

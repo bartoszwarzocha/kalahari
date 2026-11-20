@@ -762,7 +762,8 @@ private:
     FolderField* m_backupFolder = nullptr;
 };
 
-/// @brief Files > Import: the choices File > Import > DOCX, Markdown and Plain Text start with
+/// @brief Files > Import: the choices File > Import > DOCX, Markdown, Plain Text and Scrivener
+/// Project start with
 ///
 /// The window of the import keeps the choices made in it in the same settings, each format
 /// its own, so the page shows the choices of the last import of each format.
@@ -772,6 +773,9 @@ public:
     explicit ImportPage(QWidget* parent = nullptr);
 
 private:
+    /// @brief The group of the projects of Scrivener: what of a project goes to the book
+    void addProject();
+
     /// @brief The headings, the dialogue and the cleanups of each format, one format at a time
     void addFormats();
 };

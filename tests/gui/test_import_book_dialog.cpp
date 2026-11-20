@@ -2,18 +2,21 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file test_import_book_dialog.cpp
-/// @brief File > Import > DOCX, Markdown and Plain Text: the window of the import, its tabs on
-///        a small screen and their access keys, the files and their order, the texts and
-///        their kinds, plain text, the import into the open book and Undo Import, a new book,
-///        the images of Internet addresses, and the choices kept for the next import
+/// @brief File > Import > DOCX, Markdown, Plain Text and Scrivener Project: the window of the
+///        import, its tabs on a small screen and their access keys, the files and their order,
+///        the texts and their kinds, plain text, a project of Scrivener with its notes and its
+///        research, the import into the open book and Undo Import, a new book, the images of
+///        Internet addresses, and the choices kept for the next import
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/chapter_versions.h"
 #include "kalahari/core/extension_points.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_export.h"
 #include "kalahari/editor/book_import.h"
+#include "kalahari/editor/scrivener_import.h"
 #include "kalahari/gui/book_import_coordinator.h"
 #include "kalahari/gui/book_styles.h"
 #include "kalahari/gui/command_registry.h"
@@ -22,6 +25,7 @@
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari_tests/test_support/window_parts.h"
+#include "test_support/scrivener_project.h"
 
 #include <QAbstractButton>
 #include <QApplication>
@@ -98,6 +102,18 @@ class SettingsKept {
         }
         m_numbers.emplace_back("import.text.emptyLines",
                                settings.get<int>("import.text.emptyLines"));
+        for (const char* key : {"import.scrivener.compiledOnly", "import.scrivener.synopses",
+                                "import.scrivener.notes", "import.scrivener.comments",
+                                "import.scrivener.snapshots", "import.scrivener.research",
+                                "import.scrivener.dialogueStyle", "import.scrivener.typography",
+                                "import.scrivener.doubleSpaces", "import.scrivener.leadingSpaces",
+                                "import.scrivener.sceneMarkers"}) {
+            m_flags.emplace_back(key, settings.get<bool>(key));
+        }
+        for (const char* key : {"import.scrivener.scenes", "import.scrivener.formatting",
+                                "import.scrivener.emptyParagraphs"}) {
+            m_strings.emplace_back(key, settings.get<std::string>(key));
+        }
     }
     ~SettingsKept() {
         try {
@@ -1061,6 +1077,9 @@ TEST_CASE("Import Text: Settings > Files > Import, the choices the window starts
     settings.set<bool>("import.docx.rejectChanges", true);
     settings.set<bool>("import.markdown.typography", false);
     settings.set<std::string>("import.text.emptyParagraphs", "sceneBreak");
+    settings.set<std::string>("import.scrivener.scenes", "titles");
+    settings.set<std::string>("import.scrivener.formatting", "styles");
+    settings.set<bool>("import.scrivener.snapshots", false);
 
     // The gear of the window of the import opens the page
     QString openedPage;
@@ -1117,6 +1136,19 @@ TEST_CASE("Import Text: Settings > Files > Import, the choices the window starts
     choice("importFormat")->setCurrentIndex(1);
     CHECK(stack->currentWidget()->isAncestorOf(box("import_markdown_typography")));
 
+    // The projects of Scrivener: a group of their own, and their cleanups without the heading
+    // as the title (their texts are the documents of the binder)
+    CHECK(choice("import_scrivener_scenes")->currentData().toString() == QStringLiteral("titles"));
+    CHECK(choice("import_scrivener_formatting")->currentData().toString() ==
+          QStringLiteral("styles"));
+    CHECK_FALSE(box("import_scrivener_snapshots")->isChecked());
+    CHECK(box("import_scrivener_research")->isChecked());
+    choice("importFormat")->setCurrentIndex(3);
+    CHECK(stack->currentWidget()->isAncestorOf(box("import_scrivener_typography")));
+    CHECK(dialog.findChild<QCheckBox*>(QStringLiteral("import_scrivener_headingAsTitle")) == nullptr);
+    CHECK(pageKeyProblems(*page).toStdString().empty());
+    choice("importFormat")->setCurrentIndex(1);
+
     // Changed and applied: only the changed choices are written
     box("importWholeFiles")->setChecked(true);
     box("importWebImages")->setChecked(true);
@@ -1160,6 +1192,8 @@ TEST_CASE("Import Text: Settings > Files > Import, the choices the window starts
     auto* polishFormat = polishDialog.findChild<QComboBox*>(QStringLiteral("importFormat"));
     REQUIRE(polishFormat != nullptr);
     polishFormat->setCurrentIndex(2);
+    CHECK(pageKeyProblems(*polishPage).toStdString().empty());
+    polishFormat->setCurrentIndex(3);
     CHECK(pageKeyProblems(*polishPage).toStdString().empty());
 }
 
@@ -1254,7 +1288,7 @@ TEST_CASE("Import Text: a format of a plugin, its tab of options and its texts",
     CHECK(command->disabledReason() == QStringLiteral("No plugin imports other formats."));
     {
         ImportBookDialog dialog(Novel::dialogBook(), types, ImportFormat::Markdown, {}, {});
-        CHECK(dialog.formatBox()->count() == 3);
+        CHECK(dialog.formatBox()->count() == 4);
     }
 
     RegisteredImporter registered;
@@ -1271,7 +1305,7 @@ TEST_CASE("Import Text: a format of a plugin, its tab of options and its texts",
 
     ImportBookDialog dialog(Novel::dialogBook(), types, QStringLiteral("screenplay"), {path},
                             intoBook());
-    CHECK(dialog.formatBox()->count() == 4);
+    CHECK(dialog.formatBox()->count() == 5);
     CHECK(dialog.formatBox()->currentText() ==
           QStringLiteral("Screenplay (.fountain, .spmd) – plugin"));
     CHECK(dialog.pluginFormat() == QStringLiteral("screenplay"));
@@ -1350,4 +1384,168 @@ TEST_CASE("Import Text: a format of a plugin, its tab of options and its texts",
     CHECK(chosen.pluginFormat().isEmpty());
     CHECK_FALSE(chosen.tabs()->isTabVisible(chosen.tabs()->count() - 1));
     CHECK(chosen.tabs()->isTabVisible(3));
+}
+
+TEST_CASE("Import Scrivener: the window of a project, its tabs, keys and a small screen",
+          "[gui][dialogs][import][scrivener]") {
+    SettingsKept kept;
+    Novel novel;
+    Files files;
+    const QString project = QDir(test::makeScrivenerProject(files.path()))
+                                .filePath(QStringLiteral("Karawana.scrivx"));
+    const ImportBookDialog::Book book = Novel::dialogBook();
+
+    const auto check = [&]() {
+        ImportBookDialog dialog(book, core::ProjectManager::installedBookTypes(),
+                                ImportFormat::Scrivener, {project}, {});
+        REQUIRE(dialog.tabs()->count() == 6);
+        for (int i = 0; i < dialog.tabs()->count(); ++i) {
+            CHECK(dialog.tabs()->isTabVisible(i));
+        }
+        // One project: chosen again, not added to or moved; its binder gives the texts
+        CHECK(onItsTab(dialog.compiledOnlyBox()));
+        CHECK(onItsTab(dialog.scenesBox()));
+        CHECK_FALSE(onItsTab(dialog.headingAsTitleBox()));
+        CHECK_FALSE(onItsTab(dialog.wholeFilesBox()));
+        CHECK_FALSE(onItsTab(dialog.commentsBox()));
+        CHECK(onItsTab(dialog.formattingBox()));
+        CHECK(onItsTab(dialog.synopsesBox()));
+        CHECK(onItsTab(dialog.researchBox()));
+        CHECK(dialog.snapshotsBox()->isEnabled());
+        CHECK(dialog.researchBox()->isEnabled());
+        for (const ImportBookDialog::Target target :
+             {ImportBookDialog::Target::Book, ImportBookDialog::Target::NewBook,
+              ImportBookDialog::Target::OtherFiles}) {
+            dialog.setTarget(target);
+            INFO("Target " << static_cast<int>(target));
+            CHECK(keyProblems(dialog).toStdString() == std::string());
+            for (int tab = 0; tab < dialog.tabs()->count(); ++tab) {
+                dialog.tabs()->setCurrentIndex(tab);
+                INFO("Tab " << tab);
+                checkFitsSmallScreen(dialog);
+            }
+        }
+        QStringList tabs;
+        for (int i = 0; i < dialog.tabs()->count(); ++i) {
+            tabs << dialog.tabs()->tabText(i);
+        }
+        return std::pair{tabs.join(QStringLiteral(" | ")),
+                         dialog.snapshotsBox()->text() + QStringLiteral(" | ") +
+                             dialog.researchBox()->text()};
+    };
+
+    SECTION("In English") {
+        const auto [tabs, extras] = check();
+        CHECK(tabs == QStringLiteral(
+                          "&File | &Place | &Division | &Styles | &Cleanup | Notes and Mat&erials"));
+        CHECK(extras == QStringLiteral(
+                            "Snapshots as &versions of the texts (2) | The folder \"&Research\" (3)"));
+    }
+
+    SECTION("In Polish") {
+        Polish polish;
+        REQUIRE(polish.loaded());
+        const auto [tabs, extras] = check();
+        CHECK(tabs ==
+              QStringLiteral("&Plik | &Miejsce | Po&dział | &Style | Por&ządki | Notatki i mate&riały"));
+        CHECK(extras == QStringLiteral("Migawki jako &wersje tekstów (2) | &Folder „Research” (3)"));
+    }
+
+    SECTION("In a font of 13 pixels, in Polish") {
+        AppFontOfPixels font(13);
+        Polish polish;
+        REQUIRE(polish.loaded());
+        check();
+    }
+}
+
+TEST_CASE("Import Scrivener: the texts of a project, its notes, snapshots and research, Undo",
+          "[gui][dialogs][import][scrivener]") {
+    SettingsKept kept;
+    Novel novel;
+    Files files;
+    const QString project = QDir(test::makeScrivenerProject(files.path()))
+                                .filePath(QStringLiteral("Karawana.scrivx"));
+    core::ProjectManager& book = novel.book();
+    const QStringList mainBefore = novel.mainTitles();
+    const qsizetype workshopBefore = book.project()->workshop.elements.size();
+
+    ImportBookDialog dialog(Novel::dialogBook(), core::ProjectManager::installedBookTypes(),
+                            ImportFormat::Scrivener, {project}, intoBook());
+    CHECK(fileNames(dialog) == QStringList{QStringLiteral("Karawana.scrivx")});
+    CHECK(listTitles(dialog) ==
+          QStringList({QStringLiteral("Część pierwsza"), QStringLiteral("  Część pierwsza"),
+                       QStringLiteral("  Rozdział 1"), QStringLiteral("  Rozdział 2"),
+                       QStringLiteral("Epilog")}));
+    CHECK(dialog.contentsText().contains(
+        QStringLiteral("In \"Manuscript\": 1 parts, 4 texts, 2 scenes")));
+    CHECK(dialog.contentsText().contains(QStringLiteral(
+        "Also in \"Research\": 3 items, 2 snapshots, in the Trash: 1 documents.")));
+    CHECK(dialog.contentsText().contains(QStringLiteral("The title of the project: \"Karawana\".")));
+
+    // All the documents: the scene left out of the compile too, read again
+    dialog.compiledOnlyBox()->setChecked(false);
+    CHECK(dialog.contentsText().contains(QStringLiteral("3 scenes")));
+    dialog.compiledOnlyBox()->setChecked(true);
+
+    dialog.accept();
+    REQUIRE(dialog.isDone());
+    CHECK(dialog.outcome().versions == 2);
+    CHECK(dialog.outcome().materials == 3);
+    CHECK(dialog.outcome().lostMaterials == 0);
+    CHECK(dialog.resultText().contains(QStringLiteral("The snapshots are versions of the texts (2).")));
+    CHECK(dialog.resultText().contains(
+        QStringLiteral("The Workshop has the materials of \"Research\" (3).")));
+
+    // The texts with their statuses, notes and versions, in the part (the book has a
+    // "Rozdział 1" of its own)
+    const core::ProjectElement* part = nullptr;
+    for (const core::ProjectElement& element : book.book()->mainElements) {
+        if (element.title == QStringLiteral("Część pierwsza")) {
+            part = &element;
+        }
+    }
+    REQUIRE(part != nullptr);
+    const auto find = [part](const QString& title) -> const core::ProjectElement* {
+        for (const core::ProjectElement& element : part->elements) {
+            if (element.title == title) {
+                return &element;
+            }
+        }
+        return nullptr;
+    };
+    const core::ProjectElement* first = find(QStringLiteral("Rozdział 1"));
+    REQUIRE(first != nullptr);
+    CHECK(book.notes(first->id).startsWith(QStringLiteral("Synopsis:\nRozdział o wyjeździe.")));
+    const core::ProjectElement* second = find(QStringLiteral("Rozdział 2"));
+    REQUIRE(second != nullptr);
+    CHECK(core::ProjectManager::statusOf(*second) == QStringLiteral("final"));
+    const std::optional<core::ChapterVersions> versions = book.versionsOf(second->id);
+    REQUIRE(versions);
+    CHECK(versions->count() == 2);
+    const QStringList workshop = [&book]() {
+        QStringList titles;
+        for (const core::ProjectElement& element : book.project()->workshop.elements) {
+            titles << element.title;
+        }
+        return titles;
+    }();
+    CHECK(workshop.size() == workshopBefore + 3);
+    CHECK(workshop.contains(QStringLiteral("Mapa")));
+    CHECK(workshop.contains(QStringLiteral("Notatki o oazie")));
+
+    // Undo Import: the book as it was, the Workshop too
+    dialog.undoImport();
+    CHECK(novel.mainTitles() == mainBefore);
+    CHECK(book.project()->workshop.elements.size() == workshopBefore);
+
+    // The window starts with the choices of the last import of a project
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set<bool>("import.scrivener.research", false);
+    settings.set<std::string>("import.scrivener.scenes", "titles");
+    ImportBookDialog next(Novel::dialogBook(), core::ProjectManager::installedBookTypes(),
+                          ImportFormat::Scrivener, {project}, {});
+    CHECK_FALSE(next.researchBox()->isChecked());
+    CHECK(next.scenesBox()->currentData().toInt() ==
+          static_cast<int>(editor::ScrivenerDraftOptions::Scenes::Titles));
 }

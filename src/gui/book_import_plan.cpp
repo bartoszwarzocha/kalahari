@@ -13,6 +13,7 @@
 #include <kalahari/gui/kind_names.h>
 #include <kalahari/gui/panels/navigator_panel.h>
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QFileInfo>
 #include <QSet>
@@ -26,6 +27,11 @@
 
 namespace kalahari::gui {
 
+/// @brief The context of the translations of what an import adds to a book
+struct BookImportPlan {
+    Q_DECLARE_TR_FUNCTIONS(BookImportPlan)
+};
+
 namespace {
 
 constexpr std::array<core::BookPlace, 3> BOOK_PLACES{core::BookPlace::Front, core::BookPlace::Main,
@@ -36,7 +42,7 @@ const QString TITLE_PAGE_KIND = QStringLiteral("title_page");
 
 /// The ids of the program's own formats, which the formats of the plugins cannot take
 const QStringList OWN_FORMATS{QStringLiteral("docx"), QStringLiteral("markdown"),
-                              QStringLiteral("text")};
+                              QStringLiteral("text"), QStringLiteral("scrivener")};
 
 /// The styles of headings of Markdown: heading_1 to heading_3
 constexpr int MARKDOWN_HEADING_STYLES = 3;
@@ -265,7 +271,206 @@ int compareNames(const QString& a, const QString& b) {
     return (i < a.size()) - (j < b.size());
 }
 
+// =============================================================================
+// A project of Scrivener
+// =============================================================================
+
+/// Append a document of a project after its draft (a snapshot, a text of the research): its
+/// paragraphs, what it left out and its tracked changes are not counted with the draft's
+void appendAfterDraft(editor::ImportDocument& document, editor::ImportDocument added, size_t* from,
+                      size_t* to) {
+    for (editor::ImportStyle& style : added.styles) {
+        style.paragraphs = 0;
+    }
+    added.omissions.clear();
+    added.trackedChanges = 0;
+    *from = document.blocks.size();
+    editor::appendImportDocument(document, std::move(added));
+    *to = document.blocks.size();
+}
+
+/// The kind of a material of a file of the research of its type in the binder
+ImportMaterial::Kind materialKindOf(const QString& type) {
+    if (type.compare(QLatin1String("Image"), Qt::CaseInsensitive) == 0) {
+        return ImportMaterial::Kind::Picture;
+    }
+    if (type.compare(QLatin1String("PDF"), Qt::CaseInsensitive) == 0) {
+        return ImportMaterial::Kind::Document;
+    }
+    if (type.compare(QLatin1String("WebArchive"), Qt::CaseInsensitive) == 0) {
+        return ImportMaterial::Kind::WebPage;
+    }
+    return ImportMaterial::Kind::File;
+}
+
+/// The documents of the research, those in folders too, in the binder's order: the files, and
+/// the texts (those of the folders) with something in them
+void addResearch(const std::vector<editor::ScrivenerItem>& items, editor::ImportDocument& document,
+                 std::vector<ImportMaterial>& research) {
+    for (const editor::ScrivenerItem& item : items) {
+        ImportMaterial material;
+        material.title = item.title.trimmed();
+        material.synopsis = item.synopsis.trimmed();
+        material.notes = item.notes.trimmed();
+        if (item.kind == editor::ScrivenerItem::Kind::File) {
+            material.kind = materialKindOf(item.type);
+            material.file = item.file;
+            research.push_back(std::move(material));
+        } else if (item.hasText() || !material.synopsis.isEmpty() || !material.notes.isEmpty()) {
+            material.kind = ImportMaterial::Kind::Note;
+            appendAfterDraft(document, item.text, &material.from, &material.to);
+            research.push_back(std::move(material));
+        }
+        addResearch(item.children, document, research);
+    }
+}
+
+/// The document of a project: its draft, then the snapshots of its texts and its research
+editor::ImportDocument projectDocument(const editor::ScrivenerProject& project,
+                                       const editor::ScrivenerDraftOptions& options,
+                                       ImportProject* read) {
+    editor::ScrivenerDraft draft = editor::scrivenerDraft(project, options);
+    read->title = project.title.trimmed();
+    read->draftName = project.draftName.trimmed();
+    read->excluded = draft.excluded;
+    read->sceneSnapshots = draft.sceneSnapshots;
+    read->trash = project.trash;
+    editor::ImportDocument document = std::move(draft.document);
+    read->draftBlocks = document.blocks.size();
+    for (editor::ScrivenerText& text : draft.texts) {
+        read->pieces.push_back(text.piece);
+        ImportTextDetails details;
+        details.synopsis = text.synopsis.trimmed();
+        details.notes = text.notes.trimmed();
+        details.label = text.label;
+        details.status = text.status;
+        details.keywords = text.keywords;
+        details.scenes = std::move(text.scenes);
+        for (editor::ScrivenerSnapshot& snapshot : text.snapshots) {
+            ImportSnapshot version;
+            version.title = snapshot.title.trimmed();
+            version.created = snapshot.created;
+            appendAfterDraft(document, std::move(snapshot.text), &version.from, &version.to);
+            details.snapshots.push_back(std::move(version));
+        }
+        read->details.push_back(std::move(details));
+    }
+    addResearch(project.research, document, read->research);
+    return document;
+}
+
+/// The label, a status of the project the book has no status of, and the keywords, a line each
+QStringList aboutOf(const QString& label, const QString& status, const QStringList& keywords) {
+    QStringList lines;
+    if (!label.trimmed().isEmpty()) {
+        //: The label of a document of Scrivener, in the notes of an imported text. In Polish:
+        //: Etykieta: %1
+        lines << BookImportPlan::tr("Label: %1").arg(label.trimmed());
+    }
+    if (!status.trimmed().isEmpty() && editor::scrivenerBookStatus(status).isEmpty()) {
+        //: A status of Scrivener the book has no status of, in the notes of an imported text.
+        //: In Polish: Stan: %1
+        lines << BookImportPlan::tr("Status: %1").arg(status.trimmed());
+    }
+    if (!keywords.isEmpty()) {
+        //: The keywords of a document of Scrivener, in the notes of an imported text. In
+        //: Polish: Słowa kluczowe: %1
+        lines << BookImportPlan::tr("Keywords: %1").arg(keywords.join(QStringLiteral(", ")));
+    }
+    return lines;
+}
+
+/// What a project says of a text or a part, as @p take has it: its notes, status and versions
+void addDetails(ImportedText& text, const ImportFile& file, const ImportRow& row,
+                const editor::ImportKmlOptions& options, const ImportDetails& take) {
+    if (!file.project || !file.document || row.text < 0 ||
+        static_cast<size_t>(row.text) >= file.project->details.size()) {
+        return;
+    }
+    const ImportTextDetails& details = file.project->details[static_cast<size_t>(row.text)];
+    text.notes = importNotes(details, take);
+    if (row.piece.part) {
+        return;
+    }
+    if (take.statuses) {
+        text.status = editor::scrivenerBookStatus(details.status);
+    }
+    if (take.snapshots) {
+        for (const ImportSnapshot& snapshot : details.snapshots) {
+            editor::ImportPiece piece;
+            piece.from = snapshot.from;
+            piece.to = snapshot.to;
+            text.versions.push_back(
+                {editor::importKml(*file.document, piece, options), snapshot.title, snapshot.created});
+        }
+    }
+}
+
 }  // namespace
+
+int ImportProject::snapshots() const {
+    int count = 0;
+    for (const ImportTextDetails& each : details) {
+        count += static_cast<int>(each.snapshots.size());
+    }
+    return count;
+}
+
+QString importNotes(const ImportTextDetails& details, const ImportDetails& take) {
+    QStringList paragraphs;
+    if (take.synopses && !details.synopsis.trimmed().isEmpty()) {
+        //: Before the synopsis of a document of Scrivener, at the start of the notes of an
+        //: imported text. In Polish: Streszczenie:
+        paragraphs << BookImportPlan::tr("Synopsis:") + QLatin1Char('\n') + details.synopsis.trimmed();
+    }
+    if (take.notes && !details.notes.trimmed().isEmpty()) {
+        paragraphs << details.notes.trimmed();
+    }
+    if (const QStringList about = take.notes ? aboutOf(details.label, details.status, details.keywords)
+                                             : QStringList();
+        !about.isEmpty()) {
+        paragraphs << about.join(QLatin1Char('\n'));
+    }
+    QStringList scenes;
+    for (const editor::ScrivenerScene& scene : details.scenes) {
+        QStringList lines;
+        if (take.synopses && !scene.synopsis.trimmed().isEmpty()) {
+            lines << scene.synopsis.trimmed();
+        }
+        if (take.notes) {
+            if (!scene.notes.trimmed().isEmpty()) {
+                lines << scene.notes.trimmed();
+            }
+            lines += aboutOf(scene.label, scene.status, scene.keywords);
+        }
+        if (lines.isEmpty()) {
+            continue;
+        }
+        //: A scene of Scrivener without a title, in the notes of an imported text. In Polish:
+        //: Scena bez tytułu
+        const QString title = scene.title.trimmed().isEmpty() ? BookImportPlan::tr("Untitled scene")
+                                                              : scene.title.trimmed();
+        lines.prepend(title);
+        scenes << lines.join(QLatin1Char('\n'));
+    }
+    if (!scenes.isEmpty()) {
+        //: The heading of what the scenes of Scrivener say of themselves, in the notes of an
+        //: imported text. In Polish: Sceny:
+        paragraphs << BookImportPlan::tr("Scenes:") + QStringLiteral("\n\n") +
+                          scenes.join(QStringLiteral("\n\n"));
+    }
+    return paragraphs.join(QStringLiteral("\n\n"));
+}
+
+QString materialNotes(const ImportMaterial& material) {
+    QStringList paragraphs;
+    for (const QString& each : {material.synopsis, material.notes}) {
+        if (!each.trimmed().isEmpty()) {
+            paragraphs << each.trimmed();
+        }
+    }
+    return paragraphs.join(QStringLiteral("\n\n"));
+}
 
 QStringList importExtensions(ImportFormat format, const QString& plugin) {
     switch (format) {
@@ -275,6 +480,8 @@ QStringList importExtensions(ImportFormat format, const QString& plugin) {
             return {QStringLiteral(".md"), QStringLiteral(".markdown")};
         case ImportFormat::PlainText:
             return {QStringLiteral(".txt")};
+        case ImportFormat::Scrivener:
+            return {QStringLiteral(".scrivx")};
         case ImportFormat::Plugin:
             for (const PluginImportFormat& each : pluginImportFormats()) {
                 if (each.id == plugin) {
@@ -399,6 +606,14 @@ ImportFile readImportFile(const QString& path, const ImportReading& reading) {
         if (!editor::readDocx(path, document.get(), &file.problem)) {
             return file;
         }
+    } else if (reading.format == ImportFormat::Scrivener) {
+        editor::ScrivenerProject project;
+        if (!editor::readScrivenerProject(path, &project, &file.problem)) {
+            return file;
+        }
+        auto read = std::make_shared<ImportProject>();
+        *document = projectDocument(project, reading.scrivener, read.get());
+        file.project = std::move(read);
     } else {
         QFile source(path);
         if (!source.open(QIODevice::ReadOnly)) {
@@ -533,11 +748,15 @@ std::vector<ImportRow> importRows(const std::vector<ImportFile>& files,
             continue;
         }
         const QString fileTitle = QFileInfo(file.path).completeBaseName();
-        for (const editor::ImportPiece& piece :
-             editor::splitDocument(*file.document, wholeFiles ? whole : split)) {
+        const std::vector<editor::ImportPiece> pieces =
+            file.project ? file.project->pieces
+                         : editor::splitDocument(*file.document, wholeFiles ? whole : split);
+        for (size_t p = 0; p < pieces.size(); ++p) {
+            const editor::ImportPiece& piece = pieces[p];
             ImportRow row;
             row.file = static_cast<int>(i);
             row.piece = piece;
+            row.text = file.project ? static_cast<int>(p) : -1;
             row.title = piece.title.isEmpty() ? fileTitle : piece.title;
             if (piece.part) {
                 row.kind = kinds.part.reference();
@@ -609,8 +828,13 @@ bool isChecked(const std::vector<ImportRow>& rows, size_t row) {
 std::vector<ImportedText> importedTexts(const std::vector<ImportFile>& files,
                                         const std::vector<ImportRow>& rows,
                                         const ImportKinds& kinds,
-                                        const std::vector<editor::ImportKmlOptions>& options) {
+                                        const std::vector<editor::ImportKmlOptions>& options,
+                                        const ImportDetails& details) {
     std::vector<ImportedText> texts;
+    const editor::ImportKmlOptions none;
+    const auto optionsOf = [&](size_t file) -> const editor::ImportKmlOptions& {
+        return file < options.size() ? options[file] : none;
+    };
     const auto textOf = [&](const ImportRow& row) {
         ImportedText text;
         text.title = row.title.trimmed();
@@ -618,9 +842,8 @@ std::vector<ImportedText> importedTexts(const std::vector<ImportFile>& files,
         text.kind = kind ? kind->kind : kinds.main;
         const size_t file = static_cast<size_t>(row.file);
         if (file < files.size() && files[file].isRead()) {
-            text.kml = editor::importKml(*files[file].document, row.piece,
-                                         file < options.size() ? options[file]
-                                                               : editor::ImportKmlOptions());
+            text.kml = editor::importKml(*files[file].document, row.piece, optionsOf(file));
+            addDetails(text, files[file], row, optionsOf(file), details);
         }
         return text;
     };
@@ -654,9 +877,66 @@ std::vector<ImportedText> importedTexts(const std::vector<ImportFile>& files,
         part.title = row.title.trimmed();
         part.kind = kinds.part;
         part.texts = std::move(inside);
+        if (const size_t file = static_cast<size_t>(row.file); file < files.size()) {
+            addDetails(part, files[file], row, optionsOf(file), details);
+        }
         texts.push_back(std::move(part));
     }
     return texts;
+}
+
+std::vector<ImportedMaterial> importedMaterials(const std::vector<ImportFile>& files,
+                                                const std::vector<editor::ImportKmlOptions>& options) {
+    std::vector<ImportedMaterial> materials;
+    for (size_t i = 0; i < files.size(); ++i) {
+        const ImportFile& file = files[i];
+        if (!file.isRead() || !file.project) {
+            continue;
+        }
+        const editor::ImportKmlOptions none;
+        const editor::ImportKmlOptions& written = i < options.size() ? options[i] : none;
+        for (const ImportMaterial& material : file.project->research) {
+            ImportedMaterial made;
+            made.title = material.title;
+            if (made.title.isEmpty()) {
+                made.title = QFileInfo(material.file).completeBaseName();
+            }
+            if (made.title.isEmpty()) {
+                //: The title of a document of the research of Scrivener without one. In Polish:
+                //: Bez tytułu
+                made.title = BookImportPlan::tr("Untitled");
+            }
+            switch (material.kind) {
+                case ImportMaterial::Kind::Note: {
+                    made.kind = QStringLiteral("work_note");
+                    editor::ImportPiece piece;
+                    piece.from = material.from;
+                    piece.to = material.to;
+                    made.kml = editor::importKml(*file.document, piece, written);
+                    made.notes = materialNotes(material);
+                    break;
+                }
+                case ImportMaterial::Kind::Picture:
+                    made.kind = QStringLiteral("picture");
+                    break;
+                case ImportMaterial::Kind::Document:
+                    made.kind = QStringLiteral("document");
+                    break;
+                case ImportMaterial::Kind::WebPage:
+                    made.kind = QStringLiteral("web_page");
+                    break;
+                case ImportMaterial::Kind::File:
+                    made.kind = QStringLiteral("other_file");
+                    break;
+            }
+            if (material.kind != ImportMaterial::Kind::Note) {
+                made.file = material.file;
+                made.description = materialNotes(material);
+            }
+            materials.push_back(std::move(made));
+        }
+    }
+    return materials;
 }
 
 int checkedWords(const std::vector<ImportRow>& rows) {

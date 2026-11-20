@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_registry.h>
+#include <kalahari/core/chapter_versions.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/editor/image_store.h>
 #include <kalahari/gui/book_import_texts.h>
@@ -17,6 +18,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QTemporaryDir>
+#include <QTimeZone>
 
 #include <algorithm>
 
@@ -224,4 +226,108 @@ TEST_CASE("Import into a book: the images of the file, and the styles it added",
     CHECK(std::none_of(left.begin(), left.end(), [](const core::BookParagraphStyle& style) {
         return style.id == QStringLiteral("imported_motto");
     }));
+}
+
+TEST_CASE("Import into a book: the statuses, the notes and the versions of the texts", "[import][gui]") {
+    Novel novel;
+    core::ProjectManager& book = novel.book();
+
+    ImportedText part = text(novel.kind("part"), QStringLiteral("Część pierwsza"));
+    part.notes = QStringLiteral("Synopsis:\nWyjazd.");
+    ImportedText chapter =
+        text(novel.kind("chapter"), QStringLiteral("Rozdział 2"), QStringLiteral("<kml><p>Nowy.</p></kml>"));
+    chapter.status = QStringLiteral("revision");
+    chapter.notes = QStringLiteral("Notatka.");
+    chapter.versions = {{QStringLiteral("<kml><p>Stary.</p></kml>"), QStringLiteral("Pierwsza wersja"),
+                         QDateTime(QDate(2025, 10, 27), QTime(9, 20, 40), QTimeZone::utc())},
+                        {QStringLiteral("<kml><p>Nowszy.</p></kml>"), QStringLiteral("Po redakcji"),
+                         QDateTime(QDate(2025, 10, 28), QTime(17, 0), QTimeZone::utc())}};
+    part.texts = {chapter};
+
+    ImportPlace place;
+    place.at = {core::BookPlace::Main, QString(), 1};
+    ImportedElements added;
+    REQUIRE(addImportedTexts(book, {part}, place, &added));
+    const core::ProjectBook* after = book.book();
+    REQUIRE(after->mainElements.size() == 2);
+    const core::ProjectElement& group = after->mainElements[1];
+    CHECK(book.notes(group.id) == QStringLiteral("Synopsis:\nWyjazd."));
+    REQUIRE(group.elements.size() == 1);
+    const QString id = group.elements[0].id;
+    CHECK(core::ProjectManager::statusOf(group.elements[0]) == QStringLiteral("revision"));
+    CHECK(book.notes(id) == QStringLiteral("Notatka."));
+    const std::optional<core::ChapterVersions> versions = book.versionsOf(id);
+    REQUIRE(versions);
+    const QList<core::ChapterVersion> kept = versions->list();
+    REQUIRE(kept.size() == 2);
+    CHECK(kept[0].name == QStringLiteral("Po redakcji"));
+    CHECK(kept[0].created == QDateTime(QDate(2025, 10, 28), QTime(17, 0), QTimeZone::utc()));
+    CHECK(versions->text(kept[1].file) == QStringLiteral("<kml><p>Stary.</p></kml>"));
+    CHECK(kept[1].origin == core::VersionOrigin::Manual);
+
+    // Undo import: the versions go with the texts
+    const QString file = QDir(book.getProjectPath()).filePath(group.elements[0].file);
+    const QStringList folders = book.versionFoldersOf({file});
+    REQUIRE(folders.size() == 1);
+    REQUIRE(removeImported(book, added));
+    CHECK(book.book()->mainElements.size() == 1);
+    CHECK_FALSE(QFileInfo::exists(folders.front()));
+}
+
+TEST_CASE("Import into a book: the materials of the Workshop, of the kinds it has", "[import][gui]") {
+    Novel novel;
+    core::ProjectManager& book = novel.book();
+    QTemporaryDir source;
+    REQUIRE(source.isValid());
+    const auto fileOf = [&source](const char* name) {
+        const QString path = QDir(source.path()).filePath(QLatin1String(name));
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::WriteOnly));
+        file.write("x");
+        return path;
+    };
+
+    ImportedMaterial note;
+    note.kind = QStringLiteral("work_note");
+    note.title = QStringLiteral("Notatki o oazie");
+    note.kml = QStringLiteral("<kml><p>Oaza.</p></kml>");
+    note.notes = QStringLiteral("Z wyprawy.");
+    ImportedMaterial picture;
+    picture.kind = QStringLiteral("picture");
+    picture.title = QStringLiteral("Mapa");
+    picture.file = fileOf("content.png");
+    picture.description = QStringLiteral("Mapa szlaku.");
+    ImportedMaterial other;
+    other.kind = QStringLiteral("no_such_kind");  // a file of another kind
+    other.title = QStringLiteral("Dane");
+    other.file = fileOf("content.xyz");
+    ImportedMaterial missing;
+    missing.kind = QStringLiteral("document");
+    missing.title = QStringLiteral("Brak");
+    missing.file = QDir(source.path()).filePath(QStringLiteral("brak.pdf"));
+
+    ImportedElements added;
+    CHECK(addImportedMaterials(book, {note, picture, other, missing}, &added) == 1);
+    REQUIRE(added.elements.size() == 3);
+    const core::ProjectElement* work = book.findElement(added.elements[0]);
+    REQUIRE(work != nullptr);
+    CHECK(work->kind.kindId == QStringLiteral("work_note"));
+    CHECK(work->title == QStringLiteral("Notatki o oazie"));
+    CHECK(book.chapterText(work->id) == QStringLiteral("<kml><p>Oaza.</p></kml>"));
+    CHECK(book.notes(work->id) == QStringLiteral("Z wyprawy."));
+    const core::ProjectElement* map = book.findElement(added.elements[1]);
+    REQUIRE(map != nullptr);
+    CHECK(map->kind.kindId == QStringLiteral("picture"));
+    CHECK(map->description == QStringLiteral("Mapa szlaku."));
+    const QString mapFile = QDir(book.getProjectPath()).filePath(map->file);
+    CHECK(QFileInfo::exists(mapFile));
+    const core::ProjectElement* data = book.findElement(added.elements[2]);
+    REQUIRE(data != nullptr);
+    CHECK(data->kind.kindId == QStringLiteral("other_file"));
+
+    // Undo import: the materials go, with their copies of the files
+    REQUIRE(removeImported(book, added));
+    CHECK(book.findElement(added.elements[0]) == nullptr);
+    CHECK_FALSE(QFileInfo::exists(mapFile));
+    CHECK(QFileInfo::exists(picture.file));
 }

@@ -334,14 +334,6 @@ struct CharacterStyle {
     const Node* properties = nullptr;  ///< Its w:rPr
 };
 
-/// The heading level of a style's name: "heading 1" (Word, LibreOffice, Google Docs), "Nagłówek 1"
-int headingLevelOfName(const QString& name) {
-    static const QRegularExpression heading(QStringLiteral("^(?:heading|nagłówek|überschrift|titre)\\s*([1-9])$"),
-                                            QRegularExpression::CaseInsensitiveOption);
-    const QRegularExpressionMatch match = heading.match(name.trimmed());
-    return match.hasMatch() ? match.captured(1).toInt() : 0;
-}
-
 /// The bullet of a list's level of Word: its text, the characters of Symbol and Wingdings as
 /// the bullets they show
 QString bulletOf(const QString& text) {
@@ -644,7 +636,7 @@ private:
             if (style.outline != 0) {
                 return std::max(0, style.outline);
             }
-            if (const int level = headingLevelOfName(style.name); level > 0) {
+            if (const int level = headingLevelOfStyleName(style.name); level > 0) {
                 return level;
             }
             if (current.compare(QLatin1String("Title"), Qt::CaseInsensitive) == 0) {
@@ -1912,6 +1904,13 @@ private:
 };
 
 }  // namespace
+
+int headingLevelOfStyleName(const QString& name) {
+    static const QRegularExpression heading(QStringLiteral("^(?:heading|nagłówek|überschrift|titre)\\s*([1-9])$"),
+                                            QRegularExpression::CaseInsensitiveOption);
+    const QRegularExpressionMatch match = heading.match(name.trimmed());
+    return match.hasMatch() ? match.captured(1).toInt() : 0;
+}
 
 bool readDocx(const QString& path, ImportDocument* document, ImportProblem* problem) {
     if (problem) {
