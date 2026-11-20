@@ -175,22 +175,38 @@ QMap<QString, KindWords> readWords(const QJsonValue& value, const QString& field
     return words;
 }
 
-/// The page of a printed book the elements of a kind start on ("firstPage"): a text, a part's
-/// title, the table of contents; PageStart::Auto (as the settings say) without it
-PageStart readFirstPage(const QJsonObject& object, const QString& field, QStringList& problems) {
+/// Where the elements of a kind start: "first", whether one opens its section (the title page
+/// opens its section; a prologue opens the story after it), and "firstPage", the page of a
+/// printed book a text, a part's title or the table of contents starts on (PageStart::Auto,
+/// as the settings say, without it)
+void readStart(const QJsonObject& object, const QString& field, ElementKind& kind,
+               QStringList& problems) {
+    const QJsonValue first = object.value(QStringLiteral("first"));
+    if (!first.isUndefined()) {
+        if (!first.isBool()) {
+            addProblem(problems, field + QStringLiteral(".first"),
+                       QStringLiteral("must be true or false"));
+        } else if (first.toBool() && !object.value(QStringLiteral("position")).isUndefined()) {
+            addProblem(problems, field + QStringLiteral(".first"),
+                       QStringLiteral("a kind that opens its section has no position"));
+        } else {
+            kind.first = first.toBool();
+        }
+    }
+
     const QJsonValue firstPage = object.value(QStringLiteral("firstPage"));
     if (firstPage.isUndefined()) {
-        return PageStart::Auto;
+        return;
     }
     const std::optional<PageStart> start = firstPage.isString() && !firstPage.toString().isEmpty()
                                                ? pageStartFromName(firstPage.toString())
                                                : std::nullopt;
-    if (!start) {
+    if (start) {
+        kind.firstPage = *start;
+    } else {
         addProblem(problems, field + QStringLiteral(".firstPage"),
                    QStringLiteral("must be \"right\", \"left\" or \"next\""));
-        return PageStart::Auto;
     }
-    return *start;
 }
 
 std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
@@ -325,21 +341,7 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
         }
     }
 
-    // The title page opens its section; a prologue opens the story after it
-    const QJsonValue first = object.value(QStringLiteral("first"));
-    if (!first.isUndefined()) {
-        if (!first.isBool()) {
-            addProblem(problems, field + QStringLiteral(".first"),
-                       QStringLiteral("must be true or false"));
-        } else if (first.toBool() && !position.isUndefined()) {
-            addProblem(problems, field + QStringLiteral(".first"),
-                       QStringLiteral("a kind that opens its section has no position"));
-        } else {
-            kind.first = first.toBool();
-        }
-    }
-
-    kind.firstPage = readFirstPage(object, field, problems);
+    readStart(object, field, kind, problems);
 
     const QJsonValue editor = object.value(QStringLiteral("editor"));
     if (kind.form == ElementForm::Window) {
