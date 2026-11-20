@@ -42,6 +42,8 @@
     "background": "#F5F5F5"
   },
   "editor": {
+    "notificationBackground": "#FFF8E1",
+    "notificationBorder": "#FFD54F",
     "annotationComment": "#D98E04",
     "annotationTodo": "#7B61FF",
     "annotationNote": "#1E88E5",

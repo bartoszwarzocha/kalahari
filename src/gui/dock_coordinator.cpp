@@ -533,6 +533,10 @@ void DockCoordinator::createAssistantDock() {
     m_assistantDock->setWidget(scrollingPanel(m_assistantPanel, m_assistantDock));
     m_assistantDock->setObjectName("AssistantDock");
     setupDockTitleBar(m_assistantDock, "view.assistant", QObject::tr("Assistant"));
+    // It keeps the notifications: the gear opens their settings, as the gear of their bar
+    //: The gear of the Assistant panel. In Polish: Ustawienia powiadomień
+    addSettingsButton(m_assistantDock, QString::fromLatin1(SettingsDialog::NOTIFICATIONS_PAGE),
+                      tr("Notification Settings"));
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_assistantDock);
 
     logger.debug("DockCoordinator: Assistant dock created");

@@ -47,6 +47,7 @@
 #include "kalahari/gui/cards_in_text_coordinator.h"
 #include "kalahari/gui/repetitions_coordinator.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
+#include "kalahari/gui/notifications.h"
 #include "kalahari/gui/writing_awards_tracker.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
@@ -524,11 +525,24 @@ MainWindow::MainWindow(QWidget* parent)
 
     logger.debug("MainWindow: DocumentCoordinator created");
 
+    // The notifications: the bar at the bottom of the middle, under the tabs of the texts, the
+    // program's window of them, the system's and the Assistant panel; those of the whole
+    // program go to the window in front
+    m_notificationCoordinator = new NotificationCoordinator(
+        m_dockCoordinator,
+        [this](const QString& page) { m_settingsCoordinator->openSettingsPage(page); }, this);
+    NotificationCoordinator::setFrontFinder([]() -> NotificationCoordinator* {
+        MainWindow* front = frontWindow();
+        return front != nullptr ? front->m_notificationCoordinator : nullptr;
+    });
+
     // The statistics bar above the tabs of the texts, and the record of writing of the book
     // that opens (after the documents, which make the collector of its editors)
     m_writingStatsCoordinator = new WritingStatsCoordinator(
         *m_book, *m_commands, m_dockCoordinator, m_documentCoordinator,
         [this](const QString& page) { m_settingsCoordinator->openSettingsPage(page); }, this);
+    m_writingStatsCoordinator->setNotifications(m_notificationCoordinator);
+    m_navigatorCoordinator->setNotifications(m_notificationCoordinator);
     m_writingStatsCoordinator->connectCommands();
     // The time of writing and the days in a row after the reading time, and the summary of
     // the session over this window

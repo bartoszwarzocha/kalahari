@@ -25,6 +25,7 @@ constexpr int ICON_SIZE = 20;
 
 InfoBar::InfoBar(QWidget* parent)
     : QFrame(parent)
+    , m_iconId(QStringLiteral("help.about"))
 {
     setObjectName(QStringLiteral("infoBar"));
     setFrameShape(QFrame::StyledPanel);
@@ -67,6 +68,13 @@ InfoBar::InfoBar(QWidget* parent)
     });
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &InfoBar::updateIcons);
+    // The colors of the "editor" section the writer changes (setColorKeys())
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::editorColorsChanged, this,
+            [this]() {
+                if (!m_backgroundKey.empty()) {
+                    updateStyling();
+                }
+            });
 
     updateStyling();
     updateIcons();
@@ -98,16 +106,60 @@ void InfoBar::setActionEnabled(bool enabled)
     m_actionButton->setEnabled(enabled);
 }
 
+void InfoBar::setIconId(const QString& iconId)
+{
+    if (iconId == m_iconId) {
+        return;
+    }
+    m_iconId = iconId;
+    updateIcons();
+}
+
+void InfoBar::showSettingsButton(const QString& toolTip)
+{
+    if (m_settingsButton == nullptr) {
+        m_settingsButton = new QToolButton(this);
+        m_settingsButton->setObjectName(QStringLiteral("infoBarSettings"));
+        m_settingsButton->setAutoRaise(true);
+        m_settingsButton->setFixedSize(ICON_SIZE, ICON_SIZE);
+        m_settingsButton->setCursor(Qt::PointingHandCursor);
+        // Before the close button, which ends the bar
+        if (auto* row = qobject_cast<QHBoxLayout*>(layout())) {
+            row->insertWidget(row->indexOf(m_closeButton), m_settingsButton);
+        }
+        connect(m_settingsButton, &QToolButton::clicked, this, &InfoBar::settingsClicked);
+        updateIcons();
+    }
+    m_settingsButton->setToolTip(toolTip);
+    m_settingsButton->setAccessibleName(toolTip);
+}
+
+void InfoBar::setColorKeys(const std::string& backgroundKey, const std::string& borderKey)
+{
+    m_backgroundKey = backgroundKey;
+    m_borderKey = borderKey;
+    updateStyling();
+}
+
 void InfoBar::updateStyling()
 {
-    const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
+    const auto& themes = core::ThemeManager::getInstance();
+    const auto& theme = themes.getCurrentTheme();
 
-    // A subtle info color scheme; the theme resolves the light and dark values. The rule is
-    // the bar's own: its labels (frames too) get no border of their own.
-    setStyleSheet(QString("QFrame#infoBar { background-color: %1; border: 1px solid %2; "
-                          "border-radius: 4px; }")
-                      .arg(theme.colors.infoBarBackground.name(),
-                           theme.colors.infoBarBorder.name()));
+    // A subtle info color scheme; the theme resolves the light and dark values, or the colors
+    // of setColorKeys() do, which the writer can change. The rule is the bar's own: its labels
+    // (frames too) get no border of their own. It names the class, not the object: a bar with
+    // a name of its own (the notifications, the plot board) keeps its colors.
+    const QColor background = m_backgroundKey.empty()
+                                  ? theme.colors.infoBarBackground
+                                  : themes.editorColor(m_backgroundKey,
+                                                       theme.colors.infoBarBackground);
+    const QColor border = m_borderKey.empty()
+                              ? theme.colors.infoBarBorder
+                              : themes.editorColor(m_borderKey, theme.colors.infoBarBorder);
+    setStyleSheet(QString("kalahari--gui--InfoBar { background-color: %1; "
+                          "border: 1px solid %2; border-radius: 4px; }")
+                      .arg(background.name(), border.name()));
 
     m_messageLabel->setStyleSheet(QString("QLabel { color: %1; background: transparent; }")
                                       .arg(theme.palette.windowText.name()));
@@ -144,9 +196,12 @@ void InfoBar::updateIcons()
 {
     auto& artProvider = core::ArtProvider::getInstance();
 
-    // The info icon (help.about uses info.svg)
-    m_iconLabel->setPixmap(artProvider.getThemedIcon("help.about").pixmap(ICON_SIZE, ICON_SIZE));
+    // The info icon by default (help.about uses info.svg)
+    m_iconLabel->setPixmap(artProvider.getThemedIcon(m_iconId).pixmap(ICON_SIZE, ICON_SIZE));
     m_closeButton->setIcon(artProvider.getIcon("dock.close", core::IconContext::Button));
+    if (m_settingsButton != nullptr) {
+        m_settingsButton->setIcon(artProvider.getIcon("dock.settings", core::IconContext::Button));
+    }
 }
 
 } // namespace kalahari::gui

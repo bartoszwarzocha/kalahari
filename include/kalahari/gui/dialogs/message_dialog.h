@@ -142,6 +142,13 @@ protected:
     /// @brief Tell screen readers about the message when it appears
     void showEvent(QShowEvent* event) override;
 
+    /// @brief Show another message in the dialog: its kind's icon, its title and its text
+    ///        (e.g. a window of messages that takes in the next ones)
+    /// @param kind What the message is about
+    /// @param title Title of the dialog, also its window title
+    /// @param text The message, plain text
+    void setMessage(Kind kind, const QString& title, const QString& text);
+
 private:
     /// @brief Put the text of clipboardText() on the clipboard and say so on Copy
     void copyToClipboard();
