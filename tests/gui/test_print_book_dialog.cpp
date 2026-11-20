@@ -302,6 +302,83 @@ TEST_CASE("Print: the tabs, the keys and the size of the window", "[gui][dialogs
     }
 }
 
+TEST_CASE("Print: a series, the list Volume, its keys and the size of the window",
+          "[gui][dialogs][print][series]") {
+    const SettingsKept kept;
+    using Row = PrintBookDialog::Row;
+    PrintBookDialog::Book book = sampleBook();
+    book.volumes = {{QStringLiteral("v1"), QStringLiteral("Volume 1: Wind over the Oasis")},
+                    {QStringLiteral("v2"), QStringLiteral("Volume 2: Dunes")}};
+    book.volume = QStringLiteral("v1");
+    PageMaker pages;
+
+    // Another volume chosen: its texts go to the pages
+    {
+        PrintBookDialog dialog(book, samplePrinters(), pages.maker(), {});
+        dialog.setVolumeBook([](const QString& volumeId) {
+            PrintBookDialog::Book dunes;
+            dunes.title = QStringLiteral("Dunes");
+            dunes.rows = {Row{QStringLiteral("d1"), QStringLiteral("The Ridge"),
+                              QStringLiteral("draft"), QString(), 0, true},
+                          Row{QStringLiteral("d2"), QStringLiteral("The Hollow"),
+                              QStringLiteral("final"), QString(), 0, true}};
+            dunes.volume = volumeId;
+            return dunes;
+        });
+        dialog.setContent(PrintBookDialog::Content::Book);
+        QComboBox* volumes = dialog.volumeBox();
+        REQUIRE(volumes != nullptr);
+        CHECK(volumes->currentText() == QStringLiteral("Volume 1: Wind over the Oasis"));
+        CHECK(dialog.layoutChoice().volume == QStringLiteral("v1"));
+        volumes->setCurrentIndex(1);
+        CHECK(dialog.layoutChoice().volume == QStringLiteral("v2"));
+        CHECK(dialog.bookButton()->text() == QStringLiteral("Whole &book (2 texts)"));
+        CHECK(dialog.textList()->topLevelItemCount() == 2);
+        QCoreApplication::processEvents();  // the pages are laid out again
+        CHECK(pages.last.volume == QStringLiteral("v2"));
+        INFO(dialog.headingDescription().toStdString());
+        CHECK(dialog.headingDescription().contains(QStringLiteral("\"Dunes\"")));
+    }
+
+    // The keys of the window and its size with the list
+    for (int i = 0; i < 30; ++i) {
+        book.rows.append(Row{QStringLiteral("x%1").arg(i), QStringLiteral("Chapter %1").arg(i + 3),
+                             QStringLiteral("draft"), QString(), 1, true});
+    }
+    book.volumes.append({QStringLiteral("v3"),
+                         QStringLiteral("Volume 3: The Long Road Through the Great Sand Sea "
+                                        "and Back Again")});
+    const auto check = [&]() {
+        PrintBookDialog dialog(book, samplePrinters(), pages.maker(), {});
+        INFO(test::keyProblems(dialog, *dialog.tabs()).toStdString());
+        CHECK(test::keyProblems(dialog, *dialog.tabs()).isEmpty());
+        for (int tab = 0; tab < dialog.tabs()->count(); ++tab) {
+            dialog.tabs()->setCurrentIndex(tab);
+            INFO("The tab " << dialog.tabs()->tabText(tab).toStdString());
+            checkFitsSmallScreen(dialog);
+        }
+        dialog.setContent(PrintBookDialog::Content::Chosen);
+        checkFitsSmallScreen(dialog);
+    };
+
+    SECTION("In English") {
+        check();
+    }
+
+    SECTION("In Polish") {
+        const Polish polish;
+        REQUIRE(polish.loaded());
+        check();
+    }
+
+    SECTION("In Polish, with the font of 13 pixels of Windows and macOS") {
+        const Polish polish;
+        REQUIRE(polish.loaded());
+        const AppFontOfPixels font(13);
+        check();
+    }
+}
+
 TEST_CASE("Print: the printers of the system and what each can do", "[gui][dialogs][print]") {
     SettingsKept kept;
     PageMaker pages;

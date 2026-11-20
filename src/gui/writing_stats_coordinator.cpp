@@ -10,6 +10,7 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/writing_goals.h"
 #include "kalahari/core/writing_journal.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/core/art_provider.h"
@@ -36,6 +37,7 @@
 #include <QClipboard>
 #include <QDockWidget>
 #include <QLocale>
+#include <QSet>
 #include <QTabWidget>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -54,6 +56,20 @@ void addParts(const QList<core::ProjectElement>& elements, int depth,
         parts.append({element.id, element.title, depth});
         addParts(element.elements, depth + 1, parts);
     }
+}
+
+/// @brief The words of the texts of the main parts of all the books of the series open in
+/// @p projects; -1 when it is not a series
+int seriesWordsOf(const core::ProjectManager& projects)
+{
+    if (!projects.isSeries()) {
+        return -1;
+    }
+    int words = 0;
+    for (const core::ProjectBook& volume : projects.project()->books) {
+        words += projects.statisticsOf(volume.mainElements).words;
+    }
+    return words;
 }
 
 /// @brief The title of the book open in @p projects; empty without one
@@ -128,6 +144,7 @@ WritingStatsCoordinator::WritingStatsCoordinator(core::ProjectManager& book,
         const core::ProjectBook* openBook = m_book.book();
         return openBook != nullptr ? m_book.statisticsOf(openBook->mainElements).words : 0;
     });
+    m_model->setSeriesWordsSource([this]() { return seriesWordsOf(m_book); });
     m_tracker = new WritingAwardsTracker(m_model, this);
     m_tracker->setBookSource(awardsSource(m_book));
     m_sessionStart = m_model->now();
@@ -219,6 +236,11 @@ WritingStatsCoordinator::WritingStatsCoordinator(core::ProjectManager& book,
             &WritingStatsCoordinator::onProjectOpened, Qt::QueuedConnection);
     connect(&projects, &core::ProjectManager::projectAboutToClose, this,
             &WritingStatsCoordinator::onProjectClosing);
+    // A series: the goals and the texts of the current volume
+    connect(&projects, &core::ProjectManager::currentBookChanged, this,
+            &WritingStatsCoordinator::showVolume);
+    connect(&projects, &core::ProjectManager::projectChanged, this,
+            &WritingStatsCoordinator::showVolume);
     if (projects.isProjectOpen()) {
         onProjectOpened();
     }
@@ -548,12 +570,32 @@ void WritingStatsCoordinator::onProjectOpened()
     const core::BookProject* project = projects.project();
     m_model->setBook(projects.getDatabase(), project != nullptr ? project->id : QString(),
                      projects.isReadOnly());
+    showVolume();
     // A new session with the book
     m_sessionStart = m_model->now();
     m_summaryShown = false;
     if (m_documents != nullptr) {
         m_model->setCollector(m_documents->statisticsCollector());
     }
+}
+
+void WritingStatsCoordinator::showVolume()
+{
+    const core::ProjectBook* volume = m_book.isProjectOpen() ? m_book.book() : nullptr;
+    if (volume == nullptr || !m_model->hasBook()) {
+        return;
+    }
+    // One book: its goals as before a series, all its texts
+    if (!m_book.isSeries()) {
+        m_model->setVolume(QString(), {});
+        return;
+    }
+    QSet<QString> texts;
+    for (const core::ProjectElement* element :
+         m_book.project()->readingOrder(m_book.currentBookIndex())) {
+        texts.insert(element->id);
+    }
+    m_model->setVolume(core::BookGoals::settingKeyOf(*volume), texts);
 }
 
 void WritingStatsCoordinator::onProjectClosing()

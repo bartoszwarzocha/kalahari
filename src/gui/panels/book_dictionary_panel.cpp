@@ -378,9 +378,13 @@ void BookDictionaryPanel::refresh() {
     fillWords(dictionary);
     updateTabs(dictionary);
 
-    // The book and the language of the forms of its names
+    // The book and the language of the forms of its names: a series, whose volumes share the
+    // dictionary, by its name, with the language of the current volume
     const core::ProjectBook* book = m_book.isProjectOpen() ? m_book.book() : nullptr;
-    QString subtitle = book != nullptr ? book->title : QString();
+    QString subtitle;
+    if (book != nullptr) {
+        subtitle = m_book.isSeries() ? m_book.seriesName() : book->title;
+    }
     if (book != nullptr && !book->language.isEmpty()) {
         //: %1: the title of the book, %2: the language of the forms of the names. In Polish:
         //: %1 · formy: %2 (język książki)

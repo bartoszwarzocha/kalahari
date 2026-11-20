@@ -20,6 +20,7 @@
 
 class QCheckBox;
 class QComboBox;
+class QFormLayout;
 class QLabel;
 class QSpinBox;
 class QToolButton;
@@ -28,6 +29,7 @@ class QWidget;
 
 namespace kalahari::core {
 class ProjectManager;
+struct ProjectElement;
 }  // namespace kalahari::core
 
 namespace kalahari::editor {
@@ -87,13 +89,17 @@ public:
     /// @brief What the points or their absence mean
     [[nodiscard]] QLabel* pointsHint() const { return m_pointsHint; }
 
+    /// @brief The volume of a series it is for, or the whole series; hidden in a book that
+    /// is no series
+    [[nodiscard]] QComboBox* volumeBox() const { return m_volumeBox; }
+
     /// @brief The state: a draft, chosen for the set, rejected
     [[nodiscard]] QComboBox* stateBox() const { return m_stateBox; }
 
     /// @brief Its own target length, in the unit of the cover; 0: none
     [[nodiscard]] QSpinBox* targetSpin() const { return m_targetSpin; }
 
-    /// @brief Whether the text is the version of its part in the set
+    /// @brief Whether the text is the version of its part in the set of its volume
     [[nodiscard]] QLabel* inSetLabel() const { return m_inSetLabel; }
 
     /// @brief The editor of the text shown; nullptr: none (the text as the book has it)
@@ -104,8 +110,8 @@ public:
     [[nodiscard]] QList<editor::SkeletonPoint> skeletonPoints() const;
 
 signals:
-    /// @brief What the book keeps of the text changed here: its template, points, state or
-    /// target
+    /// @brief What the book keeps of the text changed here: its template, points, state,
+    /// target or volume; also of another text, chosen before, that is a draft again
     void publishingChanged(const QString& elementId);
 
 protected:
@@ -132,6 +138,10 @@ private:
     void savePoint(const QString& pointId, bool done);
     void saveState();
     void saveTarget();
+    /// @brief The volume of the text in its box, shown in a series
+    void showVolume(const core::ProjectElement& element);
+    /// @brief Save the volume chosen in its box (core::ProjectManager::setMaterialBook())
+    void saveVolume();
 
     core::ProjectManager& m_book;
     QString m_elementId;
@@ -146,6 +156,8 @@ private:
     QList<QCheckBox*> m_points;
     QStringList m_pointIds;  ///< The ids of the points shown, in order
     QLabel* m_pointsHint = nullptr;
+    QFormLayout* m_fields = nullptr;  ///< The volume, the state, the target and the set
+    QComboBox* m_volumeBox = nullptr;
     QComboBox* m_stateBox = nullptr;
     QSpinBox* m_targetSpin = nullptr;
     QLabel* m_targetUnit = nullptr;

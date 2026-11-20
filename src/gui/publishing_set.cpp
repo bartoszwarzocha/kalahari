@@ -56,7 +56,8 @@ QList<PublishingSetVersion> versionsOf(const core::ProjectManager& book, const Q
                                        const QString& elementId) {
     QList<PublishingSetVersion> versions;
     if (const core::BookProject* project = book.project()) {
-        for (const core::ProjectElement* version : PublishingTexts::versionsOf(*project, part)) {
+        for (const core::ProjectElement* version :
+             PublishingTexts::versionsOf(*project, part, book.book())) {
             versions << PublishingSetVersion{version->id, versionTitleOf(*version)};
         }
     }
@@ -115,9 +116,10 @@ QList<PublishingSetItem> PublishingSetContents::itemsOf(const core::ProjectManag
     return items;
 }
 
-QList<core::PublishingSetText> PublishingSetContents::textsOf(const core::ProjectManager& book) {
+QList<core::PublishingSetText> PublishingSetContents::textsOf(const core::ProjectManager& book,
+                                                             const core::ProjectBook* volume) {
     QList<core::PublishingSetText> texts;
-    for (const core::PublishingSetPart& part : book.publishingSetParts()) {
+    for (const core::PublishingSetPart& part : book.publishingSetParts(volume)) {
         if (!part.on || part.elementId.isEmpty()) {
             continue;
         }
@@ -129,13 +131,15 @@ QList<core::PublishingSetText> PublishingSetContents::textsOf(const core::Projec
     return texts;
 }
 
-QString PublishingSetContents::titleOf(const core::ProjectManager& book) {
-    const core::ProjectBook* shown = book.book();
+QString PublishingSetContents::titleOf(const core::ProjectManager& book,
+                                       const core::ProjectBook* volume) {
+    const core::ProjectBook* shown = volume != nullptr ? volume : book.book();
     return shown != nullptr ? shown->title : QString();
 }
 
-QString PublishingSetContents::aboutOf(const core::ProjectManager& book) {
-    const core::ProjectBook* shown = book.book();
+QString PublishingSetContents::aboutOf(const core::ProjectManager& book,
+                                       const core::ProjectBook* volume) {
+    const core::ProjectBook* shown = volume != nullptr ? volume : book.book();
     return shown != nullptr ? shown->author : QString();
 }
 

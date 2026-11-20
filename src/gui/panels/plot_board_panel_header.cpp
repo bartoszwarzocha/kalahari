@@ -28,6 +28,7 @@
 #include <QSignalBlocker>
 #include <QStackedWidget>
 #include <QString>
+#include <QStringList>
 #include <QTableView>
 #include <QToolButton>
 #include <QWidget>
@@ -142,6 +143,18 @@ void PlotBoardPanel::buildHeader(QWidget* header) {
     auto* flow = new FlowLayout(header, HEADER_SPACING, HEADER_LINE_SPACING);
     flow->setContentsMargins(HEADER_MARGIN_X, HEADER_MARGIN_Y, HEADER_MARGIN_X, HEADER_MARGIN_Y);
 
+    // The volume of a series whose texts the board and the outline show
+    //: The list over the plot board: the volume of the series whose texts it shows. In Polish:
+    //: To&m:
+    m_volumeLabel = new QLabel(tr("Vol&ume:"), header);
+    m_volumeBox = new QComboBox(header);
+    m_volumeBox->setObjectName(QStringLiteral("plotBoardVolume"));
+    m_volumeLabel->setBuddy(m_volumeBox);
+    flow->addWidget(m_volumeLabel);
+    flow->addWidget(m_volumeBox);
+    connect(m_volumeBox, &QComboBox::activated, this, &PlotBoardPanel::volumeChosen);
+    setVolumes({}, -1);
+
     // Board | Outline
     //: The switch of the tab of the plot board: the cards. In Polish: Tablica
     m_boardButton = switchButton(tr("Board"), "plotBoardShowBoard", header);
@@ -246,6 +259,19 @@ void PlotBoardPanel::buildHeader(QWidget* header) {
 
     // Settings > Plot Board
     flow->addWidget(buildSettingsButton(header));
+}
+
+void PlotBoardPanel::setVolumes(const QStringList& names, int current) {
+    const QSignalBlocker quiet(m_volumeBox);
+    if (names != m_volumeNames) {
+        m_volumeNames = names;
+        m_volumeBox->clear();
+        m_volumeBox->addItems(names);
+    }
+    m_volumeBox->setCurrentIndex(current);
+    const bool series = names.size() > 1;
+    m_volumeLabel->setVisible(series);
+    m_volumeBox->setVisible(series);
 }
 
 void PlotBoardPanel::applySettings() {

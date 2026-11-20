@@ -62,6 +62,10 @@ class NewFileDialog;
 class NewQuoteDialog;
 } // namespace dialogs
 
+/// @brief Saves the changes of the book of the .klh file it gets when another window has it
+/// open; false when some could not be saved (NavigatorCoordinator::onRequestJoinVolume())
+using BookSaver = std::function<bool(const QString&)>;
+
 /// @brief Coordinates navigator panel interactions
 ///
 /// Manages:
@@ -271,11 +275,13 @@ public slots:
     /// @param elementId Element ID
     void onRequestMoveTo(const QString& elementId);
 
-    /// @brief Move an element dragged in the Navigator to another place of the book, with the
-    /// elements inside it; saves the .klh file
+    /// @brief Move an element dragged in the Navigator to another place of the book, or to
+    /// another volume of a series, with the elements inside it; saves the .klh file
     /// @param elementId Element ID
-    /// @param place Its new place, in the book without it
-    void onElementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place);
+    /// @param place Its new place, in the book without it or in volume @p bookId
+    /// @param bookId Id of the volume of @p place; empty: the element's own book
+    void onElementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place,
+                          const QString& bookId = QString());
 
     /// @brief Add an element in the Add Element window, with the kinds of @p target, the
     /// place of the Navigator or of the editor it was opened on; saves the .klh file
@@ -302,6 +308,39 @@ public slots:
     /// with its kind (in the Workshop, in the group of its kind); the whole book for any other
     /// tab and for the Dashboard
     [[nodiscard]] AddTarget addTargetHere() const;
+
+    /// @brief Book > New Volume...: the New Volume window, and the volume added with it
+    /// (core::ProjectManager::addBook()), which becomes the current one with its first chapter
+    /// open; in a project with one book the window also names the series
+    /// (navigator_coordinator_series.cpp)
+    void onRequestNewVolume();
+
+    /// @brief Volume Earlier and Volume Later: volume @p bookId goes @p step places up (-1) or
+    /// down (1) the list of the volumes (core::ProjectManager::moveBook())
+    void onRequestMoveVolume(const QString& bookId, int step);
+
+    /// @brief Open of the page of the series: volume @p bookId becomes the current one, with
+    /// its first chapter open; the volume is shown in the Navigator
+    void onRequestOpenVolume(const QString& bookId);
+
+    /// @brief Delete Volume...: after a question, volume @p bookId goes from the series
+    /// (core::ProjectManager::removeBook()), its tabs close and its files go to the system's
+    /// Trash, or for good when the writer says so
+    void onRequestDeleteVolume(const QString& bookId);
+
+    /// @brief Take Out as a Book...: the open texts of volume @p bookId and of the Workshop
+    /// are saved, and the window TakeOutVolumeDialog writes the new book
+    /// (core::ProjectManager::takeOutBook()), deletes the volume from the series when the
+    /// writer checks it (as onRequestDeleteVolume() without its question), and puts the book on
+    /// the Dashboard; then the book opens in a new window (requestOpenBookInNewWindow()), unless
+    /// the writer unchecked it
+    void onRequestTakeOutVolume(const QString& bookId);
+
+    /// @brief Book > Join Book as Volume...: the window JoinBookDialog joins the book chosen as
+    /// a new volume (core::ProjectManager::joinBook()), which the Navigator then shows
+    /// @param saveBook Saves the changes of the book chosen when another window has it open;
+    /// when it cannot, the book does not join
+    void onRequestJoinVolume(const BookSaver& saveBook);
 
     /// @brief Ask for a new name of the node of the book or of the Workshop and give it; saves
     /// the .klh file
@@ -410,6 +449,10 @@ signals:
     /// @brief Emitted when document is modified (needs save)
     void documentModified();
 
+    /// @brief The book of @p manifest (its .klh file) opens in a new window, as a volume taken
+    /// out of the series does
+    void requestOpenBookInNewWindow(const QString& manifest);
+
     /// @brief Emitted when navigator should be refreshed
     void refreshNavigatorRequested();
 
@@ -458,12 +501,33 @@ private:
     /// @return The files that are still on the disk
     QStringList deleteFiles(const QStringList& files, bool trash, bool* forGood = nullptr);
 
+    /// @brief Save the open texts of volume @p book; when some cannot be saved, ask whether
+    /// to delete the volume anyway
+    /// @return Whether the volume can be deleted
+    bool saveTextsOfVolume(const core::ProjectBook& book);
+
+    /// @brief Save the open texts of volume @p book and of the Workshop before Take Out as a
+    /// Book...; when some cannot be saved, ask whether to take the volume out anyway
+    /// @return Whether the volume can be taken out
+    bool saveTextsForTakeOut(const core::ProjectBook& book);
+
+    /// @brief Save the open texts of @p elements and of the elements inside them (saveTextsOf())
+    /// @return The titles of the texts whose changes could not be saved, each indented
+    QStringList saveOpenTexts(const QList<const core::ProjectElement*>& elements);
+
+    /// @brief Volume @p bookId goes from the series (core::ProjectManager::removeBook()), its
+    /// tabs close and its files go to the system's Trash, or for good when the writer says so
+    /// @return false when the project could not be saved: the volume stays
+    bool removeVolume(const QString& bookId);
+
     /// @brief Ask whether to delete @p files of "Unassigned Files", and delete them
     void deleteUnassigned(const QList<core::UnassignedFile>& files);
 
-    /// @brief Move element @p elementId to @p place of the book without it, and show it there;
-    /// the writer is told when the book cannot be saved
-    void moveElementTo(const QString& elementId, const core::ElementPlace& place);
+    /// @brief Move element @p elementId to @p place of the book without it, or of volume
+    /// @p bookId of a series, and show it there; the writer is told when the book cannot be
+    /// saved
+    void moveElementTo(const QString& elementId, const core::ElementPlace& place,
+                       const QString& bookId = QString());
 
     /// @brief The Add Element window on @p target, which @p prepare fills before it opens (a
     /// material dropped on the Navigator), and the element added with it: a material opens on

@@ -1672,6 +1672,19 @@ void fillDays(GraphData& graph, const core::WritingStatistics& statistics,
     graph.topRight = stats_painter::number(qint64(graph.max));
 }
 
+/// @brief The words of the whole series of @p model, a detail of the view of its volume; none
+/// for one book
+QList<StatsDetails::Detail> seriesDetails(const WritingStatsModel& model)
+{
+    const int words = model.seriesWords();
+    if (words < 0) {
+        return {};
+    }
+    //: A detail of the view Book of the statistics, in a series of books. In Polish: Słowa
+    //: w całej serii
+    return {{WritingStatsPanel::tr("Words in the whole series"), stats_painter::words(words)}};
+}
+
 }  // namespace
 
 void WritingStatsPanel::showWeek(const Context& context, ViewData& viewData) const
@@ -1875,7 +1888,7 @@ void WritingStatsPanel::showBook(const Context& context, ViewData& viewData) con
     const QString bookTitle = m_bookTitle ? m_bookTitle() : QString();
     viewData.subtitle = bookTitle.isEmpty() ? QString() : tr("“%1”").arg(bookTitle);
     const core::WritingRules& rules = context.rules;
-    const core::WritingStatistics statistics = model->bookStatistics();
+    const core::WritingStatistics statistics = model->volumeStatistics();
     const core::BookGoals& goals = model->goals();
     const QDate today = context.today;
     const int words = model->bookWords();
@@ -1941,6 +1954,7 @@ void WritingStatsPanel::showBook(const Context& context, ViewData& viewData) con
         viewData.note = tr("The book has no length or deadline yet. Set them on the tab Writing "
                            "Goals and Deadlines.");
     }
+    viewData.details.append(seriesDetails(*model));
     if (target > 0) {
         viewData.details.append({tr("Length of the book"), stats_painter::words(target), {}});
         viewData.details.append({tr("Left"), left == 0 ? tr("goal reached") : stats_painter::words(left),

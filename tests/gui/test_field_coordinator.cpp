@@ -9,6 +9,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "kalahari_tests/gui/document_window.h"
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/editor_types.h"
@@ -246,6 +248,36 @@ TEST_CASE("Fields: the open texts show the book's title, author, language and th
     CHECK(names.at(static_cast<size_t>(FieldType::BookTitle)) == QStringLiteral("Book Title"));
     CHECK(fields.coordinator.fieldNames(QString()).at(
               static_cast<size_t>(FieldType::TextTitle)) == QStringLiteral("Text Title"));
+}
+
+TEST_CASE("Fields: a text of a series shows the title, author and language of its volume",
+          "[gui][fields][series]") {
+    OpenNovel book(QStringLiteral("Sand"));
+    core::NewBook request;
+    request.title = QStringLiteral("Dunes");
+    request.author = QStringLiteral("Other Author");
+    request.language = QStringLiteral("pl");
+    const QString dunes = book.pm.addBook(request);
+    REQUIRE_FALSE(dunes.isEmpty());
+    REQUIRE(book.pm.setCurrentBook(dunes));
+    Window window;
+    const Fields fields(window);
+
+    // A text of the first volume, with the second one current
+    const editor::FieldContext first = fields.coordinator.contextFor(book.chapterId);
+    CHECK(first.bookTitle == QStringLiteral("Sand"));
+    CHECK(first.author == QStringLiteral("Author"));
+    CHECK(first.language == QStringLiteral("en"));
+
+    // A text of the second volume
+    const core::ProjectBook* volume = book.pm.book();
+    REQUIRE(volume != nullptr);
+    REQUIRE_FALSE(volume->mainElements.isEmpty());
+    const editor::FieldContext second =
+        fields.coordinator.contextFor(volume->mainElements.constFirst().id);
+    CHECK(second.bookTitle == QStringLiteral("Dunes"));
+    CHECK(second.author == QStringLiteral("Other Author"));
+    CHECK(second.language == QStringLiteral("pl"));
 }
 
 TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... changes it",

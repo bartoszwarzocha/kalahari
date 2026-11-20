@@ -10,6 +10,7 @@
 #include "test_support/dialog_checks.h"
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/extension_points.h"
 #include "kalahari/core/settings_manager.h"
@@ -961,6 +962,182 @@ TEST_CASE("Export Book: an EPUB, its look, its cover and its data", "[gui][dialo
         QStringLiteral("The materials \"Cover\" have no chosen design of the front of the cover."));
 }
 
+namespace {
+
+/// The first volume of a series of two, with its set for a publisher
+ExportBookDialog::Book seriesBook() {
+    ExportBookDialog::Book book = sampleBook();
+    book.author = QStringLiteral("Anna Nowak");
+    book.isbn = QStringLiteral("978-3-16-148410-0");
+    book.setTitle = QStringLiteral("Wind over the Oasis – set for the publisher");
+    book.setParts = 3;
+    book.volumes = {{QStringLiteral("v1"), QStringLiteral("Volume 1: Wind over the Oasis")},
+                    {QStringLiteral("v2"), QStringLiteral("Volume 2: Dunes")}};
+    book.volume = QStringLiteral("v1");
+    return book;
+}
+
+/// The second volume of seriesBook(): two chapters, its own data, no set; the text in front
+/// as the coordinator gives it
+ExportBookDialog::Book dunesBook() {
+    using Row = ExportBookDialog::Row;
+    ExportBookDialog::Book book;
+    book.title = QStringLiteral("Dunes");
+    book.author = QStringLiteral("Ewa Las");
+    book.language = QStringLiteral("Polish");
+    book.publisher = QStringLiteral("Sand Press");
+    book.rows = {Row{QStringLiteral("d1"), QStringLiteral("The Ridge"), QStringLiteral("draft"),
+                     QString(), 0, true},
+                 Row{QStringLiteral("d2"), QStringLiteral("The Hollow"), QStringLiteral("final"),
+                     QString(), 0, true}};
+    book.frontTitle = QStringLiteral("The Well");
+    book.frontId = QStringLiteral("c2");
+    book.volumes = seriesBook().volumes;
+    book.volume = QStringLiteral("v2");
+    return book;
+}
+
+/// Whether the window has a label of text @p text
+bool hasLabel(const QWidget& window, const QString& text) {
+    const QList<QLabel*> labels = window.findChildren<QLabel*>();
+    return std::any_of(labels.cbegin(), labels.cend(),
+                       [&text](const QLabel* label) { return label->text() == text; });
+}
+
+}  // namespace
+
+TEST_CASE("Export Book: a series, the list Volume over the texts",
+          "[gui][dialogs][export][series]") {
+    const SettingsKept kept;
+    core::SettingsManager::getInstance().set<std::string>("export.content", "book");
+    const QTemporaryDir dir;
+
+    // One book has no list Volume
+    {
+        const ExportBookDialog one(sampleBook(), editor::ExportFormat::Docx, dir.path(), {});
+        CHECK(one.volumeBox() == nullptr);
+        CHECK(one.layoutChoice().volume.isEmpty());
+    }
+
+    // A series: the list over the texts, the current volume chosen
+    ExportBookDialog dialog(seriesBook(), editor::ExportFormat::Epub, dir.path(), {});
+    QStringList asked;
+    dialog.setVolumeBook([&asked](const QString& volumeId) {
+        asked << volumeId;
+        return dunesBook();
+    });
+    QComboBox* volumes = dialog.volumeBox();
+    REQUIRE(volumes != nullptr);
+    CHECK(onItsTab(volumes));
+    REQUIRE(volumes->count() == 2);
+    CHECK(volumes->itemText(0) == QStringLiteral("Volume 1: Wind over the Oasis"));
+    CHECK(volumes->itemText(1) == QStringLiteral("Volume 2: Dunes"));
+    CHECK(volumes->currentIndex() == 0);
+    CHECK(dialog.choice().volume == QStringLiteral("v1"));
+    CHECK(dialog.bookButton()->text() == QStringLiteral("Whole &book (4 texts)"));
+    dialog.setContent(ExportBookDialog::Content::Set);
+    CHECK(dialog.nameField()->text() ==
+          QStringLiteral("Wind over the Oasis – set for the publisher.epub"));
+
+    // Another volume: its texts, its counts, its name and its data; the text in front stays.
+    // Without a set of its own, its whole book goes.
+    volumes->setCurrentIndex(1);
+    CHECK(asked == QStringList{QStringLiteral("v2")});
+    CHECK(dialog.choice().volume == QStringLiteral("v2"));
+    CHECK(dialog.textList()->topLevelItemCount() == 2);
+    CHECK(dialog.textList()->topLevelItem(0)->text(0) == QStringLiteral("The Ridge"));
+    CHECK(dialog.bookButton()->text() == QStringLiteral("Whole &book (2 texts)"));
+    CHECK_FALSE(onItsTab(dialog.setButton()));
+    CHECK(dialog.bookButton()->isChecked());
+    CHECK(dialog.nameField()->text() == QStringLiteral("Dunes.epub"));
+    CHECK(dialog.headingDescription() ==
+          QStringLiteral("Saves the book \"Dunes\" as an e-book in the EPUB format."));
+    CHECK(hasLabel(dialog, QStringLiteral("Dunes – Ewa Las")));
+    CHECK(hasLabel(dialog, QStringLiteral("Polish")));
+    CHECK(dialog.isbnField()->text().isEmpty());
+    CHECK(dialog.publisherField()->text() == QStringLiteral("Sand Press"));
+    CHECK(onItsTab(dialog.frontButton()));
+    CHECK(dialog.frontButton()->text() == QStringLiteral("&Text in front: \"The Well\""));
+
+    // Its texts chosen in the list go
+    dialog.setContent(ExportBookDialog::Content::Chosen);
+    dialog.checkFinal();
+    CHECK(dialog.choice().chosen == QStringList{QStringLiteral("d2")});
+    CHECK(dialog.chosenNote() == QStringLiteral("1 of 2 texts chosen."));
+
+    // The text in front is of no volume: the list waits
+    dialog.setContent(ExportBookDialog::Content::Front);
+    CHECK_FALSE(volumes->isEnabledTo(&dialog));
+    dialog.setContent(ExportBookDialog::Content::Book);
+    CHECK(volumes->isEnabledTo(&dialog));
+
+    // The name typed stays
+    dialog.nameField()->setText(QStringLiteral("Mine.epub"));
+    emit dialog.nameField()->textEdited(dialog.nameField()->text());
+    volumes->setCurrentIndex(0);
+    CHECK(dialog.nameField()->text() == QStringLiteral("Mine.epub"));
+}
+
+TEST_CASE("Export Book: a series, the keys and the window whole on a small screen",
+          "[gui][dialogs][export][series]") {
+    const SettingsKept kept;
+    const QTemporaryDir dir;
+    ExportBookDialog::Book book = seriesBook();
+    for (int i = 0; i < 30; ++i) {
+        book.rows.append(ExportBookDialog::Row{QStringLiteral("x%1").arg(i),
+                                               QStringLiteral("Chapter %1").arg(i + 3),
+                                               QStringLiteral("draft"), QString(), 2, true});
+    }
+    book.volumes.append({QStringLiteral("v3"),
+                         QStringLiteral("Volume 3: The Long Road Through the Great Sand Sea "
+                                        "and Back Again")});
+    // The label of the list Volume
+    const auto volumeLabel = [](const ExportBookDialog& dialog) {
+        const QList<QLabel*> labels = dialog.findChildren<QLabel*>();
+        const auto found =
+            std::find_if(labels.cbegin(), labels.cend(), [&dialog](const QLabel* label) {
+                return label->buddy() == dialog.volumeBox();
+            });
+        return found != labels.cend() ? (*found)->text() : QString();
+    };
+    const auto check = [&](editor::ExportFormat format) {
+        ExportBookDialog dialog(book, format, dir.path(), {});
+        INFO(test::keyProblems(dialog, *dialog.tabs()).toStdString());
+        CHECK(test::keyProblems(dialog, *dialog.tabs()).isEmpty());
+        for (int tab = 0; tab < dialog.tabs()->count(); ++tab) {
+            if (dialog.tabs()->isTabVisible(tab)) {
+                dialog.tabs()->setCurrentIndex(tab);
+                INFO("The tab " << dialog.tabs()->tabText(tab).toStdString());
+                checkFitsSmallScreen(dialog);
+            }
+        }
+        dialog.setContent(ExportBookDialog::Content::Chosen);
+        checkFitsSmallScreen(dialog);
+        return volumeLabel(dialog);
+    };
+
+    SECTION("In English") {
+        CHECK(check(editor::ExportFormat::Docx) == QStringLiteral("&Volume:"));
+        check(editor::ExportFormat::Epub);
+    }
+
+    SECTION("In Polish") {
+        const Polish polish;
+        REQUIRE(polish.loaded());
+        CHECK(check(editor::ExportFormat::Docx) == QStringLiteral("To&m:"));
+        check(editor::ExportFormat::Pdf);
+        check(editor::ExportFormat::Epub);
+    }
+
+    SECTION("In a font of 13 pixels, in Polish") {
+        const AppFontOfPixels font(13);
+        const Polish polish;
+        REQUIRE(polish.loaded());
+        check(editor::ExportFormat::Docx);
+        check(editor::ExportFormat::Epub);
+    }
+}
+
 TEST_CASE("Export Book: the book as the program has it, in reading order",
           "[gui][export]") {
     SettingsKept kept;
@@ -1033,6 +1210,8 @@ TEST_CASE("Export Book: the book as the program has it, in reading order",
     SECTION("The rows of the window: the sections, the part and the texts") {
         const ExportBookDialog::Book rows = coordinator.dialogBook();
         CHECK(rows.title == QStringLiteral("Wind"));
+        CHECK(rows.volumes.isEmpty());  // one book: no list Volume
+        CHECK(rows.volume.isEmpty());
         CHECK(rows.frontTitle == QStringLiteral("The Storm"));
         CHECK(rows.frontId == novel.chapterId);
         // The elements under their sections, when the Navigator shows the sections
@@ -1051,6 +1230,79 @@ TEST_CASE("Export Book: the book as the program has it, in reading order",
                                      QStringLiteral("Chapter 1"), QStringLiteral("Part One/"),
                                      QStringLiteral("  The Storm"), QStringLiteral("  The Calm")}));
     }
+}
+
+TEST_CASE("Export Book: a volume of a series, its texts, its data and its e-book",
+          "[gui][export][series]") {
+    const SettingsKept kept;
+    OpenNovel novel(QStringLiteral("Wind"));
+    core::ProjectManager& pm = novel.pm;
+    core::NewBook request;
+    request.title = QStringLiteral("Dunes");
+    request.author = QStringLiteral("Ewa Las");
+    const QString dunes = pm.addBook(request);
+    REQUIRE_FALSE(dunes.isEmpty());
+    const core::BookProject& project = *pm.project();
+    const QString wind = project.books.at(0).id;
+    const QList<core::ProjectElement>& second = project.elementsIn(core::BookPlace::Main, 1);
+    REQUIRE(second.size() == 1);
+    const QString ridge = second.constFirst().id;
+    const QString ridgeTitle = second.constFirst().title;
+    pm.setChapterContent(ridge, QStringLiteral("<kml><p>The ridge, saved.</p></kml>"));
+    REQUIRE(pm.saveChapterContent(ridge));
+
+    Window window;
+    const BookExportCoordinator coordinator(
+        pm, kalahari::test::commands(), window.tabs,
+        [&window]() { return qobject_cast<gui::EditorPanel*>(window.tabs->currentWidget()); },
+        nullptr, nullptr, &window.window);
+
+    // The window: the volumes of the series in their order, the current one chosen
+    const ExportBookDialog::Book current = coordinator.dialogBook();
+    REQUIRE(current.volumes.size() == 2);
+    CHECK(current.volumes.at(0).id == wind);
+    CHECK(current.volumes.at(0).name == QStringLiteral("Volume 1: Wind"));
+    CHECK(current.volumes.at(1).id == dunes);
+    CHECK(current.volumes.at(1).name == QStringLiteral("Volume 2: Dunes"));
+    CHECK(current.volume == wind);
+    CHECK(current.title == QStringLiteral("Wind"));
+
+    // Another volume: its title, its author and its texts; the set is the current book's
+    const ExportBookDialog::Book other = coordinator.dialogBook(dunes);
+    CHECK(other.title == QStringLiteral("Dunes"));
+    CHECK(other.author == QStringLiteral("Ewa Las"));
+    CHECK(other.volume == dunes);
+    CHECK(other.volumes.size() == 2);
+    CHECK(other.setTitle.isEmpty());
+    QStringList texts;
+    for (const ExportBookDialog::Row& row : other.rows) {
+        if (row.leaf) {
+            texts << row.title;
+        }
+    }
+    CHECK(texts == QStringList{ridgeTitle});
+
+    // Its export: its texts and its data; its e-book has an identifier of its own
+    ExportBookDialog::Choice choice = wholeBook();
+    choice.volume = dunes;
+    const editor::BookExport book = coordinator.bookExport(choice);
+    CHECK(book.title == QStringLiteral("Dunes"));
+    CHECK(book.author == QStringLiteral("Ewa Las"));
+    REQUIRE(book.items.size() == 1);
+    CHECK(book.items[0].elementId == ridge);
+    CHECK(book.items[0].kml.contains(QStringLiteral("The ridge, saved.")));
+    const QString windIdentifier = coordinator.bookExport(wholeBook()).epub.identifier;
+    CHECK_FALSE(book.epub.identifier.isEmpty());
+    CHECK(book.epub.identifier != windIdentifier);
+
+    // The ISBN and the publisher of the volume's e-book are its own
+    REQUIRE(pm.setBookPublication(QStringLiteral("978-3-16-148410-0"), QStringLiteral("Sand Press"),
+                                  dunes));
+    CHECK(project.books.at(1).publisher == QStringLiteral("Sand Press"));
+    CHECK(project.books.at(0).publisher.isEmpty());
+    CHECK(coordinator.dialogBook(dunes).isbn == QStringLiteral("978-3-16-148410-0"));
+    CHECK(coordinator.dialogBook().isbn.isEmpty());
+    CHECK_FALSE(pm.setBookPublication(QString(), QString(), QStringLiteral("no-such-book")));
 }
 
 TEST_CASE("Export Book: a PDF and an EPUB of the book: the colors, the cover and the data",

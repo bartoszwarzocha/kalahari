@@ -219,6 +219,9 @@ protected:
     /// accept button
     void updateFields() override;
 
+    /// @brief The data and the cover of the volume chosen in the list Volume
+    void bookChanged() override;
+
 private:
     /// @brief Choose the folder in the system window
     void browse();
@@ -231,6 +234,14 @@ private:
 
     /// @brief The picture and the sentence of the cover of an EPUB
     void showCover();
+
+    /// @brief The data of the book in the tab of an EPUB: its title and author, its language,
+    ///        its description, its ISBN and its publisher
+    void showBookData();
+
+    /// @brief The design of the front of the cover of the book in the list of the cover, the
+    ///        first one, when the book has one
+    void showCoverDesign();
 
     /// @brief Choose the picture of the cover in the system window
     void browseCover();

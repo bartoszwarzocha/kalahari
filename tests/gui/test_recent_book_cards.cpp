@@ -198,6 +198,40 @@ TEST_CASE("Dashboard: the card of a recent book shows its title, author and type
     CHECK(card.iconId == QStringLiteral("template.novel"));
 }
 
+TEST_CASE("Dashboard: the card of a series has the name of the series",
+          "[gui][dashboard][series]") {
+    const QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const QDir root(dir.path());
+
+    // A series with its name, a series without one, and a book with the name of a series
+    core::BookProject named = project(QStringLiteral("kalahari.novel"), QStringLiteral("Sand"),
+                                      QStringLiteral("Anna Nowak"));
+    core::ProjectBook dunes = named.books.first();
+    dunes.id = QStringLiteral("book2");
+    dunes.folder = QStringLiteral("book2");
+    dunes.title = QStringLiteral("Dunes");
+    named.books.append(dunes);
+    named.series = QStringLiteral("Desert");
+    const QString desert = root.filePath(QStringLiteral("Desert.klh"));
+    REQUIRE(named.save(desert));
+    core::BookProject unnamed = named;
+    unnamed.series.clear();
+    const QString sand = root.filePath(QStringLiteral("Sand.klh"));
+    REQUIRE(unnamed.save(sand));
+    core::BookProject single = project(QStringLiteral("kalahari.novel"), QStringLiteral("Wind"),
+                                       QStringLiteral("Anna Nowak"));
+    single.series = QStringLiteral("Desert");
+    const QString wind = root.filePath(QStringLiteral("Wind.klh"));
+    REQUIRE(single.save(wind));
+
+    const RecentBooks recent({desert, sand, wind});
+    const gui::DashboardPanel panel(kalahari::test::commands());
+    CHECK(cardOf(panel, desert).title == QStringLiteral("Desert"));
+    CHECK(cardOf(panel, sand).title == QStringLiteral("Sand"));
+    CHECK(cardOf(panel, wind).title == QStringLiteral("Wind"));
+}
+
 TEST_CASE("Dashboard: without recent books the list says so", "[gui][dashboard]") {
     const RecentBooks recent({});
     const gui::DashboardPanel panel(kalahari::test::commands());

@@ -16,6 +16,7 @@
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/clipping.h>
+#include <kalahari/core/cover_material.h>
 #include <kalahari/core/link_roles.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/material_kinds.h>
@@ -27,6 +28,7 @@
 #include <kalahari/core/standalone_file.h>
 #include <kalahari/core/text_file.h>
 #include <kalahari/core/text_statistics.h>
+#include <kalahari/core/volume_materials.h>
 #include <kalahari/core/window_editor_provider.h>
 #include <kalahari/editor/clipboard_handler.h>
 
@@ -84,13 +86,6 @@ QString safeFileName(const QString& title) {
 
 void appendAll(const QList<ProjectElement>& elements, QList<const ProjectElement*>& all) {
     for (const ProjectElement& element : elements) {
-        all.append(&element);
-        appendAll(element.elements, all);
-    }
-}
-
-void appendAll(QList<ProjectElement>& elements, QList<ProjectElement*>& all) {
-    for (ProjectElement& element : elements) {
         all.append(&element);
         appendAll(element.elements, all);
     }
@@ -630,8 +625,7 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
     // The cards start with the fields that the Settings give new books
     giveDefaultCardFields(project);
 
-    QString manifestPath = QDir(projectDir).filePath(
-        safeFileName(request.title) + QLatin1String(BookProject::FILE_EXTENSION));
+    QString manifestPath = manifestPathOf(projectDir, request.title);
     logger.info("Creating project at: {}", manifestPath.toStdString());
 
     // Numbers of the default titles, for each kind: "Chapter 1", "Part I"
@@ -827,6 +821,11 @@ QString ProjectManager::newProjectFolder(const QString& parentDir, const QString
         return QString();
     }
     return QDir::cleanPath(createSubfolder ? QDir(parentDir).filePath(fileName) : parentDir);
+}
+
+QString ProjectManager::manifestPathOf(const QString& projectDir, const QString& title) {
+    return QDir(projectDir).filePath(safeFileName(title) +
+                                     QLatin1String(BookProject::FILE_EXTENSION));
 }
 
 bool ProjectManager::canHoldNewProject(const QString& folder) {
@@ -1731,6 +1730,7 @@ QString ProjectManager::addMaterial(const NewMaterial& material, const KindRef& 
     element.description = material.description;
     element.source = material.source;
     element.quote = material.quote;
+    element.bookId = volumeOfNew(element);
     const QString role = LinkRoles::suggestedFor(kind.kind->id);
     for (const QString& link : material.links) {
         if (element.linkTo(link) == nullptr && m_project->hasLinkTarget(link)) {
@@ -3131,22 +3131,10 @@ bool ProjectManager::setCoverState(const QString& elementId, const QString& stat
     const BookProject before = *m_project;
     ProjectElement* element = findElement(elementId);
     element->cover.state = state;
-    QStringList others;
-    if (state == QLatin1String(CoverMaterial::CHOSEN) &&
-        CoverMaterial::choosesOne(element->cover.part)) {
-        const QString part = element->cover.part;
-        const QString place = element->cover.place;
-        QList<ProjectElement*> workshop;
-        appendAll(m_project->workshop.elements, workshop);
-        for (ProjectElement* other : workshop) {
-            if (other->id != elementId && other->cover.part == part &&
-                other->cover.place == place &&
-                other->cover.state == QLatin1String(CoverMaterial::CHOSEN)) {
-                other->cover.state.clear();
-                others << other->id;
-            }
-        }
-    }
+    // Another one chosen for its part and place of the cover of its volume becomes a draft
+    const QStringList others = state == QLatin1String(CoverMaterial::CHOSEN)
+                                   ? VolumeMaterials::unchooseOthers(*m_project, *element)
+                                   : QStringList();
     if (*m_project == before) {
         return true;
     }
@@ -3317,11 +3305,20 @@ QString ProjectManager::bookLanguage() const {
     return current != nullptr ? current->language : QString();
 }
 
-bool ProjectManager::setBookPublication(const QString& isbn, const QString& publisher) {
+bool ProjectManager::setBookPublication(const QString& isbn, const QString& publisher,
+                                        const QString& bookId) {
     ProjectBook* current = book();
     if (current == nullptr) {
         Logger::getInstance().warn("setBookPublication: No project is open");
         return false;
+    }
+    if (!bookId.isEmpty()) {
+        const qsizetype index = m_project->bookIndex(bookId);
+        if (index < 0) {
+            Logger::getInstance().warn("setBookPublication: No book {}", bookId.toStdString());
+            return false;
+        }
+        current = &m_project->books[index];
     }
     if (current->isbn == isbn && current->publisher == publisher) {
         return true;
@@ -3982,13 +3979,20 @@ void ProjectManager::convertOldMaterials() {
 }
 
 void ProjectManager::loadElementStates() {
-    auto& logger = Logger::getInstance();
     m_elementStates.clear();
+    loadNewElementStates();
+    Logger::getInstance().debug("Read the word counts and notes of {} chapter files",
+                                m_elementStates.size());
+}
+
+void ProjectManager::loadNewElementStates() {
+    auto& logger = Logger::getInstance();
     if (!m_project) {
         return;
     }
     for (const ProjectElement* element : allElements(*m_project)) {
-        if (element->file.isEmpty() || formOf(*element) != ElementForm::Text) {
+        if (element->file.isEmpty() || formOf(*element) != ElementForm::Text ||
+            m_elementStates.contains(element->id)) {
             continue;
         }
         ElementState state;
@@ -4003,7 +4007,6 @@ void ProjectManager::loadElementStates() {
         }
         m_elementStates.insert(element->id, state);
     }
-    logger.debug("Read the word counts and notes of {} chapter files", m_elementStates.size());
 }
 
 ProjectManager::ElementState* ProjectManager::stateOf(const QString& elementId) {

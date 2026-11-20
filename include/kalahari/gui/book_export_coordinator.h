@@ -32,6 +32,7 @@ class QWidget;
 namespace kalahari::core {
 class IExporter;
 class ProjectManager;
+struct ProjectBook;
 struct ProjectElement;
 }  // namespace kalahari::core
 
@@ -105,7 +106,9 @@ public:
     void printBook();
 
     /// @brief What the window says about the book and the text in front
-    [[nodiscard]] dialogs::ExportBookDialog::Book dialogBook() const;
+    /// @param volumeId The volume of a series; empty: the current book
+    [[nodiscard]] dialogs::ExportBookDialog::Book dialogBook(
+        const QString& volumeId = QString()) const;
 
     /// @brief The export of @p choice: the texts of the book as the program has them, the
     ///        styles, the page and the options
@@ -149,9 +152,9 @@ private:
     void exportContent(editor::ExportFormat format,
                        std::optional<dialogs::BookOutputDialog::Content> content);
 
-    /// @brief Add to @p book the set for a publisher of the book: the title of the book with
-    ///        its author, then each part with a text under its name
-    void addSetItems(editor::BookExport& book) const;
+    /// @brief Add to @p book the set for a publisher of book @p volume of the project: the
+    ///        title of the book with its author, then each part with a text under its name
+    void addSetItems(const core::ProjectBook& volume, editor::BookExport& book) const;
 
     /// @brief Write @p path as @p choice says, with a plugin's exporter or the program's own;
     ///        false, with what went wrong in @p problem, when it cannot

@@ -173,9 +173,9 @@ public:
     /// @brief The key of the setting of the column named @p column of the outline
     [[nodiscard]] static std::string outlineSetting(const char* column);
 
-    /// @brief The texts of the main section of the open book in bands: each part with its
-    /// texts, and the texts outside the parts between them, each text with its scenes; none
-    /// without a book
+    /// @brief The texts of the main section of the open book (of the current volume of a
+    /// series) in bands: each part with its texts, and the texts outside the parts between
+    /// them, each text with its scenes; none without a book
     /// @param unsaved The texts (KML) of the open texts with changes their files do not have,
     ///        by the ids of their elements: their scenes are those of these texts
     /// @param variant Which scenes there are (SCENES_BOTH...); empty: scenesVariant()

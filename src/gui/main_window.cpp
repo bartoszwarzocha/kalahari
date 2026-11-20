@@ -51,6 +51,7 @@
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
+#include "kalahari/gui/command.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/settings_dialog.h"
@@ -128,9 +129,12 @@
 #include <QTimer>
 #include <QAbstractItemView>
 #include <QFont>
+#include <QLocale>
 #include <algorithm>
+#include <functional>
 #include <map>
 #include <memory>
+#include <string>
 #include <utility>
 
 namespace kalahari::gui {
@@ -236,6 +240,34 @@ EditorPanel* panelOf(const editor::BookEditor& text, EditorPanel* inFront) {
         }
     }
     return inFront;
+}
+
+/// Command @p commandId is enabled when command @p like is, greyed out for the same reason
+void enableLike(CommandRegistry& registry, const std::string& commandId,
+                const std::string& like) {
+    Command* command = registry.getCommand(commandId);
+    const Command* model = registry.getCommand(like);
+    if (command != nullptr && model != nullptr) {
+        command->isEnabled = model->isEnabled;
+        command->disabledReason = model->disabledReason;
+    }
+}
+
+/// A callback that runs @p method of the object that @p object points to, when it points to one
+template <typename Object>
+std::function<void()> callOn(Object* const& object, void (Object::*method)()) {
+    return [&object, method]() {
+        if (object != nullptr) {
+            (object->*method)();
+        }
+    };
+}
+
+/// A text of a volume of a series makes it the current volume of @p book
+void followVolumeOf(core::ProjectManager& book, const QString& elementId) {
+    if (const core::ProjectBook* volume = book.bookOf(elementId)) {
+        book.setCurrentBook(volume->id);
+    }
 }
 
 } // namespace
@@ -381,6 +413,22 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestShowSections);
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestRenameSection,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestRenameSection);
+    // The volumes of a series: a new one, their order and their removal
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestNewVolume,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestNewVolume);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestMoveVolume,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestMoveVolume);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestDeleteVolume,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestDeleteVolume);
+    // A volume taken out as a book of its own, which opens in a new window
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestTakeOutVolume,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestTakeOutVolume);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::requestOpenBookInNewWindow, this,
+            [this](const QString& manifest) { openBookInNewWindow(manifest); });
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestNewVolume,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestNewVolume);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenVolume,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenVolume);
     // The files no element of the book has: shown, added back to the book or deleted
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestPreviewUnassigned,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestPreviewUnassigned);
@@ -401,6 +449,12 @@ MainWindow::MainWindow(QWidget* parent)
     // A chapter opens where its cursor was when it was closed last
     connect(m_navigatorCoordinator, &NavigatorCoordinator::elementOpened,
             this, &MainWindow::placeOpenedChapterCursor);
+    // The title of the window names the current volume of a series, with its number and the
+    // name of the series as the project file has them
+    connect(m_book.get(), &core::ProjectManager::currentBookChanged, this,
+            &MainWindow::updateWindowTitle);
+    connect(m_book.get(), &core::ProjectManager::projectChanged, this,
+            &MainWindow::updateWindowTitle);
     logger.debug("MainWindow: Connected DockCoordinator navigator signals to NavigatorCoordinator");
 
     // Create DocumentCoordinator after NavigatorCoordinator (needs it for dirty chapter tracking)
@@ -1386,6 +1440,10 @@ void MainWindow::registerCommands() {
     callbacks.onNewChapter = [this]() {
         if (m_navigatorCoordinator) m_navigatorCoordinator->onRequestNewChapter();
     };
+    // A new book of the series, or the second volume that makes a book a series
+    callbacks.onNewVolume =
+        callOn(m_navigatorCoordinator, &NavigatorCoordinator::onRequestNewVolume);
+    callbacks.onJoinVolume = [this]() { joinBookAsVolume(); };
     // The kinds of the Workshop: the window with all of them, that one chosen
     callbacks.onNewWorkshopElement = [this](const QString& kindId) {
         if (!m_navigatorCoordinator) {
@@ -1680,6 +1738,10 @@ void MainWindow::registerCommands() {
         };
         properties->disabledReason = whyReadOnly;
     }
+    // A new volume and a book joined as a volume, as the properties of the book: in a book
+    // that can be changed
+    enableLike(registry, "book.newVolume", "book.properties");
+    enableLike(registry, "book.joinVolume", "book.newVolume");
     // Add... adds to the book open, after the element in front or anywhere in it; it leads the
     // menu, in bold, as in the menus of the Navigator
     if (auto* add = registry.getCommand("book.addElement")) {
@@ -1836,6 +1898,17 @@ void MainWindow::registerCommands() {
     logger.debug("Commands registered successfully ({} commands)", count);
 }
 
+void MainWindow::joinBookAsVolume() {
+    if (m_navigatorCoordinator == nullptr) {
+        return;
+    }
+    // The volume gets the text the writer sees in the window of the book
+    m_navigatorCoordinator->onRequestJoinVolume([this](const QString& manifest) {
+        MainWindow* other = windowOfBook(manifest);
+        return other == nullptr || other == this ||
+               other->m_documentCoordinator->saveAllChanges();
+    });
+}
 
 void MainWindow::createMenus() {
     auto& logger = core::Logger::getInstance();
@@ -3083,6 +3156,7 @@ void MainWindow::createDocks() {
             QString elementId = editor->property("elementId").toString();
             if (!elementId.isEmpty()) {
                 navigatorPanel->highlightElement(elementId);
+                followVolumeOf(book(), elementId);
             } else {
                 navigatorPanel->clearHighlight();
             }
@@ -3278,6 +3352,8 @@ void MainWindow::updateBookCommands() {
     }
     registry.updateActionState("book.addElement");
     registry.updateActionState("book.newChapter");
+    registry.updateActionState("book.newVolume");
+    registry.updateActionState("book.joinVolume");
     for (const auto& [commandId, kindId] : WORKSHOP_COMMANDS) {
         registry.updateActionState(commandId);
     }
@@ -3443,6 +3519,14 @@ void MainWindow::updateWindowTitle() {
     const auto& pm = book();
     if (pm.isProjectOpen() && pm.book() && !pm.book()->title.isEmpty()) {
         QString title = pm.book()->title;
+        if (pm.isSeries()) {
+            //: The title bar of the window with a volume of a series: %1 the title of the
+            //: volume, %2 its number, %3 the name of the series ("Dunes (volume 2) - Sands -
+            //: Kalahari"), with the hyphens of the title bar. In Polish: %1 (tom %2) - %3
+            title = tr("%1 (volume %2) - %3")
+                        .arg(title, QLocale().toString(pm.currentBookIndex() + 1),
+                             pm.seriesName());
+        }
         if (pm.isReadOnly()) {
             //: After the title of a book open read-only, in the title bar of the window: "Rain
             //: [read-only] - Kalahari". In Polish: [tylko do odczytu]

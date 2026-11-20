@@ -1188,18 +1188,20 @@ void NavigatorCoordinator::onRequestMoveTo(const QString& elementId) {
         return;
     }
     dialogs::MoveElementDialog dialog(book, pm.bookTypes(), qobject_cast<QWidget*>(parent()));
-    if (dialog.exec() == QDialog::Accepted && !(dialog.place() == book.from)) {
-        moveElementTo(elementId, dialog.place());
+    if (dialog.exec() == QDialog::Accepted && dialog.movesElement()) {
+        moveElementTo(elementId, dialog.place(), dialog.volume());
     }
 }
 
 void NavigatorCoordinator::onElementMovedTo(const QString& elementId,
-                                            const core::ElementPlace& place) {
-    moveElementTo(elementId, place);
+                                            const core::ElementPlace& place,
+                                            const QString& bookId) {
+    moveElementTo(elementId, place, bookId);
 }
 
 void NavigatorCoordinator::moveElementTo(const QString& elementId,
-                                         const core::ElementPlace& place) {
+                                         const core::ElementPlace& place,
+                                         const QString& bookId) {
     auto& logger = core::Logger::getInstance();
     auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
@@ -1214,7 +1216,7 @@ void NavigatorCoordinator::moveElementTo(const QString& elementId,
         {QStringLiteral("kind"), wordsOf(m_book, *element)}};
 
     // ProjectManager saves the project at once
-    if (!pm.moveElementTo(elementId, place)) {
+    if (!pm.moveElementTo(elementId, place, bookId)) {
         logger.error("NavigatorCoordinator: Failed to move element {}", elementId.toStdString());
         refreshNavigator();
         //: In Polish: Nie udało się przenieść {kind:genitive}

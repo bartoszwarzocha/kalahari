@@ -14,6 +14,7 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/text_fields.h"
+#include "kalahari/gui/book_texts.h"
 #include "kalahari/gui/command.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/field_dialogs.h"
@@ -112,8 +113,10 @@ editor::FieldContext FieldCoordinator::contextFor(const QString& elementId,
     editor::FieldContext context;
     const core::ProjectElement* element =
         elementId.isEmpty() ? nullptr : m_book.findElement(elementId);
-    // A text of the book: its values; a file outside it has none, and the program's language
-    if (const core::ProjectBook* book = m_book.book(); book != nullptr && element != nullptr) {
+    // A text of the book: the values of its volume of a series (of the current one for a
+    // material of the Workshop); a file outside it has none, and the program's language
+    if (const core::ProjectBook* book = volumeOfText(m_book, elementId);
+        book != nullptr && element != nullptr) {
         context.bookTitle = book->title;
         context.author = book->author;
         context.language = book->language;

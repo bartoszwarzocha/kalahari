@@ -121,6 +121,13 @@ public:
     /// The element is at the first place until setPlace().
     void setMovedFrom(const core::ElementPlace& place);
 
+    /// @brief The element is in another book of a series and is moved to this one: the places
+    /// are all those of its kind, as for setMovedFrom(), and the warnings compare the chosen
+    /// place with this book as it is
+    ///
+    /// The element is at the first place until setPlace().
+    void setMovedFromElsewhere();
+
     /// @brief Whether the element can be at @p place
     [[nodiscard]] bool canBeAt(const core::ElementPlace& place) const;
 
@@ -209,6 +216,7 @@ private:
     bool m_preview = false;
     QString m_note;                        ///< The sentence before the hint
     std::optional<core::ElementPlace> m_movedFrom;  ///< Place of an element that is moved
+    bool m_moved = false;  ///< The element is moved, from this book or from another one
 
     QLabel* m_label = nullptr;
     QVBoxLayout* m_optionLayout = nullptr;

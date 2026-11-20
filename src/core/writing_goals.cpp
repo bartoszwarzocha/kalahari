@@ -6,6 +6,8 @@
 
 #include "kalahari/core/writing_goals.h"
 
+#include "kalahari/core/book_project.h"
+
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -103,6 +105,14 @@ QString BookGoals::toJson() const
         object.insert(QStringLiteral("deadlines"), list);
     }
     return QString::fromUtf8(QJsonDocument(object).toJson(QJsonDocument::Compact));
+}
+
+QString BookGoals::settingKeyOf(const ProjectBook& book)
+{
+    if (book.folder == QLatin1String(BookProject::BOOK_FOLDER)) {
+        return QString::fromLatin1(SETTING_KEY);
+    }
+    return QString::fromLatin1(SETTING_KEY) + QLatin1Char('.') + book.id;
 }
 
 BookGoals BookGoals::fromJson(const QString& text)

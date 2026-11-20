@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/kalahari_text_document_layout.h"
 #include "kalahari/editor/text_footnotes.h"
@@ -461,6 +462,85 @@ TEST_CASE("Notes in the book: anew in each chapter, through the book, at the end
     // A text outside the book is numbered alone
     CHECK(notes.coordinator.contextFor(QString()) == editor::FootnoteContext{});
     CHECK(notes.coordinator.whyNotEditSettings().isEmpty());
+}
+
+TEST_CASE("Notes in a series: each volume numbers its notes on its own, in its own way",
+          "[gui][footnotes][series]") {
+    NotedBook noted;
+    Window window;
+    Notes notes(window);
+
+    // A second volume, its first chapter with a footnote and an endnote
+    core::NewBook request;
+    request.title = QStringLiteral("Dunes");
+    const QString dunes = noted.book.pm.addBook(request);
+    REQUIRE_FALSE(dunes.isEmpty());
+    const core::BookProject& project = *noted.book.pm.project();
+    REQUIRE(project.books.size() == 2);
+    const QList<core::ProjectElement>& second = project.elementsIn(core::BookPlace::Main, 1);
+    REQUIRE_FALSE(second.isEmpty());
+    const QString dune = second.constFirst().id;
+    save(noted.book, dune,
+         kmlOf(QStringLiteral("<p>Sand<footnote id=\"d1\">Dry</footnote> blew"
+                              "<endnote id=\"de\">Dune end</endnote>.</p>")));
+    const auto hasText = [](const std::vector<FootnoteCoordinator::BookText>& texts,
+                            const QString& id) {
+        return std::any_of(texts.cbegin(), texts.cend(),
+                           [&id](const FootnoteCoordinator::BookText& text) {
+                               return text.elementId == id;
+                           });
+    };
+    CHECK_FALSE(hasText(notes.coordinator.bookTexts(), dune));
+    CHECK(hasText(notes.coordinator.bookTexts(&project.books.at(1)), dune));
+    CHECK_FALSE(hasText(notes.coordinator.bookTexts(&project.books.at(1)), noted.calm));
+
+    // The first volume numbers through the book, its endnotes at its end; the second one
+    // (it took the first one's way when it was added) keeps its own
+    core::BookFootnotes through;
+    through.footnotes = {QStringLiteral("a"), false, {}};
+    through.endnotes = {QStringLiteral("I"), false, {}};
+    through.endnotesAtBookEnd = true;
+    REQUIRE(notes.coordinator.setFootnotes(through));
+    CHECK_FALSE(project.books.at(1).footnotes.has_value());
+
+    // The first volume current: the second one's text numbered in its volume, in the default
+    // way, without the first one's endnotes
+    REQUIRE(noted.book.pm.book()->id != dunes);
+    CHECK(notes.coordinator.contextFor(dune) == editor::FootnoteContext{});
+
+    // The second volume current: the first one's texts keep its numbering and its endnotes
+    REQUIRE(noted.book.pm.setCurrentBook(dunes));
+    editor::FootnoteContext calm = notes.coordinator.contextFor(noted.calm);
+    CHECK(calm.footnoteFormat == editor::NoteNumberFormat::LowerAlpha);
+    CHECK(calm.footnotesBefore == 3);
+    CHECK(calm.endnotesHere);
+    CHECK(endnotesOf(calm) == QStringList{QStringLiteral("I=Fore end"),
+                                          QStringLiteral("II=Storm end"),
+                                          QStringLiteral("V=Back end")});
+
+    // Both texts open: each numbered in its volume
+    editor::BookEditor& calmText = noted.open(window, noted.calm);
+    editor::BookEditor& duneText = noted.open(window, dune);
+    REQUIRE(&calmText != &duneText);
+    notes.coordinator.refresh();
+    CHECK(calmText.noteNumber(QStringLiteral("c1")) == QStringLiteral("d"));
+    CHECK(calmText.noteNumber(QStringLiteral("ce")) == QStringLiteral("III"));
+    CHECK(duneText.noteNumber(QStringLiteral("d1")) == QStringLiteral("1"));
+    CHECK(duneText.noteNumber(QStringLiteral("de")) == QStringLiteral("i"));
+    CHECK(shownNotesOf(duneText) == QStringList{QStringLiteral("d1"), QStringLiteral("de")});
+
+    // The second volume's own numbering: the first one keeps its own
+    REQUIRE(noted.book.pm.setCurrentBook(dunes));
+    core::BookFootnotes roman;
+    roman.footnotes = {QStringLiteral("I"), false, {}};
+    REQUIRE(notes.coordinator.setFootnotes(roman));  // refreshes the open texts at once
+    CHECK(project.books.at(1).footnotes == roman);
+    CHECK(project.books.at(0).footnotes == through);
+    CHECK(duneText.noteNumber(QStringLiteral("d1")) == QStringLiteral("I"));
+    CHECK(calmText.noteNumber(QStringLiteral("c1")) == QStringLiteral("d"));
+    calm = notes.coordinator.contextFor(noted.calm);
+    CHECK(calm.footnoteFormat == editor::NoteNumberFormat::LowerAlpha);
+    CHECK(calm.footnotesBefore == 3);
 }
 
 namespace {

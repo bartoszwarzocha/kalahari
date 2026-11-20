@@ -80,7 +80,8 @@ AddToBookDialog::Book AddToBookDialog::openBook(const core::ProjectManager& proj
         };
     for (const core::BookPlace place :
          {core::BookPlace::Front, core::BookPlace::Main, core::BookPlace::Back}) {
-        const QList<core::ProjectElement>& elements = project->elementsIn(place);
+        const QList<core::ProjectElement>& elements =
+            project->elementsIn(place, projects.currentBookIndex());
         addKinds(place, QString());
         addGroups(place, elements);
 

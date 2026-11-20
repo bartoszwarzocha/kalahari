@@ -412,6 +412,7 @@ MaterialRow rowOf(const core::ProjectManager& book, const core::ProjectElement& 
     }
     MaterialList::setClippingTexts(row, book, element);
     MaterialList::setPublishingTexts(row, book, element);
+    MaterialList::setVolumeTexts(row, book, element);
     if (!row.text) {
         setSourceTexts(book, row, element);
     }
@@ -753,6 +754,7 @@ QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
                 << column(ADDRESS, address, false);
     }
 
+    addVolumeColumn(book, list, columns);
     appendFieldColumns(columns, elementsOf(book, list));
     return columns;
 }

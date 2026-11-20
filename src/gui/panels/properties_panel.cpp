@@ -17,6 +17,7 @@
 #include "kalahari/gui/panels/paragraph_cards_box.h"
 #include "kalahari/gui/panels/plot_fields_box.h"
 #include "kalahari/gui/panels/publishing_set_page.h"
+#include "kalahari/gui/panels/series_page.h"
 #include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -194,6 +195,14 @@ void PropertiesPanel::setupUI() {
     m_stackedWidget->addWidget(createCardPage());        // Page::Card = 7
     m_publishingSetPage = new PublishingSetPage(m_book);
     m_stackedWidget->addWidget(m_publishingSetPage);     // Page::PublishingSet = 8
+    m_seriesPage = new SeriesPage(m_book);
+    m_stackedWidget->addWidget(m_seriesPage);            // Page::Series = 9
+    // The name and the order of the volumes show in the Navigator, as the title of the book
+    connect(m_seriesPage, &SeriesPage::seriesChanged, this, &PropertiesPanel::bookChanged);
+    connect(m_seriesPage, &SeriesPage::requestNewVolume, this,
+            &PropertiesPanel::requestNewVolume);
+    connect(m_seriesPage, &SeriesPage::requestOpenVolume, this,
+            &PropertiesPanel::requestOpenVolume);
 
     mainLayout->addWidget(m_stackedWidget);
     setLayout(mainLayout);
@@ -248,6 +257,12 @@ QWidget* PropertiesPanel::createProjectPage() {
     typeLayout->addWidget(m_projectTypeLabel, 1);
     //: The row of the type of the book in the Properties panel. In Polish: Typ:
     infoLayout->addRow(tr("Type:"), typeRow);
+
+    // The number of a volume of a series (showVolumeRow())
+    m_projectVolumeLabel = new QLabel(infoGroup);
+    m_projectVolumeLabel->setObjectName(QStringLiteral("projectVolumeLabel"));
+    //: The row of the number of a volume of a series in the Properties panel. In Polish: Tom:
+    infoLayout->addRow(tr("Volume:"), m_projectVolumeLabel);
 
     // Title
     m_projectTitleEdit = new QLineEdit(infoGroup);
@@ -980,6 +995,18 @@ void PropertiesPanel::showCardProperties(const QString& elementId) {
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Card));
 }
 
+void PropertiesPanel::showSeriesProperties() {
+    if (!m_book.isSeries()) {
+        showProjectProperties();
+        return;
+    }
+    m_currentChapterId.clear();
+    m_currentSectionType.clear();
+    m_currentPartId.clear();
+    m_seriesPage->refresh();
+    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Series));
+}
+
 void PropertiesPanel::showPublishingSetProperties(const QString& part) {
     m_currentChapterId.clear();
     m_currentSectionType.clear();
@@ -1005,6 +1032,9 @@ void PropertiesPanel::focusFirstField() {
         case Page::PublishingSet:
             m_publishingSetPage->focusContents();
             break;
+        case Page::Series:
+            m_seriesPage->focusName();
+            break;
         // A section or a part has no field: its materials
         case Page::Section:
             focusMaterials(m_sectionMaterials);
@@ -1012,8 +1042,9 @@ void PropertiesPanel::focusFirstField() {
         case Page::Part:
             focusMaterials(m_partMaterials);
             break;
-        case Page::Editor:     // Counts only: the paragraph is the Paragraph and Styles panel's
-        case Page::NoProject:
+        default:
+            // The editor's counts only (the paragraph is the Paragraph and Styles panel's), and
+            // no book: no field
             break;
     }
 }
@@ -1217,12 +1248,7 @@ void PropertiesPanel::refresh() {
             }
             break;
         case Page::Part:
-            if (pm.findElement(m_currentPartId)) {
-                populatePartFields(m_currentPartId);
-                showPartMaterials();
-            } else {
-                showProjectProperties();
-            }
+            refreshPart();
             break;
         case Page::Editor:
             updateEditorStatistics();
@@ -1242,8 +1268,20 @@ void PropertiesPanel::refresh() {
         case Page::PublishingSet:
             m_publishingSetPage->refresh();
             break;
+        case Page::Series:
+            showSeriesProperties();  // the book's, after the last volume but one went
+            break;
         default:
             break;  // No project: nothing to refresh
+    }
+}
+
+void PropertiesPanel::refreshPart() {
+    if (m_book.findElement(m_currentPartId) != nullptr) {
+        populatePartFields(m_currentPartId);
+        showPartMaterials();
+    } else {
+        showProjectProperties();
     }
 }
 
@@ -1300,6 +1338,9 @@ void PropertiesPanel::updateWordCounts() {
             if (pm.findElement(m_currentPartId)) {
                 populatePartFields(m_currentPartId);
             }
+            break;
+        case Page::Series:
+            showSeriesProperties();
             break;
         default:
             break;  // No counts of the book
@@ -1584,6 +1625,7 @@ void PropertiesPanel::populateProjectFields() {
 
     // Populate fields
     showBookType(*project, *book);
+    showVolumeRow(*project);
     m_projectTitleEdit->setText(book->title);
     m_projectAuthorEdit->setText(book->author);
 
@@ -1619,6 +1661,20 @@ void PropertiesPanel::populateProjectFields() {
     m_isUpdating = false;
 
     logger.debug("PropertiesPanel: Project fields populated");
+}
+
+void PropertiesPanel::showVolumeRow(const core::BookProject& project) {
+    const bool series = project.books.size() > 1;
+    const QLocale locale;
+    if (auto* group = qobject_cast<QGroupBox*>(m_projectInfoLayout->parentWidget())) {
+        //: The group of the Properties panel of a volume of a series. In Polish: Informacje o
+        //: tomie
+        group->setTitle(series ? tr("Volume Information") : tr("Book Information"));
+    }
+    //: The number of a volume of a series: %1 its number, %2 the volumes. In Polish: %1 z %2
+    m_projectVolumeLabel->setText(tr("%1 of %2").arg(
+        locale.toString(m_book.currentBookIndex() + 1), locale.toString(project.books.size())));
+    m_projectInfoLayout->setRowVisible(m_projectVolumeLabel, series);
 }
 
 void PropertiesPanel::showBookType(const core::BookProject& project,

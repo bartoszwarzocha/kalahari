@@ -75,6 +75,13 @@ public:
     /// board shows them as a preview when the settings say so (PlotBoard::SECTIONS_SETTING)
     void setSections(const PlotBand& front, const PlotBand& back);
 
+    /// @brief The volumes of a series in the list Volume over the board and the outline, by
+    /// their names (NavigatorPanel::volumeName()), volume @p current chosen; the list is
+    /// hidden with fewer than two of them
+    void setVolumes(const QStringList& names, int current);
+    /// @brief The list Volume over the board and the outline
+    [[nodiscard]] QComboBox* volumeBox() const { return m_volumeBox; }
+
     /// @brief Whether the book is open read-only: nothing can be changed
     void setReadOnly(bool readOnly);
     /// @brief Whether the book is open read-only
@@ -193,6 +200,8 @@ signals:
     void editStatesChanged();
     /// @brief Open Settings > Plot Board (the gear over the board and the outline)
     void settingsRequested();
+    /// @brief The writer chose volume @p index of the series in the list Volume
+    void volumeChosen(int index);
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -242,6 +251,9 @@ private:
     PlotOutlineModel* m_model = nullptr;
     PlotOutlineDelegate* m_delegate = nullptr;
     InfoBar* m_infoBar = nullptr;
+    QLabel* m_volumeLabel = nullptr;
+    QComboBox* m_volumeBox = nullptr;
+    QStringList m_volumeNames;  ///< setVolumes()
     QToolButton* m_boardButton = nullptr;
     QToolButton* m_outlineButton = nullptr;
     QToolButton* m_scenesButton = nullptr;

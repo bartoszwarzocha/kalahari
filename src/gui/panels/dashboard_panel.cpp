@@ -558,6 +558,14 @@ struct RecentBook {
                           ///< its icon where the program has none (core::PackageCard)
 };
 
+/// @brief The title of @p project on its card: a series by its name, else by the title of its
+/// first volume, as the Navigator has it
+QString titleOf(const core::BookProject& project)
+{
+    const bool named = project.books.size() > 1 && !project.series.trimmed().isEmpty();
+    return (named ? project.series : project.books.first().title).trimmed();
+}
+
 /// @brief Read the card's data of the .klh file @p json, in the folder @p projectDir
 ///
 /// A book of format 2 has its type in its package: the name in the program's language and the
@@ -590,7 +598,7 @@ RecentBook readRecentBook(const QJsonObject& json, const QString& projectDir)
     const core::BookTypeRegistry& registry =
         core::ProjectManager::installedBookTypes();
     const core::ProjectBook& book = project->books.first();
-    recent.title = book.title.trimmed();
+    recent.title = titleOf(*project);
     recent.author = book.author.trimmed();
     if (!project->type) {
         // The icon of a user project in the New Book window

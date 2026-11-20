@@ -168,6 +168,9 @@ public:
     [[nodiscard]] QLabel* printedLabel() const { return m_printedLabel; }
     /// @brief The data of a material of the cover; hidden for other materials
     [[nodiscard]] QGroupBox* coverGroup() const { return m_coverGroup; }
+    /// @brief The volume of a series it is for, or the whole series; hidden in a book that
+    /// is no series
+    [[nodiscard]] QComboBox* coverVolumeBox() const { return m_coverVolumeBox; }
     [[nodiscard]] QComboBox* coverPartBox() const { return m_coverPartBox; }
     [[nodiscard]] QComboBox* coverPlaceBox() const { return m_coverPlaceBox; }
     [[nodiscard]] QComboBox* coverStateBox() const { return m_coverStateBox; }
@@ -298,6 +301,12 @@ private:
     /// @brief Save the state chosen in its box (core::ProjectManager::setCoverState())
     void saveState();
 
+    /// @brief The volume of material @p element in its box, shown in a series
+    void showVolume(const core::ProjectElement& element);
+
+    /// @brief Save the volume chosen in its box (core::ProjectManager::setMaterialBook())
+    void saveVolume();
+
     /// @brief Save the own target of the text from its box; 0: the target of its part
     void saveTarget();
 
@@ -355,6 +364,7 @@ private:
     QLabel* m_printedLabel = nullptr;
     QGroupBox* m_coverGroup = nullptr;
     QFormLayout* m_coverForm = nullptr;
+    QComboBox* m_coverVolumeBox = nullptr;
     QComboBox* m_coverPartBox = nullptr;
     QComboBox* m_coverPlaceBox = nullptr;
     QComboBox* m_coverStateBox = nullptr;

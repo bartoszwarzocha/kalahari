@@ -10,9 +10,11 @@
 #include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/book_dictionary.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/card_names.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/chapter_versions.h"
 #include "kalahari/core/name_declension.h"
 #include "kalahari/core/settings_manager.h"
@@ -23,6 +25,7 @@
 #include "kalahari/gui/book_search_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/panels/search_panel.h"
+#include "kalahari/gui/widgets/wrapping_button.h"
 
 #include <QFile>
 #include <QJsonDocument>
@@ -989,4 +992,89 @@ TEST_CASE("Find in Book: all forms (Alt+M), without Replace All in Book",
     CHECK(search.panel.options().allForms);
     press(field, formsKey.key(), formsKey.keyboardModifiers());
     CHECK_FALSE(search.panel.options().allForms);
+}
+
+// =============================================================================
+// A series
+// =============================================================================
+
+TEST_CASE("Find in Book: a series, in the current volume or in the whole series",
+          "[gui][search][book][series]") {
+    const VersionSettings versionSettings;
+    SearchedBook book;
+    Window window;
+    Search search(window);
+    auto* series = search.panel.findChild<QToolButton*>(QStringLiteral("searchWholeSeries"));
+    REQUIRE(series != nullptr);
+    const auto replaceText = [&search]() {
+        // A WrappingButton has no Q_OBJECT, so it is found among the push buttons
+        QStringList texts;
+        for (const QPushButton* button : search.panel.findChildren<QPushButton*>()) {
+            if (const auto* wrapping = dynamic_cast<const gui::WrappingButton*>(button)) {
+                texts << wrapping->fullText();
+            }
+        }
+        REQUIRE(texts.size() == 1);
+        return texts.constFirst();
+    };
+    // One book: no option Whole Series
+    CHECK_FALSE(series->isVisibleTo(&search.panel));
+    CHECK_FALSE(search.panel.wholeSeries());
+
+    // A second volume, with a storm of its own; the first one stays current
+    core::NewBook request;
+    request.title = QStringLiteral("Dunes");
+    const QString dunes = book.book.pm.addBook(request);
+    REQUIRE_FALSE(dunes.isEmpty());
+    CHECK(series->isVisibleTo(&search.panel));
+    const core::ProjectBook& second = book.book.pm.project()->books.at(1);
+    REQUIRE_FALSE(second.mainElements.isEmpty());
+    const QString sandstorm = second.mainElements.constFirst().id;
+    const QString title = second.mainElements.constFirst().title;
+    save(book.book, sandstorm, QStringLiteral("<kml><p>A sandstorm and a storm.</p></kml>"));
+
+    // The current volume: only its texts
+    search.find(QStringLiteral("storm"));
+    CHECK(search.foundTexts() ==
+          QStringList{QStringLiteral("Foreword 1"), QStringLiteral("The Storm 3"),
+                      QStringLiteral("The Calm 1"), QStringLiteral("Notes 1")});
+    CHECK(replaceText() == QStringLiteral("Replace All in Book"));
+
+    // The whole series: the texts of both volumes in their order, each with its volume
+    series->click();
+    search.coordinator.finishSearch();
+    CHECK(search.panel.wholeSeries());
+    CHECK(search.foundTexts() ==
+          QStringList{QStringLiteral("Foreword, volume 1 1"),
+                      QStringLiteral("The Storm, volume 1 3"),
+                      QStringLiteral("The Calm, volume 1 1"), QStringLiteral("Notes, volume 1 1"),
+                      QStringLiteral("%1, volume 2 2").arg(title)});
+    CHECK(replaceText() == QStringLiteral("Replace All in Series"));
+
+    // Without it, another current volume: its matches
+    series->click();
+    search.coordinator.finishSearch();
+    REQUIRE(book.book.pm.setCurrentBook(dunes));
+    search.coordinator.finishSearch();
+    CHECK(search.foundTexts() == QStringList{QStringLiteral("%1 2").arg(title)});
+    CHECK(replaceText() == QStringLiteral("Replace All in Book"));
+
+    // Replace All in Series: every text of the series
+    series->click();
+    search.coordinator.finishSearch();
+    auto* replacement = widgetNamed<QLineEdit>(search.panel, QStringLiteral("Replace With"));
+    REQUIRE(replacement != nullptr);
+    replacement->setText(QStringLiteral("gale"));
+    CHECK(search.coordinator.replaceAllInBook() == 8);
+    CHECK(search.asked == QStringList{QStringLiteral("8 in 5")});
+    CHECK(book.book.pm.chapterText(sandstorm) ==
+          QStringLiteral("<kml><p>A sandgale and a gale.</p></kml>"));
+    CHECK(book.book.pm.chapterText(book.calm) ==
+          QStringLiteral("<kml><p>Calm after the gale.</p></kml>"));
+
+    // One book again: the option goes, off
+    search.panel.setSeries(false);
+    CHECK_FALSE(series->isVisibleTo(&search.panel));
+    CHECK_FALSE(series->isChecked());
+    CHECK_FALSE(search.panel.wholeSeries());
 }

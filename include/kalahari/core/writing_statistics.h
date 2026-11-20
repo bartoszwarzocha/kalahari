@@ -20,6 +20,7 @@
 #include <QHash>
 #include <QList>
 #include <QMap>
+#include <QSet>
 #include <QString>
 
 #include <array>
@@ -151,6 +152,10 @@ public:
 
     /// @brief Counts this record too (the record not saved yet, or just saved)
     void addActivity(const QList<WritingActivity>& activity);
+
+    /// @brief The record of only the texts of @p elementIds (a volume of a series), by the
+    ///        same rules; what has no text is left out
+    [[nodiscard]] WritingStatistics ofTexts(const QSet<QString>& elementIds) const;
 
     /// @brief The whole record it counts, by writing day, as it was kept: the words pasted
     /// apart (counted() gives an entry as the rules count it)

@@ -6,6 +6,7 @@
 /// the current book, new books, their order and removal, and elements moved between them
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/bibliography.h>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_package.h>
 #include <kalahari/core/book_type_registry.h>
@@ -27,6 +28,7 @@
 
 #include <optional>
 
+using kalahari::core::Bibliography;
 using kalahari::core::BookPlace;
 using kalahari::core::BookProject;
 using kalahari::core::ChapterDocument;
@@ -336,5 +338,36 @@ TEST_CASE("Series: a chapter moved to another book, with the elements inside it"
     CHECK(pm.movePlacesIn(note, second).isEmpty());
     CHECK_FALSE(pm.moveElementTo(note, start, second));
     CHECK(pm.bookOf(note) == nullptr);
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("Series: each volume has its own style of the bibliography, a new one that of the "
+          "book before it",
+          "[core][series][bibliography]") {
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Piasek", "Ewa Lis", "pl", true, "kalahari.novel"));
+    const QString first = pm.book()->id;
+    REQUIRE(pm.setBookBibliographyStyle(QString::fromLatin1(Bibliography::APA)));
+
+    // A new volume starts with the style of the book before it, then has its own
+    const QString second = pm.addBook(NewBook{QStringLiteral("Wydmy"), QString(), QString()});
+    REQUIRE_FALSE(second.isEmpty());
+    REQUIRE(pm.setCurrentBook(second));
+    CHECK(pm.bookBibliographyStyle() == QLatin1String(Bibliography::APA));
+    REQUIRE(pm.setBookBibliographyStyle(QString::fromLatin1(Bibliography::MLA)));
+    CHECK(pm.bibliographyStyle() == QLatin1String(Bibliography::MLA));
+
+    // The first volume keeps its style, also in the book file
+    REQUIRE(pm.setCurrentBook(first));
+    CHECK(pm.bibliographyStyle() == QLatin1String(Bibliography::APA));
+    const QString path = pm.getManifestPath();
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(path));
+    const BookProject* project = pm.project();
+    REQUIRE(project != nullptr);
+    REQUIRE(project->books.size() == 2);
+    CHECK(project->books.at(0).bibliographyStyle == QLatin1String(Bibliography::APA));
+    CHECK(project->books.at(1).bibliographyStyle == QLatin1String(Bibliography::MLA));
     REQUIRE(pm.closeProject(false));
 }

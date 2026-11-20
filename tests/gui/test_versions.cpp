@@ -835,6 +835,26 @@ TEST_CASE("Versions: Version History of a text not open opens it first", "[gui][
     CHECK(said.first().contains(QStringLiteral("The Storm from the book \"Rain\"")));
 }
 
+TEST_CASE("Versions: the history of a text of a series names the volume of the text",
+          "[gui][versions][series]") {
+    VersionsWindow w;
+    kept(w.novel.chapterId, QStringLiteral("Dark night."));
+    core::NewBook request;
+    request.title = QStringLiteral("Dunes");
+    const QString dunes = w.novel.pm.addBook(request);
+    REQUIRE_FALSE(dunes.isEmpty());
+    REQUIRE(w.novel.pm.setCurrentBook(dunes));
+    QStringList said;
+    CHECK(answeringWith([&]() { CHECK(w.versions.showHistory(w.novel.chapterId)); },
+                        [&said](QDialog& shown) {
+                            said << test::textsOf(shown);
+                            shown.reject();
+                        }) == 1);
+    REQUIRE(said.size() == 1);
+    // The text of the first volume, with the second one current
+    CHECK(said.first().contains(QStringLiteral("The Storm from the book \"Rain\"")));
+}
+
 TEST_CASE("Versions: Restore in the history goes to the text's editor", "[gui][versions]") {
     VersionsWindow w;
     kept(w.novel.chapterId, QStringLiteral("Dark night."));

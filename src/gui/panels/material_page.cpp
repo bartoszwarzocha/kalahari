@@ -19,13 +19,16 @@
 #include "kalahari/gui/panels/source_boxes.h"
 #include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
+#include "kalahari/gui/volume_names.h"
 #include "kalahari/gui/widgets/own_fields_box.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/core/volume_materials.h"
 
 #include <QAbstractItemDelegate>
 #include <QAction>
@@ -84,6 +87,18 @@ const QSize THUMBNAIL_BOUNDS(960, 2 * MaterialPage::MAXIMUM_THUMBNAIL_HEIGHT);
 
 using card::buttonRow;
 using card::cutOffChildren;
+
+/// The titles of the elements @p ids of @p book, in their order
+QStringList titlesOf(const core::ProjectManager& book, const QStringList& ids) {
+    QStringList titles;
+    for (const QString& id : ids) {
+        if (const core::ProjectElement* element = book.findElement(id)) {
+            titles << element->title;
+        }
+    }
+    return titles;
+}
+
 using card::hintLabel;
 using card::isListKey;
 using card::isOpenKey;
@@ -1008,6 +1023,10 @@ QGroupBox* MaterialPage::createCoverGroup() {
         });
         return line;
     };
+    m_coverVolumeBox = box("coverVolumeBox");
+    //: The volume of a series a material of the cover is for, or the whole series. In Polish:
+    //: &Tom:
+    m_coverForm->addRow(tr("&Volume:"), m_coverVolumeBox);
     m_coverPartBox = box("coverPartBox");
     //: The kind of a material of the cover: a description, a tagline... In Polish: &Rodzaj:
     m_coverForm->addRow(tr("&Kind:"), m_coverPartBox);
@@ -1042,6 +1061,7 @@ QGroupBox* MaterialPage::createCoverGroup() {
 
     connect(m_coverPartBox, &QComboBox::activated, this, &MaterialPage::savePart);
     connect(m_coverStateBox, &QComboBox::activated, this, &MaterialPage::saveState);
+    connect(m_coverVolumeBox, &QComboBox::activated, this, &MaterialPage::saveVolume);
     connect(m_coverPlaceBox, &QComboBox::activated, this, [this]() {
         const QString place = m_coverPlaceBox->currentData().toString();
         saveCover([&place](core::CoverData& cover) { cover.place = place; });
@@ -1173,9 +1193,10 @@ void MaterialPage::showCover(const core::ProjectElement& element) {
         caption->setText(reference ? tr("&Author or source:") : tr("&Author:"));
     }
 
+    showVolume(element);
     const bool readOnly = m_book.isReadOnly();
-    for (QComboBox* combo :
-         {m_coverPartBox, m_coverPlaceBox, m_coverStateBox, m_coverConsentBox}) {
+    for (QComboBox* combo : {m_coverVolumeBox, m_coverPartBox, m_coverPlaceBox, m_coverStateBox,
+                             m_coverConsentBox}) {
         combo->setEnabled(!readOnly);
     }
     for (QLineEdit* line : {m_coverAuthorEdit, m_coverRoleEdit, m_coverSourceEdit,
@@ -1322,13 +1343,45 @@ void MaterialPage::saveState() {
         }
         return;
     }
-    QStringList titles;
+    emit message(CoverNames::stateMessage(title, state, titlesOf(pm, drafts)));
+    emit changed(m_elementId);
     for (const QString& id : drafts) {
-        if (const core::ProjectElement* other = pm.findElement(id)) {
-            titles << other->title;
-        }
+        emit changed(id);
     }
-    emit message(CoverNames::stateMessage(title, state, titles));
+}
+
+void MaterialPage::showVolume(const core::ProjectElement& element) {
+    const core::BookProject* project = m_book.project();
+    const bool series = project != nullptr && m_book.isSeries();
+    m_coverForm->setRowVisible(m_coverVolumeBox, series);
+    if (series) {
+        VolumeNames::fillBox(*m_coverVolumeBox, m_book,
+                             core::VolumeMaterials::volumeOf(*project, element));
+    }
+}
+
+void MaterialPage::saveVolume() {
+    const core::ProjectElement* element = m_book.findElement(m_elementId);
+    if (m_updating || !m_cover || element == nullptr || m_book.isReadOnly()) {
+        return;
+    }
+    const QString volume = m_coverVolumeBox->currentData().toString();
+    if (core::VolumeMaterials::volumeOf(*m_book.project(), *element) == volume) {
+        return;
+    }
+    const QString title = element->title;
+    QStringList drafts;
+    if (!m_book.setMaterialBook(m_elementId, volume, &drafts)) {
+        //: In Polish: Nie zapisano tomu
+        dialogs::MessageDialog::warning(this, tr("Volume Not Saved"),
+                                        tr("Failed to save changes."));
+        if (const core::ProjectElement* kept = m_book.findElement(m_elementId)) {
+            showCover(*kept);
+        }
+        return;
+    }
+    emit message(VolumeNames::changeMessage(title, m_coverVolumeBox->currentText(),
+                                            titlesOf(m_book, drafts)));
     emit changed(m_elementId);
     for (const QString& id : drafts) {
         emit changed(id);

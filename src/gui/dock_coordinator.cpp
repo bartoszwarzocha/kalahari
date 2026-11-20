@@ -344,6 +344,9 @@ void DockCoordinator::createNavigatorDock() {
     // Alt+Enter: the keys go to the first field of the panel
     connect(m_navigatorPanel, &NavigatorPanel::requestPropertiesFocus, this,
             [this]() { m_propertiesPanel->focusFirstField(); });
+    // The node of a series: its name and its volumes
+    connect(m_navigatorPanel, &NavigatorPanel::requestSeriesProperties, this,
+            [this]() { m_propertiesPanel->showSeriesProperties(); });
 
     logger.debug("DockCoordinator: Navigator dock created");
 }

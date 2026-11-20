@@ -27,6 +27,7 @@
 #include <cmath>
 #include <functional>
 #include <iterator>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -799,6 +800,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     readHighlights(fields, element, problems);
     readQuote(fields, element, problems);
     readPublishing(fields, element, problems);
+    element.bookId = fields.string("book");
     element.extra = fields.rest();
     return element;
 }
@@ -1417,6 +1419,7 @@ QJsonObject elementToJson(const ProjectElement& element) {
         json.insert(QLatin1String("elements"), elementsToJson(element.elements));
     }
     setOrRemove(json, "description", element.description);
+    setOrRemove(json, "book", element.bookId);
     if (element.fields.isEmpty()) {
         json.remove(QLatin1String("fields"));
     } else {
@@ -2013,15 +2016,16 @@ const ElementLink* ProjectElement::linkTo(const QString& target) const {
 }
 
 bool ProjectElement::operator==(const ProjectElement& other) const {
-    return id == other.id && kind == other.kind && title == other.title &&
-           file == other.file && url == other.url && status == other.status &&
-           firstPageLeft == other.firstPageLeft && elements == other.elements &&
-           description == other.description && fields == other.fields && links == other.links &&
-           rotation == other.rotation && cover == other.cover && clipping == other.clipping &&
-           card == other.card && plot == other.plot && source == other.source &&
-           bookmarks == other.bookmarks && highlights == other.highlights &&
-           lastPage == other.lastPage && quote == other.quote && publishing == other.publishing &&
-           viewExtra == other.viewExtra && extra == other.extra;
+    const auto fieldsOf = [](const ProjectElement& element) {
+        return std::tie(element.id, element.kind, element.title, element.file, element.url,
+                        element.status, element.firstPageLeft, element.elements,
+                        element.description, element.fields, element.links, element.rotation,
+                        element.cover, element.clipping, element.card, element.plot,
+                        element.source, element.bookmarks, element.highlights,
+                        element.lastPage, element.quote, element.publishing, element.bookId,
+                        element.viewExtra, element.extra);
+    };
+    return fieldsOf(*this) == fieldsOf(other);
 }
 
 // =============================================================================

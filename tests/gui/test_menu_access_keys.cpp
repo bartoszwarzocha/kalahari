@@ -1093,6 +1093,14 @@ void checkNavigatorMenus(QStringList& problems) {
         readMenus(QStringLiteral("Navigator without sections › "));
     CHECK(withoutSections.contains(QStringLiteral("book")));
     CHECK(withoutSections.contains(QStringLiteral("window_element")));
+
+    // A series: the menus of its node and of its volumes
+    REQUIRE(pm.setSections({true, QString(), {}}));
+    core::NewBook volume;
+    volume.title = QStringLiteral("Dunes");
+    REQUIRE_FALSE(pm.addBook(volume).isEmpty());
+    coordinator.refreshNavigator();
+    CHECK(readMenus(QStringLiteral("Navigator of a series › ")).contains(QStringLiteral("book")));
     pm.closeProject(false);
 }
 

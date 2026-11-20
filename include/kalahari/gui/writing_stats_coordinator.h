@@ -133,6 +133,10 @@ private:
     /// @brief The book is closing: the summary of the session, then the record goes on in the
     /// journal only
     void onProjectClosing();
+
+    /// @brief The model has the goals and the texts of the current volume of a series (or of
+    ///        the one book): a book opened, another volume current, elements moved
+    void showVolume();
     /// @brief The messages of the tracker, as the settings say
     void connectMessages();
     /// @brief Show the messages of this moment in the bar

@@ -65,6 +65,7 @@
 #include "kalahari/core/source_description.h"
 #include "kalahari/core/backup_manager.h"
 #include "kalahari/core/text_statistics.h"
+#include "kalahari/core/volume_copies.h"
 
 namespace kalahari::editor {
 struct SkeletonPoint;
@@ -909,7 +910,9 @@ public:
     /// gets the text elements of the front and back sections of the book before it, in their
     /// sections: an element whose kind's template has the title or the author of the book (the
     /// title page) is made anew from the template, with the data of the new book; the others
-    /// get a copy of their text. The current book stays the current one.
+    /// get a copy of their text. The current book stays the current one. When a book becomes a
+    /// series, its materials of the cover and its texts for publishers are for its first
+    /// volume (VolumeMaterials::toFirstVolume()).
     /// @return The id of the new book; empty when no project is open, the book is read-only,
     ///         its title is empty or a file cannot be written (the project stays as it was)
     QString addBook(const NewBook& request);
@@ -922,11 +925,66 @@ public:
     /// @brief Take book @p bookId out of the series and save the .klh file
     ///
     /// The links to its elements and to its sections go with it, as removeElement() takes
-    /// them; the files of its elements stay on the disk (filesOf() lists them). The first book
-    /// becomes the current one when the current book goes.
+    /// them; the files of its elements stay on the disk (filesOf() lists them). Its materials
+    /// of the cover and texts for publishers are for the whole series then, as drafts
+    /// (VolumeMaterials::release()). The first book becomes the current one when the current
+    /// book goes.
     /// @return The book; nullopt for the last book of the project, a book the project does not
     ///         have, or when the file cannot be written
     std::optional<ProjectBook> removeBook(const QString& bookId);
+
+    /// @brief Write book @p bookId of the series as a book of its own, in a new project that
+    /// is not opened; the series stays as it is
+    ///
+    /// The new project is made as createProject() makes one, in @p parentDir or in its folder
+    /// named after the title of the book there (@p createSubfolder), with a .klh file named
+    /// after it. It has the book as VolumeCopies::takeOut() gives it, the files of its elements
+    /// with their versions, the images of the book, the copies of the packages of the type, the
+    /// book dictionary and the goals of the book (BookGoals). The record of writing stays with
+    /// the series. The texts are copied as their files have them: save them first.
+    /// @param problems Gets what went wrong; may be nullptr
+    /// @return The path of the .klh file of the new project; empty when the project has no
+    ///         such book or no other one, the folder cannot hold a new project or a file
+    ///         cannot be written (what was written is removed then)
+    QString takeOutBook(const QString& bookId, const QString& parentDir, bool createSubfolder,
+                        QStringList* problems = nullptr);
+
+    /// @brief Why @p book, read from its .klh file (BookProject::load()), cannot join the open
+    /// project as a volume (VolumeCopies::joinProblem()); JoinProblem::Series without one
+    [[nodiscard]] JoinProblem joinProblemOf(const BookProject& book) const;
+
+    /// @brief The cards of the Workshop of @p book that have the kind and the title of a card
+    /// of the open project (VolumeCopies::sameCards())
+    [[nodiscard]] QList<CardPair> sameCardsOf(const BookProject& book) const;
+
+    /// @brief Join the book of the .klh file @p manifestPath to the open project as a volume,
+    /// and save the .klh file; the book stays as it is, and the current book stays current
+    ///
+    /// The volume is the book as VolumeCopies::join() gives it, in the first free folder of
+    /// "book2", "book3"..., with the files of its elements and their versions and its images;
+    /// the copies of the packages the open project lacks come along. Its book dictionary joins
+    /// that of the project (VolumeCopies::joinDictionary()), and its goals become those of the
+    /// volume (BookGoals); its record of writing stays in its own folder. The texts are copied
+    /// as their files have them.
+    /// @param index Its place among the volumes; -1: the last
+    /// @param sameCards The cards of the book that are cards of the open project
+    /// @param problems Gets what went wrong; may be nullptr
+    /// @return The id of the volume; empty when no book that can be changed is open, the book
+    ///         cannot be read or cannot join it, or a file cannot be written (what was written
+    ///         is removed then, and the project stays as it was)
+    QString joinBook(const QString& manifestPath, qsizetype index,
+                     const QList<CardPair>& sameCards, QStringList* problems = nullptr);
+
+    /// @brief Give material @p elementId of the cover, or text @p elementId for publishers, to
+    /// volume @p bookId of the series, or to the whole series (empty), and save the .klh file
+    ///
+    /// One chosen stays chosen: the others chosen for its place in the volume it goes to
+    /// become drafts (VolumeMaterials::unchooseOthers()).
+    /// @param drafts Gets the materials that are drafts again; may be nullptr
+    /// @return false for an element that is no such material, a book the project does not
+    ///         have, or when the file cannot be written; the materials stay as they were then
+    bool setMaterialBook(const QString& elementId, const QString& bookId,
+                         QStringList* drafts = nullptr);
 
     /// @brief Places in book @p bookId that element @p elementId of another book can be moved
     /// to (BookProject::movePlacesIn())
@@ -979,8 +1037,8 @@ public:
                             QStringList* drafts = nullptr);
 
     /// @brief Make @p elementId, a text for publishers or a description or a tagline of the
-    /// cover, the version of its part in the book's set: the set picks it, or takes it without
-    /// a pick when it is the version chosen (setPublishingSet())
+    /// cover, the version of its part in the set of its book (setBookOf()): the set picks it,
+    /// or takes it without a pick when it is the version chosen (setPublishingSet())
     /// @return false for an element that is no version of a part of the set, or when the file
     ///         cannot be written; the set stays as it was then
     bool pickForPublishingSet(const QString& elementId);
@@ -995,9 +1053,20 @@ public:
     ///         the book keeps its set then
     bool setPublishingSet(const PublishingSet& set);
 
-    /// @brief The parts of the book's set, each with the element of its text
-    /// (PublishingTexts::resolveSet()); none without a project
-    [[nodiscard]] QList<PublishingSetPart> publishingSetParts() const;
+    /// @brief The parts of the set of book @p volume of the project (nullptr: of the current
+    /// book), each with the element of its text (PublishingTexts::resolveSet()); none without
+    /// a project
+    [[nodiscard]] QList<PublishingSetPart> publishingSetParts(
+        const ProjectBook* volume = nullptr) const;
+
+    /// @brief The book whose set material @p elementId of the cover, or text @p elementId for
+    /// publishers, is a version for: the volume of the series it is for, else (a material of
+    /// the whole series, a book that is no series) the current book; nullptr without a project
+    [[nodiscard]] const ProjectBook* setBookOf(const QString& elementId) const;
+
+    /// @brief The parts of the set of the book of material @p elementId (setBookOf()), each
+    /// with the element of its text; none without a project
+    [[nodiscard]] QList<PublishingSetPart> publishingSetPartsOf(const QString& elementId) const;
 
     /// @brief The text of text @p elementId for publishers or of another element of the set: its
     /// paragraphs, one per line, for an element with a text of its own (a chapter file), else
@@ -1233,8 +1302,11 @@ public:
 
     /// @brief Give the book the ISBN and the publisher of its e-book (ProjectBook::isbn,
     /// ProjectBook::publisher; empty: none) and save the .klh file
-    /// @return false when no project is open, it is read-only or the file cannot be written
-    bool setBookPublication(const QString& isbn, const QString& publisher);
+    /// @param bookId The book of a series; empty: the current book
+    /// @return false when no project is open, it has no such book, it is read-only or the
+    ///         file cannot be written
+    bool setBookPublication(const QString& isbn, const QString& publisher,
+                            const QString& bookId = QString());
 
     // =========================================================================
     // Paragraph Styles of the Books
@@ -1606,6 +1678,10 @@ private:
     /// @brief Read the word counts and notes of the text elements from their chapter files
     void loadElementStates();
 
+    /// @brief Read the word counts and notes of the text elements that have none yet, as a
+    /// book joined as a volume brings them (loadElementStates())
+    void loadNewElementStates();
+
     /// @brief State of text element @p elementId; nullptr when it is not one
     ElementState* stateOf(const QString& elementId);
 
@@ -1682,6 +1758,41 @@ private:
     /// and the author of @p book in place of "{title}" and "{author}"; empty without a template
     static QString startingText(const KindRef& kind, const ProjectBook& book);
 
+    /// @brief The .klh file of a new project in @p projectDir, named after @p title
+    static QString manifestPathOf(const QString& projectDir, const QString& title);
+
+    /// @brief The folder of the project of book @p bookId taken out of the series
+    /// (takeOutBook()): its title in @p parentDir, or @p parentDir itself
+    /// @return The folder; empty, with what is wrong in @p problems, when the series has no
+    ///         such book or the folder exists and is not empty
+    [[nodiscard]] QString takeOutFolder(const QString& bookId, const QString& parentDir,
+                                        bool createSubfolder, QStringList& problems) const;
+
+    /// @brief Write the project of book @p bookId taken out of the series (takeOutBook()) to
+    /// the folder @p projectDir, which can hold a new project
+    /// @return The path of its .klh file; empty, with what failed in @p problems, when a file
+    ///         cannot be written
+    QString writeTakenOut(const QString& bookId, const QString& projectDir,
+                          QStringList& problems);
+
+    /// @brief Join @p book, read from the folder @p bookDir, to the open project as @p request
+    /// says (joinBook()); what was written is removed when a file cannot be written
+    /// @return The id of the volume; empty, with what failed in @p problems, when it cannot
+    QString writeJoined(const BookProject& book, const QString& bookDir,
+                        const JoinRequest& request, QStringList& problems);
+
+    /// @brief The book dictionary of the book in folder @p bookDir joins that of the open
+    /// project, the names of its cards of @p cards naming the project's cards
+    void joinDictionaryOf(const QString& bookDir, const QHash<QString, QString>& cards);
+
+    /// @brief The goals of the book in folder @p bookDir become those of book @p bookId of the
+    /// open project
+    void joinGoalsOf(const QString& bookDir, const QString& bookId);
+
+    /// @brief Remove the files @p written of a book that could not join, and the folders they
+    /// leave empty; the folder of the volume @p folder goes whole
+    void removeJoined(const QStringList& written, const QString& folder) const;
+
     /// @brief Remove what was made of a new project that cannot be created: its folder goes
     /// back to how it was, empty when it existed (@p folderExisted), else it is removed
     static void removeNewProject(const QString& projectDir, bool folderExisted);
@@ -1697,6 +1808,14 @@ private:
     /// @brief The first folder of book2, book3... that no book of the project has and that is
     /// not on the disk, for a new book of a series
     [[nodiscard]] QString freeBookFolder() const;
+
+    /// @brief The volume new material @p element is for: the current book of a series for a
+    /// material of the cover or a text for publishers (VolumeMaterials), else none
+    [[nodiscard]] QString volumeOfNew(const ProjectElement& element) const;
+
+    /// @brief Give book @p book of the project the set @p set and save the .klh file
+    /// (publishingSetChanged()); false when the file cannot be written
+    bool setPublishingSetOf(ProjectBook& book, const PublishingSet& set);
 
     /// @brief Give new book @p book the elements it starts with (addBook()): the pages of the
     /// front and back sections of @p source when @p pages, then its first chapter

@@ -14,6 +14,7 @@
 #include <QString>
 #include <QStringList>
 
+#include <functional>
 #include <string>
 
 class QCheckBox;
@@ -41,7 +42,8 @@ class RowList;
 /// as headings, and of the pages each text from a new page, the page numbers, the font, the
 /// running head and the page of the settings (Settings > Editor > Pages and Margins). Its
 /// choices are kept in the settings (export.*), for the export and the print alike; which
-/// texts each window keeps on its own.
+/// texts each window keeps on its own. A series has the list Volume over the texts: the
+/// window shows the texts and the data of the volume chosen in it, the current one at first.
 class BookOutputDialog : public ArchiveDialog {
     Q_OBJECT
 
@@ -64,6 +66,12 @@ public:
         bool leaf = true;    ///< A text (or a table of contents); false: a section or a group
     };
 
+    /// @brief A volume of a series in the list Volume
+    struct Volume {
+        QString id;    ///< Its book (core::ProjectBook::id)
+        QString name;  ///< As the list shows it: "Volume 2: Dunes"
+    };
+
     /// @brief What the window says about the book and the text in front
     struct Book {
         QString title;       ///< The title of the book; empty: no book is open
@@ -81,7 +89,13 @@ public:
         QString setTitle;    ///< The set for a publisher as the name of its file: "Sand – set
                              ///< for the publisher"; empty: the set has no text
         int setParts = 0;    ///< The parts of the set with a text
+        QList<Volume> volumes;  ///< The volumes of a series, in their order; empty: one book
+        QString volume;         ///< The volume it is of a series; empty: one book
     };
+
+    /// @brief What the window says about volume @p volumeId of the series, the text in front
+    ///        aside
+    using VolumeBook = std::function<Book(const QString& volumeId)>;
 
     /// @brief The choices of the tabs of the texts and of the layout
     struct Layout {
@@ -93,6 +107,7 @@ public:
         QString fontFamily;         ///< The font of the text (pages); empty: the editor's
         /// At the top of the pages of the texts
         editor::RunningHead runningHead = editor::RunningHead::AuthorAndTitle;
+        QString volume;  ///< The volume of a series whose texts go; empty: one book
     };
 
     ~BookOutputDialog() override;
@@ -102,6 +117,12 @@ public:
 
     /// @brief Choose what goes to the file or to the printer, as its radio button does
     void setContent(Content content);
+
+    /// @brief Where the window takes the data of the volume chosen in the list Volume
+    void setVolumeBook(VolumeBook volumeBook);
+
+    /// @brief The list Volume of a series; nullptr for one book
+    [[nodiscard]] QComboBox* volumeBox() const { return m_volumeBox; }
 
     /// @brief The radio buttons of the content
     QRadioButton* bookButton() const { return m_bookButton; }
@@ -198,6 +219,10 @@ protected:
     /// @brief What goes to the file or to the printer changed
     virtual void contentChanged() = 0;
 
+    /// @brief Another volume of the series was chosen: book() is its; the window shows its
+    ///        data (the base: nothing more than its texts)
+    virtual void bookChanged();
+
     /// @brief A text of the list was checked or unchecked: the fields and the accept button
     ///        follow
     virtual void updateFields() = 0;
@@ -217,7 +242,22 @@ private:
     /// @brief The texts of the list (its leaves), in reading order
     QList<QTreeWidgetItem*> leaves() const;
 
+    /// @brief The list Volume over the texts, the volume of book() chosen in it
+    /// @return Its row: the label and the list
+    QWidget* newVolumeRow(QWidget* parent);
+
+    /// @brief How many texts the book has and the parts of its set, on their radio buttons
+    void showBookCounts();
+
+    /// @brief The texts that go were chosen on the tab of the texts: the list, the list Volume
+    /// and the new page of each part of the set follow the choice
+    void followContentChoice();
+
+    /// @brief Show the texts and the data of the volume at @p index of the list Volume
+    void showVolume(int index);
+
     Book m_book;
+    VolumeBook m_volumeBook;
     int m_settingsListener = -1;
     QTabWidget* m_tabs = nullptr;
 
@@ -225,6 +265,8 @@ private:
     QRadioButton* m_chosenButton = nullptr;
     QRadioButton* m_frontButton = nullptr;
     QRadioButton* m_setButton = nullptr;
+    QWidget* m_volumeRow = nullptr;  ///< The list Volume with its label; nullptr: one book
+    QComboBox* m_volumeBox = nullptr;
     QWidget* m_chosenBox = nullptr;
     RowList* m_textList = nullptr;
     QLabel* m_chosenNote = nullptr;

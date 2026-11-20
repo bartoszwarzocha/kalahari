@@ -348,7 +348,8 @@ TEST_CASE("Read-only book: the Navigator's menus open and show, and change nothi
     CHECK(textsOf(book, true) ==
           QStringList{"Show on the Plot Board", "Expand All", "Collapse All"});
     CHECK(textsOf(book, false) == QStringList{"Add...", "Add Chapter...", "Add Part...",
-                                              "Rename...", "Show Sections", "Book Properties..."});
+                                              "Rename...", "New Volume...", "Show Sections",
+                                              "Book Properties..."});
     CHECK(greyedSayWhy(book));
 
     // The Workshop's item: nothing is added, renamed or grouped

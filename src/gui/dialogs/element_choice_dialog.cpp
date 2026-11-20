@@ -8,6 +8,7 @@
 
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 
@@ -58,17 +59,7 @@ ElementChoiceDialog::ElementChoiceDialog(const core::ProjectManager& book, const
     contentLayout()->addWidget(m_tree, 1);
 
     if (const core::BookProject* project = book.project(); project != nullptr) {
-        if (!project->books.isEmpty()) {
-            const core::ProjectBook& first = project->books.constFirst();
-            auto* node = new QTreeWidgetItem(m_tree);
-            //: The node of the book in the window that chooses an element. In Polish: Książka
-            node->setText(0, first.name.isEmpty() ? tr("Book") : first.name);
-            node->setFlags(Qt::ItemIsEnabled);
-            for (const core::BookPlace place :
-                 {core::BookPlace::Front, core::BookPlace::Main, core::BookPlace::Back}) {
-                addElements(node, project->elementsIn(place));
-            }
-        }
+        addBooks(*project);
         auto* workshop = new QTreeWidgetItem(m_tree);
         //: The node of the Workshop in the window that chooses an element. In Polish: Warsztat
         workshop->setText(0, project->workshop.name.isEmpty() ? tr("Workshop")
@@ -105,6 +96,23 @@ QString ElementChoiceDialog::chosen() const {
     return item != nullptr && (item->flags() & Qt::ItemIsSelectable)
                ? item->data(0, ID_ROLE).toString()
                : QString();
+}
+
+void ElementChoiceDialog::addBooks(const core::BookProject& project) {
+    // The book, or each volume of a series, as the Navigator names them
+    const bool series = project.books.size() > 1;
+    for (qsizetype index = 0; index < project.books.size(); ++index) {
+        const core::ProjectBook& volume = project.books.at(index);
+        auto* node = new QTreeWidgetItem(m_tree);
+        //: The node of the book in the window that chooses an element. In Polish: Książka
+        const QString bookName = volume.name.isEmpty() ? tr("Book") : volume.name;
+        node->setText(0, series ? NavigatorPanel::volumeName(volume, index) : bookName);
+        node->setFlags(Qt::ItemIsEnabled);
+        for (const core::BookPlace place :
+             {core::BookPlace::Front, core::BookPlace::Main, core::BookPlace::Back}) {
+            addElements(node, project.elementsIn(place, index));
+        }
+    }
 }
 
 void ElementChoiceDialog::addElements(QTreeWidgetItem* parent,

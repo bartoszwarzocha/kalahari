@@ -5,11 +5,13 @@
 /// @brief Save Version and Version History, and what the window of the versions chose
 
 #include "kalahari/gui/versions_coordinator.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/clipboard_handler.h"
+#include "kalahari/gui/book_texts.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -197,7 +199,9 @@ bool VersionsCoordinator::showHistory(const QString& elementId) {
     dialogs::VersionHistoryDialog::Text text;
     text.elementId = id;
     text.title = titleOf(m_book, id);
-    text.bookTitle = pm.book() != nullptr ? pm.book()->title : QString();
+    // The title of its volume of a series
+    const core::ProjectBook* volume = volumeOfText(m_book, id);
+    text.bookTitle = volume != nullptr ? volume->title : QString();
     text.kind = kindWordsOf(m_book, id);
     text.kml = editor->toKml();
     text.editor = editor;

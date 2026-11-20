@@ -85,6 +85,7 @@ set(KALAHARI_CORE_SOURCES
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
     core/publishing_texts.cpp   # The texts for publishers: data, templates, lengths, the set
+    core/volume_materials.cpp   # The cover and the texts for publishers of each volume
     core/card_data.cpp          # The cards of the Workshop: the values of their fields, colors
     core/source_description.cpp # The bibliographic description of a source, its bookmarks
     core/bibliography.cpp       # The entries of a bibliography and the references in the text
@@ -192,6 +193,7 @@ set(KALAHARI_SOURCES
     core/recent_books_manager.cpp # RecentBooksManager - Recent files management (OpenSpec #00030)
     core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
     core/card_relations.cpp # The relations between the cards of a book (uses ProjectManager)
+    core/volume_copies.cpp  # The volumes of a series as books, and books as volumes (card_relations)
     core/project_manager_card_fields.cpp # ProjectManager: the fields of the cards of the book
     core/project_manager_publishing.cpp # ProjectManager: the texts for publishers of the book
     core/project_manager_series.cpp     # ProjectManager: a series, several books of one project
@@ -214,6 +216,9 @@ set(KALAHARI_SOURCES
     gui/dialogs/color_palettes.cpp  # The palettes of the color window
     gui/dialogs/add_to_book_dialog.cpp  # AddToBookDialog - a file as a new element of the book
     gui/dialogs/new_file_dialog.cpp  # NewFileDialog - New File: a new element of the open book
+    gui/dialogs/new_volume_dialog.cpp  # NewVolumeDialog - Book > New Volume...: a new book of a series
+    gui/dialogs/take_out_volume_dialog.cpp  # TakeOutVolumeDialog - a volume as a book of its own
+    gui/dialogs/join_book_dialog.cpp  # JoinBookDialog - a book joined as a volume
     gui/dialogs/publishing_choice.cpp  # PublishingChoice - the part and the template of a new text for publishers
     gui/dialogs/publishing_templates_dialog.cpp  # PublishingTemplatesDialog - the templates of the texts for publishers
     gui/dialogs/move_element_dialog.cpp  # MoveElementDialog - a new place in the book for an element
@@ -236,6 +241,7 @@ set(KALAHARI_SOURCES
     gui/cover_names.cpp    # The materials of the cover in the program's words
     gui/publishing_names.cpp # The texts for publishers in the program's words
     gui/publishing_set.cpp   # The set for a publisher in the program's words
+    gui/volume_names.cpp     # The volumes of the cover and the texts for publishers in words
     gui/source_names.cpp   # The sources in the program's words
     gui/pdf_files.cpp      # PDF files: whether the program shows them, their first page and data
     gui/quick_insert_items.cpp  # What the list of quick insert offers: cards, fragments, characters
@@ -296,6 +302,7 @@ set(KALAHARI_SOURCES
     gui/panel_tabs.cpp  # The program's own tabs of the panels docked one over another
     gui/settings_coordinator.cpp  # SettingsCoordinator - Settings management extracted from MainWindow (OpenSpec #00038 Phase 5)
     gui/navigator_coordinator.cpp  # NavigatorCoordinator - Navigator handlers extracted from MainWindow (OpenSpec #00038 Phase 6)
+    gui/navigator_coordinator_series.cpp  # The volumes of a series: new, in order, deleted
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
     gui/document_windows.cpp  # The texts of the book window in its tabs and in windows of their own
     gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
@@ -433,6 +440,7 @@ set(KALAHARI_SOURCES
     gui/panels/editor_panel.cpp
     gui/panels/log_panel.cpp
     gui/panels/navigator_panel.cpp
+    gui/panels/navigator_panel_series.cpp
     gui/panels/properties_panel.cpp
     gui/panels/plot_fields_box.cpp   # PlotFieldsBox - the plot of a text in the Properties panel
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
@@ -448,6 +456,7 @@ set(KALAHARI_SOURCES
     gui/panels/card_panel.cpp     # CardPanel - the full card on a tab beside the chapters
     gui/panels/pitch_panel.cpp  # PitchPanel - the card of a sentence about the book
     gui/panels/publishing_set_page.cpp  # PublishingSetPage - the set for a publisher in Properties
+    gui/panels/series_page.cpp  # SeriesPage - the name and the volumes of a series in Properties
     gui/panels/publishing_text_box.cpp  # PublishingTextBox - a text for publishers in Properties
     gui/panels/card_parts.cpp  # The small parts of the cards of the materials
     gui/panels/source_boxes.cpp  # The groups of the card of a source and of a quote
@@ -567,10 +576,14 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/color_dialog.h  # ColorDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/add_to_book_dialog.h  # AddToBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_file_dialog.h  # NewFileDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_volume_dialog.h  # NewVolumeDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/take_out_volume_dialog.h  # Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/join_book_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_templates_dialog.h  # PublishingTemplatesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pitch_panel.h  # PitchPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_set_page.h  # PublishingSetPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/series_page.h  # SeriesPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_text_box.h  # PublishingTextBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_meter.h  # LengthMeter with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT

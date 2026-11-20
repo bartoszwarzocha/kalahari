@@ -53,6 +53,7 @@ class LinkedMaterialsBox;
 class ParagraphCardsBox;
 class PlotFieldsBox;
 class PublishingSetPage;
+class SeriesPage;
 class PublishingTextBox;
 class MaterialPage;
 class SectionNamesEdit;
@@ -62,7 +63,9 @@ class SectionsComboBox;
 ///
 /// Shows different content based on current context:
 /// - NoProject: Placeholder message when no project is open
-/// - Project: Project metadata (title, author, language, genre, sections, statistics)
+/// - Project: Project metadata (title, author, language, genre, sections, statistics); in a
+///   series those of the current volume, with its number
+/// - Series: The name of a series and its volumes (SeriesPage)
 /// - Chapter: Chapter properties (title, word count, status, notes, linked materials)
 /// - Material: The short card of a material (MaterialPage)
 /// - Editor: Text selection statistics (word/char count); the paragraph at the cursor is
@@ -84,7 +87,8 @@ public:
         Editor = 5,     ///< Editor statistics view (selection/document stats)
         Material = 6,   ///< The short card of a material of the Workshop
         Card = 7,       ///< The short card of a character, a location or an item
-        PublishingSet = 8  ///< The set for a publisher (PublishingSetPage)
+        PublishingSet = 8,  ///< The set for a publisher (PublishingSetPage)
+        Series = 9          ///< The name and the volumes of a series (SeriesPage)
     };
 
     /// @brief Constructor
@@ -106,6 +110,9 @@ public:
 
     /// @brief The set for a publisher
     [[nodiscard]] PublishingSetPage* publishingSetPage() const { return m_publishingSetPage; }
+
+    /// @brief The page of the series
+    [[nodiscard]] SeriesPage* seriesPage() const { return m_seriesPage; }
 
     /// @brief The card at the cursor of a text of the book, on the Editor page or the Chapter
     ///        page of the text in front
@@ -162,6 +169,10 @@ public slots:
 
     /// @brief Show the set for a publisher of the book with part @p part chosen
     void showPublishingSetProperties(const QString& part);
+
+    /// @brief Show the name and the volumes of the series; the book's properties in a project
+    /// with one book
+    void showSeriesProperties();
 
     /// @brief Give the keys to the first field of the page shown, scrolled to it (Alt+Enter in
     /// the Navigator): the title of the book, of an element or of a material; the materials of
@@ -352,6 +363,14 @@ signals:
 
     /// @brief Something to say on the status bar: "Address copied: ..."
     void message(const QString& text);
+
+    /// @brief New Volume... of the page of the series: the window of a new volume
+    void requestNewVolume();
+
+    /// @brief Open of the page of the series: volume @p bookId becomes the current one, with
+    /// its first chapter open
+    void requestOpenVolume(const QString& bookId);
+
     /// @brief Save Version in the group of the versions: keep the text of element
     /// @p elementId as a version
     void requestSaveVersion(const QString& elementId);
@@ -410,6 +429,10 @@ private:
     /// @brief Show the short card again as the book has it, or the book's page when the card
     /// was deleted
     void refreshCard();
+
+    /// @brief Show the part again as the book has it, or the book's page when the part was
+    /// deleted
+    void refreshPart();
 
     /// @brief A box of the materials linked with an element or a section, which forwards their
     /// opening
@@ -493,6 +516,10 @@ private:
     /// when the program does not have it, as the Dashboard shows it
     void showBookType(const core::BookProject& project, const core::ProjectBook& book);
 
+    /// @brief In a series the page of the book is that of the current volume: its group says
+    /// so, with the number of the volume; a book has neither
+    void showVolumeRow(const core::BookProject& project);
+
     // Main widget
     QStackedWidget* m_stackedWidget = nullptr;
 
@@ -571,6 +598,8 @@ private:
     MaterialPage* m_materialPage = nullptr;
     CardPage* m_cardPage = nullptr;  ///< The short card of a character, a location or an item
     PublishingSetPage* m_publishingSetPage = nullptr;
+    SeriesPage* m_seriesPage = nullptr;  ///< The name and the volumes of a series
+    QLabel* m_projectVolumeLabel = nullptr;  ///< "2 of 3": the number of the volume of a series
     CursorCardBox* m_cursorCard = nullptr;  ///< The card at the cursor (placeTextGroups())
     ParagraphCardsBox* m_paragraphCards = nullptr;  ///< The paragraph's cards (placeTextGroups())
 

@@ -10,6 +10,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/text_captions.h"
 #include "kalahari/editor/text_images.h"
@@ -262,6 +263,76 @@ TEST_CASE("Caption coordinator: the chapters of the main part and the numbers of
     const editor::CaptionContext outside = captions.coordinator.contextFor(QString());
     CHECK(outside.before.empty());
     CHECK(outside.chapter == 0);
+}
+
+TEST_CASE("Caption coordinator: each volume of a series numbers its captions on its own",
+          "[gui][captions][series]") {
+    CaptionedBook captioned;
+    Window window;
+    Captions captions(window);
+
+    // A second volume, its first chapter with two figures
+    core::NewBook request;
+    request.title = QStringLiteral("Dunes");
+    const QString dunes = captioned.book.pm.addBook(request);
+    REQUIRE_FALSE(dunes.isEmpty());
+    const core::BookProject& project = *captioned.book.pm.project();
+    REQUIRE(project.books.size() == 2);
+    const QList<core::ProjectElement>& second = project.elementsIn(core::BookPlace::Main, 1);
+    REQUIRE_FALSE(second.isEmpty());
+    const QString dune = second.constFirst().id;
+    save(captioned.book, dune, kmlOf(figure(QStringLiteral("e1")) + figure(QStringLiteral("e2"))));
+
+    // The first volume: figures anew in each chapter, after its number; the second one keeps
+    // its own way
+    core::BookCaptions own = captions.coordinator.captions();
+    core::CaptionLabelNumbering chapters;
+    chapters.label = QStringLiteral("Figure");
+    chapters.perChapter = true;
+    chapters.withChapter = true;
+    own.numbering = {chapters};
+    REQUIRE(captions.coordinator.setCaptions(own));
+    CHECK(project.books.at(1).captions != own);
+
+    // The first volume current: the second one's text counted in its volume, as its first
+    // chapter
+    REQUIRE(captioned.book.pm.book()->id != dunes);
+    editor::CaptionContext context = captions.coordinator.contextFor(dune);
+    CHECK(context.chapter == 1);
+    CHECK(context.before.empty());
+    CHECK(context.after.empty());
+    CHECK(context.counted.value(QStringLiteral("Figure")) == 0);
+
+    // The second volume current: the first one's texts keep its numbering
+    REQUIRE(captioned.book.pm.setCurrentBook(dunes));
+    context = captions.coordinator.contextFor(captioned.calm);
+    CHECK(context.chapter == 3);
+    CHECK(numbersOf(context.before) ==
+          QStringList{QStringLiteral("a1=1"), QStringLiteral("b1=2.1"), QStringLiteral("m1=1"),
+                      QStringLiteral("b2=2.2")});
+    CHECK(numbersOf(context.after) == QStringList{QStringLiteral("d1=1")});
+
+    // Both texts open: each numbered in its volume, the second one in the default way
+    editor::BookEditor& calmText =
+        captioned.open(window, captioned.calm, QStringLiteral("The Calm"));
+    editor::BookEditor& duneText = captioned.open(window, dune, QString());
+    REQUIRE(&calmText != &duneText);
+    captions.coordinator.refresh();
+    CHECK(shownFields(calmText) == "3.1|2.2");
+    CHECK(shownFields(duneText) == "1|2");
+
+    // The second volume's own numbering: the first one keeps its own
+    REQUIRE(captioned.book.pm.setCurrentBook(dunes));
+    core::BookCaptions roman = captions.coordinator.captions();
+    core::CaptionLabelNumbering upper;
+    upper.label = QStringLiteral("Figure");
+    upper.format = QStringLiteral("I");
+    roman.numbering = {upper};
+    REQUIRE(captions.coordinator.setCaptions(roman));  // refreshes the open texts at once
+    CHECK(project.books.at(1).captions == roman);
+    CHECK(project.books.at(0).captions == own);
+    CHECK(shownFields(duneText) == "I|II");
+    CHECK(shownFields(calmText) == "3.1|2.2");
 }
 
 TEST_CASE("Caption coordinator: Insert Caption, Cross-Reference and List of Figures",
