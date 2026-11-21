@@ -38,8 +38,10 @@ QString lineOf(const InstallationCheck& check, const QString& part)
     return found == check.lines.end() ? QString() : *found;
 }
 
-/// The Python of the tests is a debug build (the Debug build on Windows): it loads only the
-/// debug builds of its modules of C (_d.pyd), which vcpkg does not install
+/// The Python of the tests is a debug build (the Debug build on Windows and macOS): it does not
+/// load the modules of C of the release Python the tests have. Windows loads only their debug
+/// builds (_d.pyd), which vcpkg does not install; on macOS the test program of Debug does not
+/// give them the C API of Python (tests/CMakeLists.txt)
 bool debugPython()
 {
     pybind11::gil_scoped_acquire gil;

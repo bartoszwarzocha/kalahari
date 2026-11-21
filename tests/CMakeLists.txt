@@ -1033,9 +1033,12 @@ target_link_libraries(kalahari-tests PRIVATE
 # that Python (lib-dynload) look its C API up in the process (flat namespace). Without
 # -export_dynamic the linker does not keep those symbols of the program for them ("symbol not
 # found in flat namespace"); CPython links its own program on macOS with it. The program
-# itself has Python in libkalahari_core.dylib, whose symbols a library exports
+# itself has Python in libkalahari_core.dylib, whose symbols a library exports.
+# Not in Debug: its Python is a debug build (vcpkg --with-pydebug), which also loads the
+# modules of a release Python and crashed on them (SIGSEGV); without the symbols they fail to
+# load with an ImportError, as the debug Python on Windows does (test_installation.cpp)
 if(APPLE)
-    target_link_options(kalahari-tests PRIVATE "LINKER:-export_dynamic")
+    target_link_options(kalahari-tests PRIVATE "$<$<NOT:$<CONFIG:Debug>>:LINKER:-export_dynamic>")
 endif()
 
 # OpenSpec #00042: Hunspell include/library paths for spell check service
