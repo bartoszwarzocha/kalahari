@@ -17,7 +17,9 @@ jobs:
   build:
     name: Windows Build & Test
     runs-on: windows-latest
-    timeout-minutes: 120  # Qt6 via vcpkg takes a long time without a warm binary cache
+    # Without a warm binary cache vcpkg builds Qt6 for about 1.5 hours before the build
+    # and the tests of the program (about 1 hour more), so 120 minutes are not enough
+    timeout-minutes: 180
 
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
@@ -124,8 +126,12 @@ jobs:
     # cache but do not save their own: each copy is ~600 MB, and copies saved by pull
     # requests pushed main's out of the 10 GB repository limit, so main and every new
     # pull request rebuilt Qt for about 2 hours. Old entries age out of the cache.
+    # A run started by hand on main (Actions > WINDOWS > Run workflow) saves it too,
+    # which refreshes a cache that vcpkg no longer matches without waiting for a push.
     - name: Save vcpkg binary cache
-      if: matrix.build_type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: >-
+        matrix.build_type == 'Release' && github.ref == 'refs/heads/main' &&
+        (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       uses: actions/cache/save@v4
       with:
         path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
