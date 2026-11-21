@@ -4,6 +4,9 @@
 /// @file test_installation.cpp
 /// @brief The program as it is installed: where it keeps its log, and --self-test
 
+// Python before Qt: Qt's macro "slots" would change a name in the headers of Python
+#include <pybind11/embed.h>
+
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/art_provider.h>
 #include <kalahari/core/resource_paths.h>
@@ -13,6 +16,7 @@
 #include <QDir>
 #include <QIcon>
 #include <QSize>
+#include <QStringList>
 #include <QTemporaryDir>
 
 #include <algorithm>
@@ -32,6 +36,14 @@ QString lineOf(const InstallationCheck& check, const QString& part)
                                         return line.mid(8).startsWith(part + QLatin1Char(':'));
                                     });
     return found == check.lines.end() ? QString() : *found;
+}
+
+/// The Python of the tests is a debug build (the Debug build on Windows): it loads only the
+/// debug builds of its modules of C (_d.pyd), which vcpkg does not install
+bool debugPython()
+{
+    pybind11::gil_scoped_acquire gil;
+    return pybind11::hasattr(pybind11::module_::import("sys"), "gettotalrefcount");
 }
 
 } // namespace
@@ -84,12 +96,16 @@ TEST_CASE("The check of an installation names each part", "[gui][installation]")
     }
 
     // The parts the tests have as an installation has them: the resources next to the
-    // program, its icon and translations, the Python of the plugins and its modules. The Qt
-    // plugins are those of the Qt the tests are built with
-    for (const QString& part :
-         {QStringLiteral("Resources"), QStringLiteral("Icon of the program"),
-          QStringLiteral("Translations"), QStringLiteral("Database"),
-          QStringLiteral("Python"), QStringLiteral("Python modules")}) {
+    // program, its icon and translations, the Python of the plugins and its modules (those of
+    // C only with a Python of a release). The Qt plugins are those of the Qt the tests are
+    // built with
+    QStringList working{QStringLiteral("Resources"), QStringLiteral("Icon of the program"),
+                        QStringLiteral("Translations"), QStringLiteral("Database"),
+                        QStringLiteral("Python")};
+    if (!debugPython()) {
+        working.append(QStringLiteral("Python modules"));
+    }
+    for (const QString& part : working) {
         INFO(lineOf(check, part).toStdString());
         CHECK(lineOf(check, part).startsWith(QStringLiteral("OK")));
     }
