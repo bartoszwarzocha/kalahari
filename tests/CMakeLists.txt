@@ -1029,6 +1029,15 @@ target_link_libraries(kalahari-tests PRIVATE
     # bwx_gui removed - wxWidgets library no longer used (Qt6 migration)
 )
 
+# macOS: the test program carries the static Python of vcpkg itself, and the modules of C of
+# that Python (lib-dynload) look its C API up in the process (flat namespace). Without
+# -export_dynamic the linker does not keep those symbols of the program for them ("symbol not
+# found in flat namespace"); CPython links its own program on macOS with it. The program
+# itself has Python in libkalahari_core.dylib, whose symbols a library exports
+if(APPLE)
+    target_link_options(kalahari-tests PRIVATE "LINKER:-export_dynamic")
+endif()
+
 # OpenSpec #00042: Hunspell include/library paths for spell check service
 target_include_directories(kalahari-tests PRIVATE ${HUNSPELL_INCLUDE_DIRS})
 target_link_directories(kalahari-tests PRIVATE ${HUNSPELL_LIBRARY_DIRS})
