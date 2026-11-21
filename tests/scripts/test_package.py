@@ -147,11 +147,37 @@ class CheckProgramTest(unittest.TestCase):
 
     def test_a_working_installation(self):
         with tempfile.TemporaryDirectory() as folder:
-            # The check runs with settings of its own
+            # The check runs with settings of its own, and with the libraries of the program
+            # (not those LD_LIBRARY_PATH of the build machine names)
             program = self.program(Path(folder), '[ "$1" = "--self-test" ] || exit 2\n'
                                                  '[ "$HOME" != "' + os.environ.get("HOME", "") +
-                                                 '" ] || exit 3\necho "OK"\n')
-            package.check_program(program)
+                                                 '" ] || exit 3\n'
+                                                 '[ -z "$LD_LIBRARY_PATH" ] || exit 4\n'
+                                                 f'echo "OK      Python: 3.15.2 (main) [GCC 13.3.0] '
+                                                 f'({folder}/usr)"\n')
+            saved = os.environ.get("LD_LIBRARY_PATH")
+            os.environ["LD_LIBRARY_PATH"] = "/opt/hostedtoolcache/Python/3.15.2/x64/lib"
+            try:
+                package.check_program(program)
+            finally:
+                if saved is None:
+                    del os.environ["LD_LIBRARY_PATH"]
+                else:
+                    os.environ["LD_LIBRARY_PATH"] = saved
+
+    def test_an_installation_with_the_python_of_the_build_machine(self):
+        with tempfile.TemporaryDirectory() as folder:
+            program = self.program(Path(folder), 'echo "OK      Python: 3.15.2 (main) [GCC 13.3.0] '
+                                                 f'({sys.base_prefix})"\n')
+            with self.assertRaises(package.PackageError):
+                package.check_program(program)
+
+    def test_the_folder_of_python_in_the_check(self):
+        windows = ("OK      Python: 3.12.1 (tags/v3.12.1:2305ca5, Dec  7 2023) "
+                   "[MSC v.1937 64 bit (AMD64)] (C:\\Program Files (x86)\\Kalahari)")
+        self.assertEqual(package.python_home_of_check("Kalahari 0.4.0\n" + windows + "\n"),
+                         Path("C:\\Program Files (x86)\\Kalahari"))
+        self.assertIsNone(package.python_home_of_check("FAILED  Python: no Lib\n"))
 
     def test_an_incomplete_installation(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -162,6 +188,26 @@ class CheckProgramTest(unittest.TestCase):
     def test_no_program(self):
         with self.assertRaises(package.PackageError):
             package.check_program(Path("/no/such/kalahari"))
+
+
+class DebianPackageTest(unittest.TestCase):
+    def test_the_names_of_the_libraries_in_shlibs(self):
+        self.assertEqual(package.shlibs_name("libQt6Core.so.6"), ("libQt6Core", "6"))
+        self.assertEqual(package.shlibs_name("libpython3.15.so.1.0"), ("libpython3.15", "1.0"))
+        self.assertEqual(package.shlibs_name("libhunspell-1.7.so.0"), ("libhunspell-1.7", "0"))
+        self.assertEqual(package.shlibs_name("libfoo-2.1.so"), ("libfoo", "2.1"))
+        # Libraries without a version: the program's own and the modules of Python
+        self.assertIsNone(package.shlibs_name("libkalahari_core.so"))
+        self.assertIsNone(package.shlibs_name("_ssl.cpython-315-x86_64-linux-gnu.so"))
+
+    def test_the_libraries_left_to_the_system(self):
+        with tempfile.TemporaryDirectory() as folder:
+            lib = Path(folder)
+            for name in ("libgtk-3.so.0", "libglib-2.0.so.0", "libQt6Core.so.6", "libpng16.so.16"):
+                write(lib / name)
+            package.remove_system_libraries(lib)
+            self.assertEqual(sorted(p.name for p in lib.iterdir()),
+                             ["libQt6Core.so.6", "libpng16.so.16"])
 
 
 class PackagingFilesTest(unittest.TestCase):

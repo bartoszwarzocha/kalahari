@@ -428,7 +428,9 @@ The packages go to `dist/` (`--out` gives another folder), each with its `.sha25
   `/usr/bin`, a menu entry and the type of the `.klh` files). The script downloads
   linuxdeploy and its Qt plugin (pinned releases, checked by SHA-256) and needs `dpkg-dev`.
   The windows for choosing a file are the system's own (the GTK theme of Qt and the desktop
-  portal); where the desktop has neither, Qt's own window, with Polish texts, opens.
+  portal); where the desktop has neither, Qt's own window, with Polish texts, opens. GTK and
+  GLib are left to the system (the `.deb` depends on them), so that their modules and themes
+  match them.
 - **Windows.** The installer needs NSIS 3 (`makensis`, also the one of Linux:
   `scripts/package.py windows-installer --stage <folder>`); without it only the ZIP is made.
   It installs for the current user (no administrator, `%LOCALAPPDATA%\Programs\Kalahari`) or

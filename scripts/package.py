@@ -34,6 +34,7 @@ is in .gitignore). Exit code 0 on success, 1 when a package cannot be made or it
 """
 
 import argparse
+import fnmatch
 import hashlib
 import os
 import platform
@@ -72,8 +73,9 @@ QT_PLUGINS_TAKEN = {
     "platformthemes": {"libqgtk3.so", "libqxdgdesktopportal.so"},
 }
 # The libraries of GTK the Linux packages leave to the system: the GTK theme of Qt uses the
-# GTK of the desktop, with its themes and modules (a copy of GTK in the package would not load
-# them)
+# GTK of the desktop, with its themes and modules (a copy of GTK in the package would load the
+# modules of another GTK on a newer system). GLib goes with them: the GIO modules of the system
+# need the GLib of the system
 SYSTEM_LIBRARIES = [
     "libgtk-3.so*", "libgdk-3.so*", "libgdk_pixbuf-2.0.so*", "libatk-1.0.so*",
     "libatk-bridge-2.0.so*", "libatspi.so*", "libpango-1.0.so*", "libpangocairo-1.0.so*",
@@ -165,6 +167,10 @@ def files_of(folder: Path) -> List[Path]:
 def isolated_environment(home: Path) -> Dict[str, str]:
     """The environment of a check: its settings in @p home, not in the writer's."""
     env = dict(os.environ)
+    # The libraries and the Python of the package, not those of the build machine (the
+    # setup-python of the CI sets LD_LIBRARY_PATH to its own Python, ahead of the RUNPATH)
+    for name in ("LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH", "PYTHONHOME", "PYTHONPATH"):
+        env.pop(name, None)
     env["HOME"] = str(home)
     env["XDG_CONFIG_HOME"] = str(home / ".config")
     env["APPDATA"] = str(home / "AppData" / "Roaming")
@@ -194,6 +200,25 @@ def check_program(program: Path) -> None:
         print(output.rstrip())
         if result.returncode != 0:
             raise PackageError(f"The check of {program} failed (code {result.returncode})")
+        home = python_home_of_check(output)
+        if home is not None and is_inside(home, Path(sys.base_prefix)):
+            raise PackageError(f"{program} uses the Python of the build machine ({home}), "
+                               "not its own")
+
+
+def python_home_of_check(output: str) -> Optional[Path]:
+    """The folder of the Python the check of an installation names: its line "Python:" has
+    the version of Python (sys.version, which ends with the compiler in brackets) and the
+    folder in parentheses."""
+    match = re.search(r"^OK\s+Python: .*\] \((.+)\)\s*$", output, re.MULTILINE)
+    return Path(match.group(1)) if match else None
+
+
+def is_inside(path: Path, folder: Path) -> bool:
+    """@p path is @p folder or in it (the case of the letters aside on Windows)."""
+    path_text = os.path.normcase(os.path.realpath(path))
+    folder_text = os.path.normcase(os.path.realpath(folder))
+    return path_text == folder_text or path_text.startswith(folder_text.rstrip(os.sep) + os.sep)
 
 
 def write_sha256(package: Path) -> None:
@@ -313,20 +338,42 @@ def make_appdir(build: Path, work: Path, tools: Path, version: str) -> Tuple[Pat
     env["LD_LIBRARY_PATH"] = os.pathsep.join(
         extra + [p for p in env.get("LD_LIBRARY_PATH", "").split(os.pathsep) if p])
 
-    output = fresh_folder(work / "appimage")
-    command: List[object] = [linuxdeploy, "--appdir", appdir,
-                             "--executable", appdir / "usr" / "bin" / "kalahari",
-                             "--desktop-file", REPO_ROOT / "packaging" / "linux" / "kalahari.desktop",
-                             "--icon-file", REPO_ROOT / "resources" / "images" / "app_icon" /
-                             "kalahari_256.png", "--icon-filename", "kalahari",
-                             "--plugin", "qt", "--output", "appimage"]
+    env["LINUXDEPLOY_EXCLUDED_LIBRARIES"] = ";".join(SYSTEM_LIBRARIES)
+    excluded: List[object] = []
     for pattern in SYSTEM_LIBRARIES:
-        command += ["--exclude-library", pattern]
-    run(command, cwd=output, env=env)
+        excluded += ["--exclude-library", pattern]
+
+    output = fresh_folder(work / "appimage")
+    # The program, its libraries and the Qt plugins with theirs. The Qt plugin of this release
+    # copies the libraries of the plugins without the exclusions (it has no --exclude-library
+    # and does not read LINUXDEPLOY_EXCLUDED_LIBRARIES): the libraries of the system it copied
+    # are removed before the AppImage is made of the folder
+    run([linuxdeploy, "--appdir", appdir, "--executable", appdir / "usr" / "bin" / "kalahari",
+         "--desktop-file", REPO_ROOT / "packaging" / "linux" / "kalahari.desktop",
+         "--icon-file", REPO_ROOT / "resources" / "images" / "app_icon" / "kalahari_256.png",
+         "--icon-filename", "kalahari", "--plugin", "qt"] + excluded, cwd=output, env=env)
+    remove_system_libraries(appdir / "usr" / "lib")
+    run([linuxdeploy, "--appdir", appdir, "--output", "appimage"] + excluded, cwd=output, env=env)
     images = sorted(output.glob("*.AppImage"))
     if len(images) != 1:
         raise PackageError(f"linuxdeploy made {len(images)} AppImages in {output}")
     return appdir, images[0]
+
+
+def remove_system_libraries(lib: Path) -> None:
+    """Remove the SYSTEM_LIBRARIES from the folder @p lib of an AppDir."""
+    for path in sorted(lib.iterdir()):
+        if any(fnmatch.fnmatch(path.name, pattern) for pattern in SYSTEM_LIBRARIES):
+            log(f"{path.name}: left to the system")
+            path.unlink()
+
+
+def shlibs_name(file_name: str) -> Optional[Tuple[str, str]]:
+    """The name and version of a library in a shlibs file (as dpkg-shlibdeps reads its
+    soname): libfoo.so.1.2 -> (libfoo, 1.2), libfoo-1.0.so -> (libfoo, 1.0); None for a
+    library without a version."""
+    match = re.match(r"^(.+)\.so\.(\d.*)$", file_name) or re.match(r"^(.+)-(\d[^-]*)\.so$", file_name)
+    return (match.group(1), match.group(2)) if match else None
 
 
 def elf_files(folder: Path) -> List[Path]:
@@ -358,18 +405,27 @@ def make_deb(appdir: Path, work: Path, out: Path, version: str) -> Path:
     doc.mkdir(parents=True)
     shutil.copyfile(REPO_ROOT / "LICENSE", doc / "copyright")
 
-    # The libraries of the system the package needs; its own ones are in /opt/kalahari
-    private = sorted({str(path.parent) for path in elf_files(program) if ".so" in path.name})
+    # The libraries of the system the package needs; its own ones are in /opt/kalahari. Each
+    # of its own is in shlibs.local without a package: dpkg-shlibdeps would otherwise name the
+    # package of the system that has the same library (and its symbols file may name a version
+    # only its own source package fills in, such as ${binary:Version})
+    libraries = [path for path in elf_files(program) if ".so" in path.name]
+    private = sorted({str(path.parent) for path in libraries})
     control_dir = fresh_folder(work / "shlibdeps")
     (control_dir / "debian").mkdir()
     (control_dir / "debian" / "control").write_text(
         "Source: kalahari\n\nPackage: kalahari\nArchitecture: amd64\n", encoding="utf-8")
+    own = sorted({" ".join(name) for name in map(shlibs_name, (p.name for p in libraries)) if name})
+    (control_dir / "debian" / "shlibs.local").write_text(
+        "".join(line + "\n" for line in own), encoding="utf-8")
     command: List[object] = ["dpkg-shlibdeps", "-O", "--ignore-missing-info"]
     command += [f"-l{folder}" for folder in private]
     command += elf_files(program)
     substitutions = run(command, cwd=control_dir, capture=True)
     match = re.search(r"^shlibs:Depends=(.*)$", substitutions, re.MULTILINE)
     depends = match.group(1).strip() if match else ""
+    if "${" in depends:
+        raise PackageError(f"Depends of the package with a variable of another package: {depends}")
     size_kb = sum(path.stat().st_size for path in root.rglob("*")
                   if path.is_file() and not path.is_symlink()) // 1024
 
