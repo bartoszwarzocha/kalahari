@@ -210,6 +210,44 @@ class DebianPackageTest(unittest.TestCase):
                              ["libQt6Core.so.6", "libpng16.so.16"])
 
 
+class MacBundleTest(unittest.TestCase):
+    """Info.plist of Kalahari.app as Finder and codesign read it."""
+
+    PLIST = ('<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict>'
+             "<key>CFBundleExecutable</key><string>kalahari</string>"
+             "<key>NSHumanReadableCopyright</key><string>{}</string></dict></plist>\n")
+
+    def bundle(self, folder: str, copyright_text: str) -> Path:
+        bundle = Path(folder) / "Kalahari.app"
+        write(bundle / "Contents" / "MacOS" / "kalahari")
+        write(bundle / "Contents" / "Info.plist", self.PLIST.format(copyright_text))
+        return bundle
+
+    def test_a_bundle_the_system_reads(self):
+        with tempfile.TemporaryDirectory() as folder:
+            values = package.check_info_plist(self.bundle(folder, "Writers &amp; Team"))
+            self.assertEqual(values["NSHumanReadableCopyright"], "Writers & Team")
+
+    def test_an_ampersand_that_breaks_the_xml(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(package.PackageError):
+                package.check_info_plist(self.bundle(folder, "Writers & Team"))
+
+    def test_a_program_the_bundle_does_not_have(self):
+        with tempfile.TemporaryDirectory() as folder:
+            bundle = self.bundle(folder, "Team")
+            (bundle / "Contents" / "MacOS" / "kalahari").unlink()
+            with self.assertRaises(package.PackageError):
+                package.check_info_plist(bundle)
+
+    def test_the_copyright_escaped_for_the_xml(self):
+        # cmake/Packaging.cmake writes "&" of the copyright as "&amp;" into Info.plist
+        packaging = (REPO_ROOT / "cmake" / "Packaging.cmake").read_text(encoding="utf-8")
+        self.assertIn("&", re.search(r'set\(KALAHARI_COPYRIGHT "([^"]+)"\)', packaging).group(1))
+        self.assertIn('string(REPLACE "&" "&amp;" _kalahari_plist_copyright', packaging)
+        self.assertIn('MACOSX_BUNDLE_COPYRIGHT "${_kalahari_plist_copyright}"', packaging)
+
+
 class PackagingFilesTest(unittest.TestCase):
     """The files of the packages name the same things."""
 

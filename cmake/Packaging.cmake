@@ -119,6 +119,10 @@ elseif(APPLE)
     target_sources(kalahari PRIVATE "${_kalahari_icns}")
     set_source_files_properties("${_kalahari_icns}" TARGET_DIRECTORY kalahari
                                 PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    # The values go into the XML of Info.plist as they are: "&" of the copyright would make it
+    # a file no one reads (codesign: "invalid Info.plist")
+    string(REPLACE "&" "&amp;" _kalahari_plist_copyright "${KALAHARI_COPYRIGHT}")
+    string(REPLACE "<" "&lt;" _kalahari_plist_copyright "${_kalahari_plist_copyright}")
     set_target_properties(kalahari PROPERTIES
         MACOSX_BUNDLE_INFO_PLIST "${KALAHARI_PACKAGING_DIR}/macos/Info.plist.in"
         MACOSX_BUNDLE_BUNDLE_NAME "Kalahari"
@@ -126,7 +130,7 @@ elseif(APPLE)
         MACOSX_BUNDLE_ICON_FILE "kalahari.icns"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
-        MACOSX_BUNDLE_COPYRIGHT "${KALAHARI_COPYRIGHT}"
+        MACOSX_BUNDLE_COPYRIGHT "${_kalahari_plist_copyright}"
         # The installed bundle finds its libraries in Contents/Frameworks
         INSTALL_RPATH "@executable_path/../Frameworks")
     set_target_properties(kalahari_core PROPERTIES INSTALL_RPATH "@loader_path")

@@ -38,6 +38,7 @@ import fnmatch
 import hashlib
 import os
 import platform
+import plistlib
 import re
 import shutil
 import stat
@@ -47,6 +48,7 @@ import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
+from xml.parsers.expat import ExpatError
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -607,6 +609,20 @@ def fix_bundle_libraries(bundle: Path) -> None:
             print(f"    {dependency}")
 
 
+def check_info_plist(bundle: Path) -> Dict[str, object]:
+    """The description of the bundle, read as Finder and codesign read it: a value that breaks
+    its XML (an "&" of the copyright) leaves the system no Info.plist to read."""
+    info = bundle / "Contents" / "Info.plist"
+    try:
+        values = plistlib.loads(info.read_bytes())
+    except (ExpatError, ValueError) as error:
+        raise PackageError(f"{info} is not a property list: {error}") from error
+    executable = values.get("CFBundleExecutable")
+    if not executable or not (bundle / "Contents" / "MacOS" / str(executable)).is_file():
+        raise PackageError(f"{info}: no program {executable!r} in Contents/MacOS")
+    return values
+
+
 def package_macos(build: Path, out: Path) -> List[Path]:
     version, _ = program_version()
     work = build / "_packaging"
@@ -614,6 +630,7 @@ def package_macos(build: Path, out: Path) -> List[Path]:
     cmake_install(build, stage)
     bundle = stage / "Kalahari.app"
     (stage / "kalahari.app").rename(bundle)
+    check_info_plist(bundle)
     fix_bundle_libraries(bundle)
     for binary in macho_files(bundle):
         if binary.parent.name != "MacOS":
