@@ -122,6 +122,14 @@ public:
     ///        those of "Base"; the names in the program's language
     [[nodiscard]] editor::ParagraphStyleSet paragraphStyles() const;
 
+    /// @brief Give the editor the formats of its new lists: those of the default sets of
+    ///        Settings > Editor > Lists, among them the book's own sets in a text of the book
+    void applyNewLists();
+
+    /// @brief Whether the text is a chapter of the book (NavigatorCoordinator tags it with
+    ///        its element), not a file outside it
+    [[nodiscard]] bool isBookText() const;
+
     /// @brief Get the underlying BookEditor widget
     /// @return Pointer to BookEditor widget
     ///

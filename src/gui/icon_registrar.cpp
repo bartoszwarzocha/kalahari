@@ -187,6 +187,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.bullets", "resources/icons/twotone/format_list_bulleted.svg", "Bullets");
     iconRegistry.registerIcon("format.numbering", "resources/icons/twotone/format_list_numbered.svg", "Numbering");
     iconRegistry.registerIcon("format.bulletsNumbering", "resources/icons/twotone/format_list_numbered.svg", "Bullets and Numbering");
+    iconRegistry.registerIcon("format.listSets", "resources/icons/twotone/view_list.svg", "Pick List Set");
     iconRegistry.registerIcon("format.fontColor", "resources/icons/twotone/format_color_text.svg", "Font Color");
     iconRegistry.registerIcon("format.highlightColor", "resources/icons/twotone/border_color.svg", "Highlight Color");
     iconRegistry.registerIcon("format.copyFormatting", "resources/icons/twotone/format_paint.svg", "Copy Formatting");
@@ -313,6 +314,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.assistant", "resources/icons/twotone/pets.svg", "Assistant");
     iconRegistry.registerIcon("view.log", "resources/icons/twotone/description.svg", "Log");
     iconRegistry.registerIcon("view.annotations", "resources/icons/twotone/comment.svg", "Annotations");
+    iconRegistry.registerIcon("view.footnotes", "resources/icons/twotone/superscript.svg", "Footnotes");
     iconRegistry.registerIcon("view.spelling", "resources/icons/twotone/spellcheck.svg",
                               "Spelling and Grammar");
     iconRegistry.registerIcon("view.repetitionsPanel", "resources/icons/twotone/repeat.svg", "Repetitions");

@@ -12,6 +12,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_export.h>
+#include <kalahari/editor/text_fields.h>
 
 #include <QDir>
 #include <QFile>
@@ -453,4 +454,66 @@ TEST_CASE("Markdown: images named in the book's folder without a copy", "[export
     CHECK(markdown.contains(QStringLiteral("![Red square](../book/images/red.png)")));
     CHECK(result.imagesFolder.isEmpty());
     CHECK_FALSE(QFileInfo::exists(folder.filePath(QStringLiteral("out/book – images"))));
+}
+
+TEST_CASE("Export: multilevel lists and the book's own fields in DOCX, EPUB and Markdown",
+          "[export][lists][fields]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    const TextField narrator{.type = FieldType::Custom, .format = QString(),
+                             .key = QStringLiteral("field-1"), .name = QStringLiteral("Narrator")};
+    const TextField gone{.type = FieldType::Custom, .format = QString(),
+                         .key = QStringLiteral("field-9"), .name = QStringLiteral("Publisher")};
+    BookExport book = bookOf({textItem(
+        QStringLiteral("rules"), QStringLiteral("Rules"),
+        QStringLiteral("<kml><ol prefix=\"§ \"><li>One<ol show-levels=\"1\"><li>One one<ol "
+                       "show-levels=\"2\" suffix=\")\"><li>Deep</li></ol></li></ol></li></ol>"
+                       "<ul type=\"dash\"><li>Dash</li></ul><p>Told by ") +
+            textFieldKml(narrator) + QStringLiteral(" for ") + textFieldKml(gone) +
+            QStringLiteral(".</p></kml>"))});
+    book.customFields.insert(QStringLiteral("field-1"),
+                             CustomFieldValue{.name = QStringLiteral("Narrator"),
+                                              .value = QStringLiteral("Hilary")});
+
+    SECTION("DOCX: Word's text of each level, the values of the fields") {
+        const QString path = folder.filePath(QStringLiteral("rules.docx"));
+        REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+        const QHash<QString, QByteArray> entries = zipEntries(path);
+        const QString numbering = QString::fromUtf8(entries.value(QStringLiteral("word/numbering.xml")));
+        CHECK(numbering.contains(QStringLiteral("<w:lvlText w:val=\"§ %1.\"/>")));
+        CHECK(numbering.contains(QStringLiteral("<w:lvlText w:val=\"%1.%2.\"/>")));
+        CHECK(numbering.contains(QStringLiteral("<w:lvlText w:val=\"%1.%2.%3)\"/>")));
+        const QString document = QString::fromUtf8(entries.value(QStringLiteral("word/document.xml")));
+        CHECK(document.contains(QStringLiteral("Hilary")));
+        CHECK(document.contains(QStringLiteral("[Publisher]")));
+    }
+
+    SECTION("EPUB: the marks written out where HTML has none of its own") {
+        const QString path = folder.filePath(QStringLiteral("rules.epub"));
+        REQUIRE(exportEpub(book, path, {}, nullptr, nullptr));
+        const QHash<QString, QByteArray> entries = zipEntries(path);
+        QString chapter;
+        for (auto it = entries.cbegin(); it != entries.cend(); ++it) {
+            if (it.key().startsWith(QStringLiteral("OEBPS/text/")) &&
+                it.value().contains("One one")) {
+                chapter = QString::fromUtf8(it.value());
+            }
+        }
+        REQUIRE_FALSE(chapter.isEmpty());
+        CHECK(chapter.contains(QStringLiteral("<ol class=\"marks\">")));
+        CHECK(chapter.contains(QStringLiteral("<span class=\"list-mark\">§ 1.</span> One")));
+        CHECK(chapter.contains(QStringLiteral("<span class=\"list-mark\">1.1.</span> One one")));
+        CHECK(chapter.contains(QStringLiteral("<span class=\"list-mark\">1.1.1)</span> Deep")));
+        CHECK(chapter.contains(QStringLiteral("<ul class=\"marks\">")));
+        CHECK(chapter.contains(QStringLiteral("Told by Hilary for [Publisher].")));
+    }
+
+    SECTION("Markdown: the values of the fields") {
+        const QString path = folder.filePath(QStringLiteral("rules.md"));
+        REQUIRE(exportMarkdown(book, path, QStringLiteral("rules – images"), {}, nullptr, nullptr));
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::ReadOnly));
+        const QString markdown = QString::fromUtf8(file.readAll());
+        CHECK(markdown.contains(QStringLiteral("Told by Hilary for \\[Publisher\\].")));
+    }
 }

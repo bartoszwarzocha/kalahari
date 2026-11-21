@@ -9,6 +9,7 @@
 
 #include "kalahari/editor/text_fields.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
+#include "kalahari/gui/own_fields.h"
 
 #include <QColor>
 #include <QDateTime>
@@ -21,8 +22,12 @@
 class QCheckBox;
 class QComboBox;
 class QLabel;
+class QLineEdit;
 class QListWidget;
+class QPushButton;
+class QRadioButton;
 class QTabWidget;
+class QTreeWidget;
 
 namespace kalahari::gui::dialogs {
 
@@ -65,10 +70,11 @@ private:
 
 /// @brief Insert > Field...: a value that refreshes by itself
 ///
-/// The fields in four tabs (the book: its title and author; the text: its title and words;
-/// the pages: the page and the page count; the date), and under the list of the tab shown the
-/// formats of the field chosen and how it shows in the text, on the gray background of the
-/// fields. The same window changes a field (Edit Field...). The gear opens Settings > Editor >
+/// The fields in five tabs (the book: its title and author; the text: its title and words;
+/// the pages: the page and the page count; the date; the own fields of the book and of its
+/// series, made, changed and deleted there), and under the list of the tab shown the formats
+/// of the field chosen and how it shows in the text, on the gray background of the fields.
+/// The same window changes a field (Edit Field...). The gear opens Settings > Editor >
 /// General, where the gray background can be turned off.
 class FieldDialog : public KalahariDialog {
     Q_OBJECT
@@ -86,6 +92,17 @@ public:
         std::function<QString(const editor::TextField&)> shown;
         QColor background;  ///< Of the fields in the text; invalid: none
         QColor text;        ///< Of the text; invalid: the window's
+        /// The own fields of the book as they are now (the tab Own); null: a text outside a
+        /// book, which has none
+        std::function<QList<OwnField>()> ownFields;
+        /// New Field...: the window of a new field; the id of the field made, empty: none
+        std::function<QString()> newOwnField;
+        /// Change...: the window of the field; whether it changed
+        std::function<bool(const QString& id)> changeOwnField;
+        /// Delete: asks first; whether the field is gone
+        std::function<bool(const QString& id)> deleteOwnField;
+        /// Why the own fields cannot change (a book open read-only); empty: they can
+        QString whyOwnFieldsFixed;
     };
 
     /// @brief The window showing @p shown
@@ -93,6 +110,20 @@ public:
 
     /// @brief The field chosen
     [[nodiscard]] editor::TextField field() const;
+
+    /// @brief The tab of the own fields
+    [[nodiscard]] int ownTab() const { return m_ownTab; }
+
+    /// @brief The list of the own fields (for the tests)
+    [[nodiscard]] QTreeWidget* ownList() const { return m_ownList; }
+
+    /// @brief The id of the own field chosen; empty: none
+    [[nodiscard]] QString chosenOwnField() const;
+
+    /// @brief New Field..., Change... and Delete of the tab Own
+    void newOwnField();
+    void changeOwnField();
+    void deleteOwnField();
 
 private:
     /// @brief The tabs of the fields, each with the list of its fields
@@ -125,13 +156,98 @@ private:
     /// @brief The hint under the preview of @p field: what changes it, and the gray background
     [[nodiscard]] static QString hintText(const editor::TextField& field);
 
+    /// @brief The tab of the own fields: their list and its buttons, @p lines high
+    [[nodiscard]] QWidget* ownFieldsTab(int lines);
+
+    /// @brief The own fields in their list, @p chosen chosen (else the one chosen now)
+    void fillOwnFields(const QString& chosen);
+
+    /// @brief Insert and the buttons of the tab Own, as the field chosen allows
+    void updateButtons();
+
     Data m_data;
     QTabWidget* m_tabs = nullptr;
-    std::vector<QListWidget*> m_lists;  ///< Of the tabs, in their order
+    std::vector<QListWidget*> m_lists;  ///< Of the tabs, in their order; not the tab Own
+    int m_ownTab = -1;
+    QTreeWidget* m_ownList = nullptr;
+    QLabel* m_ownNote = nullptr;  ///< Under the list: none yet, a text outside a book
+    QPushButton* m_newOwn = nullptr;
+    QPushButton* m_changeOwn = nullptr;
+    QPushButton* m_deleteOwn = nullptr;
     QWidget* m_details = nullptr;       ///< The format, the preview and the hint
     QComboBox* m_formats = nullptr;
     QLabel* m_preview = nullptr;
     QLabel* m_hint = nullptr;
+};
+
+/// @brief New Field... and Change... of an own field: its name, value and description; in a
+///        series, whether it is the book's or of all the volumes
+class OwnFieldDialog : public KalahariDialog {
+    Q_OBJECT
+
+public:
+    /// @brief The name is wrong: empty, or that of another field (the window says why)
+    using NameCheck = std::function<QString(const QString& name)>;
+
+    /// @param field The field (a new one: no id)
+    /// @param inSeries The book is a volume of a series: the field can be of all the volumes
+    /// @param checkName Why a name cannot be the field's; empty: it can
+    OwnFieldDialog(const OwnField& field, bool inSeries, NameCheck checkName,
+                   QWidget* parent = nullptr);
+
+    /// @brief The field as the window has it
+    [[nodiscard]] OwnField field() const;
+
+    [[nodiscard]] QLineEdit* nameField() const { return m_name; }
+    [[nodiscard]] QLineEdit* valueField() const { return m_value; }
+    [[nodiscard]] QLineEdit* volumeValueField() const { return m_volumeValue; }
+    [[nodiscard]] QRadioButton* seriesChoice() const { return m_inSeries; }
+    [[nodiscard]] QCheckBox* ownValueChoice() const { return m_ownValue; }
+
+    void accept() override;
+
+private:
+    /// @brief The fields of the values as the place of the field says
+    void updateValues();
+
+    OwnField m_field;
+    NameCheck m_checkName;
+    QLineEdit* m_name = nullptr;
+    QLineEdit* m_value = nullptr;  ///< Of the book; of a field of the series, of all the volumes
+    QLineEdit* m_description = nullptr;
+    QRadioButton* m_inBook = nullptr;
+    QRadioButton* m_inSeries = nullptr;
+    QCheckBox* m_ownValue = nullptr;     ///< A field of the series: another value in this book
+    QLineEdit* m_volumeValue = nullptr;  ///< That value
+    QLabel* m_problem = nullptr;
+};
+
+/// @brief Delete of an own field used in the texts: how often and where it is used, and what
+///        its places become: the text of its value, or empty fields to fix
+class DeleteOwnFieldDialog : public KalahariDialog {
+    Q_OBJECT
+
+public:
+    /// @param field The field
+    /// @param uses How many times it is in the texts
+    /// @param texts In how many texts
+    /// @param undoKeys The keys of Undo ("Ctrl+Z"); empty: none
+    DeleteOwnFieldDialog(const OwnField& field, int uses, int texts, const QString& undoKeys,
+                         QWidget* parent = nullptr);
+
+    /// @brief Its places become the text of its value; false: empty fields
+    [[nodiscard]] bool asText() const;
+
+    [[nodiscard]] QRadioButton* textChoice() const { return m_asText; }
+    [[nodiscard]] QRadioButton* emptyChoice() const { return m_keep; }
+
+    /// @brief What the window says, to copy (Copy)
+    [[nodiscard]] QString message() const;
+
+private:
+    QString m_message;
+    QRadioButton* m_asText = nullptr;
+    QRadioButton* m_keep = nullptr;
 };
 
 /// @brief The text of a format of a type in the lists of the windows: "11 October 2026",

@@ -8,6 +8,7 @@
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/panels/footnotes_panel.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/gui/utils/chapter_cursor.h"
@@ -611,6 +612,31 @@ void EditorGeneralPage::createWriting()
     addCheckBox(wordCount, tr("Count the words of footnotes and endnotes"),
                 "editor.wordCount.notes")
         ->setObjectName(QStringLiteral("wordCountNotes"));  // SettingsDialog::openPage()
+
+    // The cards of the Footnotes panel (View > Panels > Footnotes)
+    //: The group of Settings > Editor > Writing with the cards of the Footnotes panel. In
+    //: Polish: Przypisy
+    QFormLayout* footnotes = addGroup(tr("Footnotes and Endnotes"));
+    //: In Polish: Pokazuj słowa przed numerem
+    QCheckBox* before = addCheckBox(footnotes, tr("Show the words before the number"),
+                                    FootnotesPanel::BEFORE_SETTING);
+    before->setObjectName(QStringLiteral("footnotesPanelBefore"));  // SettingsDialog::openPage()
+    //: In Polish: Na kartach panelu „Przypisy” (Widok > Panele > Przypisy): ostatnie słowa
+    //: tekstu przed numerem przypisu, by było wiadomo, czego przypis dotyczy.
+    addOptionNote(footnotes, before,
+                  tr("On the cards of the Footnotes panel (View > Panels > Footnotes): the last "
+                     "words of the text before the note's number, to tell what the note is "
+                     "about."));
+    auto* lines = new QSpinBox();
+    lines->setObjectName(QStringLiteral("footnotesPanelLines"));
+    lines->setRange(FootnotesPanel::MIN_LINES, FootnotesPanel::MAX_LINES);
+    //: In Polish: Wiersze treści przypisu na karcie:
+    addField(footnotes, tr("Lines of a note's text on its card:"), lines,
+             FootnotesPanel::LINES_SETTING);
+    //: In Polish: Format > Ustawienia przypisów... ustala numerację przypisów tej książki i
+    //: miejsce przypisów końcowych.
+    addFieldNote(footnotes, tr("Format > Footnote Layout... sets the numbering of the notes of "
+                               "the book and the place of the endnotes."));
 }
 
 // ============================================================================
@@ -673,6 +699,16 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
     addThemeColor(both, tr("Search hits"), editor::SEARCH_MATCH_COLOR_KEY);
     addThemeColor(both, tr("Current search hit"), editor::CURRENT_SEARCH_MATCH_COLOR_KEY);
     addRestoreColorsButton(both);
+
+    // The bars of the kinds on the cards of the Footnotes panel
+    //: The group of Settings > Editor > Colors with the colors of the Footnotes panel. In
+    //: Polish: Panel „Przypisy”
+    QFormLayout* footnotes = addGroup(tr("Footnotes Panel"));
+    //: In Polish: Przypisy dolne
+    addThemeColor(footnotes, tr("Footnotes"), FootnotesPanel::FOOTNOTE_COLOR_KEY);
+    //: In Polish: Przypisy końcowe
+    addThemeColor(footnotes, tr("Endnotes"), FootnotesPanel::ENDNOTE_COLOR_KEY);
+    addRestoreColorsButton(footnotes);
 
     pageLayout()->addStretch();
 }

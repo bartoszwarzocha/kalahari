@@ -98,6 +98,7 @@ class RepetitionsCoordinator;
 class DocumentWindows;
 class WritingStatsCoordinator;
 class ColorMenu;
+class ListSetsMenu;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
 } // namespace utils
@@ -604,6 +605,7 @@ private:
     /// @brief The submenus of Format > Font Color and Highlight Color
     ColorMenu* m_fontColorMenu{nullptr};
     ColorMenu* m_highlightColorMenu{nullptr};
+    ListSetsMenu* m_listSetsMenu{nullptr};  ///< Format > Pick List Set
 
     /// @brief Save Version and Version History of the texts of the book
     VersionsCoordinator* m_versionsCoordinator{nullptr};

@@ -638,6 +638,13 @@ std::map<std::string, json> buildDefaults() {
         {"editor.fields.dateFormat", "long"},
         {"editor.fields.dateAsField", false},
 
+        // Editor: the sets of list formats (Settings > Editor > Lists, gui/list_sets.h): the
+        // writer's sets of the program, for every book ({ "id", "name", "definition" } each),
+        // and the ids of the sets F12 (a numbered list) and Shift+F12 (a bulleted one) give
+        {"editor.lists.sets", json::array()},
+        {"editor.lists.numberedSet", "numbered"},
+        {"editor.lists.bulletedSet", "bulleted"},
+
         // Editor: the working numbers on the left margin (View > Margin Numbering), only on the
         // screen: "none", "lines" (every line) or "paragraphs" (every paragraph with text). A
         // number every "interval" lines or paragraphs; with "restartEachPage" the lines are
@@ -689,6 +696,10 @@ std::map<std::string, json> buildDefaults() {
         // the words of the footnotes and endnotes count (as in Microsoft Word)
         {"editor.wordCount.dashesAsWords", false},
         {"editor.wordCount.notes", true},
+        // The cards of the Footnotes panel (gui/panels/footnotes_panel.h): the words before
+        // the number in its text, and the lines of the note's text (1-6)
+        {"editor.footnotes.panelBefore", true},
+        {"editor.footnotes.panelLines", 2},
 
         // Editor: autocorrect, the changes of the text as it is typed (Settings > Editor >
         // Auto-correct): on or off as a whole (also Tools > Auto-correct as You Type), and
@@ -761,12 +772,13 @@ std::map<std::string, json> buildDefaults() {
         // Editor: quick insert (Settings > Editor > Quick Insert, gui/quick_insert_items.h).
         // @ or # typed at the start of a word opens a list of the sources chosen for it:
         // "cards" (the names of the cards of the Workshop), "fragments" (the writer's text
-        // fragments), "characters" (the typographic characters). The fragments and the
+        // fragments), "characters" (the typographic characters), "fields" (the own fields of
+        // the book, inserted as fields). The fragments and the
         // characters: [{"name", "text", "kind": "fragment" | "character"}]; null: the
         // characters the program has at first
         {"editor.quickInsert.enabled", true},
         {"editor.quickInsert.at", json::array({"cards"})},
-        {"editor.quickInsert.hash", json::array({"fragments", "characters"})},
+        {"editor.quickInsert.hash", json::array({"fragments", "characters", "fields"})},
         {"editor.quickInsert.items", nullptr},
 
         // Editor: repetitions of words (Settings > Editor > Repetitions, RepetitionsCoordinator).

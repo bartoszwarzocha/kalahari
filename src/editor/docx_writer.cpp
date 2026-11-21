@@ -30,6 +30,7 @@
 #include <QTextTable>
 #include <QTimeZone>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <deque>
@@ -148,6 +149,19 @@ QString numberFormatValue(ListNumberFormat format) {
         case ListNumberFormat::Bullet: return QStringLiteral("bullet");
     }
     return QStringLiteral("decimal");
+}
+
+/// The text of a numbered level as Word writes it: its prefix, the numbers of the levels
+/// above it the level shows ("%1."), its own number and its suffix: "§ %1.%2."
+QString wordLevelText(const ListDefinition& definition, int level) {
+    const ListLevel& format = definition.levels[static_cast<size_t>(level)];
+    QString text = format.prefix;
+    for (int above = level - std::clamp(format.shownLevels, 0, level); above < level; ++above) {
+        if (!definition.levels[static_cast<size_t>(above)].isBullet()) {
+            text += QStringLiteral("%%1.").arg(above + 1);
+        }
+    }
+    return text + QStringLiteral("%%1").arg(level + 1) + format.suffix;
 }
 
 QString noteFormatValue(NoteNumberFormat format) {
@@ -860,7 +874,7 @@ QString DocxWriter::listNumbering(size_t item, const ListItem& listItem, int sho
             const ListLevel& format = list.definition.levels[static_cast<size_t>(level)];
             const QString text = format.isBullet()
                                      ? (format.bullet.isEmpty() ? QString(QChar(BULLET_DISC)) : format.bullet)
-                                     : QStringLiteral("%%1").arg(level + 1) + format.suffix;
+                                     : wordLevelText(list.definition, level);
             const QString alignment = format.alignment == ListMarkerAlignment::Center ? QStringLiteral("center")
                                       : format.alignment == ListMarkerAlignment::Right ? QStringLiteral("right")
                                                                                         : QStringLiteral("left");
@@ -1814,7 +1828,7 @@ std::vector<std::pair<QString, QByteArray>> DocxWriter::build(ExportResult* resu
     // The texts read, the titles decided, the headings and captions of the file counted
     for (size_t index = 0; index < count; ++index) {
         const ExportItem& item = m_book.items[index];
-        m_texts.push_back(std::make_unique<ExportText>(item));
+        m_texts.push_back(std::make_unique<ExportText>(item, exportFieldContext(m_book, item)));
         const bool titled = m_book.titleHeadings && !item.title.trimmed().isEmpty() &&
                             item.kind != ExportItemKind::Contents &&
                             !(item.kind == ExportItemKind::Text &&

@@ -11,6 +11,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Sets of list formats and multilevel numbers** - 2026-11-21. Format > Bullets and
+  Numbering... opens on a new first tab, Sets: the layout of all nine levels of a list at once,
+  as tiles in groups (Numbered: 1. – a) – i., 1) – a) – i), (1) – (a) – (i); Multilevel:
+  1. – 1.1. – 1.1.1., the outline I. – A. – 1. – a) and § 1. – 1) – a); Bulleted: • – ◦ – ▪,
+  dashes, ✓ – • – ◦), then the writer's own, in the book and in the program. A click or the
+  arrows and Enter give the whole list the set; the paragraphs selected outside a list become
+  one. Save as Set... keeps the formats of the window under a name, in the book (it goes with
+  the book) or in the program; the context menu of a set renames it, deletes it and makes it
+  the default of F12 or Shift+F12. The tab Numbering has three new fields: Text before number
+  ("§ ", "Step "), Text after number (any text, not only "." and ")") and Numbers of higher
+  levels (1.1., 1.1.1.). Format > List Sets lists every set to choose from the keyboard, and the
+  buttons Bullets and Numbering of the Format toolbar have an arrow with the tiles of their
+  sets, Restart at and Continue Numbering. The new page Settings > Editor > Lists has the
+  default sets of F12 and Shift+F12 and the sets of the program with Rename..., Delete,
+  Export... and Import...; the window has a gear to it. KML keeps the new formats as `prefix`
+  and `show-levels` of `<ol>`, Word as the text of its levels (read back from Word's own
+  documents too), the EPUB writes such marks out.
+- **Own fields of the book** - 2026-11-21. Insert > Field... has a new tab, Own: the writer's
+  fields of the book, such as the narrator's name or the publisher, with New Field...,
+  Change... and Delete. A field has a name, a value and a description for its tooltip, and in
+  a series it can be a field of the series, the same in all the volumes, a volume giving it a
+  value of its own when it needs one. A field inserted in the text shows its value on the gray
+  background of the fields; a new value changes it in the open texts at once, in the others as
+  they open, and the export and the printing take it as it is. A field without a value shows
+  its name in brackets. Deleting a field used in the texts asks whether its places become plain
+  text of its value or stay as empty fields to fix, and the bar at the bottom of the window,
+  or Ctrl+Z in a text, brings it back everywhere. The Properties panel of the book has a new
+  group, Own Fields: each value can be written there, Add Field... and Insert in Text..., with
+  a gear to the settings of the fields. Quick insert after # offers the own fields too (Settings
+  > Editor > Quick Insert, a new box ticked by default).
+- **Footnotes panel** - 2026-11-21. View > Panels > Footnotes (also on the Panels toolbar)
+  lists the footnotes and endnotes of the text in front, or of the whole book in reading order
+  under the titles of its texts (of a series: of the volume in front), as cards: the number in
+  the color of its kind, the last words of the text before the number and the beginning of the
+  note. A search in the notes, the kinds with their counts (All, Footnotes, Endnotes) and the
+  scope narrow the list. A card selected takes the text to the number; Enter or F2 opens the
+  note's frame (the note's text opens first when it is closed), Delete deletes the note, with
+  Undo in the bar under the text, and the context menu converts a footnote to an endnote and
+  back, copies the note's text and opens Format > Footnote Layout.... Esc goes back to the
+  text. Settings > Editor > Writing decides whether the cards show the words before the number
+  and how many lines of the note; Settings > Editor > Colors has the colors of the two kinds,
+  in every theme.
+
 - **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
   for Publishers, with its number in the Navigator: the sentences about the book and the
   synopses, each a text of the book in as many versions as the writer wants, with a template of
@@ -251,6 +294,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a table stays in its line.
 
 ### Changed
+
+- **Insert toolbar** - 2026-11-21. Every command of the Insert menu is on it, in the groups of
+  the menu: images, tables and links; captions, cross-references and the lists of figures;
+  footnotes and endnotes; the annotations; the characters, quick insert and the clippings;
+  the date and the fields; the lines and the breaks. A toolbar customized before gets the new
+  buttons once, next to those it has, and keeps the order of the writer's.
 
 - **Settings: shorter pages, titled groups and a note under each option** - 2026-11-16. The
   long pages are split: Editor has General, Writing (the word count and the fields) and Margin

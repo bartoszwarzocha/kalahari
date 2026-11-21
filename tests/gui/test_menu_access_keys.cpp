@@ -1305,7 +1305,12 @@ TEST_CASE("Menu access keys: the menu of the panels' titles names them with keys
         CAPTURE(qtItems.at(i)->text().toStdString());
         CHECK(items.at(i)->isSeparator() == qtItems.at(i)->isSeparator());
         if (!items.at(i)->isSeparator()) {
-            CHECK(withoutAccessKey(items.at(i)->text()) == qtItems.at(i)->text());
+            // A name whose letters the others took gets a free key after it, as Windows
+            // shows one: "Panels Toolbar (Z)"
+            const QString shown = withoutAccessKey(items.at(i)->text());
+            const QString& name = qtItems.at(i)->text();
+            CHECK((shown == name || (shown.startsWith(name + QStringLiteral(" (")) &&
+                                     shown.size() == name.size() + 4)));
             CHECK(items.at(i)->isCheckable() == qtItems.at(i)->isCheckable());
             CHECK(items.at(i)->isChecked() == qtItems.at(i)->isChecked());
             CHECK(items.at(i)->isEnabled() == qtItems.at(i)->isEnabled());

@@ -297,11 +297,13 @@ TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... cha
     CHECK(answering<FieldDialog>(
         [&fields]() { fields.coordinator.insertField(); },
         [&preview, &hint](FieldDialog& dialog) {
-            // The fields in four tabs: the book, the text, the pages, the date
+            // The fields in four tabs: the book, the text, the pages, the date; the book's own
+            // fields in the fifth
             auto* tabs = only<QTabWidget>(dialog);
-            REQUIRE(tabs->count() == 4);
+            REQUIRE(tabs->count() == 5);
             CHECK(tabs->tabText(0) == QStringLiteral("&Book"));
             CHECK(tabs->tabText(3) == QStringLiteral("&Date"));
+            CHECK(tabs->tabText(4) == QStringLiteral("O&wn"));
             int fieldCount = 0;
             for (const QListWidget* list : tabs->findChildren<QListWidget*>()) {
                 fieldCount += list->count();
@@ -584,20 +586,22 @@ TEST_CASE("Fields: the windows in Polish, their keys, the gear, a small screen",
     layOut(fieldDialog);
     CHECK(fieldDialog.windowTitle() == QStringLiteral("Pole"));
     auto* tabs = only<QTabWidget>(fieldDialog);
-    REQUIRE(tabs->count() == 4);
+    REQUIRE(tabs->count() == 5);
     CHECK(tabs->tabText(0) == QStringLiteral("&Książka"));
     CHECK(tabs->tabText(1) == QStringLiteral("&Tekst"));
     CHECK(tabs->tabText(2) == QStringLiteral("&Strony"));
     CHECK(tabs->tabText(3) == QStringLiteral("&Data"));
+    CHECK(tabs->tabText(4) == QStringLiteral("&Własne"));
     auto* list = shownList(fieldDialog);
     CHECK(fieldDialog.focusWidget() == list);
     CHECK(list->item(0)->text() == QStringLiteral("Tytuł książki"));
     CHECK(only<QComboBox>(fieldDialog)->itemText(1) == QStringLiteral("WIELKIMI LITERAMI"));
     checkKeys(fieldDialog);
 
-    // Every field: the window keeps its size, small enough, nothing in it scrolls
+    // Every field: the window keeps its size, small enough, nothing in it scrolls (the own
+    // fields, in the last tab, have no list of the program's fields)
     const QSize size = fieldDialog.sizeHint();
-    for (int tab = 0; tab < tabs->count(); ++tab) {
+    for (int tab = 0; tab < tabs->count() - 1; ++tab) {
         tabs->setCurrentIndex(tab);
         QListWidget* shown = shownList(fieldDialog);
         for (int row = 0; row < shown->count(); ++row) {

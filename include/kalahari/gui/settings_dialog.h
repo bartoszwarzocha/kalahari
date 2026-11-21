@@ -68,7 +68,11 @@ public:
     static constexpr const char* FIELDS_PAGE = "editor.general.fields";
     /// Editor > Writing, the cursor in the Paste Command (the gear of Edit > Paste Special...)
     static constexpr const char* PASTE_PAGE = "editor.general.paste";
+    /// Editor > Writing, the cursor in the group Footnotes and Endnotes (the gear of the
+    /// Footnotes panel)
+    static constexpr const char* FOOTNOTES_PAGE = "editor.general.footnotes";
     static constexpr const char* PAGES_PAGE = "editor.pages";        ///< Editor > Pages and Margins
+    static constexpr const char* LISTS_PAGE = "editor.lists";        ///< Editor > Lists
     /// Editor > Margin Numbering, the cursor in the choice of the numbering
     static constexpr const char* MARGIN_NUMBERING_PAGE = "editor.pages.marginNumbering";
     static constexpr const char* IMAGES_PAGE = "editor.images";      ///< Editor > Images
@@ -128,7 +132,8 @@ public:
     /// @brief Open a page: EDITOR_COLORS_PAGE (the gears of Insert > Link and of the find bar),
     /// IMAGES_PAGE (the gears of the windows of images and captions), PAGES_PAGE,
     /// MARGIN_NUMBERING_PAGE (View > Margin Numbering > Numbering Settings...),
-    /// FIELDS_PAGE (the gear of Insert > Field...), SPELLING_PAGE (the gear of the Spelling and
+    /// FIELDS_PAGE (the gear of Insert > Field...), FOOTNOTES_PAGE (the gear of the Footnotes
+    /// panel), SPELLING_PAGE (the gear of the Spelling and
     /// Grammar panel), VERSIONS_PAGE (the gear of the versions), CLIPPINGS_PAGE (the gears of
     /// the windows of the clippings), REPETITIONS_PAGE (the gear of the Repetitions panel),
     /// ANNOTATIONS_PAGE (the gear of the Annotations panel), NAVIGATOR_PAGE (the gear of a list

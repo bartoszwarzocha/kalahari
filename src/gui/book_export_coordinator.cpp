@@ -6,6 +6,7 @@
 ///        export and of the print, and the book as the program has it (the open texts with
 ///        their unsaved changes) for the file or the printer
 
+#include "kalahari/gui/own_fields.h"
 #include "kalahari/gui/book_export_coordinator.h"
 #include "kalahari/gui/plugin_coordinator.h"
 
@@ -629,6 +630,7 @@ editor::BookExport BookExportCoordinator::bookExport(
         book.author = projectBook->author;
         book.language = projectBook->language;
         book.imagesFolder = projects.imagesBaseFolder();
+        book.customFields = own_fields::values(projects, *projectBook);
     }
     book.styles = bookParagraphStyles(m_book);
     // The pages of a PDF and of the print have the colors of the light paper (Settings >

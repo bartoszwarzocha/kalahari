@@ -254,6 +254,9 @@ set(TEST_SOURCES
     gui/test_caption_coordinator.cpp             # Captions of the book, one filter for all images
     gui/test_footnote_coordinator.cpp            # Notes: their frame, Insert > Footnote and Endnote
     gui/test_field_coordinator.cpp               # Insert > Date && Time..., Insert > Field... and their windows
+    gui/test_own_fields.cpp                      # The own fields of the book: kept, inserted, in Properties
+    gui/test_footnotes_panel.cpp                 # View > Panels > Footnotes: the notes of a text and of the book
+    gui/test_list_sets.cpp                       # The sets of list formats, Format > List Sets
     gui/test_edit_dialogs.cpp                    # Edit > Paste Special... and Edit > Go To...
     gui/test_book_search.cpp                     # Find in Book, Replace All in Book, the Search panel
     gui/test_chapter_break.cpp                   # Book > Chapter Break: the new text, its title, Undo
@@ -410,6 +413,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator_series.cpp  # The volumes of a series
     ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Properties panel of the Navigator commands
     ${CMAKE_SOURCE_DIR}/src/gui/panels/plot_fields_box.cpp  # Its group of the plot of a text
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/book_fields_box.cpp  # Its group of the own fields of the book
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/footnotes_panel.cpp  # The Footnotes panel
+    ${CMAKE_SOURCE_DIR}/src/gui/footnotes_panel_coordinator.cpp  # The Footnotes panel and the texts
     ${CMAKE_SOURCE_DIR}/src/gui/panels/paragraph_panel.cpp  # Paragraph and Styles panel
     # GUI dependencies for FindReplaceBar and the GUI tests
     ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
@@ -429,6 +435,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/repetitions_page.cpp  # Settings > Editor > Repetitions
     ${CMAKE_SOURCE_DIR}/src/gui/settings/versions_page.cpp  # Settings > Editor > Versions
     ${CMAKE_SOURCE_DIR}/src/gui/settings/clippings_page.cpp  # Settings > Editor > Clippings
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/lists_page.cpp  # Settings > Editor > Lists
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/navigator_page.cpp  # Settings > Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/settings/cards_page.cpp  # Settings > Cards
@@ -447,6 +454,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_config_widget.cpp  # ColorConfigWidget for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/length_spin_box.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_menu.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/list_set_tile.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/shortcut_recorder.cpp  # A field that records key presses
     ${CMAKE_SOURCE_DIR}/src/gui/utils/language_names.cpp    # Names of languages in the program's language
     ${CMAKE_SOURCE_DIR}/src/gui/utils/layout_utils.cpp      # clearLayout for SettingsDialog
@@ -515,6 +523,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/clippings_coordinator_steps.cpp  # The undo of the texts, the tabs
     ${CMAKE_SOURCE_DIR}/src/gui/cards_in_text_coordinator.cpp  # The cards in the texts
     ${CMAKE_SOURCE_DIR}/src/gui/field_coordinator.cpp       # The fields of the open texts, Insert > Field...
+    ${CMAKE_SOURCE_DIR}/src/gui/own_fields.cpp              # The own fields of a book and its series
+    ${CMAKE_SOURCE_DIR}/src/gui/list_sets.cpp               # The sets of list formats
+    ${CMAKE_SOURCE_DIR}/src/gui/list_sets_menu.cpp          # Format > Pick List Set, the arrows
     ${CMAKE_SOURCE_DIR}/src/gui/go_to_coordinator.cpp       # Edit > Go To...
     ${CMAKE_SOURCE_DIR}/src/gui/style_coordinator.cpp       # New, changed and deleted styles of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/style_dialog.cpp    # New Style and Modify Style
@@ -748,6 +759,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_menu.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/list_sets_menu.h  # ListSetsMenu with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h  # ShortcutRecorder with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
@@ -756,6 +768,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h  # PropertiesPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_fields_box.h  # PlotFieldsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/book_fields_box.h  # BookFieldsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/footnotes_panel.h  # FootnotesPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnotes_panel_coordinator.h  # FootnotesPanelCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT

@@ -207,6 +207,14 @@ paragraph: an item of the list.
   and its element gives the format of that level: a level may have numbers and the next one
   bullets. The levels a list does not write have the formats of a list of its kind (numbered:
   1., a), i. and again from the fourth level on; bulleted: •, ◦, ▪ and again).
+- **Multilevel numbers.** A level writes its mark as its `prefix`, the numbers of the levels
+  above it that it shows (`show-levels`), its own number and its `suffix`: with `prefix="§ "`
+  on the first level and `show-levels="1"` on the second, the items are § 1., 1.1., 1.2., § 2.
+  Word keeps them in the text of its level (`§ %1.`, `%1.%2.`), and the EPUB and the HTML of
+  the clipboard write such a mark out in front of the item, as HTML lists have no text around
+  their numbers. The sets of all nine levels at once (Format > Bullets and Numbering..., the
+  tab Sets) are kept in the settings and in the book (`listSets` of the `.klh` file), not in
+  the KML: a list keeps its formats, whatever set they came from.
 - **The numbers** of a list are counted over the whole chapter: a paragraph outside the list
   between two of its parts leaves the numbering going on (Format > Continue Numbering), which
   KML writes with `continue="true"` on the list after it. A list without it starts its numbers
@@ -227,7 +235,9 @@ paragraph: an item of the list.
 |-----------|---------|--------|---------|
 | `type` | `<ol>` | `1`, `a`, `A`, `i`, `I` (`1` without it) | The numbers: 1, 2, 3; a, b, c ... z, aa; A, B, C; i, ii, iii; I, II, III |
 | `type` | `<ul>` | `disc`, `circle`, `square`, `dash`, `check`, `arrow` or the bullet itself (`disc` without it) | The bullet: •, ◦, ▪, –, ✓, ➢ or any other character |
-| `suffix` | `<ol>` | Text (`.` without it) | After the number: `.` or `)` |
+| `suffix` | `<ol>` | Text (`.` without it) | After the number: `.`, `)`, `:` or any text |
+| `prefix` | `<ol>` | Text (none without it) | Before the number: `(`, `§ `, `Step ` |
+| `show-levels` | `<ol>` | Number (0 without it) | How many levels right above this one show their numbers before its own, each with a full stop after it: `1` on the second level gives 1.1., `2` on the third 1.1.1.; at most the levels above it, a level above with bullets shows none |
 | `start` | `<ol>` | Number | The number of the first item (1 without it) |
 | `marker-indent` | Both | Points | From the start of the text to the number or bullet; without it 18 points for each level (the first 18, the second 36) |
 | `text-indent` | Both | Points | From the start of the text to the text of the item; without it 18 points more than `marker-indent` |
@@ -792,6 +802,21 @@ it has no text of its own in the file and adds nothing to the word and character
 | `pages` | The pages of the text | `1`, `i`, `I` |
 | `words` | The words of the text, as the status bar counts them | none (grouped in the book's language: `12 345`), `plain` (`12345`) |
 | `date` | Today's date or the time, in the book's language | `long` (`11 October 2026`), `short` (`11.10.2026` in Polish), `full` (with the day of the week), `iso` (`2026-10-11`), `time` (`14:35`), `date-time` (`11.10.2026, 14:35`) |
+| `custom` | The value of an own field of the book or of its series (Insert > Field..., the tab Own; the Properties panel): its `id` names the field, its `name` is the field's name when it was inserted | none, `upper` |
+
+```xml
+<p>Told by <field type="custom" id="field-3f2a9c1b7d44" name="Narrator"/>.</p>
+```
+
+- An own field is kept in the `.klh` file: in `customFields` of its book, or in `seriesFields`
+  of the series, the same in all the volumes (a volume that gives it a value of its own keeps
+  it in its `seriesFieldValues`). A new
+  value shows in the open texts at once and in the others as they open; the export and the
+  printing take the value as it is. Without a value the field shows its name in brackets
+  (`[Narrator]`); a field the book no longer has shows its `name` in brackets, and Edit
+  Field... or Convert to Text fixes it. Deleting an own field (Insert > Field..., the tab Own)
+  turns its places into plain text of its value, or leaves them as empty fields to fix, in one
+  step that Undo takes back in every text.
 
 - A field of an unknown `type` is left out; an unknown `format` is read as the type's first. The
   editor writes the format only when it is not the type's first.

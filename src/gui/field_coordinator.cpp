@@ -20,12 +20,16 @@
 #include "kalahari/gui/dialogs/field_dialogs.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/own_fields.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/read_only_book.h"
 
 #include <QAction>
 #include <QFileInfo>
+#include <QSet>
 #include <QTabWidget>
+
+#include <algorithm>
 
 #include <array>
 #include <cstddef>
@@ -69,6 +73,9 @@ FieldCoordinator::FieldCoordinator(core::ProjectManager& book, CommandRegistry& 
     connect(&m_book, &core::ProjectManager::projectOpened, this, &FieldCoordinator::refresh);
     connect(&m_book, &core::ProjectManager::projectClosed, this, &FieldCoordinator::refresh);
     connect(&m_book, &core::ProjectManager::elementRenamed, this, &FieldCoordinator::refresh);
+    // A field of the book made, changed or deleted: its fields in the open texts show it
+    connect(&m_book, &core::ProjectManager::customFieldsChanged, this, &FieldCoordinator::refresh);
+    connect(&m_book, &core::ProjectManager::projectClosed, this, &FieldCoordinator::forgetDelete);
 
     // A text opened, closed or brought to the front: its fields show what is now
     if (m_centralTabs != nullptr) {
@@ -120,6 +127,7 @@ editor::FieldContext FieldCoordinator::contextFor(const QString& elementId,
         context.bookTitle = book->title;
         context.author = book->author;
         context.language = book->language;
+        context.customFields = own_fields::values(m_book, *book);
     }
     context.textTitle = element != nullptr ? element->title : fileTitle;
     if (context.language.isEmpty()) {
@@ -292,16 +300,34 @@ void FieldCoordinator::insertTime()
 
 void FieldCoordinator::insertField()
 {
-    editor::BookEditor* editor = m_textWithKeys ? m_textWithKeys() : nullptr;
-    if (editor == nullptr || !whyNoField(*editor).isEmpty()) {
-        return;
+    if (editor::BookEditor* editor = m_textWithKeys ? m_textWithKeys() : nullptr) {
+        insertFieldIn(*editor, editor::TextField{});
     }
-    editor->setFieldContext(contextOf(editor));  // what the window shows is what is now
-    if (const std::optional<editor::TextField> field =
-            askField(*editor, editor::TextField{}, false)) {
-        editor->insertField(*field);
+}
+
+bool FieldCoordinator::insertOwnField(editor::BookEditor* editor, const QString& id)
+{
+    if (editor == nullptr) {
+        return false;
     }
-    editor->setFocus();
+    editor::TextField start;
+    start.type = editor::FieldType::Custom;
+    start.key = id;
+    return insertFieldIn(*editor, start);
+}
+
+bool FieldCoordinator::insertFieldIn(editor::BookEditor& editor, const editor::TextField& start)
+{
+    if (!whyNoField(editor).isEmpty()) {
+        return false;
+    }
+    editor.setFieldContext(contextOf(&editor));  // what the window shows is what is now
+    const std::optional<editor::TextField> field = askField(editor, start, false);
+    if (field) {
+        editor.insertField(*field);
+    }
+    editor.setFocus();
+    return field.has_value();
 }
 
 bool FieldCoordinator::editField(editor::BookEditor& editor, int position)
@@ -328,6 +354,19 @@ std::optional<editor::TextField> FieldCoordinator::askField(editor::BookEditor& 
     }
     dialogs::FieldDialog::Data data;
     data.names = fieldNames(elementId);
+    // The own fields of the volume of a text of the book
+    if (m_book.isProjectOpen() && !elementId.isEmpty() && m_book.findElement(elementId) != nullptr) {
+        const QString bookId = bookIdOf(elementId);
+        data.ownFields = [this, bookId]() { return own_fields::of(m_book, bookId); };
+        data.newOwnField = [this, bookId]() { return newOwnField(bookId, nullptr); };
+        data.changeOwnField = [this, bookId](const QString& id) {
+            return changeOwnField(id, bookId, nullptr);
+        };
+        data.deleteOwnField = [this, bookId](const QString& id) {
+            return deleteOwnField(id, bookId, nullptr);
+        };
+        data.whyOwnFieldsFixed = m_book.isReadOnly() ? readOnlyReason() : QString();
+    }
     data.field = field;
     data.editing = editing;
     data.language = editor.fieldContext().language;
@@ -347,10 +386,318 @@ std::optional<editor::TextField> FieldCoordinator::askField(editor::BookEditor& 
     }
     data.text = appearance.colors.textColor(appearance.colorMode);
     dialogs::FieldDialog dialog(data, m_window);
-    if (dialog.exec() != QDialog::Accepted) {
+    m_fieldDialog = &dialog;
+    const int result = dialog.exec();
+    m_fieldDialog = nullptr;
+    if (result != QDialog::Accepted) {
         return std::nullopt;
     }
     return dialog.field();
+}
+
+// =============================================================================
+// The own fields
+// =============================================================================
+
+FieldCoordinator::~FieldCoordinator()
+{
+    forgetDelete();
+}
+
+QWidget* FieldCoordinator::dialogParent(QWidget* over) const
+{
+    if (over != nullptr) {
+        return over;
+    }
+    return m_fieldDialog != nullptr ? m_fieldDialog.data() : m_window;
+}
+
+QString FieldCoordinator::bookIdOf(const QString& elementId) const
+{
+    const core::ProjectBook* volume = volumeOfText(m_book, elementId);
+    return volume != nullptr ? volume->id : QString();
+}
+
+QString FieldCoordinator::newOwnField(const QString& bookId, QWidget* over)
+{
+    if (!m_book.isProjectOpen() || m_book.isReadOnly()) {
+        return {};
+    }
+    QWidget* parent = dialogParent(over);
+    dialogs::OwnFieldDialog dialog(
+        OwnField{}, m_book.isSeries(),
+        [this, bookId](const QString& name) {
+            //: In Polish: Książka ma już pole o tej nazwie.
+            return own_fields::isNameTaken(m_book, name, QString(), bookId)
+                       ? tr("The book already has a field of this name.")
+                       : QString();
+        },
+        parent);
+    if (dialog.exec() != QDialog::Accepted) {
+        return {};
+    }
+    OwnField field = dialog.field();
+    field.id = own_fields::newId();
+    return own_fields::add(m_book, field, bookId) ? field.id : QString();
+}
+
+bool FieldCoordinator::changeOwnField(const QString& id, const QString& bookId, QWidget* over)
+{
+    const std::optional<OwnField> field = own_fields::find(m_book, id, bookId);
+    if (!field || m_book.isReadOnly()) {
+        return false;
+    }
+    QWidget* parent = dialogParent(over);
+    dialogs::OwnFieldDialog dialog(
+        *field, m_book.isSeries(),
+        [this, id, bookId](const QString& name) {
+            return own_fields::isNameTaken(m_book, name, id, bookId)
+                       ? tr("The book already has a field of this name.")
+                       : QString();
+        },
+        parent);
+    if (dialog.exec() != QDialog::Accepted || dialog.field() == *field) {
+        return false;
+    }
+    return own_fields::change(m_book, dialog.field(), bookId);
+}
+
+QStringList FieldCoordinator::textsOf(const QString& id) const
+{
+    QStringList elements;
+    const core::BookProject* project = m_book.project();
+    if (project == nullptr) {
+        return elements;
+    }
+    // A field of a book is in its texts; one of the series, in the texts of every volume
+    bool series = false;
+    for (const core::BookCustomField& field : m_book.seriesCustomFields()) {
+        series = series || field.id == id;
+    }
+    for (const core::ProjectBook& volume : project->books) {
+        const bool own = std::any_of(volume.customFields.cbegin(), volume.customFields.cend(),
+                                     [&id](const core::BookCustomField& field) {
+                                         return field.id == id;
+                                     });
+        if (!series && !own) {
+            continue;
+        }
+        for (const BookTextElement& text : bookTextElements(m_book, &volume)) {
+            elements.append(text.element->id);
+        }
+    }
+    return elements;
+}
+
+FieldCoordinator::FieldUses FieldCoordinator::usesOf(const QString& id) const
+{
+    FieldUses uses;
+    QHash<QString, editor::BookEditor*> open;
+    for (const OpenText& text : openTexts()) {
+        if (!text.elementId.isEmpty()) {
+            open.insert(text.elementId, text.editor);
+        }
+    }
+    for (const QString& elementId : textsOf(id)) {
+        const editor::BookEditor* editor = open.value(elementId, nullptr);
+        const int count = editor != nullptr && editor->textDocument() != nullptr
+                              ? editor::customFieldCount(*editor->textDocument(), id)
+                              : editor::customFieldCountInKml(m_book.chapterText(elementId), id);
+        if (count > 0) {
+            uses.count += count;
+            ++uses.texts;
+        }
+    }
+    return uses;
+}
+
+bool FieldCoordinator::deleteOwnField(const QString& id, const QString& bookId, QWidget* over)
+{
+    const std::optional<OwnField> field = own_fields::find(m_book, id, bookId);
+    if (!field || m_book.isReadOnly()) {
+        return false;
+    }
+
+    // Used in the texts: their places become text or empty fields, as the writer says
+    const FieldUses uses = usesOf(id);
+    bool asText = false;
+    if (uses.count > 0) {
+        std::optional<bool> answer;
+        if (m_askDelete) {
+            answer = m_askDelete(*field, uses.count, uses.texts);
+        } else {
+            QWidget* parent = dialogParent(over);
+            dialogs::DeleteOwnFieldDialog dialog(*field, uses.count, uses.texts,
+                                                 keysOf(m_commands, "edit.undo"), parent);
+            if (dialog.exec() == QDialog::Accepted) {
+                answer = dialog.asText();
+            }
+        }
+        if (!answer) {
+            return false;
+        }
+        asText = *answer;
+    }
+
+    forgetDelete();
+    DeletedField step;
+    step.field = *field;
+    step.bookId = bookId;
+    const editor::CustomFieldValue value{field->name, field->value, field->description};
+    QHash<QString, editor::BookEditor*> open;
+    for (const OpenText& text : openTexts()) {
+        if (!text.elementId.isEmpty()) {
+            open.insert(text.elementId, text.editor);
+        }
+    }
+    const std::vector<QString> dirty = m_book.getDirtyElements();
+    for (const QString& elementId : textsOf(id)) {
+        if (editor::BookEditor* editor = open.value(elementId, nullptr)) {
+            if (editor->changeCustomFields(id, value, asText) > 0) {
+                step.editors.append(editor);
+            }
+            continue;
+        }
+        const QString kml = m_book.chapterText(elementId);
+        int count = 0;
+        const QString changed = editor::customFieldsReplacedInKml(
+            kml, id, value, contextFor(elementId).language, asText, &count);
+        if (count == 0) {
+            continue;
+        }
+        const bool clean = std::find(dirty.cbegin(), dirty.cend(), elementId) == dirty.cend();
+        m_book.setChapterContent(elementId, changed);
+        const bool saved = clean && m_book.saveChapterContent(elementId);
+        step.savedTexts.append({elementId, kml, saved});
+    }
+    if (!own_fields::remove(m_book, id, bookId)) {
+        // The book could not be saved: the texts as they were
+        m_deleted = step;
+        undoDelete();
+        return false;
+    }
+
+    // The writer's Undo in an open text brings it back, until a text it changed changes again
+    m_deleted = step;
+    for (const OpenText& text : openTexts()) {
+        editor::BookEditor* editor = text.editor;
+        if (editor->isReadOnly()) {
+            continue;
+        }
+        m_sharing.append({editor, editor->sharedHistory()});
+        editor->setSharedHistory(this);
+    }
+    for (const QPointer<editor::BookEditor>& editor : std::as_const(step.editors)) {
+        m_deleteWatch.append(connect(editor.data(), &editor::BookEditor::contentChanged, this,
+                                     [this]() {
+                                         if (!m_undoing) {
+                                             forgetDelete();
+                                         }
+                                     }));
+        m_deleteWatch.append(connect(editor.data(), &QObject::destroyed, this,
+                                     &FieldCoordinator::forgetDelete));
+    }
+
+    //: In Polish: Usunięto pole „%1”.
+    const QString message = tr("The field \u201c%1\u201d was deleted.").arg(field->name);
+    EditorPanel* front =
+        m_centralTabs != nullptr
+            ? qobject_cast<EditorPanel*>(DocumentWindows::of(*m_centralTabs).frontPage())
+            : nullptr;
+    if (m_showNotice && front != nullptr) {
+        //: In Polish: &Cofnij / Przywróć pole we wszystkich tekstach
+        m_showNotice(front, message, tr("&Undo"), tr("Bring the field back in every text"),
+                     [this]() { undoDelete(); });
+    }
+    return true;
+}
+
+bool FieldCoordinator::canUndoDelete() const
+{
+    if (!m_deleted || m_book.isReadOnly()) {
+        return false;
+    }
+    // Every open text it changed is still open, and no text it changed in its file is open now
+    QSet<QString> open;
+    QList<const editor::BookEditor*> editors;
+    for (const OpenText& text : openTexts()) {
+        open.insert(text.elementId);
+        editors.append(text.editor);
+    }
+    const auto& changed = m_deleted->editors;
+    const auto& saved = m_deleted->savedTexts;
+    return std::all_of(changed.cbegin(), changed.cend(),
+                       [&editors](const QPointer<editor::BookEditor>& editor) {
+                           return editor != nullptr && editors.contains(editor.data());
+                       }) &&
+           std::none_of(saved.cbegin(), saved.cend(),
+                        [&open](const SavedText& text) { return open.contains(text.elementId); });
+}
+
+bool FieldCoordinator::undoDelete()
+{
+    if (!m_deleted || !canUndoDelete()) {
+        forgetDelete();
+        return false;
+    }
+    const DeletedField step = *m_deleted;
+    forgetDelete();
+    m_undoing = true;
+    if (!own_fields::find(m_book, step.field.id, step.bookId)) {
+        own_fields::add(m_book, step.field, step.bookId);
+    }
+    for (const QPointer<editor::BookEditor>& editor : step.editors) {
+        editor->undo();
+    }
+    for (const SavedText& text : step.savedTexts) {
+        m_book.setChapterContent(text.elementId, text.kml);
+        if (text.saved) {
+            m_book.saveChapterContent(text.elementId);
+        }
+    }
+    m_undoing = false;
+    refresh();
+    return true;
+}
+
+bool FieldCoordinator::undoesFor(const editor::BookEditor& text) const
+{
+    return !m_undoing && m_deleted.has_value() && canUndoDelete() &&
+           std::any_of(m_sharing.cbegin(), m_sharing.cend(),
+                       [&text](const auto& shared) { return shared.first == &text; });
+}
+
+bool FieldCoordinator::redoesFor(const editor::BookEditor& text) const
+{
+    Q_UNUSED(text)
+    return false;
+}
+
+void FieldCoordinator::undoFor(editor::BookEditor& text)
+{
+    Q_UNUSED(text)
+    undoDelete();
+}
+
+void FieldCoordinator::redoFor(editor::BookEditor& text)
+{
+    Q_UNUSED(text)
+}
+
+void FieldCoordinator::forgetDelete()
+{
+    for (const QMetaObject::Connection& connection : std::as_const(m_deleteWatch)) {
+        disconnect(connection);
+    }
+    m_deleteWatch.clear();
+    // The open texts' Undo is what it was before
+    for (const auto& [editor, previous] : std::as_const(m_sharing)) {
+        if (editor != nullptr && editor->sharedHistory() == this) {
+            editor->setSharedHistory(previous);
+        }
+    }
+    m_sharing.clear();
+    m_deleted.reset();
 }
 
 }  // namespace kalahari::gui

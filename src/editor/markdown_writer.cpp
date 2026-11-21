@@ -246,7 +246,7 @@ void MarkdownWriter::prepare() {
     std::vector<std::tuple<int, int, QString>> notes;  // item, note, number
     for (size_t index = 0; index < m_book.items.size(); ++index) {
         const ExportItem& item = m_book.items[index];
-        m_texts.push_back(std::make_unique<ExportText>(item));
+        m_texts.push_back(std::make_unique<ExportText>(item, exportFieldContext(m_book, item)));
         const ExportText& text = *m_texts.back();
         const bool titled = m_book.titleHeadings && !item.title.trimmed().isEmpty() &&
                             (item.kind == ExportItemKind::Contents ||

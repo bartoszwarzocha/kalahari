@@ -29,6 +29,7 @@
 #include "kalahari/gui/book_import_coordinator.h"
 #include "kalahari/gui/caption_coordinator.h"
 #include "kalahari/gui/footnote_coordinator.h"
+#include "kalahari/gui/footnotes_panel_coordinator.h"
 #include "kalahari/gui/book_search_coordinator.h"
 #include "kalahari/gui/chapter_break_coordinator.h"
 #include "kalahari/gui/clippings_coordinator.h"
@@ -38,6 +39,7 @@
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/gui/image_filter_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
+#include "kalahari/gui/list_sets_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/grammar_coordinator.h"
@@ -815,6 +817,23 @@ MainWindow::MainWindow(QWidget* parent)
         },
         this, this);
     m_footnoteCoordinator->connectCommands();
+    // The Footnotes panel: the notes of the text in front or of the book; a note of a closed
+    // text opens it, as from the Navigator (the window owns the object)
+    auto* footnotesPanel = new FootnotesPanelCoordinator(
+        *m_book, *m_footnoteCoordinator, m_dockCoordinator->footnotesPanel(),
+        m_dockCoordinator->footnotesDock(), m_dockCoordinator->centralTabs(),
+        [this](const QString& elementId) {
+            if (const core::ProjectElement* element = book().findElement(elementId)) {
+                m_navigatorCoordinator->onElementSelected(elementId, element->title);
+            }
+        },
+        this);
+    footnotesPanel->setNoticeShower(
+        [this](EditorPanel* editor, const QString& message, const QString& actionText,
+               const QString& actionToolTip, std::function<void()> action) {
+            m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
+                                              std::move(action));
+        });
     // A text opened, or the book's order of texts changed: other numbers
     connect(m_navigatorCoordinator, &NavigatorCoordinator::elementOpened, m_footnoteCoordinator,
             [this]() { m_footnoteCoordinator->refreshSoon(); });
@@ -965,8 +984,33 @@ MainWindow::MainWindow(QWidget* parent)
         *m_book, *m_commands, m_dockCoordinator->centralTabs(),
         [this]() { return m_editCoordinator->textWithKeys(); }, this, this);
     m_fieldCoordinator->connectCommands();
+    m_fieldCoordinator->setNoticeShower(
+        [this](EditorPanel* editor, const QString& message, const QString& actionText,
+               const QString& actionToolTip, std::function<void()> action) {
+            m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
+                                              std::move(action));
+        });
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookChanged,
             m_fieldCoordinator, &FieldCoordinator::refresh);
+    // The group of the own fields of the book in the Properties panel
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestNewOwnField,
+            m_fieldCoordinator, [this]() {
+                m_fieldCoordinator->newOwnField(QString(), m_dockCoordinator->propertiesPanel());
+            });
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestInsertOwnField,
+            m_fieldCoordinator, [this](const QString& id) {
+                EditorPanel* panel = getCurrentEditor();
+                if (panel != nullptr && panel->isBookText()) {
+                    m_fieldCoordinator->insertOwnField(panel->getBookEditor(), id);
+                }
+            });
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestFieldSettings, this,
+            [this]() {
+                if (m_settingsCoordinator != nullptr) {
+                    m_settingsCoordinator->openSettingsPage(
+                        QString::fromLatin1(SettingsDialog::FIELDS_PAGE));
+                }
+            });
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookLanguageChanged,
             m_fieldCoordinator, &FieldCoordinator::refresh);
     const std::vector<std::string> dateCommands = {FieldCoordinator::DATE_TIME_COMMAND,
@@ -1048,6 +1092,34 @@ MainWindow::MainWindow(QWidget* parent)
         }
         connect(menu, &ColorMenu::colorChosen, this,
                 [this, highlight](const QColor& color) { applyColor(color, highlight); });
+    }
+
+    // Format > Pick List Set and the arrows of the buttons Numbering and Bullets: the sets of
+    // list formats, of the program and of the book of the text in front (the window owns
+    // the menus)
+    const auto editorInFront = [this]() -> editor::BookEditor* {
+        EditorPanel* panel = getCurrentEditor();
+        return panel != nullptr ? panel->getBookEditor() : nullptr;
+    };
+    const auto bookInFront = [this]() -> const core::ProjectManager* {
+        const EditorPanel* panel = getCurrentEditor();
+        return panel != nullptr && panel->isBookText() ? m_book.get() : nullptr;
+    };
+    for (const ListSetsMenu::Kind kind :
+         {ListSetsMenu::Kind::All, ListSetsMenu::Kind::Numbered, ListSetsMenu::Kind::Bulleted}) {
+        auto* menu = new ListSetsMenu(kind, *m_commands, editorInFront, bookInFront, this);
+        connect(menu, &ListSetsMenu::setChosen, this, [this]() { updateEditorActionStates(); });
+        if (kind == ListSetsMenu::Kind::All) {
+            m_listSetsMenu = menu;
+            if (QAction* command = commands().getAction(QStringLiteral("format.listSets"))) {
+                command->setMenu(menu);
+            }
+        } else if (m_toolbarManager) {
+            m_toolbarManager->setButtonMenu(kind == ListSetsMenu::Kind::Numbered
+                                                ? QStringLiteral("format.numbering")
+                                                : QStringLiteral("format.bullets"),
+                                            menu);
+        }
     }
 
     // After a command given in a toolbar the keys go back where they were, in the text or a
@@ -1541,10 +1613,28 @@ void MainWindow::registerCommands() {
         inDocument([](editor::BookEditor& text) { text.increaseIndent(); });
     callbacks.onDecreaseIndent =
         inDocument([](editor::BookEditor& text) { text.decreaseIndent(); });
-    callbacks.onBullets = inDocument(
-        [](editor::BookEditor& text) { text.toggleList(editor::ListKind::Bulleted); });
-    callbacks.onNumbering = inDocument(
-        [](editor::BookEditor& text) { text.toggleList(editor::ListKind::Numbered); });
+    // A new list with the default set of its kind, as the book has its sets now
+    const auto toggleList = [this](editor::ListKind kind) -> std::function<void()> {
+        return [this, kind]() {
+            if (EditorPanel* panel = getCurrentEditor(); panel && panel->getBookEditor()) {
+                panel->applyNewLists();
+                panel->getBookEditor()->toggleList(kind);
+            }
+            updateEditorActionStates();
+        };
+    };
+    callbacks.onBullets = toggleList(editor::ListKind::Bulleted);
+    callbacks.onNumbering = toggleList(editor::ListKind::Numbered);
+    // Given keys: the sets open under the cursor of the text
+    callbacks.onListSets = [this]() {
+        EditorPanel* panel = getCurrentEditor();
+        editor::BookEditor* text = panel != nullptr ? panel->getBookEditor() : nullptr;
+        if (text == nullptr || m_listSetsMenu == nullptr) {
+            return;
+        }
+        const QRect cursor = text->inputMethodQuery(Qt::ImCursorRectangle).toRect();
+        m_listSetsMenu->popup(text->mapToGlobal(cursor.bottomLeft()));
+    };
     // The effects, the cases, the colors and Copy and Paste Formatting, as the indents
     callbacks.onSuperscript =
         inDocument([](editor::BookEditor& text) { text.toggleSuperscript(); });

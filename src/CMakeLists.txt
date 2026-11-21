@@ -340,6 +340,9 @@ set(KALAHARI_SOURCES
     gui/clippings_coordinator_steps.cpp  # ClippingsCoordinator - the undo of the texts, the tabs
     gui/cards_in_text_coordinator.cpp  # CardsInTextCoordinator - the cards in the texts
     gui/field_coordinator.cpp  # FieldCoordinator - the fields of the open texts, Insert > Field...
+    gui/own_fields.cpp  # The writer's own fields of a book and of its series
+    gui/list_sets.cpp  # The sets of list formats: built-in, of the book and of the program
+    gui/list_sets_menu.cpp  # ListSetsMenu - Format > Pick List Set, the arrows of Numbering and Bullets
     gui/go_to_coordinator.cpp  # GoToCoordinator - Edit > Go To..., the window of the places of the text
     gui/dialogs/style_dialog.cpp  # StyleDialog - New Style and Modify Style, in two variants
     gui/dialogs/manage_styles_dialog.cpp  # ManageStylesDialog - Format > Text Style > Manage Styles
@@ -372,6 +375,7 @@ set(KALAHARI_SOURCES
     gui/settings/repetitions_page.cpp  # Settings > Editor > Repetitions
     gui/settings/versions_page.cpp  # Settings > Editor > Versions
     gui/settings/clippings_page.cpp  # Settings > Editor > Clippings
+    gui/settings/lists_page.cpp  # Settings > Editor > Lists
     gui/settings/annotations_page.cpp
     gui/settings/navigator_page.cpp  # Settings > Navigator
     gui/settings/cards_page.cpp  # Settings > Cards
@@ -394,6 +398,7 @@ set(KALAHARI_SOURCES
     gui/widgets/path_label.cpp  # A file path that wraps also inside a long name
     gui/widgets/length_spin_box.cpp
     gui/widgets/color_menu.cpp             # The submenus Font Color and Highlight Color
+    gui/widgets/list_set_tile.cpp          # A tile of a set of list formats
     gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
     gui/widgets/plot_board_view.cpp  # PlotBoardView - the cards of the texts of the book
     gui/widgets/plot_board_view_input.cpp  # PlotBoardView - its keys, the mouse, a card dragged
@@ -443,6 +448,9 @@ set(KALAHARI_SOURCES
     gui/panels/navigator_panel_series.cpp
     gui/panels/properties_panel.cpp
     gui/panels/plot_fields_box.cpp   # PlotFieldsBox - the plot of a text in the Properties panel
+    gui/panels/book_fields_box.cpp   # BookFieldsBox - the own fields of the book in the Properties panel
+    gui/panels/footnotes_panel.cpp   # FootnotesPanel - the footnotes and endnotes of a text or the book
+    gui/footnotes_panel_coordinator.cpp  # The Footnotes panel and the texts
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
     gui/widgets/own_fields_box.cpp  # OwnFieldsBox - the writer's own fields of a material or a card
     gui/widgets/relations_box.cpp  # RelationsBox - the relations of a card with the other cards
@@ -678,6 +686,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_menu.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/list_sets_menu.h  # ListSetsMenu with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h  # InfoBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_board_view.h  # PlotBoardView with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_card_editor.h  # PlotCardEditor with Q_OBJECT
@@ -713,6 +722,9 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_fields_box.h  # PlotFieldsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/book_fields_box.h  # BookFieldsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/footnotes_panel.h  # FootnotesPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnotes_panel_coordinator.h  # FootnotesPanelCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/own_fields_box.h  # OwnFieldsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/relations_box.h  # RelationsBox with Q_OBJECT

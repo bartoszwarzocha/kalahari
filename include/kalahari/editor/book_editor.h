@@ -59,6 +59,7 @@
 #include <QPointer>
 #include <QSet>
 #include <QTextTable>
+#include <array>
 #include <functional>
 #include <map>
 #include <memory>
@@ -921,9 +922,16 @@ public:
     ///
     /// When all of them are items of the kind with numbers or bullets, they leave their
     /// lists. Otherwise they all become items: of the list of the kind one of them is in,
-    /// else of the list of the kind right before or after them, else of a new one. An item
-    /// keeps its level.
+    /// else of the list of the kind right before or after them, else of a new one (with the
+    /// formats of newListDefinition()). An item keeps its level.
     void toggleList(ListKind kind);
+
+    /// @brief The formats a new list of a kind gets (F12, Shift+F12, a list started by
+    ///        autocorrect): the default set of the kind (Settings > Editor > Lists)
+    [[nodiscard]] const ListDefinition& newListDefinition(ListKind kind) const;
+
+    /// @brief Give the new lists of a kind these formats
+    void setNewListDefinition(ListKind kind, const ListDefinition& definition);
 
     /// @brief The kind of the list item at the cursor; nothing outside a list and for an
     ///        item without a number or bullet
@@ -1411,6 +1419,12 @@ public:
     ///        formatting, as one undo step
     /// @return false without a field of text_fields.h there or in a read-only text
     bool convertFieldToText(int position);
+
+    /// @brief The own fields of the id @p key (text_fields.h) become the text they show of
+    ///        @p field, in their format and formatting; with @p asText false they stay fields
+    ///        with the name of @p field (shown once the book has no such field). One undo step.
+    /// @return How many it changed; 0 without such fields or in a read-only text
+    int changeCustomFields(const QString& key, const CustomFieldValue& field, bool asText);
 
     /// @brief The field of any kind under a point of the widget (its character); std::nullopt:
     ///        none there
@@ -3666,6 +3680,8 @@ private:
 
     // Autocorrect: the changes of the text as it is typed (typeText())
     AutoCorrectOptions m_autoCorrect;          ///< What is changed
+    /// The formats of a new numbered and a new bulleted list (newListDefinition())
+    std::array<ListDefinition, 2> m_newLists{ListDefinition::numbered(), ListDefinition::bulleted()};
     std::function<QString()> m_textLanguage;  ///< The language of the text (setTextLanguage())
 
     PasteMode m_pasteMode = PasteMode::Merge;  ///< How text from other programs is pasted

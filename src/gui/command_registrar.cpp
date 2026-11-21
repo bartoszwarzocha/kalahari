@@ -774,10 +774,14 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                       KeyboardShortcut(Qt::Key_F12, Qt::ShiftModifier),
                       IconSet(),
                       callbacks.onBullets);
-    REG_CMD_TOOL_ICON("format.numbering", QT_TRANSLATE_NOOP("CommandRegistrar", "&Numbering"), "FORMAT/Numbering", 210, true, 0,
+    REG_CMD_TOOL_ICON("format.numbering", QT_TRANSLATE_NOOP("CommandRegistrar", "&Numbering"), "FORMAT/Numbering", 210, false, 0,
                       KeyboardShortcut(Qt::Key_F12),
                       IconSet(),
                       callbacks.onNumbering);
+    // The window gives it its submenu of the sets of list formats (gui/list_sets_menu.h); the
+    // command itself, given keys, opens the submenu at the cursor. In Polish: Zesta&wy list
+    REG_CMD_CB("format.listSets", QT_TRANSLATE_NOOP("CommandRegistrar", "Pic&k List Set"), "FORMAT/Pick List Set", 215, true, 0,
+               callbacks.onListSets);
 
     // The window gives each its submenu of colors (gui/widgets/color_menu.h); the command
     // itself, a toolbar button, gives the color chosen last
@@ -1079,6 +1083,9 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                 KeyboardShortcut(Qt::Key_F9, Qt::NoModifier));
 
     // No key of its own: Next Spelling or Grammar Issue (F7) opens it at the issue it finds
+    // The footnotes and endnotes of the text in front or of the book; no key of its own (it
+    // can be given one in Keyboard Shortcuts). In Polish: Pr&zypisy
+    REG_CMD("view.footnotes", QT_TRANSLATE_NOOP("CommandRegistrar", "&Footnotes"), "VIEW/Panels/Footnotes", 65, false, 0);
     REG_CMD("view.spelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Spelling and &Grammar"), "VIEW/Panels/Spelling and Grammar", 70, false, 0);
     // No key of its own: Tools > Word Repetitions opens it with the keyboard in it
     REG_CMD("view.repetitionsPanel", QT_TRANSLATE_NOOP("CommandRegistrar", "R&epetitions"), "VIEW/Panels/Repetitions", 75, false, 0);

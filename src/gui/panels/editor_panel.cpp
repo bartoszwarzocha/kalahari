@@ -6,6 +6,7 @@
 
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/book_styles.h"
+#include "kalahari/gui/book_texts.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/font_dialog.h"
 #include "kalahari/gui/dialogs/hyperlink_dialog.h"
@@ -16,6 +17,7 @@
 #include "kalahari/gui/dialogs/table_dialogs.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/list_sets.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/quick_insert_items.h"
 #include "kalahari/gui/read_only_book.h"
@@ -127,6 +129,8 @@ EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, 
     // A style of the book added, changed or removed: the text shows it at once
     connect(&m_book, &core::ProjectManager::paragraphStylesChanged,
             this, [this]() { m_bookEditor->setParagraphStyles(paragraphStyles()); });
+    // A set of list formats of the book changed: F12 and Shift+F12 give the default ones
+    connect(&m_book, &core::ProjectManager::listSetsChanged, this, &EditorPanel::applyNewLists);
 
     // The text's context menu cuts, copies, pastes and selects all with the commands of the
     // Edit menu: their icons and keys, enabled as there
@@ -171,10 +175,20 @@ EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, 
     // book only after its tab is shown
     m_bookEditor->setTextLanguage([this]() { return textLanguage(); });
 
-    // Quick insert: the cards of the book, the fragments and the characters at the cursor;
-    // the editor owns it, Insert > Quick Insert... finds it there
+    // Quick insert: the cards of the book, the fragments, the characters and the own fields of
+    // the volume of a text of the book at the cursor; the editor owns it, Insert > Quick
+    // Insert... finds it there
     m_quickInsert = new editor::QuickInsertController(
-        m_bookEditor, [this](QChar trigger) { return quickInsertItems(m_book, trigger); },
+        m_bookEditor,
+        [this](QChar trigger) {
+            std::optional<QString> fieldsOf;
+            if (isBookText()) {
+                const core::ProjectBook* volume =
+                    volumeOfText(m_book, property("elementId").toString());
+                fieldsOf = volume != nullptr ? volume->id : QString();
+            }
+            return quickInsertItems(m_book, trigger, fieldsOf);
+        },
         m_bookEditor);
 
     // A change of autocorrect undone right after it: as in Word, the exceptions keep the
@@ -360,11 +374,14 @@ void EditorPanel::setUnmodified() {
     }
 }
 
+bool EditorPanel::isBookText() const {
+    return m_book.project() != nullptr && !property("elementId").toString().isEmpty();
+}
+
 editor::ParagraphStyleSet EditorPanel::paragraphStyles() const {
     // A chapter of the book, which NavigatorCoordinator tags with its element, has the styles
     // of the book; any other text those every book has
-    const bool chapter = m_book.project() != nullptr &&
-                         !property("elementId").toString().isEmpty();
+    const bool chapter = isBookText();
     return chapter ? bookParagraphStyles(m_book)
                    : editor::ParagraphStyleSet::fromPackage(baseStyles(), programLanguage());
 }
@@ -708,8 +725,20 @@ void EditorPanel::applySettings() {
     // What the counts take for a word (a setting of the whole program)
     m_bookEditor->setWordCountRules(core::wordCountRules());
     applyPaperScale();
+    applyNewLists();
 
     core::Logger::getInstance().debug("EditorPanel: editor settings applied");
+}
+
+void EditorPanel::applyNewLists() {
+    if (!m_bookEditor) {
+        return;
+    }
+    // The sets of the book only for a text of the book
+    const core::ProjectManager* book = isBookText() ? &m_book : nullptr;
+    for (const editor::ListKind kind : {editor::ListKind::Numbered, editor::ListKind::Bulleted}) {
+        m_bookEditor->setNewListDefinition(kind, list_sets::defaultDefinition(kind, book));
+    }
 }
 
 void EditorPanel::showBulletsAndNumbering() {
@@ -718,11 +747,25 @@ void EditorPanel::showBulletsAndNumbering() {
     }
     const std::optional<editor::ListItem> item = m_bookEditor->currentListItem();
     dialogs::BulletsNumberingDialog dialog(
-        item ? item->definition : editor::ListDefinition::numbered(), item ? item->level : 0,
-        window());
+        item ? item->definition
+             : m_bookEditor->newListDefinition(editor::ListKind::Numbered),
+        item ? item->level : 0, window());
+    dialog.setBook(isBookText() ? &m_book : nullptr);
+    // "Set as Default for F12": the keys of the commands, else their names
+    const auto keysOf = [this](const char* commandId) {
+        const Command* command = m_commands.getCommand(commandId);
+        if (command == nullptr) {
+            return QString();
+        }
+        return command->shortcut.isEmpty()
+                   ? QString::fromStdString(command->label)
+                   : command->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
+    };
+    dialog.setListKeys(keysOf("format.numbering"), keysOf("format.bullets"));
     if (dialog.exec() == QDialog::Accepted) {
         m_bookEditor->applyListDefinition(dialog.definition());
     }
+    applyNewLists();  // a set made the default in the window
 }
 
 void EditorPanel::showFontDialog() {

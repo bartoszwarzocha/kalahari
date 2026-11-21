@@ -1323,6 +1323,41 @@ public:
     bool setParagraphStyles(const QList<BookParagraphStyle>& styles);
 
     // =========================================================================
+    // Sets of List Formats and Own Fields
+    // =========================================================================
+
+    /// @brief The writer's own sets of list formats of the project (BookProject::listSets);
+    ///        none without a project
+    [[nodiscard]] QList<BookListSet> listSets() const;
+
+    /// @brief Give the project these sets of list formats and save its .klh file
+    ///        (listSetsChanged())
+    /// @return false without a project, in a book open read-only, or when the file cannot be
+    ///         saved (the sets stay as they were)
+    bool setListSets(const QList<BookListSet>& sets);
+
+    /// @brief The writer's own fields of a book (ProjectBook::customFields)
+    /// @param bookId The book of a series; empty: the current book
+    [[nodiscard]] QList<BookCustomField> bookCustomFields(const QString& bookId = QString()) const;
+
+    /// @brief The writer's own fields of all the volumes (BookProject::seriesFields)
+    [[nodiscard]] QList<BookCustomField> seriesCustomFields() const;
+
+    /// @brief The values a book gives the fields of the series (ProjectBook::seriesFieldValues)
+    /// @param bookId The book of a series; empty: the current book
+    [[nodiscard]] QMap<QString, QString> seriesFieldValues(const QString& bookId = QString()) const;
+
+    /// @brief Give a book its own fields and the values of the fields of the series, the
+    ///        series its fields, and save the .klh file (customFieldsChanged())
+    /// @param bookId The book of a series; empty: the current book
+    /// @return false without a project, without such a book, in a book open read-only, or
+    ///         when the file cannot be saved (the fields stay as they were)
+    bool setCustomFields(const QList<BookCustomField>& bookFields,
+                         const QList<BookCustomField>& seriesFields,
+                         const QMap<QString, QString>& seriesValues,
+                         const QString& bookId = QString());
+
+    // =========================================================================
     // Dictionary of the Book
     // =========================================================================
 
@@ -1614,6 +1649,10 @@ signals:
     void linksChanged();
     /// @brief The paragraph styles of the project changed (setParagraphStyles())
     void paragraphStylesChanged();
+    /// @brief The writer's own sets of list formats changed (setListSets())
+    void listSetsChanged();
+    /// @brief The writer's own fields of a book or of the series changed (setCustomFields())
+    void customFieldsChanged();
     /// @brief The labels and the numbering of the book's captions changed (setBookCaptions())
     void bookCaptionsChanged();
 

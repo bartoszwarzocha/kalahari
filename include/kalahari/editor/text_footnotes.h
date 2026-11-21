@@ -283,6 +283,23 @@ Footnote readNoteElement(QXmlStreamReader& reader);
 ///        an id, or with the id of one before it, gets an id of its own)
 std::vector<Footnote> notesOfKml(const QString& kml);
 
+/// @brief A note with the words of its paragraph just before its number (the Footnotes panel)
+struct NoteInText {
+    Footnote note;
+    QString before;  ///< At most the words asked for, "…" first when the paragraph has more
+
+    bool operator==(const NoteInText&) const = default;
+};
+
+/// @brief The notes of a text's KML as notesOfKml() reads them, each with at most @p words
+///        words of its paragraph before its number (the text of the other notes and of the
+///        fields left out)
+std::vector<NoteInText> notesInKml(const QString& kml, int words);
+
+/// @brief At most the last @p words words of @p text, "…" first when it has more; the
+///        objects of the text (U+FFFC: notes, images, fields) left out
+QString lastWords(const QString& text, int words);
+
 }  // namespace kalahari::editor
 
 #endif  // KALAHARI_EDITOR_TEXT_FOOTNOTES_H
