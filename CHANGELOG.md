@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Installers of the program** - 2026-11-20. Kalahari has packages for the three systems,
+  made from a Release build by `scripts/package.py` and in every run of the CI: for Windows an
+  installer (NSIS; for the current user without an administrator, or for all users; the Start
+  menu, optionally the desktop, the `.klh` books opening in the program; Polish or English, as
+  Windows speaks) and a ZIP of the program without installation; for Linux an AppImage and a
+  `.deb` package for Ubuntu 24.04 and Linux Mint 22 (in `/opt/kalahari`, with a menu entry and
+  the type of the `.klh` files), whose windows for choosing a file are those of the system (the
+  GTK theme of Qt, the desktop portal) and otherwise Qt's own, in Polish; for macOS a `.dmg`
+  with `Kalahari.app` (signed ad hoc, books opened in Finder go to the program). Each package
+  carries the Qt and the Python of the program and is checked before it is written by the new
+  `kalahari --self-test`, which checks the resources, the icon, the translations, the Qt
+  plugins of images, the database and secure connections, and the Python of the plugins. The
+  windows, the taskbar and the Dock show the logo of the program (`scripts/make_app_icons.py`
+  makes its sizes, the `.ico` and the `.icns`), and `kalahari.exe` has its icon and version. A
+  version tag attaches the packages of main to the draft release. The log file `kalahari.log`
+  is in the folder of the program only where the program may write there; otherwise (an
+  installation for all users, the Linux packages, always on macOS) it is in the folder of the
+  settings, no longer in the working folder (a menu entry started the program in the home
+  folder). Python keeps its compiled modules in the cache folder of the user
+  (`kalahari/python`), not next to the modules, so the program writes nothing into its
+  installation. Packaging: `cmake/Packaging.cmake`, `packaging/`, BUILDING.md "Packages".
+
 - **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
   for Publishers, with its number in the Navigator: the sentences about the book and the
   synopses, each a text of the book in as many versions as the writer wants, with a template of

@@ -17,7 +17,9 @@ jobs:
   build:
     name: Windows Build & Test
     runs-on: windows-latest
-    timeout-minutes: 120  # Qt6 via vcpkg takes a long time without a warm binary cache
+    # Without a warm binary cache vcpkg builds Qt6 for about 1.5 hours before the build
+    # and the tests of the program (about 1 hour more), so 120 minutes are not enough
+    timeout-minutes: 180
 
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
@@ -124,8 +126,12 @@ jobs:
     # cache but do not save their own: each copy is ~600 MB, and copies saved by pull
     # requests pushed main's out of the 10 GB repository limit, so main and every new
     # pull request rebuilt Qt for about 2 hours. Old entries age out of the cache.
+    # A run started by hand on main (Actions > WINDOWS > Run workflow) saves it too,
+    # which refreshes a cache that vcpkg no longer matches without waiting for a push.
     - name: Save vcpkg binary cache
-      if: matrix.build_type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: >-
+        matrix.build_type == 'Release' && github.ref == 'refs/heads/main' &&
+        (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       uses: actions/cache/save@v4
       with:
         path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
@@ -139,11 +145,28 @@ jobs:
         cd build
         ctest --output-on-failure --build-config ${{ matrix.build_type }} --parallel 4
 
-    - name: Upload binaries (Release only)
+    # The installer and the ZIP of the program (scripts/package.py), checked by the program's
+    # own check of an installation. The release of a version takes them from the run of main
+    # (release.yml)
+    - name: NSIS for the installer
+      if: matrix.build_type == 'Release'
+      shell: pwsh
+      run: |
+        $nsis = Join-Path ${env:ProgramFiles(x86)} "NSIS\makensis.exe"
+        if (-not (Get-Command makensis -ErrorAction SilentlyContinue) -and -not (Test-Path $nsis)) {
+          choco install nsis -y --no-progress
+        }
+
+    - name: Packages (installer and ZIP)
+      if: matrix.build_type == 'Release'
+      run: python scripts/package.py windows --build build --out dist
+
+    - name: Upload packages
       if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v4
       with:
-        name: kalahari-windows-${{ matrix.build_type }}
-        path: |
-          build/bin/kalahari.exe
-        retention-days: 7
+        name: kalahari-windows-packages
+        path: dist/*
+        if-no-files-found: error
+        compression-level: 0  # the packages are compressed already
+        retention-days: 30

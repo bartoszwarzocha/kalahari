@@ -142,6 +142,11 @@ public:
                         const QColor& primary = QColor(),
                         const QColor& secondary = QColor());
 
+    /// @brief The icon of the program (its logo): the windows, the taskbar and the Dock show it
+    /// @return The sizes of resources/images/app_icon (kalahari_<N>.png, made by
+    ///         scripts/make_app_icons.py); an empty QIcon when the resources are not found
+    [[nodiscard]] QIcon getApplicationIcon() const;
+
     /// @brief Get template icon ID for a book genre
     /// @param genre Genre string from .klh file (e.g., "fiction", "poetry", "nonfiction")
     /// @return Icon action ID (e.g., "template.novel", "template.poetry")

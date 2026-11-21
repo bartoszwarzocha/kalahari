@@ -71,8 +71,15 @@ public:
     static QString defaultKey();
 
 signals:
-    /// @brief A later start asks to show the window and to open @p path (empty: nothing)
+    /// @brief A later start asks to show the window and to open @p path (empty: nothing); so
+    /// does a book opened in Finder on macOS
     void requested(const QString& path);
+
+protected:
+    /// @brief A file opened from Finder: macOS asks the program that runs, or the one it starts
+    /// for it, with an event (QFileOpenEvent) instead of the command line, and the program
+    /// takes it as the request of a later start
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     /// @brief Read the request of a later start, answer it and pass it on

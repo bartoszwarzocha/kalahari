@@ -35,8 +35,9 @@ jobs:
     name: Linux Build & Test
     runs-on: ubuntu-24.04
     # System packages, no vcpkg. The build took 21 minutes on the runner for main at 0.4.0-alpha
-    # and 37 minutes after the nine features merged in November 2026; the whole job took 40
-    timeout-minutes: 60
+    # and 37 minutes after the nine features merged in November 2026; the whole job took 40,
+    # and the packages add a few minutes
+    timeout-minutes: 75
 
     strategy:
       matrix:
@@ -158,13 +159,22 @@ jobs:
         if-no-files-found: ignore
         retention-days: 30
 
-    - name: Upload binaries (Release only)
+    # The AppImage and the .deb package (scripts/package.py), each checked by the program's own
+    # check of an installation on the screen of Xvfb. The release of a version takes them from
+    # the run of main (release.yml)
+    - name: Packages (AppImage and .deb)
+      if: matrix.build_type == 'Release'
+      run: xvfb-run -a python scripts/package.py linux --build build --out dist
+
+    - name: Upload packages
       if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v4
       with:
-        name: kalahari-linux-${{ matrix.build_type }}
-        path: build/bin/kalahari*
-        retention-days: 7
+        name: kalahari-linux-packages
+        path: dist/*
+        if-no-files-found: error
+        compression-level: 0  # the packages are compressed already
+        retention-days: 30
 
   # Debug build with AddressSanitizer + UndefinedBehaviorSanitizer, libstdc++ assertions
   # (out-of-range iterators and indices, ABI-compatible with system Qt) and line coverage.

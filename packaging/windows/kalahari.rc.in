@@ -1,0 +1,35 @@
+// The icon and the version of kalahari.exe, which Explorer, the taskbar and the properties of
+// the file show. cmake/Packaging.cmake fills it in (build/packaging/kalahari.rc).
+#pragma code_page(65001)
+#include <winver.h>
+
+IDI_KALAHARI ICON "@KALAHARI_ICO_PATH@"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+ PRODUCTVERSION @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+ FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+ FILEFLAGS @KALAHARI_RC_FILEFLAGS@
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VFT_APP
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "Bartosz W. Warzocha & Kalahari Team"
+            VALUE "FileDescription", "Kalahari - Writer's IDE"
+            VALUE "FileVersion", "@KALAHARI_VERSION_STRING@"
+            VALUE "InternalName", "kalahari"
+            VALUE "LegalCopyright", "@KALAHARI_COPYRIGHT@"
+            VALUE "OriginalFilename", "kalahari.exe"
+            VALUE "ProductName", "Kalahari"
+            VALUE "ProductVersion", "@KALAHARI_VERSION_STRING@"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

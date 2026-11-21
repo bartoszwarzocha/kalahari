@@ -148,6 +148,7 @@ set(TEST_SOURCES
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
     gui/test_program_instance.cpp                # A later start hands its request to the program that runs
+    gui/test_installation.cpp                    # The log of an installed program, --self-test
     gui/test_recent_book_cards.cpp               # Dashboard: the data of the recent books
     gui/test_save_all.cpp                        # Save All: the book and the files outside it
     gui/test_document_windows.cpp                # The tabs of the texts in windows of their own
@@ -405,6 +406,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/navigator_panel_series.cpp  # The volumes of a series
     ${CMAKE_SOURCE_DIR}/src/gui/recent_books_menu.cpp       # File > Recent Books submenu
     ${CMAKE_SOURCE_DIR}/src/gui/program_instance.cpp        # A later start hands its request over
+    ${CMAKE_SOURCE_DIR}/src/gui/installation.cpp            # The log of an installed program, --self-test
     ${CMAKE_SOURCE_DIR}/src/gui/menu_builder.cpp            # The menus of the commands: the File menu, the titles and order for the shortcuts list
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # Navigator commands on the open project
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator_series.cpp  # The volumes of a series
@@ -1027,6 +1029,18 @@ target_link_libraries(kalahari-tests PRIVATE
     # bwx_gui removed - wxWidgets library no longer used (Qt6 migration)
 )
 
+# macOS: the test program carries the static Python of vcpkg itself, and the modules of C of
+# that Python (lib-dynload) look its C API up in the process (flat namespace). Without
+# -export_dynamic the linker does not keep those symbols of the program for them ("symbol not
+# found in flat namespace"); CPython links its own program on macOS with it. The program
+# itself has Python in libkalahari_core.dylib, whose symbols a library exports.
+# Not in Debug: its Python is a debug build (vcpkg --with-pydebug), which also loads the
+# modules of a release Python and crashed on them (SIGSEGV); without the symbols they fail to
+# load with an ImportError, as the debug Python on Windows does (test_installation.cpp)
+if(APPLE)
+    target_link_options(kalahari-tests PRIVATE "$<$<NOT:$<CONFIG:Debug>>:LINKER:-export_dynamic>")
+endif()
+
 # OpenSpec #00042: Hunspell include/library paths for spell check service
 target_include_directories(kalahari-tests PRIVATE ${HUNSPELL_INCLUDE_DIRS})
 target_link_directories(kalahari-tests PRIVATE ${HUNSPELL_LIBRARY_DIRS})
@@ -1137,6 +1151,11 @@ add_test(NAME scripts.release
 )
 add_test(NAME scripts.release_check
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/release.py check
+)
+# The packages of the program (scripts/package.py): its lists, folders and checks, and the
+# files of the packages agreeing with each other; the CI makes the packages themselves
+add_test(NAME scripts.package
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_package.py
 )
 
 message(STATUS "Configured test target: kalahari-tests")

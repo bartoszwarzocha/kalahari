@@ -358,6 +358,7 @@ set(KALAHARI_SOURCES
     gui/main_window.cpp
     gui/menu_builder.cpp
     gui/program_instance.cpp  # ProgramInstance - a later start hands its request to the program that runs
+    gui/installation.cpp  # Where the installed program keeps its log, and --self-test
     gui/recent_books_menu.cpp
     gui/settings_dialog.cpp
     gui/settings/settings_page.cpp
@@ -861,12 +862,16 @@ endif()
 
 # Copy resources to output directory after each build (OpenSpec #00029)
 # This ensures resources are always up-to-date, unlike file(COPY) which only runs at configure time
-add_custom_command(TARGET kalahari POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/resources"
-        "$<TARGET_FILE_DIR:kalahari>/resources"
-    COMMENT "Copying resources to output directory"
-)
+# macOS: only in Contents/Resources (below); Contents/MacOS holds code alone, and codesign takes
+# its folders with a dot in the name (booktypes/kalahari.base) for bundles and refuses them
+if(NOT APPLE)
+    add_custom_command(TARGET kalahari POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/resources"
+            "$<TARGET_FILE_DIR:kalahari>/resources"
+        COMMENT "Copying resources to output directory"
+    )
+endif()
 
 # Platform-specific settings
 if(WIN32)
