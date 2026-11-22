@@ -447,8 +447,10 @@ TEST_CASE("Series: a volume of the list of the cover collapses and expands, with
     CHECK_FALSE(panel->isVolumeCollapsed(2));
     CHECK(panel->currentMaterial() == second);
 
-    // The plan keeps the materials of a collapsed volume
+    // The plan keeps the materials of a collapsed volume. Without the keys in the list: with
+    // them the plan would take them on its first card, which opens its volume (Windows on CI)
     panel->setVolumeCollapsed(1, true);
+    table->clearFocus();
     panel->showPlan(true);
     REQUIRE(panel->plan() != nullptr);
     CHECK(panel->plan()->hasCard(first));

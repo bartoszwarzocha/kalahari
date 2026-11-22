@@ -45,9 +45,11 @@ class LengthMeter;
 ///
 /// Its length against the target (with the standard pages of a synopsis), where the target
 /// comes from, its template; of a synopsis the points of the template, which the writer
-/// ticks off (Space), saved with the book at once (core::PublishingData::done); its state,
-/// whether the set has it and its own target. Hidden for another element. Esc in the points
-/// gives the keys back to the text in its editor.
+/// ticks off (Space), saved with the book at once (core::PublishingData::done) or, while its
+/// text has changes not saved, saved and dropped with them
+/// (core::ProjectManager::setPublishingPoints()); its state, whether the set has it and its
+/// own target. Hidden for another element. Esc in the points gives the keys back to the text
+/// in its editor.
 class PublishingTextBox : public QGroupBox {
     Q_OBJECT
 
@@ -70,6 +72,10 @@ public:
 
     /// @brief Count the text again (the editor changed it)
     void updateLength();
+
+    /// @brief Show again what the book keeps of text @p elementId when it is the text shown:
+    ///        its changes not saved were dropped, with the points waiting for them
+    void showSaved(const QString& elementId);
 
     /// @brief The length against the target
     [[nodiscard]] LengthMeter* meter() const { return m_meter; }

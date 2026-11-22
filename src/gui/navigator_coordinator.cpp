@@ -20,6 +20,7 @@
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/card_panel.h"
@@ -241,7 +242,9 @@ void NavigatorCoordinator::discardChapterChanges(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
 
     // Forget the unsaved text ProjectManager keeps (single source of truth), with its words
+    // and the points of its template waiting for it, which the Properties panel shows
     m_book.discardChapterContent(elementId);
+    m_propertiesPanel->publishingBox()->showSaved(elementId);
 
     // Clear the display cache
     m_dirtyChapters[elementId] = false;
@@ -289,6 +292,11 @@ void NavigatorCoordinator::countWords() {
         if (const editor::BookEditor* bookEditor = editor->getBookEditor()) {
             pm.setEditorWords(elementId, core::WordTally::of(bookEditor->textCounts(),
                                                              bookEditor->wordCountRules()));
+        }
+        // The set for the publisher has a text for publishers as written
+        if (const core::ProjectElement* element = pm.findElement(elementId);
+            element != nullptr && core::ProjectManager::isPublishingText(*element)) {
+            pm.setEditorText(elementId, editor->getContent());
         }
     }
     m_propertiesPanel->updateWordCounts();
@@ -1087,7 +1095,9 @@ void NavigatorCoordinator::showChapterModified(const QString& elementId, EditorP
         emit chapterDirtyStateChanged(elementId, true);
         emit documentModified();
     } else {
-        // Back to the saved text: nothing to save, and the words are those of its file
+        // Back to the saved text: nothing to save, and the words are those of its file. The
+        // points of a template ticked off meanwhile are those of the saved text.
+        m_book.saveWaitingPoints(elementId);
         discardChapterChanges(elementId);
         if (tabText.startsWith(QLatin1Char('*'))) {
             DocumentWindows::setTabText(editor, tabText.mid(1));

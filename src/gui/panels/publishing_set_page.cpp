@@ -158,6 +158,8 @@ PublishingSetPage::PublishingSetPage(core::ProjectManager& book, QWidget* parent
     // A part included, left out or moved here or on the page of the set
     connect(&m_book, &core::ProjectManager::publishingSetChanged, this,
             &PublishingSetPage::refresh);
+    // The length of a text as written in its editor
+    connect(&m_book, &core::ProjectManager::publishingTextChanged, this, &PublishingSetPage::refresh);
 }
 
 QWidget* PublishingSetPage::createContents(QWidget* parent) {

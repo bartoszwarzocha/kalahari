@@ -1038,6 +1038,7 @@ void BookSearchCoordinator::redoFor(editor::BookEditor& text) {
 void BookSearchCoordinator::keepText(const QString& elementId, const QString& kml) {
     // The text of its file again: nothing to save; else kept, not saved, with its words
     if (kml == m_book.savedChapterText(elementId)) {
+        m_book.saveWaitingPoints(elementId);  // the points ticked off of the saved text
         m_book.discardChapterContent(elementId);
     } else {
         m_book.setChapterContent(elementId, kml);

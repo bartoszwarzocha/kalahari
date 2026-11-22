@@ -135,6 +135,66 @@ bool ProjectManager::setPublishing(const QString& elementId, const PublishingDat
                          [&data](ProjectElement& element) { element.publishing = data; });
 }
 
+bool ProjectManager::setPublishingPoints(const QString& elementId, const QStringList& done,
+                                         bool textChanged) {
+    const ProjectElement* element = findElement(elementId);
+    if (element == nullptr || !isPublishingText(*element)) {
+        Logger::getInstance().warn("setPublishingPoints: Not a text for publishers: {}",
+                                   elementId.toStdString());
+        return false;
+    }
+    if (refusesChange("setPublishingPoints")) {
+        return false;
+    }
+    ElementState* state = stateOf(elementId);
+    // The points wait for the changes of the text, to be saved or dropped with them
+    if (state != nullptr && (textChanged || hasUnsavedText(elementId))) {
+        if (done == element->publishing.done) {
+            state->waitingPoints.reset();
+        } else {
+            state->waitingPoints = done;
+        }
+        return true;
+    }
+    const bool saved = changeDetails("setPublishingPoints", elementId,
+                                     [&done](ProjectElement& text) { text.publishing.done = done; });
+    if (saved && state != nullptr) {
+        state->waitingPoints.reset();
+    }
+    return saved;
+}
+
+QStringList ProjectManager::publishingPointsOf(const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    QStringList saved = element != nullptr ? element->publishing.done : QStringList();
+    const auto state = m_elementStates.constFind(elementId);
+    return state != m_elementStates.cend() ? state->waitingPoints.value_or(std::move(saved))
+                                           : saved;
+}
+
+bool ProjectManager::hasWaitingPoints(const QString& elementId) const {
+    const auto state = m_elementStates.constFind(elementId);
+    return state != m_elementStates.cend() && state->waitingPoints.has_value();
+}
+
+bool ProjectManager::saveWaitingPoints(const QString& elementId) {
+    const auto state = m_elementStates.constFind(elementId);
+    if (state == m_elementStates.cend()) {
+        return true;
+    }
+    const std::optional<QStringList> waiting = state->waitingPoints;
+    if (!waiting) {
+        return true;
+    }
+    const QStringList& done = *waiting;
+    if (!changeDetails("saveWaitingPoints", elementId,
+                       [&done](ProjectElement& text) { text.publishing.done = done; })) {
+        return false;
+    }
+    m_elementStates[elementId].waitingPoints.reset();
+    return true;
+}
+
 bool ProjectManager::setPublishingState(const QString& elementId, const QString& state,
                                         QStringList* drafts) {
     if (drafts != nullptr) {
@@ -264,13 +324,28 @@ QString ProjectManager::publishingTextOf(const QString& elementId) const {
         return {};
     }
     if (!element->file.isEmpty() && formOf(*element) == ElementForm::Text) {
-        // Without the headings of the points of a skeleton, which are no text of the writer
-        const std::optional<QString> kml = textKmlOf(elementId);
+        // As in its editor; without the headings of the points of a skeleton, which are no
+        // text of the writer
+        const auto state = m_elementStates.constFind(elementId);
+        const std::optional<QString> kml = state != m_elementStates.cend() && state->editorText
+                                               ? state->editorText
+                                               : textKmlOf(elementId);
         return kml ? ChapterDocument::kmlToPlainText(
                          *kml, QString::fromLatin1(editor::TEMPLATE_POINT_STYLE_ID))
                    : QString();
     }
     return element->description;
+}
+
+void ProjectManager::setEditorText(const QString& elementId, const QString& kml) {
+    const ProjectElement* element = findElement(elementId);
+    ElementState* state = element != nullptr && isPublishingText(*element) ? stateOf(elementId)
+                                                                           : nullptr;
+    if (state == nullptr || state->editorText == kml) {
+        return;
+    }
+    state->editorText = kml;
+    emit publishingTextChanged(elementId);
 }
 
 QList<PublishingTemplate> ProjectManager::publishingTemplates() const {

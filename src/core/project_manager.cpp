@@ -3617,6 +3617,7 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
     state.words = chapter->wordTally();
     state.scenes = scenesWith(state.content, state.words);
     state.editorWords.reset();
+    state.editorText.reset();
     state.notes = chapter->notes();
     logger.debug("Loaded .kchapter for element: {} ({} chars)", elementId.toStdString(),
                  state.content.length());
@@ -3679,6 +3680,11 @@ void ProjectManager::discardChapterContent(const QString& elementId) {
         state->loaded = false;
         state->dirty = false;
         state->editorWords.reset();  // the file counts the words again
+        state->waitingPoints.reset();  // the points ticked off are those of the file again
+        if (state->editorText) {
+            state->editorText.reset();  // the set has the text of the file again
+            emit publishingTextChanged(elementId);
+        }
     }
 }
 
@@ -3691,19 +3697,19 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
     }
 
     const ElementState state = m_elementStates.value(elementId);
-    if (!state.loaded || !state.dirty) {
-        return true;  // Nothing to save
-    }
-    if (!writeChapterFile(*element, state.content)) {
-        return false;
-    }
-    m_elementStates[elementId].dirty = false;
-    followLinkedParagraphs(elementId);
+    if (state.loaded && state.dirty) {
+        if (!writeChapterFile(*element, state.content)) {
+            return false;
+        }
+        m_elementStates[elementId].dirty = false;
+        followLinkedParagraphs(elementId);
 
-    Logger::getInstance().debug("Saved .kchapter for element: {} ({} words)",
-                                elementId.toStdString(), wordCount(elementId));
-    keepVersionOnSave(elementId, state.content);
-    return true;
+        Logger::getInstance().debug("Saved .kchapter for element: {} ({} words)",
+                                    elementId.toStdString(), wordCount(elementId));
+        keepVersionOnSave(elementId, state.content);
+    }
+    // The points of its template ticked off while the text was not saved go with it
+    return saveWaitingPoints(elementId);
 }
 
 void ProjectManager::followLinkedParagraphs(const QString& elementId) {
@@ -3935,7 +3941,8 @@ std::vector<QString> ProjectManager::getDirtyElements() const {
         return dirtyIds;
     }
     for (const ProjectElement* element : allElements(*m_project)) {
-        if (m_elementStates.value(element->id).dirty) {
+        const auto state = m_elementStates.constFind(element->id);
+        if (state != m_elementStates.cend() && (state->dirty || state->waitingPoints)) {
             dirtyIds.push_back(element->id);
         }
     }
@@ -4167,6 +4174,7 @@ bool ProjectManager::writeChapterFile(const ProjectElement& element,
     state.scenes = scenesWith(kml ? *kml : chapter.kml(), state.words);
     if (kml) {
         state.editorWords.reset();  // the file has the text of the editor now
+        state.editorText.reset();
     }
     return true;
 }

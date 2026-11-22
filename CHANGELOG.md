@@ -376,6 +376,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     the pages that print: the last sheet first, for a printer that lays the sheets face up;
     a sheet keeps its front and its back, the preview shows the sheets in that order, and the
     window remembers the choice.
+  - Texts for publishers: the points of a synopsis ticked off while its text has changes not
+    saved are saved with the text and dropped with it (Don't Save when its tab or the book
+    closes), so the points ticked off always agree with the file; a text with no changes
+    saves them at once, as before. The set for the publisher (its list, Copy All, Export
+    Set...) has a text open in its editor as written, also before it is saved, as File >
+    Export has the open texts.
 
 ---
 

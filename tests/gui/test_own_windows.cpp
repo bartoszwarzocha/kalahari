@@ -320,10 +320,11 @@ TEST_CASE("Own windows: About shows what the program was built from, and copies 
     CHECK(QGuiApplication::clipboard()->text() == AboutDialog::buildInformation());
     CHECK(showsText(dialog, QStringLiteral("Copied to the clipboard.")));
 
-    // Opened, Enter still presses Close
+    // Opened, Enter still presses Close. The field of the dialog that has the keys, also
+    // where the system does not make the dialog the active window (macOS on CI)
     dialog.show();
     QApplication::processEvents();
-    QWidget* focused = QApplication::focusWidget();
+    QWidget* focused = dialog.focusWidget();
     REQUIRE(focused != nullptr);
     CHECK(focused != dialog.copyButton());
     QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);

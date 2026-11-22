@@ -732,7 +732,8 @@ TEST_CASE("Annotation cards: as far from the text's right edge as from its left"
     const QRectF wide = editor->annotationCardRect(QStringLiteral("c1"));
     setCards(*editor, [](AnnotationCardSettings& shown) { shown.sideMarginMm = 2.0; });
     const QRectF narrower = editor->annotationCardRect(QStringLiteral("c1"));
-    CHECK(narrower.width() > wide.width() + 8.0 * 2.0 * 3.0);  // 8 mm more on each side
+    // 8 mm more on each side, at 2.5 pixels a millimetre or more (72 dpi on macOS: 2.83)
+    CHECK(narrower.width() > wide.width() + 8.0 * 2.0 * 2.5);
     CHECK(narrower.center().x() == Approx(wide.center().x()).margin(1.0));
 }
 
