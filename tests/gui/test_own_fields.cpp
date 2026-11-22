@@ -22,6 +22,7 @@
 #include "kalahari_tests/test_support/window_parts.h"
 
 #include <QCoreApplication>
+#include <QFocusEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
@@ -301,8 +302,11 @@ TEST_CASE("Own fields: the group of the Properties panel", "[gui][fields][own][p
                      [&inserted](const QString& id) { inserted << id; });
     QObject::connect(&box, &gui::BookFieldsBox::requestNewField, [&added]() { ++added; });
     QObject::connect(&box, &gui::BookFieldsBox::requestSettings, [&settings]() { ++settings; });
+    // The keys come to the field (sent straight to it: a window shown in a test is not
+    // always active, as on macOS, and then setFocus() sends no FocusIn)
     box.show();
-    value->setFocus();
+    QFocusEvent focusIn(QEvent::FocusIn, Qt::TabFocusReason);
+    QCoreApplication::sendEvent(value, &focusIn);
     QCoreApplication::processEvents();
     box.insertButton()->click();
     CHECK(inserted == QStringList{narrator.id});

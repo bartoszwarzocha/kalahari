@@ -31,6 +31,7 @@
 #include <QMenu>
 #include <QStandardItemModel>
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <string>
@@ -180,15 +181,16 @@ struct Notes {
         return ids.join(QLatin1Char(' ')).toStdString();
     }
 
-    /// A note listed, by its id
+    /// A note listed, by its id; the test fails without it (no code after FAIL, which MSVC
+    /// counts as unreachable)
     [[nodiscard]] FootnoteEntry entry(const QString& id) const {
-        for (const FootnoteEntry& each : coordinator.entries()) {
-            if (each.id == id) {
-                return each;
-            }
+        const std::vector<FootnoteEntry> entries = coordinator.entries();
+        const auto it = std::find_if(entries.cbegin(), entries.cend(),
+                                     [&id](const FootnoteEntry& each) { return each.id == id; });
+        if (it == entries.cend()) {
+            FAIL("no note " << id.toStdString());
         }
-        FAIL("no note " << id.toStdString());
-        return {};
+        return *it;
     }
 };
 
