@@ -447,6 +447,10 @@ private:
     /// names of the cards as they are now
     void fillSuggestions(const QObject* watched);
 
+    /// @brief The list of all the cards under the line @p line of a field of the type "card":
+    /// its arrow, a click in it or Alt+Down (test of 22.11); typing narrows it
+    void showAllCards(QLineEdit* line);
+
     /// @brief Give the card the data @p card, saying so when it cannot be saved
     void saveCard(const core::CardData& card);
 

@@ -212,7 +212,7 @@ void useDefaultSettings() {
     choose(Clippings::NO_SELECTION_SETTING, Clippings::NO_SELECTION_PARAGRAPH);
     choose(Clippings::INSERT_SETTING, Clippings::INSERT_WINDOW);
     choose(Clippings::AFTER_INSERT_SETTING, Clippings::AFTER_INSERT_KEEP);
-    core::SettingsManager::getInstance().set<bool>(Clippings::KEEP_WORDS_SETTING, false);
+    core::SettingsManager::getInstance().set<bool>(Clippings::KEEP_WORDS_SETTING, true);
     core::SettingsManager::getInstance().set<bool>(Clippings::MARKS_SETTING, true);
 }
 
@@ -1233,13 +1233,14 @@ TEST_CASE("Clippings: the commands and their settings", "[gui][clippings]") {
     Window window;
     BookEditor* text = open(window, clipped.storm());
 
-    // The defaults: at once, the paragraph, the window, kept as inserted, the words lowered
+    // The defaults: at once, the paragraph, the window, kept as inserted, the words of the day
+    // as they were
     core::SettingsManager::getInstance().resetToDefaults();
     CHECK(chosen(Clippings::CUT_SETTING) == Clippings::CUT_AT_ONCE);
     CHECK(chosen(Clippings::NO_SELECTION_SETTING) == Clippings::NO_SELECTION_PARAGRAPH);
     CHECK(chosen(Clippings::INSERT_SETTING) == Clippings::INSERT_WINDOW);
     CHECK(chosen(Clippings::AFTER_INSERT_SETTING) == Clippings::AFTER_INSERT_KEEP);
-    CHECK_FALSE(core::SettingsManager::getInstance().get<bool>(Clippings::KEEP_WORDS_SETTING));
+    CHECK(core::SettingsManager::getInstance().get<bool>(Clippings::KEEP_WORDS_SETTING));
 
     // The commands of a registry of their own run on the text with the keys
     gui::CommandRegistry commands;

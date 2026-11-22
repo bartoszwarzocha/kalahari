@@ -498,6 +498,11 @@ signals:
     /// @param keys The page gets the keys (Enter), else the Navigator keeps them (a click)
     void requestOpenBookDictionary(bool keys);
 
+    /// @brief Request to show the plot board on its tab: a click on Plot Board at the top of
+    /// the Workshop, or Enter on it
+    /// @param keys The board gets the keys (Enter), else the Navigator keeps them (a click)
+    void requestOpenPlotBoard(bool keys);
+
     /// @brief Request to hide kind @p list of the materials (MaterialList::HIDDEN_SETTING) in
     /// the Navigator of every book: Hide Kind in the menu of the kind
     void requestHideKind(const QString& list);
@@ -725,7 +730,7 @@ private:
     bool requestPageOf(const QTreeWidgetItem* item, bool keys);
 
     /// @brief Add Book Dictionary at the top of the Workshop (@p workshopItem)
-    void addDictionaryItem(QTreeWidgetItem* workshopItem);
+    void addDictionaryItem(QTreeWidgetItem* workshopItem);  ///< and the Plot Board after it
 
     /// @brief Add the groups of the kinds of the Workshop of @p project with their elements
     /// under @p workshopItem

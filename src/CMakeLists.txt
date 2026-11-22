@@ -834,6 +834,7 @@ target_include_directories(kalahari PRIVATE
 # OpenSpec #00042: Added Hunspell for spell checking (via pkg-config)
 target_link_libraries(kalahari PRIVATE
     kalahari_core
+    kalahari_build_info  # What the program is built from (kalahari/build_info.h)
     Qt6::Core
     Qt6::Widgets
     Qt6::Gui

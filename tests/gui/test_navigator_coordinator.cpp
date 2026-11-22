@@ -864,11 +864,11 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     }
     TestFileChooser chooser(picture);
 
-    // The Workshop has the book's dictionary at its top, and the groups of the kinds the
-    // program makes, also empty: the cards of the characters, the locations and the items,
-    // then the working notes and the kinds of materials, in Materials, after the list Sources
+    // The Workshop has the book's dictionary and the plot board at its top, and the groups of
+    // the kinds the program makes, also empty: the cards of the characters, the locations and
+    // the items, then the working notes and the kinds of materials, in Materials, after the list Sources
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
-          "Book Dictionary, Characters, Locations, Items, Materials");
+          "Book Dictionary, Plot Board, Characters, Locations, Items, Materials");
     CHECK(navigator.itemsIn(QStringLiteral("workshop:materials")) ==
           "Sources, Working notes, Clippings, Cover, Texts for publishers, Quotes, Web pages, "
           "Pictures, Documents, Publications, Recordings, Other files");
@@ -1124,13 +1124,13 @@ TEST_CASE("Navigator commands: the book and the Workshop are named and the Works
     CHECK(pm.project()->workshop.grouped);
     CHECK(novel.savedProject().workshop.grouped);
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
-          "Book Dictionary, Libraries, Materials");
+          "Book Dictionary, Plot Board, Libraries, Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop grouped"));
     navigator.coordinator.onRequestWorkshopGrouped(false);
     CHECK_FALSE(pm.project()->workshop.grouped);
     CHECK_FALSE(novel.savedProject().workshop.grouped);
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
-          "Book Dictionary, Characters, Locations, Items, Materials");
+          "Book Dictionary, Plot Board, Characters, Locations, Items, Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop not grouped"));
 }
 

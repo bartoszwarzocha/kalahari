@@ -28,8 +28,10 @@
 #include "kalahari_tests/gui/document_window.h"
 
 #include <QAbstractButton>
+#include <QAction>
 #include <QApplication>
 #include <QCheckBox>
+#include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QLabel>
 #include <QMenu>
@@ -583,4 +585,74 @@ TEST_CASE("Book windows: what the windows share", "[gui][windows][book-windows]"
         CHECK(second->actions().contains(action));
         characters->setCharacterKeys(U'→', gui::KeyboardShortcut());
     }
+}
+
+TEST_CASE("Book windows: a command that runs is not greyed out in the menus for want of its "
+          "callback",
+          "[gui][windows][book-windows][commands]") {
+    // Test of 22.11: File > Import > DOCX Document... and the other formats stayed greyed out:
+    // their callbacks came after the menus were made, and their items were never told
+    const QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    core::ProjectManager::loadBookTypes(
+        {QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    auto window = std::make_unique<MainWindow>();
+    window->show();
+    QCoreApplication::processEvents();
+    const auto greyed = [&window]() {
+        QStringList ids;
+        for (const gui::Command& command : window->commands().getAllCommands()) {
+            QAction* action = window->commands().getAction(command.id);
+            if (action != nullptr && command.canExecute() && command.checkEnabled() &&
+                !action->isEnabled()) {
+                ids << QString::fromStdString(command.id);
+            }
+        }
+        return ids;
+    };
+    // Without a book, and with one
+    CHECK(greyed().join(QLatin1Char(' ')).toStdString() == std::string());
+    REQUIRE(window->book().createProject(folder.path(), QStringLiteral("Rain"),
+                                         QStringLiteral("Author"), QStringLiteral("en"), false,
+                                         QStringLiteral("kalahari.novel")));
+    QCoreApplication::processEvents();
+    CHECK(greyed().join(QLatin1Char(' ')).toStdString() == std::string());
+    for (const char* id : {"file.import.docx", "file.import.markdown", "file.import.text"}) {
+        INFO(id);
+        QAction* action = window->commands().getAction(std::string(id));
+        REQUIRE(action != nullptr);
+        CHECK(action->isEnabled());
+    }
+    REQUIRE(window->book().closeProject(false));
+}
+
+TEST_CASE("Book windows: File > Export has the program's formats together and PDF first",
+          "[gui][windows][book-windows][commands]") {
+    // Question of 22.11: EPUB stood under a separator, as if it were an add-on; the separator
+    // was left from the plan of the first menus (DOCX, PDF, Markdown, then the e-books)
+    auto window = std::make_unique<MainWindow>();
+    QMenu* file = nullptr;
+    for (QAction* item : window->menuBar()->actions()) {
+        if (item->menu() != nullptr && item->text().remove(QLatin1Char('&')) == "File") {
+            file = item->menu();
+        }
+    }
+    REQUIRE(file != nullptr);
+    QMenu* exportMenu = nullptr;
+    for (QAction* item : file->actions()) {
+        if (item->menu() != nullptr && item->text().remove(QLatin1Char('&')) == "Export") {
+            exportMenu = item->menu();
+        }
+    }
+    REQUIRE(exportMenu != nullptr);
+    QStringList items;
+    for (const QAction* item : exportMenu->actions()) {
+        items << (item->isSeparator() ? QStringLiteral("|") : item->text());
+    }
+    REQUIRE(items.size() >= 7);
+    CHECK(items.mid(0, 7) == QStringList{QStringLiteral("&PDF..."), QStringLiteral("&DOCX..."),
+                                         QStringLiteral("&EPUB..."),
+                                         QStringLiteral("&Markdown..."), QStringLiteral("|"),
+                                         QStringLiteral("&InDesign ICML"),
+                                         QStringLiteral("&LaTeX")});
 }

@@ -325,6 +325,9 @@ struct PageLayout {
     qreal zoomLevel{1.0};                      ///< Zoom of a newly opened document (1.0 = 100%)
     qreal pageGap{20.0};                       ///< Gap between pages in pixels
     bool showPageNumbers{true};                ///< Page numbers at the bottom of the pages
+    bool fillsView{false};                     ///< A text field: in the continuous view the
+                                               ///< page fills the view, without the desk and
+                                               ///< the sheet (the page size is not used)
 
     /// @brief Page dimensions in millimetres
     [[nodiscard]] QSizeF pageSizeMm() const;

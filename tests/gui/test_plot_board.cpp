@@ -603,6 +603,11 @@ TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z u
         CHECK(panel->message() ==
               QStringLiteral("\"The Storm\" is now in the state: Revision."));
 
+        // The cards colored by their state: a color chosen shows the own colors of the cards,
+        // and the board says so (test of 22.11)
+        const KeptSetting colorBy{PlotBoard::COLOR_SETTING};
+        auto& settings = core::SettingsManager::getInstance();
+        settings.set<std::string>(PlotBoard::COLOR_SETTING, PlotBoard::COLOR_STATUS);
         menu = panel->cardMenu(storm);
         const QAction* colors = actionOf(*menu, QStringLiteral("Card &Color"));
         REQUIRE(colors != nullptr);
@@ -610,11 +615,24 @@ TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z u
         REQUIRE(teal != nullptr);
         teal->trigger();
         CHECK(pm.findElement(storm)->plot.color == QStringLiteral("teal"));
+        CHECK(settings.get<std::string>(PlotBoard::COLOR_SETTING) == PlotBoard::COLOR_OWN);
+        CHECK(panel->message() ==
+              QStringLiteral("The card \"The Storm\" is now: Teal. \"Colors:\" – own colors of "
+                             "the cards now."));
 
         press(board, Qt::Key_Z, Qt::ControlModifier);
         CHECK(pm.findElement(storm)->plot.color.isEmpty());
         press(board, Qt::Key_Z, Qt::ControlModifier);
         CHECK(core::ProjectManager::statusOf(*pm.findElement(storm)) == QStringLiteral("draft"));
+
+        // With the own colors already: the color only
+        menu = panel->cardMenu(storm);
+        colors = actionOf(*menu, QStringLiteral("Card &Color"));
+        REQUIRE(colors != nullptr);
+        teal = actionOf(*colors->menu(), QStringLiteral("Teal"));
+        REQUIRE(teal != nullptr);
+        teal->trigger();
+        CHECK(panel->message() == QStringLiteral("The card \"The Storm\" is now: Teal."));
     }
 
     SECTION("Ctrl+X marks the card, Ctrl+V moves it after another, Esc forgets it") {

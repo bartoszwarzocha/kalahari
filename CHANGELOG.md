@@ -312,6 +312,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sure that no page has radio buttons and that every page fits the narrowest window, in English
   and in Polish.
 
+### Fixed
+
+- **After the test of 22.11** - 2026-11-22.
+  - The statistics count only writing: the words typed, deleted, cut or written in a note's
+    frame, and their Undo and Redo. A caption of an image or a table, a clipping cut out of the
+    text and its Undo, a paste, a field, a replacement and the changes of the program no longer
+    show as words written or deleted, so the chart of the status bar no longer jumps. Cutting
+    to the clippings keeps the words of the day by default (Settings > Statistics and Goals).
+    The text a command puts in (a field, the date, a quotation) is a step of Undo of its own,
+    apart from the text typed right before it and after it.
+  - The description of a character, a location or an item is a plain text field on the card:
+    no page, desk or margins, the colors of the theme's fields and the program's font a little
+    larger, the scroll bar only for a longer text; the spelling, the formats and the
+    annotations stay. The view modes are greyed out on the tab of a card.
+  - The context menu of the text has Paste Special under Paste, with the forms of the window
+    of Edit > Paste Special....
+  - The Navigator has the Plot Board under the book's dictionary, and the book toolbar has a
+    button to it; a toolbar customized before gets it once. A color given to a card from its
+    menu switches "Colors:" of the board to the cards' own colors and says so.
+  - A field of a card that names another card has an arrow at its end: it, a click in the
+    field or Alt+Down show all the cards, typing narrows them.
+  - Replace All in Book saves nothing: the texts it changes stay unsaved, and the bar under the
+    text offers Save All.
+  - The scissors of the clippings show in the text by default.
+  - The menu of a misspelled word opens at once; its submenu Suggestions says Loading... until
+    the words are found.
+  - The text of an annotation card keeps its size when the writer starts writing in it; cards
+    are 70% of the text by default, with the same margin on both sides.
+  - The highlights of PDF files are on by default (Settings > Materials > PDF Preview): they
+    change nothing in the file.
+  - File > Import > From DOCX... and the other imports of a book are no longer greyed out: the
+    items of the menus and toolbars take the state of their commands once the book window is
+    made. Window > Tab List works the same.
+  - About shows what the program was built from: the version, the commit (with changes not yet
+    committed, if any), its branch, the date and time of the build, Debug or Release, Qt, the
+    system and the compiler. Copy Build Information puts them on the clipboard.
+  - File > Export has the formats of the program together: PDF, DOCX, EPUB and Markdown; a
+    separator only before the formats not made yet (ICML, LaTeX).
+
 ---
 
 ## [0.4.0-alpha] - 2026-11-17

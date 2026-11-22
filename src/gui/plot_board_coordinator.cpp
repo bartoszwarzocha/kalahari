@@ -432,13 +432,23 @@ void PlotBoardCoordinator::setColor(const QString& elementId, const QString& col
         return;
     }
     const QString name = titleOf(elementId);
-    const QString message =
+    QString message =
         color.isEmpty()
             //: Under the plot board; %1 the title. In Polish: Karta „%1” nie ma już koloru.
             ? tr("The card \"%1\" has no color now.").arg(name)
             //: Under the plot board; %1 the title, %2 the color ("Blue"). In Polish: Karta
             //: „%1” ma teraz kolor: %2.
             : tr("The card \"%1\" is now: %2.").arg(name, PlotColors::ownTitle(color));
+    // The own color of a card shows only with the own colors of the cards: the board shows
+    // them, and says so (test of 22.11)
+    auto& settings = core::SettingsManager::getInstance();
+    if (!color.isEmpty() &&
+        settings.get<std::string>(PlotBoard::COLOR_SETTING) != PlotBoard::COLOR_OWN) {
+        settings.set<std::string>(PlotBoard::COLOR_SETTING, PlotBoard::COLOR_OWN);
+        //: Under the plot board, after "The card ... is now: Blue."; the choice "Colors:" over
+        //: the board. In Polish: „Kolory:” – teraz własne kolory kart.
+        message += QLatin1Char(' ') + tr("\"Colors:\" – own colors of the cards now.");
+    }
     //: What Undo undoes on the plot board, after "Undone:"; %1 the title. In Polish: kolor
     //: karty „%1”
     const QString undoText = tr("the color of the card \"%1\"").arg(name);

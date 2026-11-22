@@ -157,6 +157,10 @@ struct PageModeConfig {
     double firstPageTop = 0.0;                 ///< Where the text starts on page 1, below the top
                                                ///< of its text area (pixels at 100%): it goes on
                                                ///< after another text (PageFlow::firstPageTop)
+    bool fillsView = false;                    ///< A text field (the continuous view only): the
+                                               ///< page is as wide and at least as high as the
+                                               ///< view, without the desk, the sheet's edge and
+                                               ///< its shadow; pageSize is not used
 };
 
 /// @brief Typewriter scrolling configuration

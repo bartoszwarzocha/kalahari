@@ -329,6 +329,8 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
 
     // The word being typed gets no spelling wave until the cursor leaves it
     const QScopedValueRollback<bool> typing(m_spellTypingEdit, isTypingKey(event));
+    // What the keys of the text change is the writer's own writing (isWriting())
+    const HandWriting writing(*this);
 
     // The keys of the text, those of the system the program runs on
     bool handled = false;
@@ -386,6 +388,7 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
     const QScopedValueRollback<bool> typing(
         m_spellTypingEdit, !event->commitString().isEmpty() || !event->preeditString().isEmpty() ||
                                m_hasComposition);
+    const HandWriting writing(*this);
 
     // Phase 11: Use QTextCursor for IME operations
     if (!m_textBuffer) return;
@@ -1551,6 +1554,14 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         addEditItem(commands.copy, tr("&Copy"), &BookEditor::copy, false);
     }
     addEditItem(commands.paste, tr("&Paste"), &BookEditor::paste, true);
+    // The forms of Edit > Paste Special..., those the clipboard has not greyed out (test of
+    // 22.11)
+    if (commands.pasteSpecial) {
+        //: The submenu of the text's context menu under Paste. In Polish: Wklej &specjalnie
+        QMenu* special = menu.addMenu(tr("Paste &Special"));
+        commands.pasteSpecial(*special, *this);
+        disableWhileReadOnly(special->menuAction());
+    }
     //: The item of the text's context menu under Paste: Insert > Clipping from the Workshop.
     //: In Polish: Wstaw w&ycinek...
     addCommandItem(commands.insertClipping, tr("&Insert Clipping..."));

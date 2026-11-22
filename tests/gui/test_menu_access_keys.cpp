@@ -32,6 +32,7 @@
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/diagnostic_menus.h"
+#include "kalahari/gui/dialogs/edit_dialogs.h"
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/kind_names.h"
@@ -192,6 +193,9 @@ void collectProblems(const QList<test::MenuItem>& items, const QString& where,
         collectProblems(item.items, name, keyless, problems);
     }
 }
+
+/// Paste Special under Paste, with its five forms (test of 22.11)
+constexpr int PASTE_SPECIAL = 1 + 5;
 
 /// The items of a menu and of its submenus
 int itemCount(const QList<test::MenuItem>& items) {
@@ -562,14 +566,33 @@ void checkCardMenus(editor::BookEditor& booked, bool shown, QStringList& problem
                     problems);
     // and Link Paragraph with Card..., Open Card at Cursor, Linked Materials > Map and
     // Linked Cards > Anna
-    CHECK(itemCount(items) == 1 + 3 + 8 + 2 + 2 + 2);
+    CHECK(itemCount(items) == 1 + 3 + 8 + 2 + 2 + 2 + PASTE_SPECIAL);
     CHECK(labelsOf(items).contains(registry.getAction(
               QStringLiteral("book.linkParagraphCard"))->text()));
     CHECK(labelsOf(items).contains(open->text()));
-    CHECK(labelsOf(items).contains(QCoreApplication::translate(BOOK_EDITOR, "Linked Card&s")));
+    // Paste Special takes its key: the program gives it another one
+    const QString linkedCards = QCoreApplication::translate(BOOK_EDITOR, "Linked Card&s");
+    CHECK(std::ranges::any_of(labelsOf(items), [&linkedCards](const QString& label) {
+        return QString(label).remove(QLatin1Char('&')) == QString(linkedCards).remove(QLatin1Char('&'));
+    }));
     booked.setContextMenuCardActions({});
     booked.setParagraphMarks({}, QIcon());
     open->setEnabled(openEnabled);
+}
+
+/// The commands of the Edit menu that the editor panel gives the text's menu, with the
+/// submenu Paste Special
+editor::BookEditor::ContextMenuEditActions editActions(gui::CommandRegistry& registry) {
+    return {.cut = registry.getAction(QStringLiteral("edit.cut")),
+            .copy = registry.getAction(QStringLiteral("edit.copy")),
+            .paste = registry.getAction(QStringLiteral("edit.paste")),
+            .selectAll = registry.getAction(QStringLiteral("edit.selectAll")),
+            .link = nullptr,
+            .cutToClippings = nullptr,
+            .insertClipping = nullptr,
+            .pasteSpecial = [](QMenu& submenu, editor::BookEditor& text) {
+                gui::dialogs::PasteSpecialDialog::fillMenu(submenu, text);
+            }};
 }
 
 /// The context menus of a book's text: the usual one, without a selection and with one, in
@@ -584,10 +607,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
     editor.fromKml(test::kmlOf({sentence()}));
     // The commands the program gives the text's menu: those of the Edit menu (EditorPanel)
     // and the annotations (AnnotationsCoordinator)
-    editor.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
-                                      registry.getAction(QStringLiteral("edit.copy")),
-                                      registry.getAction(QStringLiteral("edit.paste")),
-                                      registry.getAction(QStringLiteral("edit.selectAll"))});
+    editor.setContextMenuEditActions(editActions(registry));
     editor.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
                                   registry.getAction(QStringLiteral("insert.todo")),
                                   registry.getAction(QStringLiteral("insert.note"))});
@@ -599,13 +619,14 @@ void checkTextMenus(bool shown, QStringList& problems) {
         const QPoint inText = placeOf(editor, 1);
         QList<test::MenuItem> items = contextMenu(&editor, &editor, inText);
         collectProblems(items, QStringLiteral("Text"), {}, problems);
-        CHECK(itemCount(items) == 6);  // Paste, Select All, the three annotations, the color mode
+        // Paste, Select All, the three annotations, the color mode
+        CHECK(itemCount(items) == 6 + PASTE_SPECIAL);
 
         // A click in the selection keeps it
         editor.selectAll();
         items = contextMenu(&editor, &editor, inText);
         collectProblems(items, QStringLiteral("Selected text"), {}, problems);
-        CHECK(itemCount(items) == 8);  // also Cut and Copy
+        CHECK(itemCount(items) == 8 + PASTE_SPECIAL);  // also Cut and Copy
     }
     editor.clearSelection();
 
@@ -613,14 +634,14 @@ void checkTextMenus(bool shown, QStringList& problems) {
     editor.fromKml(QStringLiteral("<kml><ol><li>") + sentence() + QStringLiteral("</li></ol></kml>"));
     QList<test::MenuItem> listMenu = contextMenu(&editor, &editor, placeOf(editor, 1));
     collectProblems(listMenu, QStringLiteral("List item"), {}, problems);
-    CHECK(itemCount(listMenu) == 6 + 6);
+    CHECK(itemCount(listMenu) == 6 + 6 + PASTE_SPECIAL);
 
     // A link: Edit, Open, Copy and Remove Hyperlink on top of the usual menu
     editor.fromKml(QStringLiteral("<kml><p><a href=\"https://example.com\">") + sentence() +
                    QStringLiteral("</a></p></kml>"));
     QList<test::MenuItem> linkMenu = contextMenu(&editor, &editor, placeOf(editor, 1));
     collectProblems(linkMenu, QStringLiteral("Link"), {}, problems);
-    CHECK(itemCount(linkMenu) == 6 + 4);
+    CHECK(itemCount(linkMenu) == 6 + 4 + PASTE_SPECIAL);
 
     // A note's number: Edit, Convert and Delete on top of the usual menu
     for (const QString& kind : {QStringLiteral("footnote"), QStringLiteral("endnote")}) {
@@ -630,7 +651,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         QList<test::MenuItem> noteMenu = contextMenu(
             &editor, &editor, QPoint(qRound(after.left()) - 2, qRound(after.center().y())));
         collectProblems(noteMenu, QStringLiteral("Note"), {}, problems);
-        CHECK(itemCount(noteMenu) == 6 + 3);
+        CHECK(itemCount(noteMenu) == 6 + 3 + PASTE_SPECIAL);
     }
 
     // A field: Edit Field... and Convert to Text on top of the usual menu
@@ -640,7 +661,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
     const QList<test::MenuItem> fieldMenu = contextMenu(
         &editor, &editor, QPoint(qRound(afterField.left()) - 2, qRound(afterField.center().y())));
     collectProblems(fieldMenu, QStringLiteral("Field"), {}, problems);
-    CHECK(itemCount(fieldMenu) == 6 + 2);
+    CHECK(itemCount(fieldMenu) == 6 + 2 + PASTE_SPECIAL);
 
     // An image, selected by the click: Image Properties..., Add Caption, Change Image...,
     // Original Size and Save as Image... (the windows the editor panel gives) on top of the
@@ -650,10 +671,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         test::resizeWidget(pictured, QSize(600, 400));
         pictured.fromKml(QStringLiteral("<kml><p>One <img src=\"images/map.png\" width=\"3cm\"/> "
                                         "two</p></kml>"));
-        pictured.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
-                                            registry.getAction(QStringLiteral("edit.copy")),
-                                            registry.getAction(QStringLiteral("edit.paste")),
-                                            registry.getAction(QStringLiteral("edit.selectAll"))});
+        pictured.setContextMenuEditActions(editActions(registry));
         pictured.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
                                         registry.getAction(QStringLiteral("insert.todo")),
                                         registry.getAction(QStringLiteral("insert.note"))});
@@ -665,7 +683,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         QList<test::MenuItem> imageMenu =
             contextMenu(&pictured, &pictured, image->center().toPoint());
         collectProblems(imageMenu, QStringLiteral("Image"), {}, problems);
-        CHECK(itemCount(imageMenu) == 8 + 5);
+        CHECK(itemCount(imageMenu) == 8 + 5 + PASTE_SPECIAL);
 
         // With the commands of the Image menu, as the editor panel gives them: Image
         // Properties..., Insert Caption..., Alternative Text..., Wrap Text, Rotate and Filter
@@ -692,7 +710,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         QList<test::MenuItem> commandsMenu =
             contextMenu(&pictured, &pictured, image->center().toPoint());
         collectProblems(commandsMenu, QStringLiteral("Image with commands"), {}, problems);
-        CHECK(itemCount(commandsMenu) == 8 + (3 + (1 + 4) + (1 + 5) + (1 + 7) + 4));
+        CHECK(itemCount(commandsMenu) == 8 + (3 + (1 + 4) + (1 + 5) + (1 + 7) + 4) + PASTE_SPECIAL);
     }
 
     // A cell of a table: Insert, Delete and Select, and the commands of the Table menu the
@@ -727,7 +745,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
     QList<test::MenuItem> cellMenu = contextMenu(
         &editor, &editor, editor.inputMethodQuery(Qt::ImCursorRectangle).toRect().center());
     collectProblems(cellMenu, QStringLiteral("Table cell"), {}, problems);
-    CHECK(itemCount(cellMenu) == 6 + (3 + 4 + 3 + 4) + 6);
+    CHECK(itemCount(cellMenu) == 6 + (3 + 4 + 3 + 4) + 6 + PASTE_SPECIAL);
     editor.setContextMenuTableActions({});
     editor.fromKml(test::kmlOf({sentence()}));
 
@@ -740,10 +758,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         annotated.fromKml(QStringLiteral(
             "<kml><annotations><annotation id=\"a1\" kind=\"todo\">Check the date</annotation>"
             "</annotations><p>One <anchor ref=\"a1\">two</anchor> three</p></kml>"));
-        annotated.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
-                                             registry.getAction(QStringLiteral("edit.copy")),
-                                             registry.getAction(QStringLiteral("edit.paste")),
-                                             registry.getAction(QStringLiteral("edit.selectAll"))});
+        annotated.setContextMenuEditActions(editActions(registry));
         annotated.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
                                          registry.getAction(QStringLiteral("insert.todo")),
                                          registry.getAction(QStringLiteral("insert.note"))});
@@ -759,7 +774,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         collectProblems(items, where, {label}, problems);
         CHECK(labelsOf(items).contains(label));
         // Edit, (Collapse,) Mark as Done, Remove, then the usual menu
-        CHECK(itemCount(items) == (cards ? 5 : 4) + 6);
+        CHECK(itemCount(items) == (cards ? 5 : 4) + 6 + PASTE_SPECIAL);
 
         if (cards) {
             const QRectF card = annotated.annotationCardRect(QStringLiteral("a1"));
@@ -797,7 +812,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         collectProblems(items, where + QStringLiteral(", with linked materials"), keyless,
                         problems);
         // and Linked Materials > Map, Clippings From Here > Show Clipping, Restore Here
-        CHECK(itemCount(items) == (cards ? 5 : 4) + 6 + 2 + 3);
+        CHECK(itemCount(items) == (cards ? 5 : 4) + 6 + 2 + 3 + PASTE_SPECIAL);
         const QString paste = registry.getAction(QStringLiteral("edit.paste"))->text();
         CHECK(std::any_of(items.cbegin(), items.cend(),
                           [&paste](const test::MenuItem& item) { return item.text == paste; }));
@@ -824,7 +839,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
     collectProblems(items, QStringLiteral("Misspelled word"), shown ? QStringList() : wordTexts,
                     problems);
     // Suggestions with the words, Ignore All, Add to Your Words, then the usual menu
-    CHECK(itemCount(items) == 1 + words.size() + 2 + 6);
+    CHECK(itemCount(items) == 1 + words.size() + 2 + 6 + PASTE_SPECIAL);
 
     // A word the dictionary has nothing like: the menu says there are none
     editor::BookEditor unknownWord;
@@ -853,11 +868,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         editor::BookEditor booked;
         test::resizeWidget(booked, QSize(600, 400));
         booked.fromKml(test::kmlOf({QStringLiteral("The chaptre of an email.")}));
-        booked.setContextMenuEditActions(
-            {.cut = registry.getAction(QStringLiteral("edit.cut")),
-             .copy = registry.getAction(QStringLiteral("edit.copy")),
-             .paste = registry.getAction(QStringLiteral("edit.paste")),
-             .selectAll = registry.getAction(QStringLiteral("edit.selectAll"))});
+        booked.setContextMenuEditActions(editActions(registry));
         booked.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
                                       registry.getAction(QStringLiteral("insert.todo")),
                                       registry.getAction(QStringLiteral("insert.note"))});
@@ -871,7 +882,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
                         shown ? QStringList() : wordTexts, problems);
         // Suggestions with the words, Ignore All, Add to Book Dictionary, Add to Your Words,
         // Add Name..., Create Card with its kinds, then the usual menu
-        CHECK(itemCount(items) == 1 + words.size() + 4 + 1 + 3 + 6);
+        CHECK(itemCount(items) == 1 + words.size() + 4 + 1 + 3 + 6 + PASTE_SPECIAL);
 
         // A selection of right words: Create Card on top of the usual menu
         booked.setCursorPosition({0, 17});
@@ -880,7 +891,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         collectProblems(items, QStringLiteral("Selection, with the kinds of cards"), {},
                         problems);
         // and the usual menu of a selection, with Switch to Light Mode or Dark Mode
-        CHECK(itemCount(items) == 1 + 3 + 8);
+        CHECK(itemCount(items) == 1 + 3 + 8 + PASTE_SPECIAL);
         CHECK(labelsOf(items).first() ==
               QCoreApplication::translate(BOOK_EDITOR, "C&reate Card"));
 
@@ -898,7 +909,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         CHECK(labelsOf(items).contains(told.first()));
         // the rule's form and its two lines, Ignore All, Edit Rule..., Remove Rule, then the
         // usual menu
-        CHECK(itemCount(items) == 3 + 3 + 6);
+        CHECK(itemCount(items) == 3 + 3 + 6 + PASTE_SPECIAL);
     }
 
     // A misspelled word of a note's text: its words and the note's items on top of the usual
@@ -946,10 +957,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
             "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Check it</annotation>"
             "</annotations><ol><li>The <anchor ref=\"c1\">qxzvwk</anchor> one</li></ol>"
             "</kml>"));
-        all.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
-                                       registry.getAction(QStringLiteral("edit.copy")),
-                                       registry.getAction(QStringLiteral("edit.paste")),
-                                       registry.getAction(QStringLiteral("edit.selectAll"))});
+        all.setContextMenuEditActions(editActions(registry));
         all.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
                                    registry.getAction(QStringLiteral("insert.todo")),
                                    registry.getAction(QStringLiteral("insert.note"))});
@@ -971,7 +979,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         // Suggestions > (No suggestions), Ignore All, Add to Your Words; the annotation's line
         // and its three; the list's six; the usual menu; Linked Materials > Map
         CHECK(suggestionsOf(items) == QStringList{none});
-        CHECK(itemCount(items) == 4 + 4 + 6 + 6 + 2);
+        CHECK(itemCount(items) == 4 + 4 + 6 + 6 + 2 + PASTE_SPECIAL);
         const QString paste = registry.getAction(QStringLiteral("edit.paste"))->text();
         CHECK(std::any_of(items.cbegin(), items.cend(),
                           [&paste](const test::MenuItem& item) { return item.text == paste; }));
@@ -996,7 +1004,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
     collectProblems(items, QStringLiteral("Grammar issue"), told, problems);
     CHECK(labelsOf(items).contains(told.first()));
     // and the two words, Ignore This Rule, then the usual menu
-    CHECK(itemCount(items) == 1 + 2 + 1 + 6);
+    CHECK(itemCount(items) == 1 + 2 + 1 + 6 + PASTE_SPECIAL);
 }
 
 /// The context menus of the Navigator, for every kind of its items: a novel with a part, an

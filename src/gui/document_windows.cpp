@@ -318,6 +318,7 @@ void DocumentWindows::updateFront() {
     if (m_commands != nullptr && m_commands->getCommand(MOVE_TAB_COMMAND) != nullptr) {
         m_commands->updateActionState(MOVE_TAB_COMMAND);
         m_commands->updateActionState(RETURN_TAB_COMMAND);
+        m_commands->updateActionState(TAB_LIST_COMMAND);
     }
     emit frontChanged(page);
 }

@@ -615,6 +615,12 @@ MainWindow::MainWindow(QWidget* parent)
     // Show on the Plot Board in the menu of the book, a part and a text of the Navigator
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowOnPlotBoard,
             m_plotBoardCoordinator, &PlotBoardCoordinator::showOnBoard);
+    // Plot Board at the top of the Workshop of the Navigator, as Book > Plot Board
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenPlotBoard,
+            m_plotBoardCoordinator, [this](bool keys) {
+                m_plotBoardCoordinator->openBoard(QString::fromLatin1(PlotBoard::VIEW_BOARD),
+                                                  keys);
+            });
     // The gear over the board: Settings > Plot Board
     connect(m_plotBoardCoordinator, &PlotBoardCoordinator::settingsRequested, this, [this]() {
         if (m_settingsCoordinator != nullptr) {
@@ -1286,6 +1292,11 @@ MainWindow::MainWindow(QWidget* parent)
         }
     });
 
+    // The items of the menus and toolbars were made before the parts gave the commands what
+    // they do and when they can: each item as its command is now (test of 22.11: File > Import
+    // stayed greyed out)
+    commands().updateAllActionStates();
+
     logger.info("MainWindow initialized successfully");
 }
 
@@ -1896,6 +1907,16 @@ void MainWindow::registerCommands() {
             return editor != nullptr && editor->getBookEditor() != nullptr
                    && editor->getBookEditor()->isReadOnly();
         });
+    // The view modes not in the description of a card: a text field, without pages
+    for (const char* id : {"view.mode.continuous", "view.mode.page"}) {
+        if (Command* command = registry.getCommand(id)) {
+            command->isEnabled = [this, enabled = command->isEnabled]() {
+                const EditorPanel* editor =
+                    m_dockCoordinator != nullptr ? getCurrentEditor() : nullptr;
+                return (!enabled || enabled()) && (editor == nullptr || !editor->hasFieldLook());
+            };
+        }
+    }
     // Insert > Table... also not in a cell of a table, which holds only text
     if (Command* table = registry.getCommand("insert.table")) {
         const auto inTable = [this]() {
@@ -2403,8 +2424,9 @@ void MainWindow::onViewModeContinuous() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: View Mode Continuous");
 
+    // The description of a card is a text field, without pages
     EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
+    if (editor && editor->getBookEditor() && !editor->hasFieldLook()) {
         editor->getBookEditor()->setViewMode(editor::ViewMode::Continuous);
         statusBar()->showMessage(tr("View mode: Continuous"), 2000);
     }
@@ -2416,8 +2438,9 @@ void MainWindow::onViewModePage() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: View Mode Page Layout");
 
+    // The description of a card is a text field, without pages
     EditorPanel* editor = getCurrentEditor();
-    if (editor && editor->getBookEditor()) {
+    if (editor && editor->getBookEditor() && !editor->hasFieldLook()) {
         editor->getBookEditor()->setViewMode(editor::ViewMode::Page);
         statusBar()->showMessage(tr("View mode: Page Layout"), 2000);
     }

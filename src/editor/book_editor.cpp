@@ -1188,10 +1188,16 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     m_undoLevel = 0;
     m_pasteLevels.clear();
     m_movedLevels.clear();
+    m_writingLevels.clear();
     connect(m_textBuffer.get(), &QTextDocument::undoCommandAdded, this, [this]() {
         const int level = ++m_undoLevel;
         m_pasteLevels.removeIf([level](int paste) { return paste >= level; });
         m_movedLevels.removeIf([level](int moved) { return moved >= level; });
+        m_writingLevels.removeIf([level](int writing) { return writing >= level; });
+        // A step of the writer's own writing: its Undo and Redo are writing too
+        if (m_handWriting) {
+            m_writingLevels.insert(level);
+        }
     });
 
     // The grammar of the paragraphs edited is checked when the writer stops typing (the

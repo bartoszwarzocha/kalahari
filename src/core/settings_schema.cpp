@@ -107,8 +107,9 @@ std::map<std::string, json> buildDefaults() {
         {"stats.largeChangeWords", 500},
         {"stats.countPasted", false},
         // A cut to the clippings leaves the words of the day as they were (false: it lowers
-        // them as a deletion does)
-        {"stats.clippingsKeepWords", false},
+        // them as a deletion does); on by default: the graph of writing shows the writing
+        // only (test of 22.11)
+        {"stats.clippingsKeepWords", true},
         {"stats.goalCounting", "net"},
         {"stats.dailyGoalAllBooks", true},
         {"stats.writingDays", 31},
@@ -269,7 +270,7 @@ std::map<std::string, json> buildDefaults() {
         {"materials.pdf.lastZoom", "pageWidth"},
         {"materials.pdf.side", "bookmarks"},
         {"materials.pdf.openAtLastPage", true},
-        {"materials.pdf.highlights", false},
+        {"materials.pdf.highlights", true},
 
         // The commands that the menu of a node of the Navigator has for adding: "named" ("Add..."
         // and the commands named after the kinds most added there) or "single" ("Add..." only)

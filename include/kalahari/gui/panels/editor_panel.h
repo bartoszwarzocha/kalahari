@@ -163,6 +163,19 @@ public:
         return m_statisticsCollector;
     }
 
+    /// @brief Make the editor look and work as a plain text field of the program, or as the
+    ///        editor of the chapters again
+    ///
+    /// The description of a card: the paper fills the view, without the desk, the sheet and
+    /// the page's margins, in the colors of the theme's text fields and a little larger font
+    /// of the program; one view (Continuous) at 100%, without typewriter scrolling, Focus,
+    /// the numbers on the margin, the text frame border and the annotations' cards. The
+    /// spelling, the formats and the annotations' marks stay.
+    void setFieldLook(bool on);
+
+    /// @brief Whether the editor looks as a plain text field (setFieldLook())
+    [[nodiscard]] bool hasFieldLook() const { return m_fieldLook; }
+
     /// @brief Give the editor the editor settings ("editor." keys, with the defaults of the
     ///        settings schema)
     ///
@@ -302,6 +315,7 @@ private:
     int m_settingsListener{0};                              ///< SettingsManager::subscribe() id
     std::atomic<bool> m_settingsPending{false};             ///< scheduleSettings() waits for the
                                                             ///< event loop
+    bool m_fieldLook{false};                                ///< A plain text field (setFieldLook())
 
     /// @brief Statistics collector for tracking writing stats (OpenSpec #00042 Task 7.7)
     editor::StatisticsCollector* m_statisticsCollector{nullptr};

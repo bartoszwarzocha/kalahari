@@ -107,6 +107,8 @@ const QString WORKSHOP_ID_PREFIX = QStringLiteral("workshop:");
 
 /// The type of the node of the book's dictionary at the top of the Workshop
 constexpr const char* BOOK_DICTIONARY_TYPE = "book_dictionary";
+/// The node of the plot board at the top of the Workshop
+constexpr const char* PLOT_BOARD_TYPE = "plot_board";
 /// In a list of open items, the tree has the book and the Workshop as nodes of their own; a
 /// list without it (saved before them) opens them
 const QString WORKSHOP_LAYOUT = QStringLiteral("layout:workshop");
@@ -3119,6 +3121,10 @@ bool NavigatorPanel::requestPageOf(const QTreeWidgetItem* item, bool keys) {
         emit requestOpenBookDictionary(keys);
         return true;
     }
+    if (item != nullptr && typeOf(item) == QLatin1String(PLOT_BOARD_TYPE)) {
+        emit requestOpenPlotBoard(keys);
+        return true;
+    }
     if (const std::optional<QString> list = listOf(item)) {
         emit requestOpenMaterialList(*list, keys);
         return true;
@@ -3137,6 +3143,18 @@ void NavigatorPanel::addDictionaryItem(QTreeWidgetItem* workshopItem) {
     item->setData(0, ICON_ROLE, iconId);
     item->setIcon(0, itemIcon(item, iconId));
     item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+
+    // The plot board beside it, as Book > Plot Board (test of 22.11)
+    auto* board = new QTreeWidgetItem(workshopItem);
+    //: The node at the top of the Workshop in the Navigator, after Book Dictionary, that shows
+    //: the plot board on a tab. In Polish: Tablica fabuły
+    board->setText(0, tr("Plot Board"));
+    board->setData(0, Qt::UserRole, WORKSHOP_ID_PREFIX + QStringLiteral("plotBoard"));
+    board->setData(0, Qt::UserRole + 1, QString::fromLatin1(PLOT_BOARD_TYPE));
+    const QString boardIcon = QStringLiteral("view.plotBoard");
+    board->setData(0, ICON_ROLE, boardIcon);
+    board->setIcon(0, itemIcon(board, boardIcon));
+    board->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 }
 
 AddChooser NavigatorPanel::addChooser() {

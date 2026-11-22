@@ -4324,6 +4324,11 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <extracomment>The tooltip of an own field of the book</extracomment>
         <translation>Zmienia się razem z wartością pola (Wstaw &gt; Pole..., panel „Właściwości”).</translation>
     </message>
+    <message>
+        <source>Paste &amp;Special</source>
+        <extracomment>The submenu of the text's context menu under Paste. In Polish: Wklej &amp;specjalnie</extracomment>
+        <translation>Wklej &amp;specjalnie</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -11396,6 +11401,11 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
         <extracomment>The command of a volume in the Navigator: the volume copied out as a book of its own. In Polish: Wydziel jako osobną &amp;książkę...</extracomment>
         <translation>Wydziel jako osobną &amp;książkę...</translation>
     </message>
+    <message>
+        <source>Plot Board</source>
+        <extracomment>The node at the top of the Workshop in the Navigator, after Book Dictionary, that shows the plot board on a tab. In Polish: Tablica fabuły</extracomment>
+        <translation>Tablica fabuły</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::CentralTabs</name>
@@ -11978,6 +11988,11 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
         <source>&quot;%1&quot; is the only scene of its text.</source>
         <extracomment>Under the plot board: the only scene of a text was to move to another text; %1 the scene. In Polish: „%1” to jedyna scena tekstu.</extracomment>
         <translation>„%1” to jedyna scena tekstu.</translation>
+    </message>
+    <message>
+        <source>"Colors:" – own colors of the cards now.</source>
+        <extracomment>Under the plot board, after "The card ... is now: Blue."; the choice "Colors:" over the board. In Polish: „Kolory:” – teraz własne kolory kart.</extracomment>
+        <translation>„Kolory:” – teraz własne kolory kart.</translation>
     </message>
 </context>
 <context>
@@ -17047,6 +17062,71 @@ Harmonogram projektu:
         <translation>Qt 6 (www.qt.io)
 </translation>
     </message>
+    <message>
+        <source>%1 (with changes not committed)</source>
+        <extracomment>After the hash of the commit in About: the program was built with changes of the code not yet committed. In Polish: %1 (z niezatwierdzonymi zmianami)</extracomment>
+        <translation>%1 (z niezatwierdzonymi zmianami)</translation>
+    </message>
+    <message>
+        <source>%1 (built with %2)</source>
+        <extracomment>The version of Qt in About: %1 the one the program runs with, %2 the one it was built with. In Polish: %1 (kompilacja z %2)</extracomment>
+        <translation>%1 (kompilacja z %2)</translation>
+    </message>
+    <message>
+        <source>Version:</source>
+        <extracomment>In Polish: Wersja:</extracomment>
+        <translation>Wersja:</translation>
+    </message>
+    <message>
+        <source>Commit:</source>
+        <extracomment>The commit of git the program was built from. In Polish: Commit:</extracomment>
+        <translation>Commit:</translation>
+    </message>
+    <message>
+        <source>Branch:</source>
+        <extracomment>The branch of git of that commit. In Polish: Gałąź:</extracomment>
+        <translation>Gałąź:</translation>
+    </message>
+    <message>
+        <source>Built:</source>
+        <extracomment>The date and the time of the build. In Polish: Skompilowano:</extracomment>
+        <translation>Skompilowano:</translation>
+    </message>
+    <message>
+        <source>Configuration:</source>
+        <extracomment>Debug or Release. In Polish: Konfiguracja:</extracomment>
+        <translation>Konfiguracja:</translation>
+    </message>
+    <message>
+        <source>Qt:</source>
+        <extracomment>The version of Qt. In Polish: Qt:</extracomment>
+        <translation>Qt:</translation>
+    </message>
+    <message>
+        <source>System:</source>
+        <extracomment>The operating system and its processor. In Polish: System:</extracomment>
+        <translation>System:</translation>
+    </message>
+    <message>
+        <source>Compiler:</source>
+        <extracomment>In Polish: Kompilator:</extracomment>
+        <translation>Kompilator:</translation>
+    </message>
+    <message>
+        <source>Build</source>
+        <extracomment>The group at the top of the About tab: what the program was built from. In Polish: Kompilacja</extracomment>
+        <translation>Kompilacja</translation>
+    </message>
+    <message>
+        <source>&amp;Copy Build Information</source>
+        <extracomment>Puts the lines of the group Build on the clipboard, for a report of a fault. In Polish: &amp;Kopiuj informacje o kompilacji</extracomment>
+        <translation>&amp;Kopiuj informacje o kompilacji</translation>
+    </message>
+    <message>
+        <source>Copied to the clipboard.</source>
+        <extracomment>After Copy Build Information in About. In Polish: Skopiowano do schowka.</extracomment>
+        <translation>Skopiowano do schowka.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::AddToBookDialog</name>
@@ -21329,6 +21409,32 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <source>files of pictures</source>
         <extracomment>In Polish: pliki obrazów</extracomment>
         <translation>pliki obrazów</translation>
+    </message>
+    <message>
+        <source>&amp;Kalahari Format (with annotations)</source>
+        <extracomment>An item of the submenu Paste Special of the text's context menu. In Polish: Format &amp;Kalahari (z uwagami)</extracomment>
+        <translation>Format &amp;Kalahari (z uwagami)</translation>
+    </message>
+    <message>
+        <source>Keep &amp;Source Formatting</source>
+        <extracomment>In Polish: &amp;Zachowaj formatowanie źródła</extracomment>
+        <translation>&amp;Zachowaj formatowanie źródła</translation>
+    </message>
+    <message>
+        <source>&amp;Merge Formatting</source>
+        <extracomment>In Polish: &amp;Scal formatowanie</extracomment>
+        <translation>&amp;Scal formatowanie</translation>
+    </message>
+    <message>
+        <source>&amp;Text Only</source>
+        <extracomment>In Polish: &amp;Tylko tekst</extracomment>
+        <translation>&amp;Tylko tekst</translation>
+    </message>
+    <message>
+        <source>&amp;Image</source>
+        <comment>paste form</comment>
+        <extracomment>In Polish: &amp;Obraz</extracomment>
+        <translation>&amp;Obraz</translation>
     </message>
 </context>
 <context>
@@ -33431,6 +33537,11 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
         <source>&amp;Save Portrait as a Picture in the Materials</source>
         <extracomment>Saves the portrait put together from parts as a PNG picture among the materials of the book. In Polish: Zapisz portret jako o&amp;braz w materiałach</extracomment>
         <translation>Zapisz portret jako o&amp;braz w materiałach</translation>
+    </message>
+    <message>
+        <source>Show all the cards (Alt+Down)</source>
+        <extracomment>The arrow at the end of a field of a card that names another card. In Polish: Pokaż wszystkie karty (Alt+↓)</extracomment>
+        <translation>Pokaż wszystkie karty (Alt+↓)</translation>
     </message>
 </context>
 <context>

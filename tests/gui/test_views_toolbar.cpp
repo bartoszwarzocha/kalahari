@@ -473,7 +473,7 @@ TEST_CASE("Insert toolbar: every command of the Insert menu, in its groups",
               "insert.sceneBreak | insert.pageBreak");
         CHECK(manager.getToolbarCommands(panels).join(QStringLiteral(" | ")).toStdString() ==
               "view.navigator | view.annotations | view.footnotes | view.log");
-        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 10);
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 11);
 
         // Taken away by the writer after that, they stay away
         QStringList without = manager.getToolbarCommands(insert);
@@ -484,6 +484,43 @@ TEST_CASE("Insert toolbar: every command of the Insert menu, in its groups",
     ToolbarManager next(kalahari::test::commands(), &window);
     CHECK_FALSE(next.getToolbarCommands(insert).contains(QStringLiteral("insert.pageBreak")));
     CHECK(next.getToolbarCommands(panels) == QStringList{QStringLiteral("view.navigator")});
+
+    settings.set<std::string>("toolbars.configurations", savedToolbars);
+    settings.set<int>("toolbars.addedCommands", savedVersion);
+}
+
+TEST_CASE("Book toolbar: Plot Board before Book Properties, also on a toolbar saved before it",
+          "[gui][toolbar][plotboard]") {
+    // Test of 22.11: where to open the plot board from
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string savedToolbars = settings.get<std::string>("toolbars.configurations", "");
+    const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
+    const QString book = QStringLiteral("book");
+
+    // A new toolbar
+    {
+        settings.set<std::string>("toolbars.configurations", "");
+        QMainWindow window;
+        ToolbarManager manager(kalahari::test::commands(), &window);
+        CHECK(manager.getToolbarCommands(book).join(QStringLiteral(" | ")).toStdString() ==
+              "book.newChapter | book.newCharacter | book.newLocation | view.plotBoard | "
+              "book.properties");
+    }
+
+    // Customized before it: the writer's order kept, Plot Board after the command it follows
+    // in the default toolbar, or the nearest one before that the toolbar has
+    settings.set<std::string>(
+        "toolbars.configurations",
+        R"({"builtIn":{"book":["book.properties","book.newChapter"]}})");
+    settings.set<int>("toolbars.addedCommands", 10);
+    {
+        QMainWindow window;
+        ToolbarManager manager(kalahari::test::commands(), &window);
+        CHECK(manager.getToolbarCommands(book).join(QStringLiteral(" | ")).toStdString() ==
+              "book.properties | book.newChapter | view.plotBoard");
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 11);
+    }
 
     settings.set<std::string>("toolbars.configurations", savedToolbars);
     settings.set<int>("toolbars.addedCommands", savedVersion);

@@ -251,6 +251,29 @@ configure_file(
     @ONLY
 )
 
+# What the program is built from (kalahari/build_info.h): the commit, its branch, whether the
+# code differs from it, when and in which configuration. cmake/BuildInfo.cmake runs at every
+# build and writes the file again only when the code is another.
+find_package(Git QUIET)
+set(KALAHARI_BUILD_INFO_SOURCE "${CMAKE_BINARY_DIR}/generated/build_info.cpp")
+add_custom_target(kalahari_build_info_file
+    COMMAND ${CMAKE_COMMAND}
+        "-DGIT_EXECUTABLE=${GIT_EXECUTABLE}"
+        "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        "-DTEMPLATE=${CMAKE_SOURCE_DIR}/cmake/build_info.cpp.in"
+        "-DOUTPUT=${KALAHARI_BUILD_INFO_SOURCE}"
+        -P "${CMAKE_SOURCE_DIR}/cmake/BuildInfo.cmake"
+    BYPRODUCTS "${KALAHARI_BUILD_INFO_SOURCE}"
+    COMMENT "Build information: the commit and the time of the build"
+    VERBATIM
+)
+add_library(kalahari_build_info STATIC "${KALAHARI_BUILD_INFO_SOURCE}")
+add_dependencies(kalahari_build_info kalahari_build_info_file)
+target_include_directories(kalahari_build_info PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_compile_definitions(kalahari_build_info PRIVATE
+    "KALAHARI_BUILD_CONFIGURATION=\"$<CONFIG>\""
+)
+
 # Include directories
 include_directories(
     ${CMAKE_SOURCE_DIR}/include

@@ -276,14 +276,16 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                       IconSet(),
                       callbacks.onImportArchive);
 
-    // Export submenu: DOCX, PDF, Markdown and EPUB open the window of the export
-    // (BookExportCoordinator)
-    REG_CMD("file.export.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX..."), "FILE/Export/DOCX", 120, false, 0);
+    // Export submenu: PDF, DOCX, EPUB and Markdown, all of the program, open the window of the
+    // export (BookExportCoordinator); the separator only before the formats not made yet
     REG_CMD("file.export.pdf", QT_TRANSLATE_NOOP("CommandRegistrar", "&PDF..."), "FILE/Export/PDF",
-            130, false, 0);
-    REG_CMD("file.export.markdown", QT_TRANSLATE_NOOP("CommandRegistrar", "&Markdown..."), "FILE/Export/Markdown", 140, true, 0);
+            120, false, 0);
+    REG_CMD("file.export.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX..."),
+            "FILE/Export/DOCX", 130, false, 0);
     REG_CMD("file.export.epub", QT_TRANSLATE_NOOP("CommandRegistrar", "&EPUB..."),
-            "FILE/Export/EPUB", 150, false, 0);
+            "FILE/Export/EPUB", 140, false, 0);
+    REG_CMD("file.export.markdown", QT_TRANSLATE_NOOP("CommandRegistrar", "&Markdown..."),
+            "FILE/Export/Markdown", 150, true, 0);
     REG_CMD("file.export.icml", QT_TRANSLATE_NOOP("CommandRegistrar", "&InDesign ICML"), "FILE/Export/InDesign ICML", 170, false, 3);
     REG_CMD("file.export.latex", QT_TRANSLATE_NOOP("CommandRegistrar", "&LaTeX"), "FILE/Export/LaTeX", 180, false, 3);
     REG_CMD("file.export.settings", QT_TRANSLATE_NOOP("CommandRegistrar", "Export &Settings..."), "FILE/Export/Export Settings...", 190, true, 2);

@@ -1021,6 +1021,7 @@ qt_add_resources(kalahari-tests "kalahari_test_translations"
 # Link libraries
 target_link_libraries(kalahari-tests PRIVATE
     Catch2::Catch2  # Changed from Catch2WithMain - we have custom main()
+    kalahari_build_info  # What the program is built from (kalahari/build_info.h)
     Qt6::Core
     Qt6::Widgets
     Qt6::Gui

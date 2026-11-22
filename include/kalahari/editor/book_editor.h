@@ -57,6 +57,7 @@
 #include <QList>
 #include <QMap>
 #include <QPointer>
+#include <QScopedValueRollback>
 #include <QSet>
 #include <QTextTable>
 #include <array>
@@ -511,6 +512,29 @@ public:
     /// @brief The level of undo of the text as it is: one for each step undo() takes back
     ///        (Edit > Cut to Clippings follows its step with it)
     [[nodiscard]] int undoLevel() const { return m_undoLevel; }
+
+    /// @brief Whether the change being made now (contentChanged()) is the writer's own
+    ///        writing, which the statistics of writing count
+    ///
+    /// Writing is typing (the characters, the input method, Tab, Enter), deleting with the
+    /// keys, Cut, Edit > Delete, a cut to the clippings that deletes (takeSelection()), the
+    /// text of a note written in its frame (HandWriting), and Undo and Redo of those steps.
+    /// Nothing else is: a caption, an image, a table, a field, a clipping, a replacement, a
+    /// format, a style, a version, a text loaded, nor Undo and Redo of those steps (test of
+    /// 22.11: the graph of writing shows the writing only). A paste is counted apart
+    /// (pastingStarted()).
+    [[nodiscard]] bool isWriting() const { return m_handWriting; }
+
+    /// @brief While it lives, the changes made to the editor are the writer's own writing
+    ///        (isWriting()), and so are their undo levels: the text of a note written in its
+    ///        frame, put into the text when the frame closes
+    class HandWriting {
+    public:
+        explicit HandWriting(BookEditor& editor) : m_writing(editor.m_handWriting, true) {}
+
+    private:
+        QScopedValueRollback<bool> m_writing;
+    };
 
     /// @brief What the break of scene @p scene (from 1: the first scene break of the text) says
     ///        of its scene: its title, description... (sceneBreakAttributeNames())
@@ -1831,6 +1855,9 @@ public:
         /// their own names, with the icons, the keys and the state of the commands
         QAction* cutToClippings = nullptr;
         QAction* insertClipping = nullptr;  ///< Insert > Clipping (see cutToClippings)
+        /// The items of the submenu Paste Special under Paste: the forms of Edit > Paste
+        /// Special... (the application's); without it the menu has none
+        std::function<void(QMenu& submenu, BookEditor& text)> pasteSpecial{};
     };
 
     /// @brief The commands of the Edit menu the text's context menu shows as its editing
@@ -2814,6 +2841,7 @@ private:
     struct LevelKind {
         bool pasting = false;  ///< A paste (m_pasteLevels)
         bool moving = false;   ///< Words moved, not written (m_movedLevels)
+        bool writing = false;  ///< The writer's own writing (m_writingLevels, isWriting())
     };
 
     /// @brief Announce that undo or redo changes level @p level: pastingStarted() for a paste,
@@ -3704,6 +3732,11 @@ private:
     /// The levels of undo that took text to another text (takeSelection()): undoing and
     /// redoing them is moving too
     QSet<int> m_movedLevels;
+    /// The levels of undo made by the writer's own writing (isWriting()): undoing and
+    /// redoing them is writing too
+    QSet<int> m_writingLevels;
+    /// The change being made now is the writer's own writing (isWriting(), HandWriting)
+    bool m_handWriting = false;
 
     /// @brief The last level of undo pasted or dropped text: pastingFinished()
     void finishPasting();

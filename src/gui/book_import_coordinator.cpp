@@ -162,6 +162,8 @@ void BookImportCoordinator::connectCommands() {
             command->execute = [this, format = format]() {
                 importFormat(format);
             };
+            // The menus are made before: their items are greyed out until told (test of 22.11)
+            m_commands.updateActionState(id);
         }
     }
     // Other Formats: those of the plugins, greyed out while no plugin has one
@@ -173,6 +175,7 @@ void BookImportCoordinator::connectCommands() {
             //: importuje innych formatów.
             return tr("No plugin imports other formats.");
         };
+        m_commands.updateActionState(PLUGIN_COMMAND);
     }
 }
 

@@ -629,6 +629,11 @@ void BookEditor::updateScrollBarRange()
     m_verticalScrollBar->setMaximum(static_cast<int>(std::ceil(maxOffset)));
     m_verticalScrollBar->setPageStep(std::max(1, static_cast<int>(pageStep)));
     m_updatingScrollBar = false;
+    // A text field shows its scroll bar only while there is something to scroll (the text
+    // keeps the bar's room, so it does not wrap anew when the bar comes)
+    if (m_appearance.pageLayout.fillsView && !m_distractionFree) {
+        m_verticalScrollBar->setVisible(maxOffset >= 1.0);
+    }
 
     // Position scrollbar on right edge (also update position on resize)
     int scrollBarWidth = m_verticalScrollBar->sizeHint().width();
@@ -711,6 +716,7 @@ void BookEditor::applyPageLayout()
         left = margins.firstPageLeft ? margins.outer : margins.inner;
         right = margins.firstPageLeft ? margins.inner : margins.outer;
     }
+    m_renderPipeline->setConfigFillsView(m_appearance.pageLayout.fillsView);
     m_renderPipeline->setConfigPageLayout(sizePoints,
                                           QMarginsF(left, margins.top, right, margins.bottom),
                                           m_appearance.pageLayout.pageGap, margins.mirrored);
@@ -913,9 +919,11 @@ void BookEditor::setDistractionFree(bool enabled)
     }
     m_distractionFree = enabled;
 
-    // The scroll bars hide with the window's bars (the wheel and the keys still scroll)
+    // The scroll bars hide with the window's bars (the wheel and the keys still scroll); a
+    // text field's comes back only with something to scroll
     if (m_verticalScrollBar != nullptr) {
-        m_verticalScrollBar->setVisible(!enabled);
+        m_verticalScrollBar->setVisible(
+            !enabled && (!m_appearance.pageLayout.fillsView || m_verticalScrollBar->maximum() > 0));
     }
     updateHorizontalScrollBar();
 

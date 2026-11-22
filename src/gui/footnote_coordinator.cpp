@@ -463,6 +463,8 @@ void FootnoteCoordinator::saveWriting() {
     }
     const Writing writing = *m_writing;
     if (writing.editor != nullptr && m_frame != nullptr) {
+        // The text of the note is the writer's own writing, as the text typed in the editor
+        const editor::BookEditor::HandWriting hand(*writing.editor);
         writing.editor->setNoteContent(writing.id, m_frame->content(), writing.isNew);
     }
     closeFrame();

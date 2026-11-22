@@ -65,7 +65,8 @@ struct AddedCommand {
 ///   8: Repetitions in Text on the Views toolbar
 ///   9: Special Character on the Insert toolbar
 ///  10: Footnotes on the Panels toolbar; every command of the Insert menu on the Insert toolbar
-constexpr std::array<AddedCommand, 36> ADDED_COMMANDS{{
+///  11: Plot Board on the Book toolbar
+constexpr std::array<AddedCommand, 37> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
@@ -102,6 +103,7 @@ constexpr std::array<AddedCommand, 36> ADDED_COMMANDS{{
     {"insert", "insert.horizontalLine", 10},
     {"insert", "insert.sceneBreak", 10},
     {"insert", "insert.pageBreak", 10},
+    {"book", "view.plotBoard", 11},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -121,7 +123,7 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 10;
+constexpr int CHANGED_COMMANDS_VERSION = 11;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
@@ -276,7 +278,8 @@ void ToolbarManager::initializeConfigs() {
         QT_TRANSLATE_NOOP("QObject", "&Book Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
-        {"book.newChapter", "book.newCharacter", "book.newLocation", "book.properties"}
+        {"book.newChapter", "book.newCharacter", "book.newLocation", "view.plotBoard",
+         "book.properties"}
     };
 
     // Panels Toolbar (panel toggles): standing by the right edge of the window, next to the

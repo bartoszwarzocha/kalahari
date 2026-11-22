@@ -16,11 +16,14 @@
 #include "kalahari/core/publishing_texts.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/publishing_templates_dialog.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/icon_registrar.h"
+#include "kalahari/gui/main_window.h"
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <QAction>
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
@@ -33,6 +36,10 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTableWidget>
+#include <QTemporaryDir>
+#include <QTimer>
+
+#include <memory>
 
 namespace core = kalahari::core;
 namespace gui = kalahari::gui;
@@ -370,4 +377,45 @@ TEST_CASE("Templates of Texts for Publishers: fits a small screen, in English an
     const test::Polish polish;
     REQUIRE(polish.loaded());
     checkFits(novel.pm, "Polish");
+}
+
+TEST_CASE("Templates of Texts for Publishers: Tools > Texts for Publishers > Templates... opens "
+          "the window in the book window",
+          "[gui][publishing][dialogs][window]") {
+    // Test of 22.11: the command opened nothing
+    gui::registerAllIcons();
+    const test::PublishingSettings kept;
+    const QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    core::ProjectManager::loadBookTypes(
+        {QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    auto window = std::make_unique<gui::MainWindow>();
+    window->show();
+    REQUIRE(window->book().createProject(folder.path(), QStringLiteral("Rain"),
+                                         QStringLiteral("Author"), QStringLiteral("en"), false,
+                                         QStringLiteral("kalahari.novel")));
+    QCoreApplication::processEvents();
+
+    gui::Command* command = window->commands().getCommand("tools.publishing.templates");
+    REQUIRE(command != nullptr);
+    REQUIRE(command->execute);
+    QAction* action = window->commands().getAction(QStringLiteral("tools.publishing.templates"));
+    REQUIRE(action != nullptr);
+    CHECK(action->isEnabled());
+    QStringList rows;
+    bool shown = false;
+    QTimer::singleShot(0, [&shown, &rows]() {
+        auto* dialog = qobject_cast<PublishingTemplatesDialog*>(test::shownDialog());
+        shown = dialog != nullptr;
+        if (dialog != nullptr) {
+            rows = rowsOf(*dialog->templateList());
+        }
+        if (QDialog* any = test::shownDialog()) {
+            any->reject();
+        }
+    });
+    action->trigger();
+    CHECK(shown);
+    CHECK(rows.contains(QStringLiteral("[Novel – Built-in]")));
+    REQUIRE(window->book().closeProject(false));
 }

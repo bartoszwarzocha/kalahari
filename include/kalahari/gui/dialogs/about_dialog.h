@@ -9,6 +9,8 @@
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
+class QLabel;
+class QPushButton;
 class QTabWidget;
 
 namespace kalahari::gui::dialogs {
@@ -17,8 +19,10 @@ namespace kalahari::gui::dialogs {
 /// license
 ///
 /// The heading of the program's own dialogs names the program, its version and the version of
-/// Qt it runs with; under it three tabs: About, Third-Party Components and License. Close (or
-/// Esc) closes the dialog.
+/// Qt it runs with; under it three tabs: About, Third-Party Components and License. The About
+/// tab opens with what the program was built from (the commit, its branch, when, the
+/// configuration), which Copy Build Information puts on the clipboard. Close (or Esc) closes
+/// the dialog.
 ///
 /// @see MainWindow::onAbout()
 class AboutDialog : public KalahariDialog {
@@ -31,6 +35,15 @@ public:
 
     /// @brief The tabs: About, Third-Party Components, License
     [[nodiscard]] QTabWidget* tabs() const { return m_tabs; }
+
+    /// @brief What the program was built from, a line for each: the version, the commit, its
+    /// branch, when, the configuration, Qt, the system and the compiler
+    ///
+    /// The text Copy Build Information puts on the clipboard, for a report of a fault.
+    [[nodiscard]] static QString buildInformation();
+
+    /// @brief Copy Build Information
+    [[nodiscard]] QPushButton* copyButton() const { return m_copy; }
 
 private:
     /// @brief Creates "About" tab content
@@ -45,7 +58,12 @@ private:
     /// @return Widget containing full MIT license text
     QWidget* createLicenseTab();
 
+    /// @brief The group of the About tab with what the program was built from, and its button
+    QWidget* createBuildGroup(QWidget* parent);
+
     QTabWidget* m_tabs = nullptr;
+    QPushButton* m_copy = nullptr;
+    QLabel* m_copied = nullptr;  ///< "Copied to the clipboard." after Copy
 };
 
 } // namespace kalahari::gui::dialogs
