@@ -293,6 +293,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/rule_dialog.cpp  # RuleDialog - a spelling rule of the book dictionary
     gui/dialogs/deadline_dialog.cpp  # DeadlineDialog - a deadline of the book
     gui/dialogs/text_plan_dialog.cpp  # TextPlanDialog - the schedule of a text
+    gui/dialogs/spread_plan_dialog.cpp  # SpreadPlanDialog - the writing of many texts planned
     gui/dialogs/new_quote_dialog.cpp  # NewQuoteDialog - a quote from a selection of a PDF
     gui/dialogs/source_lookup_dialog.cpp  # SourceLookupDialog - From the Web by ISBN or DOI...
     gui/dialogs/challenge_dialog.cpp  # ChallengeDialog - Add Challenge
@@ -655,6 +656,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rule_dialog.h  # RuleDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/deadline_dialog.h  # DeadlineDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/text_plan_dialog.h  # TextPlanDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/spread_plan_dialog.h  # SpreadPlanDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_quote_dialog.h  # NewQuoteDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/source_lookup_dialog.h  # SourceLookupDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/challenge_dialog.h  # ChallengeDialog with Q_OBJECT

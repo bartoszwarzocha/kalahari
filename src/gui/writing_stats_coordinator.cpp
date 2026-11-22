@@ -171,6 +171,26 @@ QList<ScheduleRow> scheduleRowsOf(const core::ProjectManager& projects)
     return rows;
 }
 
+/// @brief The texts of the open book as the daily goal of its schedule counts them: their
+/// words now and whether they are still written (not in revision, not final)
+QHash<QString, core::PlannedText> plannedTextsOf(const core::ProjectManager& projects)
+{
+    QHash<QString, core::PlannedText> texts;
+    if (projects.book() == nullptr) {
+        return texts;
+    }
+    for (const PlotBand& band : PlotBoard::bandsOf(projects)) {
+        for (const PlotCard& card : band.cards) {
+            core::PlannedText text;
+            text.words = card.words;
+            text.beingWritten = card.status != QLatin1String("revision")
+                                && card.status != QLatin1String("final");
+            texts.insert(card.id, text);
+        }
+    }
+    return texts;
+}
+
 }  // namespace
 
 WritingStatsCoordinator::WritingStatsCoordinator(core::ProjectManager& book,
@@ -192,6 +212,7 @@ WritingStatsCoordinator::WritingStatsCoordinator(core::ProjectManager& book,
         return openBook != nullptr ? m_book.statisticsOf(openBook->mainElements).words : 0;
     });
     m_model->setSeriesWordsSource([this]() { return seriesWordsOf(m_book); });
+    m_model->setPlannedTextsSource([this]() { return plannedTextsOf(m_book); });
     m_tracker = new WritingAwardsTracker(m_model, this);
     m_tracker->setBookSource(awardsSource(m_book));
     m_sessionStart = m_model->now();

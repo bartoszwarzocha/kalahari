@@ -8,6 +8,7 @@
 
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/dialogs/spread_plan_dialog.h"
 #include "kalahari/gui/dialogs/text_plan_dialog.h"
 #include "kalahari/gui/writing_stats_model.h"
 
@@ -102,6 +103,9 @@ WritingScheduleTab::WritingScheduleTab(WritingStatsModel* model, QWidget* parent
     m_daysOff = new QCheckBox(this);
     m_daysOff->setObjectName(QStringLiteral("scheduleDaysOff"));
     header->addWidget(m_daysOff);
+    m_spread = new QPushButton(this);
+    m_spread->setObjectName(QStringLiteral("scheduleSpread"));
+    header->addWidget(m_spread);
     m_goals = new QPushButton(this);
     m_goals->setObjectName(QStringLiteral("scheduleGoals"));
     m_goals->setIcon(core::ArtProvider::getInstance().getIcon(QStringLiteral("tools.writingGoals")));
@@ -155,6 +159,7 @@ WritingScheduleTab::WritingScheduleTab(WritingStatsModel* model, QWidget* parent
         m_view->setDaysOffShown(shown);
         core::SettingsManager::getInstance().set<bool>(DAYS_OFF_SETTING, shown);
     });
+    connect(m_spread, &QPushButton::clicked, this, &WritingScheduleTab::spreadPlan);
     connect(m_goals, &QPushButton::clicked, this, &WritingScheduleTab::goalsRequested);
     connect(m_settings, &QToolButton::clicked, this, &WritingScheduleTab::settingsRequested);
     connect(m_view, &ScheduleView::planEdited, this, &WritingScheduleTab::storePlan);
@@ -212,6 +217,7 @@ void WritingScheduleTab::refresh()
 void WritingScheduleTab::takePlan()
 {
     m_view->setReadOnly(isReadOnly());
+    m_spread->setEnabled(!isReadOnly() && !m_view->rows().isEmpty());
     if (m_view->plan() != m_model->plan()) {
         m_view->setPlan(m_model->plan());
     }
@@ -346,6 +352,20 @@ void WritingScheduleTab::editPlan(const QString& elementId)
     m_view->setFocus();
 }
 
+void WritingScheduleTab::spreadPlan()
+{
+    if (isReadOnly()) {
+        return;
+    }
+    dialogs::SpreadPlanDialog dialog(m_view->rows(), m_model->plan(), m_model->goals(),
+                                     m_model->rules(), m_model->today(), window());
+    if (dialog.exec() == QDialog::Accepted && !isReadOnly()) {
+        storePlan(dialog.plan());
+        m_view->showDate(m_model->today());
+    }
+    m_view->setFocus();
+}
+
 void WritingScheduleTab::chooseScale(ScheduleView::Scale scale)
 {
     m_view->setScale(scale);
@@ -449,6 +469,9 @@ void WritingScheduleTab::retranslate()
     m_today->setText(tr("Toda&y"));
     //: Shades the days the writer does not write on. In Polish: Zaznacz dni wo&lne
     m_daysOff->setText(tr("Ma&rk days off"));
+    //: Opens the window that plans the writing of many texts at once. In Polish:
+    //: Rozplan&uj...
+    m_spread->setText(tr("&Plan Texts..."));
     //: Opens the tab Writing Goals and Deadlines. In Polish: Cele i te&rminy...
     m_goals->setText(tr("Goals and Deadlines..."));
     //: In Polish: Kolory harmonogramu

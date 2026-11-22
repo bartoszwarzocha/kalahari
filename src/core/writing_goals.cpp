@@ -85,6 +85,8 @@ QString BookGoals::toJson() const
     }
     if (dailyGoalFromDeadline) {
         object.insert(QStringLiteral("dailyGoalFromDeadline"), true);
+    } else if (dailyGoalFromPlan) {
+        object.insert(QStringLiteral("dailyGoalFromPlan"), true);
     }
     QJsonArray list;
     for (const WritingDeadline& item : deadlines) {
@@ -122,6 +124,8 @@ BookGoals BookGoals::fromJson(const QString& text)
     goals.targetWords = std::max(0, object.value(QStringLiteral("targetWords")).toInt());
     goals.deadline = QDate::fromString(object.value(QStringLiteral("deadline")).toString(), DAY_FORMAT);
     goals.dailyGoalFromDeadline = object.value(QStringLiteral("dailyGoalFromDeadline")).toBool();
+    goals.dailyGoalFromPlan = !goals.dailyGoalFromDeadline
+                              && object.value(QStringLiteral("dailyGoalFromPlan")).toBool();
     const QJsonArray list = object.value(QStringLiteral("deadlines")).toArray();
     for (qsizetype i = 0; i < list.size(); ++i) {
         const QJsonObject entry = list.at(i).toObject();

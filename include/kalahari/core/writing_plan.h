@@ -11,10 +11,16 @@
 #define KALAHARI_CORE_WRITING_PLAN_H
 
 #include <QDate>
+#include <QHash>
 #include <QList>
 #include <QString>
+#include <QStringList>
+
+#include <utility>
 
 namespace kalahari::core {
+
+struct WritingRules;
 
 /// @brief When a text of a book is written and when it is revised
 struct TextPlan {
@@ -79,6 +85,33 @@ struct WritingPlan {
 
     bool operator==(const WritingPlan&) const = default;
 };
+
+/// @brief A text of a book as the daily goal of its schedule counts it
+struct PlannedText {
+    int words = 0;              ///< Its words when today's writing day started
+    bool beingWritten = true;   ///< In writing still: not in revision, not final
+};
+
+/// @brief The daily goal that @p plan needs on @p today: for each text being written whose
+///        bar of writing has started by today and that lacks words of its target length, the
+///        words it lacked at the start of today over the writing days left in its bar (all of
+///        them once its bar has ended); 0 on a day off
+/// @param texts The texts of the book; a plan of a text not among them counts nothing
+/// @param counted When given, gets the ids of the texts that make up the goal, in the order
+///        of the plan
+int dailyGoalForPlan(const WritingRules& rules, const WritingPlan& plan,
+                     const QHash<QString, PlannedText>& texts, const QDate& today,
+                     QStringList* counted = nullptr);
+
+/// @brief Bars of writing for texts one after another, in the order of @p wordsLeft, on the
+///        writing days from @p from to @p to (every day when the writer has none): each text
+///        has its share of the days by the words it still needs, and texts too short for a
+///        day of their own share one; when no text needs words, each has the same share
+/// @return The first and the last day of each text, in the same order; empty without texts
+///         or without a writing day between the days
+QList<std::pair<QDate, QDate>> spreadOverWritingDays(const WritingRules& rules,
+                                                    const QList<int>& wordsLeft,
+                                                    const QDate& from, const QDate& to);
 
 }  // namespace kalahari::core
 

@@ -8,6 +8,7 @@
 
 #include <kalahari/core/writing_goals.h>
 #include <kalahari/core/writing_plan.h>
+#include <kalahari/core/writing_statistics.h>
 
 using namespace kalahari::core;
 
@@ -143,4 +144,93 @@ TEST_CASE("Writing plan: each volume of a series keeps its own", "[core][statist
     CHECK(WritingPlan::settingKeyOf(QStringLiteral("writing.goals.vol-2"))
           == QStringLiteral("writing.plan.vol-2"));
     CHECK(WritingPlan::settingKeyOf(QString()) == QStringLiteral("writing.plan"));
+}
+
+TEST_CASE("Writing plan: the daily goal of the texts planned for today",
+          "[core][statistics][plan][goal]")
+{
+    WritingRules rules;  // Monday to Friday
+    const QDate monday(2026, 11, 23);
+    WritingPlan plan;
+    // In writing to Friday: 1,760 words left over five writing days
+    plan.set(planOf("well", QDate(2026, 11, 16), QDate(2026, 11, 27), {}, {}, 3000));
+    // Its bar ended on Friday: all it lacks is for today
+    plan.set(planOf("market", QDate(2026, 11, 9), QDate(2026, 11, 20), {}, {}, 2500));
+    // Not started yet; final; without a length; only revisions; not in the book; long enough
+    plan.set(planOf("gorge", QDate(2026, 11, 30), QDate(2026, 12, 4), {}, {}, 2000));
+    plan.set(planOf("storm", QDate(2026, 11, 2), QDate(2026, 11, 13), {}, {}, 3000));
+    plan.set(planOf("epilogue", QDate(2026, 11, 16), QDate(2026, 11, 27)));
+    plan.set(planOf("prologue", {}, {}, QDate(2026, 11, 23), QDate(2026, 11, 24), 900));
+    plan.set(planOf("gone", QDate(2026, 11, 16), QDate(2026, 11, 27), {}, {}, 5000));
+    plan.set(planOf("oasis", QDate(2026, 11, 16), QDate(2026, 11, 27), {}, {}, 1000));
+    QHash<QString, PlannedText> texts;
+    texts.insert(QStringLiteral("well"), {1240, true});
+    texts.insert(QStringLiteral("market"), {1800, true});
+    texts.insert(QStringLiteral("gorge"), {0, true});
+    texts.insert(QStringLiteral("storm"), {3120, false});
+    texts.insert(QStringLiteral("epilogue"), {0, true});
+    texts.insert(QStringLiteral("prologue"), {400, true});
+    texts.insert(QStringLiteral("oasis"), {1200, true});
+
+    QStringList counted;
+    CHECK(dailyGoalForPlan(rules, plan, texts, monday, &counted) == 352 + 700);
+    CHECK(counted == QStringList{QStringLiteral("well"), QStringLiteral("market")});
+    // On Friday the last day of writing of the well
+    CHECK(dailyGoalForPlan(rules, plan, texts, QDate(2026, 11, 27)) == 1760 + 700);
+    // A day off: no goal
+    CHECK(dailyGoalForPlan(rules, plan, texts, QDate(2026, 11, 28), &counted) == 0);
+    CHECK(counted.isEmpty());
+    // A text in revision is written already
+    texts[QStringLiteral("market")].beingWritten = false;
+    CHECK(dailyGoalForPlan(rules, plan, texts, monday) == 352);
+    CHECK(dailyGoalForPlan(rules, WritingPlan(), texts, monday) == 0);
+}
+
+TEST_CASE("Writing plan: texts spread over the writing days by the words they need",
+          "[core][statistics][plan][spread]")
+{
+    WritingRules rules;  // Monday to Friday
+    const QDate monday(2026, 11, 23);
+    const QDate friday(2026, 12, 4);  // Ten writing days
+    using Bars = QList<std::pair<QDate, QDate>>;
+
+    // 500 words a day: two days, six days, two days
+    CHECK(spreadOverWritingDays(rules, {1000, 3000, 1000}, monday, friday)
+          == Bars{{QDate(2026, 11, 23), QDate(2026, 11, 24)},
+                  {QDate(2026, 11, 25), QDate(2026, 12, 2)},
+                  {QDate(2026, 12, 3), QDate(2026, 12, 4)}});
+    // Texts shorter than a day share it
+    CHECK(spreadOverWritingDays(rules, {100, 100, 100}, monday, monday.addDays(1))
+          == Bars{{monday, monday}, {monday, monday.addDays(1)},
+                  {monday.addDays(1), monday.addDays(1)}});
+    // No words needed: the same share each
+    CHECK(spreadOverWritingDays(rules, {0, 0}, monday, friday)
+          == Bars{{QDate(2026, 11, 23), QDate(2026, 11, 27)},
+                  {QDate(2026, 11, 30), QDate(2026, 12, 4)}});
+    // A text that needs nothing has a day of its own
+    CHECK(spreadOverWritingDays(rules, {0, 1000}, monday, friday)
+          == Bars{{monday, monday}, {monday, friday}});
+    // A weekend has no writing day; no texts; the days the wrong way round
+    CHECK(spreadOverWritingDays(rules, {1000}, QDate(2026, 11, 28), QDate(2026, 11, 29)).isEmpty());
+    CHECK(spreadOverWritingDays(rules, {}, monday, friday).isEmpty());
+    CHECK(spreadOverWritingDays(rules, {1000}, friday, monday).isEmpty());
+    // Without writing days every day is one
+    rules.writingDays = 0;
+    CHECK(spreadOverWritingDays(rules, {1000}, QDate(2026, 11, 28), QDate(2026, 11, 29))
+          == Bars{{QDate(2026, 11, 28), QDate(2026, 11, 29)}});
+}
+
+TEST_CASE("Writing goals: the daily goal from the schedule is kept with the goals",
+          "[core][statistics][plan][goal]")
+{
+    BookGoals goals;
+    goals.dailyGoalFromPlan = true;
+    const QString json = goals.toJson();
+    CHECK(json.contains(QStringLiteral("\"dailyGoalFromPlan\":true")));
+    CHECK(BookGoals::fromJson(json).dailyGoalFromPlan);
+    // Not with the deadline: the deadline wins
+    CHECK_FALSE(BookGoals::fromJson(QStringLiteral(
+                    R"({"dailyGoalFromDeadline":true,"dailyGoalFromPlan":true})"))
+                    .dailyGoalFromPlan);
+    CHECK_FALSE(BookGoals::fromJson(QStringLiteral("{}")).dailyGoalFromPlan);
 }

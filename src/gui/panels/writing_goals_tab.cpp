@@ -178,6 +178,11 @@ WritingGoalsTab::WritingGoalsTab(WritingStatsModel* model, QWidget* parent)
     m_fromDeadlineNote = new QLabel(m_dailyGroup);
     m_notes.append(m_fromDeadlineNote);
     rowIn(daily, {m_fromDeadline, m_fromDeadlineNote});
+    m_fromPlan = new QCheckBox(m_dailyGroup);
+    m_fromPlan->setObjectName(QStringLiteral("dailyGoalFromPlan"));
+    m_fromPlanNote = new QLabel(m_dailyGroup);
+    m_notes.append(m_fromPlanNote);
+    rowIn(daily, {m_fromPlan, m_fromPlanNote});
     left->addWidget(m_dailyGroup);
 
     // The weekly goal: the daily goals of the writing days, or the writer's own
@@ -276,9 +281,17 @@ WritingGoalsTab::WritingGoalsTab(WritingStatsModel* model, QWidget* parent)
         }
         storeWeekly();
     });
+    // One of the two, or the writer's own daily goal
     connect(m_fromDeadline, &QCheckBox::toggled, this, [this](bool on) {
         core::BookGoals goals = m_model->goals();
         goals.dailyGoalFromDeadline = on;
+        goals.dailyGoalFromPlan = goals.dailyGoalFromPlan && !on;
+        storeGoals(goals);
+    });
+    connect(m_fromPlan, &QCheckBox::toggled, this, [this](bool on) {
+        core::BookGoals goals = m_model->goals();
+        goals.dailyGoalFromPlan = on;
+        goals.dailyGoalFromDeadline = goals.dailyGoalFromDeadline && !on;
         storeGoals(goals);
     });
     connect(m_length, &QSpinBox::valueChanged, this, [this](int value) {
@@ -311,6 +324,7 @@ WritingGoalsTab::WritingGoalsTab(WritingStatsModel* model, QWidget* parent)
     // What changes in another place shows here at once
     connect(m_model, &WritingStatsModel::changed, this, &WritingGoalsTab::refresh);
     connect(m_model, &WritingStatsModel::goalsChanged, this, &WritingGoalsTab::refresh);
+    connect(m_model, &WritingStatsModel::planChanged, this, &WritingGoalsTab::refresh);
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
             &WritingGoalsTab::updateColors);
 
@@ -381,6 +395,9 @@ void WritingGoalsTab::retranslate()
     m_daysNote->setText(tr("Days off do not break the days in a row."));
     //: In Polish: Ustal cel dzienny z terminu &książki
     m_fromDeadline->setText(tr("Set the daily goal from the deadline of the &book"));
+    //: The plan of the texts on Tools > Writing Schedule. In Polish: Ustal cel dzienny z
+    //: &harmonogramu
+    m_fromPlan->setText(tr("Set the daily goal from the s&chedule"));
     //: In Polish: Cel tygodniowy
     m_weeklyGroup->setTitle(tr("Weekly Goal"));
     //: In Polish: &Własny:
@@ -543,7 +560,27 @@ void WritingGoalsTab::refresh()
                 //: In Polish: (w dniu pisania: %1)
                 : tr("(on a writing day: %1)").arg(words(needed)));
     }
-    m_dailyGoal->setEnabled(!(book && goals.dailyGoalFromDeadline && deadlineAhead));
+
+    // The daily goal from the schedule: with a text planned
+    const bool planned = !m_model->plan().texts.isEmpty();
+    {
+        const QSignalBlocker blocker(m_fromPlan);
+        m_fromPlan->setChecked(book && goals.dailyGoalFromPlan);
+    }
+    m_fromPlan->setEnabled(book && (planned || goals.dailyGoalFromPlan));
+    if (!book) {
+        m_fromPlanNote->clear();
+    } else if (!planned) {
+        //: The schedule plans no text yet. In Polish: (potrzebuje planu tekstów w harmonogramie)
+        m_fromPlanNote->setText(tr("(needs a plan of the texts in the schedule)"));
+    } else if (!rules.isWritingDay(today)) {
+        //: In Polish: (dziś dzień wolny)
+        m_fromPlanNote->setText(tr("(today is a day off)"));
+    } else {
+        //: In Polish: (dziś: %1)
+        m_fromPlanNote->setText(tr("(today: %1)").arg(words(m_model->dailyGoalForPlanToday())));
+    }
+    m_dailyGoal->setEnabled(m_model->dailyGoalSourceToday() == DailyGoalSource::Own);
 
     showCalculation();
     showDeadlines();

@@ -68,6 +68,10 @@ public:
     /// @brief The plan of @p elementId in its window
     void editPlan(const QString& elementId);
 
+    /// @brief Plan the Texts...: the writing of many texts at once (dialogs::SpreadPlanDialog),
+    ///        one step to undo
+    void spreadPlan();
+
     /// @brief Undo and Redo of the changes of the plan
     [[nodiscard]] bool canUndo() const { return !m_undo.isEmpty(); }
     [[nodiscard]] bool canRedo() const { return !m_redo.isEmpty(); }
@@ -128,6 +132,7 @@ private:
     QToolButton* m_months = nullptr;
     QPushButton* m_today = nullptr;
     QCheckBox* m_daysOff = nullptr;
+    QPushButton* m_spread = nullptr;
     QPushButton* m_goals = nullptr;
     QToolButton* m_settings = nullptr;
     QList<core::WritingPlan> m_undo;  ///< The plans before the changes, the last one last

@@ -16,11 +16,13 @@
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/diagnostic_menus.h"
+#include "kalahari/gui/dialogs/spread_plan_dialog.h"
 #include "kalahari/gui/dialogs/text_plan_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/panels/writing_goals_tab.h"
 #include "kalahari/gui/panels/writing_schedule_tab.h"
+#include "kalahari/gui/panels/writing_stats_panel.h"
 #include "kalahari/gui/widgets/schedule_view.h"
 #include "kalahari/gui/widgets/stats_painter.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
@@ -39,9 +41,13 @@
 #include <QStatusBar>
 #include <QTabWidget>
 #include <QTemporaryDir>
+#include <QRadioButton>
 #include <QTime>
+#include <QTimer>
 #include <QToolButton>
 #include <QTranslator>
+
+#include <algorithm>
 
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari_tests/test_support/window_parts.h"
@@ -261,13 +267,13 @@ void checkTabKeys(const WritingScheduleTab& tab)
     for (const char* name : {"scheduleDays", "scheduleWeeks", "scheduleMonths"}) {
         keys << accessKey(child<QToolButton>(tab, name)->text());
     }
-    for (const char* name : {"scheduleToday", "scheduleGoals"}) {
+    for (const char* name : {"scheduleToday", "scheduleSpread", "scheduleGoals"}) {
         keys << accessKey(child<QPushButton>(tab, name)->text());
     }
     keys << accessKey(child<QCheckBox>(tab, "scheduleDaysOff")->text());
     keys.removeAll(QString());
     INFO(keys.join(QLatin1Char(' ')).toStdString());
-    CHECK(keys.size() >= 6 - 1);
+    CHECK(keys.size() >= 7 - 1);
     for (const QString& key : keys) {
         CHECK(keys.count(key) == 1);
         CHECK_FALSE(menus.contains(key));
@@ -748,6 +754,242 @@ TEST_CASE("Writing schedule: Tools > Writing Schedule opens one tab with the tex
     CHECK(qobject_cast<gui::WritingGoalsTab*>(tabs->currentWidget()) != nullptr);
 }
 
+TEST_CASE("Writing schedule: Plan the Texts lays texts one after another by their words",
+          "[gui][statistics][schedule][spread]")
+{
+    using gui::dialogs::SpreadPlanDialog;
+    using Texts = SpreadPlanDialog::Texts;
+    const core::WritingRules rules;  // Monday to Friday
+    const QDate monday = NOW.date();
+    const QDate friday = day(12, 4);  // Ten writing days
+
+    // The texts in Draft without a plan of writing, in the order of the book
+    CHECK(SpreadPlanDialog::textsToPlan(caravan(), caravanPlan(), Texts::WithoutPlan)
+          == QStringList{QStringLiteral("ch-3"), QStringLiteral("ch-5")});
+    CHECK(SpreadPlanDialog::textsToPlan(caravan(), caravanPlan(), Texts::BeingWritten)
+          == QStringList{QStringLiteral("ch-2"), QStringLiteral("ch-3"), QStringLiteral("ch-4"),
+                         QStringLiteral("ch-5")});
+
+    // Two empty texts of 2,000 words: a week each; they keep the length; the rest stays
+    core::WritingPlan spread = SpreadPlanDialog::spread(caravan(), caravanPlan(),
+                                                        Texts::WithoutPlan, monday, friday, 2000,
+                                                        rules);
+    CHECK(*spread.find(QStringLiteral("ch-3"))
+          == planOf("ch-3", day(11, 23), day(11, 27), {}, {}, 2000));
+    CHECK(*spread.find(QStringLiteral("ch-5"))
+          == planOf("ch-5", day(11, 30), day(12, 4), {}, {}, 2000));
+    for (const char* id : {"ch-1", "ch-2", "ch-4"}) {
+        CHECK(*spread.find(QString::fromLatin1(id)) == *caravanPlan().find(QString::fromLatin1(id)));
+    }
+
+    // All in Draft: 1,760 + 2,000 + 700 + 2,000 words over ten days; the revisions stay
+    spread = SpreadPlanDialog::spread(caravan(), caravanPlan(), Texts::BeingWritten, monday,
+                                      friday, 2000, rules);
+    CHECK(*spread.find(QStringLiteral("ch-2"))
+          == planOf("ch-2", day(11, 23), day(11, 25), day(12, 3), day(12, 4), 3000));
+    CHECK(*spread.find(QStringLiteral("ch-3"))
+          == planOf("ch-3", day(11, 25), day(11, 30), {}, {}, 2000));
+    CHECK(*spread.find(QStringLiteral("ch-4"))
+          == planOf("ch-4", day(11, 30), day(12, 1), {}, {}, 2500));
+    CHECK(*spread.find(QStringLiteral("ch-5"))
+          == planOf("ch-5", day(12, 1), day(12, 4), {}, {}, 2000));
+    CHECK(*spread.find(QStringLiteral("ch-1")) == *caravanPlan().find(QStringLiteral("ch-1")));
+    // No writing day: nothing changes
+    CHECK(SpreadPlanDialog::spread(caravan(), caravanPlan(), Texts::BeingWritten, day(11, 28),
+                                   day(11, 29), 2000, rules)
+          == caravanPlan());
+
+    // The length of a text without its own: the book's over its texts
+    core::BookGoals goals;
+    CHECK(SpreadPlanDialog::defaultLengthOf(caravan(), goals) == 3000);
+    goals.targetWords = 32000;
+    CHECK(SpreadPlanDialog::defaultLengthOf(caravan(), goals) == 6400);
+
+    // The window: to the deadline of the book, the words a day before anything changes
+    goals.deadline = friday;
+    SpreadPlanDialog dialog(caravan(), caravanPlan(), goals, rules, monday);
+    CHECK(child<QRadioButton>(dialog, "spreadWithoutPlan")->isChecked());
+    CHECK(child<QDateEdit>(dialog, "spreadFrom")->date() == monday);
+    CHECK(child<QDateEdit>(dialog, "spreadTo")->date() == friday);
+    CHECK(dialog.findChild<QLabel*>(QStringLiteral("spreadNoDeadline")) == nullptr);
+    CHECK(child<QSpinBox>(dialog, "spreadLength")->value() == 6400);
+    child<QSpinBox>(dialog, "spreadLength")->setValue(2000);
+    auto* note = child<QLabel>(dialog, "spreadNote");
+    CHECK(note->text().toStdString()
+          == "2 texts lack 4,000 words, on 10 writing days: about 400 words a writing day.");
+    CHECK(dialog.acceptButton()->isEnabled());
+    CHECK(dialog.plan()
+          == SpreadPlanDialog::spread(caravan(), caravanPlan(), Texts::WithoutPlan, monday,
+                                      friday, 2000, rules));
+    child<QRadioButton>(dialog, "spreadBeingWritten")->setChecked(true);
+    CHECK(note->text().contains(QStringLiteral("The writing of 2 texts is planned anew.")));
+    // A weekend only: nothing to plan on
+    child<QDateEdit>(dialog, "spreadFrom")->setDate(day(11, 28));
+    child<QDateEdit>(dialog, "spreadTo")->setDate(day(11, 29));
+    CHECK(note->text() == QStringLiteral("There is no writing day between these days."));
+    CHECK_FALSE(dialog.acceptButton()->isEnabled());
+
+    // Without a deadline: four weeks, and a word about it; every text planned: all of them
+    core::WritingPlan full = caravanPlan();
+    full.set(planOf("ch-3", day(11, 23), day(11, 24)));
+    full.set(planOf("ch-5", day(11, 23), day(11, 24)));
+    SpreadPlanDialog without(caravan(), full, core::BookGoals(), rules, monday);
+    CHECK(child<QDateEdit>(without, "spreadTo")->date() == monday.addDays(27));
+    CHECK(without.findChild<QLabel*>(QStringLiteral("spreadNoDeadline")) != nullptr);
+    CHECK(child<QRadioButton>(without, "spreadBeingWritten")->isChecked());
+}
+
+TEST_CASE("Writing schedule: Plan Texts... on the tab, one step to undo",
+          "[gui][statistics][schedule][spread]")
+{
+    Schedule schedule;
+    schedule.openBook();
+    REQUIRE(schedule.model.setPlan(caravanPlan()));
+    WritingScheduleTab tab(&schedule.model);
+    tab.setRowsSource(caravan);
+    tab.resize(1200, 600);
+    tab.show();
+    QApplication::processEvents();
+    auto* button = child<QPushButton>(tab, "scheduleSpread");
+    REQUIRE(button->isEnabled());
+
+    // The window answered with a length of 2,000 words to Friday next week
+    int shown = 0;
+    QTimer answer;
+    answer.setInterval(10);
+    QObject::connect(&answer, &QTimer::timeout, [&shown]() {
+        auto* dialog =
+            qobject_cast<gui::dialogs::SpreadPlanDialog*>(QApplication::activeModalWidget());
+        if (dialog == nullptr || !dialog->isVisible()) {
+            return;
+        }
+        ++shown;
+        child<QDateEdit>(*dialog, "spreadTo")->setDate(day(12, 4));
+        child<QSpinBox>(*dialog, "spreadLength")->setValue(2000);
+        dialog->accept();
+    });
+    answer.start();
+    button->click();
+    answer.stop();
+    CHECK(shown == 1);
+    REQUIRE(schedule.model.plan().find(QStringLiteral("ch-3")) != nullptr);
+    CHECK(*schedule.model.plan().find(QStringLiteral("ch-3"))
+          == planOf("ch-3", day(11, 23), day(11, 27), {}, {}, 2000));
+    CHECK(schedule.model.plan().find(QStringLiteral("ch-5"))->end == day(12, 4));
+
+    // One step back
+    REQUIRE(tab.canEditHere(gui::EditCommand::Undo));
+    tab.editHere(gui::EditCommand::Undo);
+    CHECK(schedule.model.plan() == caravanPlan());
+
+    // A book read-only: nothing to plan
+    schedule.openBook(true);
+    CHECK_FALSE(button->isEnabled());
+}
+
+TEST_CASE("Writing schedule: the daily goal from the schedule, in the goals and the panel",
+          "[gui][statistics][schedule][goal]")
+{
+    Schedule schedule;
+    // 200 words of the well written this morning: it had 1,040 when the day started
+    core::WritingActivity morning;
+    morning.date = NOW.date();
+    morning.slot = core::activitySlotOf(QTime(9, 0));
+    morning.bookId = QStringLiteral("book");
+    morning.elementId = QStringLiteral("ch-2");
+    morning.written = 200;
+    REQUIRE(schedule.database.open(schedule.dir.path()));
+    REQUIRE(schedule.database.addWritingActivity({morning}));
+    schedule.model.setPlannedTextsSource([]() {
+        QHash<QString, core::PlannedText> texts;
+        for (const ScheduleRow& row : caravan()) {
+            if (row.kind == ScheduleRow::Kind::Text) {
+                texts.insert(row.id, {row.words, row.status == QLatin1String("draft")});
+            }
+        }
+        return texts;
+    });
+    schedule.openBook();
+    core::WritingRules rules = schedule.model.rules();
+    REQUIRE(rules.isWritingDay(NOW.date()));
+    const int own = rules.dailyGoalOn(NOW.date());
+
+    // Asked for, but nothing planned: the writer's own goal
+    core::BookGoals goals;
+    goals.dailyGoalFromPlan = true;
+    REQUIRE(schedule.model.setGoals(goals));
+    CHECK(schedule.model.dailyGoalSourceToday() == gui::DailyGoalSource::Own);
+    CHECK(schedule.model.dailyGoalToday() == own);
+
+    // The well: 1,960 words over five days; the market, its bar over: 700 today
+    int goalChanges = 0;
+    QObject::connect(&schedule.model, &WritingStatsModel::goalsChanged,
+                     [&goalChanges]() { ++goalChanges; });
+    REQUIRE(schedule.model.setPlan(caravanPlan()));
+    CHECK(goalChanges == 1);
+    CHECK(schedule.model.dailyGoalSourceToday() == gui::DailyGoalSource::Schedule);
+    CHECK(schedule.model.dailyGoalToday() == 392 + 700);
+    QStringList texts;
+    CHECK(schedule.model.dailyGoalForPlanToday(&texts) == 392 + 700);
+    CHECK(texts == QStringList{QStringLiteral("ch-2"), QStringLiteral("ch-4")});
+
+    // The tab of the goals: the option, what it gives today, one of the two options
+    gui::WritingGoalsTab goalsTab(&schedule.model);
+    auto* fromPlan = child<QCheckBox>(goalsTab, "dailyGoalFromPlan");
+    auto* fromDeadline = child<QCheckBox>(goalsTab, "dailyGoalFromDeadline");
+    CHECK(fromPlan->isChecked());
+    CHECK(fromPlan->isEnabled());
+    CHECK_FALSE(child<QSpinBox>(goalsTab, "dailyGoal")->isEnabled());
+    CHECK(fromPlan->text() == QStringLiteral("Set the daily goal from the s&chedule"));
+    // The note beside the option (the deadline's needs a length and a deadline)
+    const QString today = QStringLiteral("(today: %1)").arg(gui::stats_painter::words(1092));
+    const QList<QLabel*> labels = goalsTab.findChildren<QLabel*>();
+    CHECK(std::count_if(labels.cbegin(), labels.cend(),
+                        [&today](const QLabel* label) { return label->text() == today; })
+          == 1);
+
+    // The deadline instead: the schedule is off
+    goals.targetWords = 32000;
+    goals.deadline = day(1, 31, 2027);
+    REQUIRE(schedule.model.setGoals(goals));
+    fromDeadline->setChecked(true);
+    CHECK(schedule.model.goals().dailyGoalFromDeadline);
+    CHECK_FALSE(schedule.model.goals().dailyGoalFromPlan);
+    CHECK_FALSE(fromPlan->isChecked());
+    CHECK(schedule.model.dailyGoalSourceToday() == gui::DailyGoalSource::Deadline);
+    fromPlan->setChecked(true);
+    CHECK_FALSE(schedule.model.goals().dailyGoalFromDeadline);
+    CHECK(schedule.model.dailyGoalSourceToday() == gui::DailyGoalSource::Schedule);
+
+    // The Statistics panel says where the goal of today comes from
+    gui::WritingStatsPanel panel;
+    panel.setModel(&schedule.model);
+    panel.setTitleSources(
+        [](const QString& id) {
+            for (const ScheduleRow& row : caravan()) {
+                if (row.id == id) {
+                    return row.title;
+                }
+            }
+            return QString();
+        },
+        []() { return QStringLiteral("Caravan"); });
+    panel.show();
+    CHECK(panel.details().contains(QStringLiteral("Daily goal from: the schedule: Well, Market")));
+    fromDeadline->setChecked(true);
+    panel.refresh();
+    CHECK(panel.details().contains(QStringLiteral("Daily goal from: the deadline of the book")));
+    // Nothing planned for today
+    fromPlan->setChecked(true);
+    core::WritingPlan later;
+    later.set(planOf("ch-3", day(11, 30), day(12, 4), {}, {}, 2000));
+    REQUIRE(schedule.model.setPlan(later));
+    panel.refresh();
+    CHECK(schedule.model.dailyGoalToday() == 0);
+    CHECK(panel.details().contains(
+        QStringLiteral("Daily goal from: the schedule – nothing planned for today")));
+}
+
 TEST_CASE("Writing schedule: pictures of the tab", "[.][shot]")
 {
     // KALAHARI_SHOTS=<folder>: the tab in both themes at three scales, for the eyes
@@ -810,4 +1052,11 @@ TEST_CASE("Writing schedule: pictures of the tab", "[.][shot]")
     dialog.show();
     QApplication::processEvents();
     dialog.grab().save(folder + QStringLiteral("/harmonogram-plan-tekstu.png"));
+    core::BookGoals spreadGoals = goals;
+    spreadGoals.deadline = day(12, 18);
+    gui::dialogs::SpreadPlanDialog spread(caravan(), caravanPlan(), spreadGoals,
+                                          schedule.model.rules(), NOW.date());
+    spread.show();
+    QApplication::processEvents();
+    spread.grab().save(folder + QStringLiteral("/harmonogram-rozplanuj.png"));
 }

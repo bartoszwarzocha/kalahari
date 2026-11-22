@@ -195,6 +195,13 @@ void WritingStatsModel::setBookWordsSource(std::function<int()> source)
     schedule();
 }
 
+void WritingStatsModel::setPlannedTextsSource(
+    std::function<QHash<QString, core::PlannedText>()> source)
+{
+    m_plannedTexts = std::move(source);
+    schedule();
+}
+
 int WritingStatsModel::bookWords() const
 {
     return m_database != nullptr && m_bookWords ? m_bookWords() : 0;
@@ -235,6 +242,10 @@ bool WritingStatsModel::setPlan(const core::WritingPlan& plan)
     m_database->setSetting(core::WritingPlan::settingKeyOf(goalsKey()), kept.toJson());
     m_plan = kept;
     emit planChanged();
+    // The daily goal of the schedule changes with it
+    if (m_goals.dailyGoalFromPlan) {
+        emit goalsChanged();
+    }
     return true;
 }
 
@@ -373,14 +384,56 @@ qint64 WritingStatsModel::minutesIntoDay(const QDate& day, const QDateTime& when
 int WritingStatsModel::dailyGoalToday() const
 {
     const QDate day = today();
-    // Without a length or with the deadline passed, the writer's own daily goal again, as the
-    // tab of the goals shows it
-    if (m_goals.dailyGoalFromDeadline && m_database != nullptr && m_goals.hasDeadlineAhead(day)) {
+    switch (dailyGoalSourceToday()) {
+    case DailyGoalSource::Deadline: {
         const int goal =
             core::dailyGoalForDeadline(m_rules, m_goals, bookWordsAtStartOfToday(), day);
         return m_rules.isWritingDay(day) ? goal : 0;
     }
+    case DailyGoalSource::Schedule:
+        return m_rules.isWritingDay(day) ? dailyGoalForPlanToday() : 0;
+    case DailyGoalSource::Own:
+        break;
+    }
     return m_rules.dailyGoalOn(day);
+}
+
+DailyGoalSource WritingStatsModel::dailyGoalSourceToday() const
+{
+    // Without a length or with the deadline passed, and with nothing planned, the writer's own
+    // daily goal again, as the tab of the goals shows it
+    if (m_database == nullptr) {
+        return DailyGoalSource::Own;
+    }
+    if (m_goals.dailyGoalFromDeadline && m_goals.hasDeadlineAhead(today())) {
+        return DailyGoalSource::Deadline;
+    }
+    if (m_goals.dailyGoalFromPlan && !m_plan.texts.isEmpty()) {
+        return DailyGoalSource::Schedule;
+    }
+    return DailyGoalSource::Own;
+}
+
+int WritingStatsModel::dailyGoalForPlanToday(QStringList* texts) const
+{
+    if (texts != nullptr) {
+        texts->clear();
+    }
+    if (m_database == nullptr || m_plan.texts.isEmpty() || !m_plannedTexts) {
+        return 0;
+    }
+    // The words of the texts when today's writing day started: what the goal counts from, so
+    // that it does not shrink while the writer writes
+    const QDate day = today();
+    QHash<QString, core::PlannedText> planned = m_plannedTexts();
+    const core::WritingStatistics statistics = volumeStatistics();
+    for (const core::WritingActivity& entry : statistics.record().value(day)) {
+        const auto found = planned.find(entry.elementId);
+        if (found != planned.end()) {
+            found->words -= entry.written - entry.deleted + entry.pasted;
+        }
+    }
+    return core::dailyGoalForPlan(m_rules, m_plan, planned, day, texts);
 }
 
 void WritingStatsModel::schedule()

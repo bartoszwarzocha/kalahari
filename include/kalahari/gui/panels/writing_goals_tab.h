@@ -131,6 +131,8 @@ private:
     QLabel* m_daysNote = nullptr;
     QCheckBox* m_fromDeadline = nullptr;
     QLabel* m_fromDeadlineNote = nullptr;
+    QCheckBox* m_fromPlan = nullptr;
+    QLabel* m_fromPlanNote = nullptr;
 
     QGroupBox* m_weeklyGroup = nullptr;
     QRadioButton* m_weeklySum = nullptr;

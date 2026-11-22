@@ -267,7 +267,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   length), Delete removes the plan, Esc cancels a drag, and Edit > Undo/Redo work in the tab.
   The plan is kept in the book, for each volume of a series. Its colours (the bar of writing,
   the bar of revisions, today, late) are in the theme and in Settings > Statistics and Goals >
-  Colors, and the gear of the tab opens them.
+  Colors, and the gear of the tab opens them. Plan Texts... lays the writing of many texts at
+  once: those without a plan or all those in Draft, one after another in the order of the book,
+  on the writing days from a day to the deadline of the book, each by the words it still needs
+  (a text without a length takes the one the window gives); the window says how many words a
+  writing day needs before anything changes, the revisions planned stay, and Undo takes it all
+  back in one step. Writing Goals and Deadlines has a new option, Set the daily goal from the
+  schedule: the words the texts planned for today lack at the start of the day, over the
+  writing days left in their bars (all of them for a text whose bar has ended), with the words
+  it gives today beside it; one of the two options, the deadline or the schedule. The view
+  Today of the Statistics panel says where the daily goal comes from: the deadline of the book,
+  or the schedule and the texts planned for today.
 
 - **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
   for Publishers, with its number in the Navigator: the sentences about the book and the

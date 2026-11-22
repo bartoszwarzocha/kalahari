@@ -28622,6 +28622,21 @@ After the length of the book. In Polish: słów</extracomment>
         <extracomment>%1: the name of the deadline. In Polish: Usunąć termin „%1”?</extracomment>
         <translation>Usunąć termin „%1”?</translation>
     </message>
+    <message>
+        <source>Set the daily goal from the s&amp;chedule</source>
+        <extracomment>The plan of the texts on Tools &gt; Writing Schedule. In Polish: Ustal cel dzienny z &amp;harmonogramu</extracomment>
+        <translation>Ustal cel dzienny z &amp;harmonogramu</translation>
+    </message>
+    <message>
+        <source>(needs a plan of the texts in the schedule)</source>
+        <extracomment>The schedule plans no text yet. In Polish: (potrzebuje planu tekstów w harmonogramie)</extracomment>
+        <translation>(potrzebuje planu tekstów w harmonogramie)</translation>
+    </message>
+    <message>
+        <source>(today is a day off)</source>
+        <extracomment>In Polish: (dziś dzień wolny)</extracomment>
+        <translation>(dziś dzień wolny)</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::WritingScheduleTab</name>
@@ -28684,6 +28699,11 @@ After the length of the book. In Polish: słów</extracomment>
         <source>Dragging a bar moves it, dragging its right edge changes its last day; dragging in an empty row plans the text. Keys: Up and Down choose a text, Alt+Left and Alt+Right move its plan by a day, Alt+Shift+Left and Alt+Shift+Right change the last day of writing, Enter opens the plan of the text, Delete removes it.</source>
         <extracomment>In Polish: Przeciągnięcie paska przesuwa go, a przeciągnięcie jego prawej krawędzi zmienia ostatni dzień; przeciągnięcie w pustym wierszu planuje tekst. Klawisze: strzałki w górę i w dół wybierają tekst, Alt+strzałka w lewo i Alt+strzałka w prawo przesuwają jego plan o dzień, Alt+Shift+strzałka w lewo i Alt+Shift+strzałka w prawo zmieniają ostatni dzień pisania, Enter otwiera plan tekstu, Delete go usuwa.</extracomment>
         <translation>Przeciągnięcie paska przesuwa go, a przeciągnięcie jego prawej krawędzi zmienia ostatni dzień; przeciągnięcie w pustym wierszu planuje tekst. Klawisze: strzałki w górę i w dół wybierają tekst, Alt+strzałka w lewo i Alt+strzałka w prawo przesuwają jego plan o dzień, Alt+Shift+strzałka w lewo i Alt+Shift+strzałka w prawo zmieniają ostatni dzień pisania, Enter otwiera plan tekstu, Delete go usuwa.</translation>
+    </message>
+    <message>
+        <source>&amp;Plan Texts...</source>
+        <extracomment>Opens the window that plans the writing of many texts at once. In Polish: Rozplan&amp;uj...</extracomment>
+        <translation>Rozplan&amp;uj...</translation>
     </message>
 </context>
 <context>
@@ -29572,6 +29592,36 @@ After the length of the book. In Polish: słów</extracomment>
         <extracomment>A detail of the view Book of the statistics, in a series of books. In Polish: Słowa w całej serii</extracomment>
         <translation>Słowa w całej serii</translation>
     </message>
+    <message>
+        <source>Daily goal from</source>
+        <extracomment>The daily goal of today comes from... In Polish: Cel dzienny z</extracomment>
+        <translation>Cel dzienny z</translation>
+    </message>
+    <message>
+        <source>the deadline of the book</source>
+        <extracomment>After "Daily goal from". In Polish: terminu książki</extracomment>
+        <translation>terminu książki</translation>
+    </message>
+    <message>
+        <source>the schedule – today is a day off</source>
+        <extracomment>In Polish: harmonogramu – dziś dzień wolny</extracomment>
+        <translation>harmonogramu – dziś dzień wolny</translation>
+    </message>
+    <message>
+        <source>the schedule – nothing planned for today</source>
+        <extracomment>In Polish: harmonogramu – nic na dziś</extracomment>
+        <translation>harmonogramu – nic na dziś</translation>
+    </message>
+    <message>
+        <source>the schedule: %1</source>
+        <extracomment>%1: the texts planned for today. In Polish: harmonogramu: %1</extracomment>
+        <translation>harmonogramu: %1</translation>
+    </message>
+    <message>
+        <source>The words the texts planned for today lack, over the writing days left in their plan</source>
+        <extracomment>In Polish: Słowa, których brakuje tekstom zaplanowanym na dziś, przez dni pisania, które zostały w ich planie</extracomment>
+        <translation>Słowa, których brakuje tekstom zaplanowanym na dziś, przez dni pisania, które zostały w ich planie</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::ChallengeDialog</name>
@@ -29856,6 +29906,106 @@ After the length of the book. In Polish: słów</extracomment>
         <source>Without writing and revisions the text has no plan.</source>
         <extracomment>In Polish: Bez pisania i poprawek tekst nie ma planu.</extracomment>
         <translation>Bez pisania i poprawek tekst nie ma planu.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::SpreadPlanDialog</name>
+    <message>
+        <source>Plan the Texts</source>
+        <extracomment>The window that plans the writing of many texts at once. In Polish: Rozplanuj teksty</extracomment>
+        <translation>Rozplanuj teksty</translation>
+    </message>
+    <message>
+        <source>Lays the writing of the texts one after another, in the order of the book, on the writing days, each by the words it still needs. The revisions planned stay.</source>
+        <extracomment>In Polish: Rozkłada pisanie tekstów jeden po drugim, w kolejności książki, na dni pisania – każdy według słów, których mu brakuje. Zaplanowane poprawki zostają.</extracomment>
+        <translation>Rozkłada pisanie tekstów jeden po drugim, w kolejności książki, na dni pisania – każdy według słów, których mu brakuje. Zaplanowane poprawki zostają.</translation>
+    </message>
+    <message>
+        <source>Texts &amp;without a plan</source>
+        <extracomment>In Polish: Teksty &amp;bez planu</extracomment>
+        <translation>Teksty &amp;bez planu</translation>
+    </message>
+    <message>
+        <source>&amp;All the texts in Draft</source>
+        <extracomment>Draft is the state of a text, as in the Navigator. In Polish: &amp;Wszystkie teksty w stanie „Szkic”</extracomment>
+        <translation>&amp;Wszystkie teksty w stanie „Szkic”</translation>
+    </message>
+    <message>
+        <source>&amp;From:</source>
+        <extracomment>The first day of the writing planned. In Polish: &amp;Od:</extracomment>
+        <translation>&amp;Od:</translation>
+    </message>
+    <message>
+        <source>&amp;To:</source>
+        <extracomment>The last day of the writing planned. In Polish: &amp;Do:</extracomment>
+        <translation>&amp;Do:</translation>
+    </message>
+    <message>
+        <source>The book has no deadline (Writing Goals and Deadlines): the last day is yours to choose.</source>
+        <extracomment>In Polish: Książka nie ma terminu (Cele i terminy pisania): ostatni dzień do wyboru.</extracomment>
+        <translation>Książka nie ma terminu (Cele i terminy pisania): ostatni dzień do wyboru.</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <extracomment>The length of a text: none. In Polish: brak</extracomment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source> words</source>
+        <extracomment>In Polish: " słów"</extracomment>
+        <translation> słów</translation>
+    </message>
+    <message>
+        <source>&amp;Length of a text without its own:</source>
+        <extracomment>The length a text without its own takes, and keeps in its plan. In Polish: Dłu&amp;gość tekstu bez własnej:</extracomment>
+        <translation>Dłu&amp;gość tekstu bez własnej:</translation>
+    </message>
+    <message>
+        <source>&amp;Plan</source>
+        <extracomment>In Polish: &amp;Rozplanuj</extracomment>
+        <translation>&amp;Rozplanuj</translation>
+    </message>
+    <message>
+        <source>There is no text to plan.</source>
+        <extracomment>In Polish: Nie ma tekstów do rozplanowania.</extracomment>
+        <translation>Nie ma tekstów do rozplanowania.</translation>
+    </message>
+    <message>
+        <source>There is no writing day between these days.</source>
+        <extracomment>In Polish: Między tymi dniami nie ma dnia pisania.</extracomment>
+        <translation>Między tymi dniami nie ma dnia pisania.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n texts</source>
+        <extracomment>In Polish: %n tekst / %n teksty / %n tekstów</extracomment>
+        <translation>
+            <numerusform>%n tekst</numerusform>
+            <numerusform>%n teksty</numerusform>
+            <numerusform>%n tekstów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n writing days</source>
+        <extracomment>In Polish: %n dzień pisania / %n dni pisania</extracomment>
+        <translation>
+            <numerusform>%n dzień pisania</numerusform>
+            <numerusform>%n dni pisania</numerusform>
+            <numerusform>%n dni pisania</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1 lack %2, on %3: about %4 a writing day.</source>
+        <extracomment>%1: the texts, %2: the words they still need, %3: the writing days, %4: the words of a writing day. In Polish: %1, brakuje im %2; %3 – około %4 na dzień pisania.</extracomment>
+        <translation>%1, brakuje im %2; %3 – około %4 na dzień pisania.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The writing of %n texts is planned anew.</source>
+        <extracomment>In Polish: Pisanie %n tekstu / tekstów zostanie zaplanowane od nowa.</extracomment>
+        <translation>
+            <numerusform>Pisanie %n tekstu zostanie zaplanowane od nowa.</numerusform>
+            <numerusform>Pisanie %n tekstów zostanie zaplanowane od nowa.</numerusform>
+            <numerusform>Pisanie %n tekstów zostanie zaplanowane od nowa.</numerusform>
+        </translation>
     </message>
 </context>
 <context>

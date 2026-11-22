@@ -45,6 +45,8 @@ struct BookGoals {
     int targetWords = 0;                ///< The length of the book in words; 0: none
     QDate deadline;                     ///< The day the book is due; invalid: none
     bool dailyGoalFromDeadline = false; ///< The daily goal is what the deadline needs
+    bool dailyGoalFromPlan = false;     ///< The daily goal is what the schedule needs
+                                        ///< (dailyGoalForPlan()); not with the one above
     QList<WritingDeadline> deadlines;   ///< The deadlines of the parts, by date
 
     /// @brief No goal and no deadline

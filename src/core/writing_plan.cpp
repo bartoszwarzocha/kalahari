@@ -7,12 +7,15 @@
 #include "kalahari/core/writing_plan.h"
 
 #include "kalahari/core/writing_goals.h"
+#include "kalahari/core/writing_statistics.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 
 #include <algorithm>
+#include <limits>
+#include <numeric>
 
 namespace kalahari::core {
 
@@ -53,6 +56,9 @@ QDate dayOf(const QJsonObject& object, const QString& name)
 {
     return QDate::fromString(object.value(name).toString(), DAY_FORMAT);
 }
+
+/// @brief The days of a plan are spread over at most this many days (ten years)
+constexpr qint64 MAX_SPREAD_DAYS = 3660;
 
 }  // namespace
 
@@ -230,6 +236,75 @@ WritingPlan WritingPlan::fromJson(const QString& text)
         }
     }
     return plan;
+}
+
+int dailyGoalForPlan(const WritingRules& rules, const WritingPlan& plan,
+                     const QHash<QString, PlannedText>& texts, const QDate& today,
+                     QStringList* counted)
+{
+    if (counted != nullptr) {
+        counted->clear();
+    }
+    if (!today.isValid() || writingDaysBetween(rules, today, today) == 0) {
+        return 0;
+    }
+    qint64 goal = 0;
+    for (const TextPlan& text : plan.texts) {
+        const auto found = texts.constFind(text.elementId);
+        if (found == texts.constEnd() || !found->beingWritten || !text.hasWriting()
+            || text.start > today || text.targetWords <= found->words) {
+            continue;
+        }
+        const int lacking = text.targetWords - found->words;
+        // Its bar ended: all it lacks is for today
+        const int days = text.end >= today ? writingDaysBetween(rules, today, text.end) : 0;
+        goal += wordsPerWritingDay(lacking, days);
+        if (counted != nullptr) {
+            counted->append(text.elementId);
+        }
+    }
+    return int(std::min<qint64>(goal, std::numeric_limits<int>::max()));
+}
+
+QList<std::pair<QDate, QDate>> spreadOverWritingDays(const WritingRules& rules,
+                                                    const QList<int>& wordsLeft,
+                                                    const QDate& from, const QDate& to)
+{
+    QList<std::pair<QDate, QDate>> bars;
+    if (wordsLeft.isEmpty() || !from.isValid() || !to.isValid() || to < from) {
+        return bars;
+    }
+    QList<QDate> days;
+    const QDate last = from.daysTo(to) < MAX_SPREAD_DAYS ? to : from.addDays(MAX_SPREAD_DAYS - 1);
+    for (QDate day = from; day <= last; day = day.addDays(1)) {
+        if (writingDaysBetween(rules, day, day) > 0) {
+            days.append(day);
+        }
+    }
+    if (days.isEmpty()) {
+        return bars;
+    }
+    // Each text takes its words on a line of all the words; the days cut that line in equal
+    // pieces, and a text has the days its words fall in
+    QList<qint64> weights;
+    for (const int words : wordsLeft) {
+        weights.append(std::max(0, words));
+    }
+    qint64 total = std::accumulate(weights.cbegin(), weights.cend(), qint64(0));
+    if (total == 0) {
+        std::fill(weights.begin(), weights.end(), qint64(1));
+        total = weights.size();
+    }
+    const qint64 count = days.size();
+    qint64 before = 0;
+    for (const qint64 weight : weights) {
+        const qint64 after = before + weight;
+        const qint64 first = std::min(count - 1, before * count / total);
+        const qint64 end = std::clamp((after * count + total - 1) / total - 1, first, count - 1);
+        bars.append({days.at(first), days.at(end)});
+        before = after;
+    }
+    return bars;
 }
 
 }  // namespace kalahari::core

@@ -132,6 +132,9 @@ private:
     /// @brief What a view shows
     void viewOf(View view, const Context& context, ViewData& viewData) const;
     void showToday(const Context& context, ViewData& viewData) const;
+    /// @brief The line of the details that says where the daily goal comes from, when it is
+    /// not the writer's own
+    void appendGoalSource(const Context& context, ViewData& viewData) const;
     void showWeek(const Context& context, ViewData& viewData) const;
     void showMonth(const Context& context, ViewData& viewData) const;
     void showBook(const Context& context, ViewData& viewData) const;
