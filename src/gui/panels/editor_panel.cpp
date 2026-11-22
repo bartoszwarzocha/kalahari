@@ -72,6 +72,7 @@ constexpr double MAX_MARK_SCALE = 3.0;
 /// The size of the text of the cards under the paragraphs, in percent of the chapter's text
 constexpr int MIN_CARD_FONT = 60;
 constexpr int MAX_CARD_FONT = 130;
+constexpr double MAX_CARD_SIDE_MARGIN_MM = 30.0;  ///< The cards' side margin at most
 
 /// How much of the kind's color the cards have, in percent of the usual
 constexpr int MIN_CARD_TINT = 50;
@@ -648,6 +649,8 @@ void EditorPanel::applySettings() {
     cards.longLines = std::max(0, settings.get<int>("editor.annotationCards.longLines"));
     cards.fontPercent = std::clamp(settings.get<int>("editor.annotationCards.fontSize"),
                                    MIN_CARD_FONT, MAX_CARD_FONT);
+    cards.sideMarginMm = std::clamp(settings.get<double>("editor.annotationCards.sideMargin"),
+                                    0.0, MAX_CARD_SIDE_MARGIN_MM);
     cards.tintPercent = std::clamp(settings.get<int>("editor.annotationCards.tint"),
                                    MIN_CARD_TINT, MAX_CARD_TINT);
     cards.highlightFragment = settings.get<bool>("editor.annotationCards.highlightFragment");

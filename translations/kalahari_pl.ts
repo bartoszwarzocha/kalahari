@@ -4884,6 +4884,11 @@ Niewłaściwa konfiguracja może wpłynąć na stabilność programu.</translati
         <extracomment>The group of Settings &gt; Annotations &gt; Cards Under Paragraphs. In Polish: Wygląd kart</extracomment>
         <translation>Wygląd kart</translation>
     </message>
+    <message>
+        <source>Margin on both sides:</source>
+        <extracomment>The room between a card and the left and right edges of the text. In Polish: Margines z boków:</extracomment>
+        <translation>Margines z boków:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AnnotationsPanel</name>

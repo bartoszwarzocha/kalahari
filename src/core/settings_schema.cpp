@@ -676,9 +676,10 @@ std::map<std::string, json> buildDefaults() {
         // "compact" (the text alone, the author and the date at its end); a collapsed one
         // "mark" (its mark alone) or "line" (a line with the start of its text); "expanded" or
         // "collapsed" after a chapter opens; a long text cut short after so many lines (0:
-        // whole); the size of their text in percent of the chapter's; how much of the kind's
-        // color they have, in percent of the usual; the fragment of the card the mouse is on
-        // highlighted; "show" or "hide" them in Distraction-Free
+        // whole); the size of their text in percent of the chapter's; the room on each side of
+        // them, from the edges of the text, in millimetres; how much of the kind's color they
+        // have, in percent of the usual; the fragment of the card the mouse is on highlighted;
+        // "show" or "hide" them in Distraction-Free
         {"editor.annotationCards.show", false},
         {"editor.annotationCards.comments", true},
         {"editor.annotationCards.todos", true},
@@ -687,7 +688,8 @@ std::map<std::string, json> buildDefaults() {
         {"editor.annotationCards.collapsedLook", "mark"},
         {"editor.annotationCards.afterOpening", "expanded"},
         {"editor.annotationCards.longLines", 0},
-        {"editor.annotationCards.fontSize", 90},
+        {"editor.annotationCards.fontSize", 70},
+        {"editor.annotationCards.sideMargin", 4.0},
         {"editor.annotationCards.tint", 100},
         {"editor.annotationCards.highlightFragment", true},
         {"editor.annotationCards.distractionFree", "show"},
