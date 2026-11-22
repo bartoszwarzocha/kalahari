@@ -59,16 +59,20 @@ public:
     ///
     /// Fusion highlights only enabled items, so a grey one the arrow keys rest on showed no
     /// highlight: only the status bar changed. It gets a softer highlight with a frame, and
-    /// keeps its grey text, as on Windows.
+    /// keeps its grey text, as on Windows. The text of a checked button without an icon is in
+    /// the highlighted text's color, on the highlight drawPrimitive() fills it with.
     void drawControl(ControlElement element,
                      const QStyleOption* option,
                      QPainter* painter,
                      const QWidget* widget = nullptr) const override;
 
-    /// @brief Draw check boxes with a clear frame and a check mark in both themes
+    /// @brief Draw check boxes with a clear frame and a check mark in both themes, and checked
+    ///        buttons clearly on
     ///
     /// Fusion's frame is barely visible on dark palettes; this draws the frame from
-    /// the text color and, when checked, a check mark on the highlight color.
+    /// the text color and, when checked, a check mark on the highlight color. A checked
+    /// button (a tool button or a push button) is filled with the highlight color, or with an
+    /// icon tinted with it and framed in it: Fusion's checked button is only a little darker.
     void drawPrimitive(PrimitiveElement element,
                        const QStyleOption* option,
                        QPainter* painter,

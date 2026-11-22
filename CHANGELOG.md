@@ -401,6 +401,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     Tables, and the window of the caption). The list of figures has the captions of tables too.
   - In the page view the cursor moved several pages down (into a table, after a search) stays
     in view: the view no longer goes to a place the pages above it then move.
+  - A button that is on is clearly on: a button with text alone (the days of writing, the
+    choices of a panel) is filled with the highlight color of the theme, its text in the
+    color of highlighted text; a button with an icon (Bold in the toolbar) gets a tint of that
+    color and a frame in it. Before, it was only a little darker than one that is off.
 
 ---
 
