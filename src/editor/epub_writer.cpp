@@ -18,6 +18,7 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_format.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_tables.h>
@@ -898,11 +899,27 @@ QString EpubWriter::paragraphOf(const ExportText& text, const QTextBlock& block,
     if (own.rightIndent) {
         css << QStringLiteral("margin-right: ") + emOf(*own.rightIndent, size);
     }
-    if (own.spaceBefore) {
-        css << QStringLiteral("margin-top: ") + emOf(*own.spaceBefore, size);
+    // The room of an image around its paragraph and its caption, over the paragraph's own
+    // (or its style's) room
+    std::optional<double> spaceBefore = own.spaceBefore;
+    std::optional<double> spaceAfter = own.spaceAfter;
+    if (const ImageBlockSpace space = imageBlockSpace(block); !space.isEmpty()) {
+        const QVariantMap& properties = m_book.styles.shownStyle(style).properties;
+        const auto styleSpace = [&properties](const char* name) {
+            return std::max(0.0, properties.value(QLatin1String(name)).toDouble());
+        };
+        if (space.before > 0.0) {
+            spaceBefore = spaceBefore.value_or(styleSpace("spaceBefore")) + space.before;
+        }
+        if (space.after > 0.0) {
+            spaceAfter = spaceAfter.value_or(styleSpace("spaceAfter")) + space.after;
+        }
     }
-    if (own.spaceAfter) {
-        css << QStringLiteral("margin-bottom: ") + emOf(*own.spaceAfter, size);
+    if (spaceBefore) {
+        css << QStringLiteral("margin-top: ") + emOf(*spaceBefore, size);
+    }
+    if (spaceAfter) {
+        css << QStringLiteral("margin-bottom: ") + emOf(*spaceAfter, size);
     }
     if (m_book.epub.bookStyles && own.lineSpacing) {
         css << QStringLiteral("line-height: ") + (own.lineSpacing->rule == LineSpacingRule::Multiple

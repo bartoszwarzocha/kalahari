@@ -84,11 +84,6 @@ std::string firstField(BookEditor& editor) {
     return fields.substr(0, fields.find('|'));
 }
 
-/// Whether a block is a caption: in the style Caption
-bool isCaptionBlock(const QTextBlock& block) {
-    return paragraphStyleOf(block.blockFormat()) == QLatin1String(CAPTION_STYLE_ID);
-}
-
 /// The position of the first image of the document
 int firstImage(const QTextDocument& document) {
     const std::vector<int> images = imagePositions(document, 0, document.characterCount());

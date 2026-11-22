@@ -38,6 +38,11 @@ inline constexpr const char* IMAGE_ALIGNMENT_KEY = "editor.images.alignment";
 /// @brief The width of a new image: 0, as its file and at most the width of the text; else a
 ///        share of the width of the text in percent (100, 75, 50)
 inline constexpr const char* IMAGE_WIDTH_KEY = "editor.images.width";
+/// @brief The room a new image keeps from the text above it, below it and beside it, in
+///        points (Image Properties, Spacing)
+inline constexpr const char* IMAGE_SPACE_ABOVE_KEY = "editor.images.spaceAbove";
+inline constexpr const char* IMAGE_SPACE_BELOW_KEY = "editor.images.spaceBelow";
+inline constexpr const char* IMAGE_SPACE_BESIDE_KEY = "editor.images.spaceBeside";
 /// @brief Whether a new image gets a numbered caption under it
 inline constexpr const char* IMAGE_CAPTION_KEY = "editor.images.addCaption";
 /// @brief The label of that caption; empty: the first label of the captions of new books

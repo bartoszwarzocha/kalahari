@@ -264,14 +264,13 @@ bool hasFields(const QTextBlock& block)
     return false;
 }
 
-namespace {
-
-/// Whether a block is a caption: a paragraph in the style Caption
 bool isCaptionBlock(const QTextBlock& block)
 {
     return block.isValid() &&
            paragraphStyleOf(block.blockFormat()) == QLatin1String(CAPTION_STYLE_ID);
 }
+
+namespace {
 
 /// Whether two blocks are next to each other in one place: both outside tables, or in one
 /// cell of a table

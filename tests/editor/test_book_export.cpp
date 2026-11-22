@@ -213,6 +213,33 @@ TEST_CASE("DOCX: an image the text flows around is anchored to its paragraph",
     CHECK(document.contains(QStringLiteral("<wp:align>center</wp:align>")));
     // An image with text in its paragraph stays in its line
     CHECK(count(document, QStringLiteral("<wp:inline ")) == 1);
+    // The room of an image beside the text: below it and beside it (8.5 pt in EMU)
+    CHECK(document.contains(QStringLiteral("distB=\"76200\" distL=\"107950\" distR=\"107950\"")));
+}
+
+TEST_CASE("DOCX: the room around an image is in the spacing of its paragraph and its caption",
+          "[export][docx][images]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    writeRedSquare(folder.path());
+    BookExport book = sampleBook(folder.path());
+    book.items.resize(3);  // the contents, the part and the first chapter
+    book.items.back().kml = QStringLiteral(
+        "<kml><p>Before.</p>"
+        "<p><img src=\"images/red.png\" alt=\"Alone\" space-above=\"12pt\" space-below=\"9pt\"/></p>"
+        "<p>Between.</p>"
+        "<p><img src=\"images/red.png\" alt=\"With a caption\" space-above=\"10pt\" space-below=\"20pt\"/></p>"
+        "<p style=\"caption\">The well</p>"
+        "<p>After.</p></kml>");
+    const QString path = folder.filePath(QStringLiteral("space.docx"));
+    REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+    const QString document =
+        QString::fromUtf8(zipEntries(path).value(QStringLiteral("word/document.xml")));
+    // Twips: the image alone 12 and 9 pt over its style's nothing; with a caption below it the
+    // room above on the image, the room below under the caption (over the style's own)
+    CHECK(document.contains(QStringLiteral("<w:spacing w:before=\"240\" w:after=\"180\"/>")));
+    CHECK(document.contains(QStringLiteral("<w:spacing w:before=\"200\"/>")));
+    CHECK(count(document, QStringLiteral("w:after=\"")) >= 2);
 }
 
 TEST_CASE("DOCX: the options of the export", "[export][docx]") {

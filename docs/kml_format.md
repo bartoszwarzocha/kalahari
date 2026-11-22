@@ -389,6 +389,8 @@ it: its first item gets the number it has in the chapter as `value`.
 | `border-padding` | A length up to `72pt` | The room between the line (or the shadow) and the picture |
 | `shadow` | `true` | A shadow to the right and down of the picture |
 | `wrap` | `left`, `right`, `top-bottom` | The text flows around the image: the image on the left or the right of the text column, the next paragraphs beside it; or the text above and below it. Without it, the image is a part of its line |
+| `space-above`, `space-below` | A length up to `72pt`; `6pt` without it | The room above and below an image alone in its paragraph, its caption inside it |
+| `space-beside` | A length up to `72pt`; `8.5pt` (0.3 cm) without it | With `wrap` on the left or the right: the room between the image and the lines beside it |
 
 - **An image is a part of its line**, as a large character: it stands on the baseline, the
   paragraph's alignment places it, and the text, the undo, the clipboard and drag and drop take
@@ -416,11 +418,18 @@ it: its first item gets the number it has in the chapter as `value`.
   may be above or below it), outside a table; elsewhere the image stays a part of its line and
   keeps the attribute. Beside the text, the image is as wide as it is (at most the column), with
   its caption under or above it as wide; the lines of the paragraphs after it go beside it,
-  0.3 cm from it, while it reaches down, and below it where the room beside it is less than
-  2.5 cm. A table, a horizontal line and a break go below it. Two images on the same side go one
+  `space-beside` from it, while it reaches down, and below it where the room beside it is less
+  than 2.5 cm. A table, a horizontal line and a break go below it. Two images on the same side go one
   under the other. Above and below the text with page flow, an image that does not fit in the
   rest of its page goes on to the top of the next page with its caption, and the text after it
   fills the rest of the page; in the continuous views it stays where the text puts it.
+- **The room around it.** An image alone in its paragraph has `space-above` above it and
+  `space-below` below it, added to the spacing of its paragraph's style, so the text above and
+  below it does not touch it; its caption is inside that room, next to the image, and the
+  room goes on the caption's far side. An image in a line of text keeps the attributes and
+  takes no room. Word (`w:spacing` of the paragraphs, `distB`, `distL`, `distR` of an image
+  beside the text) and EPUB (`margin-top`, `margin-bottom`) get the same room. New images take
+  it from Settings > Editor > Images (`editor.images.spaceAbove`, `spaceBelow`, `spaceBeside`).
 - **The file.** `src` names a file in the book's main folder, without `..`, a drive or a
   scheme; any other `src` (`/home/...`, `C:\...`, `https://...`) is never read and is shown as
   a missing file. A text outside a book names its images relative to its own folder. The

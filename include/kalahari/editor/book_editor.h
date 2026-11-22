@@ -1310,6 +1310,11 @@ public:
         ImageWrap wrap = ImageWrap::Inline;  ///< How the text flows around it (unless it has
                                              ///< a wrap of its own)
         int widthPercent = 0;  ///< Of the width of its lines; 0: its file's own (at most theirs)
+        /// The room it keeps from the text above it, below it and beside it, in points (unless
+        /// it has a room of its own)
+        double spaceAbove = DEFAULT_IMAGE_SPACE_ABOVE;
+        double spaceBelow = DEFAULT_IMAGE_SPACE_BELOW;
+        double spaceBeside = DEFAULT_IMAGE_SPACE_BESIDE;
         QString captionLabel;  ///< A numbered caption of this label under it; empty: none
         /// The copy of a file with more dots per inch at the image's width in the text is made
         /// smaller to these; 0: the copy is the file itself

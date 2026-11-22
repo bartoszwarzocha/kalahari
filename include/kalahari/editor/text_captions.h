@@ -163,6 +163,9 @@ bool isCaptionAbove(const QTextBlockFormat& format);
 /// @brief Put a caption paragraph above its image or below it
 void setCaptionAbove(QTextBlockFormat& format, bool above);
 
+/// @brief Whether a block is a caption: a paragraph in the style Caption
+bool isCaptionBlock(const QTextBlock& block);
+
 /// @brief The caption of the block of an image: the paragraph after it in the style Caption
 ///        (unless it is above the image after it), else the paragraph before it in the style
 ///        Caption above its image; in a table, in the same cell; invalid: none

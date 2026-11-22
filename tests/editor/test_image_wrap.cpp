@@ -428,3 +428,162 @@ TEST_CASE("Image wrap: Image > Wrap Text is one undo step, new images take the s
     CHECK(imageAt(document, *editor->selectedImage())->wrap == ImageWrap::TopBottom);
     CHECK(editor->toKml().contains(QStringLiteral("wrap=\"top-bottom\"")));
 }
+
+// =============================================================================
+// The room around an image
+// =============================================================================
+
+TEST_CASE("Image space: KML and the format keep the room around an image unless the default",
+          "[editor][images][wrap]") {
+    const ImageProperties plain = imageOfElement(QStringLiteral("<img src=\"images/a.png\"/>"));
+    CHECK(plain.spaceAbove == Approx(DEFAULT_IMAGE_SPACE_ABOVE));
+    CHECK(plain.spaceBelow == Approx(DEFAULT_IMAGE_SPACE_BELOW));
+    CHECK(plain.spaceBeside == Approx(DEFAULT_IMAGE_SPACE_BESIDE));
+    CHECK(imageKml(plain) == QStringLiteral("<img src=\"images/a.png\"/>"));
+
+    const ImageProperties own = imageOfElement(QStringLiteral(
+        "<img src=\"images/a.png\" space-above=\"12pt\" space-below=\"0pt\" space-beside=\"1cm\"/>"));
+    CHECK(own.spaceAbove == Approx(12.0));
+    CHECK(own.spaceBelow == Approx(0.0));
+    CHECK(own.spaceBeside == Approx(28.35).margin(0.01));
+    const ImageProperties again = imageOfElement(imageKml(own));
+    CHECK(again == own);
+
+    // Clamped: no less than nothing, no more than an inch
+    ImageProperties wide = plain;
+    wide.spaceAbove = -4.0;
+    wide.spaceBelow = 500.0;
+    CHECK(normalizedImage(wide).spaceAbove == Approx(0.0));
+    CHECK(normalizedImage(wide).spaceBelow == Approx(MAX_IMAGE_SPACE));
+
+    // In the format of its character only when it is not the default
+    QTextCharFormat format = imageCharFormat(plain);
+    CHECK_FALSE(format.hasProperty(IMAGE_SPACE_ABOVE_PROPERTY));
+    setImage(format, own);
+    CHECK(format.doubleProperty(IMAGE_SPACE_ABOVE_PROPERTY) == Approx(12.0));
+    CHECK(imageOf(format)->spaceBelow == Approx(0.0));
+    clearImage(format);
+    CHECK_FALSE(format.hasProperty(IMAGE_SPACE_BESIDE_PROPERTY));
+}
+
+TEST_CASE("Image space: the room is around the image and its caption, outside the caption",
+          "[editor][images][wrap]") {
+    BookFolder book;
+    book.addPicture(QStringLiteral("photo.png"), QSize(100, 100));
+    auto editor = editorWith(
+        QStringLiteral("<kml><p>Text.</p>"
+                       "<p><img src=\"images/photo.png\" space-above=\"10pt\" space-below=\"8pt\"/></p>"
+                       "<p><img src=\"images/photo.png\" space-above=\"10pt\" space-below=\"8pt\"/></p>"
+                       "<p style=\"caption\">Below it</p>"
+                       "<p style=\"caption\" caption=\"above\">Above it</p>"
+                       "<p><img src=\"images/photo.png\" space-above=\"10pt\" space-below=\"8pt\"/></p>"
+                       "<p>Text <img src=\"images/photo.png\" space-above=\"10pt\"/></p></kml>"),
+        book.path());
+    const QTextDocument& document = *editor->textDocument();
+    REQUIRE(document.blockCount() == 7);
+    const auto spaceOf = [&document](int block) {
+        return imageBlockSpace(document.findBlockByNumber(block));
+    };
+    CHECK(spaceOf(0) == ImageBlockSpace{});
+    CHECK(spaceOf(1) == ImageBlockSpace{10.0, 8.0});  // alone
+    REQUIRE(captionBlockOf(document.findBlockByNumber(2)).blockNumber() == 3);
+    CHECK(spaceOf(2) == ImageBlockSpace{10.0, 0.0});  // its caption below it
+    CHECK(spaceOf(3) == ImageBlockSpace{0.0, 8.0});   // the caption: below it
+    REQUIRE(captionBlockOf(document.findBlockByNumber(5)).blockNumber() == 4);
+    CHECK(spaceOf(4) == ImageBlockSpace{10.0, 0.0});  // the caption above: above it
+    CHECK(spaceOf(5) == ImageBlockSpace{0.0, 8.0});
+    CHECK(spaceOf(6) == ImageBlockSpace{});  // a part of a line of text
+}
+
+TEST_CASE("Image space: the layout leaves the room above and below an image and beside it",
+          "[editor][images][wrap][layout]") {
+    BookFolder book;
+    book.addPicture(QStringLiteral("photo.png"), QSize(120, 120));
+    const auto imageTop = [&book](const QString& space) {
+        auto editor = editorWith(QStringLiteral("<kml><p>Text above.</p><p><img src=\"images/photo.png\" ") +
+                                     space + QStringLiteral("/></p><p>Text below.</p></kml>"),
+                                 book.path());
+        KalahariTextDocumentLayout* layout = layoutOf(*editor);
+        const QTextDocument& document = *editor->textDocument();
+        layOutAll(document);
+        const QRectF box = imageBox(*layout, document.findBlockByNumber(1));
+        const qreal below = layout->blockY(2) - box.bottom();
+        return std::pair<qreal, qreal>(box.top() - layout->blockY(1), below);
+    };
+    const auto [noneAbove, noneBelow] = imageTop(QStringLiteral("space-above=\"0pt\" space-below=\"0pt\""));
+    const auto [someAbove, someBelow] = imageTop(QStringLiteral("space-above=\"12pt\" space-below=\"12pt\""));
+    const auto [moreAbove, moreBelow] = imageTop(QStringLiteral("space-above=\"24pt\" space-below=\"6pt\""));
+    CHECK(someAbove - noneAbove > 8.0);
+    CHECK(moreAbove - noneAbove == Approx(2.0 * (someAbove - noneAbove)).margin(1.0));
+    CHECK(someBelow - noneBelow == Approx(someAbove - noneAbove).margin(1.0));
+    CHECK(moreBelow - noneBelow == Approx((someBelow - noneBelow) / 2.0).margin(1.0));
+
+    // Beside the text: the lines keep the room beside it from the image
+    const auto gapBeside = [&book](const QString& space) {
+        auto editor = editorWith(QStringLiteral("<kml><p><img src=\"images/photo.png\" wrap=\"left\" ") +
+                                     space + QStringLiteral("/></p>") + longParagraph(20) +
+                                     QStringLiteral("</kml>"),
+                                 book.path());
+        KalahariTextDocumentLayout* layout = layoutOf(*editor);
+        const QTextDocument& document = *editor->textDocument();
+        layOutAll(document);
+        const QRectF box = imageBox(*layout, document.findBlockByNumber(0));
+        return document.findBlockByNumber(1).layout()->lineAt(1).x() - box.right();
+    };
+    const qreal narrow = gapBeside(QStringLiteral("space-beside=\"4pt\""));
+    const qreal wide = gapBeside(QStringLiteral("space-beside=\"28pt\""));
+    CHECK(narrow > 2.0);
+    CHECK(wide - narrow > 20.0);
+}
+
+TEST_CASE("Image space: a caption added or taken away moves the room of its image",
+          "[editor][images][wrap][layout]") {
+    BookFolder book;
+    book.addPicture(QStringLiteral("photo.png"), QSize(100, 100));
+    auto editor = editorWith(
+        QStringLiteral("<kml><p><img src=\"images/photo.png\" space-above=\"0pt\" space-below=\"30pt\"/></p>"
+                       "<p style=\"caption\">The well</p><p>Text.</p></kml>"),
+        book.path());
+    KalahariTextDocumentLayout* layout = layoutOf(*editor);
+    QTextDocument& document = *editor->textDocument();
+    layOutAll(document);
+    // With the caption: close under the image, the room under the caption
+    const qreal captionGap = layout->blockY(1) - imageBox(*layout, document.findBlockByNumber(0)).bottom();
+    const qreal textGap = layout->blockY(2) - layout->blockY(1);
+    // Without it (the caption's paragraph taken away): the room under the image
+    QTextCursor cursor(&document);
+    cursor.setPosition(document.findBlockByNumber(1).position());
+    cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+    cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
+    cursor.removeSelectedText();
+    REQUIRE(document.blockCount() == 2);
+    layOutAll(document);
+    const qreal imageGap = layout->blockY(1) - imageBox(*layout, document.findBlockByNumber(0)).bottom();
+    CHECK(imageGap > captionGap + 20.0);
+    CHECK(textGap > 20.0);
+}
+
+TEST_CASE("Image space: a new image keeps the room of the settings unless it has its own",
+          "[editor][images][wrap][editing]") {
+    BookFolder book;
+    auto editor = editorWith(QStringLiteral("<kml><p></p></kml>"), book.path());
+    QTemporaryDir outside;
+    QImage picture(QSize(40, 40), QImage::Format_RGB32);
+    picture.fill(Qt::blue);
+    const QString file = outside.path() + QStringLiteral("/new.png");
+    REQUIRE(picture.save(file));
+    BookEditor::NewImageOptions options = editor->newImageOptions();
+    options.spaceAbove = 14.0;
+    options.spaceBelow = 2.0;
+    options.spaceBeside = 20.0;
+    editor->setNewImageOptions(options);
+    editor->setCursorPosition({0, 0});
+    REQUIRE(editor->insertImageFile(file));
+    REQUIRE(editor->selectedImage());
+    const std::optional<ImageProperties> image = imageAt(*editor->textDocument(), *editor->selectedImage());
+    REQUIRE(image);
+    CHECK(image->spaceAbove == Approx(14.0));
+    CHECK(image->spaceBelow == Approx(2.0));
+    CHECK(image->spaceBeside == Approx(20.0));
+    CHECK(editor->toKml().contains(QStringLiteral("space-above=\"14pt\"")));
+}

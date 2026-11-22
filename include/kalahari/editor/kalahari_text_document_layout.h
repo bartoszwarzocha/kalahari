@@ -950,6 +950,8 @@ private:
         ImageWrap floatWrap = ImageWrap::Inline;  ///< FLOW_FLOAT: how the text flows around
                                                   ///< the block's image
         QSizeF floatSize;                ///< FLOW_FLOAT: the size of the block's image
+        qreal floatGap = 0;              ///< FLOW_FLOAT: the room between the image and the
+                                         ///< text beside it
     };
 
     /// @brief The page flow entry of a block in a style, with @p lead
@@ -1161,6 +1163,7 @@ private:
         size_t last = 0;
         ImageWrap wrap = ImageWrap::SquareLeft;
         QRectF rect;
+        qreal gap = 0.0;  ///< The room between the image and the text beside it
     };
 
     /// @brief Where a line goes among the images beside the text: its top, the left of its
@@ -1288,6 +1291,10 @@ private:
     // The metrics of a style with a paragraph's own formatting or a list item over it, by
     // the style and the properties
     mutable std::map<QString, BlockMetrics> m_directMetrics;
+
+    // The metrics of a block with the room of an image around it (imageBlockSpace()), by the
+    // metrics it has without it and the room
+    mutable std::map<QString, BlockMetrics> m_imageSpaceMetrics;
 
     // The marks of the list items by block number (listMarkers()), whether the document has
     // list items, and whether the marks wait to be counted

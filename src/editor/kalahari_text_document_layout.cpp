@@ -567,6 +567,7 @@ void KalahariTextDocumentLayout::clearMetrics() {
     m_styleMetrics.clear();
     m_objectMetrics.clear();
     m_directMetrics.clear();
+    m_imageSpaceMetrics.clear();
     m_noteBoxes.clear();  // laid out in the style Footnote
 }
 
@@ -589,22 +590,41 @@ const KalahariTextDocumentLayout::BlockMetrics& KalahariTextDocumentLayout::bloc
     // The paragraph's own formatting and its list over the style
     const QString own = paragraphFormatKey(format);
     const bool listItem = isListItem(format);
-    if (own.isEmpty() && !listItem) {
-        return it->second;
+    QString key = style.id;
+    const BlockMetrics* metrics = &it->second;
+    if (!own.isEmpty() || listItem) {
+        key += QLatin1Char('|') + own;
+        if (listItem) {
+            key += QStringLiteral("|%1|").arg(format.intProperty(LIST_LEVEL_PROPERTY)) +
+                   format.stringProperty(LIST_DEFINITION_PROPERTY);
+        }
+        auto direct = m_directMetrics.find(key);
+        if (direct == m_directMetrics.end()) {
+            direct = m_directMetrics
+                         .emplace(key, directMetrics(it->second, format,
+                                                     listItem ? listItemOf(format) : std::nullopt))
+                         .first;
+        }
+        metrics = &direct->second;
     }
-    QString key = style.id + QLatin1Char('|') + own;
-    if (listItem) {
-        key += QStringLiteral("|%1|").arg(format.intProperty(LIST_LEVEL_PROPERTY)) +
-               format.stringProperty(LIST_DEFINITION_PROPERTY);
+
+    // The room of an image around its block and its caption, over the paragraph's own
+    const ImageBlockSpace space = imageBlockSpace(block);
+    if (space.isEmpty()) {
+        return *metrics;
     }
-    auto direct = m_directMetrics.find(key);
-    if (direct == m_directMetrics.end()) {
-        direct = m_directMetrics
-                     .emplace(key, directMetrics(it->second, format,
-                                                 listItem ? listItemOf(format) : std::nullopt))
-                     .first;
+    const qreal pixels = packagePixels();
+    const qreal before = std::round(space.before * pixels);
+    const qreal after = std::round(space.after * pixels);
+    key += QStringLiteral("|image|%1|%2").arg(before).arg(after);
+    auto spaced = m_imageSpaceMetrics.find(key);
+    if (spaced == m_imageSpaceMetrics.end()) {
+        BlockMetrics withSpace = *metrics;
+        withSpace.spaceBefore += before;
+        withSpace.spaceAfter += after;
+        spaced = m_imageSpaceMetrics.emplace(key, withSpace).first;
     }
-    return direct->second;
+    return spaced->second;
 }
 
 qreal KalahariTextDocumentLayout::packagePixels() const {
@@ -1386,6 +1406,18 @@ std::pair<QTextBlock, QTextBlock> KalahariTextDocumentLayout::changedBlocks(int 
     // other rows keep their lines, and only move
     const QTextTable* firstTable = tableOf(first);
     const QTextTable* lastTable = tableOf(last);
+
+    // An image alone in its paragraph keeps its room on the side of its caption, and the
+    // caption keeps it: a change of either one lays out the other one too (imageBlockSpace())
+    const auto ofImage = [](const QTextBlock& block) {
+        return holdsImageAlone(block) || isCaptionBlock(block);
+    };
+    if (!firstTable && ofImage(first.previous())) {
+        first = first.previous();
+    }
+    if (!lastTable && ofImage(last.next())) {
+        last = last.next();
+    }
     if (firstTable) {
         const int lastRow = firstTable == lastTable ? rowOfBlock(*firstTable, last) : firstTable->rows() - 1;
         const auto [firstRow, bandLast] = tableBand(*firstTable, rowOfBlock(*firstTable, first), lastRow);

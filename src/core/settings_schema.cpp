@@ -517,6 +517,10 @@ std::map<std::string, json> buildDefaults() {
         {"editor.images.layout", "inline"},
         {"editor.images.alignment", "center"},
         {"editor.images.width", 0},
+        // The room a new image keeps from the text above it, below it and beside it (points)
+        {"editor.images.spaceAbove", 6.0},
+        {"editor.images.spaceBelow", 6.0},
+        {"editor.images.spaceBeside", 8.5},
         {"editor.images.addCaption", true},
         {"editor.images.captionLabel", ""},
         {"editor.images.askCaption", true},

@@ -9,11 +9,13 @@
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/text_images.h"
+#include "kalahari/gui/caption_settings.h"
 #include "kalahari/gui/dialogs/image_properties_dialog.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/widgets/color_menu.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 
+#include "kalahari_tests/changed_setting.h"
 #include "kalahari_tests/gui/document_window.h"
 
 #include <QAbstractButton>
@@ -27,6 +29,7 @@
 #include <QFileInfo>
 #include <QGroupBox>
 #include <QImage>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -47,7 +50,11 @@
 using namespace kalahari;
 using namespace kalahari::editor;
 using Catch::Approx;
+using kalahari::gui::IMAGE_SPACE_ABOVE_KEY;
+using kalahari::gui::IMAGE_SPACE_BESIDE_KEY;
 using kalahari::gui::LengthSpinBox;
+using kalahari::gui::LengthUnit;
+using kalahari::test::ChangedSetting;
 using kalahari::gui::dialogs::ImagePropertiesDialog;
 
 namespace {
@@ -310,7 +317,8 @@ TEST_CASE("Image Properties window: its pages, their keys and one size on all of
     CHECK(dialog.acceptButton()->text() == QStringLiteral("OK"));
     const QStringList pages = pageNames(dialog);
     CHECK(pages == QStringList{QStringLiteral("&Image"), QStringLiteral("&Size and Rotation"),
-                               QStringLiteral("&Crop"), QStringLiteral("&Border"),
+                               QStringLiteral("&Crop"), QStringLiteral("Text &Flow"),
+                               QStringLiteral("Space Aro&und"), QStringLiteral("&Border"),
                                QStringLiteral("C&olors"), QStringLiteral("&Description"),
                                QStringLiteral("Ca&ption")});
     // The list shows them without the "&"
@@ -352,7 +360,7 @@ TEST_CASE("Image Properties window: its pages, their keys and one size on all of
     press(dialog, QKeySequence(QStringLiteral("Alt+C")));
     CHECK(dialog.currentPage() == ImagePropertiesDialog::CropPage);
     press(dialog, QKeySequence(Qt::CTRL | Qt::Key_Tab));
-    CHECK(dialog.currentPage() == ImagePropertiesDialog::BorderPage);
+    CHECK(dialog.currentPage() == ImagePropertiesDialog::WrapPage);
     press(dialog, QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Tab));
     press(dialog, QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Tab));
     CHECK(dialog.currentPage() == ImagePropertiesDialog::SizePage);
@@ -370,27 +378,127 @@ TEST_CASE("Image Properties window: how the text flows around the image",
     Pictures pictures;
     ImagePropertiesData given = dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400}));
     given.canWrap = true;
+    const auto choiceOf = [](ImagePropertiesDialog& dialog, ImageWrap wrap) {
+        QWidget& page = *dialog.pages()->widget(ImagePropertiesDialog::WrapPage);
+        return page.findChild<QRadioButton*>(
+            QStringLiteral("imageWrap%1").arg(static_cast<int>(wrap)));
+    };
+    const auto noteOf = [](ImagePropertiesDialog& dialog) {
+        return dialog.pages()
+            ->widget(ImagePropertiesDialog::WrapPage)
+            ->findChild<QLabel*>(QStringLiteral("imageWrapNote"))
+            ->text();
+    };
     {
+        // Its own page: each way a choice with its picture and what it does under them
         ImagePropertiesDialog dialog(given, QColor(Qt::black));
-        auto* wrap = fieldOf<QComboBox>(dialog, QStringLiteral("&Wrap text:"));
-        REQUIRE(wrap != nullptr);
-        CHECK(wrap->isEnabled());
-        CHECK(wrap->count() == 4);
-        CHECK(wrap->currentData().toInt() == static_cast<int>(ImageWrap::Inline));
-        wrap->setCurrentIndex(wrap->findData(static_cast<int>(ImageWrap::SquareLeft)));
+        dialog.show();
+        dialog.showPage(ImagePropertiesDialog::WrapPage);
+        settle();
+        QWidget& page = *dialog.pages()->widget(ImagePropertiesDialog::WrapPage);
+        CHECK(page.findChildren<QRadioButton*>().size() == 4);
+        for (const ImageWrap wrap : {ImageWrap::Inline, ImageWrap::SquareLeft,
+                                     ImageWrap::SquareRight, ImageWrap::TopBottom}) {
+            QRadioButton* choice = choiceOf(dialog, wrap);
+            REQUIRE(choice != nullptr);
+            CHECK(choice->isEnabled());
+            CHECK_FALSE(choice->icon().isNull());
+            CHECK(choice->iconSize().width() >= 64);
+        }
+        CHECK(choiceOf(dialog, ImageWrap::Inline)->isChecked());
+        CHECK(noteOf(dialog).contains(QStringLiteral("paragraph of its own")));
+        choiceOf(dialog, ImageWrap::SquareLeft)->click();
         CHECK(dialog.data().image.wrap == ImageWrap::SquareLeft);
-        wrap->setCurrentIndex(wrap->findData(static_cast<int>(ImageWrap::TopBottom)));
+        CHECK(noteOf(dialog).contains(QStringLiteral("beside the image")));
+        // The arrows go from one way to the next
+        choiceOf(dialog, ImageWrap::SquareLeft)->setFocus();
+        QKeyEvent down(QEvent::KeyPress, Qt::Key_Down, Qt::NoModifier);
+        QApplication::sendEvent(choiceOf(dialog, ImageWrap::SquareLeft), &down);
+        CHECK(choiceOf(dialog, ImageWrap::SquareRight)->isChecked());
+        CHECK(dialog.data().image.wrap == ImageWrap::SquareRight);
+        choiceOf(dialog, ImageWrap::TopBottom)->click();
         CHECK(dialog.data().image.wrap == ImageWrap::TopBottom);
+        CHECK(noteOf(dialog).contains(QStringLiteral("fills the rest of the page")));
+        CHECK_FALSE(dialog.grab().isNull());
     }
 
-    // An image with text in its paragraph, or in a table: in its line, greyed out with why
+    // An image with text in its paragraph, or in a table: in its line, the others greyed out
+    // with why
     given.canWrap = false;
     ImagePropertiesDialog dialog(given, QColor(Qt::black));
-    auto* wrap = fieldOf<QComboBox>(dialog, QStringLiteral("&Wrap text:"));
-    REQUIRE(wrap != nullptr);
-    CHECK_FALSE(wrap->isEnabled());
-    CHECK_FALSE(wrap->toolTip().isEmpty());
+    CHECK(choiceOf(dialog, ImageWrap::Inline)->isEnabled());
+    CHECK_FALSE(choiceOf(dialog, ImageWrap::SquareLeft)->isEnabled());
+    CHECK_FALSE(choiceOf(dialog, ImageWrap::TopBottom)->isEnabled());
+    CHECK(noteOf(dialog).contains(QStringLiteral("a part of a line of the text")));
     CHECK(dialog.data().image.wrap == ImageWrap::Inline);
+}
+
+TEST_CASE("Image Properties window: the space around the image, its own or of the settings",
+          "[gui][images][dialog]") {
+    Pictures pictures;
+    ImagePropertiesData given = dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400}));
+    given.canWrap = true;
+    const auto fieldOfSide = [](ImagePropertiesDialog& dialog, int side) {
+        return dialog.pages()
+            ->widget(ImagePropertiesDialog::SpacePage)
+            ->findChild<LengthSpinBox*>(QStringLiteral("imageSpace%1").arg(side));
+    };
+    {
+        ImagePropertiesDialog dialog(given, QColor(Qt::black));
+        dialog.show();
+        dialog.showPage(ImagePropertiesDialog::SpacePage);
+        settle();
+        QWidget& page = *dialog.pages()->widget(ImagePropertiesDialog::SpacePage);
+        // The room of a new image; beside only with the text beside the image
+        for (int side = 0; side < 3; ++side) {
+            REQUIRE(fieldOfSide(dialog, side) != nullptr);
+            CHECK(fieldOfSide(dialog, side)->storedUnit() == LengthUnit::Points);
+        }
+        CHECK(fieldOfSide(dialog, 0)->storedValue() == Approx(editor::DEFAULT_IMAGE_SPACE_ABOVE));
+        CHECK(fieldOfSide(dialog, 1)->storedValue() == Approx(editor::DEFAULT_IMAGE_SPACE_BELOW));
+        CHECK(fieldOfSide(dialog, 2)->storedValue() == Approx(editor::DEFAULT_IMAGE_SPACE_BESIDE));
+        CHECK(fieldOfSide(dialog, 0)->isEnabled());
+        CHECK_FALSE(fieldOfSide(dialog, 2)->isEnabled());
+        fieldOfSide(dialog, 0)->setStoredValue(12.0);
+        fieldOfSide(dialog, 0)->setValue(fieldOfSide(dialog, 0)->value());
+        fieldOfSide(dialog, 1)->setStoredValue(3.0);
+        fieldOfSide(dialog, 1)->setValue(fieldOfSide(dialog, 1)->value());
+        CHECK(dialog.data().image.spaceAbove == Approx(12.0));
+        CHECK(dialog.data().image.spaceBelow == Approx(3.0));
+
+        // Beside the text: the room beside it too
+        dialog.showPage(ImagePropertiesDialog::WrapPage);
+        dialog.pages()
+            ->widget(ImagePropertiesDialog::WrapPage)
+            ->findChild<QRadioButton*>(
+                QStringLiteral("imageWrap%1").arg(static_cast<int>(ImageWrap::SquareRight)))
+            ->click();
+        CHECK(fieldOfSide(dialog, 2)->isEnabled());
+
+        // As in the settings: the room of new images
+        const ChangedSetting<double> above(IMAGE_SPACE_ABOVE_KEY, 9.0);
+        const ChangedSetting<double> beside(IMAGE_SPACE_BESIDE_KEY, 14.0);
+        auto* settings = buttonOf<QPushButton>(page, QStringLiteral("As in the Settin&gs"));
+        REQUIRE(settings != nullptr);
+        settings->click();
+        CHECK(dialog.data().image.spaceAbove == Approx(9.0));
+        CHECK(dialog.data().image.spaceBelow == Approx(editor::DEFAULT_IMAGE_SPACE_BELOW));
+        CHECK(dialog.data().image.spaceBeside == Approx(14.0));
+        CHECK(fieldOfSide(dialog, 0)->storedValue() == Approx(9.0));
+        CHECK_FALSE(dialog.grab().isNull());
+    }
+
+    // An image in a line of the text keeps no room: greyed out with why
+    given.canWrap = false;
+    ImagePropertiesDialog dialog(given, QColor(Qt::black));
+    for (int side = 0; side < 3; ++side) {
+        CHECK_FALSE(fieldOfSide(dialog, side)->isEnabled());
+    }
+    CHECK(dialog.pages()
+              ->widget(ImagePropertiesDialog::SpacePage)
+              ->findChild<QLabel*>(QStringLiteral("imageSpaceNote"))
+              ->text()
+              .contains(QStringLiteral("a part of a line of the text")));
 }
 
 TEST_CASE("Image Properties window: a missing file", "[gui][images][dialog]") {
@@ -1067,7 +1175,8 @@ TEST_CASE("Image Properties window in Polish: keys of its own, Latin letters, a 
     CHECK(dialog.windowTitle() == QStringLiteral("Właściwości obrazu"));
     const QStringList pages = pageNames(dialog);
     CHECK(pages == QStringList{QStringLiteral("&Obraz"), QStringLiteral("&Rozmiar i obrót"),
-                               QStringLiteral("&Przycięcie"), QStringLiteral("Obramo&wanie"),
+                               QStringLiteral("&Przycięcie"), QStringLiteral("Opły&wanie"),
+                               QStringLiteral("Odstęp&y"), QStringLiteral("Obra&mowanie"),
                                QStringLiteral("&Kolory"), QStringLiteral("Op&is"),
                                QStringLiteral("Po&dpis")});
     for (int page = 0; page < dialog.pages()->count(); ++page) {
@@ -1084,6 +1193,10 @@ TEST_CASE("Image Properties window in Polish: keys of its own, Latin letters, a 
         CHECK(dialog.size() == size);
     }
     press(dialog, QKeySequence(QStringLiteral("Alt+W")));
+    CHECK(dialog.currentPage() == ImagePropertiesDialog::WrapPage);
+    press(dialog, QKeySequence(QStringLiteral("Alt+Y")));
+    CHECK(dialog.currentPage() == ImagePropertiesDialog::SpacePage);
+    press(dialog, QKeySequence(QStringLiteral("Alt+M")));
     CHECK(dialog.currentPage() == ImagePropertiesDialog::BorderPage);
     press(dialog, QKeySequence(QStringLiteral("Alt+D")));
     CHECK(dialog.currentPage() == ImagePropertiesDialog::CaptionPage);

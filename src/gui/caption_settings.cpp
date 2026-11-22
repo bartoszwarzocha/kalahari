@@ -12,6 +12,7 @@
 #include <QCoreApplication>
 
 #include <algorithm>
+#include <cmath>
 
 #include <nlohmann/json.hpp>
 
@@ -117,6 +118,13 @@ editor::BookEditor::NewImageOptions settingsNewImageOptions() {
     const int width = settings.get<int>(IMAGE_WIDTH_KEY, 0);
     options.widthPercent = width > 0 && width <= 100 ? width : 0;
     options.wrap = imageWrapOfSetting(settings.get<std::string>(IMAGE_LAYOUT_KEY, "inline"));
+    const auto space = [&settings](const char* key, double fallback) {
+        const double points = settings.get<double>(key, fallback);
+        return std::isfinite(points) ? std::clamp(points, 0.0, editor::MAX_IMAGE_SPACE) : fallback;
+    };
+    options.spaceAbove = space(IMAGE_SPACE_ABOVE_KEY, editor::DEFAULT_IMAGE_SPACE_ABOVE);
+    options.spaceBelow = space(IMAGE_SPACE_BELOW_KEY, editor::DEFAULT_IMAGE_SPACE_BELOW);
+    options.spaceBeside = space(IMAGE_SPACE_BESIDE_KEY, editor::DEFAULT_IMAGE_SPACE_BESIDE);
     if (settings.get<bool>(IMAGE_CAPTION_KEY, true)) {
         const QString label = editor::normalizedLabel(
             QString::fromStdString(settings.get<std::string>(IMAGE_CAPTION_LABEL_KEY, "")));

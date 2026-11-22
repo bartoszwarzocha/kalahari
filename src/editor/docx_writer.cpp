@@ -17,6 +17,7 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_format.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_tables.h>
@@ -47,10 +48,6 @@ using namespace exporting;
 // =============================================================================
 
 constexpr double POINTS_PER_MILLIMETRE = 72.0 / 25.4;
-
-/// The room between an image the text flows around and the text: 0.3 cm, as the editor
-/// leaves it (points)
-constexpr double FLOAT_GAP_POINTS = 0.3 * 72.0 / 2.54;
 
 /// The order of the images anchored to their paragraphs, one above another (Word's numbers
 /// start here)
@@ -1047,17 +1044,19 @@ QString DocxWriter::drawing(const ImageProperties& image, double lineWidth, Part
                       .arg(image.wrap == ImageWrap::SquareLeft ? QStringLiteral("right")
                                                                : QStringLiteral("left"));
         const QString side = anchorSide(image.wrap, alignment);
-        const QString gap = number(emu(FLOAT_GAP_POINTS));
+        // The room above it is its paragraph's; below it and beside it the image's own
+        const QString below = number(emu(image.spaceBelow));
+        const QString beside = number(emu(image.spaceBeside));
         start = QStringLiteral("<w:r><w:drawing><wp:anchor distT=\"0\" distB=\"%1\""
-                               " distL=\"%1\" distR=\"%1\" simplePos=\"0\" relativeHeight=\"%2\""
+                               " distL=\"%2\" distR=\"%2\" simplePos=\"0\" relativeHeight=\"%3\""
                                " behindDoc=\"0\" locked=\"0\" layoutInCell=\"1\""
                                " allowOverlap=\"0\">"
                                "<wp:simplePos x=\"0\" y=\"0\"/>"
                                "<wp:positionH relativeFrom=\"column\">"
-                               "<wp:align>%3</wp:align></wp:positionH>"
+                               "<wp:align>%4</wp:align></wp:positionH>"
                                "<wp:positionV relativeFrom=\"paragraph\">"
                                "<wp:posOffset>0</wp:posOffset></wp:positionV>")
-                    .arg(gap, number(ANCHOR_HEIGHT_BASE + id), side) +
+                    .arg(below, beside, number(ANCHOR_HEIGHT_BASE + id), side) +
                 extent + wrap;
         end = QStringLiteral("</wp:anchor></w:drawing></w:r>");
     }
@@ -1256,6 +1255,22 @@ void DocxWriter::writeParagraph(const ExportText& text, size_t item, const QText
     }
     if (const Qt::Alignment alignment = ownAlignment(format); alignment) {
         properties.alignment = alignmentValue(alignment);
+    }
+    // The room of an image around its paragraph and its caption, over the paragraph's own
+    // (or its style's) room
+    if (const ImageBlockSpace space = imageBlockSpace(block); !space.isEmpty()) {
+        const QVariantMap& style = m_book.styles.shownStyle(styleId).properties;
+        const auto styleSpace = [&style](const char* name) {
+            return std::max(0.0, style.value(QLatin1String(name)).toDouble());
+        };
+        if (space.before > 0.0) {
+            properties.spaceBefore =
+                properties.spaceBefore.value_or(styleSpace("spaceBefore")) + space.before;
+        }
+        if (space.after > 0.0) {
+            properties.spaceAfter =
+                properties.spaceAfter.value_or(styleSpace("spaceAfter")) + space.after;
+        }
     }
     // A heading of the text: a bookmark the table of contents goes to
     QString content;

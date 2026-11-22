@@ -382,6 +382,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     saves them at once, as before. The set for the publisher (its list, Copy All, Export
     Set...) has a text open in its editor as written, also before it is saved, as File >
     Export has the open texts.
+  - Images have room around them: an image alone in its paragraph keeps 6 pt from the text
+    above and below it, with its caption inside that room, so no empty paragraph is needed. Its
+    own room is on the new page Space Around of Image Properties (above, below, beside the text,
+    As in the Settings); new images take it from Settings > Editor > Images. An image beside the
+    text keeps its room beside it (0.3 cm by default). Printing, PDF, DOCX and EPUB have the same
+    room.
+  - Image Properties has a page Text Flow: the four ways as large choices, each with a picture
+    of a page with the image and the text around it, and a note on what each way does. The
+    choice is no longer on the page Image, which chooses the file.
 
 ---
 

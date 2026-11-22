@@ -230,7 +230,7 @@ bool BookEditor::insertImage(const ImageProperties& image,
     cursor.mergeBlockFormat(aligned);
 
     // No formatting of its own: only the fragments of annotations and the link of its place;
-    // the width and the wrap of the settings unless it has them
+    // the width, the wrap and the room around it of the settings unless it has them
     const QTextCharFormat place = insertionFormat(cursor);
     ImageProperties shown = image;
     if (m_newImageOptions.widthPercent > 0 && shown.unit == ImageWidthUnit::Natural) {
@@ -239,6 +239,13 @@ bool BookEditor::insertImage(const ImageProperties& image,
     }
     if (shown.wrap == ImageWrap::Inline) {
         shown.wrap = m_newImageOptions.wrap;
+    }
+    if (const ImageProperties plain;
+        shown.spaceAbove == plain.spaceAbove && shown.spaceBelow == plain.spaceBelow &&
+        shown.spaceBeside == plain.spaceBeside) {
+        shown.spaceAbove = m_newImageOptions.spaceAbove;
+        shown.spaceBelow = m_newImageOptions.spaceBelow;
+        shown.spaceBeside = m_newImageOptions.spaceBeside;
     }
     QTextCharFormat format = imageCharFormat(normalizedImage(shown));
     setAnnotations(format, replacing ? fragments : annotationsOf(place));

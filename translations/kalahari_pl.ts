@@ -8578,6 +8578,21 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <extracomment>In Polish: Wstaw &gt; Obraz... pyta o podpis nowego obrazu (albo o jego brak), zanim obraz wejdzie do tekstu</extracomment>
         <translation>Wstaw &gt; Obraz... pyta o podpis nowego obrazu (albo o jego brak), zanim obraz wejdzie do tekstu</translation>
     </message>
+    <message>
+        <source>Space abov&amp;e:</source>
+        <extracomment>The room between a new image (or its caption above it) and the text above it. In Polish: Odstęp &amp;górny:</extracomment>
+        <translation>Odstęp &amp;górny:</translation>
+    </message>
+    <message>
+        <source>S&amp;pace below:</source>
+        <extracomment>In Polish: Odstęp do&amp;lny:</extracomment>
+        <translation>Odstęp do&amp;lny:</translation>
+    </message>
+    <message>
+        <source>Space beside the &amp;text:</source>
+        <extracomment>The room between an image the text runs beside and that text. In Polish: Odstęp &amp;boczny:</extracomment>
+        <translation>Odstęp &amp;boczny:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorPagesPage</name>
@@ -18956,8 +18971,8 @@ Harmonogram projektu:
     </message>
     <message>
         <source>&amp;Border</source>
-        <extracomment>In Polish: Obramo&amp;wanie</extracomment>
-        <translation>Obramo&amp;wanie</translation>
+        <extracomment>In Polish: Obra&amp;mowanie</extracomment>
+        <translation>Obra&amp;mowanie</translation>
     </message>
     <message>
         <source>C&amp;olors</source>
@@ -18976,8 +18991,8 @@ Harmonogram projektu:
     </message>
     <message>
         <source>C&amp;hange Image...</source>
-        <extracomment>In Polish: Z&amp;mień obraz...</extracomment>
-        <translation>Z&amp;mień obraz...</translation>
+        <extracomment>In Polish: Zmień o&amp;braz...</extracomment>
+        <translation>Zmień o&amp;braz...</translation>
     </message>
     <message>
         <source>Sa&amp;ve as Image...</source>
@@ -19036,8 +19051,8 @@ Harmonogram projektu:
     </message>
     <message>
         <source>&amp;Width</source>
-        <extracomment>In Polish: &amp;Szerokość</extracomment>
-        <translation>&amp;Szerokość</translation>
+        <extracomment>In Polish: S&amp;zerokość</extracomment>
+        <translation>S&amp;zerokość</translation>
     </message>
     <message>
         <source>&amp;Width</source>
@@ -19047,8 +19062,8 @@ Harmonogram projektu:
     </message>
     <message>
         <source>&amp;Height</source>
-        <extracomment>In Polish: W&amp;ysokość</extracomment>
-        <translation>W&amp;ysokość</translation>
+        <extracomment>In Polish: Wy&amp;sokość</extracomment>
+        <translation>Wy&amp;sokość</translation>
     </message>
     <message>
         <source>&amp;Keep proportions</source>
@@ -19208,8 +19223,8 @@ Harmonogram projektu:
     </message>
     <message>
         <source>Origin&amp;al</source>
-        <extracomment>The filters of an image. In Polish: Or&amp;yginał</extracomment>
-        <translation>Or&amp;yginał</translation>
+        <extracomment>The filters of an image. In Polish (no access key, its letters are taken): Oryginał</extracomment>
+        <translation>Oryginał</translation>
     </message>
     <message>
         <source>&amp;Grayscale</source>
@@ -19330,11 +19345,6 @@ Harmonogram projektu:
         <translation>Automatyczna</translation>
     </message>
     <message>
-        <source>The look of the selected image: its file, size, crop, border, colors, description and caption.</source>
-        <extracomment>In Polish: Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, obramowanie, kolory, opis i podpis.</extracomment>
-        <translation>Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, obramowanie, kolory, opis i podpis.</translation>
-    </message>
-    <message>
         <source>Image Settings</source>
         <extracomment>The tooltip of the gear of the windows of images. In Polish: Ustawienia obrazów</extracomment>
         <translation>Ustawienia obrazów</translation>
@@ -19419,14 +19429,84 @@ Harmonogram projektu:
         <translation>numer nadaje program: %1</translation>
     </message>
     <message>
-        <source>&amp;Wrap text:</source>
-        <extracomment>How the text flows around the image. In Polish: Opływanie t&amp;ekstem:</extracomment>
-        <translation>Opływanie t&amp;ekstem:</translation>
+        <source>The look of the selected image: its file, size, crop, text flow, space around, border, colors, description and caption.</source>
+        <extracomment>In Polish: Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, opływanie, odstępy, obramowanie, kolory, opis i podpis.</extracomment>
+        <translation>Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, opływanie, odstępy, obramowanie, kolory, opis i podpis.</translation>
     </message>
     <message>
-        <source>The text flows only around an image alone in its paragraph, outside a table</source>
-        <extracomment>Why the wrap of an image is greyed out. In Polish: Tekst opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą</extracomment>
-        <translation>Tekst opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą</translation>
+        <source>Text &amp;Flow</source>
+        <extracomment>How the text flows around the image. In Polish: Opły&amp;wanie</extracomment>
+        <translation>Opły&amp;wanie</translation>
+    </message>
+    <message>
+        <source>Space Aro&amp;und</source>
+        <extracomment>The room the image keeps from the text around it. In Polish: Odstęp&amp;y</extracomment>
+        <translation>Odstęp&amp;y</translation>
+    </message>
+    <message>
+        <source>Preview of the space around the image</source>
+        <extracomment>In Polish: Podgląd odstępów obrazu</extracomment>
+        <translation>Podgląd odstępów obrazu</translation>
+    </message>
+    <message>
+        <source>&amp;Above:</source>
+        <extracomment>The room between the image (or its caption above it) and the text above it. In Polish: Odstęp &amp;górny:</extracomment>
+        <translation>Odstęp &amp;górny:</translation>
+    </message>
+    <message>
+        <source>B&amp;elow:</source>
+        <extracomment>In Polish: Odstęp do&amp;lny:</extracomment>
+        <translation>Odstęp do&amp;lny:</translation>
+    </message>
+    <message>
+        <source>Beside the &amp;text:</source>
+        <extracomment>The room between an image the text runs beside and that text. In Polish: Odstęp &amp;boczny:</extracomment>
+        <translation>Odstęp &amp;boczny:</translation>
+    </message>
+    <message>
+        <source>As in the Settin&amp;gs</source>
+        <extracomment>The room of new images (Settings &gt; Editor &gt; Images). In Polish: Jak w &amp;Ustawieniach</extracomment>
+        <translation>Jak w &amp;Ustawieniach</translation>
+    </message>
+    <message>
+        <source>The space around new images, from Settings &gt; Editor &gt; Images</source>
+        <extracomment>In Polish: Odstępy nowych obrazów z Ustawień &gt; Edytor &gt; Obrazy</extracomment>
+        <translation>Odstępy nowych obrazów z Ustawień &gt; Edytor &gt; Obrazy</translation>
+    </message>
+    <message>
+        <source>The text flows only around an image alone in its paragraph, outside a table. This image is a part of a line of the text.</source>
+        <extracomment>Why the ways of the text flowing around an image are greyed out. In Polish: Tekst opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą. Ten obraz jest częścią wiersza tekstu.</extracomment>
+        <translation>Tekst opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą. Ten obraz jest częścią wiersza tekstu.</translation>
+    </message>
+    <message>
+        <source>The image is in a paragraph of its own, as a line of the text: when it does not fit on its page, it goes on to the next one and the rest of the page stays empty.</source>
+        <extracomment>In Polish: Obraz jest we własnym akapicie, jak wiersz tekstu: gdy nie mieści się na stronie, przechodzi na następną, a reszta strony zostaje pusta.</extracomment>
+        <translation>Obraz jest we własnym akapicie, jak wiersz tekstu: gdy nie mieści się na stronie, przechodzi na następną, a reszta strony zostaje pusta.</translation>
+    </message>
+    <message>
+        <source>The next paragraphs run beside the image and below it across the whole width again; with too little room beside it a line goes on below the image.</source>
+        <extracomment>In Polish: Kolejne akapity biegną obok obrazu, a pod nim znów na całą szerokość; gdy obok zostaje za mało miejsca, wiersz przechodzi pod obraz.</extracomment>
+        <translation>Kolejne akapity biegną obok obrazu, a pod nim znów na całą szerokość; gdy obok zostaje za mało miejsca, wiersz przechodzi pod obraz.</translation>
+    </message>
+    <message>
+        <source>The text is above and below the image. In the page view an image that does not fit on its page goes on to the next one with its caption, and the text after it fills the rest of the page.</source>
+        <extracomment>In Polish: Tekst jest nad obrazem i pod nim. W widoku stron obraz, który nie mieści się na stronie, przechodzi z podpisem na następną, a tekst za nim wypełnia resztę bieżącej strony.</extracomment>
+        <translation>Tekst jest nad obrazem i pod nim. W widoku stron obraz, który nie mieści się na stronie, przechodzi z podpisem na następną, a tekst za nim wypełnia resztę bieżącej strony.</translation>
+    </message>
+    <message>
+        <source>Only an image alone in its paragraph, outside a table, keeps room around it. This image is a part of a line of the text.</source>
+        <extracomment>Why the room around an image is greyed out. In Polish: Odstępy ma tylko obraz, który jest sam w swoim akapicie, poza tabelą. Ten obraz jest częścią wiersza tekstu.</extracomment>
+        <translation>Odstępy ma tylko obraz, który jest sam w swoim akapicie, poza tabelą. Ten obraz jest częścią wiersza tekstu.</translation>
+    </message>
+    <message>
+        <source>The space above is above the image or its caption above it, the space below below the image or its caption, and the space beside between the image and the text beside it.</source>
+        <extracomment>In Polish: Odstęp górny jest nad obrazem albo nad jego podpisem nad obrazem, dolny – pod obrazem albo pod podpisem, a boczny – między obrazem a tekstem obok niego.</extracomment>
+        <translation>Odstęp górny jest nad obrazem albo nad jego podpisem nad obrazem, dolny – pod obrazem albo pod podpisem, a boczny – między obrazem a tekstem obok niego.</translation>
+    </message>
+    <message>
+        <source>The space above is above the image or its caption above it, and the space below below the image or its caption. The space beside is of an image the text runs beside (the page Text Flow).</source>
+        <extracomment>In Polish: Odstęp górny jest nad obrazem albo nad jego podpisem nad obrazem, a dolny – pod obrazem albo pod podpisem. Odstęp boczny ma obraz, obok którego biegnie tekst (karta „Opływanie”).</extracomment>
+        <translation>Odstęp górny jest nad obrazem albo nad jego podpisem nad obrazem, a dolny – pod obrazem albo pod podpisem. Odstęp boczny ma obraz, obok którego biegnie tekst (karta „Opływanie”).</translation>
     </message>
 </context>
 <context>

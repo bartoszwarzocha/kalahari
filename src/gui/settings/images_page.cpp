@@ -2,12 +2,13 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file images_page.cpp
-/// @brief Settings > Editor > Images: new images, the captions of new books, the copies of the
-///        files and the manuscript for a publisher
+/// @brief Settings > Editor > Images: new images (with the room they keep from the text), the
+///        captions of new books, the copies of the files and the manuscript for a publisher
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/caption_settings.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/core/settings_manager.h"
 
 #include <QButtonGroup>
@@ -97,6 +98,22 @@ EditorImagesPage::EditorImagesPage(QWidget* parent)
     width->setMinimumContentsLength(MIN_CHOICE_CHARACTERS);
     //: In Polish: &Szerokość:
     addField(image, tr("&Width:"), width, IMAGE_WIDTH_KEY);
+
+    // The room it keeps from the text around it (Image Properties, Space Around)
+    const auto space = [](const char* name) {
+        auto* field = new LengthSpinBox(LengthUnit::Points, 0.0, editor::MAX_IMAGE_SPACE);
+        field->setObjectName(QLatin1String(name));
+        return field;
+    };
+    //: The room between a new image (or its caption above it) and the text above it. In
+    //: Polish: Odstęp &górny:
+    addField(image, tr("Space abov&e:"), space("imageSpaceAbove"), IMAGE_SPACE_ABOVE_KEY);
+    //: In Polish: Odstęp do&lny:
+    addField(image, tr("S&pace below:"), space("imageSpaceBelow"), IMAGE_SPACE_BELOW_KEY);
+    //: The room between an image the text runs beside and that text. In Polish: Odstęp
+    //: &boczny:
+    addField(image, tr("Space beside the &text:"), space("imageSpaceBeside"),
+             IMAGE_SPACE_BESIDE_KEY);
 
     //: In Polish: Dodawaj &podpis z etykietą
     auto* caption = new QCheckBox(tr("Add a &caption with the label"));

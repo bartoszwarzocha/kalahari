@@ -21,6 +21,11 @@
 /// (an image too high for the rest of its page then goes on to the next one, the text after
 /// it filling that rest). Its caption stays with it.
 ///
+/// Such an image keeps some room from the text around it (imageBlockSpace()): above it and
+/// below it (above and below its caption, when it has one there), and from the text beside it.
+/// The room is the image's own (Image Properties, Spacing); a new image has the one of the
+/// settings (Settings > Editor > Images).
+///
 /// KML writes an image as <img src="images/map.png" alt="Map" width="60%"/> in its
 /// paragraph (docs/kml_format.md).
 
@@ -105,6 +110,12 @@ inline constexpr int IMAGE_SHADOW_PROPERTY = QTextFormat::UserProperty + 194;
 ///        part of its line
 inline constexpr int IMAGE_WRAP_PROPERTY = QTextFormat::UserProperty + 195;
 
+/// @brief The room an image alone in its paragraph keeps from the text above it, below it and
+///        beside it, in points (double each; without them: the defaults below)
+inline constexpr int IMAGE_SPACE_ABOVE_PROPERTY = QTextFormat::UserProperty + 196;
+inline constexpr int IMAGE_SPACE_BELOW_PROPERTY = QTextFormat::UserProperty + 197;
+inline constexpr int IMAGE_SPACE_BESIDE_PROPERTY = QTextFormat::UserProperty + 198;
+
 /// @brief The folder of a book's images, in its main folder
 inline constexpr const char* IMAGES_FOLDER = "images";
 
@@ -144,6 +155,12 @@ inline constexpr double DEFAULT_IMAGE_BORDER_WIDTH = 0.5;
 
 /// @brief The most room between an image's border and its picture (points)
 inline constexpr double MAX_IMAGE_BORDER_PADDING = 72.0;
+
+/// @brief The room an image keeps from the text around it (points): by default, and at most
+inline constexpr double DEFAULT_IMAGE_SPACE_ABOVE = 6.0;
+inline constexpr double DEFAULT_IMAGE_SPACE_BELOW = 6.0;
+inline constexpr double DEFAULT_IMAGE_SPACE_BESIDE = 8.5;  ///< About 3 mm
+inline constexpr double MAX_IMAGE_SPACE = 72.0;
 
 /// @brief How much Ctrl+] and Ctrl+[ make an image larger or smaller: a part of its width
 inline constexpr double IMAGE_KEY_RESIZE = 0.05;
@@ -228,6 +245,12 @@ struct ImageProperties {
 
     ImageWrap wrap = ImageWrap::Inline;  ///< How the text flows around it
 
+    /// The room it keeps from the text above it, below it and beside it, in points: alone in
+    /// its paragraph (imageBlockSpace()); beside only when the text flows beside it
+    double spaceAbove = DEFAULT_IMAGE_SPACE_ABOVE;
+    double spaceBelow = DEFAULT_IMAGE_SPACE_BELOW;
+    double spaceBeside = DEFAULT_IMAGE_SPACE_BESIDE;
+
     /// @brief Whether the picture is drawn as the file has it: not cropped, turned, mirrored
     ///        or recolored
     [[nodiscard]] bool hasPlainPicture() const;
@@ -289,6 +312,22 @@ bool holdsImageAlone(const QTextBlock& block);
 ///        (holdsImageAlone()) and the image's wrap is not ImageWrap::Inline; std::nullopt:
 ///        none (any other image is a part of its line)
 std::optional<ImageProperties> floatingImage(const QTextBlock& block);
+
+/// @brief The room a block keeps above it and below it for an image, in points, besides the
+///        room of its paragraph
+struct ImageBlockSpace {
+    double before = 0.0;
+    double after = 0.0;
+
+    [[nodiscard]] bool isEmpty() const { return before <= 0.0 && after <= 0.0; }
+    bool operator==(const ImageBlockSpace&) const = default;
+};
+
+/// @brief The room of an image around a block: of the block holding an image alone
+///        (holdsImageAlone()) its room above and below, of its caption the room on the
+///        caption's side (above a caption above the image, below one below it): the image
+///        and its caption stay together, the room around both
+ImageBlockSpace imageBlockSpace(const QTextBlock& block);
 
 /// @brief The properties clamped to what they allow (a width of 0 or less: the file's own,
 ///        a rotation to a quarter turn 0 to 3, the crops leaving some of the picture)
