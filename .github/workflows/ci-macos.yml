@@ -20,7 +20,9 @@ jobs:
     # (qyieldcpu.h: implicit declaration of __yield). Unpin after the vcpkg
     # baseline brings a Qt version with the upstream fix.
     runs-on: macos-15
-    timeout-minutes: 120  # Qt6 via vcpkg takes a long time without a warm binary cache
+    # Without a warm binary cache vcpkg builds Qt6 for about 1 hour before the build and
+    # the tests of the program (about 1 hour more), which comes close to 120 minutes
+    timeout-minutes: 180
 
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-binary-cache
@@ -112,9 +114,13 @@ jobs:
     # as on Windows. Pull requests read main's cache but do not save their own: the
     # former cache of the whole vcpkg tree (~4 GB) was saved again by every pull request
     # and pushed the other caches out of the 10 GB repository limit, so the Windows jobs
-    # rebuilt Qt for about 1.5 hours.
+    # rebuilt Qt for about 1.5 hours. A run started by hand on main (Actions > MACOS >
+    # Run workflow) saves it too, which refreshes a cache that vcpkg no longer matches
+    # without waiting for a push.
     - name: Save vcpkg binary cache
-      if: matrix.build_type == 'Release' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: >-
+        matrix.build_type == 'Release' && github.ref == 'refs/heads/main' &&
+        (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       uses: actions/cache/save@v4
       with:
         path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
