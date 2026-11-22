@@ -14,14 +14,19 @@
 #define KALAHARI_GUI_SETTINGS_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
+#include "kalahari/gui/settings/settings_search.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 
+#include <QPointer>
 #include <QStringList>
+#include <QTimer>
 
 #include <functional>
 #include <map>
 #include <vector>
 
+class QLabel;
+class QLineEdit;
 class QStackedWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -46,6 +51,10 @@ class ThemePage;
 class IconsPage;
 
 /// @brief Settings dialog with hierarchical tree navigation
+///
+/// The search above the tree (Ctrl+F) narrows the tree to the pages whose options, or whose
+/// names, hold the words typed, and marks the options found on the page shown; the pages not
+/// built yet are built for it the first time.
 ///
 /// Example usage:
 /// @code
@@ -157,6 +166,16 @@ public:
     ///        window shows the book's dictionary
     [[nodiscard]] bool isBookDictionaryAsked() const { return m_bookDictionaryAsked; }
 
+    /// @brief Find the options with these words: the search shows them, the tree narrows to
+    ///        their pages at once (empty: every page again)
+    void findSettings(const QString& text);
+
+    /// @brief The search above the tree
+    [[nodiscard]] QLineEdit* searchField() const { return m_search; }
+
+    /// @brief The options the search marks on the page shown
+    [[nodiscard]] std::vector<QWidget*> markedOptions() const;
+
 public slots:
     /// @brief OK: write the changed settings, then close; a value that cannot be written
     /// keeps the dialog open on its page
@@ -205,7 +224,36 @@ private:
 
     void onApply();
 
+    /// @brief Build a page if it is not built yet
+    /// @return Its container in the stack (null: a category)
+    QWidget* buildPage(QTreeWidgetItem* item);
+
+    /// @brief The page of an item, inside its container (null: not built, or a category)
+    [[nodiscard]] QWidget* pageOf(QTreeWidgetItem* item) const;
+
+    /// @brief Narrow the tree to the pages of the words of the search, mark the options found
+    void search();
+
+    /// @brief Whether a page shows in the search: its name or an option of it has the words;
+    ///        keeps the options found for the marks
+    bool searchPage(QTreeWidgetItem* item, const QString& category);
+
+    /// @brief Mark the options found on the page shown, the first in view
+    void showMarks(QTreeWidgetItem* item);
+
+    /// @brief The keys of the search: Esc clears it, Down goes to the tree, Enter to the first
+    ///        option found
+    bool searchKeyPressed(int key);
+
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
     QTreeWidget* m_navTree = nullptr;
+    QLineEdit* m_search = nullptr;
+    QLabel* m_searchEmpty = nullptr;  ///< Says that nothing has the words
+    QTimer m_searchTimer;             ///< The search after a pause in typing
+    SettingsSearch m_searchWords;
+    /// The options of each page the search found
+    std::map<QTreeWidgetItem*, std::vector<QPointer<QWidget>>> m_found;
     QStackedWidget* m_pageStack = nullptr;
     bool m_diagnosticMode;
     editor::SpellCheckService* m_spelling;  ///< The dictionary of the editors (not owned)

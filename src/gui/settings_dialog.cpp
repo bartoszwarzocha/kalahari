@@ -10,6 +10,7 @@
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/settings/shortcuts_page.h"
 #include "kalahari/gui/settings/stats_pages.h"
+#include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
@@ -22,19 +23,48 @@
 #include <QComboBox>
 #include <QElapsedTimer>
 #include <QFont>
+#include <QHBoxLayout>
+#include <QKeyEvent>
+#include <QKeySequence>
 #include <QLabel>
+#include <QLineEdit>
 #include <QScreen>
 #include <QScrollArea>
+#include <QShortcut>
 #include <QSplitter>
 #include <QStackedWidget>
 #include <QStyle>
 #include <QTimer>
+#include <QToolButton>
 #include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 #include <QVBoxLayout>
 
 #include <algorithm>
 
 namespace kalahari::gui {
+
+namespace {
+
+/// The pause in typing after which the search narrows the tree
+constexpr int SEARCH_DELAY_MS = 150;
+/// The keys of the search, the same on every system (Cmd+F on macOS)
+constexpr QKeyCombination FIND_KEYS(Qt::ControlModifier, Qt::Key_F);
+
+/// @brief Open the advanced settings of a page when an option found is one of them
+void openAdvancedOf(QWidget* page, const std::vector<QWidget*>& options) {
+    auto* settingsPage = qobject_cast<SettingsPage*>(page);
+    const QWidget* advanced = settingsPage != nullptr ? settingsPage->advancedSettings() : nullptr;
+    if (advanced == nullptr || !advanced->isHidden()) {
+        return;
+    }
+    if (std::any_of(options.cbegin(), options.cend(),
+                    [advanced](const QWidget* option) { return advanced->isAncestorOf(option); })) {
+        settingsPage->advancedSettingsButton()->setChecked(true);
+    }
+}
+
+}  // namespace
 
 SettingsDialog::SettingsDialog(const core::ProjectManager& book, CommandRegistry& commands,
                                QWidget* parent, bool diagnosticMode,
@@ -63,6 +93,27 @@ SettingsDialog::SettingsDialog(const core::ProjectManager& book, CommandRegistry
     resize(size);
     setMinimumSize(600, 400);
 
+    // The search over the tree of the pages, as wide as it, and what it says when nothing has
+    // its words beside it
+    auto* searchRow = new QHBoxLayout();
+    m_search = new QLineEdit(this);
+    m_search->setObjectName(QStringLiteral("settingsSearch"));
+    m_search->setClearButtonEnabled(true);
+    //: The search of the Settings dialog, over the tree of its pages; %1: its key, Ctrl+F. In
+    //: Polish: Szukaj w ustawieniach (%1)
+    m_search->setPlaceholderText(tr("Search the settings (%1)")
+                                     .arg(ShortcutRules::keysText(FIND_KEYS)));
+    //: In Polish: Szukaj w ustawieniach
+    m_search->setAccessibleName(tr("Search the settings"));
+    m_search->installEventFilter(this);
+    searchRow->addWidget(m_search, 0, Qt::AlignLeft);
+    m_searchEmpty = new QLabel(this);
+    m_searchEmpty->setObjectName(QStringLiteral("settingsSearchEmpty"));
+    m_searchEmpty->setForegroundRole(QPalette::PlaceholderText);
+    m_searchEmpty->hide();
+    searchRow->addWidget(m_searchEmpty, 1);
+    contentLayout()->addLayout(searchRow);
+
     auto* splitter = new QSplitter(Qt::Horizontal, this);
     m_navTree = new QTreeWidget(splitter);
     m_navTree->setHeaderHidden(true);
@@ -74,6 +125,8 @@ SettingsDialog::SettingsDialog(const core::ProjectManager& book, CommandRegistry
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
     contentLayout()->addWidget(splitter, 1);
+    // The search follows the width of the tree
+    m_navTree->installEventFilter(this);
 
     createNavigationTree();
     updatePlannedItemColors();
@@ -87,10 +140,24 @@ SettingsDialog::SettingsDialog(const core::ProjectManager& book, CommandRegistry
         m_navTree->columnWidth(0) + 2 * m_navTree->frameWidth() +
         m_navTree->style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, m_navTree);
     splitter->setSizes({navWidth, std::max(width() - navWidth, 0)});
+    m_search->setFixedWidth(std::clamp(navWidth, m_navTree->minimumWidth(),
+                                       m_navTree->maximumWidth()));
 
     connect(m_navTree, &QTreeWidget::currentItemChanged, this,
             [this](QTreeWidgetItem* current) { showPage(current); });
     connect(this, &KalahariDialog::applyClicked, this, &SettingsDialog::onApply);
+
+    // The search narrows the tree after a pause in typing; Ctrl+F goes to it from anywhere
+    m_searchTimer.setSingleShot(true);
+    m_searchTimer.setInterval(SEARCH_DELAY_MS);
+    connect(&m_searchTimer, &QTimer::timeout, this, &SettingsDialog::search);
+    connect(m_search, &QLineEdit::textChanged, this, [this]() { m_searchTimer.start(); });
+    auto* find = new QShortcut(QKeySequence(FIND_KEYS), this);
+    find->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(find, &QShortcut::activated, this, [this]() {
+        m_search->setFocus(Qt::ShortcutFocusReason);
+        m_search->selectAll();
+    });
 
     m_navTree->setCurrentItem(m_navTree->topLevelItem(0));
 }
@@ -366,15 +433,27 @@ void SettingsDialog::showPage(QTreeWidgetItem* item) {
     if (!item) {
         return;
     }
-    auto factory = m_factories.find(item);
-    if (factory == m_factories.end()) {
-        // A category: show its first page
-        if (item->childCount() > 0) {
-            m_navTree->setCurrentItem(item->child(0));
+    if (m_factories.find(item) == m_factories.end()) {
+        // A category: show its first page the search leaves
+        for (int child = 0; child < item->childCount(); ++child) {
+            if (!item->child(child)->isHidden()) {
+                m_navTree->setCurrentItem(item->child(child));
+                break;
+            }
         }
         return;
     }
+    m_pageStack->setCurrentWidget(buildPage(item));
+    if (!m_searchWords.isEmpty()) {
+        showMarks(item);
+    }
+}
 
+QWidget* SettingsDialog::buildPage(QTreeWidgetItem* item) {
+    auto factory = m_factories.find(item);
+    if (factory == m_factories.end()) {
+        return nullptr;
+    }
     auto built = m_builtPages.find(item);
     if (built == m_builtPages.end()) {
         QElapsedTimer timer;
@@ -407,7 +486,205 @@ void SettingsDialog::showPage(QTreeWidgetItem* item) {
         core::Logger::getInstance().debug("SettingsDialog: Page '{}' built in {} ms",
                                           item->text(0).toStdString(), timer.elapsed());
     }
-    m_pageStack->setCurrentWidget(built->second);
+    return built->second;
+}
+
+QWidget* SettingsDialog::pageOf(QTreeWidgetItem* item) const {
+    const auto built = m_builtPages.find(item);
+    const auto* scrollArea =
+        built != m_builtPages.end() ? qobject_cast<QScrollArea*>(built->second) : nullptr;
+    return scrollArea != nullptr ? scrollArea->widget() : nullptr;
+}
+
+// =============================================================================
+// The search
+// =============================================================================
+
+void SettingsDialog::findSettings(const QString& text) {
+    m_search->setText(text);
+    search();
+}
+
+std::vector<QWidget*> SettingsDialog::markedOptions() const {
+    QWidget* page = pageOf(m_navTree->currentItem());
+    const auto* marks = page != nullptr ? page->findChild<SearchMarks*>(
+                                              QString(), Qt::FindDirectChildrenOnly)
+                                        : nullptr;
+    return marks != nullptr && marks->isVisibleTo(page) ? marks->options()
+                                                         : std::vector<QWidget*>();
+}
+
+void SettingsDialog::search() {
+    m_searchTimer.stop();
+    m_searchWords = SettingsSearch(m_search->text());
+    m_found.clear();
+    const bool searching = !m_searchWords.isEmpty();
+    if (searching) {
+        // The options of every page: the pages not opened yet are built once, for the search
+        for (QTreeWidgetItemIterator it(m_navTree); *it; ++it) {
+            buildPage(*it);
+        }
+    }
+
+    bool anyShown = false;
+    for (int top = 0; top < m_navTree->topLevelItemCount(); ++top) {
+        QTreeWidgetItem* item = m_navTree->topLevelItem(top);
+        bool shown = !searching;
+        if (m_factories.find(item) != m_factories.end()) {
+            shown = !searching || searchPage(item, QString());
+        } else {
+            // A category with the words shows all its pages
+            const bool category = searching && m_searchWords.matches(item->text(0));
+            for (int child = 0; child < item->childCount(); ++child) {
+                QTreeWidgetItem* page = item->child(child);
+                const bool found = searching && searchPage(page, item->text(0));
+                page->setHidden(searching && !category && !found);
+                shown = shown || !page->isHidden();
+            }
+        }
+        item->setHidden(!shown);
+        anyShown = anyShown || shown;
+    }
+
+    //: Under the search of the Settings dialog when nothing has its words. In Polish: Żadna
+    //: opcja ani strona nie zawiera „%1”.
+    m_searchEmpty->setText(tr("No option or page contains “%1”.")
+                               .arg(m_search->text().simplified()));
+    m_searchEmpty->setVisible(!anyShown);
+
+    // The page shown stays while the search leaves it, else the first page it leaves
+    QTreeWidgetItem* current = m_navTree->currentItem();
+    if (current != nullptr && (current->isHidden() ||
+                               (current->parent() != nullptr && current->parent()->isHidden()))) {
+        current = nullptr;
+    }
+    if (current == nullptr) {
+        for (QTreeWidgetItemIterator it(m_navTree); *it; ++it) {
+            if (!(*it)->isHidden() && m_factories.find(*it) != m_factories.end() &&
+                ((*it)->parent() == nullptr || !(*it)->parent()->isHidden())) {
+                current = *it;
+                break;
+            }
+        }
+    }
+    if (current != nullptr && current != m_navTree->currentItem()) {
+        m_navTree->setCurrentItem(current);  // Its marks with it (showPage())
+    } else {
+        showMarks(m_navTree->currentItem());
+    }
+}
+
+bool SettingsDialog::searchPage(QTreeWidgetItem* item, const QString& category) {
+    std::vector<QWidget*> options = optionsFound(pageOf(item), m_searchWords);
+    // A page with options found is in bold
+    QFont font = item->font(0);
+    font.setBold(!options.empty());
+    item->setFont(0, font);
+    const bool named = m_searchWords.matches(category + QLatin1Char(' ') + item->text(0));
+    const bool found = named || !options.empty();
+    m_found[item] = std::vector<QPointer<QWidget>>(options.begin(), options.end());
+    return found;
+}
+
+void SettingsDialog::showMarks(QTreeWidgetItem* item) {
+    // Only the page shown has marks; none without a search
+    for (const auto& [built, container] : m_builtPages) {
+        QWidget* page = pageOf(built);
+        if (page == nullptr) {
+            continue;
+        }
+        auto* marks = page->findChild<SearchMarks*>(QString(), Qt::FindDirectChildrenOnly);
+        std::vector<QWidget*> options;
+        if (built == item && !m_searchWords.isEmpty()) {
+            for (const QPointer<QWidget>& option : m_found[built]) {
+                if (option != nullptr) {
+                    options.push_back(option.data());
+                }
+            }
+        }
+        if (options.empty() && marks == nullptr) {
+            continue;
+        }
+        if (marks == nullptr) {
+            marks = new SearchMarks(page);
+        }
+        openAdvancedOf(page, options);
+        marks->setOptions(options);
+        if (!options.empty()) {
+            // The first option found in view, once the page has its size
+            auto* scrollArea = qobject_cast<QScrollArea*>(container);
+            QPointer<QWidget> first = options.front();
+            QTimer::singleShot(0, scrollArea, [scrollArea, first]() {
+                if (first != nullptr) {
+                    scrollArea->ensureWidgetVisible(first);
+                }
+            });
+        }
+    }
+    // Without a search every page is in the tree again, in a plain font
+    if (m_searchWords.isEmpty()) {
+        for (QTreeWidgetItemIterator it(m_navTree); *it; ++it) {
+            QFont font = (*it)->font(0);
+            if (font.bold()) {
+                font.setBold(false);
+                (*it)->setFont(0, font);
+            }
+        }
+    }
+}
+
+bool SettingsDialog::searchKeyPressed(int key) {
+    switch (key) {
+    case Qt::Key_Escape:
+        // Esc clears the words first, the next one closes the dialog
+        if (m_search->text().isEmpty()) {
+            return false;
+        }
+        m_search->clear();
+        search();
+        return true;
+    case Qt::Key_Down:
+        m_navTree->setFocus(Qt::TabFocusReason);
+        return true;
+    case Qt::Key_Return:
+    case Qt::Key_Enter: {
+        // Not OK of the dialog: the search at once, then the first option found (the field of
+        // its label), else the tree
+        search();
+        const std::vector<QWidget*> options = markedOptions();
+        QWidget* target = nullptr;
+        for (QWidget* option : options) {
+            const auto* label = qobject_cast<QLabel*>(option);
+            QWidget* field = label != nullptr ? label->buddy() : option;
+            if (field != nullptr && field->focusPolicy() != Qt::NoFocus && field->isEnabled()) {
+                target = field;
+                break;
+            }
+        }
+        if (target != nullptr) {
+            target->setFocus(Qt::TabFocusReason);
+        } else {
+            m_navTree->setFocus(Qt::TabFocusReason);
+        }
+        return true;
+    }
+    default:
+        return false;
+    }
+}
+
+bool SettingsDialog::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == m_navTree && event->type() == QEvent::Resize) {
+        m_search->setFixedWidth(m_navTree->width());
+    }
+    if (watched == m_search && event->type() == QEvent::KeyPress) {
+        const auto* key = static_cast<QKeyEvent*>(event);
+        if ((key->modifiers() & ~Qt::KeypadModifier) == Qt::NoModifier &&
+            searchKeyPressed(key->key())) {
+            return true;
+        }
+    }
+    return KalahariDialog::eventFilter(watched, event);
 }
 
 void SettingsDialog::showShortcutsPage() {
@@ -418,6 +695,11 @@ bool SettingsDialog::openPage(const QString& page) {
     const auto item = m_pageItems.find(page);
     if (item == m_pageItems.end()) {
         return false;
+    }
+    // A page the search left out of the tree: every page again
+    if (item->second->isHidden() ||
+        (item->second->parent() != nullptr && item->second->parent()->isHidden())) {
+        findSettings(QString());
     }
     m_navTree->setCurrentItem(item->second);
     // The cursor in the search of the shortcuts, so the keys go there at once (the window

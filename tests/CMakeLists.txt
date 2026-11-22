@@ -146,6 +146,7 @@ set(TEST_SOURCES
     gui/test_style_dialogs.cpp                   # New Style, Modify Style and Manage Styles
     gui/test_toolbar_keys.cpp                    # A toolbar gives the keys back after a command
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
+    gui/test_settings_search.cpp                 # The search of the Settings dialog
     gui/test_color_settings.cpp                  # The colors of the issues and the annotations in Settings
     gui/test_navigator_expansion.cpp             # Navigator expansion state on reopen
     gui/test_recent_books_menu.cpp               # File > Recent Books follows the list
@@ -440,6 +441,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/command_registrar.cpp       # Editor Stage 3: the application's commands, for shortcut checks
     ${CMAKE_SOURCE_DIR}/src/gui/settings_dialog.cpp         # Editor Stage 4: settings dialog layout checks
     ${CMAKE_SOURCE_DIR}/src/gui/settings/settings_page.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/settings_search.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/general_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/spelling_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/grammar_page.cpp
@@ -780,6 +782,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h  # SettingsDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_page.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_search.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/grammar_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/shortcuts_page.h  # ShortcutsPage with Q_OBJECT

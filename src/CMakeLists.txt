@@ -375,6 +375,7 @@ set(KALAHARI_SOURCES
     gui/recent_books_menu.cpp
     gui/settings_dialog.cpp
     gui/settings/settings_page.cpp
+    gui/settings/settings_search.cpp
     gui/settings/general_pages.cpp
     gui/settings/spelling_page.cpp
     gui/settings/grammar_page.cpp
@@ -702,6 +703,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_setup.h  # GrammarSetup with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_dialog.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_page.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_search.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/grammar_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/shortcuts_page.h

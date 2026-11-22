@@ -15278,6 +15278,21 @@ In Polish: Powiadomienia</extracomment>
         <extracomment>Settings &gt; Editor &gt; Tables: new tables, the captions of tables. In Polish: Tabele</extracomment>
         <translation>Tabele</translation>
     </message>
+    <message>
+        <source>Search the settings (%1)</source>
+        <extracomment>The search of the Settings dialog, over the tree of its pages; %1: its key, Ctrl+F. In Polish: Szukaj w ustawieniach (%1)</extracomment>
+        <translation>Szukaj w ustawieniach (%1)</translation>
+    </message>
+    <message>
+        <source>Search the settings</source>
+        <extracomment>In Polish: Szukaj w ustawieniach</extracomment>
+        <translation>Szukaj w ustawieniach</translation>
+    </message>
+    <message>
+        <source>No option or page contains “%1”.</source>
+        <extracomment>Under the search of the Settings dialog when nothing has its words. In Polish: Żadna opcja ani strona nie zawiera „%1”.</extracomment>
+        <translation>Żadna opcja ani strona nie zawiera „%1”.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SettingsPage</name>

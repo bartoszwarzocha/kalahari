@@ -80,6 +80,8 @@ public:
     /// @brief The button that shows the advanced settings of addAdvancedGroup() (none: the page
     ///        has none)
     [[nodiscard]] QToolButton* advancedSettingsButton() const { return m_advancedToggle; }
+    /// @brief The groups the button shows (none: the page has none)
+    [[nodiscard]] QWidget* advancedSettings() const { return m_advanced; }
 
     /// @brief The color of the notes: the theme's muted one, darker or lighter as far as
     ///        the window needs to read it (WCAG AA, as normal text)

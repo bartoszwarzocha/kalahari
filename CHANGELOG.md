@@ -114,6 +114,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   text. The list follows the text as it is written. Settings > Editor > Images has the pictures
   on the cards and the lines of a caption on its card (the gear of the panel opens it), Settings
   > Editor > Colors the colors of the images and the tables, from the theme.
+- **The search of the settings** - 2026-11-22. The Settings dialog has a field Search the
+  settings above the tree of its pages (Ctrl+F). The words typed narrow the tree to the pages
+  that hold them, in the name of the page or of its category or in the texts of its options:
+  labels and notes, check boxes and buttons, the titles of groups, the items of lists and the
+  placeholder texts of fields; a page with such options has its name in bold. Every word
+  counts, anywhere, without regard to case, accents and the access keys ("odstep gor" finds
+  "Odstęp górny:"), also in the closed Advanced Settings of a page, which open to show them.
+  On the page the options found are marked with a frame and a light fill in the color of the
+  search's hits of the editor (Settings > Editor > Colors), and the page scrolls to the first.
+  Enter goes to the first option found, Down to the tree, Esc clears the words; when nothing
+  is found, a note beside the field says so.
 - **Sets of list formats and multilevel numbers** - 2026-11-21. Format > Bullets and
   Numbering... opens on a new first tab, Sets: the layout of all nine levels of a list at once,
   as tiles in groups (Numbered: 1. – a) – i., 1) – a) – i), (1) – (a) – (i); Multilevel:
