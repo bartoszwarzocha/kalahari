@@ -365,6 +365,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     selected, nothing on the clipboard to paste, a read-only text, no tab to move to a window
     of its own; in the context menu of a list item, why its numbering or its level cannot
     change.
+  - The volumes of a series collapse and expand in the lists of the Cover and of the texts for
+    publishers: the arrow of the row of a volume, a click, Space, the arrows Left and Right,
+    and its context menu (Collapse Volume, Collapse All Volumes, Expand All Volumes). A
+    material chosen elsewhere expands its volume.
 
 ---
 

@@ -67,6 +67,9 @@ struct MaterialRow {
     int volumeOrder = 0;             ///< Its place: 0 the whole series, 1 the first volume...
                                      ///< (VolumeNames::orderOf()); the groups of a series go
                                      ///< by it first
+    bool volumeHeading = false;      ///< A row that names a volume of a series (or the whole
+                                     ///< series) above the groups of its materials: it
+                                     ///< collapses and expands them
 };
 
 /// @brief The lists of the materials of the book open in @p book: the kinds of the Materials of its

@@ -24551,6 +24551,41 @@ Where a quote comes from: a source and its page. In Polish: Źródło</extracomm
         <extracomment>The volume of a series a material of the cover or a text for publishers is for, or the whole series. In Polish: Tom</extracomment>
         <translation>Tom</translation>
     </message>
+    <message>
+        <source>%1, collapsed</source>
+        <extracomment>The row of a volume of a series in a list of materials, for a screen reader: %1 its name and number of materials. In Polish: %1, zwinięty</extracomment>
+        <translation>%1, zwinięty</translation>
+    </message>
+    <message>
+        <source>%1, expanded</source>
+        <extracomment>In Polish: %1, rozwinięty</extracomment>
+        <translation>%1, rozwinięty</translation>
+    </message>
+    <message>
+        <source>%1&lt;br&gt;A click, Space or the arrows Left and Right collapse and expand the volume</source>
+        <extracomment>The tooltip of the row of a volume of a series in a list of materials: %1 its name and number of materials. In Polish: %1&lt;br&gt;Kliknięcie, spacja albo strzałki w lewo i w prawo zwijają i rozwijają tom</extracomment>
+        <translation>%1&lt;br&gt;Kliknięcie, spacja albo strzałki w lewo i w prawo zwijają i rozwijają tom</translation>
+    </message>
+    <message>
+        <source>&amp;Expand Volume</source>
+        <extracomment>The menu of the row of a volume of a series in a list of materials. In Polish: &amp;Rozwiń tom</extracomment>
+        <translation>&amp;Rozwiń tom</translation>
+    </message>
+    <message>
+        <source>&amp;Collapse Volume</source>
+        <extracomment>In Polish: &amp;Zwiń tom</extracomment>
+        <translation>&amp;Zwiń tom</translation>
+    </message>
+    <message>
+        <source>Collapse &amp;All Volumes</source>
+        <extracomment>In Polish: Zwiń &amp;wszystkie tomy</extracomment>
+        <translation>Zwiń &amp;wszystkie tomy</translation>
+    </message>
+    <message>
+        <source>Expand All Vol&amp;umes</source>
+        <extracomment>In Polish: Rozwiń wszystkie t&amp;omy</extracomment>
+        <translation>Rozwiń wszystkie t&amp;omy</translation>
+    </message>
 </context>
 <context>
     <name>LinkRoles</name>

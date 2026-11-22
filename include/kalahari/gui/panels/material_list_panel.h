@@ -12,8 +12,11 @@
 
 #include <QHash>
 #include <QPointer>
+#include <QSet>
 #include <QString>
 #include <QWidget>
+
+#include <optional>
 
 class QAbstractItemDelegate;
 class QAbstractItemView;
@@ -86,6 +89,11 @@ public:
     static constexpr int CARD_ROLE = Qt::UserRole + 7;   ///< Whether the row is a card (bool)
     static constexpr int COLOR_ROLE = Qt::UserRole + 8;  ///< The color of a card (QColor)
     static constexpr int SUMMARY_ROLE = Qt::UserRole + 9;  ///< In Short of a card, on its tile
+    /// Of a row that names a volume of a series: whether the groups of its materials are
+    /// collapsed (bool); none for the other rows
+    static constexpr int COLLAPSED_ROLE = Qt::UserRole + 10;
+    /// Of a row that names a group: 1 under a row that names a volume of a series, else 0
+    static constexpr int HEADING_LEVEL_ROLE = Qt::UserRole + 11;
 
     /// @brief The list @p list (MaterialList::kinds(), MaterialList::ALL)
     explicit MaterialListPanel(core::ProjectManager& book, const QString& list,
@@ -111,6 +119,14 @@ public:
     /// @brief Choose material @p elementId, shown in the list; false when the list does not
     /// show it
     bool selectMaterial(const QString& elementId);
+
+    /// @brief Collapse or expand the groups of a volume of a series in the list of the cover
+    /// or of the texts for publishers: @p volumeOrder 0 the whole series, 1 the first volume...
+    /// (MaterialRow::volumeOrder); the list keeps it while it shows another kind
+    void setVolumeCollapsed(int volumeOrder, bool collapsed);
+
+    /// @brief Whether the groups of a volume of a series are collapsed
+    [[nodiscard]] bool isVolumeCollapsed(int volumeOrder) const;
 
     /// @brief Give the keys to the search (Ctrl+F)
     void focusSearch();
@@ -310,6 +326,7 @@ private:
         QString part;                          ///< The filter Kind of the cover; empty: all
         Qt::SortOrder sortOrder = Qt::AscendingOrder;
         bool kept = false;  ///< false: the list never showed the kind
+        QSet<int> collapsedVolumes;  ///< The volumes of a series collapsed (volumeOrder)
     };
 
     void createLayout();
@@ -391,6 +408,16 @@ private:
 
     /// @brief The choices of Kind and the menu of Add of the list of the texts for publishers
     void fillPublishingChoices();
+
+    /// @brief Hide the rows of the volumes collapsed, show the others (the rows of the
+    /// filter change with the search, the filters and the sorting)
+    void applyCollapsed();
+    /// @brief The volume (MaterialRow::volumeOrder) of the row at @p index of the table when
+    /// it names a volume of a series; nothing for another row
+    [[nodiscard]] std::optional<int> volumeHeadingAt(const QModelIndex& index) const;
+    /// @brief Collapse, Expand, Collapse All and Expand All in the menu of the row that names
+    /// volume @p volumeOrder
+    void addVolumeItems(QMenu& menu, int volumeOrder);
 
     /// @brief Choose for the Set, Reject and Back to Draft in the menu of text @p row for
     /// publishers; Choose for the Set and Show in the Cover in that of a description or a

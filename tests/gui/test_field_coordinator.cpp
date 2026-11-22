@@ -253,6 +253,9 @@ TEST_CASE("Fields: the open texts show the book's title, author, language and th
 TEST_CASE("Fields: a text of a series shows the title, author and language of its volume",
           "[gui][fields][series]") {
     OpenNovel book(QStringLiteral("Sand"));
+    const core::ProjectBook* sand = book.pm.book();
+    REQUIRE(sand != nullptr);
+    const QString sandId = sand->id;
     core::NewBook request;
     request.title = QStringLiteral("Dunes");
     request.author = QStringLiteral("Other Author");
@@ -273,11 +276,24 @@ TEST_CASE("Fields: a text of a series shows the title, author and language of it
     const core::ProjectBook* volume = book.pm.book();
     REQUIRE(volume != nullptr);
     REQUIRE_FALSE(volume->mainElements.isEmpty());
-    const editor::FieldContext second =
-        fields.coordinator.contextFor(volume->mainElements.constFirst().id);
+    const QString dunesText = volume->mainElements.constFirst().id;
+    const editor::FieldContext second = fields.coordinator.contextFor(dunesText);
     CHECK(second.bookTitle == QStringLiteral("Dunes"));
     CHECK(second.author == QStringLiteral("Other Author"));
     CHECK(second.language == QStringLiteral("pl"));
+
+    // A text of the second volume open on a tab, with the first one current (test of 22.11,
+    // part 53): its fields show its volume
+    window.navigator.onElementSelected(dunesText, QStringLiteral("Chapter 1"));
+    REQUIRE(window.tabs->count() == 1);
+    editor::BookEditor* text = window.editor(0)->getBookEditor();
+    REQUIRE(text != nullptr);
+    REQUIRE(book.pm.setCurrentBook(sandId));
+    QCoreApplication::processEvents();
+    CHECK(fields.coordinator.contextFor(dunesText).bookTitle == QStringLiteral("Dunes"));
+    CHECK(text->fieldContext().bookTitle == QStringLiteral("Dunes"));
+    CHECK(text->fieldContext().author == QStringLiteral("Other Author"));
+    CHECK(text->fieldContext().language == QStringLiteral("pl"));
 }
 
 TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... changes it",
