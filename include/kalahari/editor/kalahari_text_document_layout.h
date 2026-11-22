@@ -1292,9 +1292,9 @@ private:
     // the style and the properties
     mutable std::map<QString, BlockMetrics> m_directMetrics;
 
-    // The metrics of a block with the room of an image around it (imageBlockSpace()), by the
-    // metrics it has without it and the room
-    mutable std::map<QString, BlockMetrics> m_imageSpaceMetrics;
+    // The metrics of a block with the room of an image or a table next to it (blockSpace()),
+    // by the metrics it has without it and the room
+    mutable std::map<QString, BlockMetrics> m_spaceMetrics;
 
     // The marks of the list items by block number (listMarkers()), whether the document has
     // list items, and whether the marks wait to be counted

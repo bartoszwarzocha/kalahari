@@ -15,6 +15,7 @@
 
 #include "kalahari/editor/detail/book_export_internal.h"
 
+#include <kalahari/editor/block_space.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_format.h>
@@ -899,11 +900,11 @@ QString EpubWriter::paragraphOf(const ExportText& text, const QTextBlock& block,
     if (own.rightIndent) {
         css << QStringLiteral("margin-right: ") + emOf(*own.rightIndent, size);
     }
-    // The room of an image around its paragraph and its caption, over the paragraph's own
-    // (or its style's) room
+    // The room of an image around its paragraph and its caption, and of a table next to the
+    // paragraph, over the paragraph's own (or its style's) room
     std::optional<double> spaceBefore = own.spaceBefore;
     std::optional<double> spaceAfter = own.spaceAfter;
-    if (const ImageBlockSpace space = imageBlockSpace(block); !space.isEmpty()) {
+    if (const BlockSpace space = blockSpace(block); !space.isEmpty()) {
         const QVariantMap& properties = m_book.styles.shownStyle(style).properties;
         const auto styleSpace = [&properties](const char* name) {
             return std::max(0.0, properties.value(QLatin1String(name)).toDouble());

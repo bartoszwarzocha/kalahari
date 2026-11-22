@@ -49,6 +49,7 @@ enum class TableCommand {
     TextToTable,         ///< Convert > Text to Table...: its window
     TableToText,         ///< Convert > Table to Text...: its window
     Properties,          ///< Table Properties...: its window
+    Caption,             ///< Insert Caption...: the window of the table's caption
 };
 
 /// @brief The commands of the Image menu (the selected image of the text with the keys)

@@ -5,6 +5,8 @@
 /// @brief Tables in the text: a table of the document, its cells made of paragraphs
 
 #include "kalahari/editor/text_tables.h"
+#include "kalahari/editor/block_space.h"
+#include "kalahari/editor/text_captions.h"
 #include "kalahari/editor/annotation.h"
 #include "kalahari/editor/paragraph_styles.h"
 
@@ -108,6 +110,14 @@ TableProperties tablePropertiesOf(const QTextTableFormat& format)
         properties.borders.width = format.doubleProperty(TABLE_BORDER_WIDTH_PROPERTY);
     }
     properties.borders.color = format.colorProperty(TABLE_BORDER_COLOR_PROPERTY);
+    if (format.hasProperty(TABLE_SPACE_ABOVE_PROPERTY)) {
+        properties.spaceAbove = std::clamp(format.doubleProperty(TABLE_SPACE_ABOVE_PROPERTY), 0.0,
+                                           MAX_TABLE_SPACE);
+    }
+    if (format.hasProperty(TABLE_SPACE_BELOW_PROPERTY)) {
+        properties.spaceBelow = std::clamp(format.doubleProperty(TABLE_SPACE_BELOW_PROPERTY), 0.0,
+                                           MAX_TABLE_SPACE);
+    }
     return properties;
 }
 
@@ -123,6 +133,8 @@ void setTableProperties(QTextTableFormat& format, const TableProperties& propert
     format.setProperty(TABLE_BORDER_STYLE_PROPERTY, static_cast<int>(properties.borders.style));
     format.setProperty(TABLE_BORDER_WIDTH_PROPERTY, properties.borders.width);
     format.setProperty(TABLE_BORDER_COLOR_PROPERTY, properties.borders.color);
+    format.setProperty(TABLE_SPACE_ABOVE_PROPERTY, properties.spaceAbove);
+    format.setProperty(TABLE_SPACE_BELOW_PROPERTY, properties.spaceBelow);
 }
 
 TableRowProperties rowPropertiesOf(const QTextTable& table, int row)
@@ -231,6 +243,34 @@ QTextTable* insertTable(QTextCursor& cursor, const TableShape& shape)
 
     cursor.setPosition(table->cellAt(0, 0).firstPosition());
     return table;
+}
+
+BlockSpace tableBlockSpace(const QTextBlock& block)
+{
+    BlockSpace space;
+    if (!block.isValid() || tableOf(block) != nullptr) {
+        return space;
+    }
+    const bool caption = isCaptionBlock(block);
+    const bool above = caption && isCaptionAbove(block.blockFormat());
+    // A table right above the paragraph: its room below it, below its caption
+    if (const QTextTable* table = tableOf(block.previous())) {
+        const double room = tablePropertiesOf(table->format()).spaceBelow;
+        (caption && !above ? space.after : space.before) += room;
+    }
+    // A table right below it: its room above it, above its caption
+    if (const QTextTable* table = tableOf(block.next())) {
+        const double room = tablePropertiesOf(table->format()).spaceAbove;
+        (above ? space.before : space.after) += room;
+    }
+    return space;
+}
+
+BlockSpace blockSpace(const QTextBlock& block)
+{
+    const BlockSpace image = imageBlockSpace(block);
+    const BlockSpace table = tableBlockSpace(block);
+    return BlockSpace{image.before + table.before, image.after + table.after};
 }
 
 bool isTableBreakAt(const QTextDocument& document, int position)
@@ -537,6 +577,12 @@ std::vector<KmlAttribute> tableKmlAttributes(const TableProperties& properties)
             attributes.emplace_back(QStringLiteral("border-color"), borders.color.name());
         }
     }
+    if (std::abs(properties.spaceAbove - DEFAULT_TABLE_SPACE_ABOVE) > 0.001) {
+        attributes.emplace_back(QStringLiteral("space-above"), kmlLength(properties.spaceAbove));
+    }
+    if (std::abs(properties.spaceBelow - DEFAULT_TABLE_SPACE_BELOW) > 0.001) {
+        attributes.emplace_back(QStringLiteral("space-below"), kmlLength(properties.spaceBelow));
+    }
     return attributes;
 }
 
@@ -596,6 +642,12 @@ TableProperties tablePropertiesOfKml(const QXmlStreamAttributes& attributes)
         borders.width = std::min(*lineWidth, MAX_BORDER_WIDTH);
     }
     borders.color = kmlColor(attributes, "border-color");
+    if (const std::optional<double> above = pointsOfKmlLength(attributeValue(attributes, "space-above"))) {
+        properties.spaceAbove = std::min(*above, MAX_TABLE_SPACE);
+    }
+    if (const std::optional<double> below = pointsOfKmlLength(attributeValue(attributes, "space-below"))) {
+        properties.spaceBelow = std::min(*below, MAX_TABLE_SPACE);
+    }
     return properties;
 }
 

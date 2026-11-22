@@ -14,6 +14,7 @@
 
 #include "kalahari/editor/detail/book_export_internal.h"
 
+#include <kalahari/editor/block_space.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_format.h>
@@ -1256,9 +1257,9 @@ void DocxWriter::writeParagraph(const ExportText& text, size_t item, const QText
     if (const Qt::Alignment alignment = ownAlignment(format); alignment) {
         properties.alignment = alignmentValue(alignment);
     }
-    // The room of an image around its paragraph and its caption, over the paragraph's own
-    // (or its style's) room
-    if (const ImageBlockSpace space = imageBlockSpace(block); !space.isEmpty()) {
+    // The room of an image around its paragraph and its caption, and of a table next to the
+    // paragraph, over the paragraph's own (or its style's) room
+    if (const BlockSpace space = blockSpace(block); !space.isEmpty()) {
         const QVariantMap& style = m_book.styles.shownStyle(styleId).properties;
         const auto styleSpace = [&style](const char* name) {
             return std::max(0.0, style.value(QLatin1String(name)).toDouble());

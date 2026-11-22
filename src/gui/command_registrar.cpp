@@ -865,6 +865,10 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                table(TableCommand::TextToTable));
     REG_CMD_CB("table.tableToText", QT_TRANSLATE_NOOP("CommandRegistrar", "Table to Te&xt..."), "TABLE/Convert/Table to Text...", 111, true, 0,
                table(TableCommand::TableToText));
+    //: Table > Insert Caption...: the numbered caption of the table ("Table 2. ..."). In
+    //: Polish: Wstaw po&dpis...
+    REG_CMD_CB("table.caption", QT_TRANSLATE_NOOP("CommandRegistrar", "Insert Captio&n..."), "TABLE/Insert Caption...", 115, false, 0,
+               table(TableCommand::Caption));
     REG_CMD_CB("table.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Ta&ble Properties..."), "TABLE/Table Properties...", 120, false, 0,
                table(TableCommand::Properties));
     if (Command* header = registry.getCommand("table.headerRows")) {

@@ -13,6 +13,8 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/block_space.h>
+#include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/table_editing.h>
 #include <kalahari/editor/text_keys.h>
 #include <kalahari/editor/text_sorting.h>
@@ -1258,6 +1260,24 @@ TEST_CASE("Table commands: the rows laid out again after a change are as the tex
         data->cellChanged = true;
         editor->setTablePropertiesData(*data);
     });
+    change("the room above and below the table", [&] {
+        editor->setCursorPosition({13, 0});
+        std::optional<TablePropertiesData> data = editor->tablePropertiesData();
+        REQUIRE(data);
+        data->table.spaceAbove = 30.0;
+        data->table.spaceBelow = 0.0;
+        editor->setTablePropertiesData(*data);
+    });
+    change("a caption above the table", [&] {
+        REQUIRE(editor->setTableCaption(firstTable(*editor)->firstPosition(),
+                                        ImageCaption{true, true, QStringLiteral("Table"),
+                                                     QStringLiteral("People"), true}));
+    });
+    change("a caption below the table", [&] {
+        REQUIRE(editor->setTableCaption(firstTable(*editor)->firstPosition(),
+                                        ImageCaption{true, false, QString(),
+                                                     QStringLiteral("People"), false}));
+    });
 
     // Changes one after another, laid out with what the ones before left
     editor->setCursorPosition({13, 2});
@@ -1269,4 +1289,243 @@ TEST_CASE("Table commands: the rows laid out again after a change are as the tex
     editor->setCursorPosition({30, 0});
     typeText(*editor, QStringLiteral("text "));
     checkLaidOutAsAnew(*editor, "one change after another");
+}
+
+// =============================================================================
+// The room around a table and its caption
+// =============================================================================
+
+TEST_CASE("Table space: the room above and below a table in KML and in its format",
+          "[editor][tables][kml][space]") {
+    const QString text = kml(QStringLiteral(
+        "<p>Before</p><table space-above=\"12pt\" space-below=\"0pt\"><tr><td><p>A</p></td></tr>"
+        "</table><p>After</p>"));
+    auto editor = editorWith(text);
+    CHECK(kmlOf(*editor) == text.toStdString());
+    TableProperties properties = tablePropertiesOf(firstTable(*editor)->format());
+    CHECK(properties.spaceAbove == Approx(12.0));
+    CHECK(properties.spaceBelow == Approx(0.0));
+
+    // Without them: the default room, not written
+    auto plain = editorWith(
+        kml(QStringLiteral("<p>Before</p><table><tr><td><p>A</p></td></tr></table><p>After</p>")));
+    properties = tablePropertiesOf(firstTable(*plain)->format());
+    CHECK(properties.spaceAbove == Approx(DEFAULT_TABLE_SPACE_ABOVE));
+    CHECK(properties.spaceBelow == Approx(DEFAULT_TABLE_SPACE_BELOW));
+    CHECK(kmlOf(*plain).find("space-") == std::string::npos);
+
+    // More than it takes: the most; less than nothing: the default
+    auto large = editorWith(kml(QStringLiteral(
+        "<p>B</p><table space-above=\"5cm\" space-below=\"-3pt\"><tr><td><p>A</p></td></tr>"
+        "</table><p>A</p>")));
+    properties = tablePropertiesOf(firstTable(*large)->format());
+    CHECK(properties.spaceAbove == Approx(MAX_TABLE_SPACE));
+    CHECK(properties.spaceBelow == Approx(DEFAULT_TABLE_SPACE_BELOW));
+}
+
+TEST_CASE("Table space: the paragraphs next to a table keep its room, its caption close to it",
+          "[editor][tables][captions][space]") {
+    auto editor = editorWith(kml(QStringLiteral(
+        "<p>Before</p>"
+        "<table space-above=\"10pt\" space-below=\"8pt\"><tr><td><p>A</p></td></tr></table>"
+        "<p style=\"caption\">Below the first</p><p>Between</p>"
+        "<p style=\"caption\" caption=\"above\">Above the second</p>"
+        "<table space-above=\"4pt\" space-below=\"14pt\"><tr><td><p>B</p></td></tr></table>"
+        "<p>End</p>")));
+    const QTextDocument& document = *editor->textDocument();
+    REQUIRE(document.blockCount() == 7);
+    const auto block = [&document](int number) { return document.findBlockByNumber(number); };
+    const QTextTable* first = tableOf(block(1));
+    const QTextTable* second = tableOf(block(5));
+    REQUIRE(first != nullptr);
+    REQUIRE(second != nullptr);
+
+    // The captions of the tables, not of images
+    CHECK(captionBlockOfTable(*first).blockNumber() == 2);
+    CHECK(captionBlockOfTable(*second).blockNumber() == 4);
+    CHECK(tableOfCaption(block(2)) == first);
+    CHECK(tableOfCaption(block(4)) == second);
+    CHECK(tableOfCaption(block(3)) == nullptr);
+    CHECK_FALSE(imageBlockOfCaption(block(2)).isValid());
+    CHECK_FALSE(imageBlockOfCaption(block(4)).isValid());
+
+    // The room: before the first table, below its caption, above the caption of the second,
+    // after the second; none in the cells and between
+    CHECK(tableBlockSpace(block(0)) == BlockSpace{0.0, 10.0});
+    CHECK(tableBlockSpace(block(1)) == BlockSpace{});
+    CHECK(tableBlockSpace(block(2)) == BlockSpace{0.0, 8.0});
+    CHECK(tableBlockSpace(block(3)) == BlockSpace{});
+    CHECK(tableBlockSpace(block(4)) == BlockSpace{4.0, 0.0});
+    CHECK(tableBlockSpace(block(6)) == BlockSpace{14.0, 0.0});
+    CHECK(blockSpace(block(6)) == BlockSpace{14.0, 0.0});
+}
+
+TEST_CASE("Table space: the layout leaves the room above and below a table",
+          "[editor][tables][layout][space]") {
+    // The top of the table's first row and of the paragraph after the paragraph after it
+    const auto places = [](const QString& space) {
+        auto editor = editorWith(kml(QStringLiteral("<p>Before</p><table ") + space +
+                                     QStringLiteral("><tr><td><p>A</p></td></tr></table>"
+                                                    "<p>After</p><p>End</p>")));
+        KalahariTextDocumentLayout* layout = layoutOf(*editor);
+        layout->layoutAllBlocks();
+        const std::vector<KalahariTextDocumentLayout::TableRow> rows =
+            layout->tableRows(*firstTable(*editor));
+        REQUIRE(rows.size() == 1);
+        return std::pair<qreal, qreal>(rows[0].top, layout->blockY(3));
+    };
+    auto probe = editorWith(kml(QStringLiteral("<p>A</p>")));
+    const qreal pixels = layoutOf(*probe)->pixelsPerPoint();
+    const auto [noneTop, noneEnd] = places(QStringLiteral("space-above=\"0pt\" space-below=\"0pt\""));
+    const auto [aboveTop, aboveEnd] = places(QStringLiteral("space-above=\"12pt\" space-below=\"0pt\""));
+    const auto [belowTop, belowEnd] = places(QStringLiteral("space-above=\"0pt\" space-below=\"12pt\""));
+    CHECK(aboveTop - noneTop == Approx(12.0 * pixels).margin(1.0));
+    CHECK(aboveEnd - noneEnd == Approx(12.0 * pixels).margin(1.0));
+    CHECK(belowTop == Approx(noneTop));
+    CHECK(belowEnd - noneEnd == Approx(12.0 * pixels).margin(1.0));
+}
+
+TEST_CASE("Table space: a new table takes the room it is given", "[editor][tables][insert][space]") {
+    auto editor = editorWith(kml(QStringLiteral("<p>Text</p>")));
+    editor->setCursorPosition({0, 4});
+    editor->insertTable(2, 2, false, BookEditor::NewTableOptions{12.0, 3.0});
+    TableProperties properties = tablePropertiesOf(firstTable(*editor)->format());
+    CHECK(properties.spaceAbove == Approx(12.0));
+    CHECK(properties.spaceBelow == Approx(3.0));
+    CHECK(kmlOf(*editor).find("space-above=\"12pt\" space-below=\"3pt\"") != std::string::npos);
+
+    // Text to Table too, and without the room given the default one
+    auto converted = editorWith(kml(QStringLiteral("<p>a\tb</p><p>c\td</p>")));
+    select(*converted, {0, 0}, {1, 3});
+    converted->convertTextToTable(QChar(u'\t'), 2, false, BookEditor::NewTableOptions{0.0, 20.0});
+    properties = tablePropertiesOf(firstTable(*converted)->format());
+    CHECK(properties.spaceAbove == Approx(0.0));
+    CHECK(properties.spaceBelow == Approx(20.0));
+    auto plain = editorWith(kml(QStringLiteral("<p>Text</p>")));
+    plain->insertTable(1, 1, false);
+    CHECK(tablePropertiesOf(firstTable(*plain)->format()).spaceAbove ==
+          Approx(DEFAULT_TABLE_SPACE_ABOVE));
+}
+
+// =============================================================================
+// The caption of a table
+// =============================================================================
+
+TEST_CASE("Table caption: Insert Caption gives the table a numbered caption above or below it",
+          "[editor][tables][captions]") {
+    auto editor = editorWith(kml(QStringLiteral(
+        "<p>Before</p><table><tr><td><p>A</p></td><td><p>B</p></td></tr></table><p>After</p>")));
+    QTextDocument& document = *editor->textDocument();
+
+    // The cursor in a cell: the table is the target; no caption yet
+    editor->setCursorPosition({2, 0});
+    const std::optional<int> target = editor->captionTargetTable();
+    REQUIRE(target);
+    CHECK(*target == firstTable(*editor)->firstPosition());
+    REQUIRE(editor->tableCaptionOf(*target));
+    CHECK_FALSE(editor->tableCaptionOf(*target)->shown);
+    CHECK(editor->tableCaptionNumberAt(*target, QStringLiteral("Table")) == QStringLiteral("1"));
+    CHECK_FALSE(editor->tableCaptionOf(0));  // no table there
+    CHECK_FALSE(editor->captionTargetImage());
+
+    // Above it: the paragraph right before the table, numbered
+    REQUIRE(editor->setTableCaption(*target, ImageCaption{true, true, QStringLiteral("Table"),
+                                                          QStringLiteral("The wells"), true}));
+    REQUIRE(document.blockCount() == 5);
+    const QTextTable* table = firstTable(*editor);
+    QTextBlock caption = captionBlockOfTable(*table);
+    REQUIRE(caption.isValid());
+    CHECK(caption.blockNumber() == 1);
+    CHECK(isCaptionAbove(caption.blockFormat()));
+    std::optional<ImageCaption> shown = editor->tableCaptionOf(table->firstPosition());
+    REQUIRE(shown);
+    CHECK(shown->shown);
+    CHECK(shown->numbered);
+    CHECK(shown->above);
+    CHECK(shown->label == QStringLiteral("Table"));
+    CHECK(shown->text == QStringLiteral("The wells"));
+    CHECK(editor->tableCaptionNumberAt(table->firstPosition(), QStringLiteral("Table")) ==
+          QStringLiteral("1"));
+    const std::string kmlText = kmlOf(*editor);
+    CHECK(kmlText.find("<p>Before</p><p style=\"caption\" caption=\"above\">Table <caption-number "
+                       "label=\"Table\"") != std::string::npos);
+    CHECK(editor->captionEntries().size() == 1);
+
+    // The cursor in the caption: the table is still the target
+    editor->setCursorPosition({1, 2});
+    CHECK(editor->captionTargetTable() == std::optional<int>(table->firstPosition()));
+
+    // Below it: the paragraph moves, the number stays
+    const QString id = editor->captionEntries().front().id;
+    REQUIRE(editor->setTableCaption(table->firstPosition(),
+                                    ImageCaption{true, true, QStringLiteral("Table"),
+                                                 QStringLiteral("The wells"), false}));
+    table = firstTable(*editor);
+    caption = captionBlockOfTable(*table);
+    REQUIRE(caption.isValid());
+    CHECK_FALSE(isCaptionAbove(caption.blockFormat()));
+    CHECK(caption.previous().blockNumber() == table->lastCursorPosition().block().blockNumber());
+    CHECK(caption.next().text() == QStringLiteral("After"));
+    CHECK(document.findBlockByNumber(0).text() == QStringLiteral("Before"));
+    REQUIRE(editor->captionEntries().size() == 1);
+    CHECK(editor->captionEntries().front().id == id);
+
+    // One step of Undo: above again
+    editor->undo();
+    table = firstTable(*editor);
+    REQUIRE(captionBlockOfTable(*table).isValid());
+    CHECK(isCaptionAbove(captionBlockOfTable(*table).blockFormat()));
+
+    // Taken away: the text as it was
+    REQUIRE(editor->setTableCaption(table->firstPosition(), ImageCaption{}));
+    CHECK(textOf(*editor) == "Before|0,0:A|0,1:B|After");
+    CHECK(editor->captionEntries().empty());
+}
+
+TEST_CASE("Table caption: at the start of the text and between two tables the empty paragraph "
+          "becomes the caption",
+          "[editor][tables][captions]") {
+    auto editor = editorWith(kml(QStringLiteral(
+        "<table><tr><td><p>A</p></td></tr></table><table><tr><td><p>B</p></td></tr></table>"
+        "<p>End</p>")));
+    QTextDocument& document = *editor->textDocument();
+    REQUIRE(textOf(*editor) == "|0,0:A||0,0:B|End");
+    const auto tableNumber = [&document](int number) {
+        return tableOf(document.findBlockByNumber(number));
+    };
+
+    // Above the first: the empty paragraph at the start
+    REQUIRE(editor->setTableCaption(tableNumber(1)->firstPosition(),
+                                    ImageCaption{true, true, QStringLiteral("Table"),
+                                                 QStringLiteral("First"), true}));
+    CHECK(document.blockCount() == 5);
+    CHECK(isCaptionBlock(document.firstBlock()));
+
+    // Above the second: the empty paragraph between them; its number the second
+    CHECK(editor->tableCaptionNumberAt(tableNumber(3)->firstPosition(), QStringLiteral("Table")) ==
+          QStringLiteral("2"));
+    REQUIRE(editor->setTableCaption(tableNumber(3)->firstPosition(),
+                                    ImageCaption{true, true, QStringLiteral("Table"),
+                                                 QStringLiteral("Second"), true}));
+    CHECK(document.blockCount() == 5);
+    CHECK(isCaptionBlock(document.findBlockByNumber(2)));
+    CHECK(tableOfCaption(document.findBlockByNumber(2)) == tableNumber(3));
+    CHECK(editor->tableCaptionNumberAt(tableNumber(3)->firstPosition(), QStringLiteral("Table")) ==
+          QStringLiteral("2"));
+
+    // Below the second, at the end of the text: a paragraph of its own, the text after it stays
+    REQUIRE(editor->setTableCaption(tableNumber(3)->firstPosition(),
+                                    ImageCaption{true, true, QStringLiteral("Table"),
+                                                 QStringLiteral("Second"), false}));
+    CHECK(document.blockCount() == 6);
+    CHECK(document.findBlockByNumber(2).text().isEmpty());
+    CHECK_FALSE(isCaptionBlock(document.findBlockByNumber(2)));
+    CHECK(isCaptionBlock(document.findBlockByNumber(4)));
+    CHECK(document.lastBlock().text() == QStringLiteral("End"));
+
+    // Taken away at the start: the empty paragraph the table needs stays
+    REQUIRE(editor->setTableCaption(tableNumber(1)->firstPosition(), ImageCaption{}));
+    CHECK(document.firstBlock().text().isEmpty());
+    CHECK_FALSE(isCaptionBlock(document.firstBlock()));
+    CHECK(tableOf(document.findBlockByNumber(1)) != nullptr);
 }

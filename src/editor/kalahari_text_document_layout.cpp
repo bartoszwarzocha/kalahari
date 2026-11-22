@@ -5,6 +5,7 @@
 /// @brief Custom QAbstractTextDocumentLayout implementation (OpenSpec #00043)
 
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/block_space.h>
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_styles.h>
@@ -567,7 +568,7 @@ void KalahariTextDocumentLayout::clearMetrics() {
     m_styleMetrics.clear();
     m_objectMetrics.clear();
     m_directMetrics.clear();
-    m_imageSpaceMetrics.clear();
+    m_spaceMetrics.clear();
     m_noteBoxes.clear();  // laid out in the style Footnote
 }
 
@@ -608,21 +609,22 @@ const KalahariTextDocumentLayout::BlockMetrics& KalahariTextDocumentLayout::bloc
         metrics = &direct->second;
     }
 
-    // The room of an image around its block and its caption, over the paragraph's own
-    const ImageBlockSpace space = imageBlockSpace(block);
+    // The room of an image around its block and its caption, and of a table next to the
+    // block, over the paragraph's own
+    const BlockSpace space = blockSpace(block);
     if (space.isEmpty()) {
         return *metrics;
     }
     const qreal pixels = packagePixels();
     const qreal before = std::round(space.before * pixels);
     const qreal after = std::round(space.after * pixels);
-    key += QStringLiteral("|image|%1|%2").arg(before).arg(after);
-    auto spaced = m_imageSpaceMetrics.find(key);
-    if (spaced == m_imageSpaceMetrics.end()) {
+    key += QStringLiteral("|space|%1|%2").arg(before).arg(after);
+    auto spaced = m_spaceMetrics.find(key);
+    if (spaced == m_spaceMetrics.end()) {
         BlockMetrics withSpace = *metrics;
         withSpace.spaceBefore += before;
         withSpace.spaceAfter += after;
-        spaced = m_imageSpaceMetrics.emplace(key, withSpace).first;
+        spaced = m_spaceMetrics.emplace(key, withSpace).first;
     }
     return spaced->second;
 }
@@ -1430,6 +1432,17 @@ std::pair<QTextBlock, QTextBlock> KalahariTextDocumentLayout::changedBlocks(int 
     if (lastTable && lastTable != firstTable) {
         const auto [firstRow, lastRow] = tableBand(*lastTable, 0, rowOfBlock(*lastTable, last));
         last = bandBlocks(*lastTable, firstRow, lastRow).second;
+    }
+
+    // A table keeps its room in the paragraphs next to it (tableBlockSpace()): a change of its
+    // first or last row, as of its format, lays them out too
+    if (const QTextTable* table = tableOf(first);
+        table != nullptr && table->firstCursorPosition().block() == first && first.previous().isValid()) {
+        first = first.previous();
+    }
+    if (const QTextTable* table = tableOf(last);
+        table != nullptr && table->lastCursorPosition().block() == last && last.next().isValid()) {
+        last = last.next();
     }
     return {first, last};
 }

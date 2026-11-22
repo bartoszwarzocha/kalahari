@@ -76,6 +76,7 @@ public:
     /// Editor > Margin Numbering, the cursor in the choice of the numbering
     static constexpr const char* MARGIN_NUMBERING_PAGE = "editor.pages.marginNumbering";
     static constexpr const char* IMAGES_PAGE = "editor.images";      ///< Editor > Images
+    static constexpr const char* TABLES_PAGE = "editor.tables";      ///< Editor > Tables
     static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
     /// Editor > Auto-correct (the gear of File > Import: the cleanups of the text follow it)
     static constexpr const char* AUTO_CORRECT_PAGE = "editor.autoCorrect";
@@ -130,7 +131,8 @@ public:
     void showShortcutsPage();
 
     /// @brief Open a page: EDITOR_COLORS_PAGE (the gears of Insert > Link and of the find bar),
-    /// IMAGES_PAGE (the gears of the windows of images and captions), PAGES_PAGE,
+    /// IMAGES_PAGE (the gears of the windows of images and captions), TABLES_PAGE (the gear of
+    /// the window of the caption of a table), PAGES_PAGE,
     /// MARGIN_NUMBERING_PAGE (View > Margin Numbering > Numbering Settings...),
     /// FIELDS_PAGE (the gear of Insert > Field...), FOOTNOTES_PAGE (the gear of the Footnotes
     /// panel), SPELLING_PAGE (the gear of the Spelling and

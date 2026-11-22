@@ -311,6 +311,8 @@ private:
     LengthSpinBox* m_width = nullptr;
     QButtonGroup* m_alignment = nullptr;
     LengthSpinBox* m_indent = nullptr;
+    LengthSpinBox* m_spaceAbove = nullptr;  ///< The room from the text above the table
+    LengthSpinBox* m_spaceBelow = nullptr;  ///< and below it
 
     // Row
     QLabel* m_rowName = nullptr;

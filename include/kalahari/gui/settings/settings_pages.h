@@ -310,6 +310,14 @@ private:
     QPushButton* m_removeLabel = nullptr;
 };
 
+/// @brief Editor > Tables: the room new tables keep from the text above and below them, and
+///        where Insert Caption puts the caption of a table
+class EditorTablesPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorTablesPage(QWidget* parent = nullptr);
+};
+
 /// @brief Editor > Auto-correct: what is changed in the text as it is typed, on three tabs
 ///
 /// While Typing has the replacements of the characters and the text elements typed,

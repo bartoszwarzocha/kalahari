@@ -242,6 +242,31 @@ TEST_CASE("DOCX: the room around an image is in the spacing of its paragraph and
     CHECK(count(document, QStringLiteral("w:after=\"")) >= 2);
 }
 
+TEST_CASE("DOCX: the room around a table is in the spacing of the paragraphs next to it",
+          "[export][docx][tables]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    writeRedSquare(folder.path());
+    BookExport book = sampleBook(folder.path());
+    book.items.resize(3);  // the contents, the part and the first chapter
+    book.items.back().kml = QStringLiteral(
+        "<kml><p>Before.</p>"
+        "<table space-above=\"12pt\" space-below=\"9pt\"><tr><td><p>A</p></td></tr></table>"
+        "<p>Between.</p>"
+        "<p style=\"caption\" caption=\"above\">The wells</p>"
+        "<table space-above=\"10pt\" space-below=\"0pt\"><tr><td><p>B</p></td></tr></table>"
+        "<p>After.</p></kml>");
+    const QString path = folder.filePath(QStringLiteral("tables.docx"));
+    REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+    const QString document =
+        QString::fromUtf8(zipEntries(path).value(QStringLiteral("word/document.xml")));
+    // Twips: 12 pt after the paragraph before the first table, 9 pt before the one after it;
+    // above the second table its caption takes the room above it
+    CHECK(document.contains(QStringLiteral("w:after=\"240\"")));
+    CHECK(document.contains(QStringLiteral("w:before=\"180\"")));
+    CHECK(document.contains(QStringLiteral("w:before=\"200\"")));
+}
+
 TEST_CASE("DOCX: the options of the export", "[export][docx]") {
     QTemporaryDir folder;
     REQUIRE(folder.isValid());

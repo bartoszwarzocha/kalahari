@@ -321,6 +321,30 @@ QTextBlock imageBlockOfCaption(const QTextBlock& captionBlock)
                : QTextBlock();
 }
 
+QTextBlock captionBlockOfTable(const QTextTable& table)
+{
+    const QTextBlock before = table.firstCursorPosition().block().previous();
+    if (isCaptionBlock(before) && isCaptionAbove(before.blockFormat()) && tableOf(before) == nullptr) {
+        return before;
+    }
+    const QTextBlock after = table.lastCursorPosition().block().next();
+    if (isCaptionBlock(after) && !isCaptionAbove(after.blockFormat()) && tableOf(after) == nullptr) {
+        return after;
+    }
+    return QTextBlock();
+}
+
+QTextTable* tableOfCaption(const QTextBlock& captionBlock)
+{
+    if (!isCaptionBlock(captionBlock) || tableOf(captionBlock) != nullptr) {
+        return nullptr;
+    }
+    const QTextBlock beside =
+        isCaptionAbove(captionBlock.blockFormat()) ? captionBlock.next() : captionBlock.previous();
+    QTextTable* table = tableOf(beside);
+    return table != nullptr && captionBlockOfTable(*table) == captionBlock ? table : nullptr;
+}
+
 CaptionParts captionParts(const QTextBlock& block)
 {
     CaptionParts parts;

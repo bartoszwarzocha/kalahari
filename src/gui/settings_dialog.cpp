@@ -148,6 +148,9 @@ void SettingsDialog::createNavigationTree() {
                 [this]() { openPage(QString::fromLatin1(EDITOR_COLORS_PAGE)); });
         return imagesPage;
     });
+    //: Settings > Editor > Tables: new tables, the captions of tables. In Polish: Tabele
+    m_pageItems[TABLES_PAGE] =
+        addPage(editor, tr("Tables"), []() { return new EditorTablesPage(); });
     m_pageItems[SPELLING_PAGE] =
         addPage(editor, tr("Spelling"), [this]() {
             auto* spellingPage = new EditorSpellingPage(m_spelling, m_book.isProjectOpen());

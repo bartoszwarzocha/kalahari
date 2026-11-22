@@ -1189,14 +1189,14 @@ TEST_CASE("Settings dialog: the default labels of captions are in the program's 
 
     const QStringList english{QStringLiteral("Figure"), QStringLiteral("Photo"),
                               QStringLiteral("Illustration"), QStringLiteral("Map"),
-                              QStringLiteral("Diagram")};
+                              QStringLiteral("Diagram"), QStringLiteral("Table")};
     CHECK(defaultCaptionLabels() == english);
     {
         const Polish polish;
         REQUIRE(polish.loaded());
         const QStringList polishLabels{QStringLiteral("Rysunek"), QStringLiteral("Fotografia"),
                                        QStringLiteral("Ilustracja"), QStringLiteral("Mapa"),
-                                       QStringLiteral("Schemat")};
+                                       QStringLiteral("Schemat"), QStringLiteral("Tabela")};
         CHECK(defaultCaptionLabels() == polishLabels);
         // Nothing stored: the settings and a new book have the labels in Polish
         CHECK(settingsCaptionLabels() == polishLabels);

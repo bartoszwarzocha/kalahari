@@ -370,6 +370,7 @@ set(KALAHARI_SOURCES
     gui/settings/appearance_pages.cpp
     gui/settings/editor_pages.cpp
     gui/settings/images_page.cpp
+    gui/settings/tables_page.cpp
     gui/settings/auto_correct_page.cpp  # Settings > Editor > Auto-correct
     gui/settings/quick_insert_page.cpp  # Settings > Editor > Quick Insert
     gui/settings/repetitions_page.cpp  # Settings > Editor > Repetitions

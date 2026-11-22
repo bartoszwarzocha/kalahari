@@ -1431,6 +1431,11 @@
         <source>&amp;Footnotes</source>
         <translation>Pr&amp;zypisy</translation>
     </message>
+    <message>
+        <source>Insert Captio&amp;n...</source>
+        <extracomment>Table &gt; Insert Caption...: the numbered caption of the table (&quot;Table 2. ...&quot;). In Polish: Wstaw po&amp;dpis...</extracomment>
+        <translation>Wstaw po&amp;dpis...</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -5642,12 +5647,8 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
     </message>
     <message>
         <source>Insert Caption</source>
-        <extracomment>Insert &gt; Caption... without an image at the cursor. In Polish: Wstaw podpis / Zaznacz obraz albo ustaw kursor tuż za nim – podpis dodaje się do obrazu.</extracomment>
+        <extracomment>Insert &gt; Caption... without an image or a table at the cursor. In Polish: Wstaw podpis / Zaznacz obraz albo ustaw kursor tuż za nim lub w tabeli – podpis dodaje się do obrazu albo tabeli.</extracomment>
         <translation>Wstaw podpis</translation>
-    </message>
-    <message>
-        <source>Select an image, or put the cursor just after it: a caption goes with an image.</source>
-        <translation>Zaznacz obraz albo ustaw kursor tuż za nim – podpis dodaje się do obrazu.</translation>
     </message>
     <message>
         <source>Insert Cross-Reference</source>
@@ -5662,6 +5663,10 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
         <source>List of Figures</source>
         <extracomment>The heading of a new list of figures in the text. In Polish: Spis ilustracji</extracomment>
         <translation>Spis ilustracji</translation>
+    </message>
+    <message>
+        <source>Select an image, or put the cursor just after it or in a table: a caption goes with an image or a table.</source>
+        <translation>Zaznacz obraz albo ustaw kursor tuż za nim lub w tabeli – podpis dodaje się do obrazu albo tabeli.</translation>
     </message>
 </context>
 <context>
@@ -13805,6 +13810,11 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <extracomment>Settings &gt; Editor &gt; Lists: the sets of list formats. In Polish: Listy</extracomment>
         <translation>Listy</translation>
     </message>
+    <message>
+        <source>Tables</source>
+        <extracomment>Settings &gt; Editor &gt; Tables: new tables, the captions of tables. In Polish: Tabele</extracomment>
+        <translation>Tabele</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SettingsPage</name>
@@ -19856,6 +19866,31 @@ Harmonogram projektu:
         <extracomment>In Polish: Wstaw be&amp;z podpisu</extracomment>
         <translation>Wstaw be&amp;z podpisu</translation>
     </message>
+    <message>
+        <source>The caption of the table, with a number the program gives.</source>
+        <extracomment>The caption of a table. In Polish: Podpis tabeli z numerem nadawanym przez program.</extracomment>
+        <translation>Podpis tabeli z numerem nadawanym przez program.</translation>
+    </message>
+    <message>
+        <source>Table Settings</source>
+        <extracomment>The tooltip of the gear of the window of the caption of a table. In Polish: Ustawienia tabel</extracomment>
+        <translation>Ustawienia tabel</translation>
+    </message>
+    <message>
+        <source>Below the table</source>
+        <extracomment>In Polish: Pod tabelą</extracomment>
+        <translation>Pod tabelą</translation>
+    </message>
+    <message>
+        <source>Above the table</source>
+        <extracomment>In Polish: Nad tabelą</extracomment>
+        <translation>Nad tabelą</translation>
+    </message>
+    <message>
+        <source>Each label has its own numbering (&quot;Table 1&quot;, &quot;Table 2&quot; next to &quot;Figure 1&quot;, &quot;Figure 2&quot;). The caption is a paragraph in the style Caption.</source>
+        <extracomment>The caption of a table. In Polish: Każda etykieta ma własną numerację („Tabela 1”, „Tabela 2” obok „Rysunek 1”, „Rysunek 2”). Podpis jest akapitem stylu „Podpis”.</extracomment>
+        <translation>Każda etykieta ma własną numerację („Tabela 1”, „Tabela 2” obok „Rysunek 1”, „Rysunek 2”). Podpis jest akapitem stylu „Podpis”.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::InsertCrossReferenceDialog</name>
@@ -22442,6 +22477,41 @@ In Polish: Dodaj</extracomment>
         <source>Automatic</source>
         <translation>Automatyczny</translation>
     </message>
+    <message>
+        <source>Space Around</source>
+        <extracomment>Table Properties, the Table tab. In Polish: Odstępy</extracomment>
+        <translation>Odstępy</translation>
+    </message>
+    <message>
+        <source>&amp;Space above</source>
+        <extracomment>The room between the table (or its caption above it) and the text above it. In Polish: Odstęp &amp;górny</extracomment>
+        <translation>Odstęp &amp;górny</translation>
+    </message>
+    <message>
+        <source>Between the text above and the table, or its caption above it</source>
+        <extracomment>In Polish: Między tekstem nad tabelą a tabelą albo jej podpisem nad nią</extracomment>
+        <translation>Między tekstem nad tabelą a tabelą albo jej podpisem nad nią</translation>
+    </message>
+    <message>
+        <source>Space bel&amp;ow</source>
+        <extracomment>In Polish: Odstęp &amp;dolny</extracomment>
+        <translation>Odstęp &amp;dolny</translation>
+    </message>
+    <message>
+        <source>Between the table, or its caption below it, and the text below</source>
+        <extracomment>In Polish: Między tabelą albo jej podpisem pod nią a tekstem pod nią</extracomment>
+        <translation>Między tabelą albo jej podpisem pod nią a tekstem pod nią</translation>
+    </message>
+    <message>
+        <source>As in the Settin&amp;gs</source>
+        <extracomment>The room of new tables. In Polish: Jak w Ustawi&amp;eniach</extracomment>
+        <translation>Jak w Ustawi&amp;eniach</translation>
+    </message>
+    <message>
+        <source>The space a new table gets (Settings &gt; Editor &gt; Tables)</source>
+        <extracomment>In Polish: Odstępy, które dostaje nowa tabela (Ustawienia &gt; Edytor &gt; Tabele)</extracomment>
+        <translation>Odstępy, które dostaje nowa tabela (Ustawienia &gt; Edytor &gt; Tabele)</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::TableToTextDialog</name>
@@ -22922,6 +22992,54 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <source>A book (.klh file) or another file to open; when the program runs already, its window opens it</source>
         <extracomment>The argument of the command line without a name. In Polish: Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</extracomment>
         <translation>Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorTablesPage</name>
+    <message>
+        <source>New Table</source>
+        <extracomment>Settings &gt; Editor &gt; Tables. In Polish: Nowa tabela</extracomment>
+        <translation>Nowa tabela</translation>
+    </message>
+    <message>
+        <source>Space abov&amp;e:</source>
+        <extracomment>The room between a new table (or its caption above it) and the text above it. In Polish: Odstęp &amp;górny:</extracomment>
+        <translation>Odstęp &amp;górny:</translation>
+    </message>
+    <message>
+        <source>S&amp;pace below:</source>
+        <extracomment>In Polish: Odstęp do&amp;lny:</extracomment>
+        <translation>Odstęp do&amp;lny:</translation>
+    </message>
+    <message>
+        <source>The text above and below a table keeps this room from it, so no empty paragraph is needed there. A table already in the text has its own room: Table &gt; Table Properties..., the Table tab.</source>
+        <extracomment>In Polish: Tekst nad tabelą i pod nią zachowuje ten odstęp, więc nie trzeba tam pustych akapitów. Tabela, która już jest w tekście, ma własne odstępy: Tabela &gt; Właściwości tabeli..., karta „Tabela”.</extracomment>
+        <translation>Tekst nad tabelą i pod nią zachowuje ten odstęp, więc nie trzeba tam pustych akapitów. Tabela, która już jest w tekście, ma własne odstępy: Tabela &gt; Właściwości tabeli..., karta „Tabela”.</translation>
+    </message>
+    <message>
+        <source>Caption of a Table</source>
+        <extracomment>In Polish: Podpis tabeli</extracomment>
+        <translation>Podpis tabeli</translation>
+    </message>
+    <message>
+        <source>Above the table</source>
+        <extracomment>In Polish: Nad tabelą</extracomment>
+        <translation>Nad tabelą</translation>
+    </message>
+    <message>
+        <source>Below the table</source>
+        <extracomment>In Polish: Pod tabelą</extracomment>
+        <translation>Pod tabelą</translation>
+    </message>
+    <message>
+        <source>P&amp;osition:</source>
+        <extracomment>In Polish: &amp;Położenie:</extracomment>
+        <translation>&amp;Położenie:</translation>
+    </message>
+    <message>
+        <source>Table &gt; Insert Caption... and Insert &gt; Caption... with the cursor in a table give it a numbered caption with the label &quot;%1&quot;, as images have; the window of the caption can put it on the other side.</source>
+        <extracomment>%1: the label of the captions of tables. In Polish: Tabela &gt; Wstaw podpis... oraz Wstaw &gt; Podpis... z kursorem w tabeli dodają do niej numerowany podpis z etykietą „%1”, tak jak do obrazów; w oknie podpisu można go przenieść na drugą stronę tabeli.</extracomment>
+        <translation>Tabela &gt; Wstaw podpis... oraz Wstaw &gt; Podpis... z kursorem w tabeli dodają do niej numerowany podpis z etykietą „%1”, tak jak do obrazów; w oknie podpisu można go przenieść na drugą stronę tabeli.</translation>
     </message>
 </context>
 <context>
@@ -25636,6 +25754,11 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         <source>Text above and below the image</source>
         <extracomment>In Polish: Tekst nad i pod obrazem</extracomment>
         <translation>Tekst nad i pod obrazem</translation>
+    </message>
+    <message>
+        <source>Table</source>
+        <extracomment>A label of captions, of the captions of tables. In Polish: Tabela</extracomment>
+        <translation>Tabela</translation>
     </message>
 </context>
 <context>

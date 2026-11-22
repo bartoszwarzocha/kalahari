@@ -197,12 +197,14 @@ TEST_CASE("Image wrap: the next paragraph goes beside an image on the left, belo
     CHECK(layout->blockY(1) == Approx(layout->blockY(0)).margin(1.0));
 
     // Beside it the lines start after it and the room between; below it across the column.
-    // A line whose box (its line and the room above it) still reaches the image is beside it:
-    // below it only a line a line's height lower
+    // A line whose box (its line and the room above it) still reaches the image or the room
+    // below it is beside it: once a line is across, so are the lines after it, and a line
+    // three lines' height below the image is across in any case (with any font)
     const QTextLayout* lines = text.layout();
     REQUIRE(lines->lineCount() > 10);
     int beside = 0;
     int below = 0;
+    bool across = false;
     for (int i = 0; i < lines->lineCount(); ++i) {
         const QTextLine line = lines->lineAt(i);
         const qreal top = lineTop(*layout, text, i);
@@ -211,11 +213,12 @@ TEST_CASE("Image wrap: the next paragraph goes beside an image on the left, belo
             ++beside;
             CHECK(line.x() >= box.right() + 5.0);
             CHECK(line.x() + line.width() <= textWidth + 1.0);
-        } else if (top >= box.bottom() + line.height()) {
+        } else if (across || top >= box.bottom() + 3.0 * line.height()) {
             ++below;
             CHECK(line.width() > textWidth * 0.9);
             CHECK(line.x() < 1.0);
         }
+        across = across || line.x() < 1.0;
     }
     CHECK(beside >= 3);
     CHECK(below >= 3);
@@ -484,15 +487,15 @@ TEST_CASE("Image space: the room is around the image and its caption, outside th
     const auto spaceOf = [&document](int block) {
         return imageBlockSpace(document.findBlockByNumber(block));
     };
-    CHECK(spaceOf(0) == ImageBlockSpace{});
-    CHECK(spaceOf(1) == ImageBlockSpace{10.0, 8.0});  // alone
+    CHECK(spaceOf(0) == BlockSpace{});
+    CHECK(spaceOf(1) == BlockSpace{10.0, 8.0});  // alone
     REQUIRE(captionBlockOf(document.findBlockByNumber(2)).blockNumber() == 3);
-    CHECK(spaceOf(2) == ImageBlockSpace{10.0, 0.0});  // its caption below it
-    CHECK(spaceOf(3) == ImageBlockSpace{0.0, 8.0});   // the caption: below it
+    CHECK(spaceOf(2) == BlockSpace{10.0, 0.0});  // its caption below it
+    CHECK(spaceOf(3) == BlockSpace{0.0, 8.0});   // the caption: below it
     REQUIRE(captionBlockOf(document.findBlockByNumber(5)).blockNumber() == 4);
-    CHECK(spaceOf(4) == ImageBlockSpace{10.0, 0.0});  // the caption above: above it
-    CHECK(spaceOf(5) == ImageBlockSpace{0.0, 8.0});
-    CHECK(spaceOf(6) == ImageBlockSpace{});  // a part of a line of text
+    CHECK(spaceOf(4) == BlockSpace{10.0, 0.0});  // the caption above: above it
+    CHECK(spaceOf(5) == BlockSpace{0.0, 8.0});
+    CHECK(spaceOf(6) == BlockSpace{});  // a part of a line of text
 }
 
 TEST_CASE("Image space: the layout leaves the room above and below an image and beside it",

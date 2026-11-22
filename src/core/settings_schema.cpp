@@ -527,8 +527,14 @@ std::map<std::string, json> buildDefaults() {
         {"editor.images.downscale", false},
         {"editor.images.maxDpi", 300},
         {"editor.images.manuscript", "inline"},
+        // New tables (Settings > Editor > Tables): the room they keep from the text above and
+        // below them (points), and where Insert Caption puts the caption of a table ("above",
+        // "below")
+        {"editor.tables.spaceAbove", 6.0},
+        {"editor.tables.spaceBelow", 6.0},
+        {"editor.tables.captionPosition", "above"},
         // The captions of new books: their labels (an empty list: Figure, Photo, Illustration,
-        // Map, Diagram in the user's language), the number format ("1", "a", "A", "i", "I"),
+        // Map, Diagram, Table in the user's language), the number format ("1", "a", "A", "i", "I"),
         // numbered anew in each chapter after its number, and what a cross-reference shows
         // ("number", "label", "caption", "position"). A book keeps its own from its first
         // caption on.

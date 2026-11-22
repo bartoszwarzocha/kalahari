@@ -29,7 +29,7 @@ class QRadioButton;
 
 namespace kalahari::gui::dialogs {
 
-/// @brief Insert > Caption... (Ctrl+Shift+G): the caption of an image
+/// @brief Insert > Caption... (Ctrl+Shift+G): the caption of an image or a table
 ///
 /// The caption is a paragraph in the style Caption next to the image: its label and the number
 /// the program gives ("Figure 3."), then the text the writer types. Each label has a numbering
@@ -56,6 +56,7 @@ public:
         /// book, which the Settings number
         std::function<bool(const QString& label, QWidget* parent)> editNumbering;
         bool newImage = false;  ///< The caption of an image Insert > Image... puts in
+        bool table = false;     ///< The caption of a table (its position: above or below it)
     };
 
     explicit InsertCaptionDialog(Data shown, QWidget* parent = nullptr);

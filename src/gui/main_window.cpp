@@ -178,7 +178,8 @@ constexpr const char* TABLE_COMMANDS[] = {
     "table.insertRowsAbove", "table.insertRowsBelow", "table.insertColumnsLeft",
     "table.insertColumnsRight", "table.deleteRows",   "table.deleteColumns",
     "table.deleteTable",       "table.splitCells",    "table.distributeRows",
-    "table.distributeColumns", "table.tableToText",   "table.properties"};
+    "table.distributeColumns", "table.tableToText",   "table.caption",
+    "table.properties"};
 
 /// The commands of the Table menu that select a part of the table
 constexpr const char* TABLE_SELECT_COMMANDS[] = {"table.selectCell", "table.selectRow",
@@ -2749,6 +2750,11 @@ void MainWindow::onTableCommand(editor::BookEditor& text, TableCommand command) 
         return;
     case TableCommand::HeaderRows:
         text.setTableHeader(!text.isTableHeader());
+        return;
+    case TableCommand::Caption:
+        if (const std::optional<int> table = text.captionTargetTable()) {
+            m_captionCoordinator->editTableCaption(text, *table);
+        }
         return;
     case TableCommand::SplitCells:
     case TableCommand::Sort:

@@ -220,7 +220,8 @@ EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, 
          actions({"table.deleteRows", "table.deleteColumns", "table.deleteTable"}),
          actions({"table.selectCell", "table.selectRow", "table.selectColumn", "table.selectTable"}),
          actions({"table.mergeCells", "table.splitCells", nullptr, "table.distributeRows",
-                  "table.distributeColumns", nullptr, "table.sort", "table.properties"})});
+                  "table.distributeColumns", nullptr, "table.sort", "table.caption",
+                  "table.properties"})});
     // The context menu of an image: the commands of the Image menu, enabled as there
     m_bookEditor->setContextMenuImageActions(
         {actions({"image.properties", "image.addCaption", "image.altText"}),
@@ -892,7 +893,8 @@ void EditorPanel::showInsertTableDialog() {
     }
     dialogs::InsertTableDialog dialog(window());
     if (dialog.exec() == QDialog::Accepted) {
-        m_bookEditor->insertTable(dialog.columns(), dialog.rows(), dialog.headerRow());
+        m_bookEditor->insertTable(dialog.columns(), dialog.rows(), dialog.headerRow(),
+                                  settingsNewTableOptions());
     }
 }
 
@@ -1105,7 +1107,8 @@ void EditorPanel::showTextToTableDialog() {
     }
     dialogs::TextToTableDialog dialog(paragraphs, window());
     if (dialog.exec() == QDialog::Accepted) {
-        m_bookEditor->convertTextToTable(dialog.separator(), dialog.columns(), dialog.headerRow());
+        m_bookEditor->convertTextToTable(dialog.separator(), dialog.columns(), dialog.headerRow(),
+                                         settingsNewTableOptions());
     }
 }
 

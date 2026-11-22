@@ -382,9 +382,9 @@ std::optional<ImageProperties> floatingImage(const QTextBlock& block)
     return image;
 }
 
-ImageBlockSpace imageBlockSpace(const QTextBlock& block)
+BlockSpace imageBlockSpace(const QTextBlock& block)
 {
-    ImageBlockSpace space;
+    BlockSpace space;
     if (holdsImageAlone(block)) {
         const std::optional<ImageProperties> image = imageOf(block.begin().fragment().charFormat());
         if (!image) {

@@ -391,6 +391,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Image Properties has a page Text Flow: the four ways as large choices, each with a picture
     of a page with the image and the text around it, and a note on what each way does. The
     choice is no longer on the page Image, which chooses the file.
+  - Tables have room above and below them too: 6 pt from the text by default, with a caption
+    of the table inside it, so no empty paragraph is needed. A table's own room is on the tab
+    Table of Table Properties (with As in the Settings); new tables take it from the new page
+    Settings > Editor > Tables. Printing, PDF, DOCX and EPUB have the same room.
+  - A table has a numbered caption as an image has: Table > Insert Caption... (also in the
+    context menu of a cell) and Insert > Caption... with the cursor in a table give it one with
+    the label "Table", numbered on its own, above the table or below it (Settings > Editor >
+    Tables, and the window of the caption). The list of figures has the captions of tables too.
+  - In the page view the cursor moved several pages down (into a table, after a search) stays
+    in view: the view no longer goes to a place the pages above it then move.
 
 ---
 

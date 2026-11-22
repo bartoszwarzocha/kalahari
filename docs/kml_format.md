@@ -85,7 +85,7 @@ reading.
 | `keep-together` | Flag | All its lines on one page |
 | `page-break-before` | Flag | Starts on a new page |
 | `widow-control` | Flag | No single line of it alone at the top or bottom of a page; on without the attribute |
-| `caption` | `above` | A caption above its image (see [Captions](#captions-cross-references-and-the-list-of-figures)); without it a caption is below its image |
+| `caption` | `above` | A caption above its image or table (see [Captions](#captions-cross-references-and-the-list-of-figures)); without it a caption is below its image or table |
 | `point`, `hint` | Text | A heading of a point of a skeleton: the id of the point in its template and what to write under it (see [The skeleton of a text for publishers](#the-skeleton-of-a-text-for-publishers)) |
 
 A paragraph without `align` has no alignment of its own and is shown with the alignment of its
@@ -306,6 +306,7 @@ it: its first item gets the number it has in the chapter as `value`.
   | `border-style` | `solid` (default), `dashed`, `dotted`, `double` | The style of the lines |
   | `border-width` | a length, at most 6 pt (default 0.5 pt) | The width of the lines |
   | `border-color` | `#rrggbb` | The color of the lines; without it the color set in Settings > Editor > Colors, for the light and the dark mode |
+  | `space-above`, `space-below` | a length, at most 72 pt (default 6 pt) | The room between the table and the text above and below it; a caption of the table is inside it, next to the table, and the room goes on the caption's far side. A new table gets the room of Settings > Editor > Tables |
 
 - **A row's attributes** (the Row tab): `height` – the least height of the row, a length (at
   most 22 inches); without it the row is as high as its text. `split="true"` – the row may be
@@ -465,8 +466,11 @@ it: its first item gets the number it has in the chapter as `value`.
 A **caption** is a paragraph in the style Caption (`caption`) right after its image's paragraph,
 or right before it with `caption="above"`, in the same table cell when the image is in a
 table: Insert > Caption... (also Image > Insert Caption...) gives an image one, Image
-Properties > Caption changes it. Its label ("Figure") is plain text the writer can change;
-its number is a field:
+Properties > Caption changes it. A table's caption is the paragraph right before the table
+with `caption="above"`, or right after it without: Insert > Caption... with the cursor in the
+table (also Table > Insert Caption...) gives it one, with the label "Table" and above the
+table unless Settings > Editor > Tables say below. Its label ("Figure") is plain text the
+writer can change; its number is a field:
 
 | Element | Attribute | Value | Meaning |
 |---------|-----------|-------|---------|

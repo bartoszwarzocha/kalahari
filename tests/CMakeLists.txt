@@ -430,6 +430,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/appearance_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/editor_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/images_page.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/tables_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/auto_correct_page.cpp  # Settings > Editor > Auto-correct
     ${CMAKE_SOURCE_DIR}/src/gui/settings/quick_insert_page.cpp  # Settings > Editor > Quick Insert
     ${CMAKE_SOURCE_DIR}/src/gui/settings/repetitions_page.cpp  # Settings > Editor > Repetitions

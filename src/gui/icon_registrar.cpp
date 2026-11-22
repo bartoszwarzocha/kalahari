@@ -221,6 +221,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("table.sort", "resources/icons/twotone/sort.svg", "Sort");
     iconRegistry.registerIcon("table.textToTable", "resources/icons/twotone/grid_on.svg", "Text to Table");
     iconRegistry.registerIcon("table.tableToText", "resources/icons/twotone/subject.svg", "Table to Text");
+    iconRegistry.registerIcon("table.caption", "resources/icons/twotone/subtitles.svg", "Insert Caption");
     iconRegistry.registerIcon("table.properties", "resources/icons/twotone/tune.svg", "Table Properties");
 
     // -------------------------------------------------------------------------

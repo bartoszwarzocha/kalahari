@@ -32,6 +32,7 @@
 #ifndef KALAHARI_EDITOR_TEXT_IMAGES_H
 #define KALAHARI_EDITOR_TEXT_IMAGES_H
 
+#include <kalahari/editor/block_space.h>
 #include <kalahari/editor/text_captions.h>
 #include <QColor>
 #include <QSize>
@@ -312,22 +313,6 @@ bool holdsImageAlone(const QTextBlock& block);
 ///        (holdsImageAlone()) and the image's wrap is not ImageWrap::Inline; std::nullopt:
 ///        none (any other image is a part of its line)
 std::optional<ImageProperties> floatingImage(const QTextBlock& block);
-
-/// @brief The room a block keeps above it and below it for an image, in points, besides the
-///        room of its paragraph
-struct ImageBlockSpace {
-    double before = 0.0;
-    double after = 0.0;
-
-    [[nodiscard]] bool isEmpty() const { return before <= 0.0 && after <= 0.0; }
-    bool operator==(const ImageBlockSpace&) const = default;
-};
-
-/// @brief The room of an image around a block: of the block holding an image alone
-///        (holdsImageAlone()) its room above and below, of its caption the room on the
-///        caption's side (above a caption above the image, below one below it): the image
-///        and its caption stay together, the room around both
-ImageBlockSpace imageBlockSpace(const QTextBlock& block);
 
 /// @brief The properties clamped to what they allow (a width of 0 or less: the file's own,
 ///        a rotation to a quarter turn 0 to 3, the crops leaving some of the picture)

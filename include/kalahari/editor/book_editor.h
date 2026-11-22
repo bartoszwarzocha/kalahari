@@ -1326,6 +1326,14 @@ public:
     void setNewImageOptions(const NewImageOptions& options) { m_newImageOptions = options; }
     [[nodiscard]] const NewImageOptions& newImageOptions() const { return m_newImageOptions; }
 
+    /// @brief How a new table goes into the text (Insert > Table..., Text to Table...)
+    struct NewTableOptions {
+        /// The room it keeps from the text above it and below it, in points
+        double spaceAbove = DEFAULT_TABLE_SPACE_ABOVE;
+        double spaceBelow = DEFAULT_TABLE_SPACE_BELOW;
+        bool operator==(const NewTableOptions&) const = default;
+    };
+
     // =========================================================================
     // Captions, cross-references and the list of figures
     // =========================================================================
@@ -1361,6 +1369,22 @@ public:
     /// @brief The number a caption of a label has, or would get, at the image at a position
     ///        ("3", "2.3"): the hint of the windows
     [[nodiscard]] QString captionNumberAt(int position, const QString& label) const;
+
+    /// @brief The table a caption command acts on: the one the cursor is in, or the one whose
+    ///        caption the cursor is in (a position in it: of its first cell); std::nullopt: none
+    [[nodiscard]] std::optional<int> captionTargetTable() const;
+
+    /// @brief The caption of the table at a position (ImageCaption::shown false without one):
+    ///        the paragraph in the style Caption right before it (above it) or after it;
+    ///        std::nullopt: no table there
+    [[nodiscard]] std::optional<ImageCaption> tableCaptionOf(int position) const;
+
+    /// @brief Insert Caption for a table: give the table at a position this caption, as
+    ///        setImageCaption() gives an image its own
+    bool setTableCaption(int position, const ImageCaption& caption);
+
+    /// @brief The number a caption of a label has, or would get, at the table at a position
+    [[nodiscard]] QString tableCaptionNumberAt(int position, const QString& label) const;
 
     /// @brief Insert > Cross-Reference: a cross-reference at the cursor, in place of the
     ///        selection, as one undo step
@@ -1651,6 +1675,9 @@ public:
     /// @param columns 1 to MAX_INSERTED_TABLE_COLUMNS
     /// @param rows 1 to MAX_INSERTED_TABLE_ROWS
     /// @param headerRow The first row is a header row
+    /// @param options The room the table keeps from the text (Settings > Editor > Tables);
+    ///        without them the default room
+    void insertTable(int columns, int rows, bool headerRow, const NewTableOptions& options);
     void insertTable(int columns, int rows, bool headerRow);
 
     // =========================================================================
@@ -1777,7 +1804,10 @@ public:
     [[nodiscard]] bool canConvertTextToTable() const;
 
     /// @brief Table > Convert > Text to Table...: the paragraphs of paragraphsForTable()
-    ///        become a table (textToTable()); the cursor goes to its first cell
+    ///        become a table (textToTable()) keeping the room of @p options from the text; the
+    ///        cursor goes to its first cell
+    void convertTextToTable(QChar separator, int columns, bool headerRow,
+                            const NewTableOptions& options);
     void convertTextToTable(QChar separator, int columns, bool headerRow);
 
     /// @brief The texts of the cells of the cursor's table by row, a cell's paragraphs
@@ -3331,6 +3361,26 @@ private:
     QTextBlock insertCaptionBlock(QTextCursor& cursor, const QTextBlock& imageBlock,
                                   const QTextBlockFormat& format, const QTextCharFormat& charFormat,
                                   bool above);
+
+    /// @brief The caption of a caption's block, as the windows show it (shown false for an
+    ///        invalid block)
+    [[nodiscard]] ImageCaption captionOfBlock(const QTextBlock& block) const;
+
+    /// @brief The number a caption of a label has in a caption's block (invalid: none), or
+    ///        would get at a place of the document
+    [[nodiscard]] QString captionNumberIn(const QTextBlock& caption, int place,
+                                          const QString& label) const;
+
+    /// @brief Give the image (@p table false) or the table at a position the caption, as one
+    ///        undo step (setImageCaption(), setTableCaption())
+    bool setCaptionOf(int position, bool table, const ImageCaption& caption);
+
+    /// @brief A new caption's block right before a table (@p above) or right after it, the
+    ///        cursor in it: an empty paragraph the table needs there (at the start of the text,
+    ///        between two tables) becomes the caption
+    QTextBlock insertTableCaptionBlock(QTextCursor& cursor, const QTextTable& table,
+                                       const QTextBlockFormat& format,
+                                       const QTextCharFormat& charFormat, bool above);
 
     /// @brief Write a caption into its block: the text after its number when it changed, and
     ///        the label and the number before it (a number keeps its id)
