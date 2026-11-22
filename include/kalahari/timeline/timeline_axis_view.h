@@ -72,6 +72,9 @@ public:
     void startEditing(const QString& id, const QString& seed = QString());
     [[nodiscard]] bool isEditing() const;
 
+    /// @brief What the axis says while the timeline has no events: how to add the first
+    [[nodiscard]] static QString emptyHint();
+
     // The changes of the keys and the menus
     void addAfterSelected();
     void removeSelected();
@@ -143,6 +146,7 @@ private:
     void paintHeads(QPainter& painter) const;
     void paintItem(QPainter& painter, const TimelineItem& item, bool tray) const;
     void paintDrag(QPainter& painter) const;
+    void paintEmptyHint(QPainter& painter) const;
 
     // Keys and the mouse (timeline_axis_view_input.cpp)
     void selectNeighbour(int direction);

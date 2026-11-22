@@ -17,6 +17,7 @@
 #include <QKeySequence>
 #include <QLineEdit>
 #include <QMenu>
+#include <QPainter>
 #include <QStyledItemDelegate>
 #include <QTimer>
 
@@ -30,6 +31,7 @@ namespace {
 /// Days between two events from which the list shows a gap
 constexpr double GAP_FROM = 20.0;
 constexpr double DIM_SHARE = 0.35;
+constexpr double HINT_MARGIN = 24.0;  ///< Around the hint of a timeline without events
 
 /// The shares of the width of the columns
 constexpr std::array<double, TimelineList::COLUMNS> SHARES{0.20, 0.25, 0.14, 0.15, 0.14, 0.12};
@@ -353,6 +355,26 @@ void TimelineList::sizeColumns() {
 void TimelineList::resizeEvent(QResizeEvent* event) {
     QTableWidget::resizeEvent(event);
     sizeColumns();
+}
+
+QString TimelineList::emptyHint() {
+    //: In the list of a timeline without events. In Polish: Na tej osi nie ma jeszcze
+    //: wydarzeń. Dodaj pierwsze przyciskiem „Nowe wydarzenie” na pasku nad listą albo
+    //: klawiszem Insert.
+    return tr("This timeline has no events yet. Add the first one with New Event in the bar "
+              "above the list or with Insert.");
+}
+
+void TimelineList::paintEvent(QPaintEvent* event) {
+    QTableWidget::paintEvent(event);
+    if (rowCount() > 0 || !m_document.timeline().events().isEmpty()) {
+        return;
+    }
+    QPainter painter(viewport());
+    painter.setPen(m_look.mutedText);
+    painter.drawText(QRectF(viewport()->rect()).adjusted(HINT_MARGIN, HINT_MARGIN, -HINT_MARGIN,
+                                                         -HINT_MARGIN),
+                     Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, emptyHint());
 }
 
 void TimelineList::showSelected() {

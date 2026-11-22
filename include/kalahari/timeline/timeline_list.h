@@ -53,6 +53,9 @@ public:
     void addAfterSelected();
     void removeSelected();
 
+    /// @brief What the list says while the timeline has no events: how to add the first
+    [[nodiscard]] static QString emptyHint();
+
 signals:
     void told(const QString& message, bool undoable);
     void eventRequested(const QString& id);
@@ -63,6 +66,7 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
     void contextMenuEvent(QContextMenuEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
+    void paintEvent(QPaintEvent* event) override;
     void closeEditor(QWidget* editor, QAbstractItemDelegate::EndEditHint hint) override;
 
 private:

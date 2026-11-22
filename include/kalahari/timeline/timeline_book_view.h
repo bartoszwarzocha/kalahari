@@ -36,7 +36,8 @@ class TimelineDocument;
 ///
 /// A dashed line joins the chapters in the order of reading; a ring marks a flashback: an
 /// event earlier than what happened in the chapter before. A click selects an event, a double
-/// click opens the window "Event".
+/// click opens the window "Event"; Insert asks for a new event, Delete for the deletion of the
+/// event selected (the tab adds it in the window "Event" and deletes it).
 class TimelineBookView : public QAbstractScrollArea {
     Q_OBJECT
 
@@ -71,6 +72,10 @@ signals:
     void told(const QString& message, bool undoable);
     void eventRequested(const QString& id);
     void chapterRequested(const QString& id);
+    /// @brief Insert: a new event
+    void addRequested();
+    /// @brief Delete: the event selected deleted
+    void deleteRequested();
 
 protected:
     bool event(QEvent* event) override;

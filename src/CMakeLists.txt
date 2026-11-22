@@ -405,6 +405,7 @@ set(KALAHARI_SOURCES
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
     gui/widgets/wrapping_button.cpp  # A button that wraps its text only where it does not fit
     gui/widgets/flow_layout.cpp  # A row of buttons that wraps on a narrow panel
+    gui/widgets/card_bar.cpp  # The commands of the bar over a tab in the middle of the window
     gui/widgets/length_meter.cpp  # LengthMeter - the length of a text against its target
     gui/widgets/segmented_layout.cpp  # Joined buttons, one under another on a narrow panel
     gui/widgets/height_for_width_scroll_area.cpp  # Rows that wrap, and scroll in a low panel

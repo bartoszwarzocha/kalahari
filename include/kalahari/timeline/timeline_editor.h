@@ -15,8 +15,10 @@
 #include <QString>
 #include <QWidget>
 
+#include <array>
 #include <functional>
 
+class QAction;
 class QCheckBox;
 class QComboBox;
 class QLabel;
@@ -38,6 +40,7 @@ class TimelineList;
 /// @brief The tab of a timeline of the Workshop
 ///
 /// +----------------------------------------------------------------------------------+
+/// | [+ New Event] [Event…] [Chapter]  [<] [>] [^] [v]  [x Delete the Event]  [<-] [->]|
 /// | View: [Axis|List|Time and book]  Scale: [Dates v]  Lanes: [Threads v]            |
 /// | [Cards|Labels]  [x] Compress gaps  Highlight: [nothing v]  [-] 100% [+]          |
 /// | [Day One and Threads…]                            14 events · 3 threads  [gear]  |
@@ -46,6 +49,12 @@ class TimelineList;
 /// +----------------------------------------------------------------------------------+
 /// | [i] Moved “Kompas przy studni”: 17–18 kwietnia 1931.             [Undo]  [X]     |
 /// +----------------------------------------------------------------------------------+
+///
+/// The commands of the bar (gui::CardBar) are those of the menus and the keys of the views:
+/// New Event (Insert; in the time and the book the window "Event"), the window "Event"
+/// (Enter), Open the Chapter (Ctrl+Enter), on the axis Earlier and Later (Ctrl+Left,
+/// Ctrl+Right) and the lane above and below (Ctrl+Up, Ctrl+Down), Delete the Event (Delete),
+/// Undo (Ctrl+Z) and Redo (Ctrl+Y); each is greyed out where it can do nothing.
 ///
 /// Each change is saved to the file of the timeline at once; the bar under it says what was
 /// done, with Undo where it can be undone. The bar above wraps on a narrow window.
@@ -72,15 +81,28 @@ public:
     void tell(const QString& message, bool undoable);
 
     /// @brief Open the window "Event" of event @p id
-    void editEvent(const QString& id);
+    /// @return Whether the window was closed with OK
+    bool editEvent(const QString& id);
     /// @brief Open the window of day one and the threads
     void editTimeline();
+
+    /// @brief The commands of the bar (New Event, Event…, Open the Chapter, Earlier, Later,
+    ///        To the Lane Above, To the Lane Below, Delete the Event, Undo, Redo)
+    enum class Command { New, Edit, Chapter, Earlier, Later, LaneUp, LaneDown, Delete, Undo, Redo };
+    [[nodiscard]] QAction* command(Command command) const;
 
 protected:
     void showEvent(QShowEvent* event) override;
 
 private:
     void buildBar(QWidget* bar);
+    void buildCommands(QWidget* bar);
+    void updateCommands();
+    [[nodiscard]] TimelineView::Mode shownMode() const;
+    void addEvent();
+    void deleteEvent();
+    void undo(bool back);
+    void finishTyping();
     void showMode(TimelineView::Mode mode, bool keep);
     void applyLook();
     void updateBar();
@@ -114,6 +136,9 @@ private:
     QLabel* m_zoomLabel = nullptr;
     QLabel* m_counts = nullptr;
     QToolButton* m_gear = nullptr;
+    QWidget* m_commands = nullptr;      ///< The row of the commands, above the view's
+    QWidget* m_moveBox = nullptr;       ///< Earlier, Later and the lanes: on the axis only
+    std::array<QAction*, 10> m_actions{};  ///< By Command
     gui::InfoBar* m_info = nullptr;
     QTimer* m_infoTimer = nullptr;
     int m_settingsListener = -1;

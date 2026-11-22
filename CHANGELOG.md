@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The commands of a timeline in a bar** - 2026-11-23. A timeline has a bar of its commands
+  above its views: New Event and Delete the Event with their names, the window Event..., Open
+  the Chapter, on the axis Earlier and Later and To the Lane Above and Below, Undo and Redo,
+  each with its icon and, in its tooltip, its keys (Insert, Enter, Ctrl+Enter, Ctrl+arrows,
+  Delete, Ctrl+Z, Ctrl+Y); a command that can do nothing is grayed out. In the time and the
+  book, New Event (also Insert) opens the window Event of the new event, which goes away when
+  the window is cancelled, and Delete deletes the event selected. A timeline without events
+  says on its axis and in its list how to add the first. The commands of the bars of the tabs
+  share one look (gui::CardBar).
 - **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
   for Publishers, with its number in the Navigator: the sentences about the book and the
   synopses, each a text of the book in as many versions as the writer wants, with a template of

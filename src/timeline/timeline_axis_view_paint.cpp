@@ -30,6 +30,7 @@ constexpr double DOT_LEFT = 6.0;
 constexpr double LABEL_TEXT_LEFT = 18.0;
 constexpr double DIM_OPACITY = 0.25;
 constexpr double DRAGGED_OPACITY = 0.35;
+constexpr double HINT_MARGIN = 24.0;  ///< Around the hint of a timeline without events
 constexpr double GHOST_OPACITY = 0.85;
 constexpr double CHIP_GAP = 4.0;
 constexpr double CHIP_PADDING = 4.0;
@@ -85,6 +86,29 @@ void TimelineAxisView::paintEvent(QPaintEvent* /*event*/) {
     paintTray(painter);
     paintHeader(painter);
     paintDrag(painter);
+    paintEmptyHint(painter);
+}
+
+QString TimelineAxisView::emptyHint() {
+    //: On a timeline without events. In Polish: Na tej osi nie ma jeszcze wydarzeń. Dodaj
+    //: pierwsze przyciskiem „Nowe wydarzenie” na pasku nad osią, klawiszem Insert albo
+    //: dwukrotnym kliknięciem osi.
+    return tr("This timeline has no events yet. Add the first one with New Event in the bar "
+              "above it, with Insert or with a double click on the axis.");
+}
+
+void TimelineAxisView::paintEmptyHint(QPainter& painter) const {
+    if (!m_document.timeline().events().isEmpty()) {
+        return;
+    }
+    const QRectF room = QRectF(viewport()->rect())
+                            .adjusted(TimelineScene::HEAD_WIDTH + HINT_MARGIN,
+                                      TimelineScene::AXIS_HEIGHT + m_scene->trayHeight() +
+                                          HINT_MARGIN,
+                                      -HINT_MARGIN, -HINT_MARGIN);
+    painter.setFont(m_scene->titleFont());
+    painter.setPen(m_look.mutedText);
+    painter.drawText(room, Qt::AlignCenter | Qt::TextWordWrap, emptyHint());
 }
 
 // =============================================================================

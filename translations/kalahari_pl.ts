@@ -35807,6 +35807,11 @@ In Polish: pasmo „%1”</extracomment>
         <extracomment>In Polish: Usuń wydarzenie</extracomment>
         <translation>Usuń wydarzenie</translation>
     </message>
+    <message>
+        <source>This timeline has no events yet. Add the first one with New Event in the bar above it, with Insert or with a double click on the axis.</source>
+        <extracomment>On a timeline without events. In Polish: Na tej osi nie ma jeszcze wydarzeń. Dodaj pierwsze przyciskiem „Nowe wydarzenie” na pasku nad osią, klawiszem Insert albo dwukrotnym kliknięciem osi.</extracomment>
+        <translation>Na tej osi nie ma jeszcze wydarzeń. Dodaj pierwsze przyciskiem „Nowe wydarzenie” na pasku nad osią, klawiszem Insert albo dwukrotnym kliknięciem osi.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::timeline::TimelineBookView</name>
@@ -35994,7 +35999,9 @@ In Polish: pasmo „%1”</extracomment>
     </message>
     <message>
         <source>Undo</source>
-        <extracomment>The button of the bar under a timeline. In Polish: Cofnij</extracomment>
+        <extracomment>The command of the bar of a timeline. In Polish: Cofnij
+----------
+The button of the bar under a timeline. In Polish: Cofnij</extracomment>
         <translation>Cofnij</translation>
     </message>
     <message>
@@ -36031,6 +36038,66 @@ In Polish: pasmo „%1”</extracomment>
         <source>The event is also in: %1.</source>
         <extracomment>In Polish: Wydarzenie jest też w: %1.</extracomment>
         <translation>Wydarzenie jest też w: %1.</translation>
+    </message>
+    <message>
+        <source>New Event</source>
+        <extracomment>A command of the bar of a timeline. In Polish: Nowe wydarzenie</extracomment>
+        <translation>Nowe wydarzenie</translation>
+    </message>
+    <message>
+        <source>Event…</source>
+        <extracomment>The command of the bar of a timeline that opens the window &quot;Event&quot; of the event selected. In Polish: Okno „Wydarzenie”…</extracomment>
+        <translation>Okno „Wydarzenie”…</translation>
+    </message>
+    <message>
+        <source>Open the Chapter</source>
+        <extracomment>In Polish: Otwórz rozdział</extracomment>
+        <translation>Otwórz rozdział</translation>
+    </message>
+    <message>
+        <source>Earlier</source>
+        <extracomment>The event a step earlier on the axis. In Polish: Wcześniej</extracomment>
+        <translation>Wcześniej</translation>
+    </message>
+    <message>
+        <source>Later</source>
+        <extracomment>The event a step later on the axis. In Polish: Później</extracomment>
+        <translation>Później</translation>
+    </message>
+    <message>
+        <source>To the Lane Above</source>
+        <extracomment>In Polish: Do pasma wyżej</extracomment>
+        <translation>Do pasma wyżej</translation>
+    </message>
+    <message>
+        <source>To the Lane Below</source>
+        <extracomment>In Polish: Do pasma niżej</extracomment>
+        <translation>Do pasma niżej</translation>
+    </message>
+    <message>
+        <source>Delete the Event</source>
+        <extracomment>In Polish: Usuń wydarzenie</extracomment>
+        <translation>Usuń wydarzenie</translation>
+    </message>
+    <message>
+        <source>Redo</source>
+        <extracomment>The command of the bar of a timeline. In Polish: Ponów</extracomment>
+        <translation>Ponów</translation>
+    </message>
+    <message>
+        <source>Earlier in the Order</source>
+        <extracomment>The command of the bar of a timeline in the order of the story. In Polish: Wcześniej w kolejności / Wcześniej</extracomment>
+        <translation>Wcześniej w kolejności</translation>
+    </message>
+    <message>
+        <source>Later in the Order</source>
+        <extracomment>In Polish: Później w kolejności / Później</extracomment>
+        <translation>Później w kolejności</translation>
+    </message>
+    <message>
+        <source>Redone: %1.</source>
+        <extracomment>In Polish: Ponowiono: %1.</extracomment>
+        <translation>Ponowiono: %1.</translation>
     </message>
 </context>
 <context>
@@ -36254,6 +36321,11 @@ In Polish: pasmo „%1”</extracomment>
         <source>Delete the Event</source>
         <extracomment>In Polish: Usuń wydarzenie</extracomment>
         <translation>Usuń wydarzenie</translation>
+    </message>
+    <message>
+        <source>This timeline has no events yet. Add the first one with New Event in the bar above the list or with Insert.</source>
+        <extracomment>In the list of a timeline without events. In Polish: Na tej osi nie ma jeszcze wydarzeń. Dodaj pierwsze przyciskiem „Nowe wydarzenie” na pasku nad listą albo klawiszem Insert.</extracomment>
+        <translation>Na tej osi nie ma jeszcze wydarzeń. Dodaj pierwsze przyciskiem „Nowe wydarzenie” na pasku nad listą albo klawiszem Insert.</translation>
     </message>
 </context>
 <context>

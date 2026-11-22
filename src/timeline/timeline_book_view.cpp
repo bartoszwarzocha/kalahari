@@ -560,6 +560,14 @@ void TimelineBookView::keyPressEvent(QKeyEvent* event) {
         case Qt::Key_Escape:
             m_document.select(QString());
             return;
+        case Qt::Key_Insert:
+            emit addRequested();
+            return;
+        case Qt::Key_Delete:
+            if (!selected.isEmpty()) {
+                emit deleteRequested();
+            }
+            return;
         case Qt::Key_Return:
         case Qt::Key_Enter:
             if (!selected.isEmpty()) {

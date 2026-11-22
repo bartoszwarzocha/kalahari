@@ -12,6 +12,7 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/theme_manager.h>
+#include <kalahari/gui/widgets/card_bar.h>
 #include <kalahari/gui/widgets/flow_layout.h>
 #include <kalahari/gui/widgets/info_bar.h>
 #include <kalahari/timeline/timeline_axis_view.h>
@@ -22,6 +23,8 @@
 #include <kalahari/timeline/timeline_list.h>
 #include <kalahari/timeline/timeline_look.h>
 
+#include <QAction>
+#include <QApplication>
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QComboBox>
@@ -89,6 +92,10 @@ TimelineEditor::TimelineEditor(const core::WindowEditorContext& context, QWidget
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
+    m_commands = new QWidget(this);
+    m_commands->setObjectName(QStringLiteral("timelineCommands"));
+    buildCommands(m_commands);
+    layout->addWidget(m_commands);
     auto* bar = new QWidget(this);
     buildBar(bar);
     layout->addWidget(bar);
@@ -132,10 +139,14 @@ TimelineEditor::TimelineEditor(const core::WindowEditorContext& context, QWidget
     connect(m_axis, &TimelineAxisView::chapterRequested, this, &TimelineEditor::openChapter);
     connect(m_list, &TimelineList::chapterRequested, this, &TimelineEditor::openChapter);
     connect(m_bookView, &TimelineBookView::chapterRequested, this, &TimelineEditor::openChapter);
+    connect(m_bookView, &TimelineBookView::addRequested, this, &TimelineEditor::addEvent);
+    connect(m_bookView, &TimelineBookView::deleteRequested, this, &TimelineEditor::deleteEvent);
     connect(m_axis, &TimelineAxisView::timelineRequested, this, &TimelineEditor::editTimeline);
     connect(m_axis, &TimelineAxisView::zoomChanged, this, &TimelineEditor::updateBar);
     connect(m_document, &TimelineDocument::changed, this, &TimelineEditor::updateBar);
     connect(m_document, &TimelineDocument::viewChanged, this, &TimelineEditor::updateBar);
+    connect(m_document, &TimelineDocument::selectionChanged, this,
+            &TimelineEditor::updateCommands);
     connect(m_document, &TimelineDocument::saveError, this, [this](const QString& why) {
         //: In Polish: Nie udało się zapisać osi czasu: %1
         tell(tr("The timeline could not be saved: %1").arg(why), false);
@@ -207,6 +218,192 @@ void TimelineEditor::refreshIndex() {
     m_list->setIndex(&m_index);
     m_bookView->setIndex(&m_index);
     fillHighlight();
+}
+
+// =============================================================================
+// The commands above the timeline
+// =============================================================================
+
+void TimelineEditor::buildCommands(QWidget* row) {
+    auto* flow = new gui::FlowLayout(row, GROUP_SPACING, BAR_SPACING / 2);
+    flow->setContentsMargins(BAR_MARGIN, BAR_MARGIN / 2, BAR_MARGIN, 0);
+    const auto add = [this](Command which, const char* iconId, const QString& name,
+                            QKeyCombination keys) {
+        QAction* action = gui::CardBar::command(QString::fromLatin1(iconId), name, keys, this);
+        m_actions.at(static_cast<std::size_t>(which)) = action;
+        return action;
+    };
+    const auto key = [](Qt::Key pressed, Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
+        return QKeyCombination(modifiers, pressed);
+    };
+    //: A command of the bar of a timeline. In Polish: Nowe wydarzenie
+    add(Command::New, "common.add", tr("New Event"), key(Qt::Key_Insert));
+    //: The command of the bar of a timeline that opens the window "Event" of the event selected.
+    //: In Polish: Okno „Wydarzenie”…
+    add(Command::Edit, "edit.rename", tr("Event…"), key(Qt::Key_Return));
+    //: In Polish: Otwórz rozdział
+    add(Command::Chapter, "template.chapter", tr("Open the Chapter"),
+        key(Qt::Key_Return, Qt::ControlModifier));
+    //: The event a step earlier on the axis. In Polish: Wcześniej
+    add(Command::Earlier, "common.arrowBack", tr("Earlier"), key(Qt::Key_Left, Qt::ControlModifier));
+    //: The event a step later on the axis. In Polish: Później
+    add(Command::Later, "common.arrowForward", tr("Later"), key(Qt::Key_Right, Qt::ControlModifier));
+    //: In Polish: Do pasma wyżej
+    add(Command::LaneUp, "common.arrowUpward", tr("To the Lane Above"),
+        key(Qt::Key_Up, Qt::ControlModifier));
+    //: In Polish: Do pasma niżej
+    add(Command::LaneDown, "common.arrowDownward", tr("To the Lane Below"),
+        key(Qt::Key_Down, Qt::ControlModifier));
+    //: In Polish: Usuń wydarzenie
+    add(Command::Delete, "common.delete", tr("Delete the Event"), key(Qt::Key_Delete));
+    //: The command of the bar of a timeline. In Polish: Cofnij
+    add(Command::Undo, "edit.undo", tr("Undo"), key(Qt::Key_Z, Qt::ControlModifier));
+    //: The command of the bar of a timeline. In Polish: Ponów
+    add(Command::Redo, "edit.redo", tr("Redo"), key(Qt::Key_Y, Qt::ControlModifier));
+
+    QHBoxLayout* line = nullptr;
+    QWidget* events = group(row, &line);
+    line->addWidget(gui::CardBar::button(command(Command::New), "timelineNewEvent", true, events));
+    line->addWidget(gui::CardBar::button(command(Command::Edit), "timelineEditEvent", false, events));
+    line->addWidget(
+        gui::CardBar::button(command(Command::Chapter), "timelineOpenChapter", false, events));
+    flow->addWidget(events);
+    m_moveBox = group(row, &line);
+    line->addWidget(gui::CardBar::button(command(Command::Earlier), "timelineEarlier", false, m_moveBox));
+    line->addWidget(gui::CardBar::button(command(Command::Later), "timelineLater", false, m_moveBox));
+    line->addWidget(gui::CardBar::button(command(Command::LaneUp), "timelineLaneUp", false, m_moveBox));
+    line->addWidget(
+        gui::CardBar::button(command(Command::LaneDown), "timelineLaneDown", false, m_moveBox));
+    flow->addWidget(m_moveBox);
+    flow->addWidget(gui::CardBar::button(command(Command::Delete), "timelineDeleteEvent", true, row));
+    QWidget* steps = group(row, &line);
+    line->addWidget(gui::CardBar::button(command(Command::Undo), "timelineUndo", false, steps));
+    line->addWidget(gui::CardBar::button(command(Command::Redo), "timelineRedo", false, steps));
+    flow->addWidget(steps);
+
+    // A title or a cell being typed is kept before the command
+    const auto run = [this](Command which, const std::function<void()>& what) {
+        connect(command(which), &QAction::triggered, this, [this, what]() {
+            finishTyping();
+            what();
+        });
+    };
+    run(Command::New, [this]() { addEvent(); });
+    run(Command::Edit, [this]() { editEvent(m_document->selected()); });
+    run(Command::Chapter, [this]() { openChapter(m_document->selected()); });
+    run(Command::Earlier, [this]() { m_axis->shiftSelected(-1); });
+    run(Command::Later, [this]() { m_axis->shiftSelected(1); });
+    run(Command::LaneUp, [this]() { m_axis->moveSelectedToLane(-1); });
+    run(Command::LaneDown, [this]() { m_axis->moveSelectedToLane(1); });
+    run(Command::Delete, [this]() { deleteEvent(); });
+    run(Command::Undo, [this]() { undo(true); });
+    run(Command::Redo, [this]() { undo(false); });
+}
+
+void TimelineEditor::finishTyping() {
+    QWidget* shown = m_stack->currentWidget();
+    const QWidget* focus = QApplication::focusWidget();
+    if (focus != nullptr && focus != shown && shown->isAncestorOf(focus)) {
+        shown->setFocus(Qt::OtherFocusReason);
+    }
+}
+
+QAction* TimelineEditor::command(Command which) const {
+    return m_actions.at(static_cast<std::size_t>(which));
+}
+
+TimelineView::Mode TimelineEditor::shownMode() const {
+    return m_stack->currentWidget() == m_list       ? TimelineView::Mode::List
+           : m_stack->currentWidget() == m_bookView ? TimelineView::Mode::Book
+                                                    : TimelineView::Mode::Axis;
+}
+
+void TimelineEditor::updateCommands() {
+    if (m_stack == nullptr) {
+        return;  // still building
+    }
+    const Timeline& timeline = m_document->timeline();
+    const TimelineEvent* event = timeline.event(m_document->selected());
+    const TimelineView::Mode mode = shownMode();
+    const bool ordered = timeline.view().scale == TimelineView::Scale::Order;
+    const bool oneLane = timeline.view().lanes == TimelineView::Lanes::One;
+    command(Command::Edit)->setEnabled(event != nullptr);
+    command(Command::Chapter)->setEnabled(event != nullptr && !event->chapters.isEmpty());
+    const bool moves = event != nullptr && (ordered || event->time.has_value());
+    command(Command::Earlier)->setEnabled(moves);
+    command(Command::Later)->setEnabled(moves);
+    const auto name = [](QAction* action, const QString& text, Qt::Key key) {
+        action->setText(text);
+        action->setToolTip(gui::CardBar::withKeys(text, QKeyCombination(Qt::ControlModifier, key)));
+    };
+    //: The command of the bar of a timeline in the order of the story. In Polish: Wcześniej w
+    //: kolejności / Wcześniej
+    name(command(Command::Earlier), ordered ? tr("Earlier in the Order") : tr("Earlier"),
+         Qt::Key_Left);
+    //: In Polish: Później w kolejności / Później
+    name(command(Command::Later), ordered ? tr("Later in the Order") : tr("Later"), Qt::Key_Right);
+    command(Command::LaneUp)->setEnabled(event != nullptr && !oneLane);
+    command(Command::LaneDown)->setEnabled(event != nullptr && !oneLane);
+    command(Command::Delete)->setEnabled(event != nullptr);
+    command(Command::Undo)->setEnabled(m_document->canUndo());
+    command(Command::Redo)->setEnabled(m_document->canRedo());
+    // The steps of Earlier and Later and the lanes are those of the axis
+    m_moveBox->setVisible(mode == TimelineView::Mode::Axis);
+}
+
+void TimelineEditor::addEvent() {
+    switch (shownMode()) {
+        case TimelineView::Mode::Axis:
+            m_axis->addAfterSelected();
+            return;
+        case TimelineView::Mode::List:
+            m_list->addAfterSelected();
+            return;
+        case TimelineView::Mode::Book:
+            break;
+    }
+    // The time and the book: the new event in its window, to give it its time and chapters
+    QString message;
+    const QString added = TimelineEdits::addAfter(*m_document, m_document->selected(),
+                                                  std::nullopt, &message);
+    if (added.isEmpty()) {
+        return;
+    }
+    if (!editEvent(added)) {
+        m_document->undo();
+    }
+}
+
+void TimelineEditor::deleteEvent() {
+    switch (shownMode()) {
+        case TimelineView::Mode::Axis:
+            m_axis->removeSelected();
+            return;
+        case TimelineView::Mode::List:
+            m_list->removeSelected();
+            return;
+        case TimelineView::Mode::Book:
+            break;
+    }
+    QString message;
+    const bool done = TimelineEdits::remove(*m_document, m_document->selected(), &message);
+    tell(message, done);
+}
+
+void TimelineEditor::undo(bool back) {
+    const QString what = back ? m_document->undoText() : m_document->redoText();
+    if (what.isEmpty()) {
+        return;
+    }
+    if (back) {
+        m_document->undo();
+        //: In Polish: Cofnięto: %1.
+        tell(tr("Undone: %1.").arg(what), false);
+    } else {
+        m_document->redo();
+        //: In Polish: Ponowiono: %1.
+        tell(tr("Redone: %1.").arg(what), false);
+    }
 }
 
 // =============================================================================
@@ -454,10 +651,7 @@ void TimelineEditor::changeScale(TimelineView::Scale scale) {
 void TimelineEditor::updateBar() {
     const Timeline& timeline = m_document->timeline();
     const TimelineView& view = timeline.view();
-    const TimelineView::Mode mode = m_stack->currentWidget() == m_list ? TimelineView::Mode::List
-                                    : m_stack->currentWidget() == m_bookView
-                                        ? TimelineView::Mode::Book
-                                        : TimelineView::Mode::Axis;
+    const TimelineView::Mode mode = shownMode();
     m_axisButton->setChecked(mode == TimelineView::Mode::Axis);
     m_listButton->setChecked(mode == TimelineView::Mode::List);
     m_bookButton->setChecked(mode == TimelineView::Mode::Book);
@@ -481,6 +675,7 @@ void TimelineEditor::updateBar() {
     const QString threadText = tr("%n thread(s)", nullptr, threads);
     m_counts->setText(eventText + QStringLiteral(" · ") + threadText);
     fillHighlight();
+    updateCommands();
 }
 
 void TimelineEditor::applyLook() {
@@ -505,14 +700,14 @@ void TimelineEditor::tell(const QString& message, bool undoable) {
 // The windows, the chapters
 // =============================================================================
 
-void TimelineEditor::editEvent(const QString& id) {
+bool TimelineEditor::editEvent(const QString& id) {
     const TimelineEvent* event = m_document->timeline().event(id);
     if (event == nullptr) {
-        return;
+        return false;
     }
     TimelineEventDialog dialog(m_document->timeline(), *event, m_index, m_axis->look(), this);
     if (dialog.exec() != QDialog::Accepted) {
-        return;
+        return false;
     }
     const TimelineEvent changed = dialog.result();
     const QString title = TimelineEdits::quoted(changed.title);
@@ -520,7 +715,7 @@ void TimelineEditor::editEvent(const QString& id) {
     const bool done = m_document->changeEvent(id, tr("changing the event %1").arg(title),
                                               [&changed](TimelineEvent& own) { own = changed; });
     if (!done) {
-        return;
+        return true;  // accepted as it was
     }
     const bool ordered = m_document->timeline().view().scale == TimelineView::Scale::Order;
     if (!ordered && !changed.time) {
@@ -532,6 +727,7 @@ void TimelineEditor::editEvent(const QString& id) {
         //: In Polish: Zapisano wydarzenie „%1”.
         tell(tr("Saved the event %1.").arg(title), true);
     }
+    return true;
 }
 
 void TimelineEditor::editTimeline() {
