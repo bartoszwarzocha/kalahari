@@ -405,6 +405,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     choices of a panel) is filled with the highlight color of the theme, its text in the
     color of highlighted text; a button with an icon (Bold in the toolbar) gets a tint of that
     color and a frame in it. Before, it was only a little darker than one that is off.
+  - A kind chosen by its name gets no window of all the kinds: Add Mind Map..., Add
+    Chapter..., Book > New Chapter, the Add button of a list of materials and the Workshop's
+    commands open a small window named after the kind, which asks only for the title (and for
+    the source of a material, the part of a text for publishers). A card (Add Character...,
+    Create Card in the text) needs no window at all: it is added at once and opens on its
+    form, its name selected. Only the general Add... shows the window with all the kinds.
 
 ---
 

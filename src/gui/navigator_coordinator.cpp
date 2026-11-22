@@ -1286,12 +1286,13 @@ bool NavigatorCoordinator::onRequestAddCard(const QString& title, const core::Ki
     AddTarget target;
     target.scope = AddTarget::Scope::Workshop;
     target.kind = kind;
-    return addWithWindow(target,
-                         [&title](dialogs::NewFileDialog& dialog) { dialog.setTitle(title); });
+    target.byName = true;
+    return addWithWindow(target, {}, title);
 }
 
 bool NavigatorCoordinator::addWithWindow(
-    const AddTarget& target, const std::function<void(dialogs::NewFileDialog&)>& prepare) {
+    const AddTarget& target, const std::function<void(dialogs::NewFileDialog&)>& prepare,
+    const QString& title) {
     auto& logger = core::Logger::getInstance();
     auto& pm = m_book;
     auto* window = qobject_cast<QWidget*>(parent());
@@ -1309,7 +1310,25 @@ bool NavigatorCoordinator::addWithWindow(
         logger.warn("NavigatorCoordinator: Nothing can be added there");
         return false;
     }
+
+    // A card chosen by its name needs no window: it is added at once, with the name given or
+    // the proposed one ("Character 3"), and its form opens with the name selected
+    if (book.byName && book.kinds.at(book.current).kind.kind->isCard()) {
+        const dialogs::NewFileKind& entry = book.kinds.at(book.current);
+        const QString name = title.simplified().isEmpty() ? entry.title : title.simplified();
+        const QString elementId = pm.addElement(entry.kind, name, entry.place.place,
+                                                entry.place.groupId, entry.place.index);
+        if (!showAddedOrWhy(elementId, entry.kind, name)) {
+            return false;
+        }
+        emit documentModified();
+        return true;
+    }
+
     dialogs::NewFileDialog dialog(book, pm.bookTypes(), window);
+    if (!title.isEmpty()) {
+        dialog.setTitle(title);
+    }
     if (prepare) {
         prepare(dialog);
     }
@@ -1317,9 +1336,7 @@ bool NavigatorCoordinator::addWithWindow(
         return false;
     }
     const core::KindRef kind = dialog.kind();
-    const QString title = dialog.title();
-    // The messages name the kind added: "Working note added", "Could not add a story"
-    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
+    const QString chosenTitle = dialog.title();
 
     // A material is a copy of a file in the Workshop's folder, a picture saved there, a web
     // address or none of them; any other element gets its chapter file, and ProjectManager
@@ -1330,7 +1347,7 @@ bool NavigatorCoordinator::addWithWindow(
     const QImage picture = dialog.materialPicture();
     if (material) {
         core::NewMaterial newMaterial;
-        newMaterial.title = title;
+        newMaterial.title = chosenTitle;
         if (!picture.isNull()) {
             newMaterial.data = IncomingMaterials::pngOf(picture);
             newMaterial.fileName =
@@ -1348,41 +1365,27 @@ bool NavigatorCoordinator::addWithWindow(
         elementId = pm.addMaterial(newMaterial, kind);
     } else if (const QString part = dialog.publishingPart(); !part.isEmpty()) {
         // A text for publishers of its part, with its template
-        elementId = pm.addPublishingText(part, dialog.publishingTemplate(), title);
+        elementId = pm.addPublishingText(part, dialog.publishingTemplate(), chosenTitle);
     } else {
-        elementId = pm.addElement(kind, title, at.place, at.groupId, at.index,
+        elementId = pm.addElement(kind, chosenTitle, at.place, at.groupId, at.index,
                                   dialog.takeInside(), std::nullopt, dialog.status());
     }
-    if (elementId.isEmpty()) {
-        logger.error("NavigatorCoordinator: Failed to add '{}'", title.toStdString());
-        //: In Polish: Nie udało się dodać {kind:genitive}
-        const QString heading = core::fillWords(tr("Add {Kind} Failed"), nouns);
-        if (material && !dialog.materialFile().isEmpty()) {
-            //: %1: the file the writer chose. In Polish: Nie udało się dodać kopii pliku do
-            //: książki:\n%1\nSzczegóły są w dzienniku programu.
-            dialogs::MessageDialog::warning(
-                window, heading,
-                tr("The copy of the file could not be added to the book:\n%1\nThe program's "
-                   "log has the details.")
-                    .arg(QDir::toNativeSeparators(dialog.materialFile())));
-        } else if (material && !picture.isNull()) {
-            //: In Polish: Nie udało się zapisać obrazu w książce. Szczegóły są w dzienniku
-            //: programu.
-            dialogs::MessageDialog::warning(
-                window, heading,
-                tr("The picture could not be saved in the book. The program's log has the "
-                   "details."));
-        } else {
-            dialogs::MessageDialog::warning(window, heading, tr("Failed to save changes."));
-        }
+    QString why;
+    if (material && !dialog.materialFile().isEmpty()) {
+        //: %1: the file the writer chose. In Polish: Nie udało się dodać kopii pliku do
+        //: książki:\n%1\nSzczegóły są w dzienniku programu.
+        why = tr("The copy of the file could not be added to the book:\n%1\nThe program's "
+                 "log has the details.")
+                  .arg(QDir::toNativeSeparators(dialog.materialFile()));
+    } else if (material && !picture.isNull()) {
+        //: In Polish: Nie udało się zapisać obrazu w książce. Szczegóły są w dzienniku
+        //: programu.
+        why = tr("The picture could not be saved in the book. The program's log has the "
+                 "details.");
+    }
+    if (!showAddedOrWhy(elementId, kind, chosenTitle, elementId.isEmpty() ? why : QString())) {
         return false;
     }
-    logger.info("NavigatorCoordinator: Added '{}' (id={})", title.toStdString(),
-                elementId.toStdString());
-
-    showAdded(elementId, title);
-    //: In Polish: Dodano {kind:accusative}: %1
-    m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(title), 2000);
     if (material) {
         // What the writer asked the program to download comes after; the card of the new
         // material opens in the middle of the window, ready for its description
@@ -1393,6 +1396,27 @@ bool NavigatorCoordinator::addWithWindow(
         onRequestOpenMaterialCard(elementId, true);
     }
     emit documentModified();
+    return true;
+}
+
+bool NavigatorCoordinator::showAddedOrWhy(const QString& elementId, const core::KindRef& kind,
+                                          const QString& title, const QString& why) {
+    auto& logger = core::Logger::getInstance();
+    // The messages name the kind added: "Working note added", "Could not add a story"
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
+    if (elementId.isEmpty()) {
+        logger.error("NavigatorCoordinator: Failed to add '{}'", title.toStdString());
+        //: In Polish: Nie udało się dodać {kind:genitive}
+        const QString heading = core::fillWords(tr("Add {Kind} Failed"), nouns);
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), heading,
+                                        why.isEmpty() ? tr("Failed to save changes.") : why);
+        return false;
+    }
+    logger.info("NavigatorCoordinator: Added '{}' (id={})", title.toStdString(),
+                elementId.toStdString());
+    showAdded(elementId, title);
+    //: In Polish: Dodano {kind:accusative}: %1
+    m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(title), 2000);
     return true;
 }
 
@@ -1423,6 +1447,8 @@ void NavigatorCoordinator::onRequestNewChapter() {
         target = AddTarget{};
         target.kind = pm.chapterKindFor(core::BookPlace::Main);
     }
+    // A chapter by its name: the small window of its title
+    target.byName = true;
     onRequestAdd(target);
 }
 
@@ -1471,8 +1497,14 @@ void NavigatorCoordinator::showAdded(const QString& elementId, const QString& ti
         return;
     }
 
-    // A text opens in the editor, ready for writing at its start
+    // A text opens in the editor, ready for writing at its start; a card on its form, with
+    // the name selected, so that typing replaces the proposed one ("Character 3")
     onElementSelected(elementId, title);
+    if (auto* card = qobject_cast<CardPanel*>(m_centralTabs->currentWidget());
+        card != nullptr && card->elementId() == elementId) {
+        card->page()->focusName();
+        return;
+    }
     if (EditorPanel* editor = getCurrentEditor();
         editor != nullptr && editor->property("elementId").toString() == elementId) {
         editor->getBookEditor()->setCursorPosition(editor::CursorPosition{});

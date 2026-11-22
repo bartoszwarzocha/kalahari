@@ -12839,6 +12839,34 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::PluginCoordinator</name>
+    <message>
+        <source>Open the book this command works on</source>
+        <extracomment>The tooltip of a command of a plugin while no book is open. In Polish: Otwórz książkę, nad którą działa to polecenie</extracomment>
+        <translation>Otwórz książkę, nad którą działa to polecenie</translation>
+    </message>
+    <message>
+        <source>Show or hide the panel %1</source>
+        <extracomment>The tooltip of the command of a plugin&apos;s panel in View &gt; Panels. In Polish: Pokaż albo ukryj panel %1</extracomment>
+        <translation>Pokaż albo ukryj panel %1</translation>
+    </message>
+    <message>
+        <source>The plugin did not give the content of the panel: %1</source>
+        <extracomment>The page of a plugin&apos;s panel when the plugin failed to give it. %1: what the plugin said. In Polish: Wtyczka nie podała zawartości panelu: %1</extracomment>
+        <translation>Wtyczka nie podała zawartości panelu: %1</translation>
+    </message>
+    <message>
+        <source>Plugin Error</source>
+        <extracomment>The title of the window of an error of a plugin. In Polish: Błąd wtyczki</extracomment>
+        <translation>Błąd wtyczki</translation>
+    </message>
+    <message>
+        <source>The plugin “%1” did not do what it was asked.</source>
+        <extracomment>%1: the name of the plugin. In Polish: Wtyczka „%1” nie wykonała polecenia.</extracomment>
+        <translation>Wtyczka „%1” nie wykonała polecenia.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::PropertiesPanel</name>
     <message>
         <source>Title:</source>
@@ -21082,6 +21110,21 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <source>On the cover: %1 – you change it on the card.</source>
         <extracomment>Where a new material of the cover goes on the cover, after where it goes in the Workshop; %1 the place: back, front... In Polish: Na okładce: %1 – zmienisz to na karcie.</extracomment>
         <translation>Na okładce: %1 – zmienisz to na karcie.</translation>
+    </message>
+    <message>
+        <source>Choose the part of the text, its template and its title.</source>
+        <extracomment>The heading of the small window of a text for publishers. In Polish: Wybierz część tekstu, jego szablon i tytuł.</extracomment>
+        <translation>Wybierz część tekstu, jego szablon i tytuł.</translation>
+    </message>
+    <message>
+        <source>Type the title of the {kind}.</source>
+        <extracomment>The heading of the small window of an element of a kind chosen by its name, e.g. Add Mind Map. In Polish: Wpisz tytuł {kind:genitive}.</extracomment>
+        <translation>Wpisz tytuł {kind:genitive}.</translation>
+    </message>
+    <message>
+        <source>Add {Kind}</source>
+        <extracomment>The small window of an element of a kind chosen by its name, e.g. Add Mind Map... in the Navigator. In Polish: Dodaj {kind:accusative}</extracomment>
+        <translation>Dodaj {kind:accusative}</translation>
     </message>
 </context>
 <context>

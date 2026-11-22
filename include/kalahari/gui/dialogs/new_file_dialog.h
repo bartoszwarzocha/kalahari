@@ -164,6 +164,11 @@ public:
         /// (PublishingNames::newTitle(), of a description or a tagline CoverNames::newTitle());
         /// none: the title of its kind
         std::function<QString(const QString& part)> publishingTitle;
+        /// The writer chose the kind of @c current by its name (AddTarget::byName): a small
+        /// window, named after the kind, asks only for what the kind needs – its title, of a
+        /// material its source, of the cover its part, of a text for publishers its part and
+        /// template – without the tiles, the description, the status and the place
+        bool byName = false;
     };
 
     /// @brief The kinds and the parts of the book open in @p pm; at the start the main text
@@ -181,6 +186,8 @@ public:
     /// With a choice at the top (@p chooser) the window has all the kinds of the book and of
     /// the Workshop, and starts at the part of @p target; those of @p target's place go there
     /// (right after its element, inside its group). Without it, only the kinds of that place.
+    /// A kind chosen by its name (AddTarget::byName) that can be made there gets the small
+    /// window of that kind (Book::byName).
     static Book forAdding(const core::ProjectManager& pm, const AddTarget& target,
                           AddChooser chooser);
 

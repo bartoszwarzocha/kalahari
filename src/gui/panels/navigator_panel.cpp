@@ -3329,8 +3329,10 @@ void NavigatorPanel::addOn(const QTreeWidgetItem* item, const core::KindRef& kin
     if (!target || !changeRefusal().isEmpty()) {
         return;
     }
+    // A kind chosen by its name: its small window, without the kinds
     if (kind) {
         target->kind = kind;
+        target->byName = true;
     }
     emit requestAdd(*target);
 }

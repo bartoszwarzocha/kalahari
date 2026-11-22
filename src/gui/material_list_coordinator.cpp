@@ -449,8 +449,9 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
     if (!pm.isProjectOpen() || pm.isReadOnly()) {
         return;
     }
-    // The Add Element window with the kind of the list, or with the kinds of all of them; the
-    // list of the sources has those that can be a source, a publication chosen
+    // The small window of the kind of the list, or the Add Element window with the kinds of
+    // all of them; the list of the sources has those that can be a source, a publication
+    // chosen
     AddTarget target;
     target.scope = AddTarget::Scope::Workshop;
     const bool sources = list == QLatin1String(MaterialList::SOURCES);
@@ -468,6 +469,7 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
     }
     if (!list.isEmpty()) {
         target.kind = target.kinds.constFirst();
+        target.byName = !sources;
     }
     // The part asked for: of a text for publishers, of a material of the cover
     if (MaterialList::isPublishing(list)) {

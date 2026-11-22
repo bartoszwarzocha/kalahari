@@ -1545,7 +1545,7 @@ void MainWindow::registerCommands() {
     callbacks.onNewVolume =
         callOn(m_navigatorCoordinator, &NavigatorCoordinator::onRequestNewVolume);
     callbacks.onJoinVolume = [this]() { joinBookAsVolume(); };
-    // The kinds of the Workshop: the window with all of them, that one chosen
+    // The kinds of the Workshop, each by its name: its small window, a card at once
     callbacks.onNewWorkshopElement = [this](const QString& kindId) {
         if (!m_navigatorCoordinator) {
             return;
@@ -1553,6 +1553,7 @@ void MainWindow::registerCommands() {
         AddTarget target;
         target.scope = AddTarget::Scope::Workshop;
         target.kind = workshopKind(kindId);
+        target.byName = true;
         m_navigatorCoordinator->onRequestAdd(target);
     };
     callbacks.onBookProperties = [this]() { showBookProperties(); };

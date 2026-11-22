@@ -688,8 +688,9 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
-    /// @brief Add... on @p item: the Add Element window with its kinds, the kind @p kind
-    /// chosen at the start; nothing when nothing can be added there
+    /// @brief Add... on @p item: the Add Element window with its kinds; with a kind @p kind
+    /// chosen by its name (Add Chapter...), the small window of that kind
+    /// (AddTarget::byName); nothing when nothing can be added there
     void addOn(const QTreeWidgetItem* item, const core::KindRef& kind = {});
 
     /// @brief Rename @p item: an element, a section, the book or the Workshop; nothing for the
