@@ -2121,8 +2121,9 @@ public:
     [[nodiscard]] bool isSpellCheckPending() const;
 
     /// @brief A property of the context menu (bool) true while the words to put in place of a
-    ///        misspelled word are being found: they come first in the menu once they are, its
-    ///        first item saying so until then
+    ///        misspelled word are being found: they come in its submenu Suggestions once they
+    ///        are, the submenu's only item, Loading..., saying so until then; the menu itself
+    ///        stays as it opened
     static constexpr const char* SUGGESTIONS_PENDING_PROPERTY = "kalahariSuggestionsPending";
 
     /// @brief What goToNextIssue() did
@@ -3878,8 +3879,9 @@ private:
     [[nodiscard]] std::tuple<QString, int, int> getMisspelledWordAt(
         int paraIndex, int offset, HighlightKind* kind = nullptr) const;
 
-    /// @brief Put on the context menu what is offered for a misspelled word: the words to
-    ///        put in its place (as soon as they are found, SUGGESTIONS_PENDING_PROPERTY),
+    /// @brief Put on the context menu what is offered for a misspelled word: the submenu
+    ///        Suggestions with the words to put in its place (Loading... until they are
+    ///        found, SUGGESTIONS_PENDING_PROPERTY),
     ///        Ignore All, Add to Book Dictionary (with the book's dictionary), Add to Your Words
     ///        (All Books), Add Name... (with the book's dictionary), then Create Card
     ///        (addCreateCardMenu()), which addCardMenus() goes on after

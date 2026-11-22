@@ -84,7 +84,8 @@ inline bool isFindingWords(const QMenu* menu) {
 }
 
 /// Reads each popup menu as it shows (the menu of a misspelled word once its words are
-/// found), chooses the entry with the text @p choice (empty: none) and closes the menu, while
+/// found), with the items of its submenus after theirs, chooses the entry with the text
+/// @p choice (empty: none; also in a submenu) and closes the menu, while
 /// it lives. The menu gets no window on the screen, where the platform decides about a popup:
 /// on macOS the popup of a test window was closed before the test could read it.
 class PopupMenuReader : public QObject {
@@ -115,19 +116,29 @@ protected:
 private:
     void read(QMenu* menu) {
         QAction* chosen = nullptr;
-        for (QAction* action : menu->actions()) {
-            if (!action->isSeparator()) {
-                m_texts.append(action->text());
-                if (!m_choice.isEmpty() && action->text() == m_choice && chosen == nullptr) {
-                    chosen = action;
-                }
-            }
-        }
+        readItems(menu, chosen);
         if (chosen != nullptr) {
             chosen->trigger();
         }
         // Closed once it is open, the menu ends its event loop
         QTimer::singleShot(0, menu, [menu]() { menu->close(); });
+    }
+
+    /// The texts of a menu's items, each submenu's after its own (the words of a misspelled
+    /// one are in the submenu Suggestions), and the item to choose
+    void readItems(const QMenu* menu, QAction*& chosen) {
+        for (QAction* action : menu->actions()) {
+            if (action->isSeparator()) {
+                continue;
+            }
+            m_texts.append(action->text());
+            if (!m_choice.isEmpty() && action->text() == m_choice && chosen == nullptr) {
+                chosen = action;
+            }
+            if (const QMenu* submenu = action->menu()) {
+                readItems(submenu, chosen);
+            }
+        }
     }
 
     /// Read once the words of a misspelled one are in the menu (at most DICTIONARY_WAIT_MS)

@@ -226,6 +226,18 @@ QStringList labelsOf(const QList<test::MenuItem>& items) {
     return labels;
 }
 
+/// The labels of the submenu Suggestions of the menu of a misspelled word (empty: none)
+QStringList suggestionsOf(const QList<test::MenuItem>& items) {
+    const QString title = withoutAccessKey(
+        QCoreApplication::translate("kalahari::editor::BookEditor", "&Suggestions"));
+    for (const test::MenuItem& item : items) {
+        if (withoutAccessKey(item.text) == title) {
+            return labelsOf(item.items);
+        }
+    }
+    return {};
+}
+
 /// A file of a recent book, by its name
 QString bookPath(const QString& name) {
     return QDir::temp().absoluteFilePath(name + QStringLiteral(".klh"));
@@ -811,8 +823,8 @@ void checkTextMenus(bool shown, QStringList& problems) {
     QList<test::MenuItem> items = contextMenu(&editor, &editor, placeOf(editor, 6));
     collectProblems(items, QStringLiteral("Misspelled word"), shown ? QStringList() : wordTexts,
                     problems);
-    // and Ignore All, Add to Your Words, then the usual menu
-    CHECK(itemCount(items) == words.size() + 2 + 6);
+    // Suggestions with the words, Ignore All, Add to Your Words, then the usual menu
+    CHECK(itemCount(items) == 1 + words.size() + 2 + 6);
 
     // A word the dictionary has nothing like: the menu says there are none
     editor::BookEditor unknownWord;
@@ -826,7 +838,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
     items = contextMenu(&unknownWord, &unknownWord, placeOf(unknownWord, 6));
     collectProblems(items, QStringLiteral("Misspelled word without suggestions"), {none},
                     problems);
-    CHECK(labelsOf(items).contains(none));
+    CHECK(suggestionsOf(items) == QStringList{none});
 
     // With the book's dictionary: the word can go to it as well; a word that departs from a
     // rule of the book has the rule's menu, whose rule and note are lines that only tell
@@ -857,9 +869,9 @@ void checkTextMenus(bool shown, QStringList& problems) {
         items = contextMenu(&booked, &booked, placeOf(booked, 6));
         collectProblems(items, QStringLiteral("Misspelled word, with the book's dictionary"),
                         shown ? QStringList() : wordTexts, problems);
-        // and Ignore All, Add to Book Dictionary, Add to Your Words, Add Name..., Create Card
-        // with its kinds, then the usual menu
-        CHECK(itemCount(items) == words.size() + 4 + 1 + 3 + 6);
+        // Suggestions with the words, Ignore All, Add to Book Dictionary, Add to Your Words,
+        // Add Name..., Create Card with its kinds, then the usual menu
+        CHECK(itemCount(items) == 1 + words.size() + 4 + 1 + 3 + 6);
 
         // A selection of right words: Create Card on top of the usual menu
         booked.setCursorPosition({0, 17});
@@ -923,17 +935,17 @@ void checkTextMenus(bool shown, QStringList& problems) {
         CHECK(itemCount(items) >= words.size() + 2 + 3);  // and the note's three
     }
 
-    // Every part at once: a misspelled word with an annotation, in a link, in a list item with
-    // linked materials. Each item has a key of its own, the commands of the window keep theirs.
-    // The word is one the dictionary has nothing like: in so long a menu the words for it
-    // would get only the letters left, if any
+    // Every part at once: a misspelled word with an annotation, in a list item with linked
+    // materials. Each item has a key of its own, the commands of the window keep theirs. The
+    // word is one the dictionary has nothing like. (A link too would make 18 items of the
+    // menu's own for the 17 letters they can have in English: the link has its own case above)
     {
         editor::BookEditor all;
         test::resizeWidget(all, QSize(600, 400));
         all.fromKml(QStringLiteral(
             "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Check it</annotation>"
-            "</annotations><ol><li><a href=\"https://example.com\">The <anchor ref=\"c1\">"
-            "qxzvwk</anchor> one</a></li></ol></kml>"));
+            "</annotations><ol><li>The <anchor ref=\"c1\">qxzvwk</anchor> one</li></ol>"
+            "</kml>"));
         all.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
                                        registry.getAction(QStringLiteral("edit.copy")),
                                        registry.getAction(QStringLiteral("edit.paste")),
@@ -956,10 +968,10 @@ void checkTextMenus(bool shown, QStringList& problems) {
         }
         items = contextMenu(&all, &all, placeOf(all, 6));
         collectProblems(items, QStringLiteral("Every part"), keyless, problems);
-        // (No suggestions), Ignore All, Add to Your Words; the link's four; the annotation's line
+        // Suggestions > (No suggestions), Ignore All, Add to Your Words; the annotation's line
         // and its three; the list's six; the usual menu; Linked Materials > Map
-        CHECK(labelsOf(items).contains(none));
-        CHECK(itemCount(items) == 3 + 4 + 4 + 6 + 6 + 2);
+        CHECK(suggestionsOf(items) == QStringList{none});
+        CHECK(itemCount(items) == 4 + 4 + 6 + 6 + 2);
         const QString paste = registry.getAction(QStringLiteral("edit.paste"))->text();
         CHECK(std::any_of(items.cbegin(), items.cend(),
                           [&paste](const test::MenuItem& item) { return item.text == paste; }));

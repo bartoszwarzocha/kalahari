@@ -4305,9 +4305,9 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <translation>&amp;Podpowiedzi</translation>
     </message>
     <message>
-        <source>Looking for suggestions...</source>
-        <extracomment>In the submenu of the suggestions while the dictionary looks for them. In Polish: Szukam podpowiedzi…</extracomment>
-        <translation>Szukam podpowiedzi…</translation>
+        <source>Loading...</source>
+        <extracomment>In the submenu of the suggestions while the dictionary looks for them. In Polish: Wczytywanie…</extracomment>
+        <translation>Wczytywanie…</translation>
     </message>
     <message>
         <source>&amp;Wrap Text</source>

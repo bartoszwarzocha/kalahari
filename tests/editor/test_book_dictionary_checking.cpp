@@ -393,7 +393,9 @@ TEST_CASE("Book dictionary: a name written small gets its own spelling first",
 
     editor->setCursorPosition({.paragraph = 0, .offset = 7});
     const QStringList texts = menuAtCursor(*editor, QStringLiteral("Kirran"));
-    CHECK(texts.value(0) == QStringLiteral("Kirran"));
+    // The first in the submenu Suggestions, at the top of the menu
+    CHECK(texts.value(0) == QStringLiteral("&Suggestions"));
+    CHECK(texts.value(1) == QStringLiteral("Kirran"));
     CHECK(std::ranges::count(texts, QStringLiteral("Kirran")) == 1);
     CHECK(editor->textDocument()->findBlockByNumber(0).text() ==
           QStringLiteral("Then Kirran left."));
