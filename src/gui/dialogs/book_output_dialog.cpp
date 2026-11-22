@@ -12,6 +12,7 @@
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 
@@ -47,6 +48,8 @@ constexpr int STATUS_ROLE = Qt::UserRole + 1;  ///< The status of a text of the 
 /// Rows the list of the texts shows at most (the others scroll in it): the window with the
 /// result of the export fits 1366x768 at 150%
 constexpr int LIST_ROWS = 5;
+/// Rows the list of the texts shows in the small window of Choose Texts...
+constexpr int WINDOW_LIST_ROWS = 12;
 /// The width of the list of the fonts, in letters of their names
 constexpr int FONT_NAME_LETTERS = 22;
 /// The width of the list Volume, in letters of the names of the volumes (longer ones are cut
@@ -88,7 +91,7 @@ const std::array<std::pair<BookOutputDialog::Content, const char*>, 3>& contentN
 
 } // anonymous namespace
 
-BookOutputDialog::BookOutputDialog(Book book, QWidget* parent)
+BookOutputDialog::BookOutputDialog(Book book, QWidget* parent, bool withTabs)
     : ArchiveDialog(parent)
     , m_book(std::move(book))
 {
@@ -100,7 +103,9 @@ BookOutputDialog::BookOutputDialog(Book book, QWidget* parent)
     //: Ustawienia stron i marginesów
     addSettingsButton(QString::fromLatin1(SettingsDialog::PAGES_PAGE),
                       tr("Page and Margin Settings"));
-    m_tabs = new FittingTabs(this);
+    if (withTabs) {
+        m_tabs = new FittingTabs(this);
+    }
 
     // The page follows the settings the gear opens
     m_settingsListener =
@@ -121,10 +126,15 @@ BookOutputDialog::~BookOutputDialog()
 
 QGridLayout* BookOutputDialog::newTab(const QString& title)
 {
-    auto* page = new QWidget(m_tabs);
+    if (m_tabs == nullptr && m_partMaker) {
+        return m_partMaker(title);
+    }
+    auto* page = new QWidget(m_tabs != nullptr ? static_cast<QWidget*>(m_tabs) : this);
     auto* grid = new QGridLayout(page);
     grid->setColumnStretch(1, 1);
-    m_tabs->addTab(page, title);
+    if (m_tabs != nullptr) {
+        m_tabs->addTab(page, title);
+    }
     return grid;
 }
 
@@ -133,7 +143,7 @@ void BookOutputDialog::endTab(QGridLayout* grid)
     grid->setRowStretch(grid->rowCount(), 1);
 }
 
-void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
+void BookOutputDialog::addTextsTab(const QString& title, const QString& note, bool compact)
 {
     QGridLayout* content = newTab(title);
     QWidget* contentBox = content->parentWidget();
@@ -146,25 +156,55 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
     m_setButton = new QRadioButton(contentBox);
     showBookCounts();
     int row = 0;
-    // A series: the volume whose texts go, over them
     const bool series = m_book.volumes.size() > 1;
-    if (series) {
-        content->addWidget(newVolumeRow(contentBox), row++, 0, 1, 2);
+    if (compact) {
+        // One under another, the text in front first; the chosen texts with the button of
+        // their list and how many are chosen
+        content->addWidget(m_frontButton, row++, 0, 1, 2);
+        content->addWidget(m_bookButton, row++, 0, 1, 2);
+        auto* chosenLine = new QHBoxLayout();
+        chosenLine->setSpacing(fontMetrics().averageCharWidth() * 2);
+        chosenLine->addWidget(m_chosenButton);
+        //: Beside the chosen texts in the window of the print: opens their list. In Polish:
+        //: W&ybierz teksty...
+        m_chooseTextsButton = new QPushButton(tr("Choose Te&xts..."), contentBox);
+        m_chooseTextsButton->setAutoDefault(false);
+        chosenLine->addWidget(m_chooseTextsButton);
+        m_chosenCount = newRemark(contentBox, QString());
+        chosenLine->addWidget(m_chosenCount);
+        chosenLine->addStretch();
+        content->addLayout(chosenLine, row++, 0, 1, 2);
+        content->addWidget(m_setButton, row++, 0, 1, 2);
+        if (series) {
+            content->addWidget(newVolumeRow(contentBox), row++, 0, 1, 2);
+        }
+    } else {
+        // A series: the volume whose texts go, over them
+        if (series) {
+            content->addWidget(newVolumeRow(contentBox), row++, 0, 1, 2);
+        }
+        // The book and the chosen texts side by side; the text in front, whose title may be
+        // long, under them
+        auto* bookOrChosen = new QHBoxLayout();
+        bookOrChosen->setSpacing(fontMetrics().averageCharWidth() * 3);
+        bookOrChosen->addWidget(m_bookButton);
+        bookOrChosen->addWidget(m_chosenButton);
+        bookOrChosen->addWidget(m_setButton);
+        bookOrChosen->addStretch();
+        content->addLayout(bookOrChosen, row++, 0, 1, 2);
+        content->addWidget(m_frontButton, row++, 0, 1, 2);
     }
-    // The book and the chosen texts side by side; the text in front, whose title may be long,
-    // under them
-    auto* bookOrChosen = new QHBoxLayout();
-    bookOrChosen->setSpacing(fontMetrics().averageCharWidth() * 3);
-    bookOrChosen->addWidget(m_bookButton);
-    bookOrChosen->addWidget(m_chosenButton);
-    bookOrChosen->addWidget(m_setButton);
-    bookOrChosen->addStretch();
-    content->addLayout(bookOrChosen, row++, 0, 1, 2);
-    content->addWidget(m_frontButton, row++, 0, 1, 2);
 
-    // The list of the texts, with their sections and groups, and its buttons at its side. It
-    // stays in its place and works with Chosen texts.
-    m_chosenBox = new QWidget(contentBox);
+    // The list of the texts, with their sections and groups, and its buttons at its side. On
+    // a tab it stays in its place and works with Chosen texts; in a section it is in the small
+    // window of Choose Texts...
+    if (compact) {
+        m_chosenWindow = new KalahariDialog(this);
+        m_chosenWindow->setCompactHeading(true);
+        //: The button of the small window of the texts to print. In Polish: Wybierz
+        m_chosenWindow->setAcceptText(tr("Choose"));
+    }
+    m_chosenBox = new QWidget(compact ? static_cast<QWidget*>(m_chosenWindow) : contentBox);
     auto* chosenLayout = new QGridLayout(m_chosenBox);
     chosenLayout->setContentsMargins(0, 0, 0, 0);
     chosenLayout->setColumnStretch(0, 1);
@@ -177,8 +217,8 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
     fillTextList();
     m_textList->expandAll();
     // As high for each volume of a series
-    m_textList->setRows(series ? LIST_ROWS
-                               : std::min(static_cast<int>(m_book.rows.size()), LIST_ROWS));
+    const int rows = compact ? WINDOW_LIST_ROWS : LIST_ROWS;
+    m_textList->setRows(series ? rows : std::min(static_cast<int>(m_book.rows.size()), rows));
     chosenLayout->addWidget(m_textList, 0, 0);
     auto* buttons = new QVBoxLayout();
     buttons->setContentsMargins(0, 0, 0, 0);
@@ -197,7 +237,12 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
     buttons->addWidget(m_chosenNote);
     buttons->addStretch();
     chosenLayout->addLayout(buttons, 0, 1);
-    content->addWidget(m_chosenBox, row++, 0, 1, 2);
+    if (compact) {
+        m_chosenWindow->contentLayout()->addWidget(m_chosenBox, 1);
+        connect(m_chooseTextsButton, &QPushButton::clicked, this, &BookOutputDialog::chooseTexts);
+    } else {
+        content->addWidget(m_chosenBox, row++, 0, 1, 2);
+    }
     content->addWidget(newRemark(contentBox, note), row++, 0, 1, 2);
     endTab(content);
     connect(allButton, &QPushButton::clicked, this, &BookOutputDialog::checkAll);
@@ -221,14 +266,50 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
     m_bookButton->setVisible(!m_book.title.isEmpty());
     m_chosenButton->setVisible(!m_book.title.isEmpty());
     m_chosenBox->setVisible(!m_book.title.isEmpty());
+    if (compact) {
+        m_chooseTextsButton->setVisible(!m_book.title.isEmpty());
+    }
     m_frontButton->setVisible(!m_book.frontTitle.isEmpty());
+}
+
+void BookOutputDialog::chooseTexts()
+{
+    if (m_chosenWindow == nullptr) {
+        return;
+    }
+    // The checks as they are, for Cancel
+    const QList<QTreeWidgetItem*> texts = leaves();
+    QList<Qt::CheckState> before;
+    before.reserve(texts.size());
+    for (const QTreeWidgetItem* item : texts) {
+        before << item->checkState(0);
+    }
+    //: The title of the small window of the texts to print. In Polish: Wybierz teksty
+    m_chosenWindow->setHeading(tr("Choose Texts"),
+                               //: Under the title of the small window of the texts to print;
+                               //: %1: the title of the book or of the volume. In Polish:
+                               //: Zaznacz teksty książki „%1” do wydruku.
+                               tr("Check the texts of the book \"%1\" to print.")
+                                   .arg(m_book.title));
+    if (m_chosenWindow->exec() == QDialog::Accepted) {
+        m_chosenButton->setChecked(true);
+        return;
+    }
+    {
+        const QSignalBlocker blocker(m_textList);
+        for (qsizetype i = 0; i < texts.size() && i < before.size(); ++i) {
+            texts.at(i)->setCheckState(0, before.at(i));
+        }
+    }
+    m_textList->viewport()->update();
+    updateFields();
 }
 
 void BookOutputDialog::followContentChoice()
 {
-    // The list stays in its place, so the tab keeps its look; it works with Chosen texts. The
-    // text in front is of no volume.
-    m_chosenBox->setEnabled(m_chosenButton->isChecked());
+    // The list stays in its place, so the tab keeps its look; it works with Chosen texts. In
+    // its small window it is for choosing. The text in front is of no volume.
+    m_chosenBox->setEnabled(m_chosenWindow != nullptr || m_chosenButton->isChecked());
     if (m_volumeRow != nullptr) {
         m_volumeRow->setEnabled(!m_frontButton->isChecked());
     }
@@ -464,19 +545,14 @@ QGridLayout* BookOutputDialog::addLayoutTab(const QString& title, bool narrow)
         tr("At the top of the pages, not on title pages or first pages of chapters.");
     m_runningHeadBox->setToolTip(runningHeadPlace);
     m_runningHeadBox->setAccessibleDescription(runningHeadPlace);
-    m_pageLabel = new QLabel(lookPage);
-    m_pageLabel->setTextFormat(Qt::PlainText);
-    m_pageLabel->setWordWrap(true);
-    //: In Polish: Strona:
-    addRow(look, tr("Page:"), m_pageLabel);
-    m_pageNote = addNote(look);
-    if (narrow) {
-        // One line in a narrow tab: the window whole on a small screen
-        //: Under the page of the print. In Polish: Rozmiar i marginesy: Ustawienia › Edytor ›
-        //: Strony i marginesy.
-        showNote(m_pageNote,
-                 tr("The size and the margins: Settings › Editor › Pages and Margins."));
-    } else {
+    // The page of the settings; the print sets it in a section of its own
+    if (!narrow) {
+        m_pageLabel = new QLabel(lookPage);
+        m_pageLabel->setTextFormat(Qt::PlainText);
+        m_pageLabel->setWordWrap(true);
+        //: In Polish: Strona:
+        addRow(look, tr("Page:"), m_pageLabel);
+        m_pageNote = addNote(look);
         //: Under the page of the export. In Polish: Rozmiar strony i marginesy pochodzą z
         //: Ustawień › Edytor › Strony i marginesy (zębatka w nagłówku okna). Rozmiary liter,
         //: odstępy i wcięcia – ze stylów książki.
@@ -484,8 +560,8 @@ QGridLayout* BookOutputDialog::addLayoutTab(const QString& title, bool narrow)
                  tr("The size of the page and the margins come from Settings › Editor › Pages "
                     "and Margins (the gear in the heading of the window). The sizes of the "
                     "letters, the spacing and the indents come from the styles of the book."));
+        m_pageLabel->setText(pageText());
     }
-    m_pageLabel->setText(pageText());
 
     for (QCheckBox* box : {m_titlesBox, m_newPageBox, m_pageNumbersBox}) {
         connect(box, &QCheckBox::toggled, this, [this]() {
@@ -510,8 +586,10 @@ void BookOutputDialog::setPagesVisible(bool visible)
     if (m_runningHeadRow != nullptr) {
         setRowVisible(m_runningHeadRow, visible);
     }
-    setRowVisible(m_pageLabel, visible);
-    m_pageNote.widget->setVisible(visible);
+    if (m_pageLabel != nullptr) {
+        setRowVisible(m_pageLabel, visible);
+        m_pageNote.widget->setVisible(visible);
+    }
 }
 
 void BookOutputDialog::readLayout(const std::string& contentKey)
@@ -540,7 +618,7 @@ void BookOutputDialog::readLayout(const std::string& contentKey)
         start = Content::Book;
     }
     setContent(start);
-    m_chosenBox->setEnabled(m_chosenButton->isChecked());
+    m_chosenBox->setEnabled(m_chosenWindow != nullptr || m_chosenButton->isChecked());
 }
 
 void BookOutputDialog::rememberLayout(const std::string& contentKey) const
@@ -596,6 +674,13 @@ bool BookOutputDialog::updateChosen()
     //: Polish: Wybrano %1 z %n tekstu / tekstów.
     m_chosenNote->setText(
         tr("%1 of %n texts chosen.", nullptr, static_cast<int>(texts.size())).arg(chosen));
+    if (m_chosenCount != nullptr) {
+        //: Beside Choose Texts... of the window of the print; %1: how many texts are checked,
+        //: %n: how many there are. In Polish: %1 z %n
+        m_chosenCount->setText(
+            tr("%1 of %n", nullptr, static_cast<int>(texts.size())).arg(chosen));
+        m_chosenCount->setVisible(m_chosenButton->isChecked());
+    }
     return !m_chosenButton->isChecked() || chosen > 0;
 }
 
@@ -695,8 +780,8 @@ void BookOutputDialog::showPage()
 {
     if (m_pageLabel != nullptr) {
         m_pageLabel->setText(pageText());
-        layoutChanged();
     }
+    layoutChanged();
 }
 
 QString BookOutputDialog::pageSizeName()
@@ -768,7 +853,7 @@ QString BookOutputDialog::pageText()
 
 QString BookOutputDialog::shownPageText() const
 {
-    return m_pageLabel->text();
+    return m_pageLabel != nullptr ? m_pageLabel->text() : QString();
 }
 
 } // namespace dialogs

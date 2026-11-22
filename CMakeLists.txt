@@ -235,6 +235,13 @@ else()
     endif()
 endif()
 
+# Windows: the settings of the driver of the printer (its window, paper sources and quality)
+# reach the print through the print engine of Qt, whose API is private
+# (src/gui/printer_driver.cpp)
+if(WIN32 AND NOT TARGET Qt6::PrintSupportPrivate)
+    find_package(Qt6 REQUIRED COMPONENTS PrintSupportPrivate)
+endif()
+
 # The preview of PDF files in the program: PDFium (KALAHARI_PDF_AVAILABLE, PDFium::pdfium)
 include("${CMAKE_SOURCE_DIR}/cmake/Pdfium.cmake")
 

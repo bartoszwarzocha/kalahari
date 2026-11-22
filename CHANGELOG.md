@@ -295,6 +295,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **File > Print: a large preview and the fields in sections** - 2026-11-22. The window has no
+  tabs: the preview takes its left half, with Whole Sheet and Width over it (a sheet as wide as
+  the preview scrolls, with its bar, the arrows and the wheel), and the fields are in sections
+  at the right that open and close: Printer, What to Print, Pages, Sheet, Book Page and Look of
+  the Text. A closed section says what it holds in its header ("A4 · one page · fitted"); a
+  click, Enter or Space opens it, and Alt with the key of its title opens it and goes to its
+  first field. The window remembers the sections open and the zoom. Printer has the paper
+  source and the quality where the system lists them, and Printer Properties... opens the
+  window of the printer's driver (Windows), whose settings, such as the type of paper or saving
+  the toner, go to the print and whose paper, copies, color, sides, source and quality go to
+  the fields. Book Page has the size and the margins of the page of Settings > Editor > Pages
+  and Margins: a change there or here changes both, and the preview lays the pages out again.
+  The chosen texts are checked in a window of their own, Choose Texts..., with how many are
+  chosen beside it.
+
 - **Insert toolbar** - 2026-11-21. Every command of the Insert menu is on it, in the groups of
   the menu: images, tables and links; captions, cross-references and the lists of figures;
   footnotes and endnotes; the annotations; the characters, quick insert and the clippings;

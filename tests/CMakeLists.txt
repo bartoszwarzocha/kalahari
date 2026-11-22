@@ -512,6 +512,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/book_texts.cpp              # The texts of the book in reading order
     ${CMAKE_SOURCE_DIR}/src/gui/caption_coordinator.cpp     # The numbered captions of the book
     ${CMAKE_SOURCE_DIR}/src/gui/book_export_coordinator.cpp # The export of the book to DOCX and Markdown
+    ${CMAKE_SOURCE_DIR}/src/gui/printer_driver.cpp # The settings of the driver of a printer (Windows)
     ${CMAKE_SOURCE_DIR}/src/gui/plugin_coordinator.cpp      # The commands and panels of the plugins
     ${CMAKE_SOURCE_DIR}/src/gui/book_import_texts.cpp       # The texts of an imported file added to the book
     ${CMAKE_SOURCE_DIR}/src/gui/book_import_plan.cpp        # The plan of an import: the texts, kinds, styles
@@ -557,6 +558,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/standalone_info_bar.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/path_label.cpp  # The paths of the recent books
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/wrapping_label.cpp  # Texts that wrap only where they must
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/collapsible_section.cpp  # Fields under a header that opens and closes them
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/wrapping_button.cpp  # Buttons that wrap only where they must
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp  # Rows of buttons that wrap on a narrow panel
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/length_meter.cpp  # The length of a text against its target
@@ -825,6 +827,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/collapsible_section.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_writing.h  # StatusBarWriting with Q_OBJECT
@@ -1047,6 +1050,12 @@ target_link_libraries(kalahari-tests PRIVATE
 # OpenSpec #00042: Hunspell include/library paths for spell check service
 target_include_directories(kalahari-tests PRIVATE ${HUNSPELL_INCLUDE_DIRS})
 target_link_directories(kalahari-tests PRIVATE ${HUNSPELL_LIBRARY_DIRS})
+
+# Windows: the settings of the driver of the printer go to the print engine of Qt (its
+# private API) and come from the driver itself (src/gui/printer_driver.cpp)
+if(WIN32)
+    target_link_libraries(kalahari-tests PRIVATE Qt6::PrintSupportPrivate winspool)
+endif()
 
 # The preview of PDF files (PDFium)
 if(KALAHARI_PDF_AVAILABLE)

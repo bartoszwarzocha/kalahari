@@ -5,6 +5,7 @@
 /// @brief File > Print: the window of the print, its printers, its pages and sheets, the
 ///        preview, and the print
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari_tests/gui/document_window.h"
 #include "test_support/dialog_checks.h"
@@ -13,6 +14,8 @@
 #include "kalahari/editor/book_pages.h"
 #include "kalahari/gui/book_export_coordinator.h"
 #include "kalahari/gui/dialogs/print_book_dialog.h"
+#include "kalahari/gui/widgets/collapsible_section.h"
+#include "kalahari/gui/widgets/length_spin_box.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -26,13 +29,16 @@
 #include <QPrinter>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QScrollBar>
 #include <QRegularExpression>
 #include <QSpinBox>
 #include <QTabWidget>
 #include <QTemporaryDir>
+#include <QTimer>
 #include <QTreeWidget>
 
 #include <algorithm>
+#include <optional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -40,10 +46,10 @@
 
 using namespace kalahari;
 using gui::BookExportCoordinator;
+using gui::SectionHeader;
 using gui::dialogs::PrintBookDialog;
 using test::AppFontOfPixels;
 using test::checkFitsSmallScreen;
-using test::onItsTab;
 using test::Polish;
 using Duplex = PrintBookDialog::Duplex;
 using editor::SheetLayout;
@@ -56,14 +62,21 @@ class SettingsKept {
 public:
     SettingsKept() {
         auto& settings = core::SettingsManager::getInstance();
-        for (const char* key : {"print.content", "print.sheet.layout", "export.font",
-                                "export.runningHead", "editor.page.size"}) {
+        for (const char* key : {"print.content", "print.sheet.layout", "print.openSections",
+                                "print.previewZoom", "export.font", "export.runningHead",
+                                "editor.page.size"}) {
             m_strings.emplace_back(key, settings.get<std::string>(key));
         }
         for (const char* key : {"print.collate", "print.reverse", "print.sheet.fit",
-                                "print.sheet.cropMarks",
-                                "export.titles", "export.newPage", "export.pageNumbers"}) {
+                                "print.sheet.cropMarks", "export.titles", "export.newPage",
+                                "export.pageNumbers", "editor.margins.mirrorEnabled"}) {
             m_flags.emplace_back(key, settings.get<bool>(key));
+        }
+        for (const char* key :
+             {"editor.page.customWidth", "editor.page.customHeight", "editor.margins.pageTop",
+              "editor.margins.pageBottom", "editor.margins.pageLeft", "editor.margins.pageRight",
+              "editor.margins.pageInner", "editor.margins.pageOuter"}) {
+            m_lengths.emplace_back(key, settings.get<double>(key));
         }
     }
     ~SettingsKept() {
@@ -75,6 +88,9 @@ public:
             for (const auto& [key, value] : m_flags) {
                 settings.set<bool>(key, value);
             }
+            for (const auto& [key, value] : m_lengths) {
+                settings.set<double>(key, value);
+            }
         } catch (...) {
             std::fputs("SettingsKept: the settings of the test stay\n", stderr);
         }
@@ -85,6 +101,7 @@ public:
 private:
     std::vector<std::pair<std::string, std::string>> m_strings;
     std::vector<std::pair<std::string, bool>> m_flags;
+    std::vector<std::pair<std::string, double>> m_lengths;
 };
 
 /// A book of the window: a part of two chapters, an epilogue
@@ -214,6 +231,25 @@ void chooseDuplex(PrintBookDialog& dialog, Duplex duplex) {
     dialog.duplexBox()->setCurrentIndex(index);
 }
 
+/// The sections of the window, from the top
+std::vector<PrintBookDialog::Section> allSections() {
+    using Section = PrintBookDialog::Section;
+    return {Section::Printer, Section::Content, Section::Pages,
+            Section::Sheet,   Section::BookPage, Section::Look};
+}
+
+/// Open all the sections of @p dialog: their titles, from the top
+QStringList openSections(PrintBookDialog& dialog) {
+    QStringList titles;
+    for (const auto which : allSections()) {
+        gui::CollapsibleSection* section = dialog.section(which);
+        REQUIRE(section != nullptr);
+        section->setExpanded(true);
+        titles << section->header()->text();
+    }
+    return titles;
+}
+
 /// Press @p key in the preview
 void press(QWidget* widget, int key) {
     QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
@@ -222,7 +258,7 @@ void press(QWidget* widget, int key) {
 
 }  // namespace
 
-TEST_CASE("Print: the tabs, the keys and the size of the window", "[gui][dialogs][print]") {
+TEST_CASE("Print: the sections, the keys and the size of the window", "[gui][dialogs][print]") {
     SettingsKept kept;
     PrintBookDialog::Book book = sampleBook();
     for (int i = 0; i < 30; ++i) {
@@ -238,17 +274,13 @@ TEST_CASE("Print: the tabs, the keys and the size of the window", "[gui][dialogs
 
     const auto check = [&]() {
         PrintBookDialog dialog(book, samplePrinters(), pages.maker(), {});
-        INFO(test::keyProblems(dialog, *dialog.tabs()).toStdString());
-        CHECK(test::keyProblems(dialog, *dialog.tabs()).isEmpty());
-        QStringList shown;
-        for (int tab = 0; tab < dialog.tabs()->count(); ++tab) {
-            shown << dialog.tabs()->tabText(tab);
-            dialog.tabs()->setCurrentIndex(tab);
-            INFO("The tab " << dialog.tabs()->tabText(tab).toStdString());
-            checkFitsSmallScreen(dialog);
-        }
+        // As it opens, and with all its sections open: the column of the sections scrolls
+        checkFitsSmallScreen(dialog);
+        const QString shown = openSections(dialog).join(QStringLiteral(" | "));
+        INFO(test::sectionKeyProblems(dialog).toStdString());
+        CHECK(test::sectionKeyProblems(dialog).isEmpty());
+        checkFitsSmallScreen(dialog);
         // The longest sentences: the print by hand, the booklet, the chosen texts
-        dialog.tabs()->setCurrentIndex(0);
         chooseDuplex(dialog, Duplex::Manual);
         CHECK_FALSE(dialog.duplexNote().isEmpty());
         checkFitsSmallScreen(dialog);
@@ -258,17 +290,27 @@ TEST_CASE("Print: the tabs, the keys and the size of the window", "[gui][dialogs
         checkFitsSmallScreen(dialog);
         dialog.setContent(PrintBookDialog::Content::Chosen);
         checkFitsSmallScreen(dialog);
-        return shown.join(QStringLiteral(" | "));
+        // The column as wide as its widest field: nothing in it scrolls sideways
+        dialog.show();
+        QCoreApplication::processEvents();
+        for (const auto which : allSections()) {
+            gui::CollapsibleSection* section = dialog.section(which);
+            INFO(section->header()->text().toStdString());
+            CHECK(section->body()->minimumSizeHint().width() <= section->width());
+        }
+        return shown;
     };
 
     SECTION("In English") {
-        CHECK(check() == QStringLiteral("Pri&nter | Text&s | La&yout | On the Sh&eet"));
+        CHECK(check() == QStringLiteral("Pri&nter | &What to Print | Pa&ges | &Sheet | Boo&k Page | "
+                                        "&Look of the Text"));
     }
 
     SECTION("In Polish") {
         Polish polish;
         REQUIRE(polish.loaded());
-        CHECK(check() == QStringLiteral("&Drukarka | T&eksty | U&kład | &Na kartce"));
+        CHECK(check() == QStringLiteral("&Drukarka | C&o drukować | Stro&ny | &Kartka | "
+                                        "Strona ks&iążki | Wyg&ląd tekstu"));
     }
 
     SECTION("In Polish, with the font of 13 pixels of Windows and macOS") {
@@ -284,7 +326,7 @@ TEST_CASE("Print: the tabs, the keys and the size of the window", "[gui][dialogs
         Printed printed;
         PrintBookDialog dialog(book, samplePrinters(), pages.maker(), printed.printing(&shown));
         shown = &dialog;
-        dialog.tabs()->setCurrentIndex(2);
+        openSections(dialog);
         dialog.accept();
         REQUIRE(dialog.isDone());
         CHECK_FALSE(dialog.progressBar()->isVisibleTo(&dialog));
@@ -351,13 +393,10 @@ TEST_CASE("Print: a series, the list Volume, its keys and the size of the window
                                         "and Back Again")});
     const auto check = [&]() {
         PrintBookDialog dialog(book, samplePrinters(), pages.maker(), {});
-        INFO(test::keyProblems(dialog, *dialog.tabs()).toStdString());
-        CHECK(test::keyProblems(dialog, *dialog.tabs()).isEmpty());
-        for (int tab = 0; tab < dialog.tabs()->count(); ++tab) {
-            dialog.tabs()->setCurrentIndex(tab);
-            INFO("The tab " << dialog.tabs()->tabText(tab).toStdString());
-            checkFitsSmallScreen(dialog);
-        }
+        openSections(dialog);
+        INFO(test::sectionKeyProblems(dialog).toStdString());
+        CHECK(test::sectionKeyProblems(dialog).isEmpty());
+        checkFitsSmallScreen(dialog);
         dialog.setContent(PrintBookDialog::Content::Chosen);
         checkFitsSmallScreen(dialog);
     };
@@ -581,7 +620,7 @@ TEST_CASE("Print: the pages chosen, the sheets and the preview", "[gui][dialogs]
         dialog.setContent(PrintBookDialog::Content::Chosen);
         dialog.checkNone();
         CHECK(dialog.statusText() ==
-              QStringLiteral("Nothing to print: choose the texts on the tab \"Texts\"."));
+              QStringLiteral("Nothing to print: choose the texts in \"What to Print\"."));
         CHECK(dialog.previewMessage() == QStringLiteral("No text is chosen."));
         CHECK_FALSE(dialog.acceptButton()->isEnabled());
         dialog.checkAll();
@@ -763,9 +802,335 @@ TEST_CASE("Print: the window keeps its choices", "[gui][dialogs][print]") {
     noBook.frontTitle = QStringLiteral("Notes");
     PrintBookDialog alone(noBook, samplePrinters(), pages.maker(), {});
     CHECK(alone.frontButton()->isChecked());
-    CHECK_FALSE(onItsTab(alone.bookButton()));
+    CHECK(alone.bookButton()->isHidden());
+    CHECK(alone.chooseTextsButton()->isHidden());
 }
 
+
+TEST_CASE("Print: the sections, what they say while closed, and the keys that open them",
+          "[gui][dialogs][print]") {
+    using Section = PrintBookDialog::Section;
+    SettingsKept kept;
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set<std::string>("print.openSections", "printer,content,pages");
+    settings.set<std::string>("editor.page.size", "A4");
+    settings.set<bool>("editor.margins.mirrorEnabled", false);
+    for (const char* key : {"editor.margins.pageTop", "editor.margins.pageBottom",
+                            "editor.margins.pageLeft", "editor.margins.pageRight"}) {
+        settings.set<double>(key, 20.0);
+    }
+    PageMaker pages;
+    PrintBookDialog dialog(sampleBook(), samplePrinters(), pages.maker(), {});
+
+    // The printer, the texts and the pages open at first; the sheet, the page and the look
+    // of the text say what they hold
+    CHECK(dialog.section(Section::Printer)->isExpanded());
+    CHECK(dialog.section(Section::Content)->isExpanded());
+    CHECK(dialog.section(Section::Pages)->isExpanded());
+    CHECK_FALSE(dialog.section(Section::Sheet)->isExpanded());
+    CHECK_FALSE(dialog.section(Section::BookPage)->isExpanded());
+    CHECK_FALSE(dialog.section(Section::Look)->isExpanded());
+    CHECK(dialog.section(Section::Sheet)->summary() == QStringLiteral("A4 · one page · fitted"));
+    const QString margins = dialog.section(Section::BookPage)->summary();
+    INFO(margins.toStdString());
+    CHECK(margins.startsWith(QStringLiteral("A4 · margins ")));
+    CHECK_FALSE(margins.contains(QLatin1Char('/')));
+    CHECK_FALSE(dialog.section(Section::Look)->summary().isEmpty());
+    // The summary is the description of the header for screen readers
+    CHECK(dialog.section(Section::Sheet)->header()->accessibleDescription() ==
+          dialog.section(Section::Sheet)->summary());
+
+    SECTION("The summaries follow the fields") {
+        CHECK(dialog.section(Section::Printer)->summary() == QStringLiteral("Office"));
+        dialog.copiesBox()->setValue(3);
+        CHECK(dialog.section(Section::Printer)->summary().startsWith(QStringLiteral("Office · 3")));
+        CHECK(dialog.section(Section::Content)->summary() == QStringLiteral("Text in front"));
+        dialog.setContent(PrintBookDialog::Content::Book);
+        CHECK(dialog.section(Section::Content)->summary() == QStringLiteral("Whole book"));
+        CHECK(dialog.section(Section::Pages)->summary() == QStringLiteral("All"));
+        dialog.rangeButton()->setChecked(true);
+        dialog.rangeField()->setText(QStringLiteral("2-4"));
+        dialog.parityBox()->setCurrentIndex(1);  // odd
+        dialog.reverseBox()->setChecked(true);
+        CHECK(dialog.section(Section::Pages)->summary() ==
+              QStringLiteral("Range: 2-4 · odd only · from the end"));
+        dialog.sheetButton(SheetLayout::TwoPages)->setChecked(true);
+        dialog.printerBox()->setCurrentIndex(1);  // both sides
+        CHECK(dialog.section(Section::Sheet)->summary() ==
+              QStringLiteral("A4 · two pages side by side · two-sided"));
+        dialog.marginBox(PrintBookDialog::Margin::Left)->setStoredValue(25.0);
+        QCoreApplication::processEvents();  // the page follows its settings
+        QCoreApplication::processEvents();  // and the pages are laid out again
+        CHECK(dialog.section(Section::BookPage)->summary().count(QLatin1Char('/')) == 3);
+    }
+
+    SECTION("A click, Enter and Space open and close a section") {
+        SectionHeader* header = dialog.section(Section::Sheet)->header();
+        header->click();
+        CHECK(dialog.section(Section::Sheet)->isExpanded());
+        CHECK(dialog.section(Section::Sheet)->body()->isVisibleTo(&dialog));
+        press(header, Qt::Key_Return);
+        CHECK_FALSE(dialog.section(Section::Sheet)->isExpanded());
+        CHECK_FALSE(dialog.section(Section::Sheet)->body()->isVisibleTo(&dialog));
+    }
+
+    SECTION("Alt and the key of the title open a section and go to its first field") {
+        gui::CollapsibleSection* sheet = dialog.section(Section::Sheet);
+        CHECK(sheet->firstField() == dialog.paperBox());
+        sheet->openAndFocus();
+        CHECK(sheet->isExpanded());
+        // Of radio buttons that go together, the one checked
+        CHECK(dialog.section(Section::Pages)->firstField() == dialog.allPagesButton());
+        dialog.rangeButton()->setChecked(true);
+        CHECK(dialog.section(Section::Pages)->firstField() == dialog.rangeButton());
+        CHECK(dialog.section(Section::BookPage)->firstField() == dialog.pageSizeBox());
+    }
+
+    SECTION("The window remembers the sections open") {
+        dialog.section(Section::Printer)->setExpanded(false);
+        dialog.section(Section::BookPage)->setExpanded(true);
+        CHECK(settings.get<std::string>("print.openSections") == "content,pages,bookPage");
+        PrintBookDialog again(sampleBook(), samplePrinters(), pages.maker(), {});
+        CHECK_FALSE(again.section(Section::Printer)->isExpanded());
+        CHECK(again.section(Section::BookPage)->isExpanded());
+    }
+}
+
+TEST_CASE("Print: the texts chosen in a window of their own", "[gui][dialogs][print]") {
+    SettingsKept kept;
+    PageMaker pages;
+    PrintBookDialog dialog(sampleBook(), samplePrinters(), pages.maker(), {});
+    REQUIRE(dialog.chooseTextsButton() != nullptr);
+    REQUIRE(dialog.chosenTextsWindow() != nullptr);
+    CHECK(dialog.chooseTextsButton()->isVisibleTo(&dialog));
+    // The list is in its window, not in the section
+    CHECK_FALSE(dialog.textList()->isVisibleTo(&dialog));
+    dialog.setContent(PrintBookDialog::Content::Book);
+
+    SECTION("Cancelled: the texts stay as they were") {
+        const QStringList before = dialog.layoutChoice().chosen;
+        QTimer::singleShot(0, &dialog, [&dialog]() {
+            dialog.checkNone();
+            dialog.chosenTextsWindow()->reject();
+        });
+        dialog.chooseTextsButton()->click();
+        CHECK(dialog.bookButton()->isChecked());
+        CHECK(dialog.layoutChoice().chosen == before);
+    }
+
+    SECTION("Chosen: the texts chosen print") {
+        QString heading;
+        QTimer::singleShot(0, &dialog, [&dialog, &heading]() {
+            heading = dialog.chosenTextsWindow()->windowTitle();
+            dialog.checkNone();
+            dialog.textList()->topLevelItem(0)->child(0)->setCheckState(0, Qt::Checked);
+            dialog.chosenTextsWindow()->accept();
+        });
+        dialog.chooseTextsButton()->click();
+        CHECK(dialog.chosenButton()->isChecked());
+        CHECK(dialog.layoutChoice().content == PrintBookDialog::Content::Chosen);
+        CHECK(dialog.layoutChoice().chosen == QStringList{QStringLiteral("c1")});
+        QCoreApplication::processEvents();
+        CHECK(pages.last.chosen == QStringList{QStringLiteral("c1")});
+    }
+}
+
+TEST_CASE("Print: the paper sources, the qualities and the window of the driver",
+          "[gui][dialogs][print]") {
+    using DriverChoice = PrintBookDialog::DriverChoice;
+    SettingsKept kept;
+    PageMaker pages;
+    QList<PrintBookDialog::Printer> printers = samplePrinters();
+    // The default printer "Office" lists its trays and its qualities
+    printers[1].sources = {{7, QStringLiteral("Automatically Select")},
+                           {1, QStringLiteral("Tray 1")},
+                           {2, QStringLiteral("Tray 2")}};
+    printers[1].source = 2;
+    printers[1].qualities = {QSize(300, 300), QSize(600, 600), QSize(1200, 600)};
+    printers[1].quality = QSize(600, 600);
+    PrintBookDialog dialog(sampleBook(), printers, pages.maker(), {});
+
+    CHECK(itemsOf(dialog.sourceBox()) ==
+          QStringList{QStringLiteral("Automatically Select"), QStringLiteral("Tray 1"),
+                      QStringLiteral("Tray 2")});
+    CHECK(dialog.choice().source == 2);
+    CHECK(itemsOf(dialog.qualityBox()) ==
+          QStringList{QStringLiteral("As the printer sets it"), QStringLiteral("300 dpi"),
+                      QStringLiteral("600 dpi"), QStringLiteral("1200 x 600 dpi")});
+    CHECK(dialog.choice().quality == QSize(600, 600));
+    dialog.qualityBox()->setCurrentIndex(0);
+    CHECK_FALSE(dialog.choice().quality.isValid());
+    // A printer that lists none: the rows go
+    dialog.printerBox()->setCurrentIndex(1);
+    CHECK(dialog.sourceBox()->parentWidget()->isHidden());
+    CHECK(dialog.qualityBox()->parentWidget()->isHidden());
+    CHECK(dialog.choice().source == -1);
+    CHECK_FALSE(dialog.choice().quality.isValid());
+    dialog.printerBox()->setCurrentIndex(0);
+    CHECK_FALSE(dialog.sourceBox()->parentWidget()->isHidden());
+
+    // Without the window of the driver (a system without one) the button waits
+    CHECK_FALSE(dialog.driverButton()->isEnabled());
+
+    PrintBookDialog::Choice shown;
+    std::optional<DriverChoice> answer;
+    dialog.setDriverWindow([&shown, &answer](const PrintBookDialog::Choice& choice, QWidget*) {
+        shown = choice;
+        return answer;
+    });
+    REQUIRE(dialog.driverButton()->isEnabled());
+
+    SECTION("Its choices go to the fields of the window and to the print") {
+        dialog.copiesBox()->setValue(2);
+        DriverChoice chosen;
+        chosen.settings = QByteArrayLiteral("the settings of the driver");
+        chosen.paper = QPageSize(QPageSize::A5);
+        chosen.copies = 3;
+        chosen.collate = false;
+        chosen.color = false;
+        chosen.source = 1;
+        chosen.quality = QSize(300, 300);
+        answer = chosen;
+        dialog.driverButton()->click();
+        // It showed the choices of the window
+        CHECK(shown.printer == QStringLiteral("Office"));
+        CHECK(shown.copies == 2);
+        CHECK(shown.source == 2);
+        const PrintBookDialog::Choice now = dialog.choice();
+        CHECK(now.paper.id() == QPageSize::A5);
+        CHECK(now.copies == 3);
+        CHECK_FALSE(now.collate);
+        CHECK_FALSE(now.color);
+        CHECK(now.source == 1);
+        CHECK(now.quality == QSize(300, 300));
+        CHECK(now.driverSettings == QByteArrayLiteral("the settings of the driver"));
+        // Another printer: the settings of the driver go
+        dialog.printerBox()->setCurrentIndex(1);
+        CHECK(dialog.choice().driverSettings.isEmpty());
+    }
+
+    SECTION("Both sides as the driver chose, unless the sheets are a booklet") {
+        dialog.printerBox()->setCurrentIndex(1);  // "Study" prints on both sides
+        DriverChoice chosen;
+        chosen.duplex = Duplex::ShortEdge;
+        answer = chosen;
+        dialog.driverButton()->click();
+        CHECK(dialog.choice().duplex == Duplex::ShortEdge);
+        dialog.sheetButton(SheetLayout::Booklet)->setChecked(true);
+        chosen.duplex = Duplex::None;
+        answer = chosen;
+        dialog.driverButton()->click();
+        CHECK(dialog.choice().duplex == Duplex::ShortEdge);
+    }
+
+    SECTION("Cancelled: nothing changes") {
+        answer.reset();
+        const PrintBookDialog::Choice before = dialog.choice();
+        dialog.driverButton()->click();
+        CHECK(dialog.choice().paper.isEquivalentTo(before.paper));
+        CHECK(dialog.choice().source == before.source);
+        CHECK(dialog.choice().driverSettings.isEmpty());
+    }
+}
+
+TEST_CASE("Print: the page of the book is the page of Settings", "[gui][dialogs][print]") {
+    using Margin = PrintBookDialog::Margin;
+    SettingsKept kept;
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set<std::string>("print.openSections", "bookPage");
+    settings.set<std::string>("editor.page.size", "A5");
+    settings.set<bool>("editor.margins.mirrorEnabled", false);
+    settings.set<double>("editor.margins.pageTop", 20.0);
+    settings.set<double>("editor.margins.pageBottom", 22.0);
+    settings.set<double>("editor.margins.pageLeft", 25.0);
+    settings.set<double>("editor.margins.pageRight", 15.0);
+    PageMaker pages;
+    PrintBookDialog dialog(sampleBook(), samplePrinters(), pages.maker(), {});
+    const auto stored = [&dialog](Margin margin) {
+        return dialog.marginBox(margin)->storedValue();
+    };
+
+    CHECK(dialog.pageSizeBox()->currentData().toString() == QStringLiteral("A5"));
+    CHECK(dialog.pageWidthBox()->isHidden());
+    CHECK(dialog.pageHeightBox()->isHidden());
+    CHECK(stored(Margin::Top) == Catch::Approx(20.0));
+    CHECK(stored(Margin::Bottom) == Catch::Approx(22.0));
+    CHECK(stored(Margin::Left) == Catch::Approx(25.0));
+    CHECK(stored(Margin::Right) == Catch::Approx(15.0));
+    CHECK_FALSE(dialog.marginBox(Margin::Left)->isHidden());
+    CHECK(dialog.marginBox(Margin::Inner)->isHidden());
+    CHECK(dialog.actualSizeButton()->text() == QStringLiteral("&Actual size (A5)"));
+
+    // The fields write the settings, and the pages are laid out again
+    const int calls = pages.calls;
+    dialog.marginBox(Margin::Top)->setStoredValue(30.0);
+    CHECK(settings.get<double>("editor.margins.pageTop") == Catch::Approx(30.0));
+    QCoreApplication::processEvents();  // the page follows its settings
+    QCoreApplication::processEvents();  // and the pages are laid out again
+    CHECK(pages.calls > calls);
+
+    // Mirror margins: the inner one and the outer one instead of the left and the right one
+    dialog.mirrorBox()->setChecked(true);
+    CHECK(settings.get<bool>("editor.margins.mirrorEnabled"));
+    CHECK(dialog.marginBox(Margin::Left)->isHidden());
+    CHECK_FALSE(dialog.marginBox(Margin::Inner)->isHidden());
+    CHECK_FALSE(dialog.marginBox(Margin::Outer)->isHidden());
+
+    // A size of its own: its width and its height
+    dialog.pageSizeBox()->setCurrentIndex(dialog.pageSizeBox()->findData(QStringLiteral("Custom")));
+    CHECK(settings.get<std::string>("editor.page.size") == "Custom");
+    CHECK_FALSE(dialog.pageWidthBox()->isHidden());
+    dialog.pageWidthBox()->setStoredValue(170.0);
+    CHECK(settings.get<double>("editor.page.customWidth") == Catch::Approx(170.0));
+
+    // A change in Settings shows in the window
+    settings.set<double>("editor.margins.pageBottom", 12.0);
+    settings.set<std::string>("editor.page.size", "B5");
+    QCoreApplication::processEvents();
+    CHECK(stored(Margin::Bottom) == Catch::Approx(12.0));
+    CHECK(dialog.pageSizeBox()->currentData().toString() == QStringLiteral("B5"));
+    CHECK(dialog.pageWidthBox()->isHidden());
+}
+
+TEST_CASE("Print: the preview of the whole sheet and of its width", "[gui][dialogs][print]") {
+    using Zoom = PrintBookDialog::Zoom;
+    SettingsKept kept;
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set<std::string>("print.previewZoom", "wholeSheet");
+    PageMaker pages;
+    PrintBookDialog dialog(sampleBook(), samplePrinters(), pages.maker(), {});
+    dialog.show();
+    QCoreApplication::processEvents();
+    QScrollBar* bar = dialog.previewScrollBar();
+    REQUIRE(bar != nullptr);
+
+    CHECK(dialog.zoom() == Zoom::WholeSheet);
+    CHECK(dialog.zoomButton(Zoom::WholeSheet)->isChecked());
+    CHECK_FALSE(bar->isVisibleTo(&dialog));
+
+    // As wide as the preview: the sheet scrolls, with its bar and with the keys
+    dialog.zoomButton(Zoom::Width)->click();
+    QCoreApplication::processEvents();
+    CHECK(dialog.zoom() == Zoom::Width);
+    CHECK(settings.get<std::string>("print.previewZoom") == "width");
+    CHECK(bar->isVisibleTo(&dialog));
+    REQUIRE(bar->maximum() > 0);
+    press(dialog.preview(), Qt::Key_Down);
+    CHECK(bar->value() > 0);
+    press(dialog.preview(), Qt::Key_Up);
+    CHECK(bar->value() == 0);
+    bar->setValue(bar->maximum());
+    // Another sheet shows from its top
+    press(dialog.preview(), Qt::Key_PageDown);
+    CHECK(dialog.shownSide() == 1);
+    CHECK(bar->value() == 0);
+
+    // The window remembers it
+    PrintBookDialog again(sampleBook(), samplePrinters(), pages.maker(), {});
+    CHECK(again.zoom() == Zoom::Width);
+    again.setZoom(Zoom::WholeSheet);
+    CHECK(settings.get<std::string>("print.previewZoom") == "wholeSheet");
+}
 
 TEST_CASE("Print: the pages of the book as the program has it, and the page of the cursor",
           "[gui][print]") {

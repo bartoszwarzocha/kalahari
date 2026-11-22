@@ -29589,11 +29589,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <extracomment>The tip of the running head. In Polish: U góry stron, bez stron tytułowych i pierwszych stron rozdziałów.</extracomment>
         <translation>U góry stron, bez stron tytułowych i pierwszych stron rozdziałów.</translation>
     </message>
-    <message>
-        <source>The size and the margins: Settings › Editor › Pages and Margins.</source>
-        <extracomment>Under the page of the print. In Polish: Rozmiar i marginesy: Ustawienia › Edytor › Strony i marginesy.</extracomment>
-        <translation>Rozmiar i marginesy: Ustawienia › Edytor › Strony i marginesy.</translation>
-    </message>
     <message numerus="yes">
         <source>Set for the &amp;publisher (%n parts)</source>
         <extracomment>%n: the parts of the set for a publisher that have a text. In Polish: Zes&amp;taw dla wydawnictwa (%n część / części / części)</extracomment>
@@ -29607,6 +29602,35 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>&amp;Volume:</source>
         <extracomment>The list of the volumes of a series in the windows of the export and of the print. In Polish: To&amp;m:</extracomment>
         <translation>To&amp;m:</translation>
+    </message>
+    <message>
+        <source>Choose Te&amp;xts...</source>
+        <extracomment>Beside the chosen texts in the window of the print: opens their list. In Polish: W&amp;ybierz teksty...</extracomment>
+        <translation>W&amp;ybierz teksty...</translation>
+    </message>
+    <message>
+        <source>Choose</source>
+        <extracomment>The button of the small window of the texts to print. In Polish: Wybierz</extracomment>
+        <translation>Wybierz</translation>
+    </message>
+    <message>
+        <source>Choose Texts</source>
+        <extracomment>The title of the small window of the texts to print. In Polish: Wybierz teksty</extracomment>
+        <translation>Wybierz teksty</translation>
+    </message>
+    <message>
+        <source>Check the texts of the book &quot;%1&quot; to print.</source>
+        <extracomment>Under the title of the small window of the texts to print; %1: the title of the book or of the volume. In Polish: Zaznacz teksty książki „%1” do wydruku.</extracomment>
+        <translation>Zaznacz teksty książki „%1” do wydruku.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 of %n</source>
+        <extracomment>Beside Choose Texts... of the window of the print; %1: how many texts are checked, %n: how many there are. In Polish: %1 z %n</extracomment>
+        <translation>
+            <numerusform>%1 z %n</numerusform>
+            <numerusform>%1 z %n</numerusform>
+            <numerusform>%1 z %n</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -33120,7 +33144,7 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
     </message>
     <message>
         <source>Pri&amp;nter</source>
-        <extracomment>A tab of the window of the print. In Polish: &amp;Drukarka</extracomment>
+        <extracomment>A section of the window of the print. In Polish: &amp;Drukarka</extracomment>
         <translation>&amp;Drukarka</translation>
     </message>
     <message>
@@ -33129,19 +33153,14 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <translation>%1 (domyślna)</translation>
     </message>
     <message>
-        <source>Prin&amp;ter:</source>
-        <extracomment>In Polish: D&amp;rukarka:</extracomment>
-        <translation>D&amp;rukarka:</translation>
-    </message>
-    <message>
         <source>C&amp;ollate</source>
         <extracomment>Each copy whole before the next. In Polish: &amp;Sortuj kopie</extracomment>
         <translation>&amp;Sortuj kopie</translation>
     </message>
     <message>
         <source>&amp;Copies:</source>
-        <extracomment>In Polish: K&amp;opie:</extracomment>
-        <translation>K&amp;opie:</translation>
+        <extracomment>In Polish: Kopi&amp;e:</extracomment>
+        <translation>Kopi&amp;e:</translation>
     </message>
     <message>
         <source>&amp;All</source>
@@ -33164,11 +33183,6 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <translation>Zakres stron</translation>
     </message>
     <message>
-        <source>Pages:</source>
-        <extracomment>In Polish: Strony:</extracomment>
-        <translation>Strony:</translation>
-    </message>
-    <message>
         <source>All pages</source>
         <extracomment>Which of the pages print. In Polish: Wszystkie strony</extracomment>
         <translation>Wszystkie strony</translation>
@@ -33184,28 +33198,9 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <translation>Tylko parzyste</translation>
     </message>
     <message>
-        <source>Pr&amp;int:</source>
-        <extracomment>In Polish: Dr&amp;ukuj:</extracomment>
-        <translation>Dr&amp;ukuj:</translation>
-    </message>
-    <message>
-        <source>T&amp;wo-sided:</source>
-        <extracomment>Printing on both sides of the sheets. In Polish: Dwustronn&amp;ie:</extracomment>
-        <translation>Dwustronn&amp;ie:</translation>
-    </message>
-    <message>
         <source>&amp;Paper:</source>
         <extracomment>In Polish: P&amp;apier:</extracomment>
         <translation>P&amp;apier:</translation>
-    </message>
-    <message>
-        <source>Co&amp;lor:</source>
-        <extracomment>In Polish: Ko&amp;lor:</extracomment>
-        <translation>Ko&amp;lor:</translation>
-    </message>
-    <message>
-        <source>Text&amp;s</source>
-        <translation>T&amp;eksty</translation>
     </message>
     <message>
         <source>The text prints also with its unsaved changes.</source>
@@ -33216,17 +33211,8 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <translation>Za pierwszym razem okno wybiera tekst na wierzchu, a potem pamięta ostatni wybór.</translation>
     </message>
     <message>
-        <source>La&amp;yout</source>
-        <translation>U&amp;kład</translation>
-    </message>
-    <message>
-        <source>On the Sh&amp;eet</source>
-        <extracomment>A tab of the window of the print: how the pages go on the sheets. In Polish: &amp;Na kartce</extracomment>
-        <translation>&amp;Na kartce</translation>
-    </message>
-    <message>
         <source>Pages of the book on a sheet</source>
-        <extracomment>A group of the tab of the sheets. In Polish: Strony książki na kartce</extracomment>
+        <extracomment>Over the pages on a sheet. In Polish: Strony książki na kartce</extracomment>
         <translation>Strony książki na kartce</translation>
     </message>
     <message>
@@ -33235,23 +33221,13 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <translation>&amp;Jedna strona</translation>
     </message>
     <message>
-        <source>T&amp;wo pages side by side</source>
-        <extracomment>In Polish: Dwie strony o&amp;bok siebie</extracomment>
-        <translation>Dwie strony o&amp;bok siebie</translation>
-    </message>
-    <message>
-        <source>&amp;Booklet to fold in half</source>
-        <extracomment>In Polish: Broszur&amp;a do złożenia na pół</extracomment>
-        <translation>Broszur&amp;a do złożenia na pół</translation>
-    </message>
-    <message>
         <source>Folded in half, the stack of the sheets reads in order.</source>
         <extracomment>Under the booklet. In Polish: Po złożeniu na pół stos kartek czyta się po kolei.</extracomment>
         <translation>Po złożeniu na pół stos kartek czyta się po kolei.</translation>
     </message>
     <message>
         <source>Size</source>
-        <extracomment>A group of the tab of the sheets: the size of the pages on them. In Polish: Rozmiar</extracomment>
+        <extracomment>Over the size of the pages on a sheet. In Polish: Rozmiar</extracomment>
         <translation>Rozmiar</translation>
     </message>
     <message>
@@ -33263,11 +33239,6 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <source>&amp;Actual size (%1)</source>
         <extracomment>The page of its own size in the middle of the sheet; %1: its size (A5). In Polish: R&amp;zeczywisty rozmiar (%1)</extracomment>
         <translation>R&amp;zeczywisty rozmiar (%1)</translation>
-    </message>
-    <message>
-        <source>&amp;Crop marks</source>
-        <extracomment>The marks of the corners of a page, where the sheet is cut. In Polish: Znaczniki &amp;cięcia</extracomment>
-        <translation>Znaczniki &amp;cięcia</translation>
     </message>
     <message>
         <source>Preview</source>
@@ -33464,11 +33435,6 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <translation>Nie wybrano żadnego tekstu.</translation>
     </message>
     <message>
-        <source>Nothing to print: choose the texts on the tab &quot;Texts&quot;.</source>
-        <extracomment>Under the tabs, when no text is chosen. In Polish: Nie ma czego drukować: wybierz teksty na zakładce „Teksty”.</extracomment>
-        <translation>Nie ma czego drukować: wybierz teksty na zakładce „Teksty”.</translation>
-    </message>
-    <message>
         <source>Type the pages of the range.</source>
         <extracomment>In the preview, while the field of the range is empty. In Polish: Wpisz strony zakresu.</extracomment>
         <translation>Wpisz strony zakresu.</translation>
@@ -33577,8 +33543,336 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
     </message>
     <message>
         <source>Re&amp;verse order</source>
-        <extracomment>Beside the pages that print: the last sheet first, for a printer that lays the sheets face up. In Polish: W odwrotne&amp;j kolejności</extracomment>
+        <extracomment>Beside the odd and the even pages: the last sheet first, for a printer that lays the sheets face up. In Polish: W odwrotne&amp;j kolejności</extracomment>
         <translation>W odwrotne&amp;j kolejności</translation>
+    </message>
+    <message>
+        <source>%1 dpi</source>
+        <extracomment>A quality of a printer; %1: its dots per inch. In Polish: %1 dpi</extracomment>
+        <translation>%1 dpi</translation>
+    </message>
+    <message>
+        <source>%1 x %2 dpi</source>
+        <extracomment>A quality of a printer; %1 and %2: its dots per inch across and down. In Polish: %1 × %2 dpi</extracomment>
+        <translation>%1 × %2 dpi</translation>
+    </message>
+    <message>
+        <source>&amp;What to Print</source>
+        <extracomment>A section of the window of the print: the texts that print. In Polish: C&amp;o drukować</extracomment>
+        <translation>C&amp;o drukować</translation>
+    </message>
+    <message>
+        <source>&amp;Look of the Text</source>
+        <extracomment>A section of the window of the print: the layout of the texts, as in the export. In Polish: Wyg&amp;ląd tekstu</extracomment>
+        <translation>Wyg&amp;ląd tekstu</translation>
+    </message>
+    <message>
+        <source>Printer P&amp;roperties...</source>
+        <extracomment>Opens the window of the driver of the printer. In Polish: Właściwości dr&amp;ukarki...</extracomment>
+        <translation>Właściwości dr&amp;ukarki...</translation>
+    </message>
+    <message>
+        <source>Printer:</source>
+        <extracomment>The label of the list of the printers, without an access key: the section has it. In Polish: Drukarka:</extracomment>
+        <translation>Drukarka:</translation>
+    </message>
+    <message>
+        <source>Paper so&amp;urce:</source>
+        <extracomment>The tray the paper comes from. In Polish: &amp;Podajnik:</extracomment>
+        <translation>&amp;Podajnik:</translation>
+    </message>
+    <message>
+        <source>&amp;Quality:</source>
+        <extracomment>The resolution of the print. In Polish: J&amp;akość:</extracomment>
+        <translation>J&amp;akość:</translation>
+    </message>
+    <message>
+        <source>Pa&amp;ges</source>
+        <extracomment>A section of the window of the print: which pages print. In Polish: Stro&amp;ny</extracomment>
+        <translation>Stro&amp;ny</translation>
+    </message>
+    <message>
+        <source>Odd and even pages</source>
+        <extracomment>The name of the list of the odd and the even pages for screen readers. In Polish: Strony nieparzyste i parzyste</extracomment>
+        <translation>Strony nieparzyste i parzyste</translation>
+    </message>
+    <message>
+        <source>&amp;Sheet</source>
+        <extracomment>A section of the window of the print: the sheet of the printer. In Polish: &amp;Kartka</extracomment>
+        <translation>&amp;Kartka</translation>
+    </message>
+    <message>
+        <source>&amp;Color:</source>
+        <extracomment>In Polish: Kolo&amp;r:</extracomment>
+        <translation>Kolo&amp;r:</translation>
+    </message>
+    <message>
+        <source>Two-si&amp;ded:</source>
+        <extracomment>Printing on both sides of the sheets. In Polish: D&amp;wustronnie:</extracomment>
+        <translation>D&amp;wustronnie:</translation>
+    </message>
+    <message>
+        <source>Two pages side &amp;by side</source>
+        <extracomment>In Polish: Dwie strony o&amp;bok siebie</extracomment>
+        <translation>Dwie strony o&amp;bok siebie</translation>
+    </message>
+    <message>
+        <source>Booklet to fold &amp;in half</source>
+        <extracomment>In Polish: Bro&amp;szura do złożenia na pół</extracomment>
+        <translation>Bro&amp;szura do złożenia na pół</translation>
+    </message>
+    <message>
+        <source>C&amp;rop marks</source>
+        <extracomment>The marks of the corners of a page, where the sheet is cut. In Polish: Znaczniki &amp;cięcia</extracomment>
+        <translation>Znaczniki &amp;cięcia</translation>
+    </message>
+    <message>
+        <source>Boo&amp;k Page</source>
+        <extracomment>A section of the window of the print: the size and the margins of the pages. In Polish: Strona ks&amp;iążki</extracomment>
+        <translation>Strona ks&amp;iążki</translation>
+    </message>
+    <message>
+        <source>A4 (210 x 297 mm)</source>
+        <extracomment>A size of the page of the book. In Polish: A4 (210 × 297 mm)</extracomment>
+        <translation>A4 (210 × 297 mm)</translation>
+    </message>
+    <message>
+        <source>A5 (148 x 210 mm)</source>
+        <extracomment>A size of the page of the book. In Polish: A5 (148 × 210 mm)</extracomment>
+        <translation>A5 (148 × 210 mm)</translation>
+    </message>
+    <message>
+        <source>B5 (176 x 250 mm)</source>
+        <extracomment>A size of the page of the book. In Polish: B5 (176 × 250 mm)</extracomment>
+        <translation>B5 (176 × 250 mm)</translation>
+    </message>
+    <message>
+        <source>6 x 9 in (152 x 229 mm)</source>
+        <extracomment>A size of the page of the book. In Polish: 6 × 9 cali (152 × 229 mm)</extracomment>
+        <translation>6 × 9 cali (152 × 229 mm)</translation>
+    </message>
+    <message>
+        <source>Letter (8.5 x 11 in)</source>
+        <extracomment>A size of the page of the book. In Polish: Letter (8,5 × 11 cali)</extracomment>
+        <translation>Letter (8,5 × 11 cali)</translation>
+    </message>
+    <message>
+        <source>Legal (8.5 x 14 in)</source>
+        <extracomment>A size of the page of the book. In Polish: Legal (8,5 × 14 cali)</extracomment>
+        <translation>Legal (8,5 × 14 cali)</translation>
+    </message>
+    <message>
+        <source>Custom</source>
+        <extracomment>A size of the page of the book of its own. In Polish: Własny</extracomment>
+        <translation>Własny</translation>
+    </message>
+    <message>
+        <source>Si&amp;ze:</source>
+        <extracomment>In Polish: Ro&amp;zmiar:</extracomment>
+        <translation>Ro&amp;zmiar:</translation>
+    </message>
+    <message>
+        <source>Wi&amp;dth:</source>
+        <extracomment>The width of a page of its own size. In Polish: Sz&amp;erokość:</extracomment>
+        <translation>Sz&amp;erokość:</translation>
+    </message>
+    <message>
+        <source>&amp;Height:</source>
+        <extracomment>The height of a page of its own size. In Polish: Wy&amp;sokość:</extracomment>
+        <translation>Wy&amp;sokość:</translation>
+    </message>
+    <message>
+        <source>&amp;Top</source>
+        <extracomment>A margin of the page. In Polish: &amp;Górny</extracomment>
+        <translation>&amp;Górny</translation>
+    </message>
+    <message>
+        <source>B&amp;ottom</source>
+        <extracomment>A margin of the page. In Polish: Doln&amp;y</extracomment>
+        <translation>Doln&amp;y</translation>
+    </message>
+    <message>
+        <source>Le&amp;ft</source>
+        <extracomment>A margin of the page. In Polish: Le&amp;wy</extracomment>
+        <translation>Le&amp;wy</translation>
+    </message>
+    <message>
+        <source>&amp;Right</source>
+        <extracomment>A margin of the page. In Polish: &amp;Prawy</extracomment>
+        <translation>&amp;Prawy</translation>
+    </message>
+    <message>
+        <source>&amp;Inner</source>
+        <extracomment>A margin of the page at the binding. In Polish: Wewnę&amp;trzny</extracomment>
+        <translation>Wewnę&amp;trzny</translation>
+    </message>
+    <message>
+        <source>O&amp;uter</source>
+        <extracomment>A margin of the page at the edge. In Polish: Zewnęt&amp;rzny</extracomment>
+        <translation>Zewnęt&amp;rzny</translation>
+    </message>
+    <message>
+        <source>Margins</source>
+        <extracomment>Over the margins of the page. In Polish: Marginesy</extracomment>
+        <translation>Marginesy</translation>
+    </message>
+    <message>
+        <source>&amp;Mirror margins (left and right pages)</source>
+        <extracomment>Mirror margins of the page. In Polish: L&amp;ustrzane marginesy (lewe i prawe strony)</extracomment>
+        <translation>L&amp;ustrzane marginesy (lewe i prawe strony)</translation>
+    </message>
+    <message>
+        <source>The same settings as Settings › Editor › Pages and Margins: a change changes also the view of the pages and the export to PDF.</source>
+        <extracomment>Under the page of the book in the window of the print. In Polish: Te same ustawienia co Ustawienia › Edytor › Strony i marginesy: zmiana dotyczy też widoku stron i eksportu do PDF.</extracomment>
+        <translation>Te same ustawienia co Ustawienia › Edytor › Strony i marginesy: zmiana dotyczy też widoku stron i eksportu do PDF.</translation>
+    </message>
+    <message>
+        <source>Whole Sheet</source>
+        <extracomment>The zoom of the preview: the whole sheet. In Polish: Cała kartka</extracomment>
+        <translation>Cała kartka</translation>
+    </message>
+    <message>
+        <source>Width</source>
+        <extracomment>The zoom of the preview: the sheet as wide as the preview. In Polish: Szerokość</extracomment>
+        <translation>Szerokość</translation>
+    </message>
+    <message>
+        <source>The whole sheet in the preview</source>
+        <extracomment>The tooltip of the zoom of the preview. In Polish: Cała kartka w podglądzie</extracomment>
+        <translation>Cała kartka w podglądzie</translation>
+    </message>
+    <message>
+        <source>The sheet as wide as the preview</source>
+        <extracomment>The tooltip of the zoom of the preview. In Polish: Kartka na szerokość podglądu</extracomment>
+        <translation>Kartka na szerokość podglądu</translation>
+    </message>
+    <message>
+        <source>As the printer sets it</source>
+        <extracomment>The quality of the print as the printer sets it. In Polish: Ustawienie drukarki</extracomment>
+        <translation>Ustawienie drukarki</translation>
+    </message>
+    <message>
+        <source>No printer</source>
+        <extracomment>The summary of the section of the printer without one. In Polish: Brak drukarki</extracomment>
+        <translation>Brak drukarki</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 · %n copies</source>
+        <extracomment>The summary of the section of the printer; %1: the printer, %n: the copies, more than one. In Polish: %1 · %n kopie / kopii</extracomment>
+        <translation>
+            <numerusform>%1 · %n kopia</numerusform>
+            <numerusform>%1 · %n kopie</numerusform>
+            <numerusform>%1 · %n kopii</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Text in front</source>
+        <extracomment>The summary of what prints. In Polish: Tekst na wierzchu</extracomment>
+        <translation>Tekst na wierzchu</translation>
+    </message>
+    <message>
+        <source>Whole book</source>
+        <extracomment>The summary of what prints. In Polish: Cała książka</extracomment>
+        <translation>Cała książka</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n chosen texts</source>
+        <extracomment>The summary of what prints. In Polish: %n wybrany tekst / wybrane teksty / wybranych tekstów</extracomment>
+        <translation>
+            <numerusform>%n wybrany tekst</numerusform>
+            <numerusform>%n wybrane teksty</numerusform>
+            <numerusform>%n wybranych tekstów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Set for the publisher</source>
+        <extracomment>The summary of what prints. In Polish: Zestaw dla wydawnictwa</extracomment>
+        <translation>Zestaw dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <extracomment>The summary of the pages: all of them. In Polish: Wszystkie</extracomment>
+        <translation>Wszystkie</translation>
+    </message>
+    <message>
+        <source>Range: %1</source>
+        <extracomment>The summary of the pages: a range; %1: as typed. In Polish: Zakres: %1</extracomment>
+        <translation>Zakres: %1</translation>
+    </message>
+    <message>
+        <source>odd only</source>
+        <extracomment>The summary of the pages: the odd ones. In Polish: tylko nieparzyste</extracomment>
+        <translation>tylko nieparzyste</translation>
+    </message>
+    <message>
+        <source>even only</source>
+        <extracomment>The summary of the pages: the even ones. In Polish: tylko parzyste</extracomment>
+        <translation>tylko parzyste</translation>
+    </message>
+    <message>
+        <source>from the end</source>
+        <extracomment>The summary of the pages: in the reverse order. In Polish: od końca</extracomment>
+        <translation>od końca</translation>
+    </message>
+    <message>
+        <source>one page</source>
+        <extracomment>The summary of the sheet. In Polish: jedna strona</extracomment>
+        <translation>jedna strona</translation>
+    </message>
+    <message>
+        <source>fitted</source>
+        <extracomment>The summary of the sheet: the page fitted to it. In Polish: dopasowana</extracomment>
+        <translation>dopasowana</translation>
+    </message>
+    <message>
+        <source>actual size</source>
+        <extracomment>The summary of the sheet: the page of its own size. In Polish: rzeczywisty rozmiar</extracomment>
+        <translation>rzeczywisty rozmiar</translation>
+    </message>
+    <message>
+        <source>two pages side by side</source>
+        <extracomment>The summary of the sheet. In Polish: dwie strony obok siebie</extracomment>
+        <translation>dwie strony obok siebie</translation>
+    </message>
+    <message>
+        <source>booklet</source>
+        <extracomment>The summary of the sheet. In Polish: broszura</extracomment>
+        <translation>broszura</translation>
+    </message>
+    <message>
+        <source>two-sided</source>
+        <extracomment>The summary of the sheet: printed on both sides. In Polish: dwustronnie</extracomment>
+        <translation>dwustronnie</translation>
+    </message>
+    <message>
+        <source>margins %1</source>
+        <extracomment>The summary of the page of the book: its margins; %1: one length, or the top, the bottom, the left and the right one. In Polish: marginesy %1</extracomment>
+        <translation>marginesy %1</translation>
+    </message>
+    <message>
+        <source>no running head</source>
+        <extracomment>The summary of the look of the text. In Polish: bez żywej paginy</extracomment>
+        <translation>bez żywej paginy</translation>
+    </message>
+    <message>
+        <source>running head</source>
+        <extracomment>The summary of the look of the text. In Polish: żywa pagina</extracomment>
+        <translation>żywa pagina</translation>
+    </message>
+    <message>
+        <source>The window of the printer&apos;s driver: its own settings, as the type of paper and saving the toner</source>
+        <extracomment>The tooltip of Printer Properties... In Polish: Okno sterownika drukarki: jego własne ustawienia, np. rodzaj papieru i oszczędzanie tonera</extracomment>
+        <translation>Okno sterownika drukarki: jego własne ustawienia, np. rodzaj papieru i oszczędzanie tonera</translation>
+    </message>
+    <message>
+        <source>The window of the printer&apos;s driver is there only on Windows.</source>
+        <extracomment>The tooltip of Printer Properties... without such a window. In Polish: Okno sterownika drukarki jest dostępne tylko w Windows.</extracomment>
+        <translation>Okno sterownika drukarki jest dostępne tylko w Windows.</translation>
+    </message>
+    <message>
+        <source>Nothing to print: choose the texts in &quot;What to Print&quot;.</source>
+        <extracomment>Under the preview, when no text is chosen. In Polish: Nie ma czego drukować: wybierz teksty w sekcji „Co drukować”.</extracomment>
+        <translation>Nie ma czego drukować: wybierz teksty w sekcji „Co drukować”.</translation>
     </message>
 </context>
 <context>

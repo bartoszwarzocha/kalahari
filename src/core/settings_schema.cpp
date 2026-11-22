@@ -428,6 +428,9 @@ std::map<std::string, json> buildDefaults() {
         {"print.sheet.layout", "onePage"},
         {"print.sheet.fit", true},
         {"print.sheet.cropMarks", false},
+        // The sections of the window of the print open the last time, and its zoom
+        {"print.openSections", "printer,content,pages"},
+        {"print.previewZoom", "wholeSheet"},
         // File > Import > DOCX, Markdown and Plain Text: the writer's last choices of the
         // window. Where the texts go: "book" (the open book), "newBook" or "otherFiles"; more
         // files each as one text

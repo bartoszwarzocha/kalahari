@@ -16,9 +16,11 @@
 
 #include <functional>
 #include <string>
+#include <utility>
 
 class QCheckBox;
 class QComboBox;
+class QPushButton;
 class QGridLayout;
 class QLabel;
 class QRadioButton;
@@ -30,20 +32,22 @@ namespace kalahari {
 namespace gui {
 namespace dialogs {
 
+class KalahariDialog;
 class RowList;
 
 /// @brief The window of the export or of the print of the book: tabs as high as the highest,
-///        so the window keeps its size and nothing in it scrolls, two of them the same in both
-///        windows
+///        so the window keeps its size and nothing in it scrolls (the export), or sections of
+///        the window's own (the print), two of them the same in both windows
 ///
-/// The tab of the texts: the whole book, the texts chosen in its list (which stays in its
-/// place and works with "Chosen texts"), or the text in front, also a file outside the book;
-/// without a book only the text in front. The tab of the layout: the titles of the Navigator
-/// as headings, and of the pages each text from a new page, the page numbers, the font, the
-/// running head and the page of the settings (Settings > Editor > Pages and Margins). Its
-/// choices are kept in the settings (export.*), for the export and the print alike; which
-/// texts each window keeps on its own. A series has the list Volume over the texts: the
-/// window shows the texts and the data of the volume chosen in it, the current one at first.
+/// The texts: the whole book, the texts chosen in its list, or the text in front, also a file
+/// outside the book; without a book only the text in front. On a tab the list stays in its
+/// place and works with "Chosen texts"; in a section of the print it is in the small window
+/// of Choose Texts.... The layout: the titles of the Navigator as headings, and of the pages
+/// each text from a new page, the page numbers, the font, the running head and, on a tab,
+/// the page of the settings (Settings > Editor > Pages and Margins). Its choices are kept in
+/// the settings (export.*), for the export and the print alike; which texts each window keeps
+/// on its own. A series has the list Volume with the texts: the window shows the texts and the
+/// data of the volume chosen in it, the current one at first.
 class BookOutputDialog : public ArchiveDialog {
     Q_OBJECT
 
@@ -136,13 +140,25 @@ public:
     /// @brief The sentence under the list: how many texts are chosen
     QString chosenNote() const;
 
+    /// @brief Choose Texts... beside the chosen texts in a section of the print; nullptr on a
+    ///        tab, where the list shows
+    [[nodiscard]] QPushButton* chooseTextsButton() const { return m_chooseTextsButton; }
+
+    /// @brief The small window of the list of the texts, which Choose Texts... opens; nullptr
+    ///        on a tab
+    [[nodiscard]] KalahariDialog* chosenTextsWindow() const { return m_chosenWindow; }
+
+    /// @brief Open the small window of the list, as Choose Texts... does: its OK chooses the
+    ///        texts checked in it, its Cancel checks the texts as they were
+    void chooseTexts();
+
     /// @brief Check every text of the list, none, or only the final ones, as the buttons beside
     /// the list do
     void checkAll();
     void checkNone();
     void checkFinal();
 
-    /// @brief The tabs of the window
+    /// @brief The tabs of the window; nullptr in a window of sections (the print)
     QTabWidget* tabs() const { return m_tabs; }
 
     /// @brief The check boxes of the layout
@@ -170,7 +186,9 @@ public:
 protected:
     /// @brief Create the window of @p book with its tabs, which the window puts in its place
     ///        and fills: the first one of its own, then addTextsTab() and addLayoutTab()
-    BookOutputDialog(Book book, QWidget* parent);
+    /// @param withTabs false: no tabs; the window puts its pages in places of its own
+    ///        (newTab())
+    BookOutputDialog(Book book, QWidget* parent, bool withTabs = true);
 
     /// @brief What the window says about the book
     const Book& book() const { return m_book; }
@@ -182,7 +200,15 @@ protected:
     /// @brief Whether what goes is one text: the text in front or the set for a publisher
     [[nodiscard]] bool oneText() const;
 
-    /// @brief A new tab at the end, a grid whose second column stretches
+    /// @brief Makes the place of a part of the fields with @p title in a window without tabs
+    ///        (the print: a section), a grid whose second column stretches
+    using PartMaker = std::function<QGridLayout*(const QString& title)>;
+
+    /// @brief Where the parts of the fields go in a window without tabs, before they are made
+    void setPartMaker(PartMaker maker) { m_partMaker = std::move(maker); }
+
+    /// @brief A new tab at the end, a grid whose second column stretches; in a window without
+    ///        tabs the place the part maker gives
     QGridLayout* newTab(const QString& title);
 
     /// @brief The rows of a tab start at its top
@@ -191,12 +217,14 @@ protected:
     /// @brief The tab of the texts
     /// @param title The title of the tab, with its access key
     /// @param note The sentence at its bottom
-    void addTextsTab(const QString& title, const QString& note);
+    /// @param compact A narrow section (the print): the choices one under another, the text
+    ///        in front first; the list in the small window of Choose Texts...
+    void addTextsTab(const QString& title, const QString& note, bool compact = false);
 
     /// @brief The tab of the layout: the titles as headings, then the options of the pages
     /// @param title The title of the tab, with its access key
-    /// @param narrow The tab is narrow (beside the preview of the print): the font and the
-    ///        running head each in a row of its own, a note of one line under the page
+    /// @param narrow A narrow section (the print): the font and the running head each in a row
+    ///        of its own, without the page, which the print sets in a section of its own
     /// @return Its grid, for more rows of the window's own; endTab() ends it
     QGridLayout* addLayoutTab(const QString& title, bool narrow = false);
 
@@ -260,6 +288,7 @@ private:
     VolumeBook m_volumeBook;
     int m_settingsListener = -1;
     QTabWidget* m_tabs = nullptr;
+    PartMaker m_partMaker;  ///< The parts of a window without tabs; empty: its tabs
 
     QRadioButton* m_bookButton = nullptr;
     QRadioButton* m_chosenButton = nullptr;
@@ -270,6 +299,9 @@ private:
     QWidget* m_chosenBox = nullptr;
     RowList* m_textList = nullptr;
     QLabel* m_chosenNote = nullptr;
+    QPushButton* m_chooseTextsButton = nullptr;  ///< In a section: opens the list
+    QLabel* m_chosenCount = nullptr;  ///< In a section: how many texts are chosen, beside it
+    KalahariDialog* m_chosenWindow = nullptr;  ///< In a section: the list in a small window
 
     QCheckBox* m_titlesBox = nullptr;
     QWidget* m_pagesLayout = nullptr;  ///< Each text from a new page, the page numbers

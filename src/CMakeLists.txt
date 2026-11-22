@@ -328,6 +328,7 @@ set(KALAHARI_SOURCES
     gui/book_texts.cpp  # The texts of the book in reading order, the saved text of one not open
     gui/caption_coordinator.cpp  # CaptionCoordinator - the numbered captions of the book
     gui/book_export_coordinator.cpp  # BookExportCoordinator - the export of the book to DOCX and Markdown
+    gui/printer_driver.cpp  # The settings of the driver of a printer (Windows)
     gui/plugin_coordinator.cpp  # The commands and panels of the plugins in a book window
     gui/book_import_texts.cpp  # The texts of an imported file added to the book, and Undo import
     gui/book_import_plan.cpp  # The plan of an import: the files read, the texts, their kinds and styles
@@ -409,6 +410,7 @@ set(KALAHARI_SOURCES
     gui/widgets/cover_plan.cpp  # CoverPlan - the plan of the cover with its materials in their places
     gui/widgets/publishing_set_view.cpp  # PublishingSetView - the set for a publisher as a page
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
+    gui/widgets/collapsible_section.cpp  # Fields under a header that opens and closes them
     gui/widgets/wrapping_button.cpp  # A button that wraps its text only where it does not fit
     gui/widgets/flow_layout.cpp  # A row of buttons that wraps on a narrow panel
     gui/widgets/length_meter.cpp  # LengthMeter - the length of a text against its target
@@ -696,6 +698,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/collapsible_section.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
@@ -845,6 +848,12 @@ target_link_libraries(kalahari PRIVATE
 )
 target_include_directories(kalahari PRIVATE ${HUNSPELL_INCLUDE_DIRS})
 target_link_directories(kalahari PRIVATE ${HUNSPELL_LIBRARY_DIRS})
+
+# Windows: the settings of the driver of the printer go to the print engine of Qt (its
+# private API) and come from the driver itself (src/gui/printer_driver.cpp)
+if(WIN32)
+    target_link_libraries(kalahari PRIVATE Qt6::PrintSupportPrivate winspool)
+endif()
 
 # The preview of PDF files (PDFium)
 if(KALAHARI_PDF_AVAILABLE)

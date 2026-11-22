@@ -36,6 +36,7 @@
 #include "kalahari/gui/footnote_coordinator.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/printer_driver.h"
 #include "kalahari/gui/publishing_set.h"
 #include "kalahari/gui/utils/language_names.h"
 #include "kalahari/gui/utils/program_folders.h"
@@ -527,7 +528,13 @@ void BookExportCoordinator::printBook() {
                 logger.error("Print: {}", problem->constLast().toStdString());
                 return false;
             }
+            // The settings of the driver, which outlive the printer that holds them
+            printer_driver::PrintSettings driverSettings;
             QPrinter printer(info, QPrinter::HighResolution);
+            if (driverSettings.apply(printer, choice)) {
+                logger.info("Print: the settings of the driver of {}",
+                            choice.printer.toStdString());
+            }
             // The name of the print in the queue of the printer
             QString title = book.title;
             if (choice.content == dialogs::BookOutputDialog::Content::Front || title.isEmpty()) {
@@ -549,6 +556,10 @@ void BookExportCoordinator::printBook() {
         },
         {}, m_window);
     dialog.setVolumeBook([this](const QString& volumeId) { return dialogBook(volumeId); });
+    // Printer Properties...: the window of the driver of the printer, where the system has one
+    if (printer_driver::hasDriverWindow()) {
+        dialog.setDriverWindow(&printer_driver::showDriverWindow);
+    }
     dialog.exec();
 }
 
@@ -912,6 +923,8 @@ QList<dialogs::PrintBookDialog::Printer> BookExportCoordinator::systemPrinters()
             layout.setUnits(QPageLayout::Point);
             return layout.minimumMargins();
         };
+        // Its paper sources and qualities, where the system lists them
+        printer_driver::addSourcesAndQualities(printer);
         printers.append(std::move(printer));
     }
     return printers;
