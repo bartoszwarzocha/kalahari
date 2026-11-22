@@ -3656,8 +3656,21 @@ QString ProjectManager::chapterText(const QString& elementId) const {
         state != m_elementStates.cend() && state->loaded) {
         return state->content;
     }
+    return savedChapterText(elementId);
+}
+
+QString ProjectManager::savedChapterText(const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    if (!element || element->file.isEmpty() || formOf(*element) != ElementForm::Text) {
+        return QString();
+    }
     const std::optional<ChapterDocument> chapter = ChapterDocument::load(filePathOf(*element));
     return chapter ? chapter->kml() : QString();
+}
+
+bool ProjectManager::hasUnsavedText(const QString& elementId) const {
+    const auto state = m_elementStates.constFind(elementId);
+    return state != m_elementStates.cend() && state->loaded && state->dirty;
 }
 
 void ProjectManager::discardChapterContent(const QString& elementId) {

@@ -687,7 +687,9 @@ TEST_CASE("Writing awards: the commands, the tab and the messages at the bottom"
                        "Challenge done: %3 words (until 30 November).")
             .arg(number(1000), number(5000), number(20000));
     CHECK(bar->message() == expected);
-    const QList<QPushButton*> buttons = bar->findChildren<QPushButton*>();
+    // The second button of the bar is not there
+    QList<QPushButton*> buttons = bar->findChildren<QPushButton*>();
+    buttons.removeIf([](const QPushButton* button) { return button->isHidden(); });
     REQUIRE(buttons.size() == 1);
     CHECK(buttons.first()->text() == QStringLiteral("Copy"));
     buttons.first()->click();

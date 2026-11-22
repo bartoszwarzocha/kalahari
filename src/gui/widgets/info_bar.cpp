@@ -51,6 +51,11 @@ InfoBar::InfoBar(QWidget* parent)
     m_actionButton->hide();
     layout->addWidget(m_actionButton);
 
+    m_secondButton = new QPushButton(this);
+    m_secondButton->setCursor(Qt::PointingHandCursor);
+    m_secondButton->hide();
+    layout->addWidget(m_secondButton);
+
     m_closeButton = new QToolButton(this);
     m_closeButton->setAutoRaise(true);
     m_closeButton->setFixedSize(ICON_SIZE, ICON_SIZE);
@@ -59,6 +64,7 @@ InfoBar::InfoBar(QWidget* parent)
     layout->addWidget(m_closeButton);
 
     connect(m_actionButton, &QPushButton::clicked, this, &InfoBar::actionClicked);
+    connect(m_secondButton, &QPushButton::clicked, this, &InfoBar::secondActionClicked);
     connect(m_closeButton, &QToolButton::clicked, this, &InfoBar::dismissed);
 
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this, [this]() {
@@ -98,6 +104,17 @@ void InfoBar::setActionEnabled(bool enabled)
     m_actionButton->setEnabled(enabled);
 }
 
+void InfoBar::setSecondActionText(const QString& text)
+{
+    m_secondButton->setText(text);
+    m_secondButton->setVisible(!text.isEmpty());
+}
+
+void InfoBar::setSecondActionToolTip(const QString& toolTip)
+{
+    m_secondButton->setToolTip(toolTip);
+}
+
 void InfoBar::updateStyling()
 {
     const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
@@ -124,20 +141,20 @@ void InfoBar::updateStyling()
             .arg(color.blue())
             .arg(color.alpha());
     };
-    m_actionButton->setStyleSheet(QString("QPushButton { background-color: %1; color: %2; "
-                                          "border: 1px solid %3; border-radius: 3px; "
-                                          "padding: 4px 12px; } "
-                                          "QPushButton:hover { background-color: %4; } "
-                                          "QPushButton:pressed { background-color: %5; } "
-                                          "QPushButton:disabled { background-color: %6; "
-                                          "color: %7; border-color: %8; }")
-                                      .arg(theme.palette.button.name(),
-                                           theme.palette.buttonText.name(),
-                                           theme.palette.mid.name(), theme.palette.light.name(),
-                                           theme.palette.mid.name())
-                                      .arg(disabled(QPalette::Button),
-                                           disabled(QPalette::ButtonText),
-                                           disabled(QPalette::Mid)));
+    const QString buttons = QString("QPushButton { background-color: %1; color: %2; "
+                                    "border: 1px solid %3; border-radius: 3px; "
+                                    "padding: 4px 12px; } "
+                                    "QPushButton:hover { background-color: %4; } "
+                                    "QPushButton:pressed { background-color: %5; } "
+                                    "QPushButton:disabled { background-color: %6; "
+                                    "color: %7; border-color: %8; }")
+                                .arg(theme.palette.button.name(), theme.palette.buttonText.name(),
+                                     theme.palette.mid.name(), theme.palette.light.name(),
+                                     theme.palette.mid.name())
+                                .arg(disabled(QPalette::Button), disabled(QPalette::ButtonText),
+                                     disabled(QPalette::Mid));
+    m_actionButton->setStyleSheet(buttons);
+    m_secondButton->setStyleSheet(buttons);
 }
 
 void InfoBar::updateIcons()

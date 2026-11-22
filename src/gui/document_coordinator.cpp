@@ -162,6 +162,14 @@ DocumentCoordinator::DocumentCoordinator(
             action();
         }
     });
+    connect(m_standaloneInfoBar, &StandaloneInfoBar::noticeSecondActionClicked, this, [this]() {
+        const std::function<void()> action = m_notice.second.action;
+        clearNotice();
+        updateStandaloneInfoBar();
+        if (action) {
+            action();
+        }
+    });
     connect(m_navigatorPanel, &NavigatorPanel::standaloneFileSelected,
             this, &DocumentCoordinator::openStandaloneFile);
     connect(m_navigatorPanel, &NavigatorPanel::requestAddToProject,
@@ -1103,7 +1111,8 @@ bool DocumentCoordinator::bookHasUnsavedChanges() const {
     if (!pm.isProjectOpen()) {
         return false;
     }
-    // The texts of its open elements that differ from their saved texts, and its data
+    // The texts of its open elements that differ from their saved texts, the texts not open
+    // changed and not saved yet (Replace All in Book), and its data
     for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
         const auto* editor = qobject_cast<const EditorPanel*>(page);
         if (editor && editorKind(m_book, editor) == EditorKind::ProjectChapter &&
@@ -1111,7 +1120,7 @@ bool DocumentCoordinator::bookHasUnsavedChanges() const {
             return true;
         }
     }
-    return pm.isDirty();
+    return pm.isDirty() || !pm.getDirtyElements().empty();
 }
 
 bool DocumentCoordinator::saveBook() {
@@ -1131,7 +1140,8 @@ bool DocumentCoordinator::saveBook() {
         }
     }
 
-    // Save all dirty elements via ProjectManager
+    // Save all dirty elements via ProjectManager, also the texts not open
+    const std::vector<QString> unsaved = pm.getDirtyElements();
     bool success = pm.saveAllDirty();
 
     // Also save the .klh file to persist the changes of the book's data (title, author...)
@@ -1147,6 +1157,11 @@ bool DocumentCoordinator::saveBook() {
             if (tabText.startsWith(QLatin1Char('*'))) {
                 DocumentWindows::setTabText(editor, tabText.mid(1));
             }
+        }
+
+        // The texts not open are the saved texts too
+        for (const QString& elementId : unsaved) {
+            m_navigatorCoordinator->setChapterDirty(elementId, false);
         }
 
         // Clear all modified indicators in NavigatorPanel (OpenSpec #00042 Phase 7.5)
@@ -1393,15 +1408,32 @@ void DocumentCoordinator::setInfoBarAllowed(bool allowed) {
 void DocumentCoordinator::showNotice(EditorPanel* editor, const QString& message,
                                      const QString& actionText, const QString& actionToolTip,
                                      std::function<void()> action) {
+    if (editor == nullptr) {
+        clearNotice();
+        return;
+    }
+    showNotice(editor, message, NoticeAction{actionText, actionToolTip, std::move(action)},
+               NoticeAction{});
+}
+
+void DocumentCoordinator::showNotice(EditorPanel* editor, const QString& message,
+                                     const NoticeAction& first, const NoticeAction& second) {
     clearNotice();
-    if (editor == nullptr || editor->getBookEditor() == nullptr) {
+    if (editor != nullptr && editor->getBookEditor() == nullptr) {
+        return;
+    }
+    m_notice.message = message;
+    m_notice.actionText = first.text;
+    m_notice.actionToolTip = first.toolTip;
+    m_notice.action = first.action;
+    m_notice.second = second;
+    if (editor == nullptr) {
+        // Of the book, under any tab
+        m_notice.anyTab = true;
+        updateStandaloneInfoBar();
         return;
     }
     m_notice.editor = editor;
-    m_notice.message = message;
-    m_notice.actionText = actionText;
-    m_notice.actionToolTip = actionToolTip;
-    m_notice.action = std::move(action);
     // What it says is true until the text changes
     m_notice.changed = connect(editor->getBookEditor(), &editor::BookEditor::contentChanged, this,
                                [this]() {
@@ -1440,6 +1472,7 @@ void DocumentCoordinator::clearNotice() {
     m_notice.actionText.clear();
     m_notice.actionToolTip.clear();
     m_notice.action = nullptr;
+    m_notice.second = NoticeAction{};
 }
 
 void DocumentCoordinator::updateStandaloneInfoBar() {
@@ -1452,7 +1485,8 @@ void DocumentCoordinator::updateStandaloneInfoBar() {
     if (m_infoBarAllowed &&
         ((editor != nullptr && m_notice.editor == editor) || m_notice.anyTab)) {
         m_standaloneInfoBar->showNotice(m_notice.message, m_notice.actionText,
-                                        m_notice.actionToolTip);
+                                        m_notice.actionToolTip, m_notice.second.text,
+                                        m_notice.second.toolTip);
         m_standaloneInfoBar->show();
         return;
     }

@@ -213,7 +213,7 @@ void useDefaultSettings() {
     choose(Clippings::INSERT_SETTING, Clippings::INSERT_WINDOW);
     choose(Clippings::AFTER_INSERT_SETTING, Clippings::AFTER_INSERT_KEEP);
     core::SettingsManager::getInstance().set<bool>(Clippings::KEEP_WORDS_SETTING, false);
-    core::SettingsManager::getInstance().set<bool>(Clippings::MARKS_SETTING, false);
+    core::SettingsManager::getInstance().set<bool>(Clippings::MARKS_SETTING, true);
 }
 
 /// Run @p command; the first window of the program it shows goes to @p answer, which closes it
@@ -1337,15 +1337,16 @@ TEST_CASE("Settings > Editor > Clippings: the choices, written only when changed
     CHECK(shownIn(other, "clippingsCut") == Clippings::CUT_AT_ONCE);
     choose(Clippings::CUT_SETTING, Clippings::CUT_AT_ONCE);
 
-    // The scissors beside the paragraphs: off by default, written when turned on
+    // The scissors beside the paragraphs: on by default (test of 22.11), written when
+    // turned off
     auto* marks = page.findChild<QCheckBox*>(QStringLiteral("clippingsMarks"));
     REQUIRE(marks != nullptr);
     CHECK(marks->text() == QStringLiteral("&Draw scissors where a fragment was cut"));
     page.load();
-    CHECK_FALSE(marks->isChecked());
-    marks->setChecked(true);
+    CHECK(marks->isChecked());
+    marks->setChecked(false);
     CHECK(page.apply() == std::vector<std::string>{Clippings::MARKS_SETTING});
-    CHECK(core::SettingsManager::getInstance().get<bool>(Clippings::MARKS_SETTING, false));
+    CHECK_FALSE(core::SettingsManager::getInstance().get<bool>(Clippings::MARKS_SETTING, true));
     useDefaultSettings();
 
     // The Settings dialog opens at the page (the gears of the windows)
@@ -1705,8 +1706,8 @@ void settle() {
 
 }  // namespace
 
-TEST_CASE("Clippings: the scissors beside the paragraph a clipping was cut from, when the "
-          "settings say so",
+TEST_CASE("Clippings: the scissors beside the paragraph a clipping was cut from, unless the "
+          "settings say otherwise",
           "[gui][clippings][marks]") {
     ClippingBook clipped;
     OpenNovel& book = clipped.book();
@@ -1722,7 +1723,10 @@ TEST_CASE("Clippings: the scissors beside the paragraph a clipping was cut from,
     REQUIRE_FALSE(rainedId.isEmpty());
     settle();
 
-    // Off by default: none
+    // On by default (test of 22.11); turned off: none
+    CHECK_FALSE(scissorsOf(*storm).isEmpty());
+    core::SettingsManager::getInstance().set<bool>(Clippings::MARKS_SETTING, false);
+    settle();
     CHECK(scissorsOf(*storm).isEmpty());
     CHECK(gui::ParagraphMarksCoordinator::clippingMarksOf(book.pm, clipped.storm(), *storm)
               .isEmpty());

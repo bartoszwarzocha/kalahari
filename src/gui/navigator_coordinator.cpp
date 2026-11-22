@@ -257,6 +257,18 @@ void NavigatorCoordinator::discardChapterChanges(const QString& elementId) {
                  elementId.toStdString());
 }
 
+void NavigatorCoordinator::showUnsavedText(const QString& elementId) {
+    const bool unsaved = m_book.hasUnsavedText(elementId);
+    if (m_dirtyChapters.value(elementId, false) != unsaved) {
+        m_dirtyChapters[elementId] = unsaved;
+        emit chapterDirtyStateChanged(elementId, unsaved);
+        if (unsaved) {
+            emit documentModified();
+        }
+    }
+    m_propertiesPanel->updateWordCounts();
+}
+
 void NavigatorCoordinator::countWords() {
     auto& pm = m_book;
     const QSet<QString> changed = std::exchange(m_uncountedChapters, {});
@@ -390,6 +402,11 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     // changes are reported once at application close. This avoids nagging on every
     // chapter switch (per the user's UX design: signal with an icon, prompt at close).
 
+    // A text changed while it was not open and not saved yet (Replace All in Book): the tab
+    // has its file as the saved text and the change as an edit, to save or to undo
+    const bool unsaved = pm.hasUnsavedText(elementId);
+    const QString unsavedText = unsaved ? pm.chapterText(elementId) : QString();
+
     // Load chapter content from file via ProjectManager
     logElapsed("Before loadChapterContent");
     QString content = pm.loadChapterContent(elementId);
@@ -460,6 +477,12 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
                 keepVersionBeforeReplaceAll(m_book, elementId, bookEditor->toKml(), found,
                                             replacement, count);
             });
+
+    // The change not saved, as an edit of the tab: it shows the "*" of a text to save
+    if (unsaved) {
+        m_dirtyChapters[elementId] = false;
+        newEditor->getBookEditor()->replaceWithKml(unsavedText);
+    }
 
     // Connect to statistics collector if available (OpenSpec #00042 Task 7.7)
     if (m_statisticsCollector) {
@@ -759,16 +782,20 @@ QList<const core::ProjectElement*> NavigatorCoordinator::saveTextsOf(
         if (changed) {
             pm.setChapterContent(element.id, editor->getContent());
         }
+        // Also a text not open, changed and not saved yet (Replace All in Book)
+        const bool toSave = changed || pm.hasUnsavedText(element.id);
         if (!pm.saveChapterContent(element.id)) {
             unsaved.append(&element);
-        } else if (changed) {
+        } else if (toSave) {
             // Saved: the tab and the Navigator no longer show changes
             m_dirtyChapters[element.id] = false;
             emit chapterDirtyStateChanged(element.id, false);
-            editor->setUnmodified();
-            const QString tabText = DocumentWindows::tabText(editor);
-            if (tabText.startsWith(QLatin1Char('*'))) {
-                DocumentWindows::setTabText(editor, tabText.mid(1));
+            if (changed) {
+                editor->setUnmodified();
+                const QString tabText = DocumentWindows::tabText(editor);
+                if (tabText.startsWith(QLatin1Char('*'))) {
+                    DocumentWindows::setTabText(editor, tabText.mid(1));
+                }
             }
         }
         // The file goes back to the book with its title, status and notes: a book made before

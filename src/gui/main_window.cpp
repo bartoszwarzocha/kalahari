@@ -899,7 +899,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Edit > Find in Book... and the Search panel: all the texts of the book; a match of a
     // text not open opens it, as from the Navigator, and the bar under the text says how many
-    // matches Replace All in Book changed, with Undo
+    // matches Replace All in Book changed, with Undo and Save All
     m_bookSearchCoordinator = new BookSearchCoordinator(
         book(), commands(), m_dockCoordinator->centralTabs(), m_dockCoordinator->searchPanel(),
         [this]() {
@@ -918,13 +918,19 @@ MainWindow::MainWindow(QWidget* parent)
             }
         },
         [this](const QString& elementId) { return m_footnoteCoordinator->contextFor(elementId); },
-        [this](EditorPanel* editor, const QString& message, const QString& actionText,
-               const QString& actionToolTip, std::function<void()> action) {
-            m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
-                                              std::move(action));
+        [this](EditorPanel* editor, const QString& message,
+               const BookSearchCoordinator::NoticeButton& first,
+               const BookSearchCoordinator::NoticeButton& second) {
+            m_documentCoordinator->showNotice(
+                editor, message,
+                DocumentCoordinator::NoticeAction{first.text, first.toolTip, first.action},
+                DocumentCoordinator::NoticeAction{second.text, second.toolTip, second.action});
         },
         statusBar(), this, this);
     m_bookSearchCoordinator->connectCommands();
+    // The texts not open that Replace All in Book changed are not saved: a "*" in the Navigator
+    connect(m_bookSearchCoordinator, &BookSearchCoordinator::unsavedTextChanged,
+            m_navigatorCoordinator, &NavigatorCoordinator::showUnsavedText);
     // Texts added, moved or removed: the matches in the book's order
     connect(m_navigatorCoordinator, &NavigatorCoordinator::refreshNavigatorRequested,
             m_bookSearchCoordinator, [this]() { m_bookSearchCoordinator->searchAgain(); });

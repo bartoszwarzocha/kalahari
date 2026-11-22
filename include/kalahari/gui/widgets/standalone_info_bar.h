@@ -82,13 +82,18 @@ public:
     [[nodiscard]] bool showsReadOnlyBook() const { return m_readOnlyBook; }
 
     /// @brief Say @p message of what was just done to the text in front, with a button
-    /// @p actionText (noticeActionClicked()), in place of a file; setFilePath() and
-    /// showReadOnlyBook() show what they show again
+    /// @p actionText (noticeActionClicked()) and a second one @p secondText
+    /// (noticeSecondActionClicked()), in place of a file; setFilePath() and showReadOnlyBook()
+    /// show what they show again
     /// @param message The notice
     /// @param actionText Its button, with a mnemonic; empty: none
     /// @param actionToolTip The tooltip of its button
+    /// @param secondText Its second button, with a mnemonic; empty: none
+    /// @param secondToolTip The tooltip of its second button
     void showNotice(const QString& message, const QString& actionText,
-                    const QString& actionToolTip = QString());
+                    const QString& actionToolTip = QString(),
+                    const QString& secondText = QString(),
+                    const QString& secondToolTip = QString());
 
     /// @brief Whether it shows a notice (showNotice())
     [[nodiscard]] bool showsNotice() const { return m_notice; }
@@ -107,6 +112,9 @@ signals:
 
     /// @brief Emitted when the button of a notice is clicked (showNotice())
     void noticeActionClicked();
+
+    /// @brief Emitted when the second button of a notice is clicked (showNotice())
+    void noticeSecondActionClicked();
 
 private:
     /// Whether the button saves a new file that no book can take ("Save As...")

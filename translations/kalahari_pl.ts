@@ -5575,6 +5575,20 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
         <extracomment>A text among the matches of the whole series, with the number of its volume. In Polish: %1, tom %2</extracomment>
         <translation>%1, tom %2</translation>
     </message>
+    <message>
+        <source>The changed texts are not saved yet – they have a "*" in the Navigator.</source>
+        <extracomment>After "%n matches replaced in the book." In Polish: Zmienione teksty nie są jeszcze zapisane – mają „*” w Nawigatorze.</extracomment>
+        <translation>Zmienione teksty nie są jeszcze zapisane – mają „*” w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>&amp;Save All</source>
+        <extracomment>The second button of the bar after Replace All in Book, as File &gt; Save All. In Polish: &amp;Zapisz wszystko / Zapisz wszystkie zmienione teksty i dane książki</extracomment>
+        <translation>&amp;Zapisz wszystko</translation>
+    </message>
+    <message>
+        <source>Save all the changed texts and data of the book</source>
+        <translation>Zapisz wszystkie zmienione teksty i dane książki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::CaptionCoordinator</name>

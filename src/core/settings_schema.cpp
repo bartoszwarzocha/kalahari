@@ -538,7 +538,7 @@ std::map<std::string, json> buildDefaults() {
         {"editor.clippings.noSelection", "paragraph"},
         {"editor.clippings.insert", "window"},
         {"editor.clippings.afterInsert", "keep"},
-        {"editor.clippings.marks", false},
+        {"editor.clippings.marks", true},
         {"editor.lineHeight", 1.6},
         {"editor.paragraphSpacing", 12.0},
         {"editor.firstLineIndent", true},

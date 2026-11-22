@@ -1429,6 +1429,15 @@ public:
     /// @return Empty when the element is not a text element or its file cannot be read
     [[nodiscard]] QString chapterText(const QString& elementId) const;
 
+    /// @brief The text (KML) of the chapter file of a text element, whatever unsaved text it
+    ///        has (setChapterContent())
+    /// @return Empty when the element is not a text element or its file cannot be read
+    [[nodiscard]] QString savedChapterText(const QString& elementId) const;
+
+    /// @brief Whether a text element has a text not saved yet (setChapterContent()), which
+    ///        the book saves with the rest (saveAllDirty(), getDirtyElements())
+    [[nodiscard]] bool hasUnsavedText(const QString& elementId) const;
+
     /// @brief Forget the unsaved text of a text element; it is read from its file again
     void discardChapterContent(const QString& elementId);
 

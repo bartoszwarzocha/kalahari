@@ -23,6 +23,7 @@
 #include "kalahari/editor/search_engine.h"
 #include "kalahari/editor/text_footnotes.h"
 #include "kalahari/gui/book_search_coordinator.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/panels/search_panel.h"
 #include "kalahari/gui/widgets/wrapping_button.h"
@@ -40,6 +41,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <functional>
+#include <optional>
 
 using namespace kalahari;
 using editor::SearchMatch;
@@ -158,12 +160,15 @@ struct SearchedBook {
 };
 
 /// Find in Book over the tabs of a window, as the main window has it; the notices under the
-/// text and the questions it asks are kept
+/// text, with their buttons, and the questions it asks are kept; the Navigator shows the texts
+/// not open that it changed
 struct Search {
     SearchPanel panel;
     editor::BookEditor* keys = nullptr;  ///< The text with the keys
     QStringList notices;
     QList<std::function<void()>> undoButtons;
+    QStringList secondButtons;  ///< The texts of the second buttons of the notices
+    bool barOfWindow = false;   ///< The notices go to the bar of the window too
     QStringList asked;
     bool answer = true;
     editor::FootnoteContext noteContext;  ///< The numbering of the notes of every text
@@ -179,16 +184,26 @@ struct Search {
                                                                             : QString());
               },
               [this](const QString&) { return noteContext; },
-              [this](gui::EditorPanel*, const QString& message, const QString&, const QString&,
-                     const std::function<void()>& action) {
+              [this, &window](gui::EditorPanel* editor, const QString& message,
+                              const BookSearchCoordinator::NoticeButton& first,
+                              const BookSearchCoordinator::NoticeButton& second) {
                   notices.append(message);
-                  undoButtons.append(action);
+                  undoButtons.append(first.action);
+                  secondButtons.append(second.text);
+                  if (barOfWindow) {
+                      window.documents.showNotice(
+                          editor, message,
+                          {first.text, first.toolTip, first.action},
+                          {second.text, second.toolTip, second.action});
+                  }
               },
               &window.statusBar, &window.window) {
         coordinator.setConfirmer([this](int matches, int texts) {
             asked << QStringLiteral("%1 in %2").arg(matches).arg(texts);
             return answer;
         });
+        QObject::connect(&coordinator, &BookSearchCoordinator::unsavedTextChanged,
+                         &window.navigator, &gui::NavigatorCoordinator::showUnsavedText);
     }
 
     /// Search the whole book
@@ -729,18 +744,32 @@ TEST_CASE("Find in Book: Replace All in Book, with a version of each text and Un
     CHECK(book.book.pm.chapterText(book.calm) == SearchedBook::CALM_TEXT);
     CHECK_FALSE(search.coordinator.canUndo());
 
-    // Yes: the open text in its editor, the saved ones in their files, the one with changes
-    // not saved yet only in the program; each kept as a version first; the notice, with Undo
+    // Yes: the open text in its editor, the others in the program, none saved: each to save,
+    // with its "*" in the Navigator (test of 22.11); each kept as a version first; the notice,
+    // with Undo and Save All
     search.answer = true;
     CHECK(search.coordinator.replaceAllInBook() == 6);
     CHECK(storm->toKml() ==
           QStringLiteral("<kml><p>The gale came at night.</p><p>No gale<footnote id=\"f1\">The "
                          "<b>gale</b> of 1931.</footnote> then.</p></kml>"));
-    CHECK(fileOf(book.book, book.calm) == QStringLiteral("<kml><p>Calm after the gale.</p></kml>"));
-    CHECK(fileOf(book.book, book.foreword) == QStringLiteral("<kml><p>A gale is coming.</p></kml>"));
+    const QString calmGale = QStringLiteral("<kml><p>Calm after the gale.</p></kml>");
+    const QString forewordGale = QStringLiteral("<kml><p>A gale is coming.</p></kml>");
+    CHECK(book.book.pm.chapterText(book.calm) == calmGale);
+    CHECK(book.book.pm.chapterText(book.foreword) == forewordGale);
     CHECK(book.book.pm.chapterText(book.notes) == QStringLiteral("<kml><p>galey notes.</p></kml>"));
+    CHECK(fileOf(book.book, book.calm) == SearchedBook::CALM_TEXT);
+    CHECK(fileOf(book.book, book.foreword) == SearchedBook::FOREWORD_TEXT);
     CHECK(fileOf(book.book, book.notes) == SearchedBook::NOTES_SAVED);
-    CHECK(search.notices == QStringList{QStringLiteral("6 matches replaced in the book.")});
+    for (const QString& id : {book.calm, book.foreword, book.notes}) {
+        CHECK(book.book.pm.hasUnsavedText(id));
+        CHECK(window.navigator.isChapterDirty(id));
+    }
+    CHECK(window.navigator.isChapterDirty(book.storm));
+    CHECK(window.documents.unsavedDocumentNames() == QStringList{book.book.pm.book()->title});
+    CHECK(search.notices ==
+          QStringList{QStringLiteral("6 matches replaced in the book. The changed texts are not "
+                                     "saved yet – they have a \"*\" in the Navigator.")});
+    CHECK(search.secondButtons == QStringList{QStringLiteral("&Save All")});
     for (const QString& id : {book.storm, book.calm, book.notes}) {
         const std::optional<core::ChapterVersions> versions = book.book.pm.versionsOf(id);
         REQUIRE(versions.has_value());
@@ -761,9 +790,16 @@ TEST_CASE("Find in Book: Replace All in Book, with a version of each text and Un
     REQUIRE(search.undoButtons.size() == 1);
     search.undoButtons.first()();
     CHECK(storm->toKml() == stormBefore);
-    CHECK(fileOf(book.book, book.calm) == SearchedBook::CALM_TEXT);
-    CHECK(fileOf(book.book, book.foreword) == SearchedBook::FOREWORD_TEXT);
+    CHECK(book.book.pm.chapterText(book.calm) == SearchedBook::CALM_TEXT);
+    CHECK(book.book.pm.chapterText(book.foreword) == SearchedBook::FOREWORD_TEXT);
     CHECK(book.book.pm.chapterText(book.notes) == SearchedBook::NOTES_TEXT);
+    // The texts of their files again have nothing to save; the notes keep their own changes
+    for (const QString& id : {book.calm, book.foreword}) {
+        CHECK_FALSE(book.book.pm.hasUnsavedText(id));
+        CHECK_FALSE(window.navigator.isChapterDirty(id));
+    }
+    CHECK(book.book.pm.hasUnsavedText(book.notes));
+    CHECK(window.navigator.isChapterDirty(book.notes));
     CHECK(window.statusBar.currentMessage() ==
           QStringLiteral("The texts are as they were before the replacement."));
     CHECK_FALSE(search.coordinator.canUndo());
@@ -779,7 +815,18 @@ TEST_CASE("Find in Book: Replace All in Book, with a version of each text and Un
     CHECK_FALSE(search.coordinator.undo());
     CHECK(window.statusBar.currentMessage() ==
           QStringLiteral("This can no longer be undone: the texts changed since."));
-    CHECK(fileOf(book.book, book.calm) == QStringLiteral("<kml><p>Calm after the gale.</p></kml>"));
+    CHECK(book.book.pm.chapterText(book.calm) == calmGale);
+
+    // Saved with the book: every text in its file, without its "*"
+    window.documents.onSaveAll();
+    CHECK(fileOf(book.book, book.calm) == calmGale);
+    CHECK(fileOf(book.book, book.foreword) == forewordGale);
+    CHECK(fileOf(book.book, book.notes) == QStringLiteral("<kml><p>galey notes.</p></kml>"));
+    for (const QString& id : {book.calm, book.foreword, book.notes, book.storm}) {
+        CHECK_FALSE(book.book.pm.hasUnsavedText(id));
+        CHECK_FALSE(window.navigator.isChapterDirty(id));
+    }
+    CHECK(window.documents.unsavedDocumentNames().isEmpty());
 
     // Nothing to replace
     search.find(QStringLiteral("hail"));
@@ -829,8 +876,8 @@ TEST_CASE("Find in Book: the writer's Undo in a text undoes Replace All in Book 
 
     // Every text as it was, in one step
     CHECK(storm->toKml() == stormBefore);
-    CHECK(fileOf(book.book, book.calm) == SearchedBook::CALM_TEXT);
-    CHECK(fileOf(book.book, book.foreword) == SearchedBook::FOREWORD_TEXT);
+    CHECK(book.book.pm.chapterText(book.calm) == SearchedBook::CALM_TEXT);
+    CHECK(book.book.pm.chapterText(book.foreword) == SearchedBook::FOREWORD_TEXT);
     CHECK(book.book.pm.chapterText(book.notes) == SearchedBook::NOTES_TEXT);
     CHECK_FALSE(search.coordinator.canUndo());
     CHECK_FALSE(storm->canUndoCommand());
@@ -841,7 +888,8 @@ TEST_CASE("Find in Book: the writer's Undo in a text undoes Replace All in Book 
     REQUIRE(storm->canRedoCommand());
     storm->redoCommand();
     CHECK(storm->toKml() == stormAfter);
-    CHECK(fileOf(book.book, book.calm) == calmAfter);
+    CHECK(book.book.pm.chapterText(book.calm) == calmAfter);
+    CHECK(fileOf(book.book, book.calm) == SearchedBook::CALM_TEXT);
     CHECK(book.book.pm.chapterText(book.notes) == QStringLiteral("<kml><p>galey notes.</p></kml>"));
     CHECK(fileOf(book.book, book.notes) == SearchedBook::NOTES_SAVED);
     CHECK_FALSE(search.coordinator.canRedo());
@@ -853,7 +901,7 @@ TEST_CASE("Find in Book: the writer's Undo in a text undoes Replace All in Book 
     CHECK_FALSE(search.coordinator.undoesFor(*still));
     still->undoCommand();
     CHECK(still->textDocument()->toPlainText() == QStringLiteral("Quiet."));
-    CHECK(fileOf(book.book, book.calm) == calmAfter);
+    CHECK(book.book.pm.chapterText(book.calm) == calmAfter);
     CHECK(search.coordinator.undoesFor(*storm));
 
     // A text it changed, written in: the change is final, its Undo is its own
@@ -863,7 +911,103 @@ TEST_CASE("Find in Book: the writer's Undo in a text undoes Replace All in Book 
     CHECK_FALSE(search.coordinator.undoesFor(*storm));
     storm->undoCommand();
     CHECK(storm->toKml() == stormAfter);
-    CHECK(fileOf(book.book, book.calm) == calmAfter);
+    CHECK(book.book.pm.chapterText(book.calm) == calmAfter);
+}
+
+/// File > Save All of the window for the time of a test, as the main window has it
+class SaveAllCommand {
+public:
+    explicit SaveAllCommand(Window& window) {
+        if (const gui::Command* command = test::commands().getCommand(ID)) {
+            m_previous = *command;
+        }
+        gui::Command saveAll;
+        saveAll.id = ID;
+        saveAll.execute = [&window]() { window.documents.onSaveAll(); };
+        test::commands().registerCommand(saveAll);
+    }
+    ~SaveAllCommand() {
+        test::commands().unregisterCommand(ID);
+        if (m_previous) {
+            test::commands().registerCommand(*m_previous);
+        }
+    }
+    SaveAllCommand(const SaveAllCommand&) = delete;
+    SaveAllCommand& operator=(const SaveAllCommand&) = delete;
+
+private:
+    static constexpr const char* ID = "file.saveAll";
+    std::optional<gui::Command> m_previous;
+};
+
+/// The visible button of @p bar with @p text
+QPushButton* barButton(const QWidget& bar, const QString& text) {
+    for (QPushButton* button : bar.findChildren<QPushButton*>()) {
+        if (!button->isHidden() && button->text() == text) {
+            return button;
+        }
+    }
+    return nullptr;
+}
+
+TEST_CASE("Find in Book: Replace All in Book saves nothing; the bar says so, with Save All, and "
+          "a text not open opens with the change to save",
+          "[gui][search][book]") {
+    VersionSettings versionSettings;
+    SearchedBook book;
+    Window window;
+    SaveAllCommand saveAll(window);
+    Search search(window);
+    search.barOfWindow = true;
+    search.find(QStringLiteral("storm"));
+    QLineEdit* replacement = widgetNamed<QLineEdit>(search.panel, QStringLiteral("Replace With"));
+    REQUIRE(replacement != nullptr);
+    replacement->setText(QStringLiteral("gale"));
+
+    // No text open: the bar under any tab, with Undo and Save All (test of 22.11)
+    REQUIRE(window.tabs->count() == 0);
+    REQUIRE(search.coordinator.replaceAllInBook() == 6);
+    CHECK_FALSE(window.infoBar->isHidden());
+    CHECK(window.infoBar->showsNotice());
+    CHECK(window.infoBar->message() == search.notices.value(0));
+    REQUIRE(barButton(*window.infoBar, QStringLiteral("&Undo")) != nullptr);
+    QPushButton* saveButton = barButton(*window.infoBar, QStringLiteral("&Save All"));
+    REQUIRE(saveButton != nullptr);
+    CHECK(saveButton->toolTip() == QStringLiteral("Save all the changed texts and data of the book"));
+    CHECK(fileOf(book.book, book.storm) == SearchedBook::STORM_TEXT);
+    CHECK(window.navigator.isChapterDirty(book.storm));
+
+    SECTION("Save All on the bar saves every text") {
+        saveButton->click();
+        CHECK(window.infoBar->isHidden());
+        CHECK(fileOf(book.book, book.storm).contains(QStringLiteral("The gale came at night.")));
+        CHECK(fileOf(book.book, book.calm) ==
+              QStringLiteral("<kml><p>Calm after the gale.</p></kml>"));
+        CHECK_FALSE(window.navigator.isChapterDirty(book.storm));
+        CHECK_FALSE(window.navigator.isChapterDirty(book.calm));
+        CHECK(window.documents.unsavedDocumentNames().isEmpty());
+    }
+
+    SECTION("a text opened: the change as an edit of its tab, its file the saved text") {
+        window.navigator.onElementSelected(book.storm, QStringLiteral("The Storm"));
+        editor::BookEditor* storm = openText(window, book.storm);
+        REQUIRE(storm != nullptr);
+        CHECK(storm->textDocument()->toPlainText().startsWith(
+            QStringLiteral("The gale came at night.")));
+        CHECK(storm->isModified());
+        CHECK(window.tabs->tabText(window.tabs->currentIndex()).startsWith(QLatin1Char('*')));
+        CHECK(window.navigator.isChapterDirty(book.storm));
+        CHECK(fileOf(book.book, book.storm) == SearchedBook::STORM_TEXT);
+
+        // Its Undo gives the text of its file back: nothing to save
+        REQUIRE(storm->canUndo());
+        storm->undo();
+        CHECK(storm->textDocument()->toPlainText().startsWith(
+            QStringLiteral("The storm came at night.")));
+        CHECK(test::waitUntil([&]() { return !window.navigator.isChapterDirty(book.storm); }));
+        CHECK_FALSE(window.tabs->tabText(window.tabs->currentIndex()).startsWith(QLatin1Char('*')));
+        CHECK(window.navigator.isChapterDirty(book.calm));
+    }
 }
 
 // =============================================================================

@@ -140,6 +140,10 @@ public:
     /// of the chapter's tab is the saved text again.
     void discardChapterChanges(const QString& elementId);
 
+    /// @brief A text not open changed in the book (Replace All in Book) or back to its file:
+    /// the Navigator shows a "*" while it is not saved, and the counts of the book its words
+    void showUnsavedText(const QString& elementId);
+
     /// @brief Clear current element ID (on project close)
     void clearCurrentElement() { m_currentElementId.clear(); }
 
