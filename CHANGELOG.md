@@ -251,6 +251,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`gui/utils/file_associations.h`). The CI checks that Windows opens both kinds with the
   installed program and that the uninstaller removes their registration, that Ubuntu knows
   both types after the `.deb` is installed, and that `Info.plist` exports both.
+- **Writing schedule** - 2026-11-22. Tools > Writing Schedule... (also on the Writing
+  Statistics toolbar) opens a tab with a chart of the book in time: a row for the book, a row
+  for each part and a row for each text, with its state, its words and its plan. A text can have
+  a bar of writing and a bar of revisions (hatched); the bar of writing fills as the text grows
+  towards its target length and takes the colour of the done texts when the text is final, and a
+  bar that ends before today with the text not done gets a red border. Ticks under the bars mark
+  the days the text was written, and vertical lines show today, the deadline of the book and the
+  forecast of its end; the deadlines of the goals are diamonds. The scale is days, weeks or
+  months, and the days off can be shaded; both are kept in settings. A bar is moved by dragging
+  it and its end by dragging its right edge; dragging in an empty row plans writing, or
+  revisions when writing is already planned. The keyboard does it all too: the arrows and
+  Page Up/Down choose a text, Alt+Left/Right move its plan by a day, Alt+Shift+Left/Right change
+  its end, Enter opens Plan of the Text (the dates of writing and revisions and the target
+  length), Delete removes the plan, Esc cancels a drag, and Edit > Undo/Redo work in the tab.
+  The plan is kept in the book, for each volume of a series. Its colours (the bar of writing,
+  the bar of revisions, today, late) are in the theme and in Settings > Statistics and Goals >
+  Colors, and the gear of the tab opens them.
 
 - **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
   for Publishers, with its number in the Navigator: the sentences about the book and the

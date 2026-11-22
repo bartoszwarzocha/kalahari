@@ -20,8 +20,11 @@
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/notifications.h"
+#include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/panels/writing_awards_tab.h"
+#include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/writing_goals_tab.h"
+#include "kalahari/gui/panels/writing_schedule_tab.h"
 #include "kalahari/gui/panels/writing_stats_panel.h"
 #include "kalahari/gui/utils/panel_toggle.h"
 #include "kalahari/gui/utils/setting_toggle.h"
@@ -119,6 +122,53 @@ WritingGoalsTab::BookSource bookSource(core::ProjectManager& projects)
         return element != nullptr ? projects.statisticsOf({*element}).words : 0;
     };
     return source;
+}
+
+/// @brief The rows of the schedule of the book open in @p projects: the book, then the
+/// texts of its main section, each part with its texts
+QList<ScheduleRow> scheduleRowsOf(const core::ProjectManager& projects)
+{
+    QList<ScheduleRow> rows;
+    const core::ProjectBook* book = projects.book();
+    if (book == nullptr) {
+        return rows;
+    }
+    ScheduleRow whole;
+    whole.kind = ScheduleRow::Kind::Book;
+    whole.title = book->title;
+    whole.iconId = QStringLiteral("book.newVolume");
+    rows << whole;
+    const auto iconOf = [&projects](const QString& id) {
+        const core::ProjectElement* element = projects.findElement(id);
+        return element != nullptr ? NavigatorPanel::iconIdOf(projects.bookTypes(), *element)
+                                  : QString();
+    };
+    int words = 0;
+    for (const PlotBand& band : PlotBoard::bandsOf(projects)) {
+        if (!band.partId.isEmpty()) {
+            ScheduleRow part;
+            part.kind = ScheduleRow::Kind::Part;
+            part.id = band.partId;
+            part.title = band.title;
+            part.iconId = iconOf(band.partId);
+            part.words = band.words();
+            rows << part;
+        }
+        for (const PlotCard& card : band.cards) {
+            ScheduleRow text;
+            text.id = card.id;
+            text.title = card.title;
+            text.kindName = card.kindName;
+            text.iconId = iconOf(card.id);
+            text.status = card.status;
+            text.words = card.words;
+            text.partId = band.partId;
+            words += card.words;
+            rows << text;
+        }
+    }
+    rows.first().words = words;
+    return rows;
 }
 
 }  // namespace
@@ -249,6 +299,12 @@ void WritingStatsCoordinator::connectCommands()
         command->isEnabled = []() { return true; };
         registry.updateActionState("tools.writingGoals");
     }
+    // The tab of the schedule, from the Tools menu and the Statistics toolbar
+    if (Command* command = registry.getCommand("tools.writingSchedule")) {
+        command->execute = [this]() { openSchedule(); };
+        command->isEnabled = []() { return true; };
+        registry.updateActionState("tools.writingSchedule");
+    }
     // The tab of the badges, from the Tools menu, the panel and the Statistics toolbar
     if (Command* command = registry.getCommand("tools.challenges")) {
         command->execute = [this]() { openAwards(); };
@@ -300,6 +356,47 @@ WritingGoalsTab* WritingStatsCoordinator::openGoals()
     }
     tabs->setCurrentWidget(tab);
     tab->setFocus();
+    return tab;
+}
+
+WritingScheduleTab* WritingStatsCoordinator::openSchedule()
+{
+    QTabWidget* tabs = m_docks != nullptr ? m_docks->centralTabs() : nullptr;
+    if (tabs == nullptr) {
+        return nullptr;
+    }
+    WritingScheduleTab* tab = nullptr;
+    for (int index = 0; index < tabs->count() && tab == nullptr; ++index) {
+        tab = qobject_cast<WritingScheduleTab*>(tabs->widget(index));
+    }
+    if (tab == nullptr) {
+        tab = new WritingScheduleTab(m_model, tabs);
+        tab->setRowsSource([this]() { return scheduleRowsOf(m_book); });
+        // DockCoordinator::refreshTabIcons() gives the tab the icon of another theme
+        tab->setProperty("tabIconId", QString::fromLatin1(WritingScheduleTab::ICON_ID));
+        connect(tab, &WritingScheduleTab::goalsRequested, this,
+                [this]() { m_commands.executeCommand("tools.writingGoals"); });
+        connect(tab, &WritingScheduleTab::settingsRequested, this, [this]() {
+            if (m_openSettings) {
+                m_openSettings(QString::fromLatin1(SCHEDULE_SETTINGS_PAGE));
+            }
+        });
+        // The texts of the book: added, moved, renamed, their state changed
+        connect(&m_book, &core::ProjectManager::projectChanged, tab, [tab]() {
+            if (tab->isVisible()) {
+                tab->refresh();
+            }
+        });
+        const int index = tabs->addTab(
+            tab,
+            core::ArtProvider::getInstance().getIcon(
+                QString::fromLatin1(WritingScheduleTab::ICON_ID)),
+            WritingScheduleTab::tabTitle());
+        tabs->setTabToolTip(index, WritingScheduleTab::tabTitle());
+        core::Logger::getInstance().info("WritingStatsCoordinator: Writing schedule opened");
+    }
+    tabs->setCurrentWidget(tab);
+    tab->view()->setFocus();
     return tab;
 }
 

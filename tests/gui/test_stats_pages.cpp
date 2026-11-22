@@ -226,7 +226,7 @@ TEST_CASE("Statistics settings: the colors of each theme, kept only when changed
     page.load();
     QGroupBox* dark = darkColors(page);
     const QList<gui::ColorConfigWidget*> colors = dark->findChildren<gui::ColorConfigWidget*>();
-    REQUIRE(colors.size() == 17);
+    REQUIRE(colors.size() == 21);
     // The line and the times of writing take the theme's color (#FFAA00 of the Dark theme),
     // the grid and the frame a share of it over the background; the others are the theme file's
     const QColor orange(QStringLiteral("#FFAA00"));
@@ -261,7 +261,7 @@ TEST_CASE("Statistics settings: the colors of each theme, kept only when changed
     another.load();
     const QList<gui::ColorConfigWidget*> followed =
         darkColors(another)->findChildren<gui::ColorConfigWidget*>();
-    REQUIRE(followed.size() == 17);
+    REQUIRE(followed.size() == 21);
     CHECK(followed[3]->color() == QColor(QStringLiteral("#00AAFF")));
     CHECK(followed[2]->color() == gui::StatsColors::themeDefault(
                                       "statsFrame", QColor(QStringLiteral("#00AAFF")), background));

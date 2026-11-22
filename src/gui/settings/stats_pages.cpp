@@ -593,6 +593,14 @@ void StatsColorsPage::addTheme(const QString& themeName)
         tr("Badges: gold"),
         //: In Polish: Odznaki: platynowa
         tr("Badges: platinum"),
+        //: In Polish: Harmonogram: pasek pisania
+        tr("Schedule: bar of writing"),
+        //: In Polish: Harmonogram: pasek poprawek
+        tr("Schedule: bar of revisions"),
+        //: In Polish: Harmonogram: dziś
+        tr("Schedule: today"),
+        //: In Polish: Harmonogram: po terminie
+        tr("Schedule: late"),
     };
     const std::vector<std::string>& keys = StatsColors::keys();
     // The colors that follow the theme's color lie over the background of the graphs: the

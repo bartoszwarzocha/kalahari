@@ -66,6 +66,7 @@ set(KALAHARI_CORE_SOURCES
     core/writing_activity.cpp   # The record of writing in 5-minute slots, and its recorder
     core/writing_statistics.cpp # The statistics of writing: writing days, days in a row, hours
     core/writing_goals.cpp      # The goals of a book, its deadlines and their reckoning
+    core/writing_plan.cpp       # The schedule of a book: when its texts are written and revised
     core/writing_awards.cpp     # The badges of writing and the writer's challenges
     core/writing_journal.cpp    # The record of writing in a database; the writer's journal
     core/text_file.cpp          # Plain text files in their own encoding and line ends
@@ -291,6 +292,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/name_dialog.cpp  # NameDialog - a name of the book dictionary with its forms
     gui/dialogs/rule_dialog.cpp  # RuleDialog - a spelling rule of the book dictionary
     gui/dialogs/deadline_dialog.cpp  # DeadlineDialog - a deadline of the book
+    gui/dialogs/text_plan_dialog.cpp  # TextPlanDialog - the schedule of a text
     gui/dialogs/new_quote_dialog.cpp  # NewQuoteDialog - a quote from a selection of a PDF
     gui/dialogs/source_lookup_dialog.cpp  # SourceLookupDialog - From the Web by ISBN or DOI...
     gui/dialogs/challenge_dialog.cpp  # ChallengeDialog - Add Challenge
@@ -449,6 +451,7 @@ set(KALAHARI_SOURCES
     gui/widgets/badge_painter.cpp  # The look of the badges and their texts
     gui/widgets/status_bar_writing.cpp  # The time of writing and the days in a row in the status bar
     gui/widgets/writing_stats_bar.cpp  # The statistics bar above the tabs of the texts
+    gui/widgets/schedule_view.cpp  # The chart of the schedule of a book
     gui/panels/annotation_card.cpp
     gui/panels/annotation_colors.cpp
     gui/panels/annotation_entry.cpp
@@ -506,6 +509,7 @@ set(KALAHARI_SOURCES
     gui/panels/writing_stats_panel.cpp  # Statistics panel: the views of the writing
     gui/panels/writing_goals_tab.cpp  # The tab Writing Goals and Deadlines
     gui/panels/writing_awards_tab.cpp  # The tab Challenges and Badges
+    gui/panels/writing_schedule_tab.cpp  # The tab Writing Schedule
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
     gui/utils/access_keys.cpp  # The access keys of menu texts
     gui/utils/language_names.cpp  # Names of languages in the language of the user interface
@@ -650,6 +654,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/name_dialog.h  # NameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rule_dialog.h  # RuleDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/deadline_dialog.h  # DeadlineDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/text_plan_dialog.h  # TextPlanDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_quote_dialog.h  # NewQuoteDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/source_lookup_dialog.h  # SourceLookupDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/challenge_dialog.h  # ChallengeDialog with Q_OBJECT
@@ -734,6 +739,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h  # StatusBarStatistics with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_writing.h  # StatusBarWriting with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/writing_stats_bar.h  # WritingStatsBar with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/schedule_view.h  # ScheduleView with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_frame.h
@@ -780,6 +786,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/writing_stats_panel.h  # WritingStatsPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/writing_goals_tab.h  # WritingGoalsTab with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/writing_awards_tab.h  # WritingAwardsTab with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/writing_schedule_tab.h  # WritingScheduleTab with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/tags_panel.h     # TagsPanel with Q_OBJECT (OpenSpec #00042 Task 7.10)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h  # CommandRegistry with Q_OBJECT (OpenSpec #00040)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h  # BookEditor with Q_OBJECT (OpenSpec #00042 Phase 3.1)

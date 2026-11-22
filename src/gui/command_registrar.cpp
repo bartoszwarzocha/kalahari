@@ -993,9 +993,9 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // =========================================================================
 
     // Statistics submenu (analysis tools only, panels in VIEW)
-    REG_CMD("tools.stats.full", QT_TRANSLATE_NOOP("CommandRegistrar", "&Full Statistics..."), "TOOLS/Statistics/Full Statistics...", 69, false, 2);
+    REG_CMD("tools.stats.full", QT_TRANSLATE_NOOP("CommandRegistrar", "&Full Statistics..."), "TOOLS/Statistics/Full Statistics...", 70, false, 2);
 
-    REG_CMD_TOOL_ICON("tools.stats.wordCount", QT_TRANSLATE_NOOP("CommandRegistrar", "&Word Count"), "TOOLS/Statistics/Word Count", 70, false, 0,
+    REG_CMD_TOOL_ICON("tools.stats.wordCount", QT_TRANSLATE_NOOP("CommandRegistrar", "&Word Count"), "TOOLS/Statistics/Word Count", 71, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       nullptr);
@@ -1062,11 +1062,14 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD("tools.plugins.updates", QT_TRANSLATE_NOOP("CommandRegistrar", "Check for &Updates..."), "TOOLS/Plugins/Check for Updates...", 150, true, 2);
     REG_CMD("tools.plugins.reload", QT_TRANSLATE_NOOP("CommandRegistrar", "&Reload Plugins"), "TOOLS/Plugins/Reload Plugins", 160, false, 2);
 
-    REG_CMD("tools.challenges", QT_TRANSLATE_NOOP("CommandRegistrar", "&Challenges && Badges..."), "TOOLS/Challenges & Badges...", 67, false, 2);
-    REG_CMD("tools.addChallenge", QT_TRANSLATE_NOOP("CommandRegistrar", "A&dd Challenge..."), "TOOLS/Add Challenge...", 68, false, 1);
+    REG_CMD("tools.challenges", QT_TRANSLATE_NOOP("CommandRegistrar", "&Challenges && Badges..."), "TOOLS/Challenges & Badges...", 68, false, 2);
+    REG_CMD("tools.addChallenge", QT_TRANSLATE_NOOP("CommandRegistrar", "A&dd Challenge..."), "TOOLS/Add Challenge...", 69, false, 1);
     REG_CMD("tools.writingGoals", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writing Goals && Deadlines..."), "TOOLS/Writing Goals & Deadlines...", 66, false, 2);
+    // The tab of the schedule of the book (WritingStatsCoordinator); on the Statistics toolbar
+    //: In Polish: &Harmonogram pracy...
+    REG_CMD("tools.writingSchedule", QT_TRANSLATE_NOOP("CommandRegistrar", "Writing Sc&hedule..."), "TOOLS/Writing Schedule...", 67, false, 2);
     // Settings > Statistics and Goals (WritingStatsCoordinator); on the Statistics toolbar
-    REG_CMD("tools.statsSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Statistics S&ettings..."), "TOOLS/Statistics Settings...", 71, true, 1);
+    REG_CMD("tools.statsSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Statistics S&ettings..."), "TOOLS/Statistics Settings...", 72, true, 1);
 
     // OpenSpec #00037: Toolbar Manager command (used in Quick Actions toolbar). The menus have
     // the window once, as View > Toolbars > Toolbar Manager...: the command stays for the keys

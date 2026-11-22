@@ -33,6 +33,7 @@ class StatusBarWriting;
 class WritingAwardsTab;
 class WritingAwardsTracker;
 class WritingGoalsTab;
+class WritingScheduleTab;
 class WritingStatsBar;
 class WritingStatsModel;
 
@@ -44,9 +45,10 @@ class WritingStatsModel;
 /// the setting "stats.bar.show" says; View > Show Statistics Bar and its button on the Writing
 /// Statistics toolbar turn that setting on and off. Tools > Writing Goals and Deadlines opens
 /// the tab of the goals in the middle of the window, beside the tabs of the texts, and Tools >
-/// Challenges and Badges the tab of the badges. The goals reached, the deadlines coming, the
-/// badges won and the challenges done are notifications of the window (setNotifications()),
-/// as the settings stats.notify.* say; they show where Settings > Notifications says.
+/// Challenges and Badges the tab of the badges, Tools > Writing Schedule the tab of the plan of
+/// the texts on a time axis. The goals reached, the deadlines coming, the badges won and the
+/// challenges done are notifications of the window (setNotifications()), as the settings
+/// stats.notify.* say; they show where Settings > Notifications says.
 class WritingStatsCoordinator : public QObject {
     Q_OBJECT
 
@@ -58,6 +60,8 @@ public:
     /// @brief The page that Statistics Settings on the tab of the goals opens: how the words
     /// count toward them
     static constexpr const char* GOALS_SETTINGS_PAGE = "stats.counting";
+    /// @brief The page that the gear of the schedule opens: the colors of the statistics
+    static constexpr const char* SCHEDULE_SETTINGS_PAGE = "stats.colors";
 
     /// @param book The book of its window
     /// @param commands The commands of its window
@@ -72,13 +76,17 @@ public:
     ~WritingStatsCoordinator() override;
 
     /// @brief Hook the commands up: View > Show Statistics Bar, Tools > Writing Goals and
-    /// Deadlines, Tools > Challenges and Badges, Tools > Add Challenge, Tools > Statistics
-    /// Settings
+    /// Deadlines, Tools > Writing Schedule, Tools > Challenges and Badges, Tools > Add
+    /// Challenge, Tools > Statistics Settings
     void connectCommands();
 
     /// @brief Bring the tab Writing Goals and Deadlines to the front, made when it is not open
     /// @return The tab; nullptr without the middle of a window
     WritingGoalsTab* openGoals();
+
+    /// @brief Bring the tab Writing Schedule to the front, made when it is not open
+    /// @return The tab; nullptr without the middle of a window
+    WritingScheduleTab* openSchedule();
 
     /// @brief Bring the tab Challenges and Badges to the front, made when it is not open
     /// @return The tab; nullptr without the middle of a window

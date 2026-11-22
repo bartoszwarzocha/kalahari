@@ -1453,6 +1453,11 @@
         <source>&amp;Images and Tables</source>
         <translation>&amp;Obrazy i tabele</translation>
     </message>
+    <message>
+        <source>Writing Sc&amp;hedule...</source>
+        <extracomment>In Polish: &amp;Harmonogram pracy...</extracomment>
+        <translation>&amp;Harmonogram pracy...</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -27907,6 +27912,26 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         <extracomment>In Polish: Kiedy piszesz: najwięcej słów</extracomment>
         <translation>Kiedy piszesz: najwięcej słów</translation>
     </message>
+    <message>
+        <source>Schedule: bar of writing</source>
+        <extracomment>In Polish: Harmonogram: pasek pisania</extracomment>
+        <translation>Harmonogram: pasek pisania</translation>
+    </message>
+    <message>
+        <source>Schedule: bar of revisions</source>
+        <extracomment>In Polish: Harmonogram: pasek poprawek</extracomment>
+        <translation>Harmonogram: pasek poprawek</translation>
+    </message>
+    <message>
+        <source>Schedule: today</source>
+        <extracomment>In Polish: Harmonogram: dziś</extracomment>
+        <translation>Harmonogram: dziś</translation>
+    </message>
+    <message>
+        <source>Schedule: late</source>
+        <extracomment>In Polish: Harmonogram: po terminie</extracomment>
+        <translation>Harmonogram: po terminie</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::StatsCountingPage</name>
@@ -28596,6 +28621,218 @@ After the length of the book. In Polish: słów</extracomment>
         <source>Remove the deadline “%1”?</source>
         <extracomment>%1: the name of the deadline. In Polish: Usunąć termin „%1”?</extracomment>
         <translation>Usunąć termin „%1”?</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::WritingScheduleTab</name>
+    <message>
+        <source>Schedule</source>
+        <extracomment>The tab of the schedule of the book. In Polish: Harmonogram</extracomment>
+        <translation>Harmonogram</translation>
+    </message>
+    <message>
+        <source>Writing Schedule</source>
+        <extracomment>The heading of the tab. In Polish: Harmonogram pracy</extracomment>
+        <translation>Harmonogram pracy</translation>
+    </message>
+    <message>
+        <source>Day&amp;s</source>
+        <extracomment>The scale of the chart: a day is wide. In Polish: Dn&amp;i</extracomment>
+        <translation>Dn&amp;i</translation>
+    </message>
+    <message>
+        <source>Wee&amp;ks</source>
+        <extracomment>In Polish: T&amp;ygodnie</extracomment>
+        <translation>T&amp;ygodnie</translation>
+    </message>
+    <message>
+        <source>Mo&amp;nths</source>
+        <extracomment>In Polish: &amp;Miesiące</extracomment>
+        <translation>&amp;Miesiące</translation>
+    </message>
+    <message>
+        <source>Toda&amp;y</source>
+        <extracomment>Scrolls the chart to today. In Polish: D&amp;ziś</extracomment>
+        <translation>D&amp;ziś</translation>
+    </message>
+    <message>
+        <source>Ma&amp;rk days off</source>
+        <extracomment>Shades the days the writer does not write on. In Polish: Zaznacz dni wo&amp;lne</extracomment>
+        <translation>Zaznacz dni wo&amp;lne</translation>
+    </message>
+    <message>
+        <source>Goals and Deadlines...</source>
+        <extracomment>Opens the tab Writing Goals and Deadlines. In Polish: Cele i te&amp;rminy...</extracomment>
+        <translation>Cele i te&amp;rminy...</translation>
+    </message>
+    <message>
+        <source>Colors of the Schedule</source>
+        <extracomment>In Polish: Kolory harmonogramu</extracomment>
+        <translation>Kolory harmonogramu</translation>
+    </message>
+    <message>
+        <source>Open a book to plan the work on its texts.</source>
+        <extracomment>In Polish: Otwórz książkę, aby zaplanować pracę nad jej tekstami.</extracomment>
+        <translation>Otwórz książkę, aby zaplanować pracę nad jej tekstami.</translation>
+    </message>
+    <message>
+        <source>The book is open read-only: its plan does not change.</source>
+        <extracomment>In Polish: Książka jest otwarta tylko do odczytu: jej plan się nie zmienia.</extracomment>
+        <translation>Książka jest otwarta tylko do odczytu: jej plan się nie zmienia.</translation>
+    </message>
+    <message>
+        <source>Dragging a bar moves it, dragging its right edge changes its last day; dragging in an empty row plans the text. Keys: Up and Down choose a text, Alt+Left and Alt+Right move its plan by a day, Alt+Shift+Left and Alt+Shift+Right change the last day of writing, Enter opens the plan of the text, Delete removes it.</source>
+        <extracomment>In Polish: Przeciągnięcie paska przesuwa go, a przeciągnięcie jego prawej krawędzi zmienia ostatni dzień; przeciągnięcie w pustym wierszu planuje tekst. Klawisze: strzałki w górę i w dół wybierają tekst, Alt+strzałka w lewo i Alt+strzałka w prawo przesuwają jego plan o dzień, Alt+Shift+strzałka w lewo i Alt+Shift+strzałka w prawo zmieniają ostatni dzień pisania, Enter otwiera plan tekstu, Delete go usuwa.</extracomment>
+        <translation>Przeciągnięcie paska przesuwa go, a przeciągnięcie jego prawej krawędzi zmienia ostatni dzień; przeciągnięcie w pustym wierszu planuje tekst. Klawisze: strzałki w górę i w dół wybierają tekst, Alt+strzałka w lewo i Alt+strzałka w prawo przesuwają jego plan o dzień, Alt+Shift+strzałka w lewo i Alt+Shift+strzałka w prawo zmieniają ostatni dzień pisania, Enter otwiera plan tekstu, Delete go usuwa.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ScheduleView</name>
+    <message>
+        <source>Schedule: the texts of the book on a time axis</source>
+        <extracomment>In Polish: Harmonogram: teksty książki na osi czasu</extracomment>
+        <translation>Harmonogram: teksty książki na osi czasu</translation>
+    </message>
+    <message>
+        <source>%1 of %2</source>
+        <extracomment>%1: words written, %2: the words planned. In Polish: %1 z %2</extracomment>
+        <translation>%1 z %2</translation>
+    </message>
+    <message>
+        <source>deadline %1</source>
+        <extracomment>In Polish: termin %1</extracomment>
+        <translation>termin %1</translation>
+    </message>
+    <message>
+        <source>at the present pace done about %1</source>
+        <extracomment>In Polish: w obecnym tempie koniec około %1</extracomment>
+        <translation>w obecnym tempie koniec około %1</translation>
+    </message>
+    <message>
+        <source>planned %1</source>
+        <extracomment>In Polish: plan %1</extracomment>
+        <translation>plan %1</translation>
+    </message>
+    <message>
+        <source>no plan</source>
+        <extracomment>In Polish: bez planu</extracomment>
+        <translation>bez planu</translation>
+    </message>
+    <message>
+        <source>no plan; Enter or a drag in its row plans it</source>
+        <extracomment>In Polish: bez planu; Enter albo przeciągnięcie w wierszu tworzy plan</extracomment>
+        <translation>bez planu; Enter albo przeciągnięcie w wierszu tworzy plan</translation>
+    </message>
+    <message numerus="yes">
+        <source>writing %1 (%n writing days)</source>
+        <extracomment>%1: the days. In Polish: pisanie %1 (%n dzień pisania / dni pisania)</extracomment>
+        <translation>
+            <numerusform>pisanie %1 (%n dzień pisania)</numerusform>
+            <numerusform>pisanie %1 (%n dni pisania)</numerusform>
+            <numerusform>pisanie %1 (%n dni pisania)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>final</source>
+        <extracomment>The state of a text. In Polish: gotowy</extracomment>
+        <translation>gotowy</translation>
+    </message>
+    <message>
+        <source>late, %1 missing</source>
+        <extracomment>In Polish: po terminie, brakuje %1</extracomment>
+        <translation>po terminie, brakuje %1</translation>
+    </message>
+    <message>
+        <source>late</source>
+        <extracomment>In Polish: po terminie</extracomment>
+        <translation>po terminie</translation>
+    </message>
+    <message numerus="yes">
+        <source>starts in %n days</source>
+        <extracomment>In Polish: zaczyna się za %n dzień / dni</extracomment>
+        <translation>
+            <numerusform>zaczyna się za %n dzień</numerusform>
+            <numerusform>zaczyna się za %n dni</numerusform>
+            <numerusform>zaczyna się za %n dni</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1 left, %2 a writing day</source>
+        <extracomment>%1: the words left, %2: the words of a writing day. In Polish: zostało %1, %2 na dzień pisania</extracomment>
+        <translation>zostało %1, %2 na dzień pisania</translation>
+    </message>
+    <message numerus="yes">
+        <source>revisions %1 (%n writing days)</source>
+        <extracomment>%1: the days. In Polish: poprawki %1 (%n dzień pisania / dni pisania)</extracomment>
+        <translation>
+            <numerusform>poprawki %1 (%n dzień pisania)</numerusform>
+            <numerusform>poprawki %1 (%n dni pisania)</numerusform>
+            <numerusform>poprawki %1 (%n dni pisania)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1, late</source>
+        <extracomment>In Polish: %1, po terminie</extracomment>
+        <translation>%1, po terminie</translation>
+    </message>
+    <message numerus="yes">
+        <source>written on %n days</source>
+        <extracomment>In Polish: pisany %n dzień / dni</extracomment>
+        <translation>
+            <numerusform>pisany %n dzień</numerusform>
+            <numerusform>pisany %n dni</numerusform>
+            <numerusform>pisany %n dni</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>deadline “%1” %2</source>
+        <extracomment>%1: the name of a deadline, %2: its day. In Polish: termin „%1” %2</extracomment>
+        <translation>termin „%1” %2</translation>
+    </message>
+    <message>
+        <source>%1: %2.</source>
+        <extracomment>%1: the title of a text, a part or the book, %2: what the schedule has of it. In Polish: %1: %2.</extracomment>
+        <translation>%1: %2.</translation>
+    </message>
+    <message>
+        <source>no plan – drag in the row or press Enter</source>
+        <extracomment>In Polish: bez planu – przeciągnij w wierszu albo naciśnij Enter</extracomment>
+        <translation>bez planu – przeciągnij w wierszu albo naciśnij Enter</translation>
+    </message>
+    <message>
+        <source>forecast</source>
+        <extracomment>Over the line of the forecast of the end of the book. In Polish: prognoza</extracomment>
+        <translation>prognoza</translation>
+    </message>
+    <message>
+        <source>deadline</source>
+        <extracomment>Over the line of the deadline of the book. In Polish: termin</extracomment>
+        <translation>termin</translation>
+    </message>
+    <message>
+        <source>today</source>
+        <extracomment>Over the line of today. In Polish: dziś</extracomment>
+        <translation>dziś</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <extracomment>The column of the texts of the schedule. In Polish: Tekst</extracomment>
+        <translation>Tekst</translation>
+    </message>
+    <message>
+        <source>State</source>
+        <extracomment>In Polish: Stan</extracomment>
+        <translation>Stan</translation>
+    </message>
+    <message>
+        <source>Words</source>
+        <extracomment>In Polish: Słowa</extracomment>
+        <translation>Słowa</translation>
+    </message>
+    <message>
+        <source>Plan</source>
+        <extracomment>In Polish: Plan</extracomment>
+        <translation>Plan</translation>
     </message>
 </context>
 <context>
@@ -29508,6 +29745,117 @@ After the length of the book. In Polish: słów</extracomment>
     <message>
         <source>&amp;Change</source>
         <translation>&amp;Zmień</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::TextPlanDialog</name>
+    <message>
+        <source>Plan of the Text</source>
+        <extracomment>In Polish: Plan tekstu</extracomment>
+        <translation>Plan tekstu</translation>
+    </message>
+    <message>
+        <source>%1: when it is written and when it is revised.</source>
+        <extracomment>%1: the title of the text. In Polish: %1: kiedy powstaje i kiedy jest poprawiany.</extracomment>
+        <translation>%1: kiedy powstaje i kiedy jest poprawiany.</translation>
+    </message>
+    <message>
+        <source>from</source>
+        <extracomment>The first day of a stage of the plan. In Polish: od</extracomment>
+        <translation>od</translation>
+    </message>
+    <message>
+        <source>to</source>
+        <extracomment>The last day of a stage of the plan. In Polish: do</extracomment>
+        <translation>do</translation>
+    </message>
+    <message>
+        <source>&amp;Writing</source>
+        <extracomment>In Polish: &amp;Pisanie</extracomment>
+        <translation>&amp;Pisanie</translation>
+    </message>
+    <message>
+        <source>Writing: the first day</source>
+        <extracomment>In Polish: Pisanie: pierwszy dzień</extracomment>
+        <translation>Pisanie: pierwszy dzień</translation>
+    </message>
+    <message>
+        <source>Writing: the last day</source>
+        <extracomment>In Polish: Pisanie: ostatni dzień</extracomment>
+        <translation>Pisanie: ostatni dzień</translation>
+    </message>
+    <message>
+        <source>&amp;Revisions</source>
+        <extracomment>In Polish: P&amp;oprawki</extracomment>
+        <translation>P&amp;oprawki</translation>
+    </message>
+    <message>
+        <source>Revisions: the first day</source>
+        <extracomment>In Polish: Poprawki: pierwszy dzień</extracomment>
+        <translation>Poprawki: pierwszy dzień</translation>
+    </message>
+    <message>
+        <source>Revisions: the last day</source>
+        <extracomment>In Polish: Poprawki: ostatni dzień</extracomment>
+        <translation>Poprawki: ostatni dzień</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <extracomment>The length of a text: none. In Polish: brak</extracomment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source> words</source>
+        <extracomment>In Polish: " słów"</extracomment>
+        <translation> słów</translation>
+    </message>
+    <message>
+        <source>&amp;Length: the words of the written text</source>
+        <extracomment>In Polish: &amp;Długość: słowa gotowego tekstu</extracomment>
+        <translation>&amp;Długość: słowa gotowego tekstu</translation>
+    </message>
+    <message>
+        <source>&amp;Save</source>
+        <extracomment>In Polish: &amp;Zapisz</extracomment>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>Re&amp;move Plan</source>
+        <extracomment>In Polish: &amp;Usuń plan</extracomment>
+        <translation>&amp;Usuń plan</translation>
+    </message>
+    <message numerus="yes">
+        <source>Writing: %n writing days.</source>
+        <extracomment>In Polish: Pisanie: %n dzień pisania / dni pisania.</extracomment>
+        <translation>
+            <numerusform>Pisanie: %n dzień pisania.</numerusform>
+            <numerusform>Pisanie: %n dni pisania.</numerusform>
+            <numerusform>Pisanie: %n dni pisania.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The text has %1, %2 are left, that is %3 a writing day.</source>
+        <extracomment>%1: the words of the text now, %2: the words left, %3: the words of a writing day. In Polish: Tekst ma %1, zostało %2, czyli %3 na dzień pisania.</extracomment>
+        <translation>Tekst ma %1, zostało %2, czyli %3 na dzień pisania.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Revisions: %n writing days.</source>
+        <extracomment>In Polish: Poprawki: %n dzień pisania / dni pisania.</extracomment>
+        <translation>
+            <numerusform>Poprawki: %n dzień pisania.</numerusform>
+            <numerusform>Poprawki: %n dni pisania.</numerusform>
+            <numerusform>Poprawki: %n dni pisania.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The revisions start before the writing ends.</source>
+        <extracomment>In Polish: Poprawki zaczynają się, zanim skończy się pisanie.</extracomment>
+        <translation>Poprawki zaczynają się, zanim skończy się pisanie.</translation>
+    </message>
+    <message>
+        <source>Without writing and revisions the text has no plan.</source>
+        <extracomment>In Polish: Bez pisania i poprawek tekst nie ma planu.</extracomment>
+        <translation>Bez pisania i poprawek tekst nie ma planu.</translation>
     </message>
 </context>
 <context>

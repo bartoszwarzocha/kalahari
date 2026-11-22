@@ -123,19 +123,30 @@ void WritingStatsModel::setBook(core::ProjectDatabase* database, const QString& 
     }
     readBook();
     emit goalsChanged();
+    emit planChanged();
     schedule();
 }
 
 void WritingStatsModel::readBook()
 {
-    m_goals = {};
     m_bookRecord.setActivity({});
+    if (m_database != nullptr && m_database->isOpen()) {
+        m_bookRecord.setActivity(m_database->writingActivity(FIRST_DAY, LAST_DAY));
+    }
+    readGoals();
+}
+
+void WritingStatsModel::readGoals()
+{
+    m_goals = {};
+    m_plan = {};
     if (m_database == nullptr || !m_database->isOpen()) {
         return;
     }
-    m_bookRecord.setActivity(
-        m_database->writingActivity(FIRST_DAY, LAST_DAY));
-    m_goals = core::BookGoals::fromJson(m_database->getSetting(goalsKey()).toString());
+    const QString key = goalsKey();
+    m_goals = core::BookGoals::fromJson(m_database->getSetting(key).toString());
+    m_plan = core::WritingPlan::fromJson(
+        m_database->getSetting(core::WritingPlan::settingKeyOf(key)).toString());
 }
 
 QString WritingStatsModel::goalsKey() const
@@ -152,12 +163,9 @@ void WritingStatsModel::setVolume(const QString& goalsKey, const QSet<QString>& 
     m_goalsKey = goalsKey;
     m_volumeTexts = goalsKey.isEmpty() ? QSet<QString>() : elementIds;
     if (otherGoals) {
-        m_goals = {};
-        if (m_database != nullptr && m_database->isOpen()) {
-            m_goals =
-                core::BookGoals::fromJson(m_database->getSetting(this->goalsKey()).toString());
-        }
+        readGoals();
         emit goalsChanged();
+        emit planChanged();
     }
     schedule();
 }
@@ -211,6 +219,22 @@ bool WritingStatsModel::setGoals(const core::BookGoals& goals)
     m_goals = sorted;
     emit goalsChanged();
     schedule();
+    return true;
+}
+
+bool WritingStatsModel::setPlan(const core::WritingPlan& plan)
+{
+    if (m_database == nullptr || !m_database->isOpen() || m_bookReadOnly) {
+        return false;
+    }
+    // As the setting keeps it: what an empty plan of a text means is the same on both sides
+    const core::WritingPlan kept = core::WritingPlan::fromJson(plan.toJson());
+    if (kept == m_plan) {
+        return true;
+    }
+    m_database->setSetting(core::WritingPlan::settingKeyOf(goalsKey()), kept.toJson());
+    m_plan = kept;
+    emit planChanged();
     return true;
 }
 

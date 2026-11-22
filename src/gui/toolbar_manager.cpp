@@ -67,7 +67,8 @@ struct AddedCommand {
 ///  10: Footnotes on the Panels toolbar; every command of the Insert menu on the Insert toolbar
 ///  11: Plot Board on the Book toolbar
 ///  12: Images and Tables on the Panels toolbar, after Footnotes
-constexpr std::array<AddedCommand, 38> ADDED_COMMANDS{{
+///  13: Writing Schedule on the Writing Statistics toolbar
+constexpr std::array<AddedCommand, 39> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
@@ -106,6 +107,7 @@ constexpr std::array<AddedCommand, 38> ADDED_COMMANDS{{
     {"insert", "insert.pageBreak", 10},
     {"book", "view.plotBoard", 11},
     {"view", "view.figures", 12},
+    {"stats", "tools.writingSchedule", 13},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -125,7 +127,7 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 12;
+constexpr int CHANGED_COMMANDS_VERSION = 13;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
@@ -320,14 +322,16 @@ void ToolbarManager::initializeConfigs() {
 
     // Writing Statistics Toolbar: the statistics of writing in one place - the statistics bar, the
     // Statistics panel (also on the Panels toolbar, with the other panels), the tabs of the
-    // goals and of the challenges and badges, a new challenge, and the settings of the statistics
+    // goals, of the schedule and of the challenges and badges, a new challenge, and the settings
+    // of the statistics
     m_configs[STATS_TOOLBAR_ID] = {
         STATS_TOOLBAR_ID,
         QT_TRANSLATE_NOOP("QObject", "&Writing Statistics Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
         {"view.showStatsBar", "view.statistics", SEPARATOR_ID, "tools.writingGoals",
-         "tools.challenges", "tools.addChallenge", SEPARATOR_ID, "tools.statsSettings"}
+         "tools.writingSchedule", "tools.challenges", "tools.addChallenge", SEPARATOR_ID,
+         "tools.statsSettings"}
     };
 
     // Format Toolbar (text formatting - essential for writer's IDE)

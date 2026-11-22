@@ -275,6 +275,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("tools.challenges", "resources/icons/twotone/emoji_events.svg", "Writing Challenges");
     iconRegistry.registerIcon("tools.addChallenge", "resources/icons/twotone/add_challenge.svg", "Add Challenge");
     iconRegistry.registerIcon("tools.writingGoals", "resources/icons/twotone/track_changes.svg", "Writing Goals");
+    iconRegistry.registerIcon("tools.writingSchedule", "resources/icons/twotone/calendar_month.svg", "Writing Schedule");
     iconRegistry.registerIcon("tools.statsSettings", "resources/icons/twotone/tune.svg", "Statistics Settings");
     // The button on the graph of the statistics bar that puts now in the middle
     iconRegistry.registerIcon("stats.nowInMiddle", "resources/icons/twotone/align_horizontal_center.svg", "Now in the Middle");

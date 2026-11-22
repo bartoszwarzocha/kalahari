@@ -45,6 +45,10 @@ struct StatsColors {
     QColor silver;      ///< The second
     QColor gold;        ///< The third
     QColor platinum;    ///< The fourth
+    QColor planBar;      ///< The schedule: a bar of writing (follows the theme's color)
+    QColor planRevision; ///< The schedule: a bar of revisions
+    QColor planToday;    ///< The schedule: the line of today
+    QColor planLate;     ///< The schedule: a bar past its end with its work not done
     int fillOpacity = 20;  ///< The fill under the lines, in percent
 
     /// @brief One color of the list below, by its key ("statsLine")

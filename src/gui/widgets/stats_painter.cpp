@@ -33,7 +33,7 @@ struct DefaultColor {
     double themeShare = 0.0;
 };
 
-constexpr std::array<DefaultColor, 17> DEFAULT_COLORS{{
+constexpr std::array<DefaultColor, 21> DEFAULT_COLORS{{
     {"statsBackground", "#FFFFFF", "#1A1A1A"},
     {"statsGrid", "", "", 0.14},
     {"statsFrame", "", "", 0.45},
@@ -51,6 +51,10 @@ constexpr std::array<DefaultColor, 17> DEFAULT_COLORS{{
     {"statsBadgeSilver", "#6F7D88", "#B9C3CC"},
     {"statsBadgeGold", "#B08400", "#E3B341"},
     {"statsBadgePlatinum", "#23879A", "#8FD8E8"},
+    {"statsPlanBar", "", "", 0.28},
+    {"statsPlanRevision", "#9C86CF", "#7D6AA8"},
+    {"statsPlanToday", "#D9480F", "#FF8C42"},
+    {"statsPlanLate", "#C62828", "#EF5350"},
 }};
 
 /// @brief The entry of @p key; nullptr for a key not known
@@ -77,7 +81,7 @@ bool isDarkTheme()
 
 QColor StatsColors::color(const std::string& key) const
 {
-    static const std::array<std::pair<const char*, QColor StatsColors::*>, 17> MEMBERS{{
+    static const std::array<std::pair<const char*, QColor StatsColors::*>, 21> MEMBERS{{
         {"statsBackground", &StatsColors::background},
         {"statsGrid", &StatsColors::grid},
         {"statsFrame", &StatsColors::frame},
@@ -95,6 +99,10 @@ QColor StatsColors::color(const std::string& key) const
         {"statsBadgeSilver", &StatsColors::silver},
         {"statsBadgeGold", &StatsColors::gold},
         {"statsBadgePlatinum", &StatsColors::platinum},
+        {"statsPlanBar", &StatsColors::planBar},
+        {"statsPlanRevision", &StatsColors::planRevision},
+        {"statsPlanToday", &StatsColors::planToday},
+        {"statsPlanLate", &StatsColors::planLate},
     }};
     for (const auto& [name, member] : MEMBERS) {
         if (key == name) {
@@ -203,6 +211,10 @@ StatsColors StatsColors::current()
     colors.silver = take(DEFAULT_COLORS[14]);
     colors.gold = take(DEFAULT_COLORS[15]);
     colors.platinum = take(DEFAULT_COLORS[16]);
+    colors.planBar = take(DEFAULT_COLORS[17]);
+    colors.planRevision = take(DEFAULT_COLORS[18]);
+    colors.planToday = take(DEFAULT_COLORS[19]);
+    colors.planLate = take(DEFAULT_COLORS[20]);
     colors.fillOpacity = core::SettingsManager::getInstance().get<int>(
         fillOpacitySetting(themes.getCurrentTheme().name), defaultFillOpacity(dark));
     return colors;

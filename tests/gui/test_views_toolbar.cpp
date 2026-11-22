@@ -475,7 +475,7 @@ TEST_CASE("Insert toolbar: every command of the Insert menu, in its groups",
               "insert.sceneBreak | insert.pageBreak");
         CHECK(manager.getToolbarCommands(panels).join(QStringLiteral(" | ")).toStdString() ==
               "view.navigator | view.annotations | view.footnotes | view.figures | view.log");
-        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 12);
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 13);
 
         // Taken away by the writer after that, they stay away
         QStringList without = manager.getToolbarCommands(insert);
@@ -521,8 +521,41 @@ TEST_CASE("Book toolbar: Plot Board before Book Properties, also on a toolbar sa
         ToolbarManager manager(kalahari::test::commands(), &window);
         CHECK(manager.getToolbarCommands(book).join(QStringLiteral(" | ")).toStdString() ==
               "book.properties | book.newChapter | view.plotBoard");
-        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 12);
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 13);
     }
+
+    settings.set<std::string>("toolbars.configurations", savedToolbars);
+    settings.set<int>("toolbars.addedCommands", savedVersion);
+}
+
+TEST_CASE("Statistics toolbar: Writing Schedule comes to a toolbar customized before it, once",
+          "[gui][toolbar][statistics]") {
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string savedToolbars = settings.get<std::string>("toolbars.configurations", "");
+    const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
+    const QString stats = QStringLiteral("stats");
+
+    // Customized before it came: Add Challenge taken away; it comes after Writing Goals
+    settings.set<std::string>(
+        "toolbars.configurations",
+        R"({"builtIn":{"stats":["view.showStatsBar","tools.writingGoals","tools.challenges"]}})");
+    settings.set<int>("toolbars.addedCommands", 12);
+    QMainWindow window;
+    {
+        ToolbarManager manager(kalahari::test::commands(), &window);
+        CHECK(manager.getToolbarCommands(stats).join(QStringLiteral(" | ")).toStdString() ==
+              "view.showStatsBar | tools.writingGoals | tools.writingSchedule | "
+              "tools.challenges");
+
+        // Taken away by the writer after that, it stays away
+        QStringList without = manager.getToolbarCommands(stats);
+        without.removeAll(QStringLiteral("tools.writingSchedule"));
+        manager.setToolbarCommands(stats, without);
+    }
+    ToolbarManager next(kalahari::test::commands(), &window);
+    CHECK(next.getToolbarCommands(stats).join(QStringLiteral(" | ")).toStdString() ==
+          "view.showStatsBar | tools.writingGoals | tools.challenges");
 
     settings.set<std::string>("toolbars.configurations", savedToolbars);
     settings.set<int>("toolbars.addedCommands", savedVersion);
@@ -1084,15 +1117,16 @@ TEST_CASE("Statistics toolbar: the statistics of writing in one place, shown at 
 
     // The very actions of the menus: the statistics bar and the panel are checked with them
     const QList<QAction*> actions = toolbar->actions();
-    REQUIRE(actions.size() == 8);
+    REQUIRE(actions.size() == 9);
     CHECK(actions[0] == registry.getAction(std::string("view.showStatsBar")));
     CHECK(actions[1] == registry.getAction(std::string("view.statistics")));
     CHECK(actions[2]->isSeparator());
     CHECK(actions[3] == registry.getAction(std::string("tools.writingGoals")));
-    CHECK(actions[4] == registry.getAction(std::string("tools.challenges")));
-    CHECK(actions[5] == registry.getAction(std::string("tools.addChallenge")));
-    CHECK(actions[6]->isSeparator());
-    CHECK(actions[7] == registry.getAction(std::string("tools.statsSettings")));
+    CHECK(actions[4] == registry.getAction(std::string("tools.writingSchedule")));
+    CHECK(actions[5] == registry.getAction(std::string("tools.challenges")));
+    CHECK(actions[6] == registry.getAction(std::string("tools.addChallenge")));
+    CHECK(actions[7]->isSeparator());
+    CHECK(actions[8] == registry.getAction(std::string("tools.statsSettings")));
 
     // The panel keeps its button on the Panels toolbar too; the Views toolbar has none of them
     CHECK(manager.getToolbarCommands(QStringLiteral("view"))

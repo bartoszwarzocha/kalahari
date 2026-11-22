@@ -10,6 +10,7 @@
 
 #include <kalahari/core/writing_activity.h>
 #include <kalahari/core/writing_goals.h>
+#include <kalahari/core/writing_plan.h>
 #include <kalahari/core/writing_journal.h>
 #include <kalahari/core/writing_statistics.h>
 
@@ -114,10 +115,18 @@ public:
     /// @return false without a book or when they cannot be written
     bool setGoals(const core::BookGoals& goals);
 
+    /// @brief The schedule of the open book (of the volume of a series); empty without one
+    [[nodiscard]] const core::WritingPlan& plan() const { return m_plan; }
+
+    /// @brief Keep a new schedule of the open book in its project.db
+    /// @return false without a book, with a book open read-only or when it cannot be written
+    bool setPlan(const core::WritingPlan& plan);
+
     /// @brief The volume of a series whose goals and words the book has: its goals in the
     ///        setting @p goalsKey (core::BookGoals::settingKeyOf()), its texts @p elementIds;
     ///        an empty key: one book, its goals in core::BookGoals::SETTING_KEY and all its
-    ///        texts. The goals are read again when they are of another volume.
+    ///        texts. The goals and the schedule are read again when they are of another
+    ///        volume.
     void setVolume(const QString& goalsKey, const QSet<QString>& elementIds);
 
     /// @brief The record of the texts of the volume (setVolume()), with what is not saved yet;
@@ -187,12 +196,18 @@ signals:
     /// @brief The goals of the book changed (setGoals(), another book)
     void goalsChanged();
 
+    /// @brief The schedule of the book changed (setPlan(), another book or volume)
+    void planChanged();
+
 private:
     /// @brief changed() soon, at most every CHANGE_INTERVAL_MS
     void schedule();
 
-    /// @brief Read the record of the open book and its goals
+    /// @brief Read the record of the open book, its goals and its schedule
     void readBook();
+
+    /// @brief Read the goals and the schedule of the open book or of the volume
+    void readGoals();
 
     /// @brief The setting of the goals of the open book or of the volume
     [[nodiscard]] QString goalsKey() const;
@@ -202,6 +217,7 @@ private:
     core::WritingStatistics m_journalRecord;  ///< Saved in the journal
     core::WritingStatistics m_bookRecord;     ///< Saved in the book
     core::BookGoals m_goals;
+    core::WritingPlan m_plan;
     core::ProjectDatabase* m_database{nullptr};
     QString m_bookId;
     bool m_bookReadOnly{false};
