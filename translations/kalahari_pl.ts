@@ -4329,6 +4329,26 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <extracomment>The submenu of the text's context menu under Paste. In Polish: Wklej &amp;specjalnie</extracomment>
         <translation>Wklej &amp;specjalnie</translation>
     </message>
+    <message>
+        <source>The item already has the number %1</source>
+        <extracomment>Why Restart at 1 of the context menu of a list item is greyed out: %1 the first number (1, a, i). In Polish: Ten element listy ma już numer %1</extracomment>
+        <translation>Ten element listy ma już numer %1</translation>
+    </message>
+    <message>
+        <source>Only the first item of a list continues the numbering of a list above it</source>
+        <extracomment>Why Continue Numbering of the context menu of a list item is greyed out. In Polish: Numerowanie listy powyżej kontynuuje tylko pierwszy element listy</extracomment>
+        <translation>Numerowanie listy powyżej kontynuuje tylko pierwszy element listy</translation>
+    </message>
+    <message>
+        <source>The item is at the deepest level of the list</source>
+        <extracomment>Why Increase Indent of the context menu of a list item is greyed out. In Polish: Element jest już na najgłębszym poziomie listy</extracomment>
+        <translation>Element jest już na najgłębszym poziomie listy</translation>
+    </message>
+    <message>
+        <source>The item is at the first level of the list</source>
+        <extracomment>Why Decrease Indent of the context menu of a list item is greyed out. In Polish: Element jest już na pierwszym poziomie listy</extracomment>
+        <translation>Element jest już na pierwszym poziomie listy</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -7047,6 +7067,99 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <source>&amp;Tab List</source>
         <extracomment>Window menu: the list of all the tabs of the window in front, to choose one (as the button with an arrow down after the tabs). In Polish: &amp;Lista kart</extracomment>
         <translation>&amp;Lista kart</translation>
+    </message>
+    <message>
+        <source>No tab is open</source>
+        <extracomment>Why Window &gt; Move Tab to New Window is greyed out. In Polish: Żadna karta nie jest otwarta</extracomment>
+        <translation>Żadna karta nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>Only the tab of a text moves to a window of its own</source>
+        <extracomment>Why Window &gt; Move Tab to New Window is greyed out over the Dashboard. In Polish: Do osobnego okna można przenieść tylko kartę tekstu</extracomment>
+        <translation>Do osobnego okna można przenieść tylko kartę tekstu</translation>
+    </message>
+    <message>
+        <source>The tab is alone in a window of its own</source>
+        <extracomment>Why Window &gt; Move Tab to New Window is greyed out. In Polish: Karta jest jedyna w swoim oknie</extracomment>
+        <translation>Karta jest jedyna w swoim oknie</translation>
+    </message>
+    <message>
+        <source>The tab in front is in the book window</source>
+        <extracomment>Why Window &gt; Return Tab to Book Window is greyed out. In Polish: Karta na wierzchu jest w oknie książki</extracomment>
+        <translation>Karta na wierzchu jest w oknie książki</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditCoordinator</name>
+    <message>
+        <source>There is nothing to undo</source>
+        <extracomment>Why Edit &gt; Undo is greyed out. In Polish: Nie ma czego cofnąć</extracomment>
+        <translation>Nie ma czego cofnąć</translation>
+    </message>
+    <message>
+        <source>There is nothing to redo</source>
+        <extracomment>Why Edit &gt; Redo is greyed out. In Polish: Nie ma czego ponowić</extracomment>
+        <translation>Nie ma czego ponowić</translation>
+    </message>
+    <message>
+        <source>Nothing is selected</source>
+        <extracomment>Why Edit &gt; Cut, Copy and Delete are greyed out. In Polish: Nic nie jest zaznaczone</extracomment>
+        <translation>Nic nie jest zaznaczone</translation>
+    </message>
+    <message>
+        <source>The clipboard holds nothing to paste here</source>
+        <extracomment>Why Edit &gt; Paste is greyed out. In Polish: W schowku nie ma niczego, co można tu wkleić</extracomment>
+        <translation>W schowku nie ma niczego, co można tu wkleić</translation>
+    </message>
+    <message>
+        <source>There is nothing to select</source>
+        <extracomment>Why Edit &gt; Select All is greyed out in an empty field. In Polish: Nie ma czego zaznaczyć</extracomment>
+        <translation>Nie ma czego zaznaczyć</translation>
+    </message>
+    <message>
+        <source>This text cannot be changed</source>
+        <extracomment>Why Undo, Redo, Cut, Paste, Delete and the commands that change the text are greyed out in a text or a field that only shows. In Polish: Tego tekstu nie można zmieniać</extracomment>
+        <translation>Tego tekstu nie można zmieniać</translation>
+    </message>
+    <message>
+        <source>No text is in front</source>
+        <extracomment>Why the commands of the text are greyed out with no text in front (the Dashboard, no tab). In Polish: Na wierzchu nie ma tekstu</extracomment>
+        <translation>Na wierzchu nie ma tekstu</translation>
+    </message>
+    <message>
+        <source>The cursor is not in a text of the book</source>
+        <extracomment>Why the commands of the book's text are greyed out with the keys in a field or a panel. In Polish: Kursor nie jest w tekście książki</extracomment>
+        <translation>Kursor nie jest w tekście książki</translation>
+    </message>
+    <message>
+        <source>A password is not copied</source>
+        <extracomment>Why Cut and Copy are greyed out in a field of a password. In Polish: Hasła się nie kopiuje</extracomment>
+        <translation>Hasła się nie kopiuje</translation>
+    </message>
+    <message>
+        <source>No item of the list is chosen</source>
+        <extracomment>Why Edit &gt; Copy is greyed out in a list. In Polish: Żaden element listy nie jest wybrany</extracomment>
+        <translation>Żaden element listy nie jest wybrany</translation>
+    </message>
+    <message>
+        <source>This list chooses one item at a time</source>
+        <extracomment>Why Edit &gt; Select All is greyed out in a list. In Polish: Na tej liście wybiera się jeden element naraz</extracomment>
+        <translation>Na tej liście wybiera się jeden element naraz</translation>
+    </message>
+    <message>
+        <source>The list is empty</source>
+        <extracomment>Why Edit &gt; Select All is greyed out in an empty list. In Polish: Lista jest pusta</extracomment>
+        <translation>Lista jest pusta</translation>
+    </message>
+    <message>
+        <source>This is not possible in a list</source>
+        <extracomment>Why Undo, Redo, Cut, Paste and Delete are greyed out in a list. In Polish: Na liście nie można tego zrobić</extracomment>
+        <translation>Na liście nie można tego zrobić</translation>
+    </message>
+    <message>
+        <source>The cursor is not in a text or a field</source>
+        <extracomment>Why the Edit commands are greyed out with the keys outside a text and a field (on a button, in the Dashboard). In Polish: Kursor nie jest w tekście ani w polu</extracomment>
+        <translation>Kursor nie jest w tekście ani w polu</translation>
     </message>
 </context>
 <context>
@@ -10203,6 +10316,11 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>%1 (volume %2) - %3</source>
         <extracomment>The title bar of the window with a volume of a series: %1 the title of the volume, %2 its number, %3 the name of the series (&quot;Dunes (volume 2) - Sands - Kalahari&quot;), with the hyphens of the title bar. In Polish: %1 (tom %2) - %3</extracomment>
         <translation>%1 (tom %2) - %3</translation>
+    </message>
+    <message>
+        <source>The clipboard holds nothing to paste here</source>
+        <extracomment>Why the pastes of the Edit menu are greyed out in the text. In Polish: W schowku nie ma niczego, co można tu wkleić</extracomment>
+        <translation>W schowku nie ma niczego, co można tu wkleić</translation>
     </message>
 </context>
 <context>

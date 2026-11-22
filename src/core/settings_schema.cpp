@@ -37,6 +37,8 @@ std::map<std::string, json> buildDefaults() {
         // The Statistics panel has its place in the saved layout: a layout saved before it
         // gets it once, in the tab after the Annotations panel (DockCoordinator)
         {"window.statisticsPanelPlaced", false},
+        // View > Show Status Bar: the status bar under the window, in every book window
+        {"window.showStatusBar", true},
         // The tabs in the middle of the window (Settings > Appearance > General): in one row
         // with arrows when they do not fit ("single") or in more rows ("wrap")
         {"window.tabRows", "single"},

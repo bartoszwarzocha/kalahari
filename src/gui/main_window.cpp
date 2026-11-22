@@ -149,6 +149,9 @@ constexpr int READ_ONLY_MESSAGE_MS = 5000;
 /// How long the status bar says that Paste Special pasted
 constexpr int PASTED_MESSAGE_MS = 2000;
 
+/// View > Show Status Bar: whether the book windows show their status bars
+constexpr const char* STATUS_BAR_SETTING = "window.showStatusBar";
+
 /// The commands of the Book menu that add an element of a kind of the Workshop, with the id of
 /// the kind in the base package
 constexpr std::pair<const char*, const char*> WORKSHOP_COMMANDS[] = {
@@ -794,10 +797,18 @@ MainWindow::MainWindow(QWidget* parent)
         if (Command* command = commands().getCommand(id)) {
             const bool object =
                 std::find(objectCommands.begin(), objectCommands.end(), id) != objectCommands.end();
-            command->disabledReason = [this, object]() {
+            const bool paste = id == "edit.pasteSpecial" ||
+                               std::find(pasteCommands.begin(), pasteCommands.end(), id) !=
+                                   pasteCommands.end();
+            command->disabledReason = [this, object, paste]() {
                 const editor::BookEditor* text = m_editCoordinator->textWithKeys();
                 if (text != nullptr && text->isReadOnly()) {
                     return readOnlyReason();
+                }
+                if (text != nullptr && paste) {
+                    //: Why the pastes of the Edit menu are greyed out in the text. In Polish: W
+                    //: schowku nie ma niczego, co można tu wkleić
+                    return tr("The clipboard holds nothing to paste here");
                 }
                 return text != nullptr && object && text->isInTable() ? inTableReason()
                                                                        : QString();
@@ -1811,6 +1822,14 @@ void MainWindow::registerCommands() {
         fsCmd->isChecked = [this]() { return isFullScreen(); };
     }
 
+    // View > Show Status Bar: in every book window at once, kept for the next start
+    if (Command* statusCmd = registry.getCommand("view.showStatusBar")) {
+        statusCmd->execute = []() {
+            auto& settings = core::SettingsManager::getInstance();
+            settings.set<bool>(STATUS_BAR_SETTING, !settings.get<bool>(STATUS_BAR_SETTING, true));
+        };
+    }
+
     // Distraction-Free is for writing in the document in front: without one (the Dashboard,
     // no tab) it cannot be turned on, and it goes off (see createDocks())
     if (auto* dfCmd = registry.getCommand("view.mode.distraction-free")) {
@@ -2109,6 +2128,22 @@ void MainWindow::createStatusBar() {
     logger.debug("Creating status bar");
 
     statusBar()->showMessage(tr("Ready"), 3000);  // Show for 3 seconds
+
+    // View > Show Status Bar: the bar of each book window follows the setting
+    auto& settings = core::SettingsManager::getInstance();
+    QStatusBar* bar = statusBar();
+    bar->setVisible(settings.get<bool>(STATUS_BAR_SETTING, true));
+    const int listener = settings.subscribe([bar](const std::string& changed) {
+        if (changed == STATUS_BAR_SETTING) {
+            const bool on = core::SettingsManager::getInstance().get<bool>(STATUS_BAR_SETTING, true);
+            QMetaObject::invokeMethod(bar, "setVisible", Q_ARG(bool, on));
+        }
+    });
+    connect(bar, &QObject::destroyed, [listener]() {
+        core::SettingsManager::getInstance().unsubscribe(listener);
+    });
+    utils::followSetting(commands().getAction(std::string("view.showStatusBar")),
+                         STATUS_BAR_SETTING);
 
     // A book open read-only: a lock left of the page, and why in its tooltip and, after a
     // click, in the status bar (updateReadOnlyStatus())
@@ -2628,6 +2663,15 @@ void MainWindow::addTableCommands() {
     const QString notInTable = tr("The cursor is not in a table");
     for (const std::string& id : tableCommands) {
         explain(id, [notInTable](Text text) { return text.isInTable() ? QString() : notInTable; });
+    }
+    // Selecting changes nothing: also in a read-only text
+    for (const char* id : TABLE_SELECT_COMMANDS) {
+        if (Command* command = registry.getCommand(id)) {
+            command->disabledReason = [this, notInTable]() {
+                const editor::BookEditor* text = m_editCoordinator->textWithKeys();
+                return text != nullptr && !text->isInTable() ? notInTable : QString();
+            };
+        }
     }
     explain("table.insert", [](Text text) { return text.isInTable() ? inTableReason() : QString(); });
     explain("table.mergeCells", [notInTable](Text text) {

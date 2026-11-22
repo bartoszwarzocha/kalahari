@@ -664,7 +664,17 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
 
     // OpenSpec #00030: Create Toolbars submenu instead of adding directly to VIEW menu
     // Structure: Standard Toolbars → separator → User-defined (future) → separator → Toolbar Manager...
-    QMenu* toolbarsMenu = viewMenu->addMenu(MenuBuilder::menuText("Toolbars"));
+    // Right after View > Panels: the parts of the window together (the end of the menu without
+    // the Panels submenu)
+    auto* toolbarsMenu = new QMenu(MenuBuilder::menuText("Toolbars"), viewMenu);
+    const QList<QAction*> viewItems = viewMenu->actions();
+    const auto panels = std::find_if(viewItems.cbegin(), viewItems.cend(), [](const QAction* item) {
+        return item->menu() != nullptr && item->text() == MenuBuilder::menuText("Panels");
+    });
+    QAction* before = panels != viewItems.cend() && std::next(panels) != viewItems.cend()
+                          ? *std::next(panels)
+                          : nullptr;
+    viewMenu->insertMenu(before, toolbarsMenu);
     MenuBuilder::showSubmenuIcon(toolbarsMenu, MenuBuilder::submenuIconId("Toolbars"));
     // The menu and its items are forgotten when it goes; an earlier menu going later does not
     // touch this one's

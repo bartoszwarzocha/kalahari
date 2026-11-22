@@ -757,6 +757,40 @@ int DocumentWindows::registerCommands(CommandRegistry& registry,
             if (DocumentWindows* w = windows()) emit w->settingsRequested();
         },
         nullptr);
+
+    // Why the commands of the tab in front are greyed out (test of 22.11: no explanation)
+    if (Command* move = registry.getCommand(MOVE_TAB_COMMAND)) {
+        move->disabledReason = [windows]() {
+            DocumentWindows* w = windows();
+            QWidget* page = w != nullptr ? w->frontPage() : nullptr;
+            if (page == nullptr) {
+                //: Why Window > Move Tab to New Window is greyed out. In Polish: Żadna karta
+                //: nie jest otwarta
+                return tr("No tab is open");
+            }
+            if (!canDetach(page)) {
+                //: Why Window > Move Tab to New Window is greyed out over the Dashboard. In
+                //: Polish: Do osobnego okna można przenieść tylko kartę tekstu
+                return tr("Only the tab of a text moves to a window of its own");
+            }
+            //: Why Window > Move Tab to New Window is greyed out. In Polish: Karta jest
+            //: jedyna w swoim oknie
+            return w->isDetached(page) ? tr("The tab is alone in a window of its own")
+                                       : QString();
+        };
+    }
+    if (Command* back = registry.getCommand(RETURN_TAB_COMMAND)) {
+        back->disabledReason = [windows]() {
+            //: Why Window > Return Tab to Book Window is greyed out. In Polish: Karta na
+            //: wierzchu jest w oknie książki
+            return windows() != nullptr ? tr("The tab in front is in the book window")
+                                        : QString();
+        };
+    }
+    if (Command* list = registry.getCommand(TAB_LIST_COMMAND)) {
+        //: Why Window > Tab List is greyed out. In Polish: Żadna karta nie jest otwarta
+        list->disabledReason = []() { return tr("No tab is open"); };
+    }
     return count;
 }
 

@@ -350,6 +350,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     system and the compiler. Copy Build Information puts them on the clipboard.
   - File > Export has the formats of the program together: PDF, DOCX, EPUB and Markdown; a
     separator only before the formats not made yet (ICML, LaTeX).
+  - The menus, reviewed. View starts with the view modes and the zoom, then the marks, the
+    annotations, the paper and the margin numbering; the panels follow in the order of use,
+    with Toolbars right after them; the Dashboard, the perspectives and Reset Layout end the
+    menu. View > Show Status Bar hides and shows the status bar, and is remembered. Edit has
+    Paste Text Only with the other pastes and Find in Book with Find and Replace; Book has New
+    Volume and Join Book as Volume together; File > Import has the archive of a book after the
+    formats; Tools has the spelling, the grammar, the auto-correct and the next issue together,
+    then the goals, the challenges and the statistics, then the texts for publishers. Tools >
+    Customize Toolbars... is gone from the menu: View > Toolbars > Toolbar Manager... opens the
+    same window.
+  - A greyed out command says why, in its tooltip and in the status bar: no text in front, the
+    cursor not in a text of the book (in a field, in a panel), nothing to undo, nothing
+    selected, nothing on the clipboard to paste, a read-only text, no tab to move to a window
+    of its own; in the context menu of a list item, why its numbering or its level cannot
+    change.
 
 ---
 

@@ -270,8 +270,8 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD("file.import.pdf", QT_TRANSLATE_NOOP("CommandRegistrar", "&PDF Reference..."), "FILE/Import/PDF Reference...", 90, false, 2);
     REG_CMD("file.import.scrivener", QT_TRANSLATE_NOOP("CommandRegistrar", "&Scrivener Project..."), "FILE/Import/Scrivener Project...", 110, false, 2);
 
-    // Import Archive (priority 75 in Import submenu)
-    REG_CMD_TOOL_ICON("file.import.archive", QT_TRANSLATE_NOOP("CommandRegistrar", "Project &Archive..."), "FILE/Import/Project Archive...", 75, true, 0,
+    // The archive of a whole book, after the formats (as at the end of Export)
+    REG_CMD_TOOL_ICON("file.import.archive", QT_TRANSLATE_NOOP("CommandRegistrar", "Project &Archive..."), "FILE/Import/Project Archive...", 89, true, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onImportArchive);
@@ -355,7 +355,7 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                    KeyboardShortcut(Qt::Key_V, pasteModifiers), callbacks.onPasteSourceFormatting);
     REG_CMD_KEY_CB("edit.pasteMergeFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste and &Merge Formatting"), "EDIT/Paste and Merge Formatting", 54, false, 0,
                    KeyboardShortcut(Qt::Key_M, pasteModifiers), callbacks.onPasteMergeFormatting);
-    REG_CMD_KEY_CB("edit.pasteTextOnly", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste Text Onl&y"), "EDIT/Paste Text Only", 56, false, 0,
+    REG_CMD_KEY_CB("edit.pasteTextOnly", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste Text Onl&y"), "EDIT/Paste Text Only", 51, false, 0,
                    KeyboardShortcut(Qt::Key_V, Qt::ControlModifier | Qt::ShiftModifier), callbacks.onPasteTextOnly);
 
     // The window of the forms of the clipboard's content (no keys: Ctrl+Shift+V pastes the text
@@ -386,12 +386,12 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_KEY_CB("edit.findPrevious", QT_TRANSLATE_NOOP("CommandRegistrar", "Find Pre&vious"), "EDIT/Find Previous", 130, false, 1,
                    KeyboardShortcut(Qt::Key_F3, Qt::ShiftModifier),
                    callbacks.onFindPrevious);
-    REG_CMD_KEY_CB("edit.findReplace", QT_TRANSLATE_NOOP("CommandRegistrar", "Find && Rep&lace..."), "EDIT/Find & Replace...", 140, false, 1,
+    REG_CMD_KEY_CB("edit.findReplace", QT_TRANSLATE_NOOP("CommandRegistrar", "Find && Rep&lace..."), "EDIT/Find & Replace...", 112, false, 1,
                    replaceShortcut,
                    callbacks.onFindReplace);
     // Find in Book: the Search panel, in all the texts of the book (BookSearchCoordinator gives
     // it its callback), with the key other editors give their search in all the files
-    REG_CMD_KEY("edit.findInBook", QT_TRANSLATE_NOOP("CommandRegistrar", "Find in &Book..."), "EDIT/Find in Book...", 150, false, 0,
+    REG_CMD_KEY("edit.findInBook", QT_TRANSLATE_NOOP("CommandRegistrar", "Find in &Book..."), "EDIT/Find in Book...", 114, false, 0,
                 KeyboardShortcut(Qt::Key_F, Qt::ControlModifier | Qt::ShiftModifier));
     // A page, a heading, a note, an image, a table or an annotation of the text, with Word's
     // Ctrl+G (GoToCoordinator gives it its callback)
@@ -440,7 +440,7 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // (MainWindow)
     REG_CMD_TOOL_ICON("book.newVolume",
                       QT_TRANSLATE_NOOP("CommandRegistrar", "New &Volume..."),
-                      "BOOK/New Volume...", 15, false, 1,
+                      "BOOK/New Volume...", 72, false, 1,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onNewVolume);
@@ -450,7 +450,7 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_TOOL_ICON("book.joinVolume",
                       //: In Polish: Dołącz książkę &jako tom...
                       QT_TRANSLATE_NOOP("CommandRegistrar", "&Join Book as Volume..."),
-                      "BOOK/Join Book as Volume...", 16, false, 1,
+                      "BOOK/Join Book as Volume...", 73, true, 1,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onJoinVolume);
@@ -950,9 +950,9 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // =========================================================================
 
     // Statistics submenu (analysis tools only, panels in VIEW)
-    REG_CMD("tools.stats.full", QT_TRANSLATE_NOOP("CommandRegistrar", "&Full Statistics..."), "TOOLS/Statistics/Full Statistics...", 10, false, 2);
+    REG_CMD("tools.stats.full", QT_TRANSLATE_NOOP("CommandRegistrar", "&Full Statistics..."), "TOOLS/Statistics/Full Statistics...", 69, false, 2);
 
-    REG_CMD_TOOL_ICON("tools.stats.wordCount", QT_TRANSLATE_NOOP("CommandRegistrar", "&Word Count"), "TOOLS/Statistics/Word Count", 20, false, 0,
+    REG_CMD_TOOL_ICON("tools.stats.wordCount", QT_TRANSLATE_NOOP("CommandRegistrar", "&Word Count"), "TOOLS/Statistics/Word Count", 70, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       nullptr);
@@ -965,19 +965,19 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
 
     // Selects the next misspelled word or grammar issue and offers what to put in its place
     // (SpellingCoordinator)
-    REG_CMD_KEY("tools.nextMisspelling", QT_TRANSLATE_NOOP("CommandRegistrar", "&Next Spelling or Grammar Issue"), "TOOLS/Next Spelling or Grammar Issue", 45, false, 0,
+    REG_CMD_KEY("tools.nextMisspelling", QT_TRANSLATE_NOOP("CommandRegistrar", "&Next Spelling or Grammar Issue"), "TOOLS/Next Spelling or Grammar Issue", 43, true, 0,
                 KeyboardShortcut(Qt::Key_F7, Qt::NoModifier));
 
     // Turns the grammar as you type on and off (GrammarCoordinator gives it its callbacks); on
     // the Tools toolbar right after the spelling
-    REG_CMD_TOOL_ICON("tools.grammar", QT_TRANSLATE_NOOP("CommandRegistrar", "Check &Grammar as You Type"), "TOOLS/Check Grammar as You Type", 50, false, 0,
+    REG_CMD_TOOL_ICON("tools.grammar", QT_TRANSLATE_NOOP("CommandRegistrar", "Check &Grammar as You Type"), "TOOLS/Check Grammar as You Type", 41, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       nullptr);
 
     // Turns auto-correct on and off as a whole (AutoCorrectCoordinator gives it its callback);
     // on the Tools toolbar after the checking of the text
-    REG_CMD_TOOL_ICON("tools.autocorrect", QT_TRANSLATE_NOOP("CommandRegistrar", "A&uto-correct as You Type"), "TOOLS/Auto-correct as You Type", 55, false, 0,
+    REG_CMD_TOOL_ICON("tools.autocorrect", QT_TRANSLATE_NOOP("CommandRegistrar", "A&uto-correct as You Type"), "TOOLS/Auto-correct as You Type", 42, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       nullptr);
@@ -996,23 +996,23 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     //: In Polish: &Punkty szablonu
     REG_CMD("tools.publishing.templatePoints",
             QT_TRANSLATE_NOOP("CommandRegistrar", "Template &Points"),
-            "TOOLS/Texts for Publishers/Template Points", 62, false, 0);
+            "TOOLS/Texts for Publishers/Template Points", 80, false, 0);
     // The skeleton of the synopsis in front: the headings of the points of its template with
     // their hints at the cursor, and away again (DockCoordinator gives them their callbacks)
     //: In Polish: &Wstaw szkielet
     REG_CMD("tools.publishing.insertSkeleton",
             QT_TRANSLATE_NOOP("CommandRegistrar", "Insert &Skeleton"),
-            "TOOLS/Texts for Publishers/Insert Skeleton", 63, false, 0);
+            "TOOLS/Texts for Publishers/Insert Skeleton", 81, false, 0);
     //: In Polish: &Usuń nagłówki i podpowiedzi
     REG_CMD("tools.publishing.removeSkeleton",
             QT_TRANSLATE_NOOP("CommandRegistrar", "&Remove Headings and Hints"),
-            "TOOLS/Texts for Publishers/Remove Headings and Hints", 64, true, 0);
+            "TOOLS/Texts for Publishers/Remove Headings and Hints", 82, true, 0);
     // The window of the templates of the book types and the writer's own (DockCoordinator gives
     // it its callback)
     //: In Polish: &Szablony...
     REG_CMD("tools.publishing.templates",
             QT_TRANSLATE_NOOP("CommandRegistrar", "&Templates..."),
-            "TOOLS/Texts for Publishers/Templates...", 65, false, 0);
+            "TOOLS/Texts for Publishers/Templates...", 83, true, 0);
 
     REG_CMD("tools.backupNow", QT_TRANSLATE_NOOP("CommandRegistrar", "&Backup Now"), "TOOLS/Backup Now", 100, false, 2);
     REG_CMD("tools.autoSaveSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "&Auto-Save Settings..."), "TOOLS/Auto-Save Settings...", 110, true, 1);
@@ -1022,17 +1022,22 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD("tools.plugins.updates", QT_TRANSLATE_NOOP("CommandRegistrar", "Check for &Updates..."), "TOOLS/Plugins/Check for Updates...", 150, true, 2);
     REG_CMD("tools.plugins.reload", QT_TRANSLATE_NOOP("CommandRegistrar", "&Reload Plugins"), "TOOLS/Plugins/Reload Plugins", 160, false, 2);
 
-    REG_CMD("tools.challenges", QT_TRANSLATE_NOOP("CommandRegistrar", "&Challenges && Badges..."), "TOOLS/Challenges & Badges...", 170, false, 2);
-    REG_CMD("tools.addChallenge", QT_TRANSLATE_NOOP("CommandRegistrar", "A&dd Challenge..."), "TOOLS/Add Challenge...", 175, false, 1);
-    REG_CMD("tools.writingGoals", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writing Goals && Deadlines..."), "TOOLS/Writing Goals & Deadlines...", 180, false, 2);
+    REG_CMD("tools.challenges", QT_TRANSLATE_NOOP("CommandRegistrar", "&Challenges && Badges..."), "TOOLS/Challenges & Badges...", 67, false, 2);
+    REG_CMD("tools.addChallenge", QT_TRANSLATE_NOOP("CommandRegistrar", "A&dd Challenge..."), "TOOLS/Add Challenge...", 68, false, 1);
+    REG_CMD("tools.writingGoals", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writing Goals && Deadlines..."), "TOOLS/Writing Goals & Deadlines...", 66, false, 2);
     // Settings > Statistics and Goals (WritingStatsCoordinator); on the Statistics toolbar
-    REG_CMD("tools.statsSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Statistics S&ettings..."), "TOOLS/Statistics Settings...", 185, true, 1);
+    REG_CMD("tools.statsSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Statistics S&ettings..."), "TOOLS/Statistics Settings...", 71, true, 1);
 
-    // OpenSpec #00037: Toolbar Manager command (used in Quick Actions toolbar)
+    // OpenSpec #00037: Toolbar Manager command (used in Quick Actions toolbar). The menus have
+    // the window once, as View > Toolbars > Toolbar Manager...: the command stays for the keys
+    // and the toolbars
     REG_CMD_TOOL_ICON("tools.toolbarManager", QT_TRANSLATE_NOOP("CommandRegistrar", "Customize &Toolbars..."), "TOOLS/Customize Toolbars...", 210, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onToolbarManager);
+    if (Command* toolbars = registry.getCommand("tools.toolbarManager")) {
+        toolbars->showInMenu = false;
+    }
 
     // =========================================================================
     // ASSISTANT MENU
@@ -1056,52 +1061,52 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // =========================================================================
 
     // Dashboard command - shows/activates Dashboard tab (OpenSpec #00036 Phase D)
-    REG_CMD_CB("view.dashboard", QT_TRANSLATE_NOOP("CommandRegistrar", "&Dashboard"), "VIEW/Dashboard", 5, true, 0,
+    REG_CMD_CB("view.dashboard", QT_TRANSLATE_NOOP("CommandRegistrar", "&Dashboard"), "VIEW/Dashboard", 80, false, 0,
                callbacks.onDashboard);
 
     // Panel toggle commands - registered here for CommandRegistry/Toolbar system
     // Execute callbacks are set later in createDocks() after dock widgets exist
-    REG_CMD_KEY("view.navigator", QT_TRANSLATE_NOOP("CommandRegistrar", "&Navigator"), "VIEW/Panels/Navigator", 10, false, 0,
+    REG_CMD_KEY("view.navigator", QT_TRANSLATE_NOOP("CommandRegistrar", "&Navigator"), "VIEW/Panels/Navigator", 50, false, 0,
                 KeyboardShortcut(Qt::Key_F2, Qt::NoModifier));
 
     // F8, not F3: F3 is Find Next (edit.findNext)
-    REG_CMD_KEY("view.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "&Properties"), "VIEW/Panels/Properties", 20, false, 0,
+    REG_CMD_KEY("view.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "&Properties"), "VIEW/Panels/Properties", 51, false, 0,
                 KeyboardShortcut(Qt::Key_F8, Qt::NoModifier));
 
     // A panel of its own, or the lower part of Properties (Settings > Appearance > General)
-    REG_CMD("view.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "Pa&ragraph and Styles"), "VIEW/Panels/Paragraph and Styles", 25, false, 0);
+    REG_CMD("view.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "Pa&ragraph and Styles"), "VIEW/Panels/Paragraph and Styles", 52, false, 0);
 
-    REG_CMD_KEY("view.log", QT_TRANSLATE_NOOP("CommandRegistrar", "&Log"), "VIEW/Panels/Log", 30, false, 0,
+    REG_CMD_KEY("view.log", QT_TRANSLATE_NOOP("CommandRegistrar", "&Log"), "VIEW/Panels/Log", 60, false, 0,
                 KeyboardShortcut(Qt::Key_F4, Qt::NoModifier));
 
-    REG_CMD_KEY("view.search", QT_TRANSLATE_NOOP("CommandRegistrar", "&Search"), "VIEW/Panels/Search", 40, false, 0,
+    REG_CMD_KEY("view.search", QT_TRANSLATE_NOOP("CommandRegistrar", "&Search"), "VIEW/Panels/Search", 55, false, 0,
                 KeyboardShortcut(Qt::Key_F5, Qt::NoModifier));
 
-    REG_CMD_KEY("view.assistant", QT_TRANSLATE_NOOP("CommandRegistrar", "&Assistant"), "VIEW/Panels/Assistant", 50, false, 0,
+    REG_CMD_KEY("view.assistant", QT_TRANSLATE_NOOP("CommandRegistrar", "&Assistant"), "VIEW/Panels/Assistant", 59, false, 0,
                 KeyboardShortcut(Qt::Key_F6, Qt::NoModifier));
 
     // F9: F7 stays for spelling
-    REG_CMD_KEY("view.annotations", QT_TRANSLATE_NOOP("CommandRegistrar", "Ann&otations"), "VIEW/Panels/Annotations", 60, false, 0,
+    REG_CMD_KEY("view.annotations", QT_TRANSLATE_NOOP("CommandRegistrar", "Ann&otations"), "VIEW/Panels/Annotations", 53, false, 0,
                 KeyboardShortcut(Qt::Key_F9, Qt::NoModifier));
 
     // No key of its own: Next Spelling or Grammar Issue (F7) opens it at the issue it finds
     // The footnotes and endnotes of the text in front or of the book; no key of its own (it
     // can be given one in Keyboard Shortcuts). In Polish: Pr&zypisy
-    REG_CMD("view.footnotes", QT_TRANSLATE_NOOP("CommandRegistrar", "&Footnotes"), "VIEW/Panels/Footnotes", 65, false, 0);
-    REG_CMD("view.spelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Spelling and &Grammar"), "VIEW/Panels/Spelling and Grammar", 70, false, 0);
+    REG_CMD("view.footnotes", QT_TRANSLATE_NOOP("CommandRegistrar", "&Footnotes"), "VIEW/Panels/Footnotes", 54, false, 0);
+    REG_CMD("view.spelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Spelling and &Grammar"), "VIEW/Panels/Spelling and Grammar", 56, false, 0);
     // No key of its own: Tools > Word Repetitions opens it with the keyboard in it
-    REG_CMD("view.repetitionsPanel", QT_TRANSLATE_NOOP("CommandRegistrar", "R&epetitions"), "VIEW/Panels/Repetitions", 75, false, 0);
+    REG_CMD("view.repetitionsPanel", QT_TRANSLATE_NOOP("CommandRegistrar", "R&epetitions"), "VIEW/Panels/Repetitions", 57, false, 0);
 
     // The views of the writing: today, the week, 30 days, the book, the times of writing
-    REG_CMD("view.statistics", QT_TRANSLATE_NOOP("CommandRegistrar", "Statis&tics"), "VIEW/Panels/Statistics", 80, false, 0);
+    REG_CMD("view.statistics", QT_TRANSLATE_NOOP("CommandRegistrar", "Statis&tics"), "VIEW/Panels/Statistics", 58, false, 0);
 
     // View Mode submenu (OpenSpec #00042 Phase 7.3)
     // View modes for BookEditor - radio group (only one can be active)
-    REG_CMD_TOOL_ICON("view.mode.continuous", QT_TRANSLATE_NOOP("CommandRegistrar", "&Continuous"), "VIEW/View Mode/Continuous", 55, false, 0,
+    REG_CMD_TOOL_ICON("view.mode.continuous", QT_TRANSLATE_NOOP("CommandRegistrar", "&Continuous"), "VIEW/View Mode/Continuous", 10, false, 0,
                       KeyboardShortcut(Qt::Key_1, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onViewModeContinuous);
-    REG_CMD_TOOL_ICON("view.mode.page", QT_TRANSLATE_NOOP("CommandRegistrar", "&Page Layout"), "VIEW/View Mode/Page Layout", 56, false, 0,
+    REG_CMD_TOOL_ICON("view.mode.page", QT_TRANSLATE_NOOP("CommandRegistrar", "&Page Layout"), "VIEW/View Mode/Page Layout", 11, false, 0,
                       KeyboardShortcut(Qt::Key_2, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onViewModePage);
@@ -1111,23 +1116,23 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // a fixed height of the view; every paragraph but the cursor's is dimmed). The id of
     // Distraction-Free stays from the time it was a view mode: toolbars and shortcuts the
     // user set keep it.
-    REG_CMD_TOOL_ICON("view.mode.distraction-free", QT_TRANSLATE_NOOP("CommandRegistrar", "D&istraction-Free"), "VIEW/Distraction-Free", 59, false, 0,
+    REG_CMD_TOOL_ICON("view.mode.distraction-free", QT_TRANSLATE_NOOP("CommandRegistrar", "D&istraction-Free"), "VIEW/Distraction-Free", 12, false, 0,
                       KeyboardShortcut(Qt::Key_F11, Qt::ShiftModifier),
                       IconSet(),
                       callbacks.onDistractionFreeToggle);
-    REG_CMD_KEY_CB("view.typewriter", QT_TRANSLATE_NOOP("CommandRegistrar", "Type&writer Scrolling"), "VIEW/Typewriter Scrolling", 60, false, 0,
+    REG_CMD_KEY_CB("view.typewriter", QT_TRANSLATE_NOOP("CommandRegistrar", "Type&writer Scrolling"), "VIEW/Typewriter Scrolling", 14, true, 0,
                    KeyboardShortcut(Qt::Key_3, Qt::ControlModifier),
                    callbacks.onTypewriterToggle);
-    REG_CMD_TOOL_ICON("view.focus", QT_TRANSLATE_NOOP("CommandRegistrar", "&Focus"), "VIEW/Focus", 61, false, 0,
+    REG_CMD_TOOL_ICON("view.focus", QT_TRANSLATE_NOOP("CommandRegistrar", "&Focus"), "VIEW/Focus", 13, false, 0,
                       KeyboardShortcut(Qt::Key_4, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onFocusToggle);
 
     // The light or dark paper of every editor, as in the editor's context menu, and the
     // border around the text of every editor, as in the Settings dialog
-    REG_CMD_CB("view.darkPaper", QT_TRANSLATE_NOOP("CommandRegistrar", "Dar&k Paper"), "VIEW/Dark Paper", 62, false, 0,
+    REG_CMD_CB("view.darkPaper", QT_TRANSLATE_NOOP("CommandRegistrar", "Dar&k Paper"), "VIEW/Dark Paper", 35, false, 0,
                callbacks.onDarkPaperToggle);
-    REG_CMD_CB("view.textFrameBorder", QT_TRANSLATE_NOOP("CommandRegistrar", "Te&xt Frame Border"), "VIEW/Text Frame Border", 63, false, 0,
+    REG_CMD_CB("view.textFrameBorder", QT_TRANSLATE_NOOP("CommandRegistrar", "Te&xt Frame Border"), "VIEW/Text Frame Border", 36, false, 0,
                callbacks.onTextFrameBorderToggle);
 
     // The working numbers on the margin of every editor, also as in the Settings dialog: one
@@ -1140,64 +1145,64 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
             onNumbering(mode);
         };
     };
-    REG_CMD_CB("view.marginNumbers.none", QT_TRANSLATE_NOOP("CommandRegistrar", "&No Numbering"), "VIEW/Margin Numbering/No Numbering", 64, false, 0,
+    REG_CMD_CB("view.marginNumbers.none", QT_TRANSLATE_NOOP("CommandRegistrar", "&No Numbering"), "VIEW/Margin Numbering/No Numbering", 37, false, 0,
                toNumbering(editor::MARGIN_NUMBERING_NONE));
-    REG_CMD_CB("view.marginNumbers.lines", QT_TRANSLATE_NOOP("CommandRegistrar", "&Line Numbers"), "VIEW/Margin Numbering/Line Numbers", 65, false, 0,
+    REG_CMD_CB("view.marginNumbers.lines", QT_TRANSLATE_NOOP("CommandRegistrar", "&Line Numbers"), "VIEW/Margin Numbering/Line Numbers", 38, false, 0,
                toNumbering(editor::MARGIN_NUMBERING_LINES));
-    REG_CMD_CB("view.marginNumbers.paragraphs", QT_TRANSLATE_NOOP("CommandRegistrar", "&Paragraph Numbers"), "VIEW/Margin Numbering/Paragraph Numbers", 66, true, 0,
+    REG_CMD_CB("view.marginNumbers.paragraphs", QT_TRANSLATE_NOOP("CommandRegistrar", "&Paragraph Numbers"), "VIEW/Margin Numbering/Paragraph Numbers", 39, true, 0,
                toNumbering(editor::MARGIN_NUMBERING_PARAGRAPHS));
-    REG_CMD_CB("view.marginNumbers.settings", QT_TRANSLATE_NOOP("CommandRegistrar", "Numbering &Settings..."), "VIEW/Margin Numbering/Numbering Settings...", 67, true, 0,
+    REG_CMD_CB("view.marginNumbers.settings", QT_TRANSLATE_NOOP("CommandRegistrar", "Numbering &Settings..."), "VIEW/Margin Numbering/Numbering Settings...", 40, true, 0,
                callbacks.onMarginNumberingSettings);
 
     // The cards of the annotations under their paragraphs, a setting of every editor as in
     // the Settings dialog; collapsing and expanding all of them in the editor in front
     // (AnnotationsCoordinator)
-    REG_CMD_CB("view.annotationCards", QT_TRANSLATE_NOOP("CommandRegistrar", "Annotation &Cards Under Paragraphs"), "VIEW/Annotation Cards Under Paragraphs", 68, false, 0,
+    REG_CMD_CB("view.annotationCards", QT_TRANSLATE_NOOP("CommandRegistrar", "Annotation &Cards Under Paragraphs"), "VIEW/Annotation Cards Under Paragraphs", 32, false, 0,
                callbacks.onAnnotationCardsToggle);
-    REG_CMD("view.collapseAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "Collapse &All Annotations"), "VIEW/Collapse All Annotations", 69, false, 0);
-    REG_CMD("view.expandAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "&Expand All Annotations"), "VIEW/Expand All Annotations", 70, true, 0);
+    REG_CMD("view.collapseAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "Collapse &All Annotations"), "VIEW/Collapse All Annotations", 33, false, 0);
+    REG_CMD("view.expandAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "&Expand All Annotations"), "VIEW/Expand All Annotations", 34, true, 0);
 
     // Perspectives submenu
-    REG_CMD("view.perspectives.writer", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writer"), "VIEW/Perspectives/Writer", 71, false, 1);
-    REG_CMD("view.perspectives.editor", QT_TRANSLATE_NOOP("CommandRegistrar", "&Editor"), "VIEW/Perspectives/Editor", 80, false, 1);
-    REG_CMD("view.perspectives.researcher", QT_TRANSLATE_NOOP("CommandRegistrar", "&Researcher"), "VIEW/Perspectives/Researcher", 90, false, 1);
-    REG_CMD("view.perspectives.planner", QT_TRANSLATE_NOOP("CommandRegistrar", "&Planner"), "VIEW/Perspectives/Planner", 100, true, 1);
-    REG_CMD("view.perspectives.save", QT_TRANSLATE_NOOP("CommandRegistrar", "&Save Current Perspective..."), "VIEW/Perspectives/Save Current Perspective...", 110, false, 1);
-    REG_CMD("view.perspectives.manage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Manage Perspectives..."), "VIEW/Perspectives/Manage Perspectives...", 120, false, 1);
+    REG_CMD("view.perspectives.writer", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writer"), "VIEW/Perspectives/Writer", 81, false, 1);
+    REG_CMD("view.perspectives.editor", QT_TRANSLATE_NOOP("CommandRegistrar", "&Editor"), "VIEW/Perspectives/Editor", 82, false, 1);
+    REG_CMD("view.perspectives.researcher", QT_TRANSLATE_NOOP("CommandRegistrar", "&Researcher"), "VIEW/Perspectives/Researcher", 83, false, 1);
+    REG_CMD("view.perspectives.planner", QT_TRANSLATE_NOOP("CommandRegistrar", "&Planner"), "VIEW/Perspectives/Planner", 84, true, 1);
+    REG_CMD("view.perspectives.save", QT_TRANSLATE_NOOP("CommandRegistrar", "&Save Current Perspective..."), "VIEW/Perspectives/Save Current Perspective...", 85, false, 1);
+    REG_CMD("view.perspectives.manage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Manage Perspectives..."), "VIEW/Perspectives/Manage Perspectives...", 86, false, 1);
 
-    // OpenSpec #00030: VIEW/Toolbars submenu is created DYNAMICALLY
+    // OpenSpec #00030: VIEW/Toolbars submenu is created DYNAMICALLY, right after Panels,
     // by ToolbarManager::createViewMenuActions() - no static commands here.
     // Toolbar toggle actions + "Toolbar Manager..." are all dynamic.
 
-    REG_CMD("view.showStatusBar", QT_TRANSLATE_NOOP("CommandRegistrar", "Show &Status Bar"), "VIEW/Show Status Bar", 180, false, 0);
-    REG_CMD("view.showStatsBar", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Statistics &Bar"), "VIEW/Show Statistics Bar", 190, false, 1);
+    REG_CMD("view.showStatusBar", QT_TRANSLATE_NOOP("CommandRegistrar", "Show &Status Bar"), "VIEW/Show Status Bar", 70, false, 0);
+    REG_CMD("view.showStatsBar", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Statistics &Bar"), "VIEW/Show Statistics Bar", 71, false, 1);
     // The repetitions of words marked in the text while the panel Repetitions is open: the
     // setting editor.repetitions.highlight (RepetitionsCoordinator gives it its callback)
-    REG_CMD_TOOL_ICON("view.repetitionMarks", QT_TRANSLATE_NOOP("CommandRegistrar", "Repetiti&ons in Text"), "VIEW/Repetitions in Text", 205, false, 0,
+    REG_CMD_TOOL_ICON("view.repetitionMarks", QT_TRANSLATE_NOOP("CommandRegistrar", "Repetiti&ons in Text"), "VIEW/Repetitions in Text", 31, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       nullptr);
     // Ctrl+Shift+8 (Shift+Cmd+8 on macOS), as in Word: written with the key, not with the "*"
     // it types on some keyboards, on every system; Qt matches the key on every keyboard
-    REG_CMD_KEY_CB("view.showFormattingMarks", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Formattin&g Marks"), "VIEW/Show Formatting Marks", 210, true, 0,
+    REG_CMD_KEY_CB("view.showFormattingMarks", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Formattin&g Marks"), "VIEW/Show Formatting Marks", 30, false, 0,
                    KeyboardShortcut(Qt::Key_8, Qt::ControlModifier | Qt::ShiftModifier), callbacks.onFormattingMarksToggle);
 
-    REG_CMD_KEY_CB("view.zoomIn", QT_TRANSLATE_NOOP("CommandRegistrar", "Zoom &In"), "VIEW/Zoom/Zoom In", 220, false, 0,
+    REG_CMD_KEY_CB("view.zoomIn", QT_TRANSLATE_NOOP("CommandRegistrar", "Zoom &In"), "VIEW/Zoom/Zoom In", 20, false, 0,
                    KeyboardShortcut(Qt::Key_Plus, Qt::ControlModifier), callbacks.onZoomIn);
-    REG_CMD_KEY_CB("view.zoomOut", QT_TRANSLATE_NOOP("CommandRegistrar", "Zoom &Out"), "VIEW/Zoom/Zoom Out", 221, false, 0,
+    REG_CMD_KEY_CB("view.zoomOut", QT_TRANSLATE_NOOP("CommandRegistrar", "Zoom &Out"), "VIEW/Zoom/Zoom Out", 21, false, 0,
                    KeyboardShortcut(Qt::Key_Minus, Qt::ControlModifier), callbacks.onZoomOut);
-    REG_CMD_KEY_CB("view.resetZoom", QT_TRANSLATE_NOOP("CommandRegistrar", "Zoom &100%"), "VIEW/Zoom/Zoom 100%", 222, true, 0,
+    REG_CMD_KEY_CB("view.resetZoom", QT_TRANSLATE_NOOP("CommandRegistrar", "Zoom &100%"), "VIEW/Zoom/Zoom 100%", 22, true, 0,
                    KeyboardShortcut(Qt::Key_0, Qt::ControlModifier), callbacks.onZoomReset);
-    REG_CMD_CB("view.zoomPageWidth", QT_TRANSLATE_NOOP("CommandRegistrar", "&Page Width"), "VIEW/Zoom/Page Width", 223, false, 0,
+    REG_CMD_CB("view.zoomPageWidth", QT_TRANSLATE_NOOP("CommandRegistrar", "&Page Width"), "VIEW/Zoom/Page Width", 23, false, 0,
                callbacks.onZoomPageWidth);
-    REG_CMD_CB("view.zoomWholePage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Whole Page"), "VIEW/Zoom/Whole Page", 224, false, 0,
+    REG_CMD_CB("view.zoomWholePage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Whole Page"), "VIEW/Zoom/Whole Page", 24, true, 0,
                callbacks.onZoomWholePage);
 
     // F11 (Control+Cmd+F on macOS, see SHORTCUTS)
-    REG_CMD_KEY("view.fullScreen", QT_TRANSLATE_NOOP("CommandRegistrar", "F&ull Screen"), "VIEW/Full Screen", 250, true, 0,
+    REG_CMD_KEY("view.fullScreen", QT_TRANSLATE_NOOP("CommandRegistrar", "F&ull Screen"), "VIEW/Full Screen", 72, true, 0,
                 fullScreenShortcut);
 
-    REG_CMD_CB("view.resetLayout", QT_TRANSLATE_NOOP("CommandRegistrar", "Reset &Layout"), "VIEW/Reset Layout", 260, false, 0,
+    REG_CMD_CB("view.resetLayout", QT_TRANSLATE_NOOP("CommandRegistrar", "Reset &Layout"), "VIEW/Reset Layout", 90, false, 0,
                callbacks.onResetLayout);
 
     // =========================================================================
