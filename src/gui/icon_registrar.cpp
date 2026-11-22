@@ -327,6 +327,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.log", "resources/icons/twotone/description.svg", "Log");
     iconRegistry.registerIcon("view.annotations", "resources/icons/twotone/comment.svg", "Annotations");
     iconRegistry.registerIcon("view.footnotes", "resources/icons/twotone/superscript.svg", "Footnotes");
+    iconRegistry.registerIcon("view.figures", "resources/icons/twotone/photo_library.svg", "Images and Tables");
     iconRegistry.registerIcon("view.spelling", "resources/icons/twotone/spellcheck.svg",
                               "Spelling and Grammar");
     iconRegistry.registerIcon("view.repetitionsPanel", "resources/icons/twotone/repeat.svg", "Repetitions");

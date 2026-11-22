@@ -1116,13 +1116,13 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // A panel of its own, or the lower part of Properties (Settings > Appearance > General)
     REG_CMD("view.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "Pa&ragraph and Styles"), "VIEW/Panels/Paragraph and Styles", 52, false, 0);
 
-    REG_CMD_KEY("view.log", QT_TRANSLATE_NOOP("CommandRegistrar", "&Log"), "VIEW/Panels/Log", 61, false, 0,
+    REG_CMD_KEY("view.log", QT_TRANSLATE_NOOP("CommandRegistrar", "&Log"), "VIEW/Panels/Log", 62, false, 0,
                 KeyboardShortcut(Qt::Key_F4, Qt::NoModifier));
 
-    REG_CMD_KEY("view.search", QT_TRANSLATE_NOOP("CommandRegistrar", "&Search"), "VIEW/Panels/Search", 55, false, 0,
+    REG_CMD_KEY("view.search", QT_TRANSLATE_NOOP("CommandRegistrar", "&Search"), "VIEW/Panels/Search", 56, false, 0,
                 KeyboardShortcut(Qt::Key_F5, Qt::NoModifier));
 
-    REG_CMD_KEY("view.assistant", QT_TRANSLATE_NOOP("CommandRegistrar", "&Assistant"), "VIEW/Panels/Assistant", 60, false, 0,
+    REG_CMD_KEY("view.assistant", QT_TRANSLATE_NOOP("CommandRegistrar", "&Assistant"), "VIEW/Panels/Assistant", 61, false, 0,
                 KeyboardShortcut(Qt::Key_F6, Qt::NoModifier));
 
     // F9: F7 stays for spelling
@@ -1133,15 +1133,18 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // The footnotes and endnotes of the text in front or of the book; no key of its own (it
     // can be given one in Keyboard Shortcuts). In Polish: Pr&zypisy
     REG_CMD("view.footnotes", QT_TRANSLATE_NOOP("CommandRegistrar", "&Footnotes"), "VIEW/Panels/Footnotes", 54, false, 0);
-    REG_CMD("view.spelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Spelling and &Grammar"), "VIEW/Panels/Spelling and Grammar", 56, false, 0);
+    // The images and tables of the text in front or of the book, with their captions; no key
+    // of its own. In Polish: &Obrazy i tabele
+    REG_CMD("view.figures", QT_TRANSLATE_NOOP("CommandRegistrar", "&Images and Tables"), "VIEW/Panels/Images and Tables", 55, false, 0);
+    REG_CMD("view.spelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Spelling and &Grammar"), "VIEW/Panels/Spelling and Grammar", 57, false, 0);
     // No key of its own: Tools > Word Repetitions opens it with the keyboard in it
-    REG_CMD("view.repetitionsPanel", QT_TRANSLATE_NOOP("CommandRegistrar", "R&epetitions"), "VIEW/Panels/Repetitions", 57, false, 0);
+    REG_CMD("view.repetitionsPanel", QT_TRANSLATE_NOOP("CommandRegistrar", "R&epetitions"), "VIEW/Panels/Repetitions", 58, false, 0);
 
     // The views of the writing: today, the week, 30 days, the book, the times of writing
-    REG_CMD("view.statistics", QT_TRANSLATE_NOOP("CommandRegistrar", "Statis&tics"), "VIEW/Panels/Statistics", 58, false, 0);
+    REG_CMD("view.statistics", QT_TRANSLATE_NOOP("CommandRegistrar", "Statis&tics"), "VIEW/Panels/Statistics", 59, false, 0);
     // The notifications of the session; no key of its own: the notifications open it when it
     // is their place (Settings > Notifications)
-    REG_CMD("view.notifications", QT_TRANSLATE_NOOP("CommandRegistrar", "Not&ifications"), "VIEW/Panels/Notifications", 59, false, 0);
+    REG_CMD("view.notifications", QT_TRANSLATE_NOOP("CommandRegistrar", "Not&ifications"), "VIEW/Panels/Notifications", 60, false, 0);
 
     // View Mode submenu (OpenSpec #00042 Phase 7.3)
     // View modes for BookEditor - radio group (only one can be active)

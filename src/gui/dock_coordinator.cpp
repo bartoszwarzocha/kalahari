@@ -22,6 +22,7 @@
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/spelling_panel.h"
 #include "kalahari/gui/panels/repetitions_panel.h"
+#include "kalahari/gui/panels/figures_panel.h"
 #include "kalahari/gui/panels/footnotes_panel.h"
 #include "kalahari/gui/panels/notifications_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
@@ -160,6 +161,7 @@ void DockCoordinator::createDocks() {
     createAssistantDock();
     createAnnotationsDock();
     createFootnotesDock();
+    createFiguresDock();
     createSpellingDock();
     createRepetitionsDock();
     createStatisticsDock();
@@ -171,7 +173,8 @@ void DockCoordinator::createDocks() {
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
     m_mainWindow->tabifyDockWidget(m_annotationsDock, m_footnotesDock);
-    m_mainWindow->tabifyDockWidget(m_footnotesDock, m_spellingDock);
+    m_mainWindow->tabifyDockWidget(m_footnotesDock, m_figuresDock);
+    m_mainWindow->tabifyDockWidget(m_figuresDock, m_spellingDock);
     m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
     m_mainWindow->tabifyDockWidget(m_repetitionsDock, m_statisticsDock);
     m_mainWindow->tabifyDockWidget(m_statisticsDock, m_notificationsDock);
@@ -179,11 +182,13 @@ void DockCoordinator::createDocks() {
     // The Spelling and Grammar panel is closed until opened (View > Panels, Next Spelling or
     // Grammar Issue); then its tab is next to the Annotations tab, which is on top by default.
     // The Repetitions panel likewise (View > Panels, Tools > Word Repetitions), after them, the
-    // Footnotes panel (View > Panels, the Panels toolbar), right after Annotations, and the
-    // Notifications panel (View > Panels, or the notifications when it is their place)
+    // Footnotes panel (View > Panels, the Panels toolbar), right after Annotations, the panel
+    // Images and Tables after it, and the Notifications panel (View > Panels, or the
+    // notifications when it is their place)
     m_spellingDock->hide();
     m_repetitionsDock->hide();
     m_footnotesDock->hide();
+    m_figuresDock->hide();
     m_notificationsDock->hide();
     m_annotationsDock->raise();
 
@@ -214,6 +219,7 @@ void DockCoordinator::createDocks() {
     m_panelTabs->addPanel(m_assistantDock, "view.assistant");
     m_panelTabs->addPanel(m_annotationsDock, "view.annotations");
     m_panelTabs->addPanel(m_footnotesDock, "view.footnotes");
+    m_panelTabs->addPanel(m_figuresDock, "view.figures");
     m_panelTabs->addPanel(m_spellingDock, "view.spelling");
     m_panelTabs->addPanel(m_statisticsDock, "view.statistics");
     m_panelTabs->addPanel(m_notificationsDock, "view.notifications");
@@ -595,6 +601,22 @@ void DockCoordinator::createFootnotesDock() {
     core::Logger::getInstance().debug("DockCoordinator: Footnotes dock created");
 }
 
+void DockCoordinator::createFiguresDock() {
+    m_figuresPanel = new FiguresPanel(m_mainWindow);
+    //: The title of the panel of the images and the tables of a text or the book. In Polish:
+    //: Obrazy i tabele
+    m_figuresDock = new QDockWidget(tr("Images and Tables"), m_mainWindow);
+    m_figuresDock->setWidget(m_figuresPanel);
+    m_figuresDock->setObjectName("FiguresDock");
+    setupDockTitleBar(m_figuresDock, "view.figures", tr("Images and Tables"));
+    // The cards of the panel are set in Settings > Editor > Images, group of the panel
+    //: The tooltip of the gear of the panel Images and Tables. In Polish: Ustawienia obrazów
+    addSettingsButton(m_figuresDock, QString::fromLatin1(SettingsDialog::FIGURES_PANEL_PAGE),
+                      tr("Image Settings"));
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_figuresDock);
+    core::Logger::getInstance().debug("DockCoordinator: Images and Tables dock created");
+}
+
 void DockCoordinator::createRepetitionsDock() {
     auto& logger = core::Logger::getInstance();
 
@@ -834,6 +856,7 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.assistant", m_assistantDock);
     connectPanelCommand("view.annotations", m_annotationsDock);
     connectPanelCommand("view.footnotes", m_footnotesDock);
+    connectPanelCommand("view.figures", m_figuresDock);
     connectPanelCommand("view.spelling", m_spellingDock);
     connectPanelCommand("view.repetitionsPanel", m_repetitionsDock);
     connectPanelCommand("view.statistics", m_statisticsDock);
@@ -857,6 +880,7 @@ void DockCoordinator::setupViewMenuActions() {
     m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock);
     m_viewAnnotationsAction = createPanelAction("view.annotations", m_annotationsDock);
     m_viewFootnotesAction = createPanelAction("view.footnotes", m_footnotesDock);
+    m_viewFiguresAction = createPanelAction("view.figures", m_figuresDock);
     m_viewSpellingAction = createPanelAction("view.spelling", m_spellingDock);
     m_viewRepetitionsAction = createPanelAction("view.repetitionsPanel", m_repetitionsDock);
     m_viewStatisticsAction = createPanelAction("view.statistics", m_statisticsDock);
@@ -944,6 +968,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->removeDockWidget(m_assistantDock);
     m_mainWindow->removeDockWidget(m_annotationsDock);
     m_mainWindow->removeDockWidget(m_footnotesDock);
+    m_mainWindow->removeDockWidget(m_figuresDock);
     m_mainWindow->removeDockWidget(m_spellingDock);
     m_mainWindow->removeDockWidget(m_repetitionsDock);
     m_mainWindow->removeDockWidget(m_paragraphDock);
@@ -959,6 +984,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_assistantDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_annotationsDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_footnotesDock);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_figuresDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_spellingDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_repetitionsDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_statisticsDock);
@@ -970,7 +996,8 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
     m_mainWindow->tabifyDockWidget(m_annotationsDock, m_footnotesDock);
-    m_mainWindow->tabifyDockWidget(m_footnotesDock, m_spellingDock);
+    m_mainWindow->tabifyDockWidget(m_footnotesDock, m_figuresDock);
+    m_mainWindow->tabifyDockWidget(m_figuresDock, m_spellingDock);
     m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
     m_mainWindow->tabifyDockWidget(m_repetitionsDock, m_statisticsDock);
     m_mainWindow->tabifyDockWidget(m_statisticsDock, m_notificationsDock);
@@ -990,6 +1017,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_spellingDock->hide();
     m_repetitionsDock->hide();
     m_footnotesDock->hide();
+    m_figuresDock->hide();
     m_statisticsDock->show();
     m_notificationsDock->hide();
 

@@ -1449,6 +1449,10 @@
         <source>Remove All Tab Guide&amp;s</source>
         <translation>Usuń &amp;wszystkie linie tabulatorów</translation>
     </message>
+    <message>
+        <source>&amp;Images and Tables</source>
+        <translation>&amp;Obrazy i tabele</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -6668,6 +6672,16 @@ Szczegóły zapisano w panelu Dziennik.</translation>
         <extracomment>The panel of the notifications of the session. In Polish: Powiadomienia</extracomment>
         <translation>Powiadomienia</translation>
     </message>
+    <message>
+        <source>Images and Tables</source>
+        <extracomment>The title of the panel of the images and the tables of a text or the book. In Polish: Obrazy i tabele</extracomment>
+        <translation>Obrazy i tabele</translation>
+    </message>
+    <message>
+        <source>Image Settings</source>
+        <extracomment>The tooltip of the gear of the panel Images and Tables. In Polish: Ustawienia obrazów</extracomment>
+        <translation>Ustawienia obrazów</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::DocumentCoordinator</name>
@@ -7766,6 +7780,21 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <extracomment>The dashed vertical lines a Tab aligns the text to (Format &gt; Align Text). In Polish: Linie tabulatorów</extracomment>
         <translation>Linie tabulatorów</translation>
     </message>
+    <message>
+        <source>Images and Tables Panel</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Colors with the colors of the panel Images and Tables. In Polish: Panel „Obrazy i tabele”</extracomment>
+        <translation>Panel „Obrazy i tabele”</translation>
+    </message>
+    <message>
+        <source>Images</source>
+        <extracomment>In Polish: Obrazy</extracomment>
+        <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>Tables</source>
+        <extracomment>In Polish: Tabele</extracomment>
+        <translation>Tabele</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorCursorPage</name>
@@ -8747,6 +8776,26 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <extracomment>The room between an image the text runs beside and that text. In Polish: Odstęp &amp;boczny:</extracomment>
         <translation>Odstęp &amp;boczny:</translation>
     </message>
+    <message>
+        <source>Images and Tables Panel</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Images with the cards of the panel Images and Tables. In Polish: Panel „Obrazy i tabele”</extracomment>
+        <translation>Panel „Obrazy i tabele”</translation>
+    </message>
+    <message>
+        <source>On the cards of the panel Images and Tables (View &gt; Panels &gt; Images and Tables): a small picture of the image, and a drawing of the rows and columns of a table.</source>
+        <extracomment>In Polish: Na kartach panelu „Obrazy i tabele” (Widok &gt; Panele &gt; Obrazy i tabele): mały obraz, a przy tabeli rysunek jej wierszy i kolumn.</extracomment>
+        <translation>Na kartach panelu „Obrazy i tabele” (Widok &gt; Panele &gt; Obrazy i tabele): mały obraz, a przy tabeli rysunek jej wierszy i kolumn.</translation>
+    </message>
+    <message>
+        <source>Show the pict&amp;ures on the cards</source>
+        <extracomment>In Polish: Pokazuj obraz&amp;y na kartach</extracomment>
+        <translation>Pokazuj obraz&amp;y na kartach</translation>
+    </message>
+    <message>
+        <source>Lines of a caption on its ca&amp;rd:</source>
+        <extracomment>In Polish: W&amp;iersze podpisu na karcie:</extracomment>
+        <translation>W&amp;iersze podpisu na karcie:</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorPagesPage</name>
@@ -9569,6 +9618,154 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <source>The system still opens some of the files with another program.</source>
         <extracomment>In Polish: System nadal otwiera część tych plików innym programem.</extracomment>
         <translation>System nadal otwiera część tych plików innym programem.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FiguresPanel</name>
+    <message numerus="yes">
+        <source>%n row(s)</source>
+        <extracomment>The size of a table without a caption on its card in the panel Images and Tables. In Polish: %n wiersz / %n wiersze / %n wierszy</extracomment>
+        <translation>
+            <numerusform>%n wiersz</numerusform>
+            <numerusform>%n wiersze</numerusform>
+            <numerusform>%n wierszy</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n column(s)</source>
+        <extracomment>In Polish: %n kolumna / %n kolumny / %n kolumn</extracomment>
+        <translation>
+            <numerusform>%n kolumna</numerusform>
+            <numerusform>%n kolumny</numerusform>
+            <numerusform>%n kolumn</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1, %2</source>
+        <extracomment>The rows and the columns of a table: &quot;3 rows, 4 columns&quot;. In Polish: %1, %2</extracomment>
+        <translation>%1, %2</translation>
+    </message>
+    <message>
+        <source>Image</source>
+        <extracomment>The title of a card of an image without a numbered caption. In Polish: Obraz</extracomment>
+        <translation>Obraz</translation>
+    </message>
+    <message>
+        <source>Table</source>
+        <extracomment>The title of a card of a table without a numbered caption. In Polish: Tabela</extracomment>
+        <translation>Tabela</translation>
+    </message>
+    <message>
+        <source>No caption · %1</source>
+        <extracomment>A card of the panel Images and Tables without a caption: &quot;No caption · bridge.png&quot;. In Polish: Bez podpisu · %1</extracomment>
+        <translation>Bez podpisu · %1</translation>
+    </message>
+    <message>
+        <source>Search in the captions and names...</source>
+        <extracomment>The search of the panel Images and Tables. In Polish: Szukaj w podpisach i nazwach...</extracomment>
+        <translation>Szukaj w podpisach i nazwach...</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <extracomment>The scope of the panel Images and Tables: the figures of every text of the book. In Polish: Książka</extracomment>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>Images and Tables</source>
+        <extracomment>The list of the panel Images and Tables. In Polish: Obrazy i tabele</extracomment>
+        <translation>Obrazy i tabele</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <extracomment>The scope of the panel Images and Tables: the figures of the text in front. In Polish: Tekst</extracomment>
+        <translation>Tekst</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <extracomment>The button of the panel Images and Tables that shows every figure. In Polish: Wszystkie</extracomment>
+        <translation>Wszystkie</translation>
+    </message>
+    <message>
+        <source>Images</source>
+        <extracomment>The button of the panel Images and Tables that shows the images. In Polish: Obrazy</extracomment>
+        <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>Tables</source>
+        <extracomment>The button of the panel Images and Tables that shows the tables. In Polish: Tabele</extracomment>
+        <translation>Tabele</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>A button of the kinds of the panel Images and Tables with its count: &quot;Images (4)&quot;</extracomment>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>No text is open. Open a text, or choose Book to see the images and tables of the whole book.</source>
+        <extracomment>In Polish: Żaden tekst nie jest otwarty. Otwórz tekst albo wybierz „Książka”, aby zobaczyć obrazy i tabele całej książki.</extracomment>
+        <translation>Żaden tekst nie jest otwarty. Otwórz tekst albo wybierz „Książka”, aby zobaczyć obrazy i tabele całej książki.</translation>
+    </message>
+    <message>
+        <source>No text is open.</source>
+        <translation>Żaden tekst nie jest otwarty.</translation>
+    </message>
+    <message>
+        <source>The book has no images or tables yet.</source>
+        <translation>Książka nie ma jeszcze obrazów ani tabel.</translation>
+    </message>
+    <message>
+        <source>This text has no images or tables yet: Insert &gt; Image... and Insert &gt; Table... add them.</source>
+        <translation>Ten tekst nie ma jeszcze obrazów ani tabel. Można je dodać poleceniami Wstaw &gt; Obraz... i Wstaw &gt; Tabela...</translation>
+    </message>
+    <message>
+        <source>No caption or name contains “%1”.</source>
+        <extracomment>In Polish: Żaden podpis ani nazwa nie zawiera „%1”.</extracomment>
+        <translation>Żaden podpis ani nazwa nie zawiera „%1”.</translation>
+    </message>
+    <message>
+        <source>No images.</source>
+        <extracomment>In Polish: Brak obrazów.</extracomment>
+        <translation>Brak obrazów.</translation>
+    </message>
+    <message>
+        <source>No tables.</source>
+        <extracomment>In Polish: Brak tabel.</extracomment>
+        <translation>Brak tabel.</translation>
+    </message>
+    <message>
+        <source>&amp;Go to Image</source>
+        <extracomment>The menu of an image in the panel Images and Tables. In Polish: &amp;Przejdź do obrazu</extracomment>
+        <translation>&amp;Przejdź do obrazu</translation>
+    </message>
+    <message>
+        <source>Image &amp;Properties...</source>
+        <extracomment>In Polish: &amp;Właściwości obrazu...</extracomment>
+        <translation>&amp;Właściwości obrazu...</translation>
+    </message>
+    <message>
+        <source>&amp;Go to Table</source>
+        <extracomment>The menu of a table in the panel Images and Tables. In Polish: &amp;Przejdź do tabeli</extracomment>
+        <translation>&amp;Przejdź do tabeli</translation>
+    </message>
+    <message>
+        <source>Table &amp;Properties...</source>
+        <extracomment>In Polish: &amp;Właściwości tabeli...</extracomment>
+        <translation>&amp;Właściwości tabeli...</translation>
+    </message>
+    <message>
+        <source>Edit &amp;Caption...</source>
+        <extracomment>The window of the caption of a figure that has one. In Polish: Zmień po&amp;dpis...</extracomment>
+        <translation>Zmień po&amp;dpis...</translation>
+    </message>
+    <message>
+        <source>Insert &amp;Caption...</source>
+        <extracomment>In Polish: Wstaw po&amp;dpis...</extracomment>
+        <translation>Wstaw po&amp;dpis...</translation>
+    </message>
+    <message>
+        <source>Cop&amp;y Caption</source>
+        <extracomment>Copies the whole caption of a figure: &quot;Figure 3. The bridge&quot;. In Polish: &amp;Kopiuj podpis</extracomment>
+        <translation>&amp;Kopiuj podpis</translation>
     </message>
 </context>
 <context>

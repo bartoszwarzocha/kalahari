@@ -113,6 +113,7 @@ set(TEST_SOURCES
     editor/test_text_places.cpp                  # Edit > Go To...: the places of a text
     editor/test_text_points.cpp                  # Fragments linked to the points of a template
     editor/test_text_footnotes.cpp               # Footnotes and endnotes: model, numbers, KML
+    editor/test_text_figures.cpp                 # The images and tables of a text with their captions
     editor/test_note_checking.cpp                # Notes: search, replace, spelling, grammar
     editor/test_image_look.cpp                   # Images: their look (turn, crop, filters, frame)
     editor/test_tables.cpp                       # Tables: the model, KML, the layout, the keys
@@ -262,6 +263,7 @@ set(TEST_SOURCES
     gui/test_field_coordinator.cpp               # Insert > Date && Time..., Insert > Field... and their windows
     gui/test_own_fields.cpp                      # The own fields of the book: kept, inserted, in Properties
     gui/test_footnotes_panel.cpp                 # View > Panels > Footnotes: the notes of a text and of the book
+    gui/test_figures_panel.cpp                   # View > Panels > Images and Tables: the figures of a text and of the book
     gui/test_list_sets.cpp                       # The sets of list formats, Format > List Sets
     gui/test_edit_dialogs.cpp                    # Edit > Paste Special... and Edit > Go To...
     gui/test_book_search.cpp                     # Find in Book, Replace All in Book, the Search panel
@@ -371,6 +373,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/text_fields.cpp       # Fields of the text
     ${CMAKE_SOURCE_DIR}/src/editor/text_points.cpp       # Fragments linked to the points of a template
     ${CMAKE_SOURCE_DIR}/src/editor/text_footnotes.cpp    # Footnotes and endnotes
+    ${CMAKE_SOURCE_DIR}/src/editor/text_figures.cpp     # The images and tables of a text with their captions
     ${CMAKE_SOURCE_DIR}/src/editor/image_store.cpp       # The image files of a book
     ${CMAKE_SOURCE_DIR}/src/editor/table_editing.cpp     # Changes of tables (the Table menu)
     ${CMAKE_SOURCE_DIR}/src/editor/text_sorting.cpp      # Sorting rows and paragraphs
@@ -427,6 +430,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/book_fields_box.cpp  # Its group of the own fields of the book
     ${CMAKE_SOURCE_DIR}/src/gui/panels/footnotes_panel.cpp  # The Footnotes panel
     ${CMAKE_SOURCE_DIR}/src/gui/footnotes_panel_coordinator.cpp  # The Footnotes panel and the texts
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/figures_panel.cpp  # The panel Images and Tables
+    ${CMAKE_SOURCE_DIR}/src/gui/figures_panel_coordinator.cpp  # The panel Images and Tables and the texts
     ${CMAKE_SOURCE_DIR}/src/gui/panels/paragraph_panel.cpp  # Paragraph and Styles panel
     # GUI dependencies for FindReplaceBar and the GUI tests
     ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
@@ -794,6 +799,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/book_fields_box.h  # BookFieldsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/footnotes_panel.h  # FootnotesPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnotes_panel_coordinator.h  # FootnotesPanelCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/figures_panel.h  # FiguresPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/figures_panel_coordinator.h  # FiguresPanelCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT

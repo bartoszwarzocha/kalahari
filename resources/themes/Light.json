@@ -49,6 +49,8 @@
     "annotationNote": "#1E88E5",
     "footnotesPanelFootnote": "#1E6FD9",
     "footnotesPanelEndnote": "#C26A00",
+    "figuresPanelImage": "#2E7D32",
+    "figuresPanelTable": "#6A4FB3",
     "spelling": "#FF0000",
     "grammar": "#0064FF",
     "bookRule": "#8250DF",

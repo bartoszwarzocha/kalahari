@@ -100,6 +100,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   default). Settings > Navigator > Texts for Publishers has the bar on the margin, the warning and
   the eight colors of the points, kept for each theme. KML keeps a link as `<points ids="...">`
   (docs/kml_format.md).
+- **The panel Images and Tables** - 2026-11-22. View > Panels > Images and Tables (also on the
+  Panels toolbar) lists the images and the tables of the text in front in text order, as cards:
+  a small picture of the image or a drawing of the table's rows and columns, the caption's
+  title ("Figure 3") in the color of its kind and its text, or the image's name and the size of
+  the table when there is no caption. The scope Book lists those of every text of the book (of a
+  series: of its volume) in reading order under the titles of the texts, their captions
+  numbered as in the book; the buttons All, Images and Tables with their counts and a search in
+  the captions and names narrow the list. A card selected goes to its image or table in the
+  text in front; Enter or a double click opens its text when it is closed and gives it the
+  keys; the context menu (also the Menu key and Shift+F10) has Go to Image/Table, Image/Table
+  Properties..., Insert Caption... or Edit Caption... and Copy Caption; Esc goes back to the
+  text. The list follows the text as it is written. Settings > Editor > Images has the pictures
+  on the cards and the lines of a caption on its card (the gear of the panel opens it), Settings
+  > Editor > Colors the colors of the images and the tables, from the theme.
 - **Sets of list formats and multilevel numbers** - 2026-11-21. Format > Bullets and
   Numbering... opens on a new first tab, Sets: the layout of all nine levels of a list at once,
   as tiles in groups (Numbered: 1. – a) – i., 1) – a) – i), (1) – (a) – (i); Multilevel:

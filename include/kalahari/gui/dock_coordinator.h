@@ -48,6 +48,7 @@ class AssistantPanel;
 class AnnotationsPanel;
 class SpellingPanel;
 class RepetitionsPanel;
+class FiguresPanel;
 class FootnotesPanel;
 class NotificationsPanel;
 class ParagraphPanel;
@@ -230,6 +231,9 @@ public:
     /// @brief Get the Footnotes panel
     [[nodiscard]] FootnotesPanel* footnotesPanel() const { return m_footnotesPanel; }
 
+    /// @brief Get the panel Images and Tables
+    [[nodiscard]] FiguresPanel* figuresPanel() const { return m_figuresPanel; }
+
     /// @brief The Statistics panel (its statistics come from WritingStatsCoordinator)
     [[nodiscard]] WritingStatsPanel* statisticsPanel() const { return m_statisticsPanel; }
 
@@ -288,6 +292,9 @@ public:
     /// @brief Get the dock of the Footnotes panel
     [[nodiscard]] QDockWidget* footnotesDock() const { return m_footnotesDock; }
 
+    /// @brief Get the dock of the panel Images and Tables
+    [[nodiscard]] QDockWidget* figuresDock() const { return m_figuresDock; }
+
     /// @brief The dock of the Statistics panel
     [[nodiscard]] QDockWidget* statisticsDock() const { return m_statisticsDock; }
 
@@ -338,6 +345,9 @@ public:
 
     /// @brief Get the Footnotes toggle action
     [[nodiscard]] QAction* viewFootnotesAction() const { return m_viewFootnotesAction; }
+
+    /// @brief Get the Images and Tables toggle action
+    [[nodiscard]] QAction* viewFiguresAction() const { return m_viewFiguresAction; }
 
     /// @brief The Notifications toggle action
     [[nodiscard]] QAction* viewNotificationsAction() const { return m_viewNotificationsAction; }
@@ -440,6 +450,9 @@ private:
     /// @brief Create the dock of the Footnotes panel (hidden until opened)
     void createFootnotesDock();
 
+    /// @brief Create the dock of the panel Images and Tables (hidden until opened)
+    void createFiguresDock();
+
     /// @brief Create the dock of the Statistics panel, a tab after the Annotations panel
     void createStatisticsDock();
 
@@ -519,6 +532,7 @@ private:
     QDockWidget* m_spellingDock{nullptr};
     QDockWidget* m_repetitionsDock{nullptr};
     QDockWidget* m_footnotesDock{nullptr};
+    QDockWidget* m_figuresDock{nullptr};
     QDockWidget* m_paragraphDock{nullptr};
     QDockWidget* m_statisticsDock{nullptr};
     QDockWidget* m_notificationsDock{nullptr};
@@ -534,6 +548,7 @@ private:
     SpellingPanel* m_spellingPanel{nullptr};
     RepetitionsPanel* m_repetitionsPanel{nullptr};
     FootnotesPanel* m_footnotesPanel{nullptr};
+    FiguresPanel* m_figuresPanel{nullptr};
     WritingStatsPanel* m_statisticsPanel{nullptr};
     NotificationsPanel* m_notificationsPanel{nullptr};
     ParagraphPanel* m_paragraphPanel{nullptr};       ///< In its own dock
@@ -558,6 +573,7 @@ private:
     QAction* m_viewSpellingAction{nullptr};
     QAction* m_viewRepetitionsAction{nullptr};
     QAction* m_viewFootnotesAction{nullptr};
+    QAction* m_viewFiguresAction{nullptr};
     QAction* m_viewParagraphAction{nullptr};
     QAction* m_viewStatisticsAction{nullptr};
     QAction* m_viewNotificationsAction{nullptr};

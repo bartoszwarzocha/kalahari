@@ -8,6 +8,7 @@
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/caption_settings.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/panels/figures_panel.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/core/settings_manager.h"
 
@@ -315,6 +316,27 @@ EditorImagesPage::EditorImagesPage(QWidget* parent)
                    qobject_cast<QLabel*>(manuscript->labelForField(inManuscript)));
     addNote(manuscript, tr("Many publishers want the illustrations apart, in full resolution, and "
                            "in the manuscript only the places for them."));
+
+    // The cards of the panel Images and Tables (View > Panels > Images and Tables)
+    //: The group of Settings > Editor > Images with the cards of the panel Images and Tables.
+    //: In Polish: Panel „Obrazy i tabele”
+    QFormLayout* panel = addGroup(tr("Images and Tables Panel"));
+    //: In Polish: Pokazuj obraz&y na kartach
+    QCheckBox* pictures = addCheckBox(panel, tr("Show the pict&ures on the cards"),
+                                      FiguresPanel::PICTURES_SETTING);
+    pictures->setObjectName(QStringLiteral("figuresPanelPictures"));  // SettingsDialog::openPage()
+    //: In Polish: Na kartach panelu „Obrazy i tabele” (Widok > Panele > Obrazy i tabele): mały
+    //: obraz, a przy tabeli rysunek jej wierszy i kolumn.
+    addOptionNote(panel, pictures,
+                  tr("On the cards of the panel Images and Tables (View > Panels > Images and "
+                     "Tables): a small picture of the image, and a drawing of the rows and "
+                     "columns of a table."));
+    auto* captionLines = new QSpinBox();
+    captionLines->setObjectName(QStringLiteral("figuresPanelLines"));
+    captionLines->setRange(FiguresPanel::MIN_LINES, FiguresPanel::MAX_LINES);
+    //: In Polish: W&iersze podpisu na karcie:
+    addField(panel, tr("Lines of a caption on its ca&rd:"), captionLines,
+             FiguresPanel::LINES_SETTING);
 
     // The colors of the fields and of the frames are on another page
     auto* colors = new QHBoxLayout();

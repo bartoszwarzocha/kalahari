@@ -66,7 +66,8 @@ struct AddedCommand {
 ///   9: Special Character on the Insert toolbar
 ///  10: Footnotes on the Panels toolbar; every command of the Insert menu on the Insert toolbar
 ///  11: Plot Board on the Book toolbar
-constexpr std::array<AddedCommand, 37> ADDED_COMMANDS{{
+///  12: Images and Tables on the Panels toolbar, after Footnotes
+constexpr std::array<AddedCommand, 38> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
@@ -104,6 +105,7 @@ constexpr std::array<AddedCommand, 37> ADDED_COMMANDS{{
     {"insert", "insert.sceneBreak", 10},
     {"insert", "insert.pageBreak", 10},
     {"book", "view.plotBoard", 11},
+    {"view", "view.figures", 12},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -123,7 +125,7 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 11;
+constexpr int CHANGED_COMMANDS_VERSION = 12;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
@@ -289,7 +291,7 @@ void ToolbarManager::initializeConfigs() {
         QT_TRANSLATE_NOOP("QObject", "&Panels Toolbar"),
         Qt::RightToolBarArea,
         true,  // visible by default
-        {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.paragraph", "view.search", "view.assistant", "view.annotations", "view.footnotes", "view.statistics", "view.log"}
+        {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.paragraph", "view.search", "view.assistant", "view.annotations", "view.footnotes", "view.figures", "view.statistics", "view.log"}
     };
 
     // Tools Toolbar: the switches of the text as you type together, as in the Tools menu

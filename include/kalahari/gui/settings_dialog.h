@@ -79,6 +79,9 @@ public:
     /// Editor > Margin Numbering, the cursor in the choice of the numbering
     static constexpr const char* MARGIN_NUMBERING_PAGE = "editor.pages.marginNumbering";
     static constexpr const char* IMAGES_PAGE = "editor.images";      ///< Editor > Images
+    /// Editor > Images, the cursor in the group of the panel Images and Tables (the gear of the
+    /// panel)
+    static constexpr const char* FIGURES_PANEL_PAGE = "editor.images.figuresPanel";
     static constexpr const char* TABLES_PAGE = "editor.tables";      ///< Editor > Tables
     static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
     /// Editor > Auto-correct (the gear of File > Import: the cleanups of the text follow it)

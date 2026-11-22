@@ -22,6 +22,7 @@ set(KALAHARI_CORE_SOURCES
     editor/text_fields.cpp       # Fields: the book's title, the page, the words, the date
     editor/text_points.cpp       # Fragments of a text for publishers linked to its points
     editor/text_footnotes.cpp    # Footnotes and endnotes: the number in the text, the note inside it
+    editor/text_figures.cpp      # The images and tables of a text with their captions
     editor/image_store.cpp       # Images: the files of a book, their sizes and pictures
     editor/table_editing.cpp     # Tables: rows, columns, cells, moving, sorting, conversions
     editor/text_sorting.cpp      # Sorting rows and paragraphs: text, numbers, dates
@@ -468,6 +469,8 @@ set(KALAHARI_SOURCES
     gui/panels/book_fields_box.cpp   # BookFieldsBox - the own fields of the book in the Properties panel
     gui/panels/footnotes_panel.cpp   # FootnotesPanel - the footnotes and endnotes of a text or the book
     gui/footnotes_panel_coordinator.cpp  # The Footnotes panel and the texts
+    gui/panels/figures_panel.cpp     # FiguresPanel - the images and tables of a text or the book
+    gui/figures_panel_coordinator.cpp  # The panel Images and Tables and the texts
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
     gui/widgets/own_fields_box.cpp  # OwnFieldsBox - the writer's own fields of a material or a card
     gui/widgets/relations_box.cpp  # RelationsBox - the relations of a card with the other cards
@@ -748,6 +751,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/book_fields_box.h  # BookFieldsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/footnotes_panel.h  # FootnotesPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnotes_panel_coordinator.h  # FootnotesPanelCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/figures_panel.h  # FiguresPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/figures_panel_coordinator.h  # FiguresPanelCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/own_fields_box.h  # OwnFieldsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/relations_box.h  # RelationsBox with Q_OBJECT

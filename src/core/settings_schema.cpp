@@ -733,6 +733,10 @@ std::map<std::string, json> buildDefaults() {
         // the number in its text, and the lines of the note's text (1-6)
         {"editor.footnotes.panelBefore", true},
         {"editor.footnotes.panelLines", 2},
+        // The cards of the panel Images and Tables (gui/panels/figures_panel.h): the pictures
+        // of the images and the drawings of the tables, and the lines of a caption (1-6)
+        {"editor.figures.panelPictures", true},
+        {"editor.figures.panelLines", 2},
 
         // Editor: autocorrect, the changes of the text as it is typed (Settings > Editor >
         // Auto-correct): on or off as a whole (also Tools > Auto-correct as You Type), and

@@ -8,6 +8,7 @@
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/panels/figures_panel.h"
 #include "kalahari/gui/panels/footnotes_panel.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
@@ -713,6 +714,16 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
     //: In Polish: Przypisy końcowe
     addThemeColor(footnotes, tr("Endnotes"), FootnotesPanel::ENDNOTE_COLOR_KEY);
     addRestoreColorsButton(footnotes);
+
+    // The bars and the titles of the kinds on the cards of the panel Images and Tables
+    //: The group of Settings > Editor > Colors with the colors of the panel Images and Tables.
+    //: In Polish: Panel „Obrazy i tabele”
+    QFormLayout* figures = addGroup(tr("Images and Tables Panel"));
+    //: In Polish: Obrazy
+    addThemeColor(figures, tr("Images"), FiguresPanel::IMAGE_COLOR_KEY);
+    //: In Polish: Tabele
+    addThemeColor(figures, tr("Tables"), FiguresPanel::TABLE_COLOR_KEY);
+    addRestoreColorsButton(figures);
 
     pageLayout()->addStretch();
 }

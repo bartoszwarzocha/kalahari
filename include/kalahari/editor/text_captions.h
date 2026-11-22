@@ -250,6 +250,10 @@ struct CaptionEntry {
     bool operator==(const CaptionEntry&) const = default;
 };
 
+/// @brief The pieces of a block's text: its text, its numbers and its cross-references (what
+///        CaptionNumbers::captionText() shows of a caption's paragraph)
+std::vector<CaptionPiece> captionPieces(const QTextBlock& block);
+
 /// @brief The number fields of a document, in text order, each with its paragraph
 std::vector<CaptionEntry> captionEntries(const QTextDocument& document);
 

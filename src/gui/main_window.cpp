@@ -30,6 +30,7 @@
 #include "kalahari/gui/book_import_coordinator.h"
 #include "kalahari/gui/caption_coordinator.h"
 #include "kalahari/gui/footnote_coordinator.h"
+#include "kalahari/gui/figures_panel_coordinator.h"
 #include "kalahari/gui/footnotes_panel_coordinator.h"
 #include "kalahari/gui/book_search_coordinator.h"
 #include "kalahari/gui/chapter_break_coordinator.h"
@@ -889,6 +890,19 @@ MainWindow::MainWindow(QWidget* parent)
             m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
                                               std::move(action));
         });
+    // The panel Images and Tables: the images and tables of the text in front or of the book
+    // with their captions, numbered as in the book; a figure of a closed text opens it, as
+    // from the Navigator (the window owns the object)
+    new FiguresPanelCoordinator(
+        *m_book, *m_commands, m_dockCoordinator->figuresPanel(),
+        m_dockCoordinator->figuresDock(), m_dockCoordinator->centralTabs(),
+        [this](const QString& elementId) {
+            if (const core::ProjectElement* element = book().findElement(elementId)) {
+                m_navigatorCoordinator->onElementSelected(elementId, element->title);
+            }
+        },
+        [this](const QString& elementId) { return m_captionCoordinator->contextFor(elementId); },
+        this);
     // A text opened, or the book's order of texts changed: other numbers
     connect(m_navigatorCoordinator, &NavigatorCoordinator::elementOpened, m_footnoteCoordinator,
             [this]() { m_footnoteCoordinator->refreshSoon(); });

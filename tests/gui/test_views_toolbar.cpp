@@ -451,6 +451,8 @@ TEST_CASE("Insert toolbar: every command of the Insert menu, in its groups",
         const QStringList view = manager.getToolbarCommands(panels);
         CHECK(view.indexOf(QStringLiteral("view.footnotes")) ==
               view.indexOf(QStringLiteral("view.annotations")) + 1);
+        CHECK(view.indexOf(QStringLiteral("view.figures")) ==
+              view.indexOf(QStringLiteral("view.footnotes")) + 1);
     }
 
     // Customized before them: the writer's order kept, the new commands where the default
@@ -472,8 +474,8 @@ TEST_CASE("Insert toolbar: every command of the Insert menu, in its groups",
               "insert.clipping | insert.dateTime | insert.field | insert.horizontalLine | "
               "insert.sceneBreak | insert.pageBreak");
         CHECK(manager.getToolbarCommands(panels).join(QStringLiteral(" | ")).toStdString() ==
-              "view.navigator | view.annotations | view.footnotes | view.log");
-        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 11);
+              "view.navigator | view.annotations | view.footnotes | view.figures | view.log");
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 12);
 
         // Taken away by the writer after that, they stay away
         QStringList without = manager.getToolbarCommands(insert);
@@ -519,7 +521,7 @@ TEST_CASE("Book toolbar: Plot Board before Book Properties, also on a toolbar sa
         ToolbarManager manager(kalahari::test::commands(), &window);
         CHECK(manager.getToolbarCommands(book).join(QStringLiteral(" | ")).toStdString() ==
               "book.properties | book.newChapter | view.plotBoard");
-        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 11);
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 12);
     }
 
     settings.set<std::string>("toolbars.configurations", savedToolbars);
