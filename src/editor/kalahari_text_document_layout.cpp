@@ -151,6 +151,29 @@ void layOutUnwrapped(QTextLayout& text) {
     text.endLayout();
 }
 
+/// @brief A line of text laid out as the text of the document is, with its top left corner
+///        at @p topLeft: its size does not depend on the painter's device (a printer's or a
+///        PDF's resolves a font set on the painter at its own resolution)
+void drawTextLine(QPainter* painter, const QString& text, const QFont& font,
+                  const QPointF& topLeft) {
+    QTextLayout layout(text, font);
+    layOutUnwrapped(layout);
+    layout.draw(painter, topLeft);
+}
+
+/// A line of text in the middle of @p area, laid out as the text of the document is
+void drawCenteredLine(QPainter* painter, const QString& text, const QFont& font,
+                      const QRectF& area) {
+    QTextLayout layout(text, font);
+    layOutUnwrapped(layout);
+    if (layout.lineCount() == 0) {
+        return;
+    }
+    const QTextLine line = layout.lineAt(0);
+    layout.draw(painter, QPointF(area.left() + (area.width() - line.naturalTextWidth()) / 2.0,
+                                 area.top() + (area.height() - line.height()) / 2.0));
+}
+
 /// Whether a format is of a character whose number the layout counts: a field, a note's number
 bool isNumberedFormat(const QTextFormat& format) {
     return isFieldFormat(format) || isFootnoteFormat(format);
@@ -2045,13 +2068,14 @@ qreal KalahariTextDocumentLayout::paginateBlock(const QTextBlock& block, qreal t
                 lineNotes.empty() || lineNotes[static_cast<size_t>(i)].empty()
                     ? nullptr
                     : &lineNotes[static_cast<size_t>(i)];
-            qreal placed = metrics.pageBreak
-                               ? boxTop
-                               : flowLineTop(boxTop, boxHeight,
-                                             ownNotes != nullptr ? notesNeeded(*ownNotes) : 0.0);
-            const qreal offset = placed - std::floor((placed + FLOW_EPSILON) / pitch) * pitch;
-            if (breakBefore[static_cast<size_t>(i)] != 0 && offset > FLOW_EPSILON) {
-                placed = nextPageTop(placed);
+            const qreal needed = ownNotes != nullptr ? notesNeeded(*ownNotes) : 0.0;
+            qreal placed = metrics.pageBreak ? boxTop : flowLineTop(boxTop, boxHeight, needed);
+            // To the top of the next text area: below an image above and below the text that
+            // takes the top of its page (reserveTop()), as flowLineTop() places a line
+            const qreal page = std::floor((placed + FLOW_EPSILON) / pitch);
+            if (breakBefore[static_cast<size_t>(i)] != 0 &&
+                placed - page * pitch > areaTopOf(page) + FLOW_EPSILON) {
+                placed = flowLineTop(nextPageTop(placed), boxHeight, needed);
             }
             if (ownNotes != nullptr) {
                 reserveNotes(placed + boxHeight, *ownNotes);
@@ -3774,9 +3798,8 @@ void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRect
         case TextObject::SceneBreak: {
             const QString text = sceneBreakText(m_sceneBreakLook);
             if (!text.isEmpty()) {
-                painter->setFont(document()->defaultFont());
                 painter->setPen(textColor);
-                painter->drawText(rect, Qt::AlignCenter, text);
+                drawCenteredLine(painter, text, document()->defaultFont(), rect);
             } else if (m_sceneBreakLook == SceneBreakLook::Line) {
                 const qreal length = std::round(rect.width() * SCENE_BREAK_LINE_SHARE);
                 const qreal left = rect.left() + std::round((rect.width() - length) / 2.0);
@@ -3811,9 +3834,8 @@ void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRect
                 painter->drawLine(QPointF(rect.left(), middle), QPointF(gapLeft, middle));
                 painter->drawLine(QPointF(gapLeft + gap, middle), QPointF(rect.right(), middle));
             }
-            painter->setFont(labelFont);
             painter->setPen(markColor);
-            painter->drawText(rect, Qt::AlignCenter, label);
+            drawCenteredLine(painter, label, labelFont, rect);
             break;
         }
         case TextObject::FigureList:  // drawn above
@@ -4096,10 +4118,8 @@ void KalahariTextDocumentLayout::drawImage(QPainter* painter, const QRectF& box,
     painter->setPen(textColor);
     const qreal textLeft = left + glyph + gap;
     const qreal textTop = middle - (nameMetrics.height() + labelMetrics.height()) / 2.0;
-    painter->setFont(nameFont);
-    painter->drawText(QPointF(textLeft, textTop + nameMetrics.ascent()), name);
-    painter->setFont(labelFont);
-    painter->drawText(QPointF(textLeft, textTop + nameMetrics.height() + labelMetrics.ascent()), label);
+    drawTextLine(painter, name, nameFont, QPointF(textLeft, textTop));
+    drawTextLine(painter, label, labelFont, QPointF(textLeft, textTop + nameMetrics.height()));
     painter->restore();
 }
 

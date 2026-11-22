@@ -386,8 +386,13 @@ PrintBookDialog::PrintBookDialog(const Book& book, const QList<Printer>& printer
     //: Which of the pages print. In Polish: Tylko parzyste
     m_parityBox->addItem(tr("Only even pages"), static_cast<int>(editor::PageParity::Even));
     m_parityBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    //: Beside the pages that print: the last sheet first, for a printer that lays the sheets
+    //: face up. In Polish: W odwrotne&j kolejności
+    m_reverseBox = new QCheckBox(tr("Re&verse order"), m_printerTab);
+    m_reverseBox->setChecked(settings.get<bool>("print.reverse"));
     //: In Polish: Dr&ukuj:
-    addRow(printer, tr("Pr&int:"), newLine(m_printerTab, {m_parityBox}))->setBuddy(m_parityBox);
+    addRow(printer, tr("Pr&int:"), newLine(m_printerTab, {m_parityBox, m_reverseBox}))
+        ->setBuddy(m_parityBox);
 
     m_duplexBox = new QComboBox(m_printerTab);
     m_duplexBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
@@ -545,6 +550,7 @@ PrintBookDialog::PrintBookDialog(const Book& book, const QList<Printer>& printer
     });
     connect(m_copiesBox, &QSpinBox::valueChanged, this, changed);
     connect(m_collateBox, &QCheckBox::toggled, this, &PrintBookDialog::dropFailure);
+    connect(m_reverseBox, &QCheckBox::toggled, this, changed);
     for (QRadioButton* button : {m_allButton, m_currentButton, m_rangeButton}) {
         connect(button, &QRadioButton::toggled, this, [changed](bool on) {
             if (on) {
@@ -620,6 +626,7 @@ PrintBookDialog::Choice PrintBookDialog::choice() const
     }
     choice.rangeText = m_rangeField->text();
     choice.parity = static_cast<editor::PageParity>(m_parityBox->currentData().toInt());
+    choice.reverse = m_reverseBox->isChecked();
     choice.duplex = static_cast<Duplex>(m_duplexBox->currentData().toInt());
     choice.color = m_colorBox->currentData().toBool();
     const int paper = m_paperBox->currentData().toInt();
@@ -1007,6 +1014,9 @@ void PrintBookDialog::showPages()
     m_chosenPages =
         textsChosen ? editor::pagesOfParity(range.pages, now.parity) : std::vector<int>();
     m_sides = editor::sheetSides(m_chosenPages, now.sheet.layout);
+    if (now.reverse) {
+        m_sides = editor::reversedSheets(m_sides, twoSided());
+    }
     showNote(m_rangeNote,
              rangeValid ? QString()
                         //: Under a range of the pages that is not one. In Polish: To nie jest
@@ -1229,6 +1239,7 @@ void PrintBookDialog::rememberChoices() const
     const Choice now = choice();
     rememberLayout("print.content");
     settings.set<bool>("print.collate", m_collateBox->isChecked());
+    settings.set<bool>("print.reverse", m_reverseBox->isChecked());
     settings.set<std::string>("print.sheet.layout",
                               nameOfValue(sheetLayoutNames(), now.sheet.layout));
     settings.set<bool>("print.sheet.fit", m_fitButton->isChecked());

@@ -11,6 +11,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_pages.h>
 #include <kalahari/editor/book_print.h>
+#include <kalahari/gui/pdf_document.h>
 
 #include <QBuffer>
 #include <QImage>
@@ -150,6 +151,24 @@ TEST_CASE("Print: the copies, and the fronts and the backs printed by hand", "[p
         CHECK(sidesOfSheets(booklet, false) == std::vector<SheetSide>{{7, 0}, {5, 2}});
         CHECK(sidesOfSheets(booklet, true) == std::vector<SheetSide>{{1, 6}, {3, 4}});
     }
+
+    SECTION("In the reverse order: the last sheet first, each with its front and its back") {
+        CHECK(reversedSheets(three, false) == std::vector<SheetSide>{{2}, {1}, {0}});
+        // The last sheet of an odd number of sides: its back empty, so the next sheet's
+        // front does not print on it
+        CHECK(reversedSheets(three, true) == std::vector<SheetSide>{{2}, {}, {0}, {1}});
+        const std::vector<SheetSide> booklet{{7, 0}, {1, 6}, {5, 2}, {3, 4}};
+        CHECK(reversedSheets(booklet, true) ==
+              std::vector<SheetSide>{{5, 2}, {3, 4}, {7, 0}, {1, 6}});
+        CHECK(reversedSheets({}, true).empty());
+        // The copies of the reversed sheets, and by hand their fronts and their backs
+        CHECK(copiesOf(reversedSheets(three, true), 2, true, true) ==
+              std::vector<SheetSide>{{2}, {}, {0}, {1}, {2}, {}, {0}, {1}});
+        CHECK(sidesOfSheets(reversedSheets(three, true), false) ==
+              std::vector<SheetSide>{{2}, {0}});
+        CHECK(sidesOfSheets(reversedSheets(three, true), true) ==
+              std::vector<SheetSide>{{}, {1}});
+    }
 }
 
 TEST_CASE("Print: the sheet lies sideways for two pages side by side", "[print]") {
@@ -283,5 +302,41 @@ TEST_CASE("Print: the sides drawn on a picture and printed on a PDF writer", "[p
         CHECK_FALSE(printSheetSides(&second, pages, sides,
                                     SheetOptions{SheetLayout::Booklet, true, false},
                                     [](int) { return false; }));
+    }
+}
+
+TEST_CASE("Print: the marks of a scene break as large as the text", "[print]") {
+    // A printer or a PDF of more dots than the screen's resolves a font set on its painter
+    // at its own resolution: the marks came out several times as large as the text
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    BookExport book = bookOf({textItem(
+        QStringLiteral("t"), QStringLiteral("Chapter 1"),
+        QStringLiteral("<kml><p>Before the break, the wind moved the sand.</p><scene-break/>"
+                       "<p>After the break, the caravan waited.</p></kml>"))});
+    BookPages pages(book, BookPages::Options{false});
+    pages.layOut();
+    REQUIRE(pages.pageCount() == 1);
+
+    const QString path = dir.filePath(QStringLiteral("print.pdf"));
+    {
+        QPdfWriter writer(path);
+        writer.setResolution(600);
+        QPageLayout layout(QPageSize(QPageSize::A4), QPageLayout::Portrait, QMarginsF());
+        layout.setMode(QPageLayout::FullPageMode);
+        REQUIRE(writer.setPageLayout(layout));
+        REQUIRE(printSheetSides(&writer, pages, {SheetSide{0}}, SheetOptions{}));
+    }
+    kalahari::gui::PdfDocument pdf;
+    REQUIRE(pdf.load(path) == kalahari::gui::PdfDocument::Error::None);
+    const QList<kalahari::gui::PdfHit> text = pdf.find(0, QStringLiteral("Before the break"));
+    const QList<kalahari::gui::PdfHit> marks = pdf.find(0, QStringLiteral("*"));
+    REQUIRE(text.size() == 1);
+    REQUIRE(marks.size() == 3);
+    const double textHeight = text.front().rectangles.value(0).height();
+    REQUIRE(textHeight > 0.0);
+    for (const kalahari::gui::PdfHit& mark : marks) {
+        // In the text's font
+        CHECK(mark.rectangles.value(0).height() < textHeight * 1.2);
     }
 }

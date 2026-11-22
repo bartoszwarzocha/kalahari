@@ -418,12 +418,13 @@ std::map<std::string, json> buildDefaults() {
         {"export.epub.cover", "design"},
         // File > Print: the writer's last choices of the window; its layout is the export's
         // (export.*). What goes to the printer, as export.content ("front" the first time, as
-        // Ctrl+P in the editors of text); the copies whole one after another; the pages on a
-        // sheet ("onePage", "twoPages" side by side, "booklet" folded in half); one page as
-        // large as the sheet allows, else of its own size; the crop marks of a page of its own
-        // size
+        // Ctrl+P in the editors of text); the copies whole one after another; the last sheet
+        // first (for a printer that lays the sheets face up); the pages on a sheet ("onePage",
+        // "twoPages" side by side, "booklet" folded in half); one page as large as the sheet
+        // allows, else of its own size; the crop marks of a page of its own size
         {"print.content", "front"},
         {"print.collate", true},
+        {"print.reverse", false},
         {"print.sheet.layout", "onePage"},
         {"print.sheet.fit", true},
         {"print.sheet.cropMarks", false},

@@ -369,6 +369,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     publishers: the arrow of the row of a volume, a click, Space, the arrows Left and Right,
     and its context menu (Collapse Volume, Collapse All Volumes, Expand All Volumes). A
     material chosen elsewhere expands its volume.
+  - Printing: the marks of a scene break ("* * *" and the others) print as large as the text,
+    not several times larger on a printer or a PDF printer of many dots. The text after an
+    image above and below the text that goes to the next page no longer prints on the image:
+    the lines of a paragraph kept together go below it. File > Print has Reverse order beside
+    the pages that print: the last sheet first, for a printer that lays the sheets face up;
+    a sheet keeps its front and its back, the preview shows the sheets in that order, and the
+    window remembers the choice.
 
 ---
 

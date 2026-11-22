@@ -88,6 +88,12 @@ int sheetCount(int sides, bool twoSided);
 std::vector<SheetSide> copiesOf(const std::vector<SheetSide>& sides, int copies, bool collate,
                                 bool twoSided);
 
+/// @brief The sides of @p sides with their sheets in the reverse order, the last sheet first
+///        (for a printer that lays the sheets face up); a sheet keeps its front and its back
+/// @param twoSided A sheet has a front and a back: of an odd number of sides the last sheet
+///        has an empty back, and it prints first
+std::vector<SheetSide> reversedSheets(const std::vector<SheetSide>& sides, bool twoSided);
+
 /// @brief The fronts (@p backs false) or the backs of the sheets of @p sides, two-sided, in
 ///        the order of the print: for two-sided printing by hand, the fronts first, then the
 ///        backs on the turned stack

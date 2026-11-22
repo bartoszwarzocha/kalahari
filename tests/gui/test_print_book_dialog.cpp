@@ -60,7 +60,8 @@ public:
                                 "export.runningHead", "editor.page.size"}) {
             m_strings.emplace_back(key, settings.get<std::string>(key));
         }
-        for (const char* key : {"print.collate", "print.sheet.fit", "print.sheet.cropMarks",
+        for (const char* key : {"print.collate", "print.reverse", "print.sheet.fit",
+                                "print.sheet.cropMarks",
                                 "export.titles", "export.newPage", "export.pageNumbers"}) {
             m_flags.emplace_back(key, settings.get<bool>(key));
         }
@@ -522,6 +523,24 @@ TEST_CASE("Print: the pages chosen, the sheets and the preview", "[gui][dialogs]
         CHECK(dialog.shownSide() == 0);
     }
 
+    SECTION("In the reverse order: the last sheet first, a sheet with its front and its back") {
+        CHECK_FALSE(dialog.reverseBox()->isChecked());
+        dialog.reverseBox()->setChecked(true);
+        CHECK(dialog.choice().reverse);
+        CHECK(dialog.sheetSides() == std::vector<SheetSide>{{4}, {3}, {2}, {1}, {0}});
+        CHECK(dialog.previewText() == QStringLiteral("Sheet 1 of 5 · page 5"));
+        CHECK(dialog.statusText().startsWith(QStringLiteral("5 pages on 5 sheets.")));
+        dialog.printerBox()->setCurrentIndex(1);  // both sides, along the long edge
+        CHECK(dialog.sheetSides() ==
+              std::vector<SheetSide>{{4}, {}, {2}, {3}, {0}, {1}});
+        CHECK(dialog.sheetCount() == 3);
+        CHECK(dialog.previewText() == QStringLiteral("Sheet 1 of 3, front · page 5"));
+        press(dialog.preview(), Qt::Key_PageDown);
+        CHECK(dialog.previewText() == QStringLiteral("Sheet 1 of 3, back · empty"));
+        dialog.reverseBox()->setChecked(false);
+        CHECK(dialog.sheetSides() == std::vector<SheetSide>{{0}, {1}, {2}, {3}, {4}});
+    }
+
     SECTION("Two pages side by side, and a booklet folded in half") {
         dialog.sheetButton(SheetLayout::TwoPages)->setChecked(true);
         CHECK(dialog.sheetSides() == std::vector<SheetSide>{{0, 1}, {2, 3}, {4, -1}});
@@ -674,6 +693,18 @@ TEST_CASE("Print: the print, its progress and its result", "[gui][dialogs][print
               QStringLiteral("Sent to the printer \"Office\": 5 pages on 3 sheets."));
     }
 
+    SECTION("By hand in the reverse order: the fronts of the last sheet first, then the backs") {
+        chooseDuplex(dialog, Duplex::Manual);
+        dialog.reverseBox()->setChecked(true);
+        dialog.accept();
+        REQUIRE(printed.runs.size() == 2);
+        CHECK(printed.runs[0] == std::vector<SheetSide>{{4}, {2}, {0}});
+        CHECK(printed.runs[1] == std::vector<SheetSide>{{}, {3}, {1}});
+        CHECK(printed.choices[0].reverse);
+        CHECK(dialog.resultText() ==
+              QStringLiteral("Sent to the printer \"Office\": 5 pages on 3 sheets."));
+    }
+
     SECTION("By hand, without the backs") {
         turn = false;
         chooseDuplex(dialog, Duplex::Manual);
@@ -702,6 +733,7 @@ TEST_CASE("Print: the window keeps its choices", "[gui][dialogs][print]") {
     settings.set<std::string>("print.content", "front");
     settings.set<std::string>("print.sheet.layout", "onePage");
     settings.set<bool>("print.sheet.fit", true);
+    settings.set<bool>("print.reverse", false);
     PageMaker pages;
     {
         PrintBookDialog* shown = nullptr;
@@ -714,14 +746,17 @@ TEST_CASE("Print: the window keeps its choices", "[gui][dialogs][print]") {
         CHECK(dialog.choice().content == PrintBookDialog::Content::Front);
         dialog.setContent(PrintBookDialog::Content::Book);
         dialog.sheetButton(SheetLayout::Booklet)->setChecked(true);
+        dialog.reverseBox()->setChecked(true);
         dialog.accept();
         REQUIRE(dialog.isDone());
     }
     CHECK(settings.get<std::string>("print.content") == "book");
     CHECK(settings.get<std::string>("print.sheet.layout") == "booklet");
+    CHECK(settings.get<bool>("print.reverse"));
     PrintBookDialog again(sampleBook(), samplePrinters(), pages.maker(), {});
     CHECK(again.bookButton()->isChecked());
     CHECK(again.sheetButton(SheetLayout::Booklet)->isChecked());
+    CHECK(again.reverseBox()->isChecked());
 
     // Without a book, the text in front
     PrintBookDialog::Book noBook;

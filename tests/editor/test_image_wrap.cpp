@@ -347,6 +347,43 @@ TEST_CASE("Image wrap: an image above and below the text that does not fit goes 
     CHECK(layout->blockNumberAt(box.center()) == fillers);
 }
 
+TEST_CASE("Image wrap: no line goes on an image above and below the text higher than the "
+          "page, with the lines of a paragraph kept together",
+          "[editor][images][wrap][pages]") {
+    // The text after the image fills the rest of its page and goes on after the image's
+    // page; the two last lines of a paragraph kept together went to the top of the image's
+    // page, on the image
+    BookFolder book;
+    book.addPicture(QStringLiteral("tall.png"), QSize(500, 3000));
+    int checked = 0;
+    for (int sentences = 2; sentences <= 26; ++sentences) {
+        const QString kml = QStringLiteral("<kml>") + longParagraph(7) + longParagraph(7) +
+                            QStringLiteral("<p><img src=\"images/tall.png\" width=\"50%\" "
+                                           "wrap=\"top-bottom\"/></p>") +
+                            longParagraph(sentences) + longParagraph(sentences) +
+                            longParagraph(6) + QStringLiteral("</kml>");
+        auto editor = editorWith(kml, book.path());
+        editor->setViewMode(ViewMode::Page);
+        layOutAll(*editor->textDocument());
+        const KalahariTextDocumentLayout* layout = layoutOf(*editor);
+        const qreal pitch = layout->pageFlow().pitch;
+        const QTextBlock image = editor->textDocument()->findBlockByNumber(2);
+        const QRectF box = imageBox(*layout, image);
+        REQUIRE(box.top() >= pitch - 1.0);  // on the next page
+        for (QTextBlock block = image.next(); block.isValid(); block = block.next()) {
+            for (int i = 0; i < block.layout()->lineCount(); ++i) {
+                const qreal top = lineTop(*layout, block, i);
+                INFO("sentences " << sentences << ", block " << block.blockNumber() << ", line "
+                                  << i << " at " << top << ", the image " << box.top() << "-"
+                                  << box.bottom());
+                CHECK_FALSE((top >= box.top() - 1.0 && top < box.bottom() - 1.0));
+                ++checked;
+            }
+        }
+    }
+    CHECK(checked > 0);
+}
+
 // =============================================================================
 // Commands
 // =============================================================================

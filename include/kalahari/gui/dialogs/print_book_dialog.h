@@ -44,15 +44,16 @@ class SheetPreview;
 ///
 /// The window is the program's own, not the system's. Its tabs are as high as the highest, so
 /// the window keeps its size and nothing in it scrolls: the printer (the printers of the system,
-/// the default one first; the copies, the pages, the odd or the even ones, both sides, the
-/// color, the paper), the texts and the layout (those of the export: BookOutputDialog), and the
-/// sheets (a page, two pages side by side or a booklet folded in half; a page fitted to the
-/// sheet or of its own size, with crop marks). The lists offer only what the printer can do. At
-/// the right the preview shows the sheets as they come out of the printer; Page Up and Page
-/// Down change them. Without a printer that prints on both sides, the print on both sides goes
-/// by hand: the fronts of the sheets, then the window asks to turn the stack, then the backs.
-/// The progress and the result show under the tabs. The texts the window keeps in the settings
-/// (print.content), the sheets too (print.*), the layout with the export (export.*).
+/// the default one first; the copies, the pages, the odd or the even ones, in the reverse
+/// order or not, both sides, the color, the paper), the texts and the layout (those of the
+/// export: BookOutputDialog), and the sheets (a page, two pages side by side or a booklet
+/// folded in half; a page fitted to the sheet or of its own size, with crop marks). The lists
+/// offer only what the printer can do. At the right the preview shows the sheets as they come
+/// out of the printer; Page Up and Page Down change them. Without a printer that prints on both
+/// sides, the print on both sides goes by hand: the fronts of the sheets, then the window asks
+/// to turn the stack, then the backs. The progress and the result show under the tabs. The
+/// texts the window keeps in the settings (print.content), the sheets too (print.*), the layout
+/// with the export (export.*).
 class PrintBookDialog : public BookOutputDialog {
     Q_OBJECT
 
@@ -99,6 +100,7 @@ public:
         PageRange range = PageRange::All;
         QString rangeText;      ///< PageRange::Typed: the pages as typed
         editor::PageParity parity = editor::PageParity::All;
+        bool reverse = false;   ///< The last sheet first, for a printer that lays them face up
         Duplex duplex = Duplex::None;
         bool color = true;      ///< false: in shades of gray
         QPageSize paper;        ///< The paper of the printer
@@ -159,6 +161,7 @@ public:
     QRadioButton* rangeButton() const { return m_rangeButton; }
     QLineEdit* rangeField() const { return m_rangeField; }
     QComboBox* parityBox() const { return m_parityBox; }
+    QCheckBox* reverseBox() const { return m_reverseBox; }
     QComboBox* duplexBox() const { return m_duplexBox; }
     QComboBox* colorBox() const { return m_colorBox; }
     QComboBox* paperBox() const { return m_paperBox; }
@@ -282,6 +285,7 @@ private:
     FieldNote m_printerNote;
     QSpinBox* m_copiesBox = nullptr;
     QCheckBox* m_collateBox = nullptr;
+    QCheckBox* m_reverseBox = nullptr;
     QRadioButton* m_allButton = nullptr;
     QRadioButton* m_currentButton = nullptr;
     QRadioButton* m_rangeButton = nullptr;

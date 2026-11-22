@@ -33329,6 +33329,11 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
         <extracomment>The button of the question of the print by hand. In Polish: Drukuj &amp;tyły</extracomment>
         <translation>Drukuj &amp;tyły</translation>
     </message>
+    <message>
+        <source>Re&amp;verse order</source>
+        <extracomment>Beside the pages that print: the last sheet first, for a printer that lays the sheets face up. In Polish: W odwrotne&amp;j kolejności</extracomment>
+        <translation>W odwrotne&amp;j kolejności</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SourceLookup</name>
