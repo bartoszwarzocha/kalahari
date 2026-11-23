@@ -894,9 +894,6 @@ MainWindow::MainWindow(QWidget* parent)
         [this]() { return getCurrentEditor(); },
         m_captionCoordinator, m_footnoteCoordinator, this, this);
     m_bookExportCoordinator->connectCommands();
-    // Export Set... of the set for a publisher: the window of the export with the set
-    connect(m_materialListCoordinator, &MaterialListCoordinator::exportSetRequested,
-            m_bookExportCoordinator, &BookExportCoordinator::exportSet);
     // The card For Publishers: its export, print, gear and the Cover
     connect(m_navigatorCoordinator, &NavigatorCoordinator::publishingCardCreated, this,
             [this](PublishingCardPanel* card) {

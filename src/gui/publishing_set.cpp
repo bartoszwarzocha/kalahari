@@ -17,7 +17,6 @@
 
 #include <QClipboard>
 #include <QGuiApplication>
-#include <QLocale>
 
 #include <algorithm>
 
@@ -147,53 +146,6 @@ QString PublishingSetContents::aboutOf(const core::ProjectManager& book,
 
 QString PublishingSetContents::plainTextOf(const core::ProjectManager& book) {
     return PublishingTexts::setToPlainText(titleOf(book), aboutOf(book), textsOf(book));
-}
-
-QString PublishingSetContents::headingOf(const core::ProjectManager& book) {
-    const QList<core::PublishingSetPart> parts = book.publishingSetParts();
-    const auto in = std::count_if(parts.cbegin(), parts.cend(),
-                                  [](const core::PublishingSetPart& part) { return part.on; });
-    //: The name of the set for a publisher with how many of its parts it has: %1 those in it,
-    //: %2 all. In Polish: Zestaw dla wydawnictwa · %1 z %2
-    return tr("Set for the Publisher · %1 of %2")
-        .arg(QLocale().toString(static_cast<int>(in)),
-             QLocale().toString(static_cast<int>(parts.size())));
-}
-
-QString PublishingSetContents::summaryOf(const core::ProjectManager& book) {
-    const bool words = CoverMaterial::countsWords();
-    int parts = 0;
-    int length = 0;
-    for (const PublishingSetItem& item : itemsOf(book)) {
-        if (item.on) {
-            ++parts;
-            length += words ? item.words : item.characters;
-        }
-    }
-    //: The parts in the set for a publisher, before their length in all. In Polish: %Ln
-    //: część / %Ln części / %Ln części
-    const QString partsText = tr("%Ln parts", nullptr, parts);
-    //: The length of the texts of the set for a publisher in all. In Polish: %Ln słowo razem /
-    //: %Ln słowa razem / %Ln słów razem; %Ln znak razem / %Ln znaki razem / %Ln znaków razem
-    const QString lengthText = words ? tr("%Ln words in all", nullptr, length)
-                                     : tr("%Ln characters in all", nullptr, length);
-    return partsText + QStringLiteral(" · ") + lengthText;
-}
-
-QString PublishingSetContents::sourceOf(const QString& part) {
-    if (ofCover(part)) {
-        //: Where a part of the set for a publisher comes from: the materials of the cover. In
-        //: Polish: Okładka
-        return tr("Cover");
-    }
-    if (part == QLatin1String(PublishingTexts::ABOUT_AUTHOR)) {
-        //: Where the note about the author in the set for a publisher comes from. In Polish:
-        //: strony końcowe książki
-        return tr("The back matter of the book");
-    }
-    //: Where a sentence or a synopsis of the set for a publisher comes from. In Polish:
-    //: Teksty dla wydawnictwa
-    return tr("Texts for Publishers");
 }
 
 QString PublishingSetContents::copyAll(const core::ProjectManager& book) {

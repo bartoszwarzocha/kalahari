@@ -17,7 +17,6 @@
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/panels/paragraph_cards_box.h"
 #include "kalahari/gui/panels/plot_fields_box.h"
-#include "kalahari/gui/panels/publishing_set_page.h"
 #include "kalahari/gui/panels/series_page.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -191,10 +190,8 @@ void PropertiesPanel::setupUI() {
     m_stackedWidget->addWidget(createEditorPage());      // Page::Editor = 5
     m_stackedWidget->addWidget(createMaterialPage());    // Page::Material = 6
     m_stackedWidget->addWidget(createCardPage());        // Page::Card = 7
-    m_publishingSetPage = new PublishingSetPage(m_book);
-    m_stackedWidget->addWidget(m_publishingSetPage);     // Page::PublishingSet = 8
     m_seriesPage = new SeriesPage(m_book);
-    m_stackedWidget->addWidget(m_seriesPage);            // Page::Series = 9
+    m_stackedWidget->addWidget(m_seriesPage);            // Page::Series = 8
     // The name and the order of the volumes show in the Navigator, as the title of the book
     connect(m_seriesPage, &SeriesPage::seriesChanged, this, &PropertiesPanel::bookChanged);
     connect(m_seriesPage, &SeriesPage::requestNewVolume, this,
@@ -1009,14 +1006,6 @@ void PropertiesPanel::showSeriesProperties() {
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Series));
 }
 
-void PropertiesPanel::showPublishingSetProperties(const QString& part) {
-    m_currentChapterId.clear();
-    m_currentSectionType.clear();
-    m_currentPartId.clear();
-    m_publishingSetPage->showSet(part);
-    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::PublishingSet));
-}
-
 void PropertiesPanel::focusFirstField() {
     switch (currentPage()) {
         case Page::Project:
@@ -1030,9 +1019,6 @@ void PropertiesPanel::focusFirstField() {
             break;
         case Page::Card:
             focusTitle(m_cardPage->nameEdit());
-            break;
-        case Page::PublishingSet:
-            m_publishingSetPage->focusContents();
             break;
         case Page::Series:
             m_seriesPage->focusName();
@@ -1242,9 +1228,6 @@ void PropertiesPanel::refresh() {
             break;
         case Page::Card:
             refreshCard();
-            break;
-        case Page::PublishingSet:
-            m_publishingSetPage->refresh();
             break;
         case Page::Series:
             showSeriesProperties();  // the book's, after the last volume but one went

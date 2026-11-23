@@ -44,7 +44,6 @@ class MaterialListModel;
 class MaterialListFilter;
 class FilterHeader;
 class CoverPlan;
-class PublishingSetView;
 class CardCellDelegate;
 
 /// @brief The list of a kind of materials of the open book (MaterialList), on a tab in the
@@ -120,8 +119,8 @@ public:
     /// show it
     bool selectMaterial(const QString& elementId);
 
-    /// @brief Collapse or expand the groups of a volume of a series in the list of the cover
-    /// or of the texts for publishers: @p volumeOrder 0 the whole series, 1 the first volume...
+    /// @brief Collapse or expand the groups of a volume of a series in the list of the cover:
+    /// @p volumeOrder 0 the whole series, 1 the first volume...
     /// (MaterialRow::volumeOrder); the list keeps it while it shows another kind
     void setVolumeCollapsed(int volumeOrder, bool collapsed);
 
@@ -146,25 +145,8 @@ public:
     /// @brief The plan of the cover
     [[nodiscard]] CoverPlan* plan() const { return m_plan; }
 
-    /// @brief The button of the plan of the cover, or of the set in the list of the texts for
-    /// publishers; hidden in the other lists
+    /// @brief The button of the plan of the cover; hidden in the other lists
     [[nodiscard]] QToolButton* planButton() const { return m_planButton; }
-
-    /// @brief The set for a publisher of the list of the texts for publishers
-    [[nodiscard]] PublishingSetView* setView() const { return m_set; }
-
-    /// @brief The name of the set and how many of its parts it has, over the set
-    [[nodiscard]] QLabel* setHeading() const { return m_setHeading; }
-
-    /// @brief Copy All: the whole set to the clipboard
-    [[nodiscard]] QToolButton* copyAllButton() const { return m_copyAllButton; }
-
-    /// @brief Export Set...: the window of the export with the set
-    [[nodiscard]] QToolButton* exportSetButton() const { return m_exportSetButton; }
-
-    /// @brief Choose part @p part on the page of the set, scrolled to it (the part chosen in
-    /// the Properties panel)
-    void showSetPart(const QString& part);
 
     /// @brief Copy Entries of the list Sources; hidden in the other lists
     [[nodiscard]] QToolButton* entriesButton() const { return m_entriesButton; }
@@ -184,10 +166,6 @@ public:
     /// @brief Restore to Its Place of the list of the clippings; hidden in the other lists
     [[nodiscard]] QToolButton* restoreButton() const { return m_restoreButton; }
 
-    /// @brief From the Cover of the list of the texts for publishers: shows the descriptions
-    /// and the taglines of the cover; hidden in the other lists
-    [[nodiscard]] QToolButton* fromCoverButton() const { return m_fromCoverButton; }
-
     /// @brief The page of a kind hidden in the Navigator; shown in place of the list
     [[nodiscard]] QWidget* hiddenPage() const { return m_hiddenPage; }
 
@@ -206,8 +184,8 @@ public:
     /// @brief Show the tiles of a list that has them, or its table; kept for the list
     void showTiles(bool tiles);
 
-    /// @brief Show the plan of the cover of the list of the cover, or the set of the list of
-    /// the texts for publishers; else its table or tiles as before; kept for the list
+    /// @brief Show the plan of the cover of the list of the cover; else its table or tiles as
+    /// before; kept for the list
     void showPlan(bool plan);
 
     /// @brief Show the materials of the list of the cover in groups by what they are, or in
@@ -272,24 +250,6 @@ signals:
     /// @brief Give material @p elementId of the cover the state @p state: chosen for the
     /// cover, rejected, or a draft (empty)
     void requestCoverState(const QString& elementId, const QString& state);
-
-    /// @brief Give text @p elementId for publishers the state @p state: chosen for the set,
-    /// rejected, or a draft (empty)
-    void requestPublishingState(const QString& elementId, const QString& state);
-
-    /// @brief Make description or tagline @p elementId of the cover the version of its part in
-    /// the set for publishers (Choose for the Set)
-    void requestSetPick(const QString& elementId);
-
-    /// @brief Show material @p elementId in the list of the cover (Show in the Cover)
-    void requestShowInCover(const QString& elementId);
-
-    /// @brief The set for a publisher is shown with @p part chosen: the Properties panel shows
-    /// the set
-    void requestSetProperties(const QString& part);
-
-    /// @brief Export the set for a publisher (Export Set...)
-    void requestExportSet();
 
     /// @brief Open the settings of the materials (the gear)
     void requestSettings();
@@ -394,20 +354,9 @@ private:
     /// for another material
     void addClippingItems(QMenu& menu, const MaterialRow& row);
 
-    /// @brief The gear: Settings > Editor > Clippings in the list of the clippings, Settings >
-    /// Navigator > Texts for Publishers in that of the texts, else the settings of the
-    /// materials (requestSettings())
+    /// @brief The gear: Settings > Editor > Clippings in the list of the clippings, else the
+    /// settings of the materials (requestSettings())
     void openSettings();
-
-    /// @brief The text and what From the Cover of the list of the texts for publishers does
-    void createPublishingCommands();
-
-    /// @brief From the Cover and the gear: the button shown in the list of the texts for
-    /// publishers, where the gear names their settings
-    void updatePublishingCommands();
-
-    /// @brief The choices of Kind and the menu of Add of the list of the texts for publishers
-    void fillPublishingChoices();
 
     /// @brief Hide the rows of the volumes collapsed, show the others (the rows of the
     /// filter change with the search, the filters and the sorting)
@@ -419,41 +368,8 @@ private:
     /// volume @p volumeOrder
     void addVolumeItems(QMenu& menu, int volumeOrder);
 
-    /// @brief Choose for the Set, Reject and Back to Draft in the menu of text @p row for
-    /// publishers; Choose for the Set and Show in the Cover in that of a description or a
-    /// tagline of the cover; nothing for another material
-    void addPublishingItems(QMenu& menu, const MaterialRow& row);
-    /// @brief The state of @p row in its menu: of a text for publishers and of a description
-    /// or a tagline in their list (addPublishingItems()), of a material of the cover in its own
-    /// (addCoverActions()); nothing for another material
-    void addStateItems(QMenu& menu, const MaterialRow& row);
-
-    /// @brief The page of the set for a publisher: its name, Copy All, Export Set... and the
-    /// set (PublishingSetView) in the stack of the views
-    void createSetPage();
-    /// @brief The set again from the book, while it is shown
-    void updateSet();
-    /// @brief Whether the plan of the cover or the set is shown
+    /// @brief Whether the plan of the cover is shown
     [[nodiscard]] bool planShowing() const;
-    /// @brief The page of the plan of the list: the set's, else the cover's
-    [[nodiscard]] QWidget* planPage() const;
-    /// @brief The plan of the list that takes the keys: the set, else the plan of the cover
-    [[nodiscard]] QWidget* planWidget() const;
-    /// @brief The search and the filters hidden while the set is shown, which they do not
-    /// filter; the Properties panel shows the set
-    void applySetShown();
-    /// @brief The footer of the set: what its keys do; false while the set is not shown
-    bool updateSetFooter();
-    /// @brief Include @p part in the set or leave it out (Space)
-    void toggleSetPart(const QString& part);
-    /// @brief Copy the text of @p part of the set
-    void copySetPart(const QString& part);
-    /// @brief Copy the whole set (Copy All)
-    void copySet();
-    /// @brief Open the version of @p part of the set
-    void openSetPart(const QString& part);
-    /// @brief The menu of @p part of the set at @p globalPos
-    void showSetMenu(const QString& part, const QPoint& globalPos);
 
     QString m_list;
     QHash<QString, State> m_states;
@@ -475,7 +391,6 @@ private:
     QToolButton* m_planButton = nullptr;
     QToolButton* m_groupsButton = nullptr;
     QToolButton* m_settingsButton = nullptr;
-    QToolButton* m_fromCoverButton = nullptr;  ///< From the Cover: the texts for publishers
     QToolButton* m_restoreButton = nullptr;  ///< Restore to Its Place: the list of the clippings
     QMenu* m_addMenu = nullptr;           ///< Add of the cover: the kind of the material
     QLabel* m_partLabel = nullptr;
@@ -487,11 +402,6 @@ private:
     QPushButton* m_showKindButton = nullptr;
     QScrollArea* m_planArea = nullptr;
     CoverPlan* m_plan = nullptr;
-    QWidget* m_setPage = nullptr;     ///< The set: its bar over its page
-    QLabel* m_setHeading = nullptr;
-    QToolButton* m_copyAllButton = nullptr;
-    QToolButton* m_exportSetButton = nullptr;
-    PublishingSetView* m_set = nullptr;
     QLineEdit* m_search = nullptr;
     QAction* m_searchIcon = nullptr;  ///< The icon at the start of the search
     QComboBox* m_linkedWith = nullptr;

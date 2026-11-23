@@ -1595,10 +1595,13 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
     // A kind the program makes elements of has its group also empty, so that one can be added
     // to it; the other kinds when they have elements. A kind of materials hidden in the
     // settings is not there, but its materials are in the number of Materials.
+    // The texts for publishers are on the card For Publishers, not in the Materials
     const QStringList hidden = MaterialList::hiddenKinds();
+    const core::KindRef publishingKind = pm.publishingKind();
     qsizetype hiddenCount = 0;
     for (KindGroup& group : groups) {
-        if (group.elements.isEmpty() && !core::ProjectManager::canAdd(group.kind)) {
+        if ((group.elements.isEmpty() && !core::ProjectManager::canAdd(group.kind)) ||
+            (publishingKind && group.kind.kind == publishingKind.kind)) {
             continue;
         }
         if (group.shelf == core::WorkshopGroup::Resources && hidden.contains(group.key)) {

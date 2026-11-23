@@ -144,9 +144,9 @@ dropped when the text is saved.
 
 ### Fragments linked to the points
 
-Tools > Texts for Publishers > Link to a Point (Ctrl+Shift+D) links the selected text of a
-synopsis to a point of its template, so that the points in the Properties panel show what the
-text covers. `ids` holds the ids of the points, separated by spaces (a fragment may serve
+Link to a Template Point (Ctrl+Shift+D) on the card For Publishers links the selected text of
+a synopsis to a point of its template, so that the points beside the text show what it
+covers. `ids` holds the ids of the points, separated by spaces (a fragment may serve
 several points):
 
 ```xml

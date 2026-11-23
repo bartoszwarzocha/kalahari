@@ -37,8 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   > Navigator > Texts for Publishers. Gone: the submenu Tools > Texts for Publishers, the
   window Templates of Texts for Publishers and its button in the Settings, the skeleton of a
   synopsis in its text with the style Template Point (an old one is read as plain paragraphs),
-  the setting of where the points of a synopsis are, the card of a sentence and the group of a
-  text for publishers in the Properties panel.
+  the setting of where the points of a synopsis are, the card of a sentence, the group of a
+  text for publishers in the Properties panel, and the list Texts for Publishers in the
+  Materials with From the Cover, its view Set for the Publisher and the page of the set in the
+  Properties panel (the set is on the card).
 - **Fragments of a synopsis linked to the points of its template** - 2026-11-23. Link to a
   Template Point (Ctrl+Shift+D) opens, under the cursor, the points of the template of the
   synopsis in front with their numbers (1-9 as keys) and colors: a point chosen links the

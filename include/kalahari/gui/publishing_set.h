@@ -53,17 +53,6 @@ public:
     /// name (Copy All)
     static QString plainTextOf(const core::ProjectManager& book);
 
-    /// @brief The name of the set with the parts in it: "Set for the Publisher · 4 of 5"
-    static QString headingOf(const core::ProjectManager& book);
-
-    /// @brief The parts in the set and the length of their texts in all, in the unit of the
-    /// cover: "5 parts · 1,234 characters in all"
-    static QString summaryOf(const core::ProjectManager& book);
-
-    /// @brief Where the text of @p part comes from: "Texts for Publishers", "Cover", "The back
-    /// matter of the book"
-    static QString sourceOf(const QString& part);
-
     /// @brief Copy the whole set to the clipboard as plain text (Copy All)
     /// @return What the status bar says; empty when the set has no text to copy
     static QString copyAll(const core::ProjectManager& book);

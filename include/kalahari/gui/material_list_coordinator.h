@@ -102,10 +102,6 @@ signals:
     /// @brief A list of cards asked for the settings of the cards (Settings > Cards)
     void cardSettingsRequested();
 
-    /// @brief The set for a publisher asked for the window of the export with the set
-    /// (Export Set...)
-    void exportSetRequested();
-
 private slots:
     /// @brief What the Materials of the Navigator show changed (NavigatorPanel::
     /// MATERIALS_TREE_SETTING): the Navigator is built again
@@ -117,8 +113,6 @@ private slots:
 
 private:
     void refreshNow();
-    /// @brief The set for a publisher in the Properties panel does what it asks
-    void connectSetPage();
     void connectList(MaterialListPanel* panel);
     void updateTab(MaterialListPanel* panel);
     /// @brief The list in front is filled again if it missed a change
@@ -127,19 +121,10 @@ private:
     void open(const QString& elementId);
     void rename(const QString& elementId);
     void link(const QString& elementId);
-    /// @param coverPart A material of the cover, a text for publishers: the part chosen at the
-    /// start
+    /// @param coverPart A material of the cover: the part chosen at the start
     void add(MaterialListPanel* panel, const QString& list, const QString& coverPart = {});
     /// @brief Give material @p elementId of the cover the state @p state
     void setCoverState(const QString& elementId, const QString& state);
-    /// @brief Give text @p elementId for publishers the state @p state
-    void setPublishingState(const QString& elementId, const QString& state);
-    /// @brief Make description or tagline @p elementId of the cover the version of its part
-    /// in the set for publishers
-    void pickForSet(const QString& elementId);
-    /// @brief Show the set for a publisher with part @p part chosen in the Properties panel,
-    /// brought to the front as for a material chosen
-    void showSetProperties(const QString& part);
     void showInFolder(const QString& elementId);
     [[nodiscard]] QWidget* window() const;
 

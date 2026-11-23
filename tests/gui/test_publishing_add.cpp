@@ -3,7 +3,7 @@
 
 /// @file test_publishing_add.cpp
 /// @brief Add Element of a text for publishers: its part and its template, the description and
-///        the tagline that go to the cover, and Add of the list of the texts
+///        the tagline that go to the cover
 
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari_tests/test_support/window_parts.h"
@@ -17,28 +17,23 @@
 #include "kalahari/gui/dialogs/publishing_choice.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/material_list.h"
-#include "kalahari/gui/material_list_coordinator.h"
-#include "kalahari/gui/panels/material_list_panel.h"
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <QAbstractButton>
-#include <QApplication>
 #include <QButtonGroup>
 #include <QComboBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QLocale>
-#include <QTimer>
 
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <array>
 #include <cstdio>
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -125,31 +120,6 @@ std::string partsOf(const PublishingChoice& choice) {
         parts << button->text();
     }
     return parts.join(QStringLiteral(" | ")).toStdString();
-}
-
-/// Run @p command and answer the window of Add Element it shows with @p answer; the window is
-/// rejected after it when it is still open
-/// @return Whether the window was shown
-bool answering(const std::function<void()>& command,
-               const std::function<void(NewFileDialog&)>& answer) {
-    bool shown = false;
-    QTimer timer;
-    timer.setInterval(10);
-    QObject::connect(&timer, &QTimer::timeout, [&]() {
-        auto* dialog = qobject_cast<NewFileDialog*>(QApplication::activeModalWidget());
-        if (dialog == nullptr) {
-            return;
-        }
-        timer.stop();
-        shown = true;
-        answer(*dialog);
-        if (dialog->isVisible()) {
-            dialog->reject();
-        }
-    });
-    timer.start();
-    command();
-    return shown;
 }
 
 }  // namespace
@@ -249,48 +219,4 @@ TEST_CASE("Add Element: a text for publishers of its kind and template, or a tex
     const NewFileDialog asked(workshop(QStringLiteral("pitch"), true), types);
     CHECK(asked.publishingPart() == QStringLiteral("pitch"));
     CHECK(asked.publishingTemplate() == QStringLiteral("kalahari.novel:when_must"));
-}
-
-TEST_CASE("Add Element: Add of the list of the texts for publishers adds a text or a material "
-          "of the cover",
-          "[gui][newfile][addelement][publishing]") {
-    gui::registerAllIcons();
-    test::OpenNovel book(QStringLiteral("Sand"));
-    const KeptSettings kept;
-    auto& pm = book.pm;
-    test::Window window;
-    gui::MaterialListCoordinator lists(pm, window.tabs, &window.navigator, &window.statusBar,
-                                       [](bool) {});
-    gui::MaterialListPanel* panel =
-        lists.openList(QStringLiteral("kalahari.base:publishing"), false);
-    REQUIRE(panel != nullptr);
-
-    // A synopsis with the template chosen, a text of the Workshop
-    CHECK(answering(
-        [panel]() { emit panel->requestAddCover(panel->list(), QStringLiteral("synopsis")); },
-        [](NewFileDialog& dialog) {
-            CHECK(dialog.publishingPart() == QStringLiteral("synopsis"));
-            dialog.publishingChoice()->setTemplate(QStringLiteral("kalahari.novel:one_page"));
-            dialog.accept();
-        }));
-    const QList<const core::ProjectElement*> synopses =
-        PublishingTexts::textsOf(*pm.project(), QStringLiteral("synopsis"));
-    REQUIRE(synopses.size() == 1);
-    CHECK(synopses.first()->title == QStringLiteral("Synopsis – version 1"));
-    CHECK(synopses.first()->publishing.templateId == QStringLiteral("kalahari.novel:one_page"));
-    CHECK(panel->currentMaterial() == synopses.first()->id);
-
-    // A tagline: a material of the cover at its place
-    CHECK(answering(
-        [panel]() { emit panel->requestAddCover(panel->list(), QStringLiteral("tagline")); },
-        [](NewFileDialog& dialog) {
-            CHECK(dialog.coverPart() == QStringLiteral("tagline"));
-            dialog.accept();
-        }));
-    const QList<const core::ProjectElement*> taglines =
-        PublishingTexts::versionsOf(*pm.project(), QStringLiteral("tagline"));
-    REQUIRE(taglines.size() == 1);
-    CHECK(taglines.first()->title == QStringLiteral("Tagline 1"));
-    CHECK(taglines.first()->cover.place == core::CoverMaterial::defaultPlaceOf(
-                                               QStringLiteral("tagline")));
 }
