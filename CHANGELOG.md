@@ -23,8 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   carries the Qt and the Python of the program and is checked before it is written by the new
   `kalahari --self-test`, which checks the resources, the icon, the translations, the Qt
   plugins of images, the database and secure connections, and the Python of the plugins. The
-  windows, the taskbar and the Dock show the logo of the program (`scripts/make_app_icons.py`
-  makes its sizes, the `.ico` and the `.icns`), and `kalahari.exe` has its icon and version. A
+  icon of the program is its logo, the lion with the book and the quill of the Dashboard
+  (`scripts/make_app_icons.py` makes its sizes, the `.ico` and the `.icns`): on the windows,
+  the taskbar, the Dock, `kalahari.exe`, the installer, the menus, and the books and the
+  documents in the file managers. `kalahari.exe` has its version too. A
   version tag attaches the packages of main to the draft release. The log file `kalahari.log`
   is in the folder of the program only where the program may write there; otherwise (an
   installation for all users, the Linux packages, always on macOS) it is in the folder of the

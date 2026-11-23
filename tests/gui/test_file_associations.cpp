@@ -246,16 +246,25 @@ TEST_CASE("File associations: the commands of xdg-utils", "[gui][associations]")
         const auto commands = gui::linuxAssociateCommands(true, QStringLiteral("/a/kalahari.xml"),
                                                           QStringLiteral("/t/kalahari.desktop"),
                                                           QStringLiteral("/a/kalahari.png"));
-        REQUIRE(commands.size() == 4);
+        REQUIRE(commands.size() == 6);
         CHECK(commands[0].program == QStringLiteral("xdg-mime"));
         CHECK(commands[0].arguments == user + QStringList{QStringLiteral("/a/kalahari.xml")});
+        const QStringList size{QStringLiteral("--size"), QStringLiteral("256"),
+                               QStringLiteral("/a/kalahari.png")};
+        const QStringList fileIcon =
+            user + QStringList{QStringLiteral("--context"), QStringLiteral("mimetypes")} + size;
         CHECK(commands[1].program == QStringLiteral("xdg-icon-resource"));
-        CHECK(commands[1].arguments ==
-              user + QStringList{QStringLiteral("--size"), QStringLiteral("256"),
-                                 QStringLiteral("/a/kalahari.png"), QStringLiteral("kalahari")});
-        CHECK(commands[2].program == QStringLiteral("xdg-desktop-menu"));
-        CHECK(commands[2].arguments == user + QStringList{QStringLiteral("/t/kalahari.desktop")});
-        CHECK(commands[3].arguments == defaults);
+        CHECK(commands[1].arguments == user + size + QStringList{QStringLiteral("kalahari")});
+        // The same picture for the books and the documents in the file managers
+        CHECK(commands[2].program == QStringLiteral("xdg-icon-resource"));
+        CHECK(commands[2].arguments ==
+              fileIcon + QStringList{QStringLiteral("application-x-kalahari-book")});
+        CHECK(commands[3].program == QStringLiteral("xdg-icon-resource"));
+        CHECK(commands[3].arguments ==
+              fileIcon + QStringList{QStringLiteral("application-x-kalahari-document")});
+        CHECK(commands[4].program == QStringLiteral("xdg-desktop-menu"));
+        CHECK(commands[4].arguments == user + QStringList{QStringLiteral("/t/kalahari.desktop")});
+        CHECK(commands[5].arguments == defaults);
         // Without an icon
         CHECK(gui::linuxAssociateCommands(true, QStringLiteral("/a/kalahari.xml"),
                                           QStringLiteral("/t/kalahari.desktop"), {})

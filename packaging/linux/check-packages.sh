@@ -7,7 +7,8 @@
 # DIST holds the .deb and the AppImage of scripts/package.py linux. The script runs itself in
 # the container with --inside FOLDER (FOLDER: DIST in the container), where:
 #   1. apt installs the .deb: its Depends name every library of the system it needs; the system
-#      knows the types of the files of Kalahari and the menu entry opens them
+#      knows the types of the files of Kalahari, the menu entry opens them and the icon theme
+#      has their icon
 #   2. every program and library in /opt/kalahari finds its libraries (ldd)
 #   3. the program passes its check of an installation (kalahari --self-test) as a writer, not
 #      root: without a screen and with an X server (xcb, the platform of a desktop); its
@@ -106,12 +107,19 @@ apt_get install -y --no-install-recommends /tmp/kalahari.deb
 echo "Depends: $(dpkg-query -W -f='${Depends}' kalahari)"
 
 step "The system knows the books (.klh) and the documents (.kchapter) of Kalahari"
-# shared-mime-info (a library of the package needs it) builds globs2 from share/mime/packages
+# shared-mime-info (a library of the package needs it) builds globs2 from share/mime/packages;
+# a file manager shows a type with the icon named after it ("/" as "-") in the icon theme
 for type in "application/x-kalahari-book:*.klh" "application/x-kalahari-document:*.kchapter"; do
     grep -qF ":$type" /usr/share/mime/globs2 || fail "no $type in the MIME types of the system"
     grep -q "^MimeType=.*${type%%:*};" /usr/share/applications/kalahari.desktop ||
         fail "the menu entry does not open ${type%%:*}"
-    echo "${type#*:}: ${type%%:*}, opened by kalahari.desktop"
+    icon="${type%%:*}"
+    icon="${icon//\//-}"
+    for size in 16 24 32 48 64 128 256 512; do
+        [ -f "/usr/share/icons/hicolor/${size}x${size}/mimetypes/$icon.png" ] ||
+            fail "no icon $icon of ${size}x${size} in the icon theme"
+    done
+    echo "${type#*:}: ${type%%:*}, opened by kalahari.desktop, icon $icon"
 done
 
 step "Every program and library of the package finds its libraries"

@@ -410,6 +410,12 @@ QString linuxDesktopEntry(const QString& entry, const QString& program)
     return lines.join(u'\n');
 }
 
+QString linuxMimeTypeIcon(const KalahariFileType& type)
+{
+    QString name = type.mimeType;
+    return name.replace(u'/', u'-');
+}
+
 std::vector<SystemCommand> linuxAssociateCommands(bool install, const QString& mimeFile,
                                                   const QString& desktopFile,
                                                   const QString& iconFile)
@@ -420,9 +426,16 @@ std::vector<SystemCommand> linuxAssociateCommands(bool install, const QString& m
     if (install) {
         commands.push_back({QStringLiteral("xdg-mime"), user + QStringList{mimeFile}});
         if (!iconFile.isEmpty()) {
+            const QStringList size{QStringLiteral("--size"), QStringLiteral("256"), iconFile};
             commands.push_back({QStringLiteral("xdg-icon-resource"),
-                                user + QStringList{QStringLiteral("--size"), QStringLiteral("256"),
-                                                   iconFile, QStringLiteral("kalahari")}});
+                                user + size + QStringList{QStringLiteral("kalahari")}});
+            // The icon of the files: the one named after their type (shared-mime-info)
+            for (const KalahariFileType& type : kalahariFileTypes()) {
+                commands.push_back(
+                    {QStringLiteral("xdg-icon-resource"),
+                     user + QStringList{QStringLiteral("--context"), QStringLiteral("mimetypes")} +
+                         size + QStringList{linuxMimeTypeIcon(type)}});
+            }
         }
         commands.push_back({QStringLiteral("xdg-desktop-menu"), user + QStringList{desktopFile}});
     }

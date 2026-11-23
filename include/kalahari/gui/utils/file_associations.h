@@ -123,10 +123,15 @@ struct SystemCommand {
 ///        with the command that starts @p program
 [[nodiscard]] QString linuxDesktopEntry(const QString& entry, const QString& program);
 
+/// @brief The name of the icon of files of @p type in the icon theme: their MIME type with "-"
+///        in place of "/" ("application-x-kalahari-book"), as shared-mime-info names it
+[[nodiscard]] QString linuxMimeTypeIcon(const KalahariFileType& type);
+
 /// @brief The commands that make Kalahari the program of its files on Linux
 /// @param install Whether the types and the menu entry are to be installed for the writer
 ///        first (an AppImage, or a system that does not know them): from @p mimeFile,
-///        @p desktopFile and @p iconFile (empty: no icon)
+///        @p desktopFile and @p iconFile (empty: no icon), which becomes the icon of the
+///        program and of each type of its files
 [[nodiscard]] std::vector<SystemCommand> linuxAssociateCommands(bool install,
                                                                 const QString& mimeFile,
                                                                 const QString& desktopFile,

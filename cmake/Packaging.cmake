@@ -212,14 +212,21 @@ else()
     # ResourcePaths looks for <prefix>/share/kalahari/resources next to <prefix>/bin
     install(DIRECTORY "${CMAKE_SOURCE_DIR}/resources" DESTINATION share/kalahari)
 
-    # The menu entry, its icon and the type of the .klh files
+    # The menu entry, its icon, the types of the books (.klh) and the documents (.kchapter) and
+    # their icon in the file managers: the logo of the program, named after each MIME type as
+    # shared-mime-info looks it up (src/gui/utils/file_associations.cpp installs the same for
+    # an AppImage)
     install(FILES "${KALAHARI_PACKAGING_DIR}/linux/kalahari.desktop" DESTINATION share/applications)
     install(FILES "${KALAHARI_PACKAGING_DIR}/linux/kalahari-mime.xml"
             DESTINATION share/mime/packages RENAME kalahari.xml)
     foreach(_kalahari_size IN LISTS KALAHARI_ICON_SIZES)
-        install(FILES "${CMAKE_SOURCE_DIR}/resources/images/app_icon/kalahari_${_kalahari_size}.png"
-                DESTINATION "share/icons/hicolor/${_kalahari_size}x${_kalahari_size}/apps"
-                RENAME kalahari.png)
+        set(_kalahari_icon "${CMAKE_SOURCE_DIR}/resources/images/app_icon/kalahari_${_kalahari_size}.png")
+        set(_kalahari_icons "share/icons/hicolor/${_kalahari_size}x${_kalahari_size}")
+        install(FILES "${_kalahari_icon}" DESTINATION "${_kalahari_icons}/apps" RENAME kalahari.png)
+        foreach(_kalahari_type IN ITEMS application-x-kalahari-book application-x-kalahari-document)
+            install(FILES "${_kalahari_icon}" DESTINATION "${_kalahari_icons}/mimetypes"
+                    RENAME "${_kalahari_type}.png")
+        endforeach()
     endforeach()
 
     # The Python of the packages: PythonInterpreter takes as its home the folder above the
