@@ -237,7 +237,9 @@ TEST_CASE("Templates of Texts for Publishers: the templates of the book type and
     CHECK(dialog.currentTemplate() == copy.reference());
     CHECK(copy.types == QStringList{QStringLiteral("kalahari.novel")});
     CHECK(dialog.nameEdit()->text() == QStringLiteral("One page – five steps – copy"));
-    CHECK(dialog.nameEdit()->hasFocus());
+    // The window's focus field: another window shown meanwhile (the tests run side by side
+    // on Windows) may take the activation, and then no field of this window has the keys
+    CHECK(dialog.focusWidget() == dialog.nameEdit());
     CHECK_FALSE(dialog.nameEdit()->isReadOnly());
     CHECK(dialog.typeBox(QStringLiteral("kalahari.novel"))->isChecked());
     CHECK(dialog.deleteButton()->isEnabled());
