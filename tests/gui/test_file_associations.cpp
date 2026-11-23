@@ -35,11 +35,13 @@ using State = gui::FileAssociation::State;
 
 namespace {
 
+/// The text of @p path in the sources, with "\n" at the end of each line (git gives a checkout
+/// on Windows "\r\n" in the files that .gitattributes does not give an end of line)
 QString sourceFile(const QString& path)
 {
     QFile file(QStringLiteral(KALAHARI_SOURCE_DIR "/") + path);
     REQUIRE(file.open(QIODevice::ReadOnly));
-    return QString::fromUtf8(file.readAll());
+    return QString::fromUtf8(file.readAll()).replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
 }
 
 /// The value @p name of key @p key that windowsRegistration() gives
@@ -408,7 +410,7 @@ TEST_CASE("File associations: the page in Polish", "[gui][associations]")
         CHECK(page.findChild<QPushButton*>(QStringLiteral("associateFiles"))->text() ==
               QStringLiteral("&Powiąż z programem Kalahari"));
         CHECK(page.findChild<QPushButton*>(QStringLiteral("fileAssociationSettings"))->text() ==
-              QStringLiteral("&Aplikacje domyślne w Ustawieniach systemu Windows…"));
+              QStringLiteral("&Aplikacje domyślne w Ustawieniach systemu…"));
         const auto texts = gui::windowsRegistration(QStringLiteral("C:\\k.exe"), {});
         CHECK(registryValue(texts, QStringLiteral("Software\\Kalahari\\Capabilities"),
                             QStringLiteral("ApplicationDescription")) ==

@@ -11,10 +11,10 @@
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/utils/file_associations.h"
+#include "kalahari/gui/widgets/flow_layout.h"
 
 #include <QEvent>
 #include <QFormLayout>
-#include <QHBoxLayout>
 #include <QLabel>
 #include <QPointer>
 #include <QPushButton>
@@ -71,15 +71,18 @@ FileAssociationsPage::FileAssociationsPage(QWidget* parent) : SettingsPage(paren
         m_states.push_back(state);
     }
 
-    auto* buttons = new QHBoxLayout();
+    // The buttons go on in the next line where the window is too narrow for both (Windows)
+    auto* buttonRow = new QWidget();
+    auto* buttons = new FlowLayout(buttonRow);
+    buttons->setContentsMargins(0, 0, 0, 0);
     //: In Polish: &Powiąż z programem Kalahari
     m_associate = new QPushButton(tr("&Associate with Kalahari"));
     m_associate->setObjectName(QStringLiteral("associateFiles"));
     connect(m_associate, &QPushButton::clicked, this, &FileAssociationsPage::associate);
     buttons->addWidget(m_associate);
     if (fileAssociationSystem().hasSettingsWindow()) {
-        //: Opens Settings > Apps > Default apps of Windows. In Polish: &Aplikacje domyślne w
-        //: Ustawieniach systemu Windows…
+        //: Opens Settings > Apps > Default apps of Windows. In Polish (short: the button fits the
+        //: narrowest window): &Aplikacje domyślne w Ustawieniach systemu…
         m_systemSettings = new QPushButton(tr("&Default Apps in Windows Settings…"));
         m_systemSettings->setObjectName(QStringLiteral("fileAssociationSettings"));
         connect(m_systemSettings, &QPushButton::clicked, this, [this]() {
@@ -91,8 +94,7 @@ FileAssociationsPage::FileAssociationsPage(QWidget* parent) : SettingsPage(paren
         });
         buttons->addWidget(m_systemSettings);
     }
-    buttons->addStretch();
-    files->addRow(buttons);
+    files->addRow(buttonRow);
 
     m_result = new QLabel();
     m_result->setObjectName(QStringLiteral("fileAssociationResult"));

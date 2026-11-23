@@ -9065,8 +9065,8 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     </message>
     <message>
         <source>&amp;Default Apps in Windows Settings…</source>
-        <extracomment>Opens Settings &gt; Apps &gt; Default apps of Windows. In Polish: &amp;Aplikacje domyślne w Ustawieniach systemu Windows…</extracomment>
-        <translation>&amp;Aplikacje domyślne w Ustawieniach systemu Windows…</translation>
+        <extracomment>Opens Settings &gt; Apps &gt; Default apps of Windows. In Polish (short: the button fits the narrowest window): &amp;Aplikacje domyślne w Ustawieniach systemu…</extracomment>
+        <translation>&amp;Aplikacje domyślne w Ustawieniach systemu…</translation>
     </message>
     <message>
         <source>Windows Settings did not open.</source>
