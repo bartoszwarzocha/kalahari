@@ -3,9 +3,10 @@
 
 /// @file test_notifications.cpp
 /// @brief The notifications of the program: in the bar at the bottom of the window, in the
-/// program's window, as notifications of the system or in the Assistant panel, the panel that
-/// keeps them, the window in front for the notifications of the whole program, the page
-/// Settings > Notifications, and the messages of the plugins as notifications
+/// program's window, as notifications of the system or in the Notifications panel, the panel
+/// that keeps them (the Assistant panel stays empty), the window in front for the
+/// notifications of the whole program, the page Settings > Notifications, and the messages
+/// of the plugins as notifications
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -18,6 +19,7 @@
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/notifications.h"
 #include "kalahari/gui/panels/assistant_panel.h"
+#include "kalahari/gui/panels/notifications_panel.h"
 #include "kalahari/gui/plugin_coordinator.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/settings_dialog.h"
@@ -84,7 +86,7 @@ struct Window {
     }
 
     [[nodiscard]] gui::InfoBar* bar() const { return notifications->bar(); }
-    [[nodiscard]] gui::AssistantPanel* assistant() const { return docks->assistantPanel(); }
+    [[nodiscard]] gui::NotificationsPanel* panel() const { return docks->notificationsPanel(); }
 };
 
 /// The notifications of the system shown, instead of the system tray, for a test
@@ -164,7 +166,7 @@ Notification download()
 TEST_CASE("Notifications: the places and their values", "[gui][notifications]")
 {
     for (NotificationPlace place : {NotificationPlace::Bar, NotificationPlace::Window,
-                                    NotificationPlace::System, NotificationPlace::Assistant}) {
+                                    NotificationPlace::System, NotificationPlace::Panel}) {
         CHECK(NotificationCoordinator::placeOfValue(NotificationCoordinator::valueOfPlace(place)) ==
               place);
     }
@@ -206,8 +208,10 @@ TEST_CASE("Notifications: in the bar at the bottom of the window by default",
     CHECK(bar->message() == both);
     CHECK(bar->iconId() == QStringLiteral("help.about"));
 
-    // Copy, the gear of the settings and the close button
-    const QList<QPushButton*> buttons = bar->findChildren<QPushButton*>();
+    // Copy, the gear of the settings and the close button (only the buttons in view: the bar
+    // has others, hidden until their text is set)
+    QList<QPushButton*> buttons = bar->findChildren<QPushButton*>();
+    buttons.removeIf([bar](const QPushButton* button) { return !button->isVisibleTo(bar); });
     REQUIRE(buttons.size() == 1);
     CHECK(buttons.first()->text() == QStringLiteral("Copy"));
     buttons.first()->click();
@@ -277,13 +281,13 @@ TEST_CASE("Notifications: the bar in the colors of the notifications, which the 
     CHECK(painted().first == own);
 }
 
-TEST_CASE("Notifications: the Assistant panel keeps them whatever the place",
+TEST_CASE("Notifications: the Notifications panel keeps them whatever the place",
           "[gui][notifications][clipboard]")
 {
-    gui::AssistantPanel panel;
-    auto* empty = panel.findChild<QLabel*>(QStringLiteral("assistantEmpty"));
-    auto* copy = panel.findChild<QPushButton*>(QStringLiteral("assistantCopy"));
-    auto* clear = panel.findChild<QPushButton*>(QStringLiteral("assistantClear"));
+    gui::NotificationsPanel panel;
+    auto* empty = panel.findChild<QLabel*>(QStringLiteral("notificationsEmpty"));
+    auto* copy = panel.findChild<QPushButton*>(QStringLiteral("notificationsCopy"));
+    auto* clear = panel.findChild<QPushButton*>(QStringLiteral("notificationsClear"));
     REQUIRE(empty != nullptr);
     REQUIRE(copy != nullptr);
     REQUIRE(clear != nullptr);
@@ -325,10 +329,10 @@ TEST_CASE("Notifications: the Assistant panel keeps them whatever the place",
     CHECK(QApplication::clipboard()->text() == panel.notificationText(0));
 
     // Not more than it keeps: the earliest go
-    for (int i = 0; i < gui::AssistantPanel::MAX_NOTIFICATIONS; ++i) {
+    for (int i = 0; i < gui::NotificationsPanel::MAX_NOTIFICATIONS; ++i) {
         panel.addNotification(badge(), time);
     }
-    CHECK(panel.notificationCount() == gui::AssistantPanel::MAX_NOTIFICATIONS);
+    CHECK(panel.notificationCount() == gui::NotificationsPanel::MAX_NOTIFICATIONS);
     CHECK(panel.notificationText(0) == badge().title + QLatin1Char('\n') + badge().text);
 
     clear->click();
@@ -345,8 +349,8 @@ TEST_CASE("Notifications: the window keeps them also where they show elsewhere",
     choosePlace(NotificationPlace::System);
     book.notifications->notify(goal());
     settle();
-    REQUIRE(book.assistant() != nullptr);
-    CHECK(book.assistant()->notificationCount() == 1);
+    REQUIRE(book.panel() != nullptr);
+    CHECK(book.panel()->notificationCount() == 1);
     CHECK(system.shown.size() == 1);
     CHECK(book.bar()->isHidden());
 }
@@ -426,18 +430,18 @@ TEST_CASE("Notifications: as notifications of the system, or in the bar where it
     CHECK(book.bar()->message() == goal().text);
 }
 
-TEST_CASE("Notifications: in the Assistant panel, which opens with them",
+TEST_CASE("Notifications: in the Notifications panel, which opens with them",
           "[gui][notifications]")
 {
     Window book;
-    choosePlace(NotificationPlace::Assistant);
-    QDockWidget* dock = book.docks->assistantDock();
+    choosePlace(NotificationPlace::Panel);
+    QDockWidget* dock = book.docks->notificationsDock();
     REQUIRE(dock != nullptr);
-    dock->hide();
+    CHECK(dock->isHidden());  // closed until opened
     book.notifications->notify(download());
     settle();
     CHECK(dock->isVisible());
-    CHECK(book.assistant()->notificationCount() == 1);
+    CHECK(book.panel()->notificationCount() == 1);
     CHECK(book.bar()->isHidden());
 
     // Its gear opens the settings of the notifications
@@ -453,6 +457,19 @@ TEST_CASE("Notifications: in the Assistant panel, which opens with them",
                      [&asked](const QString& page) { asked = page; });
     gear->click();
     CHECK(asked == QString::fromLatin1(gui::SettingsDialog::NOTIFICATIONS_PAGE));
+
+    // On the right, among the other panels there
+    CHECK(book.window.dockWidgetArea(dock) == Qt::RightDockWidgetArea);
+    CHECK(book.window.tabifiedDockWidgets(dock).contains(book.docks->statisticsDock()));
+
+    // The Assistant panel stays as it is: no notifications and no gear of theirs
+    QDockWidget* assistant = book.docks->assistantDock();
+    REQUIRE(assistant != nullptr);
+    REQUIRE(book.docks->assistantPanel() != nullptr);
+    CHECK(book.docks->assistantPanel()->findChild<QListWidget*>() == nullptr);
+    for (const QToolButton* button : assistant->titleBarWidget()->findChildren<QToolButton*>()) {
+        CHECK(button->toolTip() != QStringLiteral("Notification Settings"));
+    }
 }
 
 TEST_CASE("Notifications: those of the whole program show once, in the window in front",
@@ -469,8 +486,8 @@ TEST_CASE("Notifications: those of the whole program show once, in the window in
         CHECK(first.bar()->isHidden());
         CHECK(second.bar()->isVisible());
         CHECK(second.bar()->message() == goal().text);
-        CHECK(second.assistant()->notificationCount() == 1);
-        CHECK(first.assistant()->notificationCount() == 0);
+        CHECK(second.panel()->notificationCount() == 1);
+        CHECK(first.panel()->notificationCount() == 0);
     }
     // Without a finder: the window made last
     CHECK(NotificationCoordinator::notifyFront(badge()));
@@ -513,7 +530,7 @@ TEST_CASE("Notifications: the settings page, its sample and its colors", "[gui][
         values << places->itemData(i).toString();
     }
     CHECK(values == QStringList{QStringLiteral("bar"), QStringLiteral("window"),
-                                QStringLiteral("system"), QStringLiteral("assistant")});
+                                QStringLiteral("system"), QStringLiteral("panel")});
 
     // The sample shows in the place chosen on the page, before Apply
     places->setCurrentIndex(places->findData(QStringLiteral("window")));
@@ -526,13 +543,13 @@ TEST_CASE("Notifications: the settings page, its sample and its colors", "[gui][
     CHECK(NotificationCoordinator::chosenPlace() == NotificationPlace::Bar);
     book.notifications->notificationWindow()->close();
     settle();
-    places->setCurrentIndex(places->findData(QStringLiteral("assistant")));
+    places->setCurrentIndex(places->findData(QStringLiteral("panel")));
     sample->click();
-    CHECK(book.assistant()->notificationCount() == 1);
+    CHECK(book.panel()->notificationCount() == 1);
 
     // Apply keeps the place; the colors of the theme in use
     page.apply();
-    CHECK(NotificationCoordinator::chosenPlace() == NotificationPlace::Assistant);
+    CHECK(NotificationCoordinator::chosenPlace() == NotificationPlace::Panel);
     const QList<gui::ColorConfigWidget*> colors = page.findChildren<gui::ColorConfigWidget*>();
     REQUIRE(colors.size() == 2);
     colors.first()->setColor(QColor(QStringLiteral("#204060")));
@@ -555,8 +572,8 @@ TEST_CASE("Notifications: the messages of the plugins are notifications",
     settle();
     CHECK(book.bar()->isVisible());
     CHECK(book.bar()->message() == QStringLiteral("Backup: The copy is ready."));
-    REQUIRE(book.assistant()->notificationCount() == 1);
-    CHECK(book.assistant()->notificationText(0) ==
+    REQUIRE(book.panel()->notificationCount() == 1);
+    CHECK(book.panel()->notificationText(0) ==
           QStringLiteral("Backup\nThe copy is ready."));
     core::PluginHost::getInstance().reset();
 }

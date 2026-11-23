@@ -20,15 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   program's own window over the book window, with Copy, which does not take the keys from the
   text and takes in the next ones while it is open; as notifications of the system, in the
   corner of the screen with the program's icon in the system tray (where the system has none,
-  the bar shows them); or in the Assistant panel, which opens with them. The notifications of
-  one moment show together; those of the whole program (the plugins, grammar checking) show
-  once, in the window in front. Whatever the place, the Assistant panel, empty until now,
-  keeps the notifications of the session in bubbles with their time and title, the latest at
-  the bottom, with Copy (also Ctrl+C) and Clear. The page shows a sample in the place chosen,
-  before Apply, and has the background and the border of the bar and of the bubbles, kept for
-  each theme; the bar, the window and the panel have the gear of these settings. The answers
-  to commands (a bar with Undo after a command, the status bar after a save) stay where they
-  were. All of it in Polish too.
+  the bar shows them); or in the new Notifications panel on the right (View > Panels >
+  Notifications), which opens with them. The notifications of one moment show together; those
+  of the whole program (the plugins, grammar checking) show once, in the window in front.
+  Whatever the place, the Notifications panel keeps the notifications of the session in
+  bubbles with their time and title, the latest at the bottom, with Copy (also Ctrl+C) and
+  Clear; it is closed until opened. The page shows a sample in the place chosen, before
+  Apply, and has the background and the border of the bar and of the bubbles, kept for each
+  theme; the bar, the window and the panel have the gear of these settings. The answers to
+  commands (a bar with Undo after a command, the status bar after a save) stay where they
+  were. The Assistant panel stays as it was. All of it in Polish too.
 - **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
   for Publishers, with its number in the Navigator: the sentences about the book and the
   synopses, each a text of the book in as many versions as the writer wants, with a template of

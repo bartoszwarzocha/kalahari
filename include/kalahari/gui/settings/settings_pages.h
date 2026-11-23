@@ -71,8 +71,8 @@ signals:
 };
 
 /// @brief Notifications: where the program's notifications show (the bar at the bottom of
-///        the window, the program's window, the system's notifications or the Assistant
-///        panel), a sample of them, and their colors in the theme in use
+///        the window, the program's window, the system's notifications or the
+///        Notifications panel), a sample of them, and their colors in the theme in use
 class NotificationsPage : public SettingsPage {
     Q_OBJECT
 public:

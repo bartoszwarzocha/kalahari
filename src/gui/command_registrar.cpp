@@ -1085,6 +1085,9 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
 
     // The views of the writing: today, the week, 30 days, the book, the times of writing
     REG_CMD("view.statistics", QT_TRANSLATE_NOOP("CommandRegistrar", "Statis&tics"), "VIEW/Panels/Statistics", 80, false, 0);
+    // The notifications of the session; no key of its own: the notifications open it when it
+    // is their place (Settings > Notifications)
+    REG_CMD("view.notifications", QT_TRANSLATE_NOOP("CommandRegistrar", "Not&ifications"), "VIEW/Panels/Notifications", 85, false, 0);
 
     // View Mode submenu (OpenSpec #00042 Phase 7.3)
     // View modes for BookEditor - radio group (only one can be active)

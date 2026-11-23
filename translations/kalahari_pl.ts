@@ -1003,6 +1003,10 @@
         <translation>S&amp;tatystyki</translation>
     </message>
     <message>
+        <source>Not&amp;ifications</source>
+        <translation>P&amp;owiadomienia</translation>
+    </message>
+    <message>
         <source>&amp;Non-breaking Space</source>
         <translation>&amp;Spacja nierozdzielająca</translation>
     </message>
@@ -5108,34 +5112,12 @@ Niewłaściwa konfiguracja może wpłynąć na stabilność programu.</translati
 <context>
     <name>kalahari::gui::AssistantPanel</name>
     <message>
-        <source>The program&apos;s notifications of this session show here: goals reached, deadlines coming, messages of plugins and more. Settings &gt; Notifications chooses where they show first.</source>
-        <extracomment>The Assistant panel without notifications. In Polish: Tu pojawiają się powiadomienia programu z tej sesji: osiągnięte cele, zbliżające się terminy, wiadomości dodatków i inne. Gdzie pokazują się najpierw – wybiera się w Ustawieniach &gt; Powiadomienia.</extracomment>
-        <translation>Tu pojawiają się powiadomienia programu z tej sesji: osiągnięte cele, zbliżające się terminy, wiadomości dodatków i inne. Gdzie pokazują się najpierw – wybiera się w Ustawieniach &gt; Powiadomienia.</translation>
-    </message>
-    <message>
-        <source>Notifications</source>
-        <extracomment>In Polish: Powiadomienia</extracomment>
-        <translation>Powiadomienia</translation>
-    </message>
-    <message>
-        <source>Copy</source>
-        <extracomment>Copies the chosen notification of the Assistant panel. In Polish: Kopiuj</extracomment>
-        <translation>Kopiuj</translation>
-    </message>
-    <message>
-        <source>Copy the chosen notification, or the latest without a choice</source>
-        <extracomment>In Polish: Kopiuj wybrane powiadomienie, a bez wyboru – ostatnie</extracomment>
-        <translation>Kopiuj wybrane powiadomienie, a bez wyboru – ostatnie</translation>
-    </message>
-    <message>
-        <source>Clear</source>
-        <extracomment>Takes all the notifications away from the Assistant panel. In Polish: Wyczyść</extracomment>
-        <translation>Wyczyść</translation>
-    </message>
-    <message>
-        <source>Take all the notifications away from the panel</source>
-        <extracomment>In Polish: Usuń wszystkie powiadomienia z panelu</extracomment>
-        <translation>Usuń wszystkie powiadomienia z panelu</translation>
+        <source>Assistant Panel
+🦁
+(Placeholder - full implementation in Phase 2+)</source>
+        <translation>Panel asystenta
+🦁
+(Wersja tymczasowa – pełna wersja od fazy 2)</translation>
     </message>
 </context>
 <context>
@@ -6466,8 +6448,13 @@ Szczegóły zapisano w panelu Dziennik.</translation>
     </message>
     <message>
         <source>Notification Settings</source>
-        <extracomment>The gear of the Assistant panel. In Polish: Ustawienia powiadomień</extracomment>
+        <extracomment>The gear of the Notifications panel. In Polish: Ustawienia powiadomień</extracomment>
         <translation>Ustawienia powiadomień</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <extracomment>The panel of the notifications of the session. In Polish: Powiadomienia</extracomment>
+        <translation>Powiadomienia</translation>
     </message>
 </context>
 <context>
@@ -11512,14 +11499,14 @@ The title of the sample notification of Settings &gt; Notifications. In Polish: 
         <translation>Ten system nie pokazuje tu powiadomień programów: pokaże je pasek na dole okna.</translation>
     </message>
     <message>
-        <source>In the Assistant panel</source>
-        <extracomment>In Polish: W panelu „Asystent”</extracomment>
-        <translation>W panelu „Asystent”</translation>
+        <source>In the Notifications panel</source>
+        <extracomment>In Polish: W panelu „Powiadomienia”</extracomment>
+        <translation>W panelu „Powiadomienia”</translation>
     </message>
     <message>
-        <source>The panel opens with them (View &gt; Panels &gt; Assistant).</source>
-        <extracomment>In Polish: Panel otwiera się z nimi (Widok &gt; Panele &gt; Asystent).</extracomment>
-        <translation>Panel otwiera się z nimi (Widok &gt; Panele &gt; Asystent).</translation>
+        <source>The panel on the right opens with them (View &gt; Panels &gt; Notifications).</source>
+        <extracomment>In Polish: Panel po prawej otwiera się z nimi (Widok &gt; Panele &gt; Powiadomienia).</extracomment>
+        <translation>Panel po prawej otwiera się z nimi (Widok &gt; Panele &gt; Powiadomienia).</translation>
     </message>
     <message>
         <source>Show a &amp;Sample</source>
@@ -11532,18 +11519,18 @@ The title of the sample notification of Settings &gt; Notifications. In Polish: 
         <translation>Pokaż przykładowe powiadomienie w wybranym miejscu</translation>
     </message>
     <message>
-        <source>Whatever the choice, the Assistant panel keeps the notifications of this session with their time, and copies them. Which messages of the statistics show is chosen on the page Statistics and Goals &gt; Notifications.</source>
-        <extracomment>In Polish: Niezależnie od wyboru panel „Asystent” przechowuje powiadomienia tej sesji z godziną i pozwala je skopiować. Które wiadomości statystyk się pokazują – wybiera się na stronie Statystyki i cele &gt; Powiadomienia.</extracomment>
-        <translation>Niezależnie od wyboru panel „Asystent” przechowuje powiadomienia tej sesji z godziną i pozwala je skopiować. Które wiadomości statystyk się pokazują – wybiera się na stronie Statystyki i cele &gt; Powiadomienia.</translation>
+        <source>Whatever the choice, the Notifications panel keeps the notifications of this session with their time, and copies them. Which messages of the statistics show is chosen on the page Statistics and Goals &gt; Notifications.</source>
+        <extracomment>In Polish: Niezależnie od wyboru panel „Powiadomienia” przechowuje powiadomienia tej sesji z godziną i pozwala je skopiować. Które wiadomości statystyk się pokazują – wybiera się na stronie Statystyki i cele &gt; Powiadomienia.</extracomment>
+        <translation>Niezależnie od wyboru panel „Powiadomienia” przechowuje powiadomienia tej sesji z godziną i pozwala je skopiować. Które wiadomości statystyk się pokazują – wybiera się na stronie Statystyki i cele &gt; Powiadomienia.</translation>
     </message>
     <message>
         <source>Colors</source>
         <translation>Kolory</translation>
     </message>
     <message>
-        <source>The colors of the bar of notifications at the bottom of the window and of the notifications in the Assistant panel. Each theme has its own colors: these are the colors of the current theme.</source>
-        <extracomment>In Polish: Kolory paska powiadomień na dole okna i powiadomień w panelu „Asystent”. Każdy motyw ma własne kolory: to kolory bieżącego motywu.</extracomment>
-        <translation>Kolory paska powiadomień na dole okna i powiadomień w panelu „Asystent”. Każdy motyw ma własne kolory: to kolory bieżącego motywu.</translation>
+        <source>The colors of the bar of notifications at the bottom of the window and of the notifications in the Notifications panel. Each theme has its own colors: these are the colors of the current theme.</source>
+        <extracomment>In Polish: Kolory paska powiadomień na dole okna i powiadomień w panelu „Powiadomienia”. Każdy motyw ma własne kolory: to kolory bieżącego motywu.</extracomment>
+        <translation>Kolory paska powiadomień na dole okna i powiadomień w panelu „Powiadomienia”. Każdy motyw ma własne kolory: to kolory bieżącego motywu.</translation>
     </message>
     <message>
         <source>Background</source>
@@ -11554,6 +11541,39 @@ The title of the sample notification of Settings &gt; Notifications. In Polish: 
         <source>Border</source>
         <extracomment>In Polish: Obramowanie</extracomment>
         <translation>Obramowanie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::NotificationsPanel</name>
+    <message>
+        <source>The program&apos;s notifications of this session show here: goals reached, deadlines coming, messages of plugins and more. Settings &gt; Notifications chooses where they show first.</source>
+        <extracomment>The Notifications panel without notifications. In Polish: Tu pojawiają się powiadomienia programu z tej sesji: osiągnięte cele, zbliżające się terminy, wiadomości dodatków i inne. Gdzie pokazują się najpierw – wybiera się w Ustawieniach &gt; Powiadomienia.</extracomment>
+        <translation>Tu pojawiają się powiadomienia programu z tej sesji: osiągnięte cele, zbliżające się terminy, wiadomości dodatków i inne. Gdzie pokazują się najpierw – wybiera się w Ustawieniach &gt; Powiadomienia.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <extracomment>In Polish: Powiadomienia</extracomment>
+        <translation>Powiadomienia</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <extracomment>Copies the chosen notification of the Notifications panel. In Polish: Kopiuj</extracomment>
+        <translation>Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copy the chosen notification, or the latest without a choice</source>
+        <extracomment>In Polish: Kopiuj wybrane powiadomienie, a bez wyboru – ostatnie</extracomment>
+        <translation>Kopiuj wybrane powiadomienie, a bez wyboru – ostatnie</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <extracomment>Takes all the notifications away from the Notifications panel. In Polish: Wyczyść</extracomment>
+        <translation>Wyczyść</translation>
+    </message>
+    <message>
+        <source>Take all the notifications away from the panel</source>
+        <extracomment>In Polish: Usuń wszystkie powiadomienia z panelu</extracomment>
+        <translation>Usuń wszystkie powiadomienia z panelu</translation>
     </message>
 </context>
 <context>

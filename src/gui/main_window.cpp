@@ -526,7 +526,7 @@ MainWindow::MainWindow(QWidget* parent)
     logger.debug("MainWindow: DocumentCoordinator created");
 
     // The notifications: the bar at the bottom of the middle, under the tabs of the texts, the
-    // program's window of them, the system's and the Assistant panel; those of the whole
+    // program's window of them, the system's and the Notifications panel; those of the whole
     // program go to the window in front
     m_notificationCoordinator = new NotificationCoordinator(
         m_dockCoordinator,

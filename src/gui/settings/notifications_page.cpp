@@ -6,8 +6,8 @@
 ///
 /// Where the program's notifications show (NotificationCoordinator follows the setting at
 /// each notification), a sample of them, and their colors: of the bar at the bottom of the
-/// window and of the notifications in the Assistant panel, kept for each theme (they reach the
-/// bar and the panel through the theme: ThemeManager follows them).
+/// window and of the notifications in the Notifications panel, kept for each theme (they reach
+/// the bar and the panel through the theme: ThemeManager follows them).
 
 #include "kalahari/gui/notifications.h"
 #include "kalahari/gui/settings/settings_page.h"
@@ -66,10 +66,11 @@ NotificationsPage::NotificationsPage(QWidget* parent)
                  //: na dole okna.
                  : tr("This system shows no notifications of programs here: the bar at the "
                       "bottom of the window shows them.")},
-            //: In Polish: W panelu „Asystent”
-            {tr("In the Assistant panel"), value(NotificationPlace::Assistant),
-             //: In Polish: Panel otwiera się z nimi (Widok > Panele > Asystent).
-             tr("The panel opens with them (View > Panels > Assistant).")},
+            //: In Polish: W panelu „Powiadomienia”
+            {tr("In the Notifications panel"), value(NotificationPlace::Panel),
+             //: In Polish: Panel po prawej otwiera się z nimi (Widok > Panele >
+             //: Powiadomienia).
+             tr("The panel on the right opens with them (View > Panels > Notifications).")},
         },
         NotificationCoordinator::PLACE_SETTING);
     m_placeList->setObjectName(QStringLiteral("notificationsPlace"));
@@ -89,21 +90,22 @@ NotificationsPage::NotificationsPage(QWidget* parent)
             m_placeList->currentData().toString().toStdString()));
     });
 
-    //: In Polish: Niezależnie od wyboru panel „Asystent” przechowuje powiadomienia tej sesji
-    //: z godziną i pozwala je skopiować. Które wiadomości statystyk się pokazują – wybiera się
+    //: In Polish: Niezależnie od wyboru panel „Powiadomienia” przechowuje powiadomienia tej
+    //: sesji z godziną i pozwala je skopiować. Które wiadomości statystyk się pokazują – wybiera się
     //: na stronie Statystyki i cele > Powiadomienia.
-    addNote(where, tr("Whatever the choice, the Assistant panel keeps the notifications of this "
-                      "session with their time, and copies them. Which messages of the "
+    addNote(where, tr("Whatever the choice, the Notifications panel keeps the notifications of "
+                      "this session with their time, and copies them. Which messages of the "
                       "statistics show is chosen on the page Statistics and Goals > "
                       "Notifications."));
 
     // One background and one border, kept for each theme
     QFormLayout* colors = addGroup(tr("Colors"));
-    //: In Polish: Kolory paska powiadomień na dole okna i powiadomień w panelu „Asystent”.
+    //: In Polish: Kolory paska powiadomień na dole okna i powiadomień w panelu
+    //: „Powiadomienia”.
     //: Każdy motyw ma własne kolory: to kolory bieżącego motywu.
     addNote(colors, tr("The colors of the bar of notifications at the bottom of the window and of "
-                       "the notifications in the Assistant panel. Each theme has its own colors: "
-                       "these are the colors of the current theme."));
+                       "the notifications in the Notifications panel. Each theme has its own "
+                       "colors: these are the colors of the current theme."));
     //: In Polish: Tło
     addThemeColor(colors, tr("Background"), NotificationCoordinator::BACKGROUND_COLOR_KEY);
     //: In Polish: Obramowanie

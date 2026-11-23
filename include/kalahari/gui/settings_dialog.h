@@ -60,7 +60,7 @@ public:
     /// @brief The pages the dialog can be opened at (openPage())
     static constexpr const char* GENERAL_PAGE = "general";           ///< General
     /// Notifications: where the program's notifications show and their colors (the gears of the
-    /// bar of notifications, of their window and of the Assistant panel)
+    /// bar of notifications, of their window and of the Notifications panel)
     static constexpr const char* NOTIFICATIONS_PAGE = "notifications";
     static constexpr const char* EDITOR_COLORS_PAGE = "editor.colors";  ///< Editor > Colors
     /// Editor > Writing, scrolled to its group Word Count, the cursor in its counting of the

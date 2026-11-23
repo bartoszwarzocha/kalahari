@@ -11,7 +11,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/notification_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
-#include "kalahari/gui/panels/assistant_panel.h"
+#include "kalahari/gui/panels/notifications_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/info_bar.h"
 
@@ -42,7 +42,7 @@ constexpr std::array<std::pair<NotificationPlace, const char*>, 4> PLACE_VALUES 
     {NotificationPlace::Bar, "bar"},
     {NotificationPlace::Window, "window"},
     {NotificationPlace::System, "system"},
-    {NotificationPlace::Assistant, "assistant"},
+    {NotificationPlace::Panel, "panel"},
 }};
 
 /// @brief The book windows' notifications, the last made last
@@ -186,10 +186,10 @@ NotificationCoordinator::NotificationCoordinator(DockCoordinator* docks,
         });
     }
 
-    // The Assistant panel keeps them all
+    // The Notifications panel keeps them all
     if (docks != nullptr) {
-        m_assistant = docks->assistantPanel();
-        m_assistantDock = docks->assistantDock();
+        m_panel = docks->notificationsPanel();
+        m_panelDock = docks->notificationsDock();
     }
 
     m_settingsListener =
@@ -242,8 +242,8 @@ bool NotificationCoordinator::showSampleFront(NotificationPlace where)
                               //: The sample notification of Settings > Notifications. In Polish:
                               //: Tak wyglądają powiadomienia programu.
                               tr("This is how the program's notifications look.")};
-    if (where == NotificationPlace::Assistant && front->m_assistant != nullptr) {
-        front->m_assistant->addNotification(sample);
+    if (where == NotificationPlace::Panel && front->m_panel != nullptr) {
+        front->m_panel->addNotification(sample);
     }
     if (where == NotificationPlace::System && !systemNotificationsAvailable()) {
         where = NotificationPlace::Bar;
@@ -327,8 +327,8 @@ void NotificationCoordinator::present()
     for (const Notification& notification : notifications) {
         logger.info("Notification: {}: {}", notification.title.toStdString(),
                     notification.text.toStdString());
-        if (m_assistant != nullptr) {
-            m_assistant->addNotification(notification);
+        if (m_panel != nullptr) {
+            m_panel->addNotification(notification);
         }
     }
 
@@ -346,8 +346,8 @@ void NotificationCoordinator::showIn(const QList<Notification>& notifications,
     case NotificationPlace::System:
         shown = showInSystem(notifications);
         break;
-    case NotificationPlace::Assistant:
-        shown = showInAssistant();
+    case NotificationPlace::Panel:
+        shown = showInPanel();
         break;
     case NotificationPlace::Bar:
         break;
@@ -431,14 +431,14 @@ bool NotificationCoordinator::showInSystem(const QList<Notification>& notificati
     return true;
 }
 
-bool NotificationCoordinator::showInAssistant()
+bool NotificationCoordinator::showInPanel()
 {
-    if (m_assistant == nullptr || m_assistantDock == nullptr) {
+    if (m_panel == nullptr || m_panelDock == nullptr) {
         return false;
     }
-    m_assistantDock->show();
-    m_assistantDock->raise();
-    m_assistant->showLatest();
+    m_panelDock->show();
+    m_panelDock->raise();
+    m_panel->showLatest();
     return true;
 }
 
@@ -447,7 +447,7 @@ QWidget* NotificationCoordinator::bookWindow() const
     if (m_bar != nullptr) {
         return m_bar->window();
     }
-    return m_assistantDock != nullptr ? m_assistantDock->window() : nullptr;
+    return m_panelDock != nullptr ? m_panelDock->window() : nullptr;
 }
 
 void NotificationCoordinator::onPlaceChanged()

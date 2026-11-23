@@ -390,7 +390,7 @@ void WritingStatsCoordinator::connectMessages()
                 showMessage(text);
             });
     // The day in the Statistics panel, when the settings say so, after the notification: where
-    // the Assistant panel shows it, beside the Statistics panel, this one stays in front
+    // the Notifications panel shows it, beside the Statistics panel, this one stays in front
     connect(m_tracker, &WritingAwardsTracker::dailyGoalReached, this, [this, on]() {
         if (on("stats.notify.showPanel", true)) {
             QMetaObject::invokeMethod(this, &WritingStatsCoordinator::showDayInPanel,

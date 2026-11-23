@@ -20,9 +20,9 @@ class QDockWidget;
 
 namespace kalahari::gui {
 
-class AssistantPanel;
 class DockCoordinator;
 class InfoBar;
+class NotificationsPanel;
 
 namespace dialogs {
 class NotificationDialog;
@@ -50,7 +50,7 @@ enum class NotificationPlace {
     Bar,       ///< The bar at the bottom of the window, under the text, with Copy
     Window,    ///< The program's own window, with Copy, which does not take the keys
     System,    ///< The notifications of the system, in the corner of the screen
-    Assistant  ///< The Assistant panel, which opens with them
+    Panel      ///< The Notifications panel, which opens with them
 };
 
 /// @brief The notifications of a book window
@@ -60,8 +60,8 @@ enum class NotificationPlace {
 /// (of one turn of the event loop) together. Without notifications of the system (no system
 /// tray), and without the panel or the window where they would show, the bar shows them.
 ///
-/// Whatever the place, the Assistant panel keeps the notifications of the session with their
-/// time, and copies them (F6 opens it). The bar, the window and the panel have the gear of
+/// Whatever the place, the Notifications panel keeps the notifications of the session with
+/// their time, and copies them (View > Panels > Notifications). The bar, the window and the panel have the gear of
 /// the settings of the notifications; the colors of the bar and of the notifications in the
 /// panel are the theme's (BACKGROUND_COLOR_KEY, BORDER_COLOR_KEY), changed in Settings.
 ///
@@ -71,17 +71,18 @@ class NotificationCoordinator : public QObject {
     Q_OBJECT
 
 public:
-    /// @brief The setting of the place: "bar", "window", "system" or "assistant"
+    /// @brief The setting of the place: "bar", "window", "system" or "panel"
     static constexpr const char* PLACE_SETTING = "notifications.place";
-    /// @brief The theme's background of the bar and of the notifications in the Assistant
-    ///        panel (the "editor" section of the theme)
+    /// @brief The theme's background of the bar and of the notifications in the
+    ///        Notifications panel (the "editor" section of the theme)
     static constexpr const char* BACKGROUND_COLOR_KEY = "notificationBackground";
-    /// @brief The theme's border of the bar and of the notifications in the Assistant panel
+    /// @brief The theme's border of the bar and of the notifications in the Notifications
+    ///        panel
     static constexpr const char* BORDER_COLOR_KEY = "notificationBorder";
 
     /// @brief Shows the notifications of the window of @p docks
     /// @param docks The window's panels: the bar goes at the bottom of its middle, and its
-    ///        Assistant panel keeps them; nullptr: none (only the system or nothing shows them)
+    ///        Notifications panel keeps them; nullptr: none (only the system or nothing shows them)
     /// @param openSettings Opens the Settings dialog at a page (the gears)
     /// @param parent Parent object
     NotificationCoordinator(DockCoordinator* docks,
@@ -163,9 +164,9 @@ private:
     /// @return false when the system shows none
     static bool showInSystem(const QList<Notification>& notifications);
 
-    /// @brief Open the Assistant panel, which has them (present() added them)
+    /// @brief Open the Notifications panel, which has them (present() added them)
     /// @return false without the panel
-    bool showInAssistant();
+    bool showInPanel();
 
     /// @brief The book window the notifications are in (nullptr without one)
     [[nodiscard]] QWidget* bookWindow() const;
@@ -175,8 +176,8 @@ private:
     static void onPlaceChanged();
 
     QPointer<InfoBar> m_bar;
-    QPointer<AssistantPanel> m_assistant;
-    QPointer<QDockWidget> m_assistantDock;
+    QPointer<NotificationsPanel> m_panel;
+    QPointer<QDockWidget> m_panelDock;
     QPointer<dialogs::NotificationDialog> m_window;
     std::function<void(const QString&)> m_openSettings;
     QList<Notification> m_pending;  ///< The notifications of this moment, not shown yet

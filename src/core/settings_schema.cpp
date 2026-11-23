@@ -147,7 +147,8 @@ std::map<std::string, json> buildDefaults() {
         {"stats.panel.awards", true},
         {"stats.statusBar", true},
         // Where the program's notifications show: "bar" (at the bottom of the window),
-        // "window" (the program's own), "system" or "assistant" (Settings > Notifications)
+        // "window" (the program's own), "system" or "panel" (the Notifications panel; Settings >
+        // Notifications)
         {"notifications.place", "bar"},
         // Notifications of the statistics (Settings > Statistics and Goals > Notifications),
         // the summary of the session and the badges and challenges
