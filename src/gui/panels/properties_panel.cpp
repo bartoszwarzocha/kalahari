@@ -19,7 +19,6 @@
 #include "kalahari/gui/panels/plot_fields_box.h"
 #include "kalahari/gui/panels/publishing_set_page.h"
 #include "kalahari/gui/panels/series_page.h"
-#include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -137,8 +136,6 @@ PropertiesPanel::PropertiesPanel(core::ProjectManager& book, QWidget* parent)
             this, &PropertiesPanel::updateEditorStatistics);
     connect(m_cursorDebounceTimer, &QTimer::timeout, this, &PropertiesPanel::updateCursorCard);
     // The length of a text for publishers follows its editor, as the counts do
-    connect(m_cursorDebounceTimer, &QTimer::timeout, m_publishingBox,
-            &PublishingTextBox::updateLength);
 
     // The words of the book follow new rules of counting at once, wherever they are chosen,
     // and the group of the versions the versions turned on or off; the listener runs on the
@@ -448,16 +445,6 @@ QWidget* PropertiesPanel::createChapterPage() {
     infoLayout->addRow(m_chapterFirstPageLeft);
 
     layout->addWidget(infoGroup);
-
-    // A text for publishers (placeTextGroups(), populateChapterFields())
-    m_publishingBox = new PublishingTextBox(m_book, scrollContent);
-    connect(m_publishingBox, &PublishingTextBox::publishingChanged, this,
-            &PropertiesPanel::materialChanged);
-    connect(m_publishingBox, &PublishingTextBox::settingsRequested, this,
-            &PropertiesPanel::requestPublishingSettings);
-    connect(m_publishingBox, &PublishingTextBox::statusMessage, this,
-            &PropertiesPanel::statusMessage);
-    layout->addWidget(m_publishingBox);
 
     // Where a clipping comes from (populateChapterFields())
     m_clippingOrigin = new ClippingOriginBox(m_book, scrollContent);
@@ -1064,24 +1051,6 @@ void PropertiesPanel::focusFirstField() {
     }
 }
 
-bool PropertiesPanel::focusTemplatePoints() {
-    const PublishingTextBox* box = frontPublishingBox();
-    if (box == nullptr || box->points().isEmpty()) {
-        return false;
-    }
-    focusInPage(box->points().constFirst());
-    return true;
-}
-
-PublishingTextBox* PropertiesPanel::frontPublishingBox() {
-    // The page of the text in front, unless its own page is shown
-    const Page page = currentPage();
-    if (describedTextId().isEmpty() || (page != Page::Chapter && page != Page::Editor)) {
-        showEditorProperties();
-    }
-    return m_publishingBox->elementId().isEmpty() ? nullptr : m_publishingBox;
-}
-
 void PropertiesPanel::showNoProject() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::showNoProject()");
@@ -1132,9 +1101,6 @@ void PropertiesPanel::showEditorProperties() {
                                ? m_activeEditorPanel->property("elementId").toString()
                                : QString();
     showVersions(textId);
-    m_publishingBox->showText(textId, m_activeEditorPanel != nullptr
-                                          ? m_activeEditorPanel->getBookEditor()
-                                          : nullptr);
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Editor));
 }
 
@@ -1152,12 +1118,7 @@ void PropertiesPanel::placeTextGroups(QVBoxLayout* layout) {
                 other->removeWidget(group);
             }
         }
-        if (other != nullptr) {
-            other->removeWidget(m_publishingBox);
-        }
     }
-    // A text for publishers under the information of its element, or under its counts
-    layout->insertWidget(layout == m_editorPageLayout ? 2 : 1, m_publishingBox);
     // In this order, over the stretch at the bottom of the page
     int at = layout->count() - 1;
     for (QWidget* group : groups) {
@@ -1834,9 +1795,6 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     m_chapterFirstPageLeft->setChecked(element->firstPageLeft);
     m_chapterNotesEdit->setPlainText(pm.notes(elementId));
     m_clippingOrigin->showClipping(elementId);
-    m_publishingBox->showText(elementId, describedTextId() == elementId
-                                             ? m_activeEditorPanel->getBookEditor()
-                                             : nullptr);
 
     // An element of a book open read-only is read only, here too
     const bool readOnly = pm.isReadOnly();

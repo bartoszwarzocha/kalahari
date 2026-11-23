@@ -38,7 +38,6 @@ struct ProjectElement;
 
 namespace kalahari::editor {
 class BookEditor;
-struct SkeletonPoint;
 }  // namespace kalahari::editor
 
 namespace kalahari::gui {
@@ -114,10 +113,6 @@ public:
 
     /// @brief The editor of the text shown; nullptr: none (the text as the book has it)
     [[nodiscard]] editor::BookEditor* editor() const { return m_editor; }
-
-    /// @brief The points of its template as the headings of a skeleton, in the language of
-    ///        the book; none without a template with points
-    [[nodiscard]] QList<editor::SkeletonPoint> skeletonPoints() const;
 
     /// @brief What each point shows under its name: the fragments of the text linked to it
     ///        ("In the text: 2 fragments, 140 characters"), "Not in the text", or the warning

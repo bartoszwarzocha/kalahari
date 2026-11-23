@@ -115,7 +115,7 @@ after them.
 The styles are those of the book's type: its style pack (`resources/booktypes/*/styles.json`)
 gives their names, fonts, sizes, spacing and alignment. The types that come with Kalahari use
 the base pack, with the styles `normal`, `heading_1`, `heading_2`, `heading_3`, `quote`,
-`dialogue`, `code`, `caption`, `footnote` and `template_point`; each adds its own styles or
+`dialogue`, `code`, `caption` and `footnote`; each adds its own styles or
 changes these.
 
 | Written as | Style |
@@ -131,26 +131,16 @@ changes these.
 - A style the book's type does not have is kept: the paragraph is shown in Normal and written
   back with its `style`, so the text loses nothing when it moves to a book of another type.
 
-### The skeleton of a text for publishers
+### The headings of an old skeleton
 
-Tools > Texts for Publishers > Insert Skeleton puts the points of the template of a synopsis in
-its text: each a heading in the style Template Point (`template_point`) with an empty paragraph
-under it.
+The program wrote the points of the template of a synopsis into its text, as headings in the
+style `template_point` with the attributes `point` and `hint`. It no longer does: such a
+paragraph is read as a plain paragraph in Normal, its text stays, and `point` and `hint` are
+dropped when the text is saved.
 
 ```xml
 <p style="template_point" point="hero" hint="Who the hero is, where and when.">Hero and world</p>
-<p></p>
 ```
-
-- `point` is the id of the point in its template, `hint` what to write under it. The editor
-  shows the hint, gray and in italics, in the empty paragraph after the heading until the
-  writer types there; it is no text: the print, the export, the counts and the search never see
-  it.
-- The length of the text, the set for a publisher and its copies leave the paragraphs in the
-  style `template_point` out. Remove Headings and Hints takes the headings away with their empty
-  paragraphs; the paragraphs the writer wrote under them stay.
-- Enter at the end of a heading gives a paragraph in Normal, without `point` and `hint`. A paragraph with
-  `point` in another style is no heading of a point: the attributes are kept and written back.
 
 ### Fragments linked to the points
 

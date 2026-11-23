@@ -238,7 +238,6 @@ std::map<std::string, json> buildDefaults() {
         {"materials.publishing.targets.synopsis.characters", SYNOPSIS_CHARACTERS},
         {"materials.publishing.targets.synopsis.words", SYNOPSIS_WORDS},
         {"materials.publishing.pages", true},
-        {"materials.publishing.templatePoints", "beside"},
         // the bars of the fragments of a synopsis linked to its points, and the warning of the
         // points without a fragment when the set is copied or exported
         {"materials.publishing.pointBars", true},

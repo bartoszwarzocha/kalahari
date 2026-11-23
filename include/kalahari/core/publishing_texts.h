@@ -280,10 +280,6 @@ struct PublishingTexts {
     /// pages (PAGE_CHARACTERS)
     static constexpr const char* PAGES_SETTING = "materials.publishing.pages";
 
-    /// @brief The setting of where the points of the template of a synopsis are: beside the
-    /// text, in the Properties ("beside"), or in the text, as headings ("inText")
-    static constexpr const char* POINTS_SETTING = "materials.publishing.templatePoints";
-
     /// @brief The setting of whether the fragments of a synopsis linked to the points of its
     /// template have a bar beside their lines on the left margin
     static constexpr const char* POINT_BARS_SETTING = "materials.publishing.pointBars";
@@ -309,9 +305,6 @@ struct PublishingTexts {
 
     /// @brief Whether a text of @p part has a template with a pattern (a sentence)
     static bool hasPattern(const QString& part);
-
-    /// @brief Whether the points of a template are in the text, as headings (POINTS_SETTING)
-    static bool pointsInText();
 
     /// @brief Whether the length of a synopsis is also given in standard pages (PAGES_SETTING)
     static bool showsPages();

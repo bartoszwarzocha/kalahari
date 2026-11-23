@@ -244,7 +244,6 @@ void NavigatorCoordinator::discardChapterChanges(const QString& elementId) {
     // Forget the unsaved text ProjectManager keeps (single source of truth), with its words
     // and the points of its template waiting for it, which the Properties panel shows
     m_book.discardChapterContent(elementId);
-    m_propertiesPanel->publishingBox()->showSaved(elementId);
 
     // Clear the display cache
     m_dirtyChapters[elementId] = false;

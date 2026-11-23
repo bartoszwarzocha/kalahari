@@ -475,14 +475,9 @@ private:
     /// @brief Setup VIEW menu panel actions
     void setupViewMenuActions();
 
-    /// @brief Tools > Texts for Publishers > Template Points: the Properties panel open with
-    /// the keys in the points of the template of the text in front; Templates...: the window
-    /// of the templates
-    void connectTemplatePoints();
-
-    /// @brief Tools > Texts for Publishers > Insert Skeleton and Remove Headings and Hints, in
-    /// the editor of the text in front
-    void connectSkeleton();
+    /// @brief Link to a Point (Ctrl+Shift+D): the menu of the points of the version on the
+    /// card For Publishers in front
+    void connectLinkPoint();
 
     /// @brief Connect panel toggle command to dock widget
     /// @param cmdId Command ID (e.g., "view.navigator")

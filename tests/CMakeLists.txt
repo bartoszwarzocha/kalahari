@@ -110,7 +110,6 @@ set(TEST_SOURCES
     editor/test_text_captions.cpp                # Captions: numbers, cross-references, list of figures
     editor/test_text_fields.cpp                  # Fields: values, formats, KML, layout, editing
     editor/test_text_places.cpp                  # Edit > Go To...: the places of a text
-    editor/test_text_skeleton.cpp                # The skeleton of a text for publishers
     editor/test_text_points.cpp                  # Fragments linked to the points of a template
     editor/test_text_footnotes.cpp               # Footnotes and endnotes: model, numbers, KML
     editor/test_note_checking.cpp                # Notes: search, replace, spelling, grammar
@@ -361,7 +360,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/text_images.cpp       # Images of the text
     ${CMAKE_SOURCE_DIR}/src/editor/text_captions.cpp     # Numbered captions, cross-references, the list of figures
     ${CMAKE_SOURCE_DIR}/src/editor/text_fields.cpp       # Fields of the text
-    ${CMAKE_SOURCE_DIR}/src/editor/text_skeleton.cpp     # The skeleton of a text for publishers
     ${CMAKE_SOURCE_DIR}/src/editor/text_points.cpp       # Fragments linked to the points of a template
     ${CMAKE_SOURCE_DIR}/src/editor/text_footnotes.cpp    # Footnotes and endnotes
     ${CMAKE_SOURCE_DIR}/src/editor/image_store.cpp       # The image files of a book
@@ -384,7 +382,6 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_images.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_captions.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_fields.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_skeleton.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_points.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_places.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_image_look.cpp

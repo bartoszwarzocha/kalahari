@@ -779,10 +779,6 @@ bool PublishingTexts::hasPattern(const QString& part) {
     return part == QLatin1String(PITCH);
 }
 
-bool PublishingTexts::pointsInText() {
-    return SettingsManager::getInstance().get<std::string>(POINTS_SETTING, "beside") == "inText";
-}
-
 bool PublishingTexts::showsPages() {
     return SettingsManager::getInstance().get<bool>(PAGES_SETTING, true);
 }

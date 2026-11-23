@@ -1329,9 +1329,6 @@ void EditorRenderPipeline::renderParagraphs(QPainter* painter, const QRect& clip
                 : std::vector<FormattingMark>{};
             renderParagraph(painter, i, widgetY);
             renderFormattingMarks(painter, i, marks, widgetY);
-            if (!m_printedArea) {
-                renderHint(painter, i, widgetY);
-            }
             renderParagraphDecoration(painter, i, widgetY);
         }
     }
@@ -1695,31 +1692,6 @@ void EditorRenderPipeline::renderFormattingMarks(QPainter* painter, size_t index
         const double shift = shiftAtY(paragraphY + mark.position.y());
         painter->drawText(mark.position + QPointF(shift, 0.0), QString(mark.glyph));
     }
-    painter->restore();
-}
-
-void EditorRenderPipeline::renderHint(QPainter* painter, size_t index, double widgetY) {
-    const ParagraphHint hint = m_textSource->paragraphHint(index);
-    const QTextLayout* layout = hint.text.isEmpty() ? nullptr : m_textSource->layout(index);
-    if (layout == nullptr || layout->lineCount() == 0) {
-        return;
-    }
-    // In the paragraph's coordinates, zoomed as its text, where its text would start
-    const QTextLine line = layout->lineAt(0);
-    const double scale = m_context.computed.viewScale;
-    painter->save();
-    painter->translate(m_context.computed.originX, widgetY);
-    if (scale != 1.0) {
-        painter->scale(scale, scale);
-    }
-    QFont font = hint.font;
-    font.setItalic(true);
-    painter->setFont(font);
-    painter->setPen(m_context.colors.formattingMarks);
-    const double shift = shiftAtY(m_textSource->paragraphY(index) + line.y());
-    const double room = m_textSource->textWidth() - line.x();
-    painter->drawText(QPointF(line.x() + shift, line.y() + line.ascent()),
-                      QFontMetricsF(font).elidedText(hint.text, Qt::ElideRight, room));
     painter->restore();
 }
 

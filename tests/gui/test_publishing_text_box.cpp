@@ -2,9 +2,9 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file test_publishing_text_box.cpp
-/// @brief A text for publishers in the Properties panel: its length with the target and the
-///        standard pages, its template and its points ticked off, its state and own target;
-///        Template Points gives the keys to the points, Esc gives them back to the text
+/// @brief The box beside a text for publishers on the card For Publishers: its length with the
+///        target and the standard pages, its template and its points ticked off, its state and
+///        own target; Esc in a point gives the keys back to the text
 
 #include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari_tests/gui/document_window.h"
@@ -16,14 +16,12 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/clipboard_handler.h"
-#include "kalahari/editor/text_skeleton.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/main_window.h"
 #include "kalahari/gui/panels/editor_panel.h"
-#include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/publishing_card_panel.h"
 #include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/publishing_names.h"
@@ -130,7 +128,7 @@ bool canActivateWindows() {
 
 }  // namespace
 
-TEST_CASE("Texts for publishers: a synopsis in the Properties panel, its template and points",
+TEST_CASE("Texts for publishers: a synopsis in the box beside its text, its template and points",
           "[gui][publishing][synopsisbox]") {
     gui::registerAllIcons();
     const CharactersUnit unit;
@@ -140,11 +138,9 @@ TEST_CASE("Texts for publishers: a synopsis in the Properties panel, its templat
                                             QStringLiteral("kalahari.novel:one_page"),
                                             QStringLiteral("Synopsis – version 1"));
     REQUIRE_FALSE(id.isEmpty());
-    gui::PropertiesPanel properties(pm);
-    properties.showChapterProperties(id);
-    REQUIRE(properties.currentPage() == gui::PropertiesPanel::Page::Chapter);
-    PublishingTextBox* box = properties.publishingBox();
-    REQUIRE(box != nullptr);
+    PublishingTextBox shown(pm);
+    PublishingTextBox* box = &shown;
+    box->showText(id, nullptr);
     CHECK(box->elementId() == id);
     CHECK_FALSE(box->isHidden());
     CHECK(box->title() == QStringLiteral("Synopsis"));
@@ -165,18 +161,18 @@ TEST_CASE("Texts for publishers: a synopsis in the Properties panel, its templat
     REQUIRE(box->points().size() == 5);
     CHECK(box->points().at(0)->accessibleDescription() ==
           QStringLiteral("Who the hero is, where and when the story takes place."));
-    CHECK(box->pointsHint()->text().contains(QStringLiteral("Template Points")));
+    CHECK(box->pointsHint()->text().contains(QStringLiteral("Ctrl+Shift+D")));
     box->points().at(1)->click();
     CHECK(doneOf(pm, id) == "event");
     press(box->points().at(0), Qt::Key_Space);
     CHECK(doneOf(pm, id) == "event | hero");
     box->points().at(1)->click();
     CHECK(doneOf(pm, id) == "hero");
-    // The panel shown again keeps them ticked off
-    properties.showChapterProperties(novel.chapterId);
+    // The box shown again keeps them ticked off
+    box->showText(novel.chapterId, nullptr);
     CHECK(box->isHidden());  // a chapter has none
     CHECK(box->elementId().isEmpty());
-    properties.showChapterProperties(id);
+    box->showText(id, nullptr);
     REQUIRE(box->points().size() == 5);
     CHECK(box->points().at(0)->isChecked());
     CHECK_FALSE(box->points().at(1)->isChecked());
@@ -208,14 +204,13 @@ TEST_CASE("Texts for publishers: a synopsis in the Properties panel, its templat
     choose(box->stateBox(), QString::fromLatin1(PublishingTexts::CHOSEN));
     CHECK(pm.findElement(id)->publishing.state == PublishingTexts::CHOSEN);
     CHECK(box->inSetLabel()->text() == QStringLiteral("In the set: yes – this version"));
-    // Rejected elsewhere: the panel shows it
+    // Rejected elsewhere: the box shows it
     REQUIRE(pm.setPublishingState(id, QString::fromLatin1(PublishingTexts::REJECTED)));
     CHECK(box->stateBox()->currentData().toString() == PublishingTexts::REJECTED);
     CHECK(box->inSetLabel()->text() == QStringLiteral("In the set: no"));
 }
 
-TEST_CASE("Texts for publishers: a synopsis in the editor, its length as typed; Template "
-          "Points and Esc",
+TEST_CASE("Texts for publishers: a synopsis in the editor, its length as typed; Esc in a point",
           "[gui][publishing][synopsisbox]") {
     gui::registerAllIcons();
     const CharactersUnit unit;
@@ -229,23 +224,16 @@ TEST_CASE("Texts for publishers: a synopsis in the editor, its length as typed; 
     auto* layout = new QHBoxLayout(&window);
     auto* editorPanel = new gui::EditorPanel(pm, test::commands(), &window);
     editorPanel->setProperty("elementId", id);
-    auto* properties = new gui::PropertiesPanel(pm, &window);
+    auto* box = new PublishingTextBox(pm, &window);
     layout->addWidget(editorPanel);
-    layout->addWidget(properties);
-    properties->setActiveEditor(editorPanel);
-    REQUIRE(properties->currentPage() == gui::PropertiesPanel::Page::Editor);
-    PublishingTextBox* box = properties->publishingBox();
+    layout->addWidget(box);
+    box->showText(id, editorPanel->getBookEditor());
     CHECK(box->elementId() == id);
 
-    // The words typed count at once, before they are saved
+    // The words typed count at once, before they are saved (the card counts them as typed)
     editorPanel->getBookEditor()->replaceWithKml(
         editor::ClipboardHandler::textToKml(QStringLiteral("Leila goes to the last well.")));
-    CHECK(test::waitUntil([box]() {
-        return box->meter()->countsLabel()->text().startsWith(
-            QStringLiteral("28 characters with spaces"));
-    }));
-    // On the page of the element too
-    properties->showChapterProperties(id);
+    box->updateLength();
     CHECK(box->meter()->countsLabel()->text().startsWith(
         QStringLiteral("28 characters with spaces")));
 
@@ -258,65 +246,11 @@ TEST_CASE("Texts for publishers: a synopsis in the editor, its length as typed; 
     window.activateWindow();
     REQUIRE(test::waitUntil([&window] { return QApplication::activeWindow() == &window; }));
     editorPanel->getBookEditor()->setFocus();
-    // Template Points: the keys in the first point; Esc: back in the text
-    REQUIRE(properties->focusTemplatePoints());
-    CHECK(box->points().constFirst()->hasFocus());
+    // Esc in a point: back in the text
+    box->points().constFirst()->setFocus();
+    REQUIRE(box->points().constFirst()->hasFocus());
     press(box->points().constFirst(), Qt::Key_Escape);
     CHECK(editorPanel->getBookEditor()->hasFocus());
-    // From another page of the panel, the page of the text in front
-    properties->showChapterProperties(novel.chapterId);
-    REQUIRE(properties->focusTemplatePoints());
-    CHECK(box->elementId() == id);
-    CHECK(box->points().constFirst()->hasFocus());
-    // A text without points: the keys stay where they are
-    REQUIRE(pm.setPublishing(id, [&pm, &id]() {
-        core::PublishingData data = pm.findElement(id)->publishing;
-        data.templateId.clear();
-        return data;
-    }()));
-    CHECK_FALSE(properties->focusTemplatePoints());
-}
-
-TEST_CASE("Texts for publishers: the skeleton of a synopsis in the editor, its length without "
-          "the headings",
-          "[gui][publishing][synopsisbox]") {
-    gui::registerAllIcons();
-    const CharactersUnit unit;
-    test::OpenNovel novel(QStringLiteral("Sand"));
-    auto& pm = novel.pm;
-    const QString id = pm.addPublishingText(QString::fromLatin1(PublishingTexts::SYNOPSIS),
-                                            QStringLiteral("kalahari.novel:one_page"),
-                                            QStringLiteral("Synopsis – version 1"));
-    REQUIRE_FALSE(id.isEmpty());
-    QWidget window;
-    auto* layout = new QHBoxLayout(&window);
-    auto* editorPanel = new gui::EditorPanel(pm, test::commands(), &window);
-    editorPanel->setProperty("elementId", id);
-    auto* properties = new gui::PropertiesPanel(pm, &window);
-    layout->addWidget(editorPanel);
-    layout->addWidget(properties);
-    properties->setActiveEditor(editorPanel);
-    PublishingTextBox* box = properties->frontPublishingBox();
-    REQUIRE(box == properties->publishingBox());
-    CHECK(box->editor() == editorPanel->getBookEditor());
-
-    // The points of its template, in the language of the book
-    const QList<editor::SkeletonPoint> points = box->skeletonPoints();
-    REQUIRE(points.size() == 5);
-    CHECK(points.first().name == QStringLiteral("Hero and world"));
-    CHECK_FALSE(points.first().hint.isEmpty());
-
-    // The headings do not count; the words typed under them do
-    editor::BookEditor* text = editorPanel->getBookEditor();
-    REQUIRE(text->insertTemplateSkeleton(points));
-    CHECK(editor::hasSkeleton(*text->textDocument()));
-    text->insertText(QStringLiteral("Leila goes."));
-    CHECK(test::waitUntil([box]() {
-        return box->meter()->countsLabel()->text().startsWith(
-            QStringLiteral("11 characters with spaces"));
-    }));
-    CHECK(text->removeTemplateSkeleton() == 5);
-    CHECK(text->plainText() == QStringLiteral("Leila goes."));
 }
 
 TEST_CASE("Texts for publishers: fragments of a synopsis linked to its points, their states, "
@@ -334,12 +268,10 @@ TEST_CASE("Texts for publishers: fragments of a synopsis linked to its points, t
     auto* layout = new QHBoxLayout(&window);
     auto* editorPanel = new gui::EditorPanel(pm, test::commands(), &window);
     editorPanel->setProperty("elementId", id);
-    auto* properties = new gui::PropertiesPanel(pm, &window);
+    auto* box = new PublishingTextBox(pm, &window);
     layout->addWidget(editorPanel);
-    layout->addWidget(properties);
-    properties->setActiveEditor(editorPanel);
-    PublishingTextBox* box = properties->frontPublishingBox();
-    REQUIRE(box != nullptr);
+    layout->addWidget(box);
+    box->showText(id, editorPanel->getBookEditor());
     REQUIRE(box->points().size() == 5);
     editor::BookEditor* text = editorPanel->getBookEditor();
 
@@ -419,7 +351,8 @@ TEST_CASE("Texts for publishers: fragments of a synopsis linked to its points, t
     REQUIRE(test::waitUntil([&window] { return QApplication::activeWindow() == &window; }));
     // The keys of the points: Down to the next one, which is then the point chosen; Insert
     // links the selection to it; Delete takes it away; End to the last one
-    REQUIRE(properties->focusTemplatePoints());
+    box->points().constFirst()->setFocus();
+    REQUIRE(box->points().constFirst()->hasFocus());
     press(box->points().constFirst(), Qt::Key_Down);
     CHECK(box->points().at(1)->hasFocus());
     CHECK(text->templatePointLook().current == QStringLiteral("event"));

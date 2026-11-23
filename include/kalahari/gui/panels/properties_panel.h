@@ -55,7 +55,6 @@ class ParagraphCardsBox;
 class PlotFieldsBox;
 class PublishingSetPage;
 class SeriesPage;
-class PublishingTextBox;
 class MaterialPage;
 class SectionNamesEdit;
 class SectionsComboBox;
@@ -134,17 +133,8 @@ public:
     /// @brief Where the clipping of the chapter page comes from (hidden for another element)
     [[nodiscard]] ClippingOriginBox* clippingOrigin() const { return m_clippingOrigin; }
 
-    /// @brief The length, the template and the state of a text for publishers, under the
-    /// information of its element or under the counts of its editor (hidden for another one)
-    [[nodiscard]] PublishingTextBox* publishingBox() const { return m_publishingBox; }
 
-    /// @brief Give the keys to the first point of the template of the text in front, on its
-    /// page (Tools > Texts for Publishers > Template Points); false when it has no points
-    bool focusTemplatePoints();
 
-    /// @brief The box of the text in front when it is a text for publishers, on its page;
-    ///        nullptr for another text and without one
-    PublishingTextBox* frontPublishingBox();
 
 public slots:
     /// @brief Show project properties view
@@ -320,12 +310,6 @@ signals:
 
     /// @brief Open the settings of the sources (the gear of the entry of a source)
     void requestSourceSettings();
-
-    /// @brief Open the settings of the texts for publishers (the gear over the points)
-    void requestPublishingSettings();
-
-    /// @brief Something for the status bar (Link to a Point without a selection)
-    void statusMessage(const QString& text);
 
     /// @brief Open what link @p link of a material names: an element, or the section in the
     /// Navigator
@@ -582,7 +566,6 @@ private:
     QTextEdit* m_chapterNotesEdit = nullptr;
     LinkedMaterialsBox* m_chapterMaterials = nullptr;  ///< The materials of the element
     ClippingOriginBox* m_clippingOrigin = nullptr;     ///< Where a clipping comes from
-    PublishingTextBox* m_publishingBox = nullptr;      ///< A text for publishers
     PlotFieldsBox* m_chapterPlot = nullptr;  ///< What the plot board says of a text
     QGroupBox* m_chapterVersionsGroup = nullptr;  ///< The versions of the text (showVersions())
     QLabel* m_versionsCountLabel = nullptr;       ///< How many, and when the last one was kept

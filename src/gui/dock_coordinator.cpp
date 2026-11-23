@@ -8,13 +8,13 @@
 
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/command_registry.h"
-#include "kalahari/gui/dialogs/publishing_templates_dialog.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/utils/panel_toggle.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/publishing_card_panel.h"
 #include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/panels/search_panel.h"
@@ -37,7 +37,6 @@
 #include "kalahari/core/package_card.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/editor/book_editor.h"
-#include "kalahari/editor/text_skeleton.h"
 #include <QMainWindow>
 #include <QDockWidget>
 #include <QPainter>
@@ -822,7 +821,7 @@ void DockCoordinator::setupViewMenuActions() {
         command->isChecked = [this]() { return isParagraphOpen(); };
         registry.updateActionState("view.paragraph");
     }
-    connectTemplatePoints();
+    connectLinkPoint();
 
     // The panel toggles of the View > Panels submenu (built by MenuBuilder from the
     // commands) follow the docks' visibility
@@ -847,80 +846,26 @@ void DockCoordinator::setupViewMenuActions() {
     }
 }
 
-void DockCoordinator::connectTemplatePoints() {
-    Command* command = m_commands.getCommand("tools.publishing.templatePoints");
-    if (command == nullptr) {
+void DockCoordinator::connectLinkPoint() {
+    Command* link = m_commands.getCommand("tools.publishing.linkPoint");
+    if (link == nullptr) {
         return;
     }
-    command->execute = [this]() {
-        m_propertiesDock->show();
-        m_propertiesDock->raise();
-        if (m_propertiesDock->isFloating()) {
-            m_propertiesDock->activateWindow();
-        }
-        if (!m_propertiesPanel->focusTemplatePoints()) {
-            //: Tools > Texts for Publishers > Template Points, when the text in front has none.
-            //: In Polish: Tekst na wierzchu nie ma punktów szablonu.
+    link->execute = [this]() {
+        // The points of the version on the card For Publishers in front
+        auto* card = qobject_cast<PublishingCardPanel*>(
+            DocumentWindows::of(*m_centralTabs).frontPage());
+        PublishingTextBox* box = card != nullptr ? card->textBox() : nullptr;
+        if (box == nullptr || box->elementId().isEmpty() || box->points().isEmpty()) {
+            //: Ctrl+Shift+D (Link to a Point) when the text in front has no points of a
+            //: template. In Polish: Tekst na wierzchu nie ma punktów szablonu.
             m_mainWindow->statusBar()->showMessage(
                 tr("The text in front has no template points."), STATUS_MESSAGE_MS);
+            return;
         }
+        box->showLinkMenu();  // without a selection the status bar says why
     };
-    m_commands.updateActionState("tools.publishing.templatePoints");
-    if (Command* templates = m_commands.getCommand("tools.publishing.templates")) {
-        // The changes reach the open lists, cards and boxes through the settings
-        templates->execute = [this]() {
-            dialogs::PublishingTemplatesDialog::editTemplates(&m_book, m_mainWindow);
-        };
-        m_commands.updateActionState("tools.publishing.templates");
-    }
-    connectSkeleton();
-}
-
-void DockCoordinator::connectSkeleton() {
-    if (Command* link = m_commands.getCommand("tools.publishing.linkPoint")) {
-        link->execute = [this]() {
-            PublishingTextBox* box = m_propertiesPanel->frontPublishingBox();
-            if (box == nullptr || box->points().isEmpty()) {
-                m_mainWindow->statusBar()->showMessage(
-                    tr("The text in front has no template points."), STATUS_MESSAGE_MS);
-                return;
-            }
-            box->showLinkMenu();  // without a selection the status bar says why
-        };
-        m_commands.updateActionState("tools.publishing.linkPoint");
-    }
-    if (Command* insert = m_commands.getCommand("tools.publishing.insertSkeleton")) {
-        insert->execute = [this]() {
-            const PublishingTextBox* box = m_propertiesPanel->frontPublishingBox();
-            editor::BookEditor* editor = box != nullptr ? box->editor() : nullptr;
-            const QList<editor::SkeletonPoint> points =
-                box != nullptr ? box->skeletonPoints() : QList<editor::SkeletonPoint>();
-            if (editor == nullptr || points.isEmpty()) {
-                m_mainWindow->statusBar()->showMessage(
-                    tr("The text in front has no template points."), STATUS_MESSAGE_MS);
-                return;
-            }
-            editor->insertTemplateSkeleton(points);  // a read-only text says why it is not
-        };
-        m_commands.updateActionState("tools.publishing.insertSkeleton");
-    }
-    if (Command* remove = m_commands.getCommand("tools.publishing.removeSkeleton")) {
-        remove->execute = [this]() {
-            const PublishingTextBox* box = m_propertiesPanel->frontPublishingBox();
-            editor::BookEditor* editor = box != nullptr ? box->editor() : nullptr;
-            const int removed = editor != nullptr ? editor->removeTemplateSkeleton() : 0;
-            m_mainWindow->statusBar()->showMessage(
-                removed > 0
-                    //: Tools > Texts for Publishers > Remove Headings and Hints. In Polish:
-                    //: Usunięto %n nagłówek/nagłówki/nagłówków punktów z podpowiedziami.
-                    ? tr("Removed %n heading(s) of the points with their hints.", nullptr,
-                         removed)
-                    //: In Polish: Tekst na wierzchu nie ma nagłówków punktów szablonu.
-                    : tr("The text in front has no headings of template points."),
-                STATUS_MESSAGE_MS);
-        };
-        m_commands.updateActionState("tools.publishing.removeSkeleton");
-    }
+    m_commands.updateActionState("tools.publishing.linkPoint");
 }
 
 void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget* dock) {

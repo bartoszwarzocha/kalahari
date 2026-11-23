@@ -16,7 +16,6 @@
 #include "kalahari/core/volume_materials.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/text_points.h"
-#include "kalahari/editor/text_skeleton.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/publishing_templates_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -39,7 +38,6 @@
 #include <QPixmap>
 #include <QSignalBlocker>
 #include <QSpinBox>
-#include <QTextDocument>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -367,27 +365,24 @@ void PublishingTextBox::showPoints() {
     updatePointStates();
     applyLook();
     if (!PublishingTexts::hasPoints(m_data.part)) {
-        //: The Properties panel of a sentence about the book. In Polish: Pola wzoru są na
-        //: karcie zdania – otwiera ją Enter na liście albo w Nawigatorze.
-        m_pointsHint->setText(tr("The fields of its pattern are on the card of the sentence – "
-                                 "Enter in the list or the Navigator opens it."));
+        //: Beside a sentence about the book on the card For Publishers. In Polish: Pola wzoru
+        //: są nad zdaniem.
+        m_pointsHint->setText(tr("The fields of its pattern are over the sentence."));
     } else if (m_points.isEmpty()) {
         //: The Properties panel of a synopsis without a template. In Polish: Tekst bez
         //: szablonu. Wybierz szablon, a jego punkty pokażą się tutaj.
         m_pointsHint->setText(
             tr("A text without a template. Choose a template and its points show here."));
     } else {
-        //: Under the points of the template of a synopsis in the Properties panel. In Polish:
-        //: Zaznacz fragment tekstu i naciśnij Ctrl+Shift+D, aby powiązać go z punktem. Punkty
-        //: odhaczasz sam (Spacja). Narzędzia > Teksty dla wydawnictwa > Punkty szablonu
-        //: przenosi tu klawiaturę: Enter wybiera następny fragment punktu, Insert wiąże z nim
-        //: zaznaczenie, Delete usuwa jego powiązania, a Esc wraca do tekstu.
+        //: Under the points of the template of a synopsis on the card For Publishers. In
+        //: Polish: Zaznacz fragment tekstu i naciśnij Ctrl+Shift+D, aby powiązać go z punktem.
+        //: Punkty odhaczasz sam (Spacja). W punkcie Enter wybiera jego następny fragment,
+        //: Insert wiąże z nim zaznaczenie, Delete usuwa jego powiązania, a Esc wraca do tekstu.
         m_pointsHint->setText(
             tr("Select a fragment of the text and press Ctrl+Shift+D to link it to a point. "
-               "You tick off the points yourself (Space). Tools > Texts for Publishers > "
-               "Template Points brings the keys here: Enter selects the next fragment of the "
-               "point, Insert links the selection to it, Delete takes its links away, and Esc "
-               "takes the keys back to the text."));
+               "You tick off the points yourself (Space). In a point Enter selects its next "
+               "fragment, Insert links the selection to it, Delete takes its links away, and "
+               "Esc takes the keys back to the text."));
     }
 }
 
@@ -720,10 +715,9 @@ void PublishingTextBox::updateLength() {
     if (m_elementId.isEmpty()) {
         return;
     }
-    // The words in the editor, also those not saved yet, without the headings of a skeleton
-    const QTextDocument* document = !m_editor.isNull() ? m_editor->textDocument() : nullptr;
-    const QString text = document != nullptr ? editor::textWithoutSkeleton(*document)
-                                             : m_book.publishingTextOf(m_elementId);
+    // The words in the editor, also those not saved yet
+    const QString text =
+        !m_editor.isNull() ? m_editor->plainText() : m_book.publishingTextOf(m_elementId);
     const bool words = core::CoverMaterial::countsWords();
     const int target = m_book.publishingTargetOf(m_elementId, words);
     const bool pages = m_data.part == QLatin1String(PublishingTexts::SYNOPSIS) &&
@@ -806,13 +800,6 @@ bool PublishingTextBox::pointKey(qsizetype index, const QKeyEvent& event) {
     default:
         return false;
     }
-}
-
-QList<editor::SkeletonPoint> PublishingTextBox::skeletonPoints() const {
-    if (!PublishingTexts::hasPoints(m_data.part)) {
-        return {};
-    }
-    return m_book.templateSkeleton(m_data.templateId);
 }
 
 std::optional<core::PublishingTemplate> PublishingTextBox::currentTemplate() const {
