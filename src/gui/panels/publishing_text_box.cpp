@@ -17,13 +17,13 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/text_points.h"
 #include "kalahari/gui/cover_names.h"
-#include "kalahari/gui/dialogs/publishing_templates_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/card_parts.h"
 #include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/volume_names.h"
 #include "kalahari/gui/widgets/length_meter.h"
+#include "kalahari/gui/widgets/publishing_template_editor.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -78,6 +78,9 @@ constexpr int SWATCH_GAP = 6;
 /// of the colors of the text and of its background, a darker one in the lighter
 constexpr int LIGHT_SWATCH = 150;
 
+/// The data of New Template... on the list of the templates, which is no template
+constexpr const char* NEW_TEMPLATE = "*new*";
+
 /// The points a menu of Link to a Point gives a digit as its key
 constexpr int DIGIT_KEYS = 9;
 
@@ -97,7 +100,8 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
       m_meter(new LengthMeter(this)),
       m_targetSource(hintOf(this)),
       m_templateBox(new QComboBox(this)),
-      m_templatesButton(new QToolButton(this)),
+      m_changeTemplate(new QToolButton(this)),
+      m_templateEditor(new PublishingTemplateEditor(this)),
       m_pointsArea(new QWidget(this)),
       m_pointsLayout(new QVBoxLayout(m_pointsArea)),
       m_pointsHint(hintOf(this)),
@@ -117,22 +121,24 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
     auto* templateRow = new QFormLayout();
     templateRow->setContentsMargins(0, SECTION_GAP, 0, 0);
     m_templateBox->setObjectName(QStringLiteral("publishingTemplate"));
-    m_templatesButton->setObjectName(QStringLiteral("publishingTemplates"));
-    m_templatesButton->setAutoRaise(true);
-    //: The button beside the template that opens the window of the templates. In Polish:
-    //: Szablony tekstów dla wydawnictwa...
-    m_templatesButton->setToolTip(tr("Templates of Texts for Publishers..."));
-    m_templatesButton->setAccessibleName(m_templatesButton->toolTip());
-    card::keepIcon(m_templatesButton, QStringLiteral("tools.publishing.templates"),
+    m_changeTemplate->setObjectName(QStringLiteral("publishingChangeTemplate"));
+    m_changeTemplate->setAutoRaise(true);
+    //: The pencil beside the template of a text for publishers: its name, length and points
+    //: in place of the points. In Polish: Zmień szablon
+    m_changeTemplate->setToolTip(tr("Change Template"));
+    m_changeTemplate->setAccessibleName(m_changeTemplate->toolTip());
+    card::keepIcon(m_changeTemplate, QStringLiteral("publishing.changeTemplate"),
                    core::IconContext::Menu);
     auto* templateLine = new QHBoxLayout();
     templateLine->addWidget(m_templateBox, 1);
-    templateLine->addWidget(m_templatesButton);
+    templateLine->addWidget(m_changeTemplate);
     //: The template of a text for publishers in the Properties panel. In Polish: Sza&blon:
     auto* templateLabel = new QLabel(tr("Te&mplate:"), this);
     templateLabel->setBuddy(m_templateBox);
     templateRow->addRow(templateLabel, templateLine);
     layout->addLayout(templateRow);
+    m_templateEditor->hide();
+    layout->addWidget(m_templateEditor);
 
     // Over the points: how many the text covers, Show in the Text and the gear
     m_pointsHeader = new QWidget(this);
@@ -212,9 +218,11 @@ PublishingTextBox::PublishingTextBox(core::ProjectManager& book, QWidget* parent
     connect(m_stateBox, &QComboBox::activated, this, &PublishingTextBox::saveState);
     connect(m_volumeBox, &QComboBox::activated, this, &PublishingTextBox::saveVolume);
     connect(m_targetSpin, &QSpinBox::valueChanged, this, &PublishingTextBox::saveTarget);
-    connect(m_templatesButton, &QToolButton::clicked, this, [this]() {
-        dialogs::PublishingTemplatesDialog::editTemplates(&m_book, window());
-    });
+    connect(m_changeTemplate, &QToolButton::clicked, this, &PublishingTextBox::changeTemplate);
+    connect(m_templateEditor, &PublishingTemplateEditor::kept, this,
+            &PublishingTextBox::keepTemplate);
+    connect(m_templateEditor, &PublishingTemplateEditor::dropped, this,
+            &PublishingTextBox::stopEditingTemplate);
     // The targets of the Settings and the writer's templates: the listener runs on the thread
     // that changes them
     m_settingsListener =
@@ -253,6 +261,9 @@ PublishingTextBox::~PublishingTextBox() {
 void PublishingTextBox::showText(const QString& elementId, editor::BookEditor* editor) {
     const core::ProjectElement* element = m_book.findElement(elementId);
     m_editor = editor;
+    if (elementId != m_elementId) {
+        stopEditingTemplate();  // the changes of a template of another text are dropped
+    }
     if (element == nullptr || element->publishing.part.isEmpty()) {
         m_elementId.clear();
         followEditor(nullptr);
@@ -280,6 +291,10 @@ void PublishingTextBox::fillTemplates() {
         }
     }
     m_templateBox->addItem(PublishingNames::noTemplateName(), QString());
+    m_templateBox->insertSeparator(m_templateBox->count());
+    //: The last item of the list of the templates of a text for publishers: a template of the
+    //: writer from scratch. In Polish: Nowy szablon...
+    m_templateBox->addItem(tr("New Template..."), QString::fromLatin1(NEW_TEMPLATE));
 }
 
 void PublishingTextBox::showData() {
@@ -298,11 +313,13 @@ void PublishingTextBox::showData() {
         const QSignalBlocker blocker(m_templateBox);
         if (m_templateBox->findData(m_data.templateId) < 0) {
             // A template the book does not have: named as it is written
-            m_templateBox->addItem(m_data.templateId, m_data.templateId);
+            m_templateBox->insertItem(m_templateBox->findData(QString()), m_data.templateId,
+                                      m_data.templateId);
         }
         m_templateBox->setCurrentIndex(m_templateBox->findData(m_data.templateId));
     }
-    m_templateBox->setEnabled(!readOnly);
+    m_templateBox->setEnabled(!readOnly && m_templateEditor->isHidden());
+    m_changeTemplate->setEnabled(!readOnly && m_templateEditor->isHidden());
     showPoints();
     {
         const QSignalBlocker blocker(m_stateBox);
@@ -360,8 +377,10 @@ void PublishingTextBox::showPoints() {
         m_points.at(i)->setChecked(m_data.done.contains(m_pointIds.at(i)));
         m_points.at(i)->setEnabled(!readOnly);
     }
-    m_pointsArea->setVisible(!m_points.isEmpty());
-    m_pointsHeader->setVisible(!m_points.isEmpty());
+    // While its template is changed in their place, the points are hidden
+    const bool shown = !m_points.isEmpty() && m_templateEditor->isHidden();
+    m_pointsArea->setVisible(shown);
+    m_pointsHeader->setVisible(shown);
     updatePointStates();
     applyLook();
     if (!PublishingTexts::hasPoints(m_data.part)) {
@@ -829,11 +848,92 @@ bool PublishingTextBox::save(const core::PublishingData& publishing) {
 }
 
 void PublishingTextBox::saveTemplate() {
+    if (m_templateBox->currentData().toString() == QLatin1String(NEW_TEMPLATE)) {
+        startNewTemplate();
+        return;
+    }
     core::PublishingData changed = m_data;
     changed.templateId = m_templateBox->currentData().toString();
     if (changed.templateId != m_data.templateId && save(changed)) {
         showPoints();
         updateLength();
+    }
+}
+
+void PublishingTextBox::changeTemplate() {
+    if (m_elementId.isEmpty() || m_book.isReadOnly()) {
+        return;
+    }
+    const std::optional<core::PublishingTemplate> templ = currentTemplate();
+    editTemplate(templ ? *templ
+                       : PublishingTemplateEditor::newTemplate(m_data.part,
+                                                               PublishingTexts::ownTemplates()));
+}
+
+void PublishingTextBox::startNewTemplate() {
+    if (m_elementId.isEmpty() || m_book.isReadOnly()) {
+        return;
+    }
+    editTemplate(
+        PublishingTemplateEditor::newTemplate(m_data.part, PublishingTexts::ownTemplates()));
+}
+
+void PublishingTextBox::editTemplate(const core::PublishingTemplate& templ) {
+    // The template of the text stays chosen in the list while it is changed
+    {
+        const QSignalBlocker blocker(m_templateBox);
+        m_templateBox->setCurrentIndex(m_templateBox->findData(m_data.templateId));
+    }
+    m_templateBox->setEnabled(false);
+    m_changeTemplate->setEnabled(false);
+    m_pointsHeader->hide();
+    m_pointsArea->hide();
+    m_pointsHint->hide();
+    m_templateEditor->show();
+    m_templateEditor->edit(templ, core::CoverMaterial::countsWords());
+}
+
+void PublishingTextBox::keepTemplate() {
+    QList<core::PublishingTemplate> own = PublishingTexts::ownTemplates();
+    const core::PublishingTemplate kept = m_templateEditor->keptTemplate(own);
+    const auto same = std::find_if(own.begin(), own.end(), [&kept](const auto& templ) {
+        return templ.id == kept.id;
+    });
+    if (same != own.end()) {
+        *same = kept;
+    } else {
+        own.append(kept);
+    }
+    PublishingTexts::setOwnTemplates(own);
+    stopEditingTemplate();
+    fillTemplates();
+    core::PublishingData changed = m_data;
+    changed.templateId = kept.reference();
+    if (changed.templateId == m_data.templateId) {
+        emit publishingChanged(m_elementId);  // the same template, changed
+    } else if (!save(changed)) {
+        return;
+    }
+    m_pointIds.clear();  // the points of the template changed: built again
+    showData();
+    //: The status bar after a template was changed beside a text. In Polish: Zapisano szablon
+    //: „%1” – jest dostępny we wszystkich książkach.
+    emit statusMessage(tr("Template \"%1\" saved – it is available in all books.")
+                           .arg(kept.name.text(programLanguage())));
+}
+
+void PublishingTextBox::stopEditingTemplate() {
+    if (m_templateEditor->isHidden()) {
+        return;
+    }
+    const bool keys = m_templateEditor->isAncestorOf(QApplication::focusWidget());
+    m_templateEditor->hide();
+    m_pointsHint->show();
+    m_templateBox->setEnabled(!m_book.isReadOnly());
+    m_changeTemplate->setEnabled(!m_book.isReadOnly());
+    showPoints();
+    if (keys) {
+        m_templateBox->setFocus(Qt::OtherFocusReason);
     }
 }
 

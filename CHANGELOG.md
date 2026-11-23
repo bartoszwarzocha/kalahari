@@ -11,24 +11,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Fragments of a synopsis linked to the points of its template** - 2026-11-23. Tools > Texts
-  for Publishers > Link to a Point... (Ctrl+Shift+D) opens, under the cursor, the points of the
-  template of the synopsis in front with their numbers (1-9 as keys) and colors: a point chosen
-  links the selection to it, a ticked one takes the link away (without a selection, from the
-  fragment at the cursor); one undo step. A fragment may serve several points and continues
-  across paragraphs. In the text the fragments keep clean: a thin bar in the color of the point
-  beside their lines on the left margin, side by side for fragments that overlap, and a fill
-  under them only on demand (Show in the Text over the points) or for the point chosen in the
-  list. Each point in the Properties panel has its number in its color, its state counted from
-  the text ("In the text: 2 fragments, 140 characters" or "Not in the text") beside the manual
-  tick, and a warning when it is ticked off without a fragment; over them "In the text: 3 of 5
-  · Done: 4 of 5" and a gear to the settings. The keys in the points: arrows, Home and End,
-  Enter selects the next fragment of the point, Insert links the selection, Delete takes the
-  links of the point away, Esc goes back to the text; the name of a point is bold while the
-  cursor is in its fragment. Copy All and Export Set... of the set warn of the points without a
-  fragment (Back to the Synopsis is the default). Settings > Navigator > Texts for Publishers
-  has the bar on the margin, the warning and the eight colors of the points, kept for each
-  theme. KML keeps a link as `<points ids="...">` (docs/kml_format.md).
+- **The card For Publishers** - 2026-11-23. The texts for publishers have one card of their
+  own: Workshop > For Publishers in the Navigator and Book > For Publishers open it. On top the
+  set for a publisher as a row of tiles, one for each part in its order, with its version and
+  its length against the target: the check box (Space) puts the part in the set or leaves it
+  out, Alt+Left and Alt+Right move it, the arrows, Home and End choose another part, Enter goes
+  to its versions. Under them the versions of the part chosen: a star marks the version in the
+  set and a rejected one is struck through; Space puts the version in the set, Insert adds a
+  new one, F2 renames it, Delete deletes it, and the menu key has Choose for the Set, Reject or
+  Restore as a Draft, Rename, Copy of the Version, Copy the Text, Show in the Cover and Delete.
+  Beside them the text of the version is written in the card: a synopsis in the program's
+  editor (spelling, grammar and the Edit and Format menus work as in a chapter), a sentence
+  about the book with the fields of the pattern of its template over it; a tagline and a
+  description come from the Cover and the note about the author from the back part of the
+  book. On the right the template with the points of a synopsis and their hints, its length
+  against the target, its state and own target, and in a series its volume. The template is
+  changed in place: the pencil Change Template shows its name, its target length and the
+  points with their hints (Insert adds one, Delete removes it, Alt+Up and Alt+Down move it), or
+  the pattern of a sentence with its fields in braces; Ctrl+Enter keeps the changes, Esc drops
+  them. A built-in template stays as it is: the changes are kept as the writer's own template,
+  in all books; New Template... on the list of the templates starts one from scratch. All of
+  the card is saved at once, and its footer says when. The command bar has New Version, Copy of
+  the Version, Choose for the Set, Reject, Copy the Text, Earlier and Later in the Set, Copy
+  All, Export Set..., Print Set..., the preview of the set, Undo, Redo and the gear to Settings
+  > Navigator > Texts for Publishers. Gone: the submenu Tools > Texts for Publishers, the
+  window Templates of Texts for Publishers and its button in the Settings, the skeleton of a
+  synopsis in its text with the style Template Point (an old one is read as plain paragraphs),
+  the setting of where the points of a synopsis are, the card of a sentence and the group of a
+  text for publishers in the Properties panel.
+- **Fragments of a synopsis linked to the points of its template** - 2026-11-23. Link to a
+  Template Point (Ctrl+Shift+D) opens, under the cursor, the points of the template of the
+  synopsis in front with their numbers (1-9 as keys) and colors: a point chosen links the
+  selection to it, a ticked one takes the link away (without a selection, from the fragment at the
+  cursor); one undo step. A fragment may serve several points and continues across paragraphs. In
+  the text the fragments keep clean: a thin bar in the color of the point beside their lines on
+  the left margin, side by side for fragments that overlap, and a fill under them only on demand
+  (Show in the Text over the points) or for the point chosen in the list. Each point beside the
+  text on the card For Publishers has its number in its color, its state counted from the text
+  ("In the text: 2 fragments, 140 characters" or "Not in the text") beside the manual tick, and a
+  warning when it is ticked off without a fragment; over them "In the text: 3 of 5 · Done: 4 of 5"
+  and a gear to the settings. The keys in the points: arrows, Home and End, Enter selects the next
+  fragment of the point, Insert links the selection, Delete takes the links of the point away, Esc
+  goes back to the text; the name of a point is bold while the cursor is in its fragment. Copy All
+  and Export Set... of the set warn of the points without a fragment (Back to the Synopsis is the
+  default). Settings > Navigator > Texts for Publishers has the bar on the margin, the warning and
+  the eight colors of the points, kept for each theme. KML keeps a link as `<points ids="...">`
+  (docs/kml_format.md).
 - **Sets of list formats and multilevel numbers** - 2026-11-21. Format > Bullets and
   Numbering... opens on a new first tab, Sets: the layout of all nine levels of a list at once,
   as tiles in groups (Numbered: 1. – a) – i., 1) – a) – i), (1) – (a) – (i); Multilevel:

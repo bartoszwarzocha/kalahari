@@ -276,9 +276,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("tools.readability", "resources/icons/twotone/auto_stories.svg", "Readability Analysis");
     iconRegistry.registerIcon("tools.publishing.linkPoint", "resources/icons/twotone/link.svg",
                               "Link to a Point");
-    iconRegistry.registerIcon("tools.publishing.templates",
-                              "resources/icons/twotone/view_quilt.svg",
-                              "Templates of Texts for Publishers");
+    iconRegistry.registerIcon("publishing.changeTemplate", "resources/icons/twotone/edit.svg",
+                              "Change Template");
     iconRegistry.registerIcon("tools.toolbarManager", "resources/icons/twotone/build.svg", "Toolbar Manager");
 
     // -------------------------------------------------------------------------
@@ -389,7 +388,6 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.imageFilter", "resources/icons/twotone/palette.svg", "Filter");
     iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("menu.plugins", "resources/icons/twotone/extension.svg", "Plugins");
-    iconRegistry.registerIcon("menu.publishing", "resources/icons/twotone/outbox.svg", "Texts for Publishers");
     iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");
     iconRegistry.registerIcon("menu.viewMode", "resources/icons/twotone/visibility.svg", "View Mode");
     iconRegistry.registerIcon("menu.zoom", "resources/icons/twotone/zoom_in.svg", "Zoom");

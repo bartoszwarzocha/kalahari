@@ -249,8 +249,12 @@ void PublishingCardPanel::buildCard() {
             [this](const QPoint& pos) { showVersionMenu(m_versions->viewport()->mapToGlobal(pos)); });
     connect(m_textBox, &PublishingTextBox::publishingChanged, this,
             [this](const QString& elementId) {
-                // Its template, its target, its state: the card follows the book (refresh())
+                // Its template, its target, its state: the card follows the book (refresh());
+                // a template changed in the box gives a sentence other fields
                 showSaved();
+                if (elementId == m_versionId) {
+                    openVersion(elementId);
+                }
                 emit publishingChanged(elementId);
             });
     connect(m_textBox, &PublishingTextBox::settingsRequested, this,
@@ -773,12 +777,15 @@ void PublishingCardPanel::openVersion(const QString& elementId) {
         // The same version: its data again (with the fields typed and not yet saved), the
         // text as it is; another template has other fields
         const QString shownTemplate = m_data.templateId;
+        const QString shownPattern = m_fieldsPattern;
         const QMap<QString, QString> typed = m_data.fields;
         m_data = element->publishing;
         if (m_fieldsTimer->isActive()) {
             m_data.fields = typed;
         }
-        if (writtenHere() && shownTemplate != m_data.templateId) {
+        const std::optional<core::PublishingTemplate> templ = currentTemplate();
+        const QString pattern = templ ? templ->pattern.text(m_book.bookLanguage()) : QString();
+        if (writtenHere() && (shownTemplate != m_data.templateId || shownPattern != pattern)) {
             buildFields();
             if (!m_data.manual) {
                 compose();
@@ -1128,6 +1135,7 @@ void PublishingCardPanel::buildFields() {
     // The pattern in the language of the book, which the sentence is written in
     const core::PublishingTemplate templ = currentTemplate().value_or(core::PublishingTemplate{});
     const QString pattern = pitch ? templ.pattern.text(m_book.bookLanguage()) : QString();
+    m_fieldsPattern = pattern;
     m_patternArea->setVisible(!pattern.isEmpty());
     m_patternHint->setVisible(pitch);
     if (pattern.isEmpty()) {

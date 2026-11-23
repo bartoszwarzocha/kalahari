@@ -220,7 +220,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/take_out_volume_dialog.cpp  # TakeOutVolumeDialog - a volume as a book of its own
     gui/dialogs/join_book_dialog.cpp  # JoinBookDialog - a book joined as a volume
     gui/dialogs/publishing_choice.cpp  # PublishingChoice - the part and the template of a new text for publishers
-    gui/dialogs/publishing_templates_dialog.cpp  # PublishingTemplatesDialog - the templates of the texts for publishers
+    gui/widgets/publishing_template_editor.cpp  # PublishingTemplateEditor - a template changed beside a text for publishers
     gui/dialogs/move_element_dialog.cpp  # MoveElementDialog - a new place in the book for an element
     gui/dialogs/delete_dialogs.cpp  # DeleteFromBookDialog, DeleteFilesDialog - what goes, and its files
     gui/dialogs/dialog_parts.cpp  # Parts of the own dialogs: a list as high as its rows, a note, Copy
@@ -591,7 +591,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/take_out_volume_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/join_book_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_templates_dialog.h  # PublishingTemplatesDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/publishing_template_editor.h  # PublishingTemplateEditor with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_card_panel.h  # PublishingCardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_set_page.h  # PublishingSetPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/series_page.h  # SeriesPage with Q_OBJECT

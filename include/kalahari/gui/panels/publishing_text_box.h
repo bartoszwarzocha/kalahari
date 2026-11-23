@@ -43,11 +43,13 @@ class BookEditor;
 namespace kalahari::gui {
 
 class LengthMeter;
+class PublishingTemplateEditor;
 
-/// @brief A text for publishers in the Properties panel, beside the page of its element
+/// @brief A text for publishers beside its text on the card For Publishers
 ///
 /// Its length against the target (with the standard pages of a synopsis), where the target
-/// comes from, its template; of a synopsis the points of the template, which the writer
+/// comes from, its template, changed in place of the points (Change Template, New
+/// Template...; PublishingTemplateEditor); of a synopsis the points of the template, which the writer
 /// ticks off (Space), saved with the book at once (core::PublishingData::done) or, while its
 /// text has changes not saved, saved and dropped with them
 /// (core::ProjectManager::setPublishingPoints()); its state, whether the set has it and its
@@ -89,8 +91,19 @@ public:
     /// @brief The templates of its part, "No template" last
     [[nodiscard]] QComboBox* templateBox() const { return m_templateBox; }
 
-    /// @brief Opens the window of the templates (Templates of Texts for Publishers)
-    [[nodiscard]] QToolButton* templatesButton() const { return m_templatesButton; }
+    /// @brief Change Template: the template of the text changed in place of its points
+    [[nodiscard]] QToolButton* changeTemplateButton() const { return m_changeTemplate; }
+
+    /// @brief The template changed in place of the points (Change Template, New Template...)
+    [[nodiscard]] PublishingTemplateEditor* templateEditor() const { return m_templateEditor; }
+
+    /// @brief Change Template: the template of the text in place of its points; a new one
+    ///        for a text without a template
+    void changeTemplate();
+
+    /// @brief New Template... on the list of the templates: a new template of the writer in
+    ///        place of the points
+    void startNewTemplate();
 
     /// @brief The points of its template, in order; none without a template with points
     [[nodiscard]] const QList<QCheckBox*>& points() const { return m_points; }
@@ -195,6 +208,12 @@ private:
     ///        saved
     bool save(const core::PublishingData& publishing);
     void saveTemplate();
+    /// @brief The template edited in place of the points: @p templ
+    void editTemplate(const core::PublishingTemplate& templ);
+    /// @brief Keep the template edited as the writer's own and give it to the text
+    void keepTemplate();
+    /// @brief The points again in place of the template edited
+    void stopEditingTemplate();
     void savePoint(const QString& pointId, bool done);
     void saveState();
     void saveTarget();
@@ -210,7 +229,8 @@ private:
     LengthMeter* m_meter = nullptr;
     QLabel* m_targetSource = nullptr;
     QComboBox* m_templateBox = nullptr;
-    QToolButton* m_templatesButton = nullptr;  ///< Opens the window of the templates
+    QToolButton* m_changeTemplate = nullptr;  ///< The template in place of the points
+    PublishingTemplateEditor* m_templateEditor = nullptr;
     QWidget* m_pointsArea = nullptr;
     QVBoxLayout* m_pointsLayout = nullptr;
     QList<QCheckBox*> m_points;

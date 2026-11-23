@@ -217,7 +217,7 @@ set(TEST_SOURCES
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
     gui/test_publishing_list.cpp                 # The list of the texts for publishers
     gui/test_publishing_set.cpp                  # The set for a publisher, the second view of the list
-    gui/test_publishing_templates.cpp            # The window of the templates of the texts for publishers
+    gui/test_publishing_template_editor.cpp      # A template changed beside a text for publishers
     gui/test_series_window.cpp                   # A series in the window: Navigator, New Volume, Properties
     gui/test_series_cover.cpp                    # A series: the cover of each volume
     gui/test_series_join.cpp                     # A series: a volume taken out, a book joined
@@ -607,7 +607,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/take_out_volume_dialog.cpp   # A volume taken out
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/join_book_dialog.cpp   # A book joined as a volume
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/publishing_choice.cpp  # The part and the template of a new text for publishers
-    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/publishing_templates_dialog.cpp  # The templates of the texts for publishers
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/publishing_template_editor.cpp  # A template changed beside a text for publishers
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/move_element_dialog.cpp      # A new place in the book for an element
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/delete_dialogs.cpp           # What goes from the book, and its files
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/dialog_parts.cpp             # Parts of the own dialogs
@@ -849,7 +849,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/take_out_volume_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/join_book_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_templates_dialog.h  # PublishingTemplatesDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/publishing_template_editor.h  # PublishingTemplateEditor with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_card_panel.h  # PublishingCardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_set_page.h  # PublishingSetPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/series_page.h  # SeriesPage with Q_OBJECT

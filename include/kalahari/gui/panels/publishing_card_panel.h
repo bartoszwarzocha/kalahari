@@ -258,6 +258,7 @@ private:
     FlowLayout* m_patternLayout = nullptr;
     QLabel* m_patternHint = nullptr;
     QHash<QString, QLineEdit*> m_fields;
+    QString m_fieldsPattern;  ///< The pattern of the fields shown
     QWidget* m_manualNote = nullptr;
     QPushButton* m_composeButton = nullptr;
     QLabel* m_outsideText = nullptr;
