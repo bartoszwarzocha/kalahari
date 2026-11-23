@@ -24,6 +24,7 @@
 #include "kalahari/gui/main_window.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/publishing_card_panel.h"
 #include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/publishing_set.h"
@@ -433,11 +434,11 @@ TEST_CASE("Texts for publishers: fragments of a synopsis linked to its points, t
     CHECK(text->hasFocus());
 }
 
-TEST_CASE("Texts for publishers: in the book window the points ticked off of a synopsis are "
-          "saved and dropped with its text",
+TEST_CASE("Texts for publishers: in the book window a synopsis and its points are saved at "
+          "once on the card For Publishers",
           "[gui][publishing][synopsisbox][window]") {
     // Test of 22.11 (part 38): the points were saved at once and the text not, so they did not
-    // agree with the file after Don't Save
+    // agree with the file after Don't Save. On the card For Publishers both are saved at once.
     using gui::dialogs::MessageDialog;
     gui::registerAllIcons();
     const test::RecentBooks recent;
@@ -457,32 +458,6 @@ TEST_CASE("Texts for publishers: in the book window the points ticked off of a s
                                             QStringLiteral("Synopsis"));
     REQUIRE_FALSE(id.isEmpty());
     REQUIRE(pm.setPublishingState(id, QString::fromLatin1(PublishingTexts::CHOSEN)));  // in the set
-    auto* properties = window->findChild<gui::PropertiesPanel*>();
-    REQUIRE(properties != nullptr);
-    PublishingTextBox* box = properties->publishingBox();
-    const auto open = [&window, &id, box]() {
-        window->openChapter(id, QStringLiteral("Synopsis"));
-        QCoreApplication::processEvents();
-        gui::EditorPanel* found = nullptr;
-        for (gui::EditorPanel* panel : window->findChildren<gui::EditorPanel*>()) {
-            if (panel->property("elementId").toString() == id && !panel->isHidden()) {
-                found = panel;
-            }
-        }
-        REQUIRE(found != nullptr);
-        REQUIRE(box->elementId() == id);
-        REQUIRE(box->points().size() == 5);
-        return found;
-    };
-    const auto closeTab = [](gui::EditorPanel* panel, MessageDialog::Answer answer) {
-        QTabWidget* tabs = gui::DocumentWindows::tabsOf(panel);
-        REQUIRE(tabs != nullptr);
-        QStringList said;
-        CHECK(test::answering(
-                  [tabs, panel]() { emit tabs->tabCloseRequested(tabs->indexOf(panel)); },
-                  answer, said) == 1);
-        QCoreApplication::processEvents();
-    };
     const auto savedPoints = [&manifest, &id]() {
         QStringList problems;
         const std::optional<core::BookProject> saved = core::BookProject::load(manifest, problems);
@@ -492,59 +467,45 @@ TEST_CASE("Texts for publishers: in the book window the points ticked off of a s
         return text->publishing.done.join(QStringLiteral(" | ")).toStdString();
     };
 
-    // Written and ticked off, then the tab closed without saving: the point goes with the text
-    gui::EditorPanel* panel = open();
-    test::write(*panel, QStringLiteral("Leila goes to the last well."));
-    box->points().at(0)->click();
-    CHECK(box->points().at(0)->isChecked());
-    CHECK(savedPoints().empty());
-    CHECK(pm.publishingPointsOf(id) == QStringList{QStringLiteral("hero")});
-    // The set for the publisher has the text as written, as File > Export has the open texts
-    const auto inSet = [&pm]() {
-        return gui::PublishingSetContents::plainTextOf(pm).contains(QStringLiteral("last well"));
-    };
-    CHECK(test::waitUntil(inSet));
-    closeTab(panel, MessageDialog::Answer::Alternative);
-    CHECK(pm.publishingPointsOf(id).isEmpty());
-    CHECK(savedPoints().empty());
-    CHECK_FALSE(pm.savedChapterText(id).contains(QStringLiteral("last well")));
-    CHECK_FALSE(inSet());
+    // The synopsis opens on the card, with its points beside it
+    window->openChapter(id, QStringLiteral("Synopsis"));
+    QCoreApplication::processEvents();
+    auto* card = window->findChild<gui::PublishingCardPanel*>();
+    REQUIRE(card != nullptr);
+    CHECK(card->versionId() == id);
+    PublishingTextBox* box = card->textBox();
+    REQUIRE(box->elementId() == id);
+    REQUIRE(box->points().size() == 5);
 
-    // Written, ticked off and saved: both in the files
-    panel = open();
-    CHECK_FALSE(box->points().at(0)->isChecked());
-    test::write(*panel, QStringLiteral("Leila goes to the last well."));
+    // Written and ticked off: both in the files a moment later, with no Save
+    test::write(*card, QStringLiteral("Leila goes to the last well."));
     box->points().at(0)->click();
-    QAction* save = window->commands().getAction(QStringLiteral("file.save"));
-    REQUIRE(save != nullptr);
-    save->trigger();
+    CHECK(test::waitUntil(
+        [&pm, &id]() { return pm.savedChapterText(id).contains(QStringLiteral("last well")); }));
     CHECK(savedPoints() == "hero");
-    CHECK(pm.savedChapterText(id).contains(QStringLiteral("last well")));
-
-    // Ticked off with no changes: saved at once
+    CHECK_FALSE(card->isModified());
+    // The set for the publisher has the text as written
+    CHECK(gui::PublishingSetContents::plainTextOf(pm).contains(QStringLiteral("last well")));
     box->points().at(1)->click();
     CHECK(savedPoints() == "hero | event");
 
-    // Written and ticked off, then the book closed without saving: the book opened again has
-    // the text and the points saved
-    test::write(*panel, QStringLiteral("Leila reaches the well and finds it dry."));
-    box->points().at(3)->click();
-    CHECK(savedPoints() == "hero | event");
+    // The book closes without a question about the card, and has the text and the points
+    test::write(*card, QStringLiteral("Leila reaches the well and finds it dry."));
+    card->saveNow();
     QStringList said;
     QAction* close = window->commands().getAction(QStringLiteral("file.close"));
     REQUIRE(close != nullptr);
-    test::answering([close]() { close->trigger(); }, MessageDialog::Answer::Alternative, said);
+    test::answering([close]() { close->trigger(); }, MessageDialog::Answer::Accept, said);
     QCoreApplication::processEvents();
-    REQUIRE_FALSE(said.isEmpty());
-    CHECK(said.first().contains(QStringLiteral("save changes to 'Rain' before closing")));
+    for (const QString& question : std::as_const(said)) {
+        CHECK_FALSE(question.contains(QStringLiteral("save changes")));
+    }
     REQUIRE_FALSE(pm.isProjectOpen());
-    CHECK(savedPoints() == "hero | event");
     REQUIRE(pm.openProject(manifest));
     QCoreApplication::processEvents();
     CHECK(pm.publishingPointsOf(id) == QStringList{QStringLiteral("hero"), QStringLiteral("event")});
-    CHECK(pm.savedChapterText(id).contains(QStringLiteral("last well")));
-    CHECK_FALSE(pm.savedChapterText(id).contains(QStringLiteral("dry")));
-    // The summary of the writing session may show on closing
+    CHECK(pm.savedChapterText(id).contains(QStringLiteral("dry")));
     test::answering([&pm]() { pm.closeProject(false); }, MessageDialog::Answer::Accept, said);
     CHECK_FALSE(pm.isProjectOpen());
 }
+

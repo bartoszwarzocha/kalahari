@@ -223,7 +223,7 @@ set(TEST_SOURCES
     gui/test_series_cover.cpp                    # A series: the cover of each volume
     gui/test_series_join.cpp                     # A series: a volume taken out, a book joined
     gui/test_publishing_add.cpp                  # Add Element of a text for publishers
-    gui/test_pitch_panel.cpp                     # The card of a sentence about the book
+    gui/test_publishing_card.cpp                 # The card For Publishers
     gui/test_publishing_text_box.cpp             # A text for publishers in the Properties panel
     gui/test_publishing_settings.cpp             # The names of the texts for publishers and their settings
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
@@ -660,7 +660,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/cursor_card_box.cpp           # The card at the cursor in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/panels/paragraph_cards_box.cpp  # ParagraphCardsBox - the cards of the paragraph at the cursor
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_panel.cpp                # The full card on a tab
-    ${CMAKE_SOURCE_DIR}/src/gui/panels/pitch_panel.cpp  # The card of a sentence about the book
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/publishing_card_panel.cpp  # The card For Publishers
     ${CMAKE_SOURCE_DIR}/src/gui/panels/publishing_set_page.cpp  # The set for a publisher in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/panels/series_page.cpp  # The name and the volumes of a series in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/panels/publishing_text_box.cpp  # A text for publishers in Properties
@@ -853,7 +853,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/join_book_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_templates_dialog.h  # PublishingTemplatesDialog with Q_OBJECT
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pitch_panel.h  # PitchPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_card_panel.h  # PublishingCardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_set_page.h  # PublishingSetPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/series_page.h  # SeriesPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_text_box.h  # PublishingTextBox with Q_OBJECT

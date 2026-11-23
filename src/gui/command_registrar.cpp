@@ -512,9 +512,13 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_KEY_CB("view.outline", QT_TRANSLATE_NOOP("CommandRegistrar", "O&utline"), "BOOK/Outline", 94, true, 0,
                    KeyboardShortcut(Qt::Key_L, Qt::ControlModifier | Qt::ShiftModifier),
                    callbacks.onOutline);
+    // The card For Publishers on its tab: the set, the versions of its texts and their
+    // templates, as Workshop > For Publishers in the Navigator
+    REG_CMD_KEY_CB("book.publishing", QT_TRANSLATE_NOOP("CommandRegistrar", "&For Publishers"), "BOOK/For Publishers", 95, false, 0,
+                   KeyboardShortcut(), callbacks.onPublishing);
     // The book's dictionary on its tab: its names, spelling rules and words (no keys);
     // BookDictionaryCoordinator gives it its callback
-    REG_CMD("book.dictionary", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Dictionary..."), "BOOK/Book Dictionary...", 95, false, 0);
+    REG_CMD("book.dictionary", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Dictionary..."), "BOOK/Book Dictionary...", 96, false, 0);
 
     REG_CMD_TOOL_ICON("book.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Properties..."), "BOOK/Book Properties...", 100, false, 1,
                       KeyboardShortcut(),

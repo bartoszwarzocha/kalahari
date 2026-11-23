@@ -466,7 +466,7 @@ set(KALAHARI_SOURCES
     gui/panels/cursor_card_box.cpp  # CursorCardBox - the card at the cursor in the Properties panel
     gui/panels/paragraph_cards_box.cpp  # ParagraphCardsBox - the cards of the paragraph at the cursor
     gui/panels/card_panel.cpp     # CardPanel - the full card on a tab beside the chapters
-    gui/panels/pitch_panel.cpp  # PitchPanel - the card of a sentence about the book
+    gui/panels/publishing_card_panel.cpp  # PublishingCardPanel - the card For Publishers
     gui/panels/publishing_set_page.cpp  # PublishingSetPage - the set for a publisher in Properties
     gui/panels/series_page.cpp  # SeriesPage - the name and the volumes of a series in Properties
     gui/panels/publishing_text_box.cpp  # PublishingTextBox - a text for publishers in Properties
@@ -594,7 +594,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/join_book_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_templates_dialog.h  # PublishingTemplatesDialog with Q_OBJECT
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pitch_panel.h  # PitchPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_card_panel.h  # PublishingCardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_set_page.h  # PublishingSetPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/series_page.h  # SeriesPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_text_box.h  # PublishingTextBox with Q_OBJECT

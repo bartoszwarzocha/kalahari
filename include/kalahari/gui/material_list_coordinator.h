@@ -74,6 +74,9 @@ public:
     /// @brief The list on the tab in front; none when another tab is in front
     [[nodiscard]] MaterialListPanel* currentList() const;
 
+    /// @brief Show material @p elementId in the list of its kind, the cover
+    void showInCover(const QString& elementId);
+
 public slots:
     /// @brief Fill the lists again from the open book: the one in front at once, the others
     /// when they come to the front
@@ -137,8 +140,6 @@ private:
     /// @brief Show the set for a publisher with part @p part chosen in the Properties panel,
     /// brought to the front as for a material chosen
     void showSetProperties(const QString& part);
-    /// @brief Show material @p elementId in the list of its kind, the cover
-    void showInCover(const QString& elementId);
     void showInFolder(const QString& elementId);
     [[nodiscard]] QWidget* window() const;
 

@@ -304,6 +304,7 @@ void registerAllIcons() {
     // -------------------------------------------------------------------------
     iconRegistry.registerIcon("view.dashboard", "resources/icons/twotone/home.svg", "Dashboard");
     iconRegistry.registerIcon("view.plotBoard", "resources/icons/twotone/view_module.svg", "Plot Board");
+    iconRegistry.registerIcon("book.publishing", "resources/icons/twotone/outbox.svg", "For Publishers");
     iconRegistry.registerIcon("view.outline", "resources/icons/twotone/table_chart.svg", "Outline");
     // The point of view, the place and the time of the action on the cards of the plot board
     iconRegistry.registerIcon("plotBoard.pov", "resources/icons/twotone/visibility.svg", "Point of View");

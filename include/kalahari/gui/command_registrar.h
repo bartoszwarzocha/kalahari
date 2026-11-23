@@ -212,6 +212,7 @@ struct CommandCallbacks {
     std::function<void()> onDashboard;          ///< View > Dashboard
     std::function<void()> onPlotBoard;          ///< Book > Plot Board
     std::function<void()> onOutline;            ///< Book > Outline
+    std::function<void()> onPublishing;         ///< Book > For Publishers
     std::function<void()> onResetLayout;        ///< View > Reset Layout
 
     // View Mode Commands (OpenSpec #00042 Phase 7.3)

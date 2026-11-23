@@ -52,7 +52,7 @@ namespace gui {
 class NavigatorPanel;
 class PropertiesPanel;
 class CardPanel;
-class PitchPanel;
+class PublishingCardPanel;
 class EditorPanel;
 class MaterialCardPanel;
 class PreviewPanel;
@@ -368,6 +368,13 @@ public slots:
     /// address on its card
     void onRequestOpenMaterial(const QString& elementId);
 
+    /// @brief Show the card For Publishers on its tab, in front (Workshop > For Publishers, Book
+    /// > For Publishers, a text for publishers opened anywhere)
+    /// @param elementId The version it shows; empty: the one it shows
+    /// @param keys The card gets the keys
+    /// @return The card; nullptr without an open book
+    PublishingCardPanel* openPublishingCard(const QString& elementId, bool keys);
+
     /// @brief Show the card of material @p elementId on a tab of its own in the middle of the
     /// window, or bring its tab to the front
     /// @param description The description gets the keys, at its end, else the title
@@ -472,6 +479,10 @@ signals:
     /// @brief The gear of the tab of a module (a mind map, a timeline): its page of Settings,
     /// which SettingsDialog::openPage() opens by @p editorId
     void windowEditorSettingsRequested(const QString& editorId);
+
+    /// @brief The card For Publishers @p card is on its tab now: the window connects its
+    /// export, print, settings and the Cover
+    void publishingCardCreated(kalahari::gui::PublishingCardPanel* card);
     /// @brief Find in Book of a full card: the texts of the book searched for the name of card
     /// @p cardId, all its forms and its other names
     void findInBookRequested(const QString& cardId);
@@ -583,10 +594,6 @@ private:
     /// @brief The full card of character, location or item @p elementId, for its tab: its
     /// name shows on the tab and in the Navigator, its gear opens Settings > Cards
     CardPanel* createCardPanel(const QString& elementId);
-
-    /// @brief The card of sentence about the book @p elementId, for its tab: its title shows on
-    /// the tab and in the Navigator, what the book keeps of it in the lists
-    PitchPanel* createPitchPanel(const QString& elementId);
 
     /// @brief Element @p element of a window kind on a new tab of the module that edits it
     /// (core::IWindowEditorProvider), in front; the status bar says when no module edits it
