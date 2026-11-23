@@ -20,6 +20,7 @@
 #include <QStringList>
 #include <QTranslator>
 
+#include <algorithm>
 #include <functional>
 #include <map>
 #include <memory>
@@ -45,13 +46,12 @@ QString sourceFile(const QString& path)
 QString registryValue(const std::vector<gui::WindowsRegistryValue>& values, const QString& key,
                       const QString& name = {})
 {
-    for (const auto& value : values) {
-        if (value.key == key && value.name == name) {
-            return value.value;
-        }
-    }
-    FAIL("No value " << name.toStdString() << " of " << key.toStdString());
-    return {};
+    const auto found = std::find_if(values.begin(), values.end(), [&](const auto& value) {
+        return value.key == key && value.name == name;
+    });
+    INFO("No value " << name.toStdString() << " of " << key.toStdString());
+    REQUIRE(found != values.end());
+    return found->value;
 }
 
 /// A system the page talks to instead of the real one
