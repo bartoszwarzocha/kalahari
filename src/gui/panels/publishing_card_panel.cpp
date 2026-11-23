@@ -69,7 +69,7 @@ constexpr int TILE_PADDING = 6;
 /// The widths of the versions and of the box beside the text when the card opens
 constexpr int VERSIONS_WIDTH = 200;
 constexpr int TEXT_WIDTH = 460;
-constexpr int BOX_WIDTH = 300;
+constexpr int BOX_WIDTH = 340;
 
 /// Between the words and the fields of the pattern, and between their lines
 constexpr int PATTERN_SPACING = 4;
@@ -191,8 +191,14 @@ void PublishingCardPanel::buildCard() {
     auto* boxArea = new QScrollArea(split);
     boxArea->setWidgetResizable(true);
     boxArea->setFrameShape(QFrame::NoFrame);
-    m_textBox = new PublishingTextBox(m_book, boxArea);
-    boxArea->setWidget(m_textBox);
+    boxArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // its lines wrap
+    auto* boxPage = new QWidget(boxArea);
+    auto* boxLayout = new QVBoxLayout(boxPage);
+    boxLayout->setContentsMargins(0, 0, 0, 0);
+    m_textBox = new PublishingTextBox(m_book, boxPage);
+    boxLayout->addWidget(m_textBox);
+    boxLayout->addStretch(1);
+    boxArea->setWidget(boxPage);
     split->addWidget(boxArea);
     split->setStretchFactor(1, 1);
     split->setSizes({VERSIONS_WIDTH, TEXT_WIDTH, BOX_WIDTH});
@@ -523,15 +529,15 @@ void PublishingCardPanel::fillTiles() {
 }
 
 void PublishingCardPanel::markTiles() {
-    const QPalette palette = this->palette();
     for (auto it = m_tiles.cbegin(); it != m_tiles.cend(); ++it) {
         const bool current = it.key() == m_part;
-        // The part chosen has the frame in the color of the selection
-        it.value()->setLineWidth(current ? 2 : 1);
-        QPalette look = it.value()->palette();
-        look.setColor(QPalette::WindowText, current ? palette.color(QPalette::Highlight)
-                                                    : palette.color(QPalette::Mid));
-        it.value()->setPalette(look);
+        // The part chosen has a frame in the color of the selection; the tile alone, not the
+        // labels in it
+        const QString look = current ? QStringLiteral("QFrame#%1 { border: 2px solid "
+                                                      "palette(highlight); border-radius: 4px; }")
+                                     : QStringLiteral("QFrame#%1 { border: 1px solid palette(mid); "
+                                                      "border-radius: 4px; }");
+        it.value()->setStyleSheet(look.arg(it.value()->objectName()));
         it.value()->setAccessibleDescription(
             //: A tile of the set chosen, for screen readers. In Polish: wybrana część
             current ? tr("chosen part") : QString());
@@ -1277,6 +1283,7 @@ bool PublishingCardPanel::saveNow() {
     }
     setUnmodified();
     showSaved();
+    fillTiles();  // its length on its tile
     return true;
 }
 
