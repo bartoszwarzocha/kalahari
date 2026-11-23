@@ -430,15 +430,18 @@ def link_module_libraries(lib: Path,
     return linked
 
 
-def foreign_libraries(ldd_output: str, own: Set[str], appdir: Path) -> List[str]:
-    """The libraries of an output of ldd that are not found, or are found outside @p appdir
-    although the AppDir has them (@p own: the names in its usr/lib)."""
+def foreign_libraries(ldd_output: str, own: Set[str], appdir: Path,
+                      direct: Set[str]) -> List[str]:
+    """The libraries of an output of ldd that are not found, or that the file needs itself
+    (@p direct: its DT_NEEDED) and finds outside @p appdir although the AppDir has them (@p own:
+    the names in its usr/lib). A library of the system finds its own libraries in the system:
+    those are not the package's to load."""
     problems = []
     for name, found in re.findall(r"^\s*(\S+) => (.+?)(?: \(0x[0-9a-f]+\))?$", ldd_output,
                                   re.MULTILINE):
         if found == "not found":
             problems.append(f"{name} not found")
-        elif name in own and not is_inside(Path(found), appdir):
+        elif name in own and name in direct and not is_inside(Path(found), appdir):
             problems.append(f"{name} from {found}, not from the package")
     return problems
 
@@ -453,8 +456,9 @@ def check_appdir_libraries(appdir: Path) -> None:
     for binary in binaries:
         result = subprocess.run(["ldd", str(binary)], stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL, text=True, env=env, check=False)
+        direct = set(elf_needed(binary))
         problems += [f"{binary.relative_to(appdir)}: {text}"
-                     for text in foreign_libraries(result.stdout, own, appdir)]
+                     for text in foreign_libraries(result.stdout, own, appdir, direct)]
     if problems:
         raise PackageError("Libraries the package does not load from itself:\n  " +
                            "\n  ".join(problems))

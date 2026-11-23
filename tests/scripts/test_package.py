@@ -312,9 +312,13 @@ class DebianPackageTest(unittest.TestCase):
                "\tlibsqlite3.so.0 => /lib/x86_64-linux-gnu/libsqlite3.so.0 (0x00007f1c2a000000)\n"
                "\tlibssl.so.3 => /build/AppDir/usr/lib/libssl.so.3 (0x00007f1c29e00000)\n"
                "\tlibgtk-3.so.0 => /lib/x86_64-linux-gnu/libgtk-3.so.0 (0x00007f1c29a00000)\n"
+               "\tlibXau.so.6 => /lib/x86_64-linux-gnu/libXau.so.6 (0x00007f1c29800000)\n"
                "\tlibgone.so.1 => not found\n"
                "\t/lib64/ld-linux-x86-64.so.2 (0x00007f1c2a400000)\n")
-        self.assertEqual(package.foreign_libraries(ldd, {"libsqlite3.so.0", "libssl.so.3"}, appdir), [
+        # libXau.so.6: the package has it, but only libgtk-3 of the system needs it
+        own = {"libsqlite3.so.0", "libssl.so.3", "libXau.so.6"}
+        direct = {"libsqlite3.so.0", "libssl.so.3", "libgtk-3.so.0"}
+        self.assertEqual(package.foreign_libraries(ldd, own, appdir, direct), [
             "libsqlite3.so.0 from /lib/x86_64-linux-gnu/libsqlite3.so.0, not from the package",
             "libgone.so.1 not found"])
 
