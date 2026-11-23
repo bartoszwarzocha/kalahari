@@ -727,10 +727,12 @@ def pe_imports(binary: Path) -> Tuple[List[str], List[str]]:
         raise PackageError(f"{binary} is not a Windows program or library: {error}") from error
 
 
-def windows_system_libraries() -> Set[str]:
-    """The names (in small letters) of the DLLs in System32 of this Windows."""
-    system = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32"
-    return {path.name.lower() for path in system.glob("*.dll")}
+def windows_system_libraries(windows: Optional[Path] = None) -> Set[str]:
+    """The names (in small letters) of the files in System32 of this Windows (@p windows: its
+    folder). A library can import any of them, not only a .dll (Qt6PrintSupport.dll imports
+    WINSPOOL.DRV)."""
+    system = (windows or Path(os.environ.get("SystemRoot", r"C:\Windows"))) / "System32"
+    return {path.name.lower() for path in system.iterdir() if path.is_file()}
 
 
 def windows_library_place(dll: str, own: Set[str], system: Set[str], at_start: bool) -> str:

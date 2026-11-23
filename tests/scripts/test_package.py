@@ -383,6 +383,15 @@ class WindowsLibrariesTest(unittest.TestCase):
             self.assertEqual(package.missing_windows_libraries(stage, system),
                              ([], ["platforms/qwindows.dll: optional.dll"]))
 
+    def test_the_libraries_of_windows(self):
+        with tempfile.TemporaryDirectory() as folder:
+            windows = Path(folder)
+            for name in ("KERNEL32.dll", "winspool.drv"):
+                write(windows / "System32" / name)
+            write(windows / "System32" / "drivers" / "etc" / "hosts")
+            self.assertEqual(package.windows_system_libraries(windows),
+                             {"kernel32.dll", "winspool.drv"})
+
     def test_the_runtime_of_visual_cpp_in_the_package(self):
         packaging = (REPO_ROOT / "cmake" / "Packaging.cmake").read_text(encoding="utf-8")
         self.assertIn("include(InstallRequiredSystemLibraries)", packaging)
