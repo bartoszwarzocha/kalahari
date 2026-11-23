@@ -1079,7 +1079,7 @@ def bundle_library_problems(bundle: Path,
                 continue
             if dependency.startswith("@") and Path(dependency).name in names:
                 continue
-            problems.append(f"{binary.relative_to(bundle)}: {dependency}")
+            problems.append(f"{binary.relative_to(bundle).as_posix()}: {dependency}")
     return problems
 
 
