@@ -187,6 +187,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.bullets", "resources/icons/twotone/format_list_bulleted.svg", "Bullets");
     iconRegistry.registerIcon("format.numbering", "resources/icons/twotone/format_list_numbered.svg", "Numbering");
     iconRegistry.registerIcon("format.bulletsNumbering", "resources/icons/twotone/format_list_numbered.svg", "Bullets and Numbering");
+    iconRegistry.registerIcon("format.page", "resources/icons/twotone/fit_page.svg", "Page Size and Margins");
     iconRegistry.registerIcon("format.listSets", "resources/icons/twotone/view_list.svg", "Pick List Set");
     iconRegistry.registerIcon("format.fontColor", "resources/icons/twotone/format_color_text.svg", "Font Color");
     iconRegistry.registerIcon("format.highlightColor", "resources/icons/twotone/border_color.svg", "Highlight Color");

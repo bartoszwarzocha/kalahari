@@ -25,6 +25,7 @@
 
 #include <QAbstractButton>
 #include <QApplication>
+#include <QScreen>
 #include <QBuffer>
 #include <QCheckBox>
 #include <QComboBox>
@@ -685,6 +686,44 @@ TEST_CASE("Import Text: six tabs, the window whole on a small screen, the access
         REQUIRE(polish.loaded());
         checkAll();
         checkResult();
+    }
+}
+
+TEST_CASE("Import Text: the window opens higher than its content, the lists take the height",
+          "[gui][dialogs][import]") {
+    SettingsKept kept;
+    Novel novel;
+    Files files;
+    QStringList titles;
+    for (int i = 1; i <= 30; ++i) {
+        titles << QStringLiteral("Rozdział %1").arg(i);
+    }
+    const QString docx = files.writeDocx(QStringLiteral("Szklane miasto.docx"), titles);
+    ImportBookDialog dialog(Novel::dialogBook(), core::ProjectManager::installedBookTypes(),
+                            ImportFormat::Docx, {docx}, {});
+    dialog.setTarget(ImportBookDialog::Target::Book);
+    dialog.show();
+    QApplication::processEvents();
+
+    // About 100 px higher than the content asks for, within the screen
+    const QRect screen = dialog.screen()->availableGeometry();
+    CHECK(dialog.height() > dialog.sizeHint().height());
+    CHECK((dialog.height() >= dialog.sizeHint().height() + 100 ||
+           dialog.frameGeometry().height() >= screen.height() - 40));
+
+    // Each list higher than its rows ask for: the files, the place, the texts, the styles
+    const auto* place = dialog.picker()->findChild<QTreeWidget*>();
+    REQUIRE(place != nullptr);
+    const QList<std::pair<int, const QTreeWidget*>> lists{{0, dialog.fileList()},
+                                                          {1, place},
+                                                          {2, dialog.textList()},
+                                                          {3, dialog.styleList()}};
+    for (const auto& [tab, list] : lists) {
+        dialog.tabs()->setCurrentIndex(tab);
+        QApplication::processEvents();
+        INFO("Tab " << tab);
+        CHECK(list->isVisible());
+        CHECK(list->height() > list->sizeHint().height());
     }
 }
 

@@ -25,11 +25,13 @@
 class QCheckBox;
 class QComboBox;
 class QEvent;
+class QGridLayout;
 class QGroupBox;
 class QLabel;
 class QLineEdit;
 class QPushButton;
 class QRadioButton;
+class QShowEvent;
 class QSpinBox;
 class QStackedWidget;
 class QTabWidget;
@@ -339,6 +341,10 @@ class ImportBookDialog : public ArchiveDialog {
     /// @brief F2 in the list of the texts changes the title of the text, F4 its kind
     bool eventFilter(QObject* watched, QEvent* event) override;
 
+    /// @brief The window opens EXTRA_HEIGHT higher than its content asks for, within the
+    /// screen: the lists take the room
+    void showEvent(QShowEvent* event) override;
+
    private:
     /// @brief Create the window of @p format; of ImportFormat::Plugin, of the format @p plugin
     ImportBookDialog(const Book& book, const core::BookTypeRegistry& registry, ImportFormat format,
@@ -351,6 +357,9 @@ class ImportBookDialog : public ArchiveDialog {
     void buildPlaceTab();
     void buildDivisionTab();
     void buildStylesTab();
+    /// @brief The list of the styles takes the height of its tab; without it (plain text) the
+    /// paragraphs stay at the top
+    void stretchStyles();
     void buildCleanupTab();
     void buildExtrasTab();
 
@@ -489,6 +498,8 @@ class ImportBookDialog : public ArchiveDialog {
     QWidget* m_fileStyles = nullptr;
     QComboBox* m_formattingBox = nullptr;
     RowList* m_styleList = nullptr;
+    QGridLayout* m_stylesLayout = nullptr;  ///< The grid of the tab Styles
+    bool m_grown = false;                   ///< Whether the window got EXTRA_HEIGHT
     QHash<QString, QComboBox*> m_styleChoices;  ///< By the name of the file's style
     QWidget* m_textParagraphs = nullptr;
     QRadioButton* m_linesButton = nullptr;

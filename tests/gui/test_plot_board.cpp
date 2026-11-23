@@ -13,6 +13,7 @@
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/chapter_document.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/theme.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -492,6 +493,72 @@ TEST_CASE("Plot board: the outline shows the parts over their texts and asks for
 
     model.setReadOnly(true);
     CHECK_FALSE(model.flags(model.index(3, Column::POV_COLUMN)) & Qt::ItemIsEditable);
+}
+
+TEST_CASE("Plot board: the outline shows the colors of the cards as the board does",
+          "[gui][plotboard]") {
+    PlotNovel book;
+    using Column = gui::PlotOutlineModel;
+    gui::PlotColors colors;
+    colors.draft = QColor(Qt::gray);
+    colors.revision = QColor(Qt::blue);
+    colors.finished = QColor(Qt::green);
+    colors.own = {QColor(Qt::red), QColor(Qt::yellow)};
+
+    gui::PlotOutlineModel model;
+    model.setBands(PlotBoard::bandsOf(book.pm));
+    const int calm = model.rowOf(book.calm);
+    const int part = model.rowOf(book.part);
+    REQUIRE(calm >= 0);
+    REQUIRE(part >= 0);
+    const auto decoration = [&model](int row, int column) {
+        return model.index(row, column).data(Qt::DecorationRole);
+    };
+    const auto background = [&model](int row, int column) {
+        return model.index(row, column).data(Qt::BackgroundRole);
+    };
+
+    // Without colors (none set yet): nothing
+    CHECK_FALSE(decoration(calm, Column::TITLE_COLUMN).isValid());
+
+    // By state: a square of the color before the title, the other cells without it
+    QStringList changed;
+    QObject::connect(&model, &QAbstractItemModel::dataChanged,
+                     [&changed]() { changed << QStringLiteral("changed"); });
+    model.setColoring(QString::fromLatin1(PlotBoard::COLOR_STATUS), colors, false);
+    CHECK(changed.size() == 1);
+    CHECK(decoration(calm, Column::TITLE_COLUMN).value<QColor>() == QColor(Qt::gray));
+    CHECK_FALSE(decoration(calm, Column::DESCRIPTION_COLUMN).isValid());
+    CHECK_FALSE(background(calm, Column::TITLE_COLUMN).isValid());
+
+    // The background as the card's, with the tint; a part's row keeps its own
+    model.setColoring(QString::fromLatin1(PlotBoard::COLOR_STATUS), colors, true);
+    const QColor tinted = background(calm, Column::DESCRIPTION_COLUMN).value<QBrush>().color();
+    CHECK(tinted == kalahari::core::mixedColor(QPalette().color(QPalette::Base), QColor(Qt::gray),
+                                               gui::PlotColors::TINT_SHARE));
+    CHECK(background(part, Column::TITLE_COLUMN).value<QBrush>().color() ==
+          QPalette().color(QPalette::AlternateBase));
+    CHECK_FALSE(decoration(part, Column::TITLE_COLUMN).isValid());
+
+    // Without colors on the board, none in the outline
+    model.setColoring(QString::fromLatin1(PlotBoard::COLOR_NONE), colors, true);
+    CHECK_FALSE(decoration(calm, Column::TITLE_COLUMN).isValid());
+    CHECK_FALSE(background(calm, Column::TITLE_COLUMN).isValid());
+
+    // On the tab of the board the outline has the colors the board has
+    gui::registerAllIcons();
+    const KeptSetting colorBy(PlotBoard::COLOR_SETTING);
+    core::SettingsManager::getInstance().set<std::string>(PlotBoard::COLOR_SETTING,
+                                                          PlotBoard::COLOR_STATUS);
+    test::Window window;
+    gui::PlotBoardCoordinator boards{book.pm, window.tabs, &window.navigator, &window.statusBar,
+                                     [](bool) {}};
+    gui::PlotBoardPanel* panel =
+        boards.openBoard(QString::fromLatin1(PlotBoard::VIEW_OUTLINE), true);
+    REQUIRE(panel != nullptr);
+    const gui::PlotOutlineModel* outline = panel->outlineModel();
+    const QModelIndex title = outline->index(outline->rowOf(book.calm), Column::TITLE_COLUMN);
+    CHECK(title.data(Qt::DecorationRole).value<QColor>().isValid());
 }
 
 TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z undoes it",

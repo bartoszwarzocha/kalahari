@@ -329,6 +329,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **After the test of 23.11** - 2026-11-23.
+  - The outline of the Plot Board shows the colors of the cards as the board does: a square
+    of the card's color before its title and, with the tint of the cards on, the row tinted.
+  - Show Clipping has no System Program: a clipping is a file of the program.
+  - New Volume... is first in the menu of the project in the Navigator, no longer in the menu
+    of a book or of a volume, which add their parts.
+  - The window of File > Import > Text... opens higher, and its lists take the height.
+  - Format > Page Size and Margins... opens Settings > Editor > Pages and Margins.
+  - The card of a book on the Dashboard is darkened, with a spinner turning on it, until the
+    book is open.
+  - The icons of the light theme are grey and light grey by default (#8f8f8f and #ebebeb).
+  - The group Build of About is at the end of its tab, before the copyright.
 - **After the test of 22.11** - 2026-11-22.
   - The statistics count only writing: the words typed, deleted, cut or written in a note's
     frame, and their Undo and Redo. A caption of an image or a table, a clipping cut out of the

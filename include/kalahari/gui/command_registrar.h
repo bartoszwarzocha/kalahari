@@ -201,6 +201,8 @@ struct CommandCallbacks {
     std::function<void()> onNumbering;          ///< Format > Numbering
     std::function<void()> onListSets;           ///< Format > Pick List Set, given keys: its menu
     std::function<void()> onBulletsNumbering;   ///< Format > Bullets and Numbering...
+    /// Format > Page Size and Margins...: Settings > Editor > Pages and Margins
+    std::function<void()> onPageSettings;
 
     /// Format > Text Style: puts the paragraphs of the cursor or the selection in the style
     /// of this id (editor/paragraph_styles.h)

@@ -121,9 +121,10 @@ QString AboutDialog::buildInformation() {
 }
 
 QWidget* AboutDialog::createBuildGroup(QWidget* parent) {
-    //: The group at the top of the About tab: what the program was built from. In Polish:
+    //: The group at the end of the About tab: what the program was built from. In Polish:
     //: Kompilacja
     auto* group = new QGroupBox(tr("Build"), parent);
+    group->setObjectName(QStringLiteral("aboutBuildGroup"));
     auto* layout = new QVBoxLayout(group);
     auto* form = new QFormLayout();
     for (const auto& [label, value] : buildRows()) {
@@ -154,10 +155,6 @@ QWidget* AboutDialog::createAboutTab() {
     // The name, the version and the version of Qt are in the heading
     QWidget* widget = new QWidget();
     QVBoxLayout* layout = new QVBoxLayout(widget);
-
-    // What the program was built from: which program a test or a report is about
-    layout->addWidget(createBuildGroup(widget));
-    layout->addSpacing(10);
 
     // Platform info
     QLabel* platform = new QLabel(
@@ -194,6 +191,11 @@ QWidget* AboutDialog::createAboutTab() {
            "  Target Release: February 2027 (Kalahari 1.0)"), widget);
     credits->setWordWrap(true);
     layout->addWidget(credits);
+    layout->addSpacing(10);
+
+    // At the end, after what the program is: what it was built from, which program a test or
+    // a report is about
+    layout->addWidget(createBuildGroup(widget));
     layout->addStretch(1);
 
     // Copyright

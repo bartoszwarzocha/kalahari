@@ -1335,6 +1335,10 @@
         <translation>&amp;Wycinek z Warsztatu...</translation>
     </message>
     <message>
+        <source>Page Si&amp;ze and Margins...</source>
+        <translation>Strona i mar&amp;ginesy...</translation>
+    </message>
+    <message>
         <source>Foo&amp;tnote Layout...</source>
         <translation>Ustaw&amp;ienia przypisów...</translation>
     </message>
@@ -11511,7 +11515,7 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
     </message>
     <message>
         <source>New &amp;Volume...</source>
-        <extracomment>The command of the series and of its volumes in the Navigator, as Book &gt; New Volume... In Polish: N&amp;owy tom...</extracomment>
+        <extracomment>The command of the project&apos;s node in the Navigator (a book or a series), as Book &gt; New Volume... In Polish: N&amp;owy tom...</extracomment>
         <translation>N&amp;owy tom...</translation>
     </message>
     <message>
@@ -17285,7 +17289,7 @@ Harmonogram projektu:
     </message>
     <message>
         <source>Build</source>
-        <extracomment>The group at the top of the About tab: what the program was built from. In Polish: Kompilacja</extracomment>
+        <extracomment>The group at the end of the About tab: what the program was built from. In Polish: Kompilacja</extracomment>
         <translation>Kompilacja</translation>
     </message>
     <message>

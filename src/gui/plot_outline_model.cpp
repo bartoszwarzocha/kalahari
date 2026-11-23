@@ -7,11 +7,14 @@
 
 #include "kalahari/gui/plot_outline_model.h"
 
+#include "kalahari/core/theme.h"
 #include "kalahari/gui/plot_board.h"
 
 #include <QAbstractItemModel>
 #include <QAbstractTableModel>
+#include <QBrush>
 #include <QChar>
+#include <QColor>
 #include <QComboBox>
 #include <QCompleter>
 #include <QFont>
@@ -180,7 +183,19 @@ PlotOutlineModel::PlotOutlineModel(QObject* parent) : QAbstractTableModel(parent
 
 void PlotOutlineModel::setBands(const QList<PlotBand>& bands) {
     m_bands = bands;
+    // As the board: each point of view keeps its color
+    m_povs = povsOf(PlotBoard::allCardsOf(bands));
     fill();
+}
+
+void PlotOutlineModel::setColoring(const QString& colorBy, const PlotColors& colors, bool tint) {
+    m_colorBy = colorBy;
+    m_colors = colors;
+    m_tint = tint;
+    if (!m_rows.isEmpty()) {
+        emit dataChanged(index(0, 0), index(rowCount() - 1, COLUMN_COUNT - 1),
+                         {Qt::DecorationRole, Qt::BackgroundRole});
+    }
 }
 
 void PlotOutlineModel::setShowScenes(bool show) {
@@ -277,11 +292,32 @@ QVariant PlotOutlineModel::data(const QModelIndex& index, int role) const {
         return row.part;
     case Qt::TextAlignmentRole:
         return alignmentOf(index.column());
+    case Qt::DecorationRole:
+    case Qt::BackgroundRole:
+        if (!row.part) {
+            return colorData(row.card, index.column(), role);
+        }
+        break;
     default:
         break;
     }
     return row.part ? partData(row, index.column(), role)
                     : cardData(row.card, index.column(), role);
+}
+
+QVariant PlotOutlineModel::colorData(const PlotCard& card, int column, int role) const {
+    const QColor color = m_colors.ofCard(card, m_colorBy, m_povs);
+    if (!color.isValid()) {
+        return {};
+    }
+    if (role == Qt::DecorationRole) {
+        return column == TITLE_COLUMN ? QVariant(color) : QVariant();
+    }
+    if (!m_tint) {
+        return {};
+    }
+    const QColor base = QPalette().color(QPalette::Base);
+    return QBrush(core::mixedColor(base, color, PlotColors::TINT_SHARE));
 }
 
 QVariant PlotOutlineModel::partData(const Row& row, int column, int role) {

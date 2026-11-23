@@ -13,6 +13,7 @@
 
 #include <QWidget>
 #include <QCheckBox>
+#include <QPointer>
 #include <QIcon>
 #include <QLabel>
 #include <QVBoxLayout>
@@ -72,6 +73,14 @@ public:
 
     /// @brief Destructor: the auto-load checkbox no longer follows its setting
     ~DashboardPanel() override;
+
+    /// @brief Open the recent book @p filePath, as a click on its card does: the card darkened
+    /// with a spinner on it until the book is open (openRecentBookRequested() returned)
+    void openRecentBook(const QString& filePath);
+
+    /// @brief The darkened card with its spinner over the card of the book being opened;
+    /// nullptr: none is
+    [[nodiscard]] QWidget* loadingOverlay() const { return m_loading; }
 
 signals:
     /// @brief Emitted when user wants to open a recent book
@@ -204,6 +213,9 @@ private:
 
     // Cached recent file cards for click handling
     std::vector<std::pair<QWidget*, QString>> m_fileCards;  ///< Card widget -> file path
+    QString m_openingPath;           ///< The book being opened from its card; empty: none
+    QPointer<QWidget> m_loading;     ///< Over its card: darkened, with a spinner
+    bool m_refreshWaits = false;     ///< The list changed while the book opened
 
     // Responsive layout state
     bool m_singleColumnMode = false;             ///< True if in single column layout

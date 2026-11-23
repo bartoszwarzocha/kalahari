@@ -4,8 +4,8 @@
   "author": "Kalahari Team",
   "description": "Default light theme with high contrast and clear readability",
   "colors": {
-    "primary": "#333333",
-    "secondary": "#999999",
+    "primary": "#8f8f8f",
+    "secondary": "#ebebeb",
     "accent": "#0078D4",
     "background": "#FFFFFF",
     "text": "#000000",

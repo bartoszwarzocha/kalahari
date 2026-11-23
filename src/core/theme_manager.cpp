@@ -83,8 +83,8 @@ ThemeManager::ThemeManager() {
     // Create fallback theme first (used if loading fails)
     m_currentTheme.name = "Fallback";
     m_currentTheme.version = "1.0";
-    m_currentTheme.colors.primary = QColor("#333333");
-    m_currentTheme.colors.secondary = QColor("#999999");
+    m_currentTheme.colors.primary = QColor("#8f8f8f");
+    m_currentTheme.colors.secondary = QColor("#ebebeb");
     m_currentTheme.colors.accent = QColor("#0078D4");
     m_currentTheme.colors.background = QColor("#FFFFFF");
     m_currentTheme.colors.text = QColor("#000000");

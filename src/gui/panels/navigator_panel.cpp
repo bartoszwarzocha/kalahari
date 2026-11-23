@@ -2342,7 +2342,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
     // Add...: the Add Element window with the kinds of the node, in bold: the command most
     // used there. In variant A (ADD_COMMANDS_SETTING) also the kinds most added there, by name
     // ("Add Chapter..."), which open the window with the kind chosen.
-    const auto addAddActions = [&]() {
+    const auto addAddActions = [&](bool named = true) {
         QAction* addAction = menu.addAction(
             artProvider.getIcon("book.addElement", core::IconContext::Menu),
             //: The command of a node of the Navigator: the Add Element window with the kinds
@@ -2354,7 +2354,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         addAction->setEnabled(addTargetOf(item).has_value());
         connect(addAction, &QAction::triggered, this, [this, item]() { addOn(item); });
         changing << addAction;
-        for (const core::KindRef& kind : namedKindsOf(item)) {
+        for (const core::KindRef& kind : named ? namedKindsOf(item) : QList<core::KindRef>()) {
             // "Add Story...", "Dodaj opowiadanie..."
             QAction* namedAction = menu.addAction(
                 artProvider.getIcon(iconIdOf(kind), core::IconContext::Menu),
@@ -2605,13 +2605,19 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
     } else if (elementType == "document") {
         // The project: its window comes with the types of books (stage 4); a click on the node
-        // shows the properties of the book, or of the series. Add... starts at the book when
-        // the Add Element window chooses where it adds.
-        if (addTargetOf(item)) {
-            addAddActions();
+        // shows the properties of the book, or of the series. New Volume... first, as the
+        // volumes are in the project; Add... after it starts at the book when the Add Element
+        // window chooses where it adds. A part or a chapter by its name (Add Part...) is added
+        // in the menu of the book or of its volume.
+        if (projectOpen) {
+            changing << addNewVolumeAction(menu);
             menu.addSeparator();
         }
-        addProjectActions(menu, changing);
+        if (addTargetOf(item)) {
+            addAddActions(false);
+            menu.addSeparator();
+        }
+        addProjectActions(menu);
         menu.addSeparator();
         addExpandCollapseActions();
 
