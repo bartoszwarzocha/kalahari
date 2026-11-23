@@ -13,9 +13,19 @@
 #      Python is the one in /opt/kalahari
 #   4. apt removes the package and leaves none of its files
 #   5. the AppImage, on the same system, starts as on a desktop (FUSE) and passes the check
+#
+# apt in the container downloads from the mirror of Ubuntu that the machine running docker
+# uses (a runner of GitHub has one next to it), not from archive.ubuntu.com, which can be slow
+# from there
 set -euo pipefail
 
 IMAGE="ubuntu:24.04"
+
+# apt_mirror < SOURCES: the first mirror of the archive of Ubuntu in sources of apt
+apt_mirror() {
+    grep -v '^[[:space:]]*#' | grep -oE 'http://[^[:space:]]+/ubuntu/?([[:space:]]|$)' |
+        sed 's/[[:space:]]*$//' | grep -v security | head -1
+}
 
 if [ "${1:-}" != "--inside" ]; then
     dist=$(cd "${1:?Give the folder of the packages}" && pwd)
@@ -25,7 +35,11 @@ if [ "${1:-}" != "--inside" ]; then
         # The AppImage mounts itself with FUSE, as on a desktop
         fuse=(--device /dev/fuse --cap-add SYS_ADMIN --security-opt apparmor=unconfined)
     fi
-    exec docker run --rm "${fuse[@]}" \
+    # The first mirror of the archive of Ubuntu in the sources of apt of this machine (http:
+    # the clean system has no certificates for https)
+    mirror=$(cat /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/*.sources \
+                 /etc/apt/sources.list 2>/dev/null | apt_mirror || true)
+    exec docker run --rm "${fuse[@]}" -e APT_MIRROR="$mirror" \
         -v "$dist:/packages:ro" -v "$script:/check-packages.sh:ro" \
         "$IMAGE" bash /check-packages.sh --inside /packages
 fi
@@ -79,6 +93,11 @@ self_test() {
 }
 
 step "apt installs the package and the libraries of the system it names"
+if [ -n "${APT_MIRROR:-}" ]; then
+    sed -i -E "s#https?://archive\.ubuntu\.com/ubuntu/?#${APT_MIRROR%/}/#g" \
+        /etc/apt/sources.list.d/ubuntu.sources
+fi
+echo "Mirror of Ubuntu: $(grep -m1 -oE 'https?://[^[:space:]]+' /etc/apt/sources.list.d/ubuntu.sources)"
 apt_get update -qq
 cp "${debs[0]}" /tmp/kalahari.deb
 chmod 644 /tmp/kalahari.deb

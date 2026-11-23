@@ -35,9 +35,9 @@ jobs:
     name: Linux Build & Test
     runs-on: ubuntu-24.04
     # System packages, no vcpkg. The build took 21 minutes on the runner for main at 0.4.0-alpha
-    # and 37 minutes after the nine features merged in November 2026; the whole job took 40,
-    # and the packages add a few minutes
-    timeout-minutes: 75
+    # and 37 minutes after the nine features merged in November 2026 (42 on a slow runner); the
+    # whole job took 40, the packages and their installation on a clean system add up to 30
+    timeout-minutes: 100
 
     strategy:
       matrix:
@@ -182,6 +182,7 @@ jobs:
     # AppImage started with FUSE (packaging/linux/check-packages.sh)
     - name: Packages installed on a clean Ubuntu 24.04
       if: matrix.build_type == 'Release'
+      timeout-minutes: 30
       run: python scripts/package.py install-check --dist dist
 
   # Debug build with AddressSanitizer + UndefinedBehaviorSanitizer, libstdc++ assertions
