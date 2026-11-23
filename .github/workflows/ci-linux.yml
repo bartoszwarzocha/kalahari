@@ -176,6 +176,14 @@ jobs:
         compression-level: 0  # the packages are compressed already
         retention-days: 30
 
+    # The packages as a writer installs them, on a clean Ubuntu 24.04 (the base of Linux Mint
+    # 22) in docker: the .deb with apt, which must bring every library the program needs from
+    # the system, its check as a user without and with an X server, its removal; then the
+    # AppImage started with FUSE (packaging/linux/check-packages.sh)
+    - name: Packages installed on a clean Ubuntu 24.04
+      if: matrix.build_type == 'Release'
+      run: python scripts/package.py install-check --dist dist
+
   # Debug build with AddressSanitizer + UndefinedBehaviorSanitizer, libstdc++ assertions
   # (out-of-range iterators and indices, ABI-compatible with system Qt) and line coverage.
   # On pull requests also runs clang-tidy on the changed lines only.

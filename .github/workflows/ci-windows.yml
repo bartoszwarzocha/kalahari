@@ -170,3 +170,10 @@ jobs:
         if-no-files-found: error
         compression-level: 0  # the packages are compressed already
         retention-days: 30
+
+    # The installer as a writer runs it, silently: for the writer alone and for all users, the
+    # files of the program, the Start menu and the .klh books, the installed program's check
+    # with its own Python, then its uninstaller, which must leave nothing (scripts/package.py)
+    - name: Installer installed, checked and uninstalled
+      if: matrix.build_type == 'Release'
+      run: python scripts/package.py install-check --dist dist

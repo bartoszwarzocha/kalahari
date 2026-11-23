@@ -17,6 +17,7 @@ the program (Windows and macOS: one file per package of vcpkg the program is bui
 | libzip, zlib | book archives, packages of book types and plugins | BSD 3-Clause, zlib | https://libzip.org/, https://zlib.net/ |
 | libcurl | downloads | curl License | https://curl.se/ |
 | OpenSSL 3 | signatures of plugins, secure connections | Apache 2.0 | https://www.openssl.org/source/ |
+| Microsoft Visual C++ runtime (Windows only: vcruntime140, msvcp140, concrt140) | the program and its libraries | the licence terms of Visual Studio for its distributable code | https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files |
 | Polish dictionary (sjp.pl, LibreOffice) | the spelling check | Apache 2.0 (`resources/dictionaries/LICENSE_pl_PL.txt`) | https://sjp.pl/sl/en/ |
 | English dictionary (SCOWL) | the spelling check | SCOWL licence (`resources/dictionaries/LICENSE_en_US.txt`) | http://wordlist.aspell.net/ |
 

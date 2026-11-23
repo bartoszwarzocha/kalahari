@@ -423,6 +423,25 @@ when a part is missing. The CI makes the packages in the Release jobs of every r
 
 The packages go to `dist/` (`--out` gives another folder), each with its `.sha256`.
 
+Each package carries everything the program needs that the system does not give: Qt, the
+Python of the plugins with its standard library, the other libraries, the resources, and on
+Windows the runtime of Visual C++. After the packages are made, the CI installs them as a writer
+does and checks the installed program (`python scripts/package.py install-check --dist dist`):
+
+- **Linux:** in docker, on a clean Ubuntu 24.04 (the base of Linux Mint 22,
+  `packaging/linux/check-packages.sh`): apt installs the `.deb` with the libraries of the
+  system it names, `ldd` finds every library of the program, the program passes its check as
+  a user without and with an X server, and apt removes it without leaving a file; then the
+  AppImage starts with FUSE and passes the same check.
+- **Windows:** the installer runs silently for the current user and for all users; the files
+  of the ZIP, the keys of the registry, the Start menu and the `.klh` books are checked, the
+  installed program passes its check with its own Python, and the uninstaller removes it all.
+  When the package is made, every DLL of every program and library in it must be in the
+  package or in Windows (the runtime of Visual C++ always in the package).
+- **macOS:** `Kalahari.app` is copied from the opened `.dmg`; its signature, its `Info.plist`
+  and its libraries (none outside the bundle and macOS) are checked, and it passes its check
+  with the Python of the bundle.
+
 - **Linux.** Both packages carry the Qt and the Python the program is built with (the AppImage
   needs no installation; the `.deb` installs into `/opt/kalahari`, with `kalahari` in
   `/usr/bin`, a menu entry and the type of the `.klh` files). The script downloads

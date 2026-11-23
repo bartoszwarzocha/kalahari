@@ -149,3 +149,9 @@ jobs:
         if-no-files-found: error
         compression-level: 0  # the package is compressed already
         retention-days: 30
+
+    # The .dmg as a writer uses it: Kalahari.app copied from the opened image, its signature,
+    # its libraries and its check with the Python of the bundle (scripts/package.py)
+    - name: Package installed from the .dmg
+      if: matrix.build_type == 'Release'
+      run: python3 scripts/package.py install-check --dist dist

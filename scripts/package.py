@@ -29,6 +29,13 @@ Usage:
         Run the check of an installation of the program PATH (kalahari, kalahari.exe, an
         AppImage), with the settings of the check in a temporary folder.
 
+    python scripts/package.py install-check [--dist dist]
+        Install the packages of this system from --dist as a writer does and check the
+        installed program. Windows: the installer silently for the writer alone and for all
+        users, then its uninstaller (the machine must not have Kalahari installed). macOS:
+        Kalahari.app copied from the .dmg. Linux: the .deb with apt and the AppImage on a clean
+        Ubuntu 24.04 (packaging/linux/check-packages.sh; needs docker).
+
 BUILD is the folder of a Release build. The packages go to --out (dist by default; the folder
 is in .gitignore). Exit code 0 on success, 1 when a package cannot be made or its check fails.
 """
@@ -42,14 +49,16 @@ import plistlib
 import re
 import shutil
 import stat
+import struct
 import subprocess
+import time
 import sys
 import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
 from xml.parsers.expat import ExpatError
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -94,6 +103,23 @@ DEB_DESCRIPTION = """Writer's IDE: write, plan and publish books
 HOMEPAGE = "https://github.com/bartoszwarzocha/kalahari"
 # How long the check of an installation may take (the first start of Python included)
 CHECK_TIMEOUT_S = 180
+# How long an installer or an uninstaller of Windows may take
+INSTALL_TIMEOUT_S = 600
+
+# The DLLs Windows gives every program: the API sets name parts of Windows, not files
+WINDOWS_API_SETS = ("api-ms-win-", "ext-ms-win-")
+# The runtime of Visual C++ and the debug runtime: a build machine has them in System32 (with
+# Visual Studio), a Windows of a writer may not, so the package itself has to carry them
+VISUAL_CPP_RUNTIME = re.compile(
+    r"^(vcruntime|msvcp|msvcr|concrt|vccorlib|vcomp|vcamp|mfc|ucrtbased)", re.IGNORECASE)
+WINDOWS_BINARIES = (".exe", ".dll", ".pyd")
+# The Windows installer: its keys in the registry (packaging/windows/kalahari.nsi)
+REGISTRY_KEY = r"Software\Kalahari"
+UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Kalahari"
+BOOK_TYPE = "Kalahari.Book"
+BOOKS_KEY = r"Software\Classes\.klh"
+BOOK_TYPE_KEY = rf"Software\Classes\{BOOK_TYPE}"
+BOOK_COMMAND_KEY = rf"Software\Classes\{BOOK_TYPE}\shell\open\command"
 
 
 class PackageError(Exception):
@@ -185,12 +211,18 @@ def isolated_environment(home: Path) -> Dict[str, str]:
     return env
 
 
-def check_program(program: Path) -> None:
-    """Run the check of an installation of @p program; raise PackageError when it fails."""
+def check_program(program: Path, python_within: Optional[Path] = None,
+                  as_installed: bool = False) -> None:
+    """Run the check of an installation of @p program; raise PackageError when it fails, when
+    its Python is that of the build machine, or when it is not in @p python_within (the folder
+    of the installation, when the check knows it). @p as_installed: Python writes its compiled
+    modules where the program tells it to (the cache of the user), as for a writer."""
     if not program.is_file():
         raise PackageError(f"No program {program}")
     with tempfile.TemporaryDirectory(prefix="kalahari-check-") as home:
         env = isolated_environment(Path(home))
+        if as_installed:
+            env.pop("PYTHONDONTWRITEBYTECODE")
         log(f"$ {program} --self-test")
         try:
             result = subprocess.run([str(program), "--self-test"], env=env, cwd=home,
@@ -206,6 +238,8 @@ def check_program(program: Path) -> None:
         if home is not None and is_inside(home, Path(sys.base_prefix)):
             raise PackageError(f"{program} uses the Python of the build machine ({home}), "
                                "not its own")
+        if python_within is not None and (home is None or not is_inside(home, python_within)):
+            raise PackageError(f"{program} uses a Python outside {python_within} ({home})")
 
 
 def python_home_of_check(output: str) -> Optional[Path]:
@@ -464,7 +498,8 @@ def package_linux(build: Path, out: Path, tools: Optional[Path]) -> List[Path]:
     shutil.move(str(image), str(appimage))
     check_program(appimage)
     deb = make_deb(appdir, work, out, version)
-    check_program(work / "deb" / "opt" / "kalahari" / "bin" / "kalahari")
+    installed = work / "deb" / "opt" / "kalahari"
+    check_program(installed / "bin" / "kalahari", python_within=installed)
     for package in (appimage, deb):
         write_sha256(package)
     return [appimage, deb]
@@ -540,12 +575,169 @@ def make_zip(stage: Path, package: Path) -> None:
             archive.write(stage / relative, str(Path("Kalahari") / relative))
 
 
+class PeFile:
+    """The headers of a Windows program or library (PE32 or PE32+) and the names in its tables
+    of imports. Raises ValueError or struct.error for a file of another kind."""
+
+    IMPORTS = 1           # the numbers of the data directories
+    DELAYED_IMPORTS = 13
+
+    def __init__(self, data: bytes) -> None:
+        self.data = data
+        if data[:2] != b"MZ":
+            raise ValueError("no MZ header")
+        header = self.number("<I", 0x3C)
+        if data[header:header + 4] != b"PE\0\0":
+            raise ValueError("no PE header")
+        optional = header + 24
+        magic = self.number("<H", optional)
+        if magic == 0x20B:    # PE32+ (64-bit)
+            self.image_base, self.directories = self.number("<Q", optional + 24), optional + 112
+        elif magic == 0x10B:  # PE32
+            self.image_base, self.directories = self.number("<I", optional + 28), optional + 96
+        else:
+            raise ValueError(f"optional header {magic:#x}")
+        self.directory_count = self.number("<I", self.directories - 4)
+        first = optional + self.number("<H", header + 20)
+        self.sections = []
+        for index in range(self.number("<H", header + 6)):
+            size, address, raw_size, raw = struct.unpack_from("<IIII", data, first + 40 * index + 8)
+            self.sections.append((address, max(size, raw_size), raw))
+
+    def number(self, fmt: str, offset: int) -> int:
+        return struct.unpack_from(fmt, self.data, offset)[0]
+
+    def offset_of(self, address: int) -> int:
+        for start, size, raw in self.sections:
+            if start <= address < start + size:
+                return address - start + raw
+        raise ValueError(f"address {address:#x} outside the sections")
+
+    def name_at(self, address: int) -> str:
+        start = self.offset_of(address)
+        return self.data[start:self.data.index(b"\0", start)].decode("ascii")
+
+    def table(self, index: int) -> int:
+        """The offset in the file of the data directory @p index, -1 when there is none."""
+        if index >= self.directory_count:
+            return -1
+        address = self.number("<I", self.directories + 8 * index)
+        return self.offset_of(address) if address else -1
+
+    def imports(self) -> List[str]:
+        names = []
+        entry = self.table(self.IMPORTS)
+        while entry >= 0:
+            lookup, _, _, name, thunks = struct.unpack_from("<IIIII", self.data, entry)
+            if not (lookup or name or thunks):
+                break
+            names.append(self.name_at(name))
+            entry += 20
+        return names
+
+    def delayed_imports(self) -> List[str]:
+        names = []
+        entry = self.table(self.DELAYED_IMPORTS)
+        while entry >= 0:
+            attributes, name = struct.unpack_from("<II", self.data, entry)
+            if not name:
+                break
+            # Old linkers wrote addresses, not offsets from the start of the image
+            names.append(self.name_at(name if attributes & 1 else name - self.image_base))
+            entry += 32
+        return names
+
+
+def pe_imports(binary: Path) -> Tuple[List[str], List[str]]:
+    """The DLLs a Windows program or library loads: at its start (its table of imports) and
+    when it first calls one of them (its table of delayed imports)."""
+    try:
+        pe = PeFile(binary.read_bytes())
+        return pe.imports(), pe.delayed_imports()
+    except (ValueError, struct.error) as error:
+        raise PackageError(f"{binary} is not a Windows program or library: {error}") from error
+
+
+def windows_system_libraries() -> Set[str]:
+    """The names (in small letters) of the DLLs in System32 of this Windows."""
+    system = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32"
+    return {path.name.lower() for path in system.glob("*.dll")}
+
+
+def windows_library_place(dll: str, own: Set[str], system: Set[str], at_start: bool) -> str:
+    """Where Windows finds the DLL @p dll (in small letters) a library of the package loads at
+    its start or later (@p at_start), with the DLLs of its folders @p own and of System32 @p
+    system: "package", "api-set", "windows", "missing" (the program does not start) or
+    "delayed" (only a part of it fails, when it first calls the DLL)."""
+    if dll in own:
+        return "package"
+    if dll.startswith(WINDOWS_API_SETS):
+        return "api-set"
+    if VISUAL_CPP_RUNTIME.match(dll):
+        return "missing"  # on the build machine only
+    if dll in system:
+        return "windows"
+    return "missing" if at_start else "delayed"
+
+
+def missing_windows_libraries(stage: Path, system: Set[str],
+                              from_windows: Optional[Set[str]] = None
+                              ) -> Tuple[List[str], List[str]]:
+    """The DLLs the programs and libraries of @p stage need that neither the folder of the
+    program nor Windows gives (@p system: the DLLs of System32, in small letters). Windows
+    looks for a DLL in the folder of the library, in the folder of the program and in
+    System32; the runtime of Visual C++ has to be in the package (VISUAL_CPP_RUNTIME).
+    Returns the missing DLLs and the delayed ones Windows does not have (a part of the program
+    fails when it first calls them); @p from_windows gets the DLLs Windows gives."""
+    names: Dict[Path, Set[str]] = {}
+
+    def names_of(folder: Path) -> Set[str]:
+        if folder not in names:
+            names[folder] = {path.name.lower() for path in folder.iterdir() if path.is_file()}
+        return names[folder]
+
+    missing: List[str] = []
+    delayed_missing: List[str] = []
+    for relative in files_of(stage):
+        if relative.suffix.lower() not in WINDOWS_BINARIES:
+            continue
+        binary = stage / relative
+        own = names_of(stage) | names_of(binary.parent)
+        imports, delayed = pe_imports(binary)
+        loaded = [(name, True) for name in imports] + [(name, False) for name in delayed]
+        for name, at_start in loaded:
+            place = windows_library_place(name.lower(), own, system, at_start)
+            if place == "missing":
+                missing.append(f"{relative.as_posix()}: {name}")
+            elif place == "delayed":
+                delayed_missing.append(f"{relative.as_posix()}: {name}")
+            elif place == "windows" and from_windows is not None:
+                from_windows.add(name.lower())
+    return missing, delayed_missing
+
+
+def check_windows_libraries(stage: Path) -> None:
+    """Every DLL the folder of the program needs is in it or in Windows; raise PackageError."""
+    if sys.platform != "win32":
+        log("The DLLs of the package are checked on Windows only")
+        return
+    from_windows: Set[str] = set()
+    missing, delayed = missing_windows_libraries(stage, windows_system_libraries(), from_windows)
+    log("DLLs of Windows the package uses: " + ", ".join(sorted(from_windows)))
+    for text in delayed:
+        log(f"Delayed DLL not in Windows (the part that calls it fails): {text}")
+    if missing:
+        raise PackageError("DLLs missing from the package:\n  " + "\n  ".join(missing))
+    log("Every DLL of the package is in it or in Windows")
+
+
 def package_windows(build: Path, out: Path, makensis_path: Optional[str]) -> List[Path]:
     version, _ = program_version()
     work = build / "_packaging"
     stage = fresh_folder(work / "Kalahari")
     cmake_install(build, stage)
-    check_program(stage / "kalahari.exe")
+    check_windows_libraries(stage)
+    check_program(stage / "kalahari.exe", python_within=stage)
     # The check leaves the log of the program in its folder: not a file of the package
     (stage / "kalahari.log").unlink(missing_ok=True)
     out.mkdir(parents=True, exist_ok=True)
@@ -637,7 +829,8 @@ def package_macos(build: Path, out: Path) -> List[Path]:
             run(["codesign", "--force", "--sign", "-", "--timestamp=none", binary])
     run(["codesign", "--force", "--deep", "--sign", "-", "--timestamp=none", bundle])
     run(["codesign", "--verify", "--deep", "--strict", "--verbose=2", bundle])
-    check_program(bundle / "Contents" / "MacOS" / "kalahari")
+    check_bundle_libraries(bundle)
+    check_program(bundle / "Contents" / "MacOS" / "kalahari", python_within=bundle)
 
     image_folder = fresh_folder(work / "dmg")
     shutil.copytree(bundle, image_folder / "Kalahari.app", symlinks=True)
@@ -649,6 +842,243 @@ def package_macos(build: Path, out: Path) -> List[Path]:
          "-fs", "HFS+", "-format", "UDZO", "-ov", package])
     write_sha256(package)
     return [package]
+
+
+# =============================================================================
+# The packages installed as a writer installs them (install-check)
+# =============================================================================
+
+def files_of_zip(archive: Path) -> Set[str]:
+    """The files of the ZIP of the program, without its folder Kalahari/ (make_zip)."""
+    with zipfile.ZipFile(archive) as opened:
+        return {name.split("/", 1)[1] for name in opened.namelist()
+                if not name.endswith("/") and "/" in name}
+
+
+def differences(expected: Set[str], found: Set[str]) -> List[str]:
+    """The files @p found lacks and has besides @p expected, in small letters (Windows)."""
+    expected_names = {name.lower(): name for name in expected}
+    found_names = {name.lower(): name for name in found}
+    lacking = sorted(expected_names.keys() - found_names.keys())
+    extra = sorted(found_names.keys() - expected_names.keys())
+    return ([f"missing {expected_names[name]}" for name in lacking] +
+            [f"extra {found_names[name]}" for name in extra])
+
+
+def registry_values(root: int, key: str) -> Optional[Dict[str, object]]:
+    """The values of a key of the registry (its 64-bit view), None when there is no key."""
+    import winreg  # noqa: PLC0415 (Windows only)
+    try:
+        with winreg.OpenKey(root, key, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as handle:
+            values: Dict[str, object] = {}
+            index = 0
+            while True:
+                try:
+                    name, value, _ = winreg.EnumValue(handle, index)
+                except OSError:
+                    return values
+                values[name] = value
+                index += 1
+    except FileNotFoundError:
+        return None
+
+
+def same_path(first: object, second: Path) -> bool:
+    def normal(path: object) -> str:
+        return os.path.normcase(os.path.normpath(str(path)))
+    return normal(first) == normal(second)
+
+
+def wait_until(condition: Callable[[], bool], timeout_s: int) -> bool:
+    deadline = time.monotonic() + timeout_s
+    while not condition():
+        if time.monotonic() > deadline:
+            return False
+        time.sleep(1)
+    return True
+
+
+class WindowsInstallation:
+    """An installation of the Windows installer: for the writer alone ("CurrentUser") or for
+    all users ("AllUsers"), with the places kalahari.nsi writes to."""
+
+    def __init__(self, mode: str) -> None:
+        import winreg  # noqa: PLC0415 (Windows only)
+        menu = Path("Microsoft") / "Windows" / "Start Menu" / "Programs" / "Kalahari.lnk"
+        self.mode = mode
+        if mode == "CurrentUser":
+            self.root = winreg.HKEY_CURRENT_USER
+            self.folder = Path(os.environ["LOCALAPPDATA"]) / "Programs" / "Kalahari"
+            self.shortcut = Path(os.environ["APPDATA"]) / menu
+        else:
+            self.root = winreg.HKEY_LOCAL_MACHINE
+            program_files = os.environ.get("ProgramW6432") or os.environ["ProgramFiles"]
+            self.folder = Path(program_files) / "Kalahari"
+            self.shortcut = Path(os.environ["ProgramData"]) / menu
+
+    def values(self, key: str) -> Optional[Dict[str, object]]:
+        return registry_values(self.root, key)
+
+    def problems(self, expected: Set[str], version: str) -> List[str]:
+        """What the installation lacks: the files @p expected, its keys, its shortcut, the
+        program of the .klh books."""
+        if not self.folder.is_dir():
+            return [f"no folder {self.folder}"]
+        found = {relative.as_posix() for relative in files_of(self.folder)}
+        problems = [f"files: {text}" for text in differences(expected, found)]
+        program = self.values(REGISTRY_KEY) or {}
+        if not same_path(program.get("InstallLocation", ""), self.folder):
+            problems.append(f"InstallLocation {program.get('InstallLocation')!r}")
+        if program.get("InstallMode") != self.mode:
+            problems.append(f"InstallMode {program.get('InstallMode')!r}")
+        uninstall = self.values(UNINSTALL_KEY) or {}
+        if uninstall.get("DisplayVersion") != version:
+            problems.append(f"DisplayVersion {uninstall.get('DisplayVersion')!r}")
+        if str(self.uninstaller()).lower() not in self.quiet_uninstall().lower():
+            problems.append(f"QuietUninstallString {self.quiet_uninstall()!r}")
+        if not self.shortcut.is_file():
+            problems.append(f"no shortcut {self.shortcut}")
+        books = (self.values(BOOKS_KEY) or {}).get("")
+        command = (self.values(BOOK_COMMAND_KEY) or {}).get("")
+        if books != BOOK_TYPE or str(command).lower() != f'"{self.program()}" "%1"'.lower():
+            problems.append(f".klh books: {books!r}, {command!r}")
+        return problems
+
+    def left_after_uninstall(self) -> List[str]:
+        left = []
+        if self.folder.exists():
+            left = [str(path) for path in sorted(self.folder.rglob("*"))][:20] or [str(self.folder)]
+        if self.shortcut.exists():
+            left.append(str(self.shortcut))
+        left += [key for key in (REGISTRY_KEY, UNINSTALL_KEY, BOOKS_KEY, BOOK_TYPE_KEY)
+                 if self.values(key) is not None]
+        return left
+
+    def program(self) -> Path:
+        return self.folder / "kalahari.exe"
+
+    def uninstaller(self) -> Path:
+        return self.folder / "uninstall.exe"
+
+    def quiet_uninstall(self) -> str:
+        return str((self.values(UNINSTALL_KEY) or {}).get("QuietUninstallString", ""))
+
+
+def check_windows_installer(dist: Path) -> None:
+    """The installer of @p dist, silently, for the writer alone and for all users: the files
+    of the ZIP of the program, the keys of the registry, the Start menu and the .klh books; the
+    installed program passes its check with its own Python; its uninstaller removes it all."""
+    installers = sorted(dist.glob("Kalahari-*-windows-x64-setup.exe"))
+    if len(installers) != 1:
+        raise PackageError(f"{len(installers)} installers of Windows in {dist}")
+    installer = installers[0]
+    expected = files_of_zip(installer.with_name(installer.name.replace("-setup.exe", ".zip")))
+    expected.add("uninstall.exe")
+    version, _ = program_version()
+    for mode in ("CurrentUser", "AllUsers"):
+        installation = WindowsInstallation(mode)
+        log(f"Installation {mode}: {installation.folder}")
+        if installation.folder.exists() or installation.values(REGISTRY_KEY) is not None:
+            raise PackageError(f"Kalahari is installed already ({installation.folder})")
+        log(f"$ {installer} /S /{mode}")
+        result = subprocess.run([str(installer), "/S", f"/{mode}"], timeout=INSTALL_TIMEOUT_S,
+                                check=False)
+        if result.returncode != 0:
+            raise PackageError(f"The installer ended with code {result.returncode}")
+        problems = installation.problems(expected, version)
+        if problems:
+            raise PackageError(f"The installation {mode}:\n  " + "\n  ".join(problems))
+        check_program(installation.program(), python_within=installation.folder, as_installed=True)
+
+        # As Settings > Apps uninstalls it: the uninstaller copies itself to the temporary
+        # folder, starts the copy and ends at once; the copy removes the files and the keys
+        quiet = installation.quiet_uninstall()
+        log(f"$ {quiet}")
+        subprocess.run(quiet, timeout=INSTALL_TIMEOUT_S, check=False)
+        wait_until(lambda: not installation.left_after_uninstall(), INSTALL_TIMEOUT_S)
+        left = installation.left_after_uninstall()
+        if left:
+            raise PackageError(f"The uninstaller of {mode} left:\n  " + "\n  ".join(left))
+        log(f"Installation {mode}: installed, checked and removed")
+
+
+def bundle_library_problems(bundle: Path,
+                            dependencies_of: Callable[[Path], List[str]]) -> List[str]:
+    """The libraries the programs and libraries of a bundle load from neither the bundle nor
+    macOS (an absolute path outside /System and /usr/lib, or a name the bundle has no file of)."""
+    names = {path.name for path in bundle.rglob("*")}
+    problems = []
+    for binary in macho_files(bundle):
+        for dependency in dependencies_of(binary):
+            if dependency.startswith(("/System/", "/usr/lib/")):
+                continue
+            if dependency.startswith("@") and Path(dependency).name in names:
+                continue
+            problems.append(f"{binary.relative_to(bundle)}: {dependency}")
+    return problems
+
+
+def check_bundle_libraries(bundle: Path) -> None:
+    problems = bundle_library_problems(bundle, dependencies)
+    if problems:
+        raise PackageError("Libraries outside the bundle and macOS:\n  " + "\n  ".join(problems))
+    log(f"Every library of {bundle.name} is in it or in macOS")
+
+
+def check_macos_image(dist: Path) -> None:
+    """The .dmg of @p dist as a writer uses it: Kalahari.app copied from the opened image into
+    a folder of applications; its signature, Info.plist and libraries, and its check with the
+    Python of the bundle."""
+    images = sorted(dist.glob("Kalahari-*-macos-*.dmg"))
+    if len(images) != 1:
+        raise PackageError(f"{len(images)} images of macOS in {dist}")
+    with tempfile.TemporaryDirectory(prefix="kalahari-dmg-") as work:
+        volume = Path(work) / "volume"
+        applications = Path(work) / "Applications"
+        volume.mkdir()
+        applications.mkdir()
+        run(["hdiutil", "attach", "-nobrowse", "-readonly", "-noautoopen",
+             "-mountpoint", volume, images[0]])
+        try:
+            shown = sorted(path.name for path in volume.iterdir() if not path.name.startswith("."))
+            link = volume / "Applications"
+            if shown != ["Applications", "Kalahari.app"] or not link.is_symlink() or \
+                    os.readlink(link) != "/Applications":
+                raise PackageError(f"The image shows {shown}, not Kalahari.app and Applications")
+            run(["ditto", volume / "Kalahari.app", applications / "Kalahari.app"])
+        finally:
+            if subprocess.run(["hdiutil", "detach", str(volume)], check=False).returncode != 0:
+                time.sleep(5)
+                run(["hdiutil", "detach", "-force", volume])
+        bundle = applications / "Kalahari.app"
+        check_info_plist(bundle)
+        run(["codesign", "--verify", "--deep", "--strict", "--verbose=2", bundle])
+        check_bundle_libraries(bundle)
+        program = bundle / "Contents" / "MacOS" / "kalahari"
+        log("Processors of the program: " + run(["lipo", "-archs", program], capture=True).strip())
+        # Gatekeeper: a program signed ad hoc (no Developer ID) is not accepted at once; the
+        # writer allows it on its first start (System Settings > Privacy & Security)
+        gatekeeper = subprocess.run(["spctl", "--assess", "--type", "execute", "--verbose",
+                                     str(bundle)], stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT, text=True, check=False)
+        log(f"Gatekeeper (for information): {gatekeeper.stdout.strip()}")
+        check_program(program, python_within=bundle, as_installed=True)
+    log("The image of macOS: copied, checked")
+
+
+def check_linux_packages(dist: Path) -> None:
+    """The .deb and the AppImage of @p dist on a clean Ubuntu 24.04 (packaging/linux/
+    check-packages.sh, in a container of docker)."""
+    run(["bash", REPO_ROOT / "packaging" / "linux" / "check-packages.sh", dist])
+
+
+def install_check(dist: Path) -> None:
+    if sys.platform == "win32":
+        check_windows_installer(dist)
+    elif sys.platform == "darwin":
+        check_macos_image(dist)
+    else:
+        check_linux_packages(dist)
 
 
 # =============================================================================
@@ -672,6 +1102,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     installer.add_argument("--makensis", help="makensis of NSIS 3")
     check = commands.add_parser("check")
     check.add_argument("--program", type=Path, required=True)
+    installed = commands.add_parser("install-check")
+    installed.add_argument("--dist", type=Path, default=REPO_ROOT / "dist",
+                           help="the folder of the packages")
     args = parser.parse_args(argv)
 
     try:
@@ -691,10 +1124,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                 shutil.rmtree(work, ignore_errors=True)
         elif args.command == "macos":
             packages = package_macos(args.build.resolve(), args.out.resolve())
+        elif args.command == "install-check":
+            install_check(args.dist.resolve())
+            return 0
         else:
             check_program(args.program.resolve())
             return 0
-    except (PackageError, OSError, subprocess.SubprocessError) as error:
+    except (PackageError, OSError, subprocess.SubprocessError, zipfile.BadZipFile) as error:
         print(f"package.py: {error}", file=sys.stderr)
         return 1
     for package in packages:

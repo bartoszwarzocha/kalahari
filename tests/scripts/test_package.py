@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """
 Tests of scripts/package.py: the version of the packages, the lists of files of the installer
-of Windows, the folder of the Qt plugins of the Linux packages, the check of a program, and
-the files of the packages agreeing with each other. Plain unittest, run by CTest
+of Windows, the folder of the Qt plugins of the Linux packages, the check of a program, the
+DLLs of the Windows package and the libraries of Kalahari.app, the checks of the installed
+packages, and the files of the packages agreeing with each other. Plain unittest, run by CTest
 (scripts.package). The packages themselves are made by the CI (BUILDING.md, "Packages").
 """
 
 import os
 import re
+import shutil
+import struct
+import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -30,6 +35,56 @@ def icon_sizes() -> list:
 def write(path: Path, text: str = "x") -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+    return path
+
+
+def pe_file(imports=(), delayed=(), pe32_plus=True, delay_addresses=False) -> bytes:
+    """A Windows library with the tables of @p imports and @p delayed imports, in one section
+    (at the address 0x1000, at 0x400 in the file). @p delay_addresses: the delayed imports name
+    addresses, as old linkers wrote them."""
+    image_base = 0x140000000 if pe32_plus else 0x400000
+    address, raw = 0x1000, 0x400
+    delayed_at = (len(imports) + 1) * 20
+    section = bytearray(delayed_at + (len(delayed) + 1) * 32)
+
+    def name(text: str) -> int:
+        at = address + len(section)
+        section.extend(text.encode("ascii") + b"\0")
+        return at
+
+    for index, dll in enumerate(imports):
+        struct.pack_into("<IIIII", section, 20 * index, 1, 0, 0, name(dll), 1)
+    for index, dll in enumerate(delayed):
+        at = name(dll)
+        struct.pack_into("<II", section, delayed_at + 32 * index, 0 if delay_addresses else 1,
+                         at + image_base if delay_addresses else at)
+    header, optional_size = 0x80, 240 if pe32_plus else 224
+    data = bytearray(raw)
+    data[0:2] = b"MZ"
+    struct.pack_into("<I", data, 0x3C, header)
+    data[header:header + 4] = b"PE\0\0"
+    struct.pack_into("<HHIIIHH", data, header + 4, 0x8664, 1, 0, 0, 0, optional_size, 0x2022)
+    optional = header + 24
+    struct.pack_into("<H", data, optional, 0x20B if pe32_plus else 0x10B)
+    if pe32_plus:
+        struct.pack_into("<Q", data, optional + 24, image_base)
+        directories = optional + 112
+    else:
+        struct.pack_into("<I", data, optional + 28, image_base)
+        directories = optional + 96
+    struct.pack_into("<I", data, directories - 4, 16)
+    if imports:
+        struct.pack_into("<II", data, directories + 8, address, delayed_at)
+    if delayed:
+        struct.pack_into("<II", data, directories + 8 * 13, address + delayed_at, 32 * len(delayed))
+    struct.pack_into("<8sIIII", data, optional + optional_size, b".idata", len(section), address,
+                     len(section), raw)
+    return bytes(data + section)
+
+
+def write_pe(path: Path, imports=(), delayed=()) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(pe_file(imports, delayed))
     return path
 
 
@@ -189,6 +244,27 @@ class CheckProgramTest(unittest.TestCase):
         with self.assertRaises(package.PackageError):
             package.check_program(Path("/no/such/kalahari"))
 
+    def test_the_python_of_the_installation(self):
+        with tempfile.TemporaryDirectory() as folder:
+            installation = Path(folder) / "opt" / "kalahari"
+            program = self.program(Path(folder), 'echo "OK      Python: 3.15.2 (main) [GCC 13.3.0] '
+                                                 f'({installation})"\n')
+            package.check_program(program, python_within=installation)
+            with self.assertRaises(package.PackageError):
+                package.check_program(program, python_within=Path(folder) / "usr")
+            silent = self.program(Path(folder), 'echo "OK      Resources"\n')
+            with self.assertRaises(package.PackageError):
+                package.check_program(silent, python_within=installation)
+
+    def test_the_compiled_modules_of_an_installed_program(self):
+        # The program of a writer puts them where it tells Python to (the cache of the user);
+        # only the check of a folder that becomes a package keeps Python from writing them
+        with tempfile.TemporaryDirectory() as folder:
+            program = self.program(Path(folder), '[ -z "$PYTHONDONTWRITEBYTECODE" ] || exit 5\n')
+            package.check_program(program, as_installed=True)
+            with self.assertRaises(package.PackageError):
+                package.check_program(program)
+
 
 class DebianPackageTest(unittest.TestCase):
     def test_the_names_of_the_libraries_in_shlibs(self):
@@ -208,6 +284,117 @@ class DebianPackageTest(unittest.TestCase):
             package.remove_system_libraries(lib)
             self.assertEqual(sorted(p.name for p in lib.iterdir()),
                              ["libQt6Core.so.6", "libpng16.so.16"])
+
+
+class WindowsLibrariesTest(unittest.TestCase):
+    """The DLLs of the Windows package: each one in it or in Windows."""
+
+    def test_the_tables_of_imports(self):
+        with tempfile.TemporaryDirectory() as folder:
+            library = write_pe(Path(folder) / "Qt6Core.dll", ["KERNEL32.dll", "VCRUNTIME140.dll"],
+                               ["dwmapi.dll"])
+            self.assertEqual(package.pe_imports(library),
+                             (["KERNEL32.dll", "VCRUNTIME140.dll"], ["dwmapi.dll"]))
+            old = Path(folder) / "old.dll"
+            old.write_bytes(pe_file(["user32.dll"], ["winmm.dll"], pe32_plus=False,
+                                    delay_addresses=True))
+            self.assertEqual(package.pe_imports(old), (["user32.dll"], ["winmm.dll"]))
+            self.assertEqual(package.pe_imports(write_pe(Path(folder) / "none.dll")), ([], []))
+
+    def test_a_file_that_is_no_library(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(package.PackageError):
+                package.pe_imports(write(Path(folder) / "readme.dll", "MZ but no more"))
+
+    def test_the_dlls_missing_from_the_package(self):
+        with tempfile.TemporaryDirectory() as folder:
+            stage = Path(folder)
+            write_pe(stage / "kalahari.exe", ["KERNEL32.dll", "Qt6Core.dll", "VCRUNTIME140.dll",
+                                              "api-ms-win-crt-runtime-l1-1-0.dll", "zlib1.dll"])
+            write_pe(stage / "Qt6Core.dll", ["kernel32.dll", "MSVCP140.dll"])
+            write_pe(stage / "python312.dll", ["kernel32.dll"])
+            # A Qt plugin finds the DLLs of the folder of the program; a delayed DLL Windows
+            # lacks fails only the part that calls it, the runtime of Visual C++ is never in it
+            write_pe(stage / "platforms" / "qwindows.dll", ["Qt6Core.dll", "dwmapi.dll"],
+                     ["wtsapi32.dll", "optional.dll", "vcruntime140_1.dll"])
+            # A module of Python finds the DLLs of its own folder and of the program
+            write_pe(stage / "DLLs" / "_ssl.pyd", ["libssl-3-x64.dll", "python312.dll"])
+            write_pe(stage / "DLLs" / "libssl-3-x64.dll", ["kernel32.dll"])
+            write(stage / "resources" / "notes.txt")
+            # The build machine has the runtime of Visual C++ in System32
+            system = {"kernel32.dll", "dwmapi.dll", "wtsapi32.dll", "vcruntime140.dll",
+                      "msvcp140.dll", "vcruntime140_1.dll"}
+            from_windows = set()
+            missing, delayed = package.missing_windows_libraries(stage, system, from_windows)
+            self.assertEqual(sorted(missing), [
+                "Qt6Core.dll: MSVCP140.dll", "kalahari.exe: VCRUNTIME140.dll",
+                "kalahari.exe: zlib1.dll", "platforms/qwindows.dll: vcruntime140_1.dll"])
+            self.assertEqual(delayed, ["platforms/qwindows.dll: optional.dll"])
+            self.assertEqual(from_windows, {"kernel32.dll", "dwmapi.dll", "wtsapi32.dll"})
+
+            for name in ("vcruntime140.dll", "msvcp140.dll", "vcruntime140_1.dll", "zlib1.dll"):
+                write_pe(stage / name, ["kernel32.dll"])
+            self.assertEqual(package.missing_windows_libraries(stage, system),
+                             ([], ["platforms/qwindows.dll: optional.dll"]))
+
+    def test_the_runtime_of_visual_cpp_in_the_package(self):
+        packaging = (REPO_ROOT / "cmake" / "Packaging.cmake").read_text(encoding="utf-8")
+        self.assertIn("include(InstallRequiredSystemLibraries)", packaging)
+        self.assertIn("install(PROGRAMS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION .)",
+                      packaging)
+
+
+class InstalledPackagesTest(unittest.TestCase):
+    """The parts of the checks of the installed packages that run on any system."""
+
+    def test_the_files_of_the_zip_of_the_program(self):
+        with tempfile.TemporaryDirectory() as folder:
+            stage = Path(folder) / "Kalahari"
+            write(stage / "kalahari.exe")
+            write(stage / "Lib" / "json" / "__init__.py")
+            archive = Path(folder) / "Kalahari-windows-x64.zip"
+            package.make_zip(stage, archive)
+            self.assertEqual(package.files_of_zip(archive),
+                             {"kalahari.exe", "Lib/json/__init__.py"})
+
+    def test_the_differences_of_the_files(self):
+        # Windows does not tell small letters from capitals
+        self.assertEqual(package.differences({"Qt6Core.dll", "Lib/os.py", "LICENSE.txt"},
+                                             {"qt6core.dll", "Lib/os.py", "kalahari.log"}),
+                         ["missing LICENSE.txt", "extra kalahari.log"])
+        self.assertEqual(package.differences({"a"}, {"a"}), [])
+
+    def test_the_libraries_of_the_bundle(self):
+        with tempfile.TemporaryDirectory() as folder:
+            bundle = Path(folder) / "Kalahari.app"
+            macho = b"\xcf\xfa\xed\xfe" + bytes(28)
+            program = bundle / "Contents" / "MacOS" / "kalahari"
+            library = bundle / "Contents" / "Frameworks" / "libkalahari_core.dylib"
+            for path in (program, library):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(macho)
+            write(bundle / "Contents" / "Info.plist")
+            dependencies = {
+                program: ["@rpath/libkalahari_core.dylib", "/usr/lib/libSystem.B.dylib",
+                          "/System/Library/Frameworks/Cocoa.framework/Versions/A/Cocoa",
+                          "/opt/homebrew/lib/libintl.8.dylib", "@rpath/libmissing.dylib"],
+                library: ["@rpath/libkalahari_core.dylib", "/usr/lib/libc++.1.dylib"],
+            }
+            self.assertEqual(package.bundle_library_problems(bundle, dependencies.__getitem__), [
+                "Contents/MacOS/kalahari: /opt/homebrew/lib/libintl.8.dylib",
+                "Contents/MacOS/kalahari: @rpath/libmissing.dylib"])
+
+    @unittest.skipIf(shutil.which("bash") is None or sys.platform == "win32", "No bash")
+    def test_the_script_of_the_linux_packages(self):
+        script = REPO_ROOT / "packaging" / "linux" / "check-packages.sh"
+        self.assertEqual(subprocess.run(["bash", "-n", str(script)], check=False).returncode, 0)
+        self.assertTrue(os.access(script, os.X_OK))
+
+    def test_the_ci_installs_the_packages(self):
+        for system in ("linux", "windows", "macos"):
+            workflow = (REPO_ROOT / ".github" / "workflows" / f"ci-{system}.yml").read_text(
+                encoding="utf-8")
+            self.assertIn("scripts/package.py install-check --dist dist", workflow, system)
 
 
 class MacBundleTest(unittest.TestCase):

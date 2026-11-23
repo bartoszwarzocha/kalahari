@@ -31,7 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   settings, no longer in the working folder (a menu entry started the program in the home
   folder). Python keeps its compiled modules in the cache folder of the user
   (`kalahari/python`), not next to the modules, so the program writes nothing into its
-  installation. Packaging: `cmake/Packaging.cmake`, `packaging/`, BUILDING.md "Packages".
+  installation. The Windows package carries the runtime of Visual C++ (a Windows without the
+  Visual C++ Redistributable has none), and every DLL of the package must be in it or in
+  Windows. The CI installs each package as a writer does and checks the installed program
+  (`scripts/package.py install-check`): the Windows installer silently for the current user
+  and for all users, then its uninstaller; the `.deb` with apt and the AppImage with FUSE on a
+  clean Ubuntu 24.04 in docker, the program as a user without and with an X server, the
+  removal by apt; `Kalahari.app` copied from the `.dmg`. Packaging: `cmake/Packaging.cmake`,
+  `packaging/`, BUILDING.md "Packages".
 
 - **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
   for Publishers, with its number in the Navigator: the sentences about the book and the

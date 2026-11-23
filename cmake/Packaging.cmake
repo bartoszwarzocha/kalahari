@@ -89,6 +89,26 @@ if(WIN32)
     if(KALAHARI_PDF_AVAILABLE)
         install(FILES "$<TARGET_FILE:PDFium::pdfium>" DESTINATION .)
     endif()
+    # The runtime of Visual C++ (vcruntime140.dll, msvcp140.dll, ...) next to the program: a
+    # Windows without the Visual C++ Redistributable has none, while a build machine has it in
+    # System32 with Visual Studio. The universal C runtime (ucrtbase.dll) is part of Windows 10
+    # and newer. scripts/package.py ends the package when a DLL is missing from it
+    if(MSVC)
+        set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
+        set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_NO_WARNINGS TRUE)
+        set(CMAKE_INSTALL_UCRT_LIBRARIES FALSE)
+        include(InstallRequiredSystemLibraries)
+        if(NOT CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS AND DEFINED ENV{VCToolsRedistDir})
+            # The environment of the compiler (vcvars) names the folder of its runtime
+            file(GLOB CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS
+                 "$ENV{VCToolsRedistDir}/x64/Microsoft.VC*.CRT/*.dll")
+        endif()
+        if(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
+            install(PROGRAMS ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION .)
+        else()
+            message(STATUS "No runtime of Visual C++ ${MSVC_VERSION} found for the packages")
+        endif()
+    endif()
     # The Qt plugins the build copies next to the program (src/CMakeLists.txt)
     foreach(_kalahari_plugins IN ITEMS platforms styles imageformats tls sqldrivers)
         install(DIRECTORY "${_kalahari_vcpkg_config}Qt6/plugins/${_kalahari_plugins}"
