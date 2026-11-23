@@ -653,6 +653,10 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // The formats of the levels of the list in the selected paragraphs (gui/dialogs/list_dialogs.h)
     REG_CMD_CB("format.bulletsNumbering", QT_TRANSLATE_NOOP("CommandRegistrar", "Bullets and Numberin&g..."), "FORMAT/Bullets and Numbering...", 25, false, 0,
                callbacks.onBulletsNumbering);
+    // The format of the pages and their margins: Settings > Editor > Pages and Margins, where
+    // a writer looks for them in an editor (Polish: Strona i mar&ginesy...)
+    REG_CMD_CB("format.page", QT_TRANSLATE_NOOP("CommandRegistrar", "Page Si&ze and Margins..."), "FORMAT/Page Size and Margins...", 26, false, 0,
+               callbacks.onPageSettings);
     // How the book numbers its notes and where its endnotes are; in the Format menu, as the
     // Insert menu has a key for each letter of its names (Polish: U&stawienia przypisów...)
     REG_CMD("insert.footnoteSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Foo&tnote Layout..."), "FORMAT/Footnote Layout...", 27, true, 1);

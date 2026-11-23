@@ -280,9 +280,12 @@ void PlotBoardPanel::applySettings() {
                                 ? PlotBoardView::Arrangement::Grid
                                 : PlotBoardView::Arrangement::Columns);
     m_board->setCardSize(cardSizeOf(setting(PlotBoard::SIZE_SETTING)));
+    const bool tint =
+        setting(PlotBoard::COLOR_PLACE_SETTING) == QLatin1String(PlotBoard::COLOR_TINT);
     m_board->setColoring(setting(PlotBoard::COLOR_SETTING), PlotColors::current());
-    m_board->setTint(setting(PlotBoard::COLOR_PLACE_SETTING) ==
-                     QLatin1String(PlotBoard::COLOR_TINT));
+    m_board->setTint(tint);
+    // The outline shows the colors of the cards too (test of 23.11)
+    m_model->setColoring(setting(PlotBoard::COLOR_SETTING), PlotColors::current(), tint);
     m_board->setBackground(backgroundOf(setting(PlotBoard::BACKGROUND_SETTING)));
     m_board->setFields(fieldsOf(core::SettingsManager::getInstance()));
     const bool scenes =

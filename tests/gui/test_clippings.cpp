@@ -26,6 +26,7 @@
 #include "kalahari/gui/material_list_coordinator.h"
 #include "kalahari/gui/panels/clipping_origin_box.h"
 #include "kalahari/gui/panels/material_list_panel.h"
+#include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/read_only_book.h"
@@ -1683,6 +1684,24 @@ TEST_CASE("Properties: the origin of a clipping, Go to Its Place and Restore to 
     properties->showChapterProperties(clipped.calm());
     CHECK(origin->isHidden());
     CHECK(origin->clippingId().isEmpty());
+}
+
+TEST_CASE("Properties: Show Clipping has no System Program, a clipping is a file of the program",
+          "[gui][clippings]") {
+    ClippingBook clipped;
+    ClippingLists window;
+    BookEditor* storm = open(window.window, clipped.storm());
+    storm->setSelection(rained());
+    const QString clippingId = window.clips.coordinator().cut(storm);
+    REQUIRE_FALSE(clippingId.isEmpty());
+
+    // Show Clipping at the scissors shows it as a material: without the system program
+    gui::PropertiesPanel* properties = window.window.properties;
+    properties->showMaterialProperties(clippingId);
+    const gui::MaterialPage* page = properties->materialPage();
+    REQUIRE(page != nullptr);
+    CHECK(page->elementId() == clippingId);
+    CHECK(page->systemButton()->isHidden());
 }
 
 namespace {

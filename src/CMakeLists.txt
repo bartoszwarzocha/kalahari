@@ -443,6 +443,7 @@ set(KALAHARI_SOURCES
     gui/panels/annotations_panel.cpp
     gui/panels/assistant_panel.cpp
     gui/panels/dashboard_panel.cpp
+    gui/widgets/loading_overlay.cpp       # The card of a book being opened: darkened, a spinner
     gui/panels/dashboard_layouts.cpp  # The Dashboard on a narrow or a low panel
     gui/panels/editor_panel.cpp
     gui/panels/log_panel.cpp
@@ -715,6 +716,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/loading_overlay.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/log_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h

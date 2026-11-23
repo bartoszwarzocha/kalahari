@@ -23,11 +23,13 @@
 #include "kalahari_tests/gui/document_window.h"
 
 #include <QApplication>
+#include <QBoxLayout>
 #include <QClipboard>
 #include <QDateTime>
 #include <QDirIterator>
 #include <QFile>
 #include <QFrame>
+#include <QGroupBox>
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QLabel>
@@ -286,7 +288,7 @@ TEST_CASE("Own windows: About shows what the program was built from, and copies 
 
     AboutDialog dialog;
     REQUIRE(dialog.tabs() != nullptr);
-    CHECK(dialog.tabs()->currentIndex() == 0);  // the About tab, with the build first
+    CHECK(dialog.tabs()->currentIndex() == 0);  // the About tab, with the build at its end
     CHECK(showsText(dialog, configuration));
     CHECK(showsText(dialog, QLocale().toString(built.toLocalTime(), QLocale::ShortFormat)));
     const QString commit = QString::fromLatin1(build::commit());
@@ -300,6 +302,22 @@ TEST_CASE("Own windows: About shows what the program was built from, and copies 
     if (!branch.isEmpty()) {
         CHECK(showsText(dialog, branch));
     }
+
+    // The build after the information about the program, not before it (test of 23.11)
+    const auto* group = dialog.findChild<QGroupBox*>(QStringLiteral("aboutBuildGroup"));
+    REQUIRE(group != nullptr);
+    const auto* tabLayout = qobject_cast<QBoxLayout*>(group->parentWidget()->layout());
+    REQUIRE(tabLayout != nullptr);
+    int lastLabel = -1;
+    for (int i = 0; i < tabLayout->count(); ++i) {
+        if (qobject_cast<QLabel*>(tabLayout->itemAt(i)->widget()) != nullptr &&
+            !static_cast<QLabel*>(tabLayout->itemAt(i)->widget())->text().startsWith(
+                QStringLiteral("Copyright"))) {
+            lastLabel = i;
+        }
+    }
+    CHECK(lastLabel >= 0);
+    CHECK(tabLayout->indexOf(group) > lastLabel);
 
     // The text to copy: a line for each, the same as the dialog shows
     const QStringList lines = AboutDialog::buildInformation().split(QLatin1Char('\n'));

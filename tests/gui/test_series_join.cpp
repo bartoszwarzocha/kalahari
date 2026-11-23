@@ -585,3 +585,80 @@ TEST_CASE("Series: Book > Join Book as Volume... joins the book chosen, saving i
     REQUIRE_FALSE(volume.mainElements.isEmpty());
     CHECK(QFileInfo::exists(novel.pm.filePathOf(volume.mainElements.constFirst())));
 }
+
+namespace {
+
+/// The texts of the items of the Navigator's menu of @p item, without their access keys and
+/// their keys
+QStringList menuTextsOf(gui::NavigatorPanel& panel, QTreeWidgetItem* item) {
+    REQUIRE(item != nullptr);
+    test::ContextMenuReader reader(&panel);
+    panel.tree()->scrollToItem(item);
+    emit panel.tree()->customContextMenuRequested(panel.tree()->visualItemRect(item).center());
+    REQUIRE(reader.menusRead() == 1);
+    QStringList texts;
+    for (const test::MenuItem& each : reader.items()) {
+        if (!each.separator) {
+            texts << each.text.section(QLatin1Char('\t'), 0, 0).remove(QLatin1Char('&'));
+        }
+    }
+    return texts;
+}
+
+/// The node of the Navigator of the type @p type ("document", "book")
+QTreeWidgetItem* nodeOfType(const gui::NavigatorPanel& panel, const QString& type) {
+    for (QTreeWidgetItemIterator it(panel.tree()); *it != nullptr; ++it) {
+        if ((*it)->data(0, Qt::UserRole + 1).toString() == type) {
+            return *it;
+        }
+    }
+    return nullptr;
+}
+
+}  // namespace
+
+TEST_CASE("Navigator: New Volume... first in the menu of the project, not in the menu of a book "
+          "or of a volume, which adds its parts",
+          "[gui][series]") {
+    gui::registerAllIcons();
+    const test::OpenNovel novel(QStringLiteral("Sand"));
+    test::Window window;
+    window.navigator.refreshNavigator();
+    gui::NavigatorPanel& panel = *window.navigatorPanel;
+
+    // One book: the project adds a volume first; a part or a chapter is added in the book
+    QStringList project = menuTextsOf(panel, nodeOfType(panel, QStringLiteral("document")));
+    REQUIRE_FALSE(project.isEmpty());
+    CHECK(project.constFirst() == QStringLiteral("New Volume..."));
+    CHECK(project.contains(QStringLiteral("Add...")));
+    CHECK_FALSE(project.contains(QStringLiteral("Add Part...")));
+    CHECK_FALSE(project.contains(QStringLiteral("Add Chapter...")));
+    const QStringList book = menuTextsOf(panel, nodeOfType(panel, QStringLiteral("book")));
+    CHECK_FALSE(book.contains(QStringLiteral("New Volume...")));
+    CHECK(book.contains(QStringLiteral("Add Part...")));
+
+    // New Volume... of the project asks for the volume
+    int asked = 0;
+    QObject::connect(&panel, &gui::NavigatorPanel::requestNewVolume, [&asked]() { ++asked; });
+    {
+        test::ContextMenuReader reader(&panel);
+        reader.chooseItem(QStringLiteral("New &Volume..."));
+        QTreeWidgetItem* node = nodeOfType(panel, QStringLiteral("document"));
+        emit panel.tree()->customContextMenuRequested(panel.tree()->visualItemRect(node).center());
+        REQUIRE(reader.menusRead() == 1);
+    }
+    CHECK(asked == 1);
+
+    // A series: the same in the project, and the volume has its own commands only
+    addVolume(novel.pm, QStringLiteral("Dunes"));
+    window.navigator.refreshNavigator();
+    project = menuTextsOf(panel, nodeOfType(panel, QStringLiteral("document")));
+    REQUIRE_FALSE(project.isEmpty());
+    CHECK(project.constFirst() == QStringLiteral("New Volume..."));
+    CHECK(project.contains(QStringLiteral("Series Properties...")));
+    const QStringList volume =
+        menuTextsOf(panel, itemWithText(panel, QStringLiteral("Volume 2: Dunes")));
+    CHECK_FALSE(volume.contains(QStringLiteral("New Volume...")));
+    CHECK(volume.contains(QStringLiteral("Volume Earlier")));
+    CHECK(volume.contains(QStringLiteral("Add Part...")));
+}

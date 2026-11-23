@@ -17,12 +17,14 @@
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
+#include "kalahari/gui/widgets/loading_overlay.h"
 
 #include <QAbstractButton>
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFrame>
 #include <QKeySequence>
 #include <QLabel>
@@ -834,4 +836,56 @@ TEST_CASE("Dashboard: the theme page has no colors of its own for the Dashboard 
         INFO(gone);
         CHECK_FALSE(fields.contains(QString::fromLatin1(gone)));
     }
+}
+
+TEST_CASE("Dashboard: the card of a book being opened is darkened with a spinner until it is open",
+          "[gui][dashboard]") {
+    const RecentBookGuard guard;
+    DashboardPanel dashboard(kalahari::test::commands());
+    dashboard.resize(1000, 700);
+    showOffScreen(dashboard);
+    settle();
+    QWidget* card = dashboard.findChild<QWidget*>(QStringLiteral("recentFileCard"));
+    REQUIRE(card != nullptr);
+    REQUIRE(card->isVisible());
+
+    int opened = 0;
+    bool covered = false;
+    bool turned = false;
+    bool stays = false;
+    QObject::connect(&dashboard, &DashboardPanel::openRecentBookRequested,
+                     [&](const QString& /*file*/) {
+        ++opened;
+        auto* loading = dynamic_cast<LoadingOverlay*>(dashboard.loadingOverlay());
+        REQUIRE(loading != nullptr);
+        covered = loading->isVisible() && loading->parentWidget() == card &&
+                  loading->geometry() == card->rect();
+        // The program busy, without its event loop: the widgets it makes still turn the
+        // spinner
+        const int before = loading->angle();
+        QElapsedTimer busy;
+        busy.start();
+        while (busy.elapsed() < 3 * LoadingOverlay::FRAME_MS) {
+            delete new QWidget(&dashboard);
+        }
+        turned = loading->angle() != before;
+        // The list of the recent books changed meanwhile: the card stays with its spinner
+        core::RecentBooksManager::getInstance().addRecentFile(
+            QDir::temp().absoluteFilePath(QStringLiteral("Inna ksiazka.klh")));
+        stays = dashboard.loadingOverlay() == loading;
+    });
+
+    // At once darkened, the book opens once the card is drawn so
+    click(card);
+    CHECK(dashboard.loadingOverlay() != nullptr);
+    CHECK(opened == 0);
+    QApplication::processEvents();
+    CHECK(opened == 1);
+    CHECK(covered);
+    CHECK(turned);
+    CHECK(stays);
+    // Open: no spinner, and the list as it is now
+    CHECK(dashboard.loadingOverlay() == nullptr);
+    settle();
+    CHECK(dashboard.findChildren<QWidget*>(QStringLiteral("recentFileCard")).size() == 2);
 }

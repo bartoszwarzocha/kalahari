@@ -12,6 +12,9 @@
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/kalahari_text_document_layout.h"
+#include "kalahari/gui/command.h"
+#include "kalahari/gui/command_registrar.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings_dialog.h"
@@ -867,4 +870,32 @@ TEST_CASE("Settings dialog: the look of the scene breaks, with its preview, and 
     CHECK(markColors == 2);
 
     restore(before);
+}
+
+TEST_CASE("Format > Page Size and Margins... opens Settings > Editor > Pages and Margins",
+          "[gui][settings][commands]") {
+    gui::CommandRegistry registry;
+    int opened = 0;
+    gui::CommandCallbacks callbacks;
+    callbacks.onPageSettings = [&opened]() { ++opened; };
+    gui::registerAllCommands(registry, callbacks);
+
+    // In the Format menu after Bullets and Numbering..., before Footnote Layout...
+    const gui::Command* page = registry.getCommand("format.page");
+    const gui::Command* bullets = registry.getCommand("format.bulletsNumbering");
+    const gui::Command* footnotes = registry.getCommand("insert.footnoteSettings");
+    REQUIRE(page != nullptr);
+    REQUIRE(bullets != nullptr);
+    REQUIRE(footnotes != nullptr);
+    CHECK(page->menuPath == "FORMAT/Page Size and Margins...");
+    CHECK(bullets->menuOrder < page->menuOrder);
+    CHECK(page->menuOrder < footnotes->menuOrder);
+    CHECK(page->showInMenu);
+    REQUIRE(page->execute);
+    page->execute();
+    CHECK(opened == 1);
+
+    // The page it opens has the format of the pages and their margins
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::PAGES_PAGE)));
 }

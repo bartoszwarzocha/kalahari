@@ -58,6 +58,11 @@ public:
     /// @brief Show the rows of the scenes of the texts under the rows of the texts, or not
     void setShowScenes(bool show);
 
+    /// @brief Show the colors of the cards as the board does: @p colorBy (PlotBoard::
+    /// COLOR_STATUS...) in @p colors, a square before the title of each text and scene; with
+    /// @p tint (PlotBoard::COLOR_TINT) the background of its row too
+    void setColoring(const QString& colorBy, const PlotColors& colors, bool tint);
+
     /// @brief The name of @p column in its setting (PlotBoard::outlineSetting()): "number",
     /// "description", "pov", "place", "time", "words", "status"; nullptr for the title, which
     /// is always shown, and for no column
@@ -102,11 +107,18 @@ private:
     [[nodiscard]] static QVariant partData(const Row& row, int column, int role);
     /// @brief What cell @p column of the row of @p card shows in @p role
     [[nodiscard]] static QVariant cardData(const PlotCard& card, int column, int role);
+    /// @brief The color of the row of @p card in cell @p column: Qt::DecorationRole (the
+    /// square before the title) and Qt::BackgroundRole (with the tint)
+    [[nodiscard]] QVariant colorData(const PlotCard& card, int column, int role) const;
 
     QList<PlotBand> m_bands;
     QList<Row> m_rows;
     bool m_readOnly = false;
     bool m_showScenes = true;
+    QString m_colorBy;      ///< PlotBoard::COLOR_STATUS...; empty: no colors
+    PlotColors m_colors;    ///< The colors of the cards
+    bool m_tint = false;    ///< Whether the background of the rows has their color
+    QStringList m_povs;     ///< The points of view of the cards, for COLOR_POV (povsOf())
 };
 
 /// @brief The editors of the cells of the outline: a list of the states, and the points of

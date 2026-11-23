@@ -1749,6 +1749,10 @@ void MainWindow::registerCommands() {
     callbacks.onDistractionFreeToggle = [this]() { onDistractionFreeToggle(); };
     callbacks.onFormattingMarksToggle = [this]() { onFormattingMarksToggle(); };
     callbacks.onMarginNumbering = [this](const QString& mode) { onMarginNumbering(mode); };
+    // Format > Page Size and Margins...: the pages and the margins are in the settings
+    callbacks.onPageSettings = [this]() {
+        m_settingsCoordinator->openSettingsPage(QString::fromLatin1(SettingsDialog::PAGES_PAGE));
+    };
     callbacks.onMarginNumberingSettings = [this]() {
         m_settingsCoordinator->openSettingsPage(
             QString::fromLatin1(SettingsDialog::MARGIN_NUMBERING_PAGE));

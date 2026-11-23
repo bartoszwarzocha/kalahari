@@ -278,6 +278,14 @@ TEST_CASE("Both themes give the colors of both papers as the editor had them",
     CHECK(own.currentSearchMatch == QColor(255, 140, 0, 140));
 }
 
+TEST_CASE("The light theme gives the icons grey and light grey by default",
+          "[core][theme][colors]") {
+    // The colors the writer chose in the test of 23.11: Main and Secondary of the icons
+    const Theme light = ThemeManager::getInstance().loadTheme(QStringLiteral("Light"));
+    CHECK(light.colors.primary == QColor("#8f8f8f"));
+    CHECK(light.colors.secondary == QColor("#ebebeb"));
+}
+
 TEST_CASE("The colors of the papers kept outside the themes move into each theme",
           "[core][theme][colors]") {
     auto& themeManager = ThemeManager::getInstance();

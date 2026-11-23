@@ -1173,7 +1173,13 @@ TEST_CASE("New File: a book opened from its card on the Dashboard leaves the cha
     QStringList said;
     CHECK(test::accepting([&]() { click(*card, Qt::RightButton); }, &said) == 0);
     CHECK_FALSE(pm.isProjectOpen());
-    CHECK(test::accepting([&]() { click(*card, Qt::LeftButton); }, &said) == 0);
+    // The card is darkened first and the book opens a moment later (test of 23.11)
+    CHECK(test::accepting(
+              [&]() {
+                  click(*card, Qt::LeftButton);
+                  QCoreApplication::processEvents();
+              },
+              &said) == 0);
     INFO(said.join(QStringLiteral("\n")).toStdString());
     CHECK(pm.isProjectOpen());
     CHECK(pm.getManifestPath() == manifest);
