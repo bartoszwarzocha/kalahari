@@ -389,11 +389,76 @@ def make_appdir(build: Path, work: Path, tools: Path, version: str) -> Tuple[Pat
          "--icon-file", REPO_ROOT / "resources" / "images" / "app_icon" / "kalahari_256.png",
          "--icon-filename", "kalahari", "--plugin", "qt"] + excluded, cwd=output, env=env)
     remove_system_libraries(appdir / "usr" / "lib")
+    for text in link_module_libraries(appdir / "usr" / "lib"):
+        log(text)
     run([linuxdeploy, "--appdir", appdir, "--output", "appimage"] + excluded, cwd=output, env=env)
+    check_appdir_libraries(appdir)
     images = sorted(output.glob("*.AppImage"))
     if len(images) != 1:
         raise PackageError(f"linuxdeploy made {len(images)} AppImages in {output}")
     return appdir, images[0]
+
+
+def elf_needed(binary: Path) -> List[str]:
+    """The libraries an ELF file names (DT_NEEDED), as readelf shows them."""
+    result = subprocess.run(["readelf", "-d", str(binary)], stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL, text=True, check=False)
+    return re.findall(r"\(NEEDED\)\s+Shared library: \[([^\]]+)\]", result.stdout)
+
+
+def link_module_libraries(lib: Path,
+                          needed: Callable[[Path], List[str]] = elf_needed) -> List[str]:
+    """Links in the folder of the C modules of Python (lib-dynload) to the libraries of the
+    package in @p lib they load, and to those these load. linuxdeploy gives each module the
+    RUNPATH of a library in usr/lib ($ORIGIN), which is the folder of the module: without the
+    links a module finds a library only when the program loaded it before (sqlite3 did not find
+    libsqlite3.so.0 on a system without it). Returns what was linked."""
+    linked = []
+    for folder in sorted(lib.glob("python3*/lib-dynload")):
+        wanted = [name for module in elf_files(folder) for name in needed(module)]
+        found: Set[str] = set()
+        while wanted:
+            name = wanted.pop()
+            if name not in found and (lib / name).is_file():
+                found.add(name)
+                wanted += needed(lib / name)
+        for name in sorted(found):
+            link = folder / name
+            if not link.exists() and not link.is_symlink():
+                link.symlink_to(Path("..") / ".." / name)
+                linked.append(f"{link.relative_to(lib)} -> ../../{name}")
+    return linked
+
+
+def foreign_libraries(ldd_output: str, own: Set[str], appdir: Path) -> List[str]:
+    """The libraries of an output of ldd that are not found, or are found outside @p appdir
+    although the AppDir has them (@p own: the names in its usr/lib)."""
+    problems = []
+    for name, found in re.findall(r"^\s*(\S+) => (.+?)(?: \(0x[0-9a-f]+\))?$", ldd_output,
+                                  re.MULTILINE):
+        if found == "not found":
+            problems.append(f"{name} not found")
+        elif name in own and not is_inside(Path(found), appdir):
+            problems.append(f"{name} from {found}, not from the package")
+    return problems
+
+
+def check_appdir_libraries(appdir: Path) -> None:
+    """Every program and library of the AppDir loads the libraries the AppDir has from it: one
+    that loads the copy of the build machine instead would miss it on a system without it."""
+    env = {name: value for name, value in os.environ.items() if name != "LD_LIBRARY_PATH"}
+    own = {path.name for path in (appdir / "usr" / "lib").iterdir()}
+    problems = []
+    binaries = elf_files(appdir / "usr")
+    for binary in binaries:
+        result = subprocess.run(["ldd", str(binary)], stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL, text=True, env=env, check=False)
+        problems += [f"{binary.relative_to(appdir)}: {text}"
+                     for text in foreign_libraries(result.stdout, own, appdir)]
+    if problems:
+        raise PackageError("Libraries the package does not load from itself:\n  " +
+                           "\n  ".join(problems))
+    log(f"{len(binaries)} programs and libraries load the libraries of the package from it")
 
 
 def remove_system_libraries(lib: Path) -> None:

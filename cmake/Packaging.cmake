@@ -24,8 +24,14 @@ set(KALAHARI_ICON_SIZES 16 24 32 48 64 128 256 512)
 set(KALAHARI_PYTHON_VERSION "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
 
 # The parts of the standard library of Python the plugins do not need: its tests and test
-# modules, the editor IDLE, Tk, pip's installer and the libraries Python was built from
+# modules, the editor IDLE, Tk, pip's installer and the libraries Python was built from, and
+# the modules of a terminal and of dbm files whose libraries the packages would carry (GNU
+# readline and gdbm are under the GPL)
 set(KALAHARI_PYTHON_EXCLUDES
+    PATTERN "readline.cpython-*" EXCLUDE
+    PATTERN "_curses*" EXCLUDE
+    PATTERN "_dbm.*" EXCLUDE
+    PATTERN "_gdbm.*" EXCLUDE
     PATTERN "__pycache__" EXCLUDE
     PATTERN "test" EXCLUDE
     PATTERN "tests" EXCLUDE

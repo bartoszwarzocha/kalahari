@@ -86,21 +86,25 @@ apt_get install -y --no-install-recommends /tmp/kalahari.deb
 echo "Depends: $(dpkg-query -W -f='${Depends}' kalahari)"
 
 step "Every program and library of the package finds its libraries"
-# The folders of the libraries of the package: the program finds them by its RUNPATH, and a
-# library it loads later also by the libraries loaded already. What ldd misses then is missing
-# from the system
-private=$(find /opt/kalahari -type f -name '*.so*' -printf '%h\n' | sort -u | paste -sd:)
+# As the system loads them: by the RUNPATH of each file, then in the folders of the system. A
+# library a file does not find is missing from the system, or the package has it where the
+# file does not look for it (a library loaded before by the program hid that when the program
+# was built)
 checked=0
 missing=0
 while IFS= read -r -d '' file; do
     [ "$(head -c 4 "$file" | od -An -tx1 | tr -d ' \n')" = "7f454c46" ] || continue
     checked=$((checked + 1))
-    if LD_LIBRARY_PATH="$private" ldd "$file" 2>/dev/null | grep "not found"; then
-        echo "  needed by $file"
+    while read -r name _; do
         missing=1
-    fi
+        if [ -n "$(find /opt/kalahari -name "$name" -print -quit)" ]; then
+            echo "$file: $name not found, although the package has it"
+        else
+            echo "$file: $name not found, the system does not have it"
+        fi
+    done < <(env -u LD_LIBRARY_PATH ldd "$file" 2>/dev/null | grep "=> not found" || true)
 done < <(find /opt/kalahari -type f -print0)
-[ $missing -eq 0 ] || fail "libraries missing from the system"
+[ $missing -eq 0 ] || fail "libraries not found"
 echo "$checked programs and libraries: every library found"
 
 # on_x_server REPORT: the report of a check names the platform of an X server

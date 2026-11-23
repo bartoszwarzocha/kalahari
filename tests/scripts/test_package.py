@@ -276,6 +276,48 @@ class DebianPackageTest(unittest.TestCase):
         self.assertIsNone(package.shlibs_name("libkalahari_core.so"))
         self.assertIsNone(package.shlibs_name("_ssl.cpython-315-x86_64-linux-gnu.so"))
 
+    @unittest.skipIf(sys.platform == "win32", "Links and paths of Linux")
+    def test_the_libraries_of_the_modules_of_python(self):
+        # A C module of Python finds the libraries of the package in its own folder (the
+        # RUNPATH $ORIGIN linuxdeploy gives it), also those its libraries load
+        with tempfile.TemporaryDirectory() as folder:
+            lib = Path(folder) / "usr" / "lib"
+            modules = lib / "python3.15" / "lib-dynload"
+            elf = b"\x7fELF" + bytes(12)
+            needed = {
+                "_sqlite3.cpython-315-x86_64-linux-gnu.so": ["libsqlite3.so.0", "libc.so.6"],
+                "_ssl.cpython-315-x86_64-linux-gnu.so": ["libssl.so.3"],
+                "_json.cpython-315-x86_64-linux-gnu.so": [],
+                "libssl.so.3": ["libcrypto.so.3", "libc.so.6"],
+                "libsqlite3.so.0": ["libm.so.6"],
+                "libcrypto.so.3": [],
+            }
+            for name in needed:
+                path = (modules if name.startswith("_") else lib) / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(elf)
+            linked = package.link_module_libraries(lib, lambda path: needed[path.name])
+            self.assertEqual(sorted(path.name for path in modules.iterdir() if path.is_symlink()),
+                             ["libcrypto.so.3", "libsqlite3.so.0", "libssl.so.3"])
+            self.assertEqual(os.readlink(modules / "libssl.so.3"), "../../libssl.so.3")
+            self.assertTrue((modules / "libsqlite3.so.0").resolve().samefile(lib / "libsqlite3.so.0"))
+            self.assertEqual(len(linked), 3)
+            # Again (the links are there already): nothing new
+            self.assertEqual(package.link_module_libraries(lib, lambda path: needed[path.name]), [])
+
+    @unittest.skipIf(sys.platform == "win32", "Links and paths of Linux")
+    def test_the_libraries_the_package_does_not_load_from_itself(self):
+        appdir = Path("/build/AppDir")
+        ldd = ("\tlinux-vdso.so.1 (0x00007ffc6a5f2000)\n"
+               "\tlibsqlite3.so.0 => /lib/x86_64-linux-gnu/libsqlite3.so.0 (0x00007f1c2a000000)\n"
+               "\tlibssl.so.3 => /build/AppDir/usr/lib/libssl.so.3 (0x00007f1c29e00000)\n"
+               "\tlibgtk-3.so.0 => /lib/x86_64-linux-gnu/libgtk-3.so.0 (0x00007f1c29a00000)\n"
+               "\tlibgone.so.1 => not found\n"
+               "\t/lib64/ld-linux-x86-64.so.2 (0x00007f1c2a400000)\n")
+        self.assertEqual(package.foreign_libraries(ldd, {"libsqlite3.so.0", "libssl.so.3"}, appdir), [
+            "libsqlite3.so.0 from /lib/x86_64-linux-gnu/libsqlite3.so.0, not from the package",
+            "libgone.so.1 not found"])
+
     def test_the_libraries_left_to_the_system(self):
         with tempfile.TemporaryDirectory() as folder:
             lib = Path(folder)
