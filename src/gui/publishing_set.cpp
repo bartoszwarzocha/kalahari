@@ -10,6 +10,8 @@
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/publishing_texts.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/widgets/publishing_set_view.h"
 
@@ -202,6 +204,59 @@ QString PublishingSetContents::copyAll(const core::ProjectManager& book) {
     //: The status bar after Copy All of the set for a publisher. In Polish: Skopiowano zestaw
     //: dla wydawnictwa
     return tr("Copied the set for the publisher");
+}
+
+bool PublishingSetContents::confirmPoints(const core::ProjectManager& book, QWidget* parent,
+                                          bool exporting, QString* back) {
+    if (!PublishingTexts::warnsOfPoints()) {
+        return true;
+    }
+    for (const core::PublishingSetPart& part : book.publishingSetParts(nullptr)) {
+        if (!part.on || part.elementId.isEmpty() || !PublishingTexts::hasPoints(part.part) ||
+            book.publishingTextOf(part.elementId).trimmed().isEmpty()) {
+            continue;
+        }
+        const QList<core::PublishingTemplatePoint> unlinked =
+            book.unlinkedPublishingPointsOf(part.elementId);
+        if (unlinked.isEmpty()) {
+            continue;
+        }
+        QStringList names;
+        for (const core::PublishingTemplatePoint& point : unlinked) {
+            names << QStringLiteral("– ") + point.name.text(programLanguage());
+        }
+        dialogs::MessageDialog dialog(
+            dialogs::MessageDialog::Kind::Warning,
+            //: The title of the window before the set for a publisher is copied or exported
+            //: while its synopsis has points without a fragment. In Polish: Punkty bez
+            //: fragmentu w tekście
+            tr("Points with No Fragment in the Text"),
+            //: In Polish: Streszczenie w zestawie nie ma fragmentów powiązanych z tymi
+            //: punktami szablonu:\n\n%1\n\nMożna je dopisać i powiązać (Ctrl+Shift+D) albo
+            //: wysłać zestaw tak, jak jest.
+            tr("The synopsis of the set has no fragments linked to these points of its "
+               "template:\n\n%1\n\nYou can write them and link them (Ctrl+Shift+D) or send "
+               "the set as it is.")
+                .arg(names.join(QLatin1Char('\n'))),
+            parent);
+        dialog.setQuestionButtons(exporting
+                                      //: In Polish: Eksportuj &mimo to
+                                      ? tr("Export &Anyway")
+                                      //: In Polish: Kopiuj &mimo to
+                                      : tr("Copy &Anyway"),
+                                  //: In Polish: &Wróć do streszczenia
+                                  tr("&Back to the Synopsis"));
+        dialog.setDefaultButton(dialogs::MessageDialog::DefaultButton::Cancel);
+        dialog.exec();
+        if (dialog.answer() == dialogs::MessageDialog::Answer::Accept) {
+            return true;
+        }
+        if (back != nullptr) {
+            *back = part.elementId;
+        }
+        return false;
+    }
+    return true;
 }
 
 }  // namespace kalahari::gui

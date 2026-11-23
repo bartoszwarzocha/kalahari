@@ -71,6 +71,12 @@ constexpr double DIMMED_MARK_OPACITY = 0.45;
 /// The line along the bottom of a fragment shown in a color, in pixels at zoom 100%
 constexpr double FRAGMENT_LINE_WIDTH = 2.0;
 
+/// The bars of the fragments linked to the points, on the left margin (points of the view):
+/// the gap between the text and the first bar, the width of a bar and the room of each lane
+constexpr double POINT_BAR_GAP = 3.0;
+constexpr double POINT_BAR_WIDTH = 2.5;
+constexpr double POINT_BAR_STEP = 4.5;
+
 /// The area around a mark a click or the mouse finds it in, in pixels of the screen
 constexpr double MARK_HIT_SIZE = 14.0;
 
@@ -1116,6 +1122,14 @@ void EditorRenderPipeline::setFragmentHighlight(
     markAllDirty();
 }
 
+void EditorRenderPipeline::setPointMarks(std::vector<PointMark> marks) {
+    if (m_pointMarks == marks) {
+        return;
+    }
+    m_pointMarks = std::move(marks);
+    markRepaintOnly();
+}
+
 // =============================================================================
 // Main Render Entry Point (Stage 3+4)
 // =============================================================================
@@ -1921,6 +1935,46 @@ void EditorRenderPipeline::renderFragmentHighlight(QPainter* painter) {
     }
 }
 
+void EditorRenderPipeline::renderPointMarks(QPainter* painter) {
+    if (m_pointMarks.empty() || !m_textSource) return;
+
+    const size_t count = m_textSource->paragraphCount();
+    const auto firstVisible = static_cast<int>(m_context.computed.firstVisibleParagraph);
+    const auto lastVisible = static_cast<int>(m_context.computed.lastVisibleParagraph);
+    const double scale = m_context.computed.viewScale;
+    for (const PointMark& mark : m_pointMarks) {
+        const int first = std::max(mark.start.paragraph, firstVisible);
+        const int last = std::min(mark.end.paragraph, lastVisible);
+        for (int paragraph = first; paragraph <= last && static_cast<size_t>(paragraph) < count;
+             ++paragraph) {
+            const auto index = static_cast<size_t>(paragraph);
+            const int length = static_cast<int>(m_textSource->paragraphText(index).length());
+            const int start = paragraph == mark.start.paragraph ? mark.start.offset : 0;
+            const int end =
+                paragraph == mark.end.paragraph ? std::min(mark.end.offset, length) : length;
+            if (start >= end) continue;
+
+            const double widgetY = paragraphWidgetY(index);
+            if (mark.fill.isValid()) {
+                fillTextRange(painter, index, start, end, widgetY, mark.fill, false);
+            }
+            if (!mark.bar.isValid()) continue;
+            // Beside each line of the fragment, on the margin of the line's page
+            const double paragraphY = m_textSource->paragraphY(index);
+            for (const LinePiece& piece : linePieces(index, start, end)) {
+                const double textLeft =
+                    documentToWidget(QPointF(0.0, paragraphY + piece.line.y())).x();
+                const double right =
+                    textLeft - (POINT_BAR_GAP + mark.lane * POINT_BAR_STEP) * scale;
+                const double width = std::max(1.0, POINT_BAR_WIDTH * scale);
+                painter->fillRect(QRectF(right - width, widgetY + piece.line.y() * scale, width,
+                                         piece.line.height() * scale),
+                                  mark.bar);
+            }
+        }
+    }
+}
+
 void EditorRenderPipeline::renderHighlightMarks(
     QPainter* painter, const std::vector<ParagraphHighlight>& highlights) {
     const RenderColors& colors = m_context.colors;
@@ -2123,6 +2177,10 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
 
     // The fragment of the annotation whose card the mouse is on, under the text too
     renderFragmentHighlight(painter);
+
+    // The fragments linked to the points of a text for publishers: under the text, and their
+    // bars on the margin
+    renderPointMarks(painter);
 
     // The annotations' marks, under the text: the letters stay readable; the paperclips of
     // the paragraphs, in the margin

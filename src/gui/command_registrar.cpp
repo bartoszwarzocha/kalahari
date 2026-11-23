@@ -1001,22 +1001,29 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD("tools.publishing.templatePoints",
             QT_TRANSLATE_NOOP("CommandRegistrar", "Template &Points"),
             "TOOLS/Texts for Publishers/Template Points", 80, false, 0);
+    // The selection of the synopsis in front linked to a point of its template, or the link
+    // taken away: a menu of the points under the cursor (DockCoordinator gives it its callback)
+    //: In Polish: Powiąż z pu&nktem...
+    REG_CMD_KEY("tools.publishing.linkPoint",
+                QT_TRANSLATE_NOOP("CommandRegistrar", "&Link to a Point..."),
+                "TOOLS/Texts for Publishers/Link to a Point...", 81, false, 0,
+                KeyboardShortcut(Qt::Key_D, Qt::ControlModifier | Qt::ShiftModifier));
     // The skeleton of the synopsis in front: the headings of the points of its template with
     // their hints at the cursor, and away again (DockCoordinator gives them their callbacks)
     //: In Polish: &Wstaw szkielet
     REG_CMD("tools.publishing.insertSkeleton",
             QT_TRANSLATE_NOOP("CommandRegistrar", "Insert &Skeleton"),
-            "TOOLS/Texts for Publishers/Insert Skeleton", 81, false, 0);
+            "TOOLS/Texts for Publishers/Insert Skeleton", 82, false, 0);
     //: In Polish: &Usuń nagłówki i podpowiedzi
     REG_CMD("tools.publishing.removeSkeleton",
             QT_TRANSLATE_NOOP("CommandRegistrar", "&Remove Headings and Hints"),
-            "TOOLS/Texts for Publishers/Remove Headings and Hints", 82, true, 0);
+            "TOOLS/Texts for Publishers/Remove Headings and Hints", 83, true, 0);
     // The window of the templates of the book types and the writer's own (DockCoordinator gives
     // it its callback)
     //: In Polish: &Szablony...
     REG_CMD("tools.publishing.templates",
             QT_TRANSLATE_NOOP("CommandRegistrar", "&Templates..."),
-            "TOOLS/Texts for Publishers/Templates...", 83, true, 0);
+            "TOOLS/Texts for Publishers/Templates...", 84, true, 0);
 
     REG_CMD("tools.backupNow", QT_TRANSLATE_NOOP("CommandRegistrar", "&Backup Now"), "TOOLS/Backup Now", 100, false, 2);
     REG_CMD("tools.autoSaveSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "&Auto-Save Settings..."), "TOOLS/Auto-Save Settings...", 110, true, 1);

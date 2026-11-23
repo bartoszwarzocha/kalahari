@@ -149,6 +149,9 @@ constexpr int READ_ONLY_MESSAGE_MS = 5000;
 /// How long the status bar says that Paste Special pasted
 constexpr int PASTED_MESSAGE_MS = 2000;
 
+/// How long the status bar shows what Link to a Point says
+constexpr int PANEL_MESSAGE_MS = 4000;
+
 /// View > Show Status Bar: whether the book windows show their status bars
 constexpr const char* STATUS_BAR_SETTING = "window.showStatusBar";
 
@@ -656,6 +659,17 @@ MainWindow::MainWindow(QWidget* parent)
             openSourceSettings);
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestSourceSettings, this,
             openSourceSettings);
+    // The gear over the points of a synopsis: Settings > Navigator > Texts for Publishers; and
+    // what Link to a Point says
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestPublishingSettings,
+            this, [this]() {
+                if (m_settingsCoordinator != nullptr) {
+                    m_settingsCoordinator->openSettingsPage(
+                        QString::fromLatin1(SettingsDialog::PUBLISHING_PAGE));
+                }
+            });
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::statusMessage, this,
+            [this](const QString& text) { statusBar()->showMessage(text, PANEL_MESSAGE_MS); });
     connect(m_navigatorCoordinator, &NavigatorCoordinator::sourceSettingsRequested, this,
             openSourceSettings);
     connect(m_materialListCoordinator, &MaterialListCoordinator::settingsRequested, this,

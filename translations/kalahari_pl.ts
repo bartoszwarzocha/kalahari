@@ -370,6 +370,11 @@
 <context>
     <name>CommandRegistrar</name>
     <message>
+        <source>&amp;Link to a Point...</source>
+        <extracomment>In Polish: Powiąż z pu&amp;nktem...</extracomment>
+        <translation>Powiąż z pu&amp;nktem...</translation>
+    </message>
+    <message>
         <source>not available yet</source>
         <comment>Kalahari Help</comment>
         <translation>jeszcze niedostępna</translation>
@@ -10856,6 +10861,31 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
 </context>
 <context>
     <name>kalahari::gui::NavigatorPage</name>
+    <message>
+        <source>Points of a Synopsis in the Text</source>
+        <extracomment>The group of Settings &gt; Navigator &gt; Texts for Publishers. In Polish: Punkty streszczenia w tekście</extracomment>
+        <translation>Punkty streszczenia w tekście</translation>
+    </message>
+    <message>
+        <source>A mark on the margin</source>
+        <extracomment>In Polish: Znacznik na marginesie</extracomment>
+        <translation>Znacznik na marginesie</translation>
+    </message>
+    <message>
+        <source>Warn of points with no fragment</source>
+        <extracomment>In Polish: Ostrzeżenie o punktach bez fragmentu</extracomment>
+        <translation>Ostrzeżenie o punktach bez fragmentu</translation>
+    </message>
+    <message>
+        <source>Select a fragment of a synopsis and press Ctrl+Shift+D to link it to a point of its template. The mark is a bar on the left margin beside the fragment. The warning comes when the set is copied or exported and a point has no fragment in the text. Each point has its color: of the mark and of the fill of its fragments (Show in the Text over the points). Each theme has its own colors: these are the colors of the current theme.</source>
+        <extracomment>In Polish: Zaznacz fragment streszczenia i naciśnij Ctrl+Shift+D, aby powiązać go z punktem szablonu. Znacznik to kreska na lewym marginesie obok fragmentu. Ostrzeżenie pojawia się przy kopiowaniu i eksporcie zestawu, gdy punkt nie ma fragmentu w tekście. Każdy punkt ma swój kolor: znacznika i podświetlenia fragmentów (Pokaż w tekście nad punktami). Każdy motyw ma własne kolory: to są kolory bieżącego motywu.</extracomment>
+        <translation>Zaznacz fragment streszczenia i naciśnij Ctrl+Shift+D, aby powiązać go z punktem szablonu. Znacznik to kreska na lewym marginesie obok fragmentu. Ostrzeżenie pojawia się przy kopiowaniu i eksporcie zestawu, gdy punkt nie ma fragmentu w tekście. Każdy punkt ma swój kolor: znacznika i podświetlenia fragmentów (Pokaż w tekście nad punktami). Każdy motyw ma własne kolory: to są kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Point %1</source>
+        <extracomment>A color of the points of a synopsis. In Polish: Punkt %1</extracomment>
+        <translation>Punkt %1</translation>
+    </message>
     <message>
         <source>Node Menus</source>
         <translation>Menu węzłów</translation>
@@ -39297,6 +39327,89 @@ In Polish: pasmo „%1”</extracomment>
 <context>
     <name>kalahari::gui::PublishingTextBox</name>
     <message>
+        <source>Show in the Text</source>
+        <extracomment>The button over the points of a synopsis that fills the fragments of all of them in the text while it is on. In Polish: Pokaż w tekście</extracomment>
+        <translation>Pokaż w tekście</translation>
+    </message>
+    <message>
+        <source>Settings of Texts for Publishers</source>
+        <extracomment>The gear over the points of a synopsis. In Polish: Ustawienia tekstów dla wydawnictwa</extracomment>
+        <translation>Ustawienia tekstów dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Link the selected fragment of the text to this point (Insert)</source>
+        <extracomment>The button of a point of a synopsis. In Polish: Powiąż zaznaczony fragment tekstu z tym punktem (Insert)</extracomment>
+        <translation>Powiąż zaznaczony fragment tekstu z tym punktem (Insert)</translation>
+    </message>
+    <message>
+        <source>Take the links of the fragments of the text to this point away; the text stays (Delete)</source>
+        <extracomment>The button of a point of a synopsis. In Polish: Usuń powiązania fragmentów tekstu z tym punktem; tekst zostaje (Delete)</extracomment>
+        <translation>Usuń powiązania fragmentów tekstu z tym punktem; tekst zostaje (Delete)</translation>
+    </message>
+    <message>
+        <source>Ticked off, but the text has no fragment of it</source>
+        <extracomment>Under a point of a synopsis ticked off without a fragment linked to it. In Polish: Odhaczony, a w tekście nie ma jego fragmentu</extracomment>
+        <translation>Odhaczony, a w tekście nie ma jego fragmentu</translation>
+    </message>
+    <message>
+        <source>In the text: %1, %2</source>
+        <extracomment>Under a point of a synopsis: its fragments in the text and their length. In Polish: W tekście: %1, %2 (2 fragmenty, 140 znaków)</extracomment>
+        <translation>W tekście: %1, %2</translation>
+    </message>
+    <message>
+        <source>1 fragment</source>
+        <extracomment>In Polish: 1 fragment</extracomment>
+        <translation>1 fragment</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n fragments</source>
+        <extracomment>In Polish: %n fragment / fragmenty / fragmentów</extracomment>
+        <translation>
+            <numerusform>%n fragment</numerusform>
+            <numerusform>%n fragmenty</numerusform>
+            <numerusform>%n fragmentów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 character</source>
+        <extracomment>In Polish: 1 znak</extracomment>
+        <translation>1 znak</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n characters</source>
+        <extracomment>In Polish: %n znak / znaki / znaków</extracomment>
+        <translation>
+            <numerusform>%n znak</numerusform>
+            <numerusform>%n znaki</numerusform>
+            <numerusform>%n znaków</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>In the text</source>
+        <extracomment>Under a point of a synopsis with a fragment linked to it. In Polish: W tekście</extracomment>
+        <translation>W tekście</translation>
+    </message>
+    <message>
+        <source>Not in the text</source>
+        <extracomment>Under a point of a synopsis without a fragment linked to it. In Polish: Brak w tekście</extracomment>
+        <translation>Brak w tekście</translation>
+    </message>
+    <message>
+        <source>In the text: %1 of %3 · Done: %2 of %3</source>
+        <extracomment>Over the points of a synopsis. In Polish: W tekście: %1 z %3 · Gotowe: %2 z %3</extracomment>
+        <translation>W tekście: %1 z %3 · Gotowe: %2 z %3</translation>
+    </message>
+    <message>
+        <source>Select the fragment of the text you want to link to a point.</source>
+        <extracomment>Link to a Point without a selection. In Polish: Zaznacz fragment tekstu, który chcesz powiązać z punktem.</extracomment>
+        <translation>Zaznacz fragment tekstu, który chcesz powiązać z punktem.</translation>
+    </message>
+    <message>
+        <source>The text has no fragment of this point yet.</source>
+        <extracomment>Enter in a point of a synopsis without a fragment. In Polish: Tekst nie ma jeszcze fragmentu tego punktu.</extracomment>
+        <translation>Tekst nie ma jeszcze fragmentu tego punktu.</translation>
+    </message>
+    <message>
         <source>Te&amp;mplate:</source>
         <extracomment>The template of a text for publishers in the Properties panel. In Polish: Sza&amp;blon:</extracomment>
         <translation>Sza&amp;blon:</translation>
@@ -39336,9 +39449,9 @@ In Polish: pasmo „%1”</extracomment>
         <translation>Tekst bez szablonu. Wybierz szablon, a jego punkty pokażą się tutaj.</translation>
     </message>
     <message>
-        <source>You tick off the points yourself (Space). Tools &gt; Texts for Publishers &gt; Template Points brings the keys here, and Esc takes them back to the text.</source>
-        <extracomment>Under the points of the template of a synopsis in the Properties panel. In Polish: Punkty odhaczasz sam (Spacja). Narzędzia &gt; Teksty dla wydawnictwa &gt; Punkty szablonu przenosi tu klawiaturę, a Esc wraca do tekstu.</extracomment>
-        <translation>Punkty odhaczasz sam (Spacja). Narzędzia &gt; Teksty dla wydawnictwa &gt; Punkty szablonu przenosi tu klawiaturę, a Esc wraca do tekstu.</translation>
+        <source>Select a fragment of the text and press Ctrl+Shift+D to link it to a point. You tick off the points yourself (Space). Tools &gt; Texts for Publishers &gt; Template Points brings the keys here: Enter selects the next fragment of the point, Insert links the selection to it, Delete takes its links away, and Esc takes the keys back to the text.</source>
+        <extracomment>Under the points of the template of a synopsis in the Properties panel. In Polish: Zaznacz fragment tekstu i naciśnij Ctrl+Shift+D, aby powiązać go z punktem. Punkty odhaczasz sam (Spacja). Narzędzia &gt; Teksty dla wydawnictwa &gt; Punkty szablonu przenosi tu klawiaturę: Enter wybiera następny fragment punktu, Insert wiąże z nim zaznaczenie, Delete usuwa jego powiązania, a Esc wraca do tekstu.</extracomment>
+        <translation>Zaznacz fragment tekstu i naciśnij Ctrl+Shift+D, aby powiązać go z punktem. Punkty odhaczasz sam (Spacja). Narzędzia &gt; Teksty dla wydawnictwa &gt; Punkty szablonu przenosi tu klawiaturę: Enter wybiera następny fragment punktu, Insert wiąże z nim zaznaczenie, Delete usuwa jego powiązania, a Esc wraca do tekstu.</translation>
     </message>
     <message>
         <source>Templates of Texts for Publishers...</source>
@@ -39411,6 +39524,39 @@ In Polish: pasmo „%1”</extracomment>
 </context>
 <context>
     <name>kalahari::gui::PublishingSetContents</name>
+    <message>
+        <source>Points with No Fragment in the Text</source>
+        <extracomment>The title of the window before the set for a publisher is copied or exported while its synopsis has points without a fragment. In Polish: Punkty bez fragmentu w tekście</extracomment>
+        <translation>Punkty bez fragmentu w tekście</translation>
+    </message>
+    <message>
+        <source>The synopsis of the set has no fragments linked to these points of its template:
+
+%1
+
+You can write them and link them (Ctrl+Shift+D) or send the set as it is.</source>
+        <extracomment>In Polish: Streszczenie w zestawie nie ma fragmentów powiązanych z tymi punktami szablonu:\n\n%1\n\nMożna je dopisać i powiązać (Ctrl+Shift+D) albo wysłać zestaw tak, jak jest.</extracomment>
+        <translation>Streszczenie w zestawie nie ma fragmentów powiązanych z tymi punktami szablonu:
+
+%1
+
+Można je dopisać i powiązać (Ctrl+Shift+D) albo wysłać zestaw tak, jak jest.</translation>
+    </message>
+    <message>
+        <source>Export &amp;Anyway</source>
+        <extracomment>In Polish: Eksportuj &amp;mimo to</extracomment>
+        <translation>Eksportuj &amp;mimo to</translation>
+    </message>
+    <message>
+        <source>Copy &amp;Anyway</source>
+        <extracomment>In Polish: Kopiuj &amp;mimo to</extracomment>
+        <translation>Kopiuj &amp;mimo to</translation>
+    </message>
+    <message>
+        <source>&amp;Back to the Synopsis</source>
+        <extracomment>In Polish: &amp;Wróć do streszczenia</extracomment>
+        <translation>&amp;Wróć do streszczenia</translation>
+    </message>
     <message>
         <source>%1 ★</source>
         <extracomment>A version of a part of the set for a publisher chosen for the set: %1 its title. In Polish: %1 ★</extracomment>

@@ -295,7 +295,14 @@ QWidget* PublishingSetPage::createExport(QWidget* parent) {
     layout->addWidget(buttons);
     connect(m_settingsButton, &QToolButton::clicked, this, &PublishingSetPage::requestSettings);
     connect(m_copyAllButton, &QPushButton::clicked, this, &PublishingSetPage::copyAll);
-    connect(m_exportButton, &QPushButton::clicked, this, &PublishingSetPage::requestExportSet);
+    connect(m_exportButton, &QPushButton::clicked, this, [this]() {
+        QString back;
+        if (PublishingSetContents::confirmPoints(m_book, window(), true, &back)) {
+            emit requestExportSet();
+        } else if (!back.isEmpty()) {
+            emit requestOpen(back);
+        }
+    });
     return group;
 }
 
@@ -435,6 +442,13 @@ void PublishingSetPage::openPart() {
 }
 
 void PublishingSetPage::copyAll() {
+    // The points of the synopsis without fragments first, when the settings ask
+    if (QString back; !PublishingSetContents::confirmPoints(m_book, window(), false, &back)) {
+        if (!back.isEmpty()) {
+            emit requestOpen(back);
+        }
+        return;
+    }
     if (const QString done = PublishingSetContents::copyAll(m_book); !done.isEmpty()) {
         emit message(done);
     }

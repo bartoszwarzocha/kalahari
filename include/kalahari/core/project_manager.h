@@ -1099,6 +1099,12 @@ public:
     /// saved (setEditorText()), as File > Export has the open texts.
     [[nodiscard]] QString publishingTextOf(const QString& elementId) const;
 
+    /// @brief The points of the template of synopsis @p elementId that its text, as in its
+    ///        editor, has no fragment of (PublishingTexts::linkedPointsOf()); none for another
+    ///        element and without a template with points
+    [[nodiscard]] QList<PublishingTemplatePoint> unlinkedPublishingPointsOf(
+        const QString& elementId) const;
+
     /// @brief Give text @p elementId for publishers the text @p kml of its editor, with changes
     ///        not saved, which the set has (publishingTextOf()); saving or dropping the changes
     ///        forgets it. Emits publishingTextChanged().

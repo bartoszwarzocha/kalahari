@@ -20,6 +20,7 @@
 #include <QRegularExpressionMatchIterator>
 #include <QSet>
 #include <QStringView>
+#include <QXmlStreamReader>
 
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
@@ -784,6 +785,47 @@ bool PublishingTexts::pointsInText() {
 
 bool PublishingTexts::showsPages() {
     return SettingsManager::getInstance().get<bool>(PAGES_SETTING, true);
+}
+
+bool PublishingTexts::showsPointBars() {
+    return SettingsManager::getInstance().get<bool>(POINT_BARS_SETTING, true);
+}
+
+bool PublishingTexts::warnsOfPoints() {
+    return SettingsManager::getInstance().get<bool>(POINT_WARNINGS_SETTING, true);
+}
+
+QSet<QString> PublishingTexts::linkedPointsOf(const QString& kml) {
+    // The tag and its attribute as editor::TEXT_POINTS_TAG and TEXT_POINTS_IDS name them
+    QSet<QString> linked;
+    QStringList open;  // the ids of each <points> the reader is in
+    QXmlStreamReader reader(QStringLiteral("<root>") + kml + QStringLiteral("</root>"));
+    while (!reader.atEnd()) {
+        switch (reader.readNext()) {
+        case QXmlStreamReader::StartElement:
+            if (reader.name() == QLatin1String("points")) {
+                open << reader.attributes().value(QLatin1String("ids")).toString();
+            }
+            break;
+        case QXmlStreamReader::EndElement:
+            if (reader.name() == QLatin1String("points") && !open.isEmpty()) {
+                open.removeLast();
+            }
+            break;
+        case QXmlStreamReader::Characters:
+            if (!open.isEmpty() && !reader.text().trimmed().isEmpty()) {
+                for (const QString& ids : std::as_const(open)) {
+                    for (const QString& id : ids.split(QLatin1Char(' '), Qt::SkipEmptyParts)) {
+                        linked.insert(id);
+                    }
+                }
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    return linked;
 }
 
 std::string PublishingTexts::targetSettingOf(const QString& part, bool words) {

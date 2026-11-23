@@ -20,6 +20,7 @@ set(KALAHARI_CORE_SOURCES
     editor/text_captions.cpp     # Numbered captions, cross-references and the list of figures
     editor/text_fields.cpp       # Fields: the book's title, the page, the words, the date
     editor/text_skeleton.cpp     # The skeleton of a text for publishers: headings of points, hints
+    editor/text_points.cpp       # Fragments of a text for publishers linked to its points
     editor/text_footnotes.cpp    # Footnotes and endnotes: the number in the text, the note inside it
     editor/image_store.cpp       # Images: the files of a book, their sizes and pictures
     editor/table_editing.cpp     # Tables: rows, columns, cells, moving, sorting, conversions
@@ -522,6 +523,7 @@ set(KALAHARI_SOURCES
     editor/book_editor_captions.cpp
     editor/book_editor_fields.cpp  # BookEditor: the fields of the book, the page, the words, the date
     editor/book_editor_skeleton.cpp  # BookEditor: the skeleton of a text for publishers
+    editor/book_editor_points.cpp  # BookEditor: fragments linked to the points of a template
     editor/book_editor_places.cpp  # BookEditor: Edit > Go To..., the places of the text
     editor/book_editor_image_look.cpp
     editor/book_editor_input.cpp

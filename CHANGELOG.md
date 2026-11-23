@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Fragments of a synopsis linked to the points of its template** - 2026-11-23. Tools > Texts
+  for Publishers > Link to a Point... (Ctrl+Shift+D) opens, under the cursor, the points of the
+  template of the synopsis in front with their numbers (1-9 as keys) and colors: a point chosen
+  links the selection to it, a ticked one takes the link away (without a selection, from the
+  fragment at the cursor); one undo step. A fragment may serve several points and continues
+  across paragraphs. In the text the fragments keep clean: a thin bar in the color of the point
+  beside their lines on the left margin, side by side for fragments that overlap, and a fill
+  under them only on demand (Show in the Text over the points) or for the point chosen in the
+  list. Each point in the Properties panel has its number in its color, its state counted from
+  the text ("In the text: 2 fragments, 140 characters" or "Not in the text") beside the manual
+  tick, and a warning when it is ticked off without a fragment; over them "In the text: 3 of 5
+  · Done: 4 of 5" and a gear to the settings. The keys in the points: arrows, Home and End,
+  Enter selects the next fragment of the point, Insert links the selection, Delete takes the
+  links of the point away, Esc goes back to the text; the name of a point is bold while the
+  cursor is in its fragment. Copy All and Export Set... of the set warn of the points without a
+  fragment (Back to the Synopsis is the default). Settings > Navigator > Texts for Publishers
+  has the bar on the margin, the warning and the eight colors of the points, kept for each
+  theme. KML keeps a link as `<points ids="...">` (docs/kml_format.md).
 - **Sets of list formats and multilevel numbers** - 2026-11-21. Format > Bullets and
   Numbering... opens on a new first tab, Sets: the layout of all nine levels of a list at once,
   as tiles in groups (Numbered: 1. – a) – i., 1) – a) – i), (1) – (a) – (i); Multilevel:

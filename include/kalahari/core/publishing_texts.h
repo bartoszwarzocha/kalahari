@@ -15,6 +15,7 @@
 #include <QJsonValue>
 #include <QList>
 #include <QMap>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QStringView>
@@ -283,6 +284,14 @@ struct PublishingTexts {
     /// text, in the Properties ("beside"), or in the text, as headings ("inText")
     static constexpr const char* POINTS_SETTING = "materials.publishing.templatePoints";
 
+    /// @brief The setting of whether the fragments of a synopsis linked to the points of its
+    /// template have a bar beside their lines on the left margin
+    static constexpr const char* POINT_BARS_SETTING = "materials.publishing.pointBars";
+
+    /// @brief The setting of whether copying and exporting the set warn of the points of its
+    /// synopsis with no fragment in its text
+    static constexpr const char* POINT_WARNINGS_SETTING = "materials.publishing.pointWarnings";
+
     /// @brief The setting of the parts of the set of a new book, in its order
     static constexpr const char* SET_SETTING = "materials.publishing.set";
 
@@ -306,6 +315,18 @@ struct PublishingTexts {
 
     /// @brief Whether the length of a synopsis is also given in standard pages (PAGES_SETTING)
     static bool showsPages();
+
+    /// @brief Whether the fragments linked to the points have a bar on the margin
+    ///        (POINT_BARS_SETTING)
+    static bool showsPointBars();
+
+    /// @brief Whether copying and exporting the set warn of the points with no fragment
+    ///        (POINT_WARNINGS_SETTING)
+    static bool warnsOfPoints();
+
+    /// @brief The ids of the points of the text @p kml has fragments of: <points ids> with
+    ///        text in it (editor/text_points.h)
+    static QSet<QString> linkedPointsOf(const QString& kml);
 
     /// @brief The setting of the default target length of @p part in words or in characters
     static std::string targetSettingOf(const QString& part, bool words);

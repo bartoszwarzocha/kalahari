@@ -152,6 +152,28 @@ under it.
 - Enter at the end of a heading gives a paragraph in Normal, without `point` and `hint`. A paragraph with
   `point` in another style is no heading of a point: the attributes are kept and written back.
 
+### Fragments linked to the points
+
+Tools > Texts for Publishers > Link to a Point (Ctrl+Shift+D) links the selected text of a
+synopsis to a point of its template, so that the points in the Properties panel show what the
+text covers. `ids` holds the ids of the points, separated by spaces (a fragment may serve
+several points):
+
+```xml
+<p>The <points ids="hero">hero </points><points ids="hero"><b>rides</b></points></p>
+<p><points ids="hero event">far</points> away</p>
+```
+
+- The element is written for each piece of the text with one format, as the references are,
+  and pieces next to each other make one fragment: above, `hero` has one fragment, "hero
+  rides" and "far", as it continues across a paragraph break when the characters on both
+  sides of the break are linked to it. A reader may also put one element around formatting
+  (`<points ids="hero">hero <b>rides</b></points>`).
+- The element is a reference (see "References"): the text in it is the writer's text, in the
+  print, the export, the counts and the set for a publisher; only the editor shows the links,
+  as a bar on the left margin and, on demand, a fill under the text.
+- Text typed inside a fragment joins it; typed right before or after it, it does not.
+
 ## Horizontal line and breaks
 
 | Element | Meaning |
@@ -908,6 +930,7 @@ editor does not know, and written back.
 |---------|------------------|---------|
 | `<charref>` | `id`, `target` | Reference to a character |
 | `<locref>` | `id`, `target` | Reference to a location |
+| `<points>` | `ids` | Fragment of a text for publishers linked to points of its template |
 
 - A flag is set by `true` or `1` (any letter case). It is written as `true`, and not at all
   when it is not set. Empty attributes are not written.

@@ -321,6 +321,12 @@ signals:
     /// @brief Open the settings of the sources (the gear of the entry of a source)
     void requestSourceSettings();
 
+    /// @brief Open the settings of the texts for publishers (the gear over the points)
+    void requestPublishingSettings();
+
+    /// @brief Something for the status bar (Link to a Point without a selection)
+    void statusMessage(const QString& text);
+
     /// @brief Open what link @p link of a material names: an element, or the section in the
     /// Navigator
     void requestOpenLink(const QString& link);

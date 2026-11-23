@@ -41,6 +41,7 @@
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/text_highlight.h>
 #include <kalahari/editor/text_link.h>
+#include <kalahari/editor/text_points.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
 // KML → QTextDocument (with QTextCharFormat) → Render visible fragment
@@ -1450,6 +1451,34 @@ public:
     ///        stays at its character
     /// @return The headings removed; 0 without any and in a read-only text
     int removeTemplateSkeleton();
+
+    /// @brief Show the fragments linked to the points of a text for publishers as @p look
+    ///        says (text_points.h)
+    void setTemplatePointLook(const TemplatePointLook& look);
+
+    /// @brief How the fragments linked to the points show
+    [[nodiscard]] const TemplatePointLook& templatePointLook() const { return m_pointLook; }
+
+    /// @brief The fragments of each point of a text for publishers, in the order of the text
+    [[nodiscard]] QHash<QString, QList<PointFragment>> templatePointFragments() const;
+
+    /// @brief The points of the selected characters; without a selection, of the characters
+    ///        next to the cursor
+    [[nodiscard]] QStringList templatePointsAtCursor() const;
+
+    /// @brief Tools > Texts for Publishers > Link to a Point: link the selection to the point
+    ///        @p id, or take the link away (@p linked false); without a selection, take away
+    ///        the fragment of the point at the cursor; one undo step
+    /// @return false in a read-only text, and when no character changed
+    bool linkToTemplatePoint(const QString& id, bool linked);
+
+    /// @brief Take the point @p id away from the whole text, as one undo step
+    /// @return false in a read-only text, and when the text has no fragment of it
+    bool unlinkTemplatePointEverywhere(const QString& id);
+
+    /// @brief Put the cursor at the start of fragment @p index of the point @p id and show it
+    /// @return false when the point has no such fragment
+    bool goToTemplatePointFragment(const QString& id, int index);
 
     /// @brief The field the field commands act on (of text_fields.h): the one selected alone,
     ///        else the one just before the cursor, else the one just after it; std::nullopt:
@@ -3918,6 +3947,14 @@ private:
     /// @param always Also when they are where they were (a new icon)
     void syncParagraphMarks(bool always = false);
 
+    /// @brief Give the render pipeline the marks of the fragments linked to the points, after
+    ///        the text and m_pointLook
+    void syncTemplatePointMarks();
+
+    /// @brief Link the characters from @p from to @p to to the point @p id, or take the link
+    ///        away, as one undo step that brings back the cursor and the selection
+    bool changeTemplatePointLink(int from, int to, const QString& id, bool linked);
+
     /// @brief The material or the card a paperclip or a sign of cards beside a paragraph names
     /// is chosen: at once when it names one, else in a menu at @p globalPos; the scissors open
     /// their menu there
@@ -4141,6 +4178,9 @@ private:
     /// @brief Set by the undo items of a step being undone or redone (see
     /// setParagraphAlignment(), beginAnnotationStep() and setupFindReplace())
     std::optional<StepCursor> m_stepCursor;
+
+    /// @brief How the fragments linked to the points of a text for publishers show
+    TemplatePointLook m_pointLook;
 
     /// @brief Create the document with the given content and connect it to the view
     ///

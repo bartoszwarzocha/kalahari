@@ -136,6 +136,14 @@
     "plotRose": "#C2416F",
     "plotViolet": "#7A5BBF",
     "plotCork": "#C9A27A",
-    "plotBackground": "#E9E3D5"
+    "plotBackground": "#E9E3D5",
+    "templatePoint1": "#0F8579",
+    "templatePoint2": "#C2185B",
+    "templatePoint3": "#5A8A17",
+    "templatePoint4": "#C96A08",
+    "templatePoint5": "#3F51B5",
+    "templatePoint6": "#8D5A2B",
+    "templatePoint7": "#0277BD",
+    "templatePoint8": "#8E24AA"
   }
 }

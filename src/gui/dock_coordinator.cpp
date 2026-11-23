@@ -877,6 +877,18 @@ void DockCoordinator::connectTemplatePoints() {
 }
 
 void DockCoordinator::connectSkeleton() {
+    if (Command* link = m_commands.getCommand("tools.publishing.linkPoint")) {
+        link->execute = [this]() {
+            PublishingTextBox* box = m_propertiesPanel->frontPublishingBox();
+            if (box == nullptr || box->points().isEmpty()) {
+                m_mainWindow->statusBar()->showMessage(
+                    tr("The text in front has no template points."), STATUS_MESSAGE_MS);
+                return;
+            }
+            box->showLinkMenu();  // without a selection the status bar says why
+        };
+        m_commands.updateActionState("tools.publishing.linkPoint");
+    }
     if (Command* insert = m_commands.getCommand("tools.publishing.insertSkeleton")) {
         insert->execute = [this]() {
             const PublishingTextBox* box = m_propertiesPanel->frontPublishingBox();

@@ -94,8 +94,14 @@ void MaterialListPanel::createSetPage() {
     m_stack->addWidget(m_setPage);
 
     connect(m_copyAllButton, &QToolButton::clicked, this, &MaterialListPanel::copySet);
-    connect(m_exportSetButton, &QToolButton::clicked, this,
-            &MaterialListPanel::requestExportSet);
+    connect(m_exportSetButton, &QToolButton::clicked, this, [this]() {
+        QString back;
+        if (PublishingSetContents::confirmPoints(m_book, window(), true, &back)) {
+            emit requestExportSet();
+        } else if (!back.isEmpty()) {
+            emit requestOpen(back);
+        }
+    });
     connect(m_set, &PublishingSetView::currentChanged, this,
             &MaterialListPanel::requestSetProperties);
     connect(m_set, &PublishingSetView::activated, this, &MaterialListPanel::openSetPart);
@@ -187,6 +193,13 @@ void MaterialListPanel::copySetPart(const QString& part) {
 }
 
 void MaterialListPanel::copySet() {
+    // The points of the synopsis without fragments first, when the settings ask
+    if (QString back; !PublishingSetContents::confirmPoints(m_book, window(), false, &back)) {
+        if (!back.isEmpty()) {
+            emit requestOpen(back);
+        }
+        return;
+    }
     if (const QString done = PublishingSetContents::copyAll(m_book); !done.isEmpty()) {
         emit message(done);
     }

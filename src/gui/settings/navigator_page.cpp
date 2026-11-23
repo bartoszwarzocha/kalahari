@@ -36,6 +36,7 @@
 /// synopsis also gives its length in standard pages and the parts of the set of a new book
 /// (core::PublishingTexts).
 
+#include "kalahari/editor/text_points.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/publishing_templates_dialog.h"
@@ -486,6 +487,35 @@ void NavigatorPage::createPublishing()
              "goes when you type. The length and the set leave the headings out.")}},
         PublishingTexts::POINTS_SETTING);
     points->setObjectName(QStringLiteral("navigatorPublishingPoints"));
+
+    //: The group of Settings > Navigator > Texts for Publishers. In Polish: Punkty streszczenia
+    //: w tekście
+    QFormLayout* linked = addGroup(tr("Points of a Synopsis in the Text"));
+    //: In Polish: Znacznik na marginesie
+    QCheckBox* bars = addCheckBox(linked, tr("A mark on the margin"),
+                                  PublishingTexts::POINT_BARS_SETTING);
+    bars->setObjectName(QStringLiteral("navigatorPublishingPointBars"));
+    //: In Polish: Ostrzeżenie o punktach bez fragmentu
+    QCheckBox* warnings = addCheckBox(linked, tr("Warn of points with no fragment"),
+                                      PublishingTexts::POINT_WARNINGS_SETTING);
+    warnings->setObjectName(QStringLiteral("navigatorPublishingPointWarnings"));
+    //: In Polish: Zaznacz fragment streszczenia i naciśnij Ctrl+Shift+D, aby powiązać go z
+    //: punktem szablonu. Znacznik to kreska na lewym marginesie obok fragmentu. Ostrzeżenie
+    //: pojawia się przy kopiowaniu i eksporcie zestawu, gdy punkt nie ma fragmentu w tekście.
+    //: Każdy punkt ma swój kolor: znacznika i podświetlenia fragmentów (Pokaż w tekście nad
+    //: punktami). Każdy motyw ma własne kolory: to są kolory bieżącego motywu.
+    addNote(linked, tr("Select a fragment of a synopsis and press Ctrl+Shift+D to link it to a "
+                       "point of its template. The mark is a bar on the left margin beside the "
+                       "fragment. The warning comes when the set is copied or exported and a "
+                       "point has no fragment in the text. Each point has its color: of the "
+                       "mark and of the fill of its fragments (Show in the Text over the "
+                       "points). Each theme has its own colors: these are the colors of the "
+                       "current theme."));
+    for (size_t i = 0; i < editor::TEMPLATE_POINT_COLOR_KEYS.size(); ++i) {
+        //: A color of the points of a synopsis. In Polish: Punkt %1
+        addThemeColor(linked, tr("Point %1").arg(i + 1), editor::TEMPLATE_POINT_COLOR_KEYS.at(i));
+    }
+    addRestoreColorsButton(linked);
 }
 
 void NavigatorPage::addPublishingTargets(QFormLayout* group)

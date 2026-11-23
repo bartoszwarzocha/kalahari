@@ -763,8 +763,10 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
 bool KmlSerializer::hasMetadata(const QTextCharFormat& format) const
 {
     // Check if any metadata property is set
-    return format.property(KmlPropCharRef).isValid() ||
-           format.property(KmlPropLocRef).isValid();
+    const auto& defs = KmlFormatRegistry::metadataTagDefinitions();
+    return std::any_of(defs.cbegin(), defs.cend(), [&format](const MetadataTagDef& def) {
+        return format.property(def.propertyId).isValid();
+    });
 }
 
 QString KmlSerializer::metadataToOpenTag(const QTextCharFormat& format) const

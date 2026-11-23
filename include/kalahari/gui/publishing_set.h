@@ -15,6 +15,8 @@
 #include <QList>
 #include <QString>
 
+class QWidget;
+
 namespace kalahari::core {
 class ProjectManager;
 struct ProjectBook;
@@ -65,6 +67,16 @@ public:
     /// @brief Copy the whole set to the clipboard as plain text (Copy All)
     /// @return What the status bar says; empty when the set has no text to copy
     static QString copyAll(const core::ProjectManager& book);
+
+    /// @brief Ask before the set goes out when its synopsis has points of its template with no
+    ///        fragment linked to them in its text (PublishingTexts::warnsOfPoints()); going back
+    ///        to the synopsis is the default
+    /// @param parent Parent of the window
+    /// @param exporting Export Set...; else Copy All
+    /// @param back Gets the synopsis when the writer goes back to it
+    /// @return Whether the set goes out
+    static bool confirmPoints(const core::ProjectManager& book, QWidget* parent, bool exporting,
+                              QString* back);
 };
 
 }  // namespace kalahari::gui

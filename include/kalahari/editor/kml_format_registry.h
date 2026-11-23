@@ -38,6 +38,10 @@ enum KmlPropertyId {
     /// @brief Letter spacing of the text (<span spacing>): points (double), more than 0
     /// expanded, less condensed; the layout shows it as Qt's absolute letter spacing
     KmlPropLetterSpacing = QTextFormat::UserProperty + 105,
+
+    /// @brief Points of the template of a text for publishers the text is linked to
+    /// (<points ids>, see text_points.h)
+    KmlPropTemplatePoints = QTextFormat::UserProperty + 106,
 };
 
 /// @brief Accepted range of the letter spacing, in points

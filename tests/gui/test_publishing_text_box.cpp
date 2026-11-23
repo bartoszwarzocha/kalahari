@@ -41,6 +41,7 @@
 #include <QSpinBox>
 #include <QTabWidget>
 #include <QTemporaryDir>
+#include <QToolButton>
 
 #include <algorithm>
 #include <cstdio>
@@ -315,6 +316,121 @@ TEST_CASE("Texts for publishers: the skeleton of a synopsis in the editor, its l
     }));
     CHECK(text->removeTemplateSkeleton() == 5);
     CHECK(text->plainText() == QStringLiteral("Leila goes."));
+}
+
+TEST_CASE("Texts for publishers: fragments of a synopsis linked to its points, their states, "
+          "keys and marks",
+          "[gui][publishing][synopsisbox][points]") {
+    gui::registerAllIcons();
+    const CharactersUnit unit;
+    test::OpenNovel novel(QStringLiteral("Sand"));
+    auto& pm = novel.pm;
+    const QString id = pm.addPublishingText(QString::fromLatin1(PublishingTexts::SYNOPSIS),
+                                            QStringLiteral("kalahari.novel:one_page"),
+                                            QStringLiteral("Synopsis – version 1"));
+    REQUIRE_FALSE(id.isEmpty());
+    QWidget window;
+    auto* layout = new QHBoxLayout(&window);
+    auto* editorPanel = new gui::EditorPanel(pm, test::commands(), &window);
+    editorPanel->setProperty("elementId", id);
+    auto* properties = new gui::PropertiesPanel(pm, &window);
+    layout->addWidget(editorPanel);
+    layout->addWidget(properties);
+    properties->setActiveEditor(editorPanel);
+    PublishingTextBox* box = properties->frontPublishingBox();
+    REQUIRE(box != nullptr);
+    REQUIRE(box->points().size() == 5);
+    editor::BookEditor* text = editorPanel->getBookEditor();
+
+    // No fragment yet: every point is not in the text; the editor knows the points
+    text->replaceWithKml(
+        editor::ClipboardHandler::textToKml(QStringLiteral("Leila goes to the last well.")));
+    REQUIRE(test::waitUntil([box]() {
+        return box->pointsSummary()->text() == QStringLiteral("In the text: 0 of 5 · Done: 0 of 5");
+    }));
+    CHECK(box->pointStates().constFirst()->text() == QStringLiteral("Not in the text"));
+    CHECK(text->templatePointLook().order ==
+          (QStringList{QStringLiteral("hero"), QStringLiteral("event"), QStringLiteral("goal"),
+                       QStringLiteral("climax"), QStringLiteral("ending")}));
+    CHECK(text->templatePointLook().colors.size() == 8);
+
+    // "Leila" linked to the hero (Insert in the point does the same as its button)
+    text->setSelection({{0, 0}, {0, 5}});
+    CHECK(box->linkSelection(QStringLiteral("hero")));
+    CHECK(text->toKml().contains(QStringLiteral("<points ids=\"hero\">Leila</points>")));
+    CHECK(box->pointsSummary()->text() == QStringLiteral("In the text: 1 of 5 · Done: 0 of 5"));
+    CHECK(box->pointStates().constFirst()->text() ==
+          QStringLiteral("In the text: 1 fragment, 5 characters"));
+    // The bar beside the fragment on the margin; no fill until Show in the Text
+    REQUIRE(text->templatePointLook().bars);
+    CHECK_FALSE(text->templatePointLook().shown);
+    box->showInTextButton()->toggle();
+    CHECK(text->templatePointLook().shown);
+
+    // A point ticked off without a fragment: the warning under it
+    box->points().at(1)->setChecked(true);
+    CHECK(box->pointStates().at(1)->text() ==
+          QStringLiteral("Ticked off, but the text has no fragment of it"));
+    CHECK(box->pointStates().at(1)->font().bold());
+    CHECK(box->pointsSummary()->text() == QStringLiteral("In the text: 1 of 5 · Done: 1 of 5"));
+
+    // Enter in the point selects its fragment; undo takes the link back
+    text->clearSelection();
+    text->setCursorPosition({0, 20});
+    CHECK(box->goToNextFragment(QStringLiteral("hero")));
+    CHECK(text->selection().normalized().start == editor::CursorPosition{0, 0});
+    CHECK(text->selection().normalized().end == editor::CursorPosition{0, 5});
+    text->undo();
+    CHECK_FALSE(text->toKml().contains(QStringLiteral("<points")));
+    CHECK(test::waitUntil([box]() {
+        return box->pointStates().constFirst()->text() == QStringLiteral("Not in the text");
+    }));
+    text->redo();
+    CHECK(test::waitUntil([box]() {
+        return box->pointStates().constFirst()->text() != QStringLiteral("Not in the text");
+    }));
+
+    // Delete in the point takes its fragments away, the text stays
+    CHECK(box->unlinkPoint(QStringLiteral("hero")));
+    CHECK(text->plainText() == QStringLiteral("Leila goes to the last well."));
+    CHECK(text->templatePointFragments().isEmpty());
+
+    // The set warns of the points without fragments while the text is not saved too
+    text->setSelection({{0, 6}, {0, 10}});
+    REQUIRE(text->linkToTemplatePoint(QStringLiteral("event"), true));
+    pm.setEditorText(id, text->toKml());
+    QStringList unlinked;
+    for (const core::PublishingTemplatePoint& point : pm.unlinkedPublishingPointsOf(id)) {
+        unlinked << point.id;
+    }
+    CHECK(unlinked == (QStringList{QStringLiteral("hero"), QStringLiteral("goal"),
+                                   QStringLiteral("climax"), QStringLiteral("ending")}));
+    CHECK(PublishingTexts::linkedPointsOf(text->toKml()) ==
+          QSet<QString>{QStringLiteral("event")});
+
+    if (!canActivateWindows()) {
+        SKIP("needs an active window without a window on screen: run with "
+             "QT_QPA_PLATFORM=offscreen");
+    }
+    window.resize(1200, 800);
+    window.show();
+    window.activateWindow();
+    REQUIRE(test::waitUntil([&window] { return QApplication::activeWindow() == &window; }));
+    // The keys of the points: Down to the next one, which is then the point chosen; Insert
+    // links the selection to it; Delete takes it away; End to the last one
+    REQUIRE(properties->focusTemplatePoints());
+    press(box->points().constFirst(), Qt::Key_Down);
+    CHECK(box->points().at(1)->hasFocus());
+    CHECK(text->templatePointLook().current == QStringLiteral("event"));
+    text->setSelection({{0, 14}, {0, 18}});
+    press(box->points().at(1), Qt::Key_Insert);
+    CHECK(text->templatePointFragments().value(QStringLiteral("event")).size() == 2);
+    press(box->points().at(1), Qt::Key_Delete);
+    CHECK_FALSE(text->templatePointFragments().contains(QStringLiteral("event")));
+    press(box->points().at(1), Qt::Key_End);
+    CHECK(box->points().constLast()->hasFocus());
+    press(box->points().constLast(), Qt::Key_Escape);
+    CHECK(text->hasFocus());
 }
 
 TEST_CASE("Texts for publishers: in the book window the points ticked off of a synopsis are "

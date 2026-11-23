@@ -337,6 +337,33 @@ QString ProjectManager::publishingTextOf(const QString& elementId) const {
     return element->description;
 }
 
+QList<PublishingTemplatePoint> ProjectManager::unlinkedPublishingPointsOf(
+    const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    if (element == nullptr || !PublishingTexts::hasPoints(element->publishing.part) ||
+        element->publishing.templateId.isEmpty() || element->file.isEmpty() ||
+        formOf(*element) != ElementForm::Text) {
+        return {};
+    }
+    const std::optional<PublishingTemplate> templ =
+        publishingTemplate(element->publishing.templateId);
+    if (!templ) {
+        return {};
+    }
+    const auto state = m_elementStates.constFind(elementId);
+    const std::optional<QString> kml = state != m_elementStates.cend() && state->editorText
+                                           ? state->editorText
+                                           : textKmlOf(elementId);
+    const QSet<QString> linked = kml ? PublishingTexts::linkedPointsOf(*kml) : QSet<QString>();
+    QList<PublishingTemplatePoint> unlinked;
+    for (const PublishingTemplatePoint& point : templ->pointsFor(mainTexts())) {
+        if (!linked.contains(point.id)) {
+            unlinked << point;
+        }
+    }
+    return unlinked;
+}
+
 void ProjectManager::setEditorText(const QString& elementId, const QString& kml) {
     const ProjectElement* element = findElement(elementId);
     ElementState* state = element != nullptr && isPublishingText(*element) ? stateOf(elementId)

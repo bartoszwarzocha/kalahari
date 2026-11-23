@@ -453,6 +453,10 @@ QWidget* PropertiesPanel::createChapterPage() {
     m_publishingBox = new PublishingTextBox(m_book, scrollContent);
     connect(m_publishingBox, &PublishingTextBox::publishingChanged, this,
             &PropertiesPanel::materialChanged);
+    connect(m_publishingBox, &PublishingTextBox::settingsRequested, this,
+            &PropertiesPanel::requestPublishingSettings);
+    connect(m_publishingBox, &PublishingTextBox::statusMessage, this,
+            &PropertiesPanel::statusMessage);
     layout->addWidget(m_publishingBox);
 
     // Where a clipping comes from (populateChapterFields())
