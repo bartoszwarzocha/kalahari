@@ -76,6 +76,8 @@ public:
     /// Editor > Auto-correct (the gear of File > Import: the cleanups of the text follow it)
     static constexpr const char* AUTO_CORRECT_PAGE = "editor.autoCorrect";
     static constexpr const char* IMPORT_PAGE = "files.import";  ///< Files > Import
+    /// Files > File Associations
+    static constexpr const char* FILE_ASSOCIATIONS_PAGE = "files.associations";
     static constexpr const char* REPETITIONS_PAGE = "editor.repetitions";  ///< Editor > Repetitions
     static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* CLIPPINGS_PAGE = "editor.clippings";  ///< Editor > Clippings

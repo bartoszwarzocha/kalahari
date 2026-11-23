@@ -168,6 +168,7 @@ set(TEST_SOURCES
     gui/test_document_commands.cpp               # Document commands greyed out without one
     gui/test_kalahari_style.cpp                  # Grey menu items under the keys highlighted
     gui/test_program_folders.cpp                 # Folders of the program and the Folders page
+    gui/test_file_associations.cpp               # The program of the files of Kalahari
     gui/test_spelling_coordinator.cpp            # Spelling as you type: dictionary, command, settings page
     gui/test_spelling_panel.cpp                  # Spelling and Grammar panel: cards, counts, keys, the text in front, F7
     gui/test_name_dialog.cpp                     # Book dictionary: the forms table, the windows of a name and a rule
@@ -439,6 +440,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/network_page.cpp  # Settings > Network > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/folders_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/import_page.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/file_associations_page.cpp  # Files > File Associations
     ${CMAKE_SOURCE_DIR}/src/gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     ${CMAKE_SOURCE_DIR}/src/gui/settings/stats_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/shortcut_rules.cpp          # Which keys a command can have
@@ -606,6 +608,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/import_book_dialog.cpp       # Import of DOCX, Markdown and plain text
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/file_preview_dialog.cpp      # The text of a file no element has
     ${CMAKE_SOURCE_DIR}/src/gui/utils/file_location.cpp              # A file shown in the file manager
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/file_associations.cpp          # The program of the files of Kalahari
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp              # Items in more rows when narrow
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/special_character_dialog.cpp  # Insert > Special Character...
@@ -972,6 +975,18 @@ list(APPEND TEST_SOURCES
 
 # Create test executable
 add_executable(kalahari-tests ${TEST_SOURCES})
+
+# The program of the files of Kalahari, as in the program (src/CMakeLists.txt)
+if(WIN32)
+    target_link_libraries(kalahari-tests PRIVATE shlwapi)
+elseif(APPLE)
+    set(_kalahari_mac_associations "${CMAKE_SOURCE_DIR}/src/gui/utils/file_associations_mac.mm")
+    target_sources(kalahari-tests PRIVATE "${_kalahari_mac_associations}")
+    set_source_files_properties("${_kalahari_mac_associations}" PROPERTIES
+                                SKIP_PRECOMPILE_HEADERS ON)
+    target_link_libraries(kalahari-tests PRIVATE
+        "-framework AppKit" "-framework UniformTypeIdentifiers")
+endif()
 
 # Target properties
 set_target_properties(kalahari-tests PROPERTIES

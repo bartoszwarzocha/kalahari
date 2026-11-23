@@ -8974,6 +8974,142 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     </message>
 </context>
 <context>
+    <name>kalahari::gui::FileAssociations</name>
+    <message>
+        <source>Kalahari book</source>
+        <extracomment>The type of the .klh files in Windows Explorer. In Polish: Książka programu Kalahari</extracomment>
+        <translation>Książka programu Kalahari</translation>
+    </message>
+    <message>
+        <source>Kalahari document</source>
+        <extracomment>The type of the .kchapter files in Windows Explorer. In Polish: Dokument programu Kalahari</extracomment>
+        <translation>Dokument programu Kalahari</translation>
+    </message>
+    <message>
+        <source>Windows did not let the program write its registration (%1).</source>
+        <extracomment>%1 is a key of the registry. In Polish: System Windows nie pozwolił programowi zapisać rejestracji (%1).</extracomment>
+        <translation>System Windows nie pozwolił programowi zapisać rejestracji (%1).</translation>
+    </message>
+    <message>
+        <source>The program needs xdg-utils (the command xdg-mime), which the system does not have.</source>
+        <extracomment>In Polish: Program potrzebuje xdg-utils (polecenia xdg-mime), których system nie ma.</extracomment>
+        <translation>Program potrzebuje xdg-utils (polecenia xdg-mime), których system nie ma.</translation>
+    </message>
+    <message>
+        <source>The program does not have the description of its files (%1).</source>
+        <extracomment>In Polish: Program nie ma opisu swoich plików (%1).</extracomment>
+        <translation>Program nie ma opisu swoich plików (%1).</translation>
+    </message>
+    <message>
+        <source>Write, plan and publish books</source>
+        <extracomment>The description of Kalahari in Windows Settings &gt; Apps &gt; Default apps. In Polish: Pisanie, planowanie i wydawanie książek</extracomment>
+        <translation>Pisanie, planowanie i wydawanie książek</translation>
+    </message>
+    <message>
+        <source>The program needs macOS 12 or later.</source>
+        <extracomment>In Polish: Program potrzebuje systemu macOS 12 lub nowszego.</extracomment>
+        <translation>Program potrzebuje systemu macOS 12 lub nowszego.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FileAssociationsPage</name>
+    <message>
+        <source>Kalahari opens them</source>
+        <extracomment>Which program opens the files of a row. In Polish: Otwiera je Kalahari</extracomment>
+        <translation>Otwiera je Kalahari</translation>
+    </message>
+    <message>
+        <source>%1 opens them</source>
+        <extracomment>%1 is the name of another program. In Polish: Otwiera je %1</extracomment>
+        <translation>Otwiera je %1</translation>
+    </message>
+    <message>
+        <source>No program opens them: the system asks which one to use</source>
+        <extracomment>In Polish: Nie otwiera ich żaden program: system pyta, którego użyć</extracomment>
+        <translation>Nie otwiera ich żaden program: system pyta, którego użyć</translation>
+    </message>
+    <message>
+        <source>The system does not tell</source>
+        <extracomment>In Polish: System tego nie podaje</extracomment>
+        <translation>System tego nie podaje</translation>
+    </message>
+    <message>
+        <source>The system does not tell: %1</source>
+        <extracomment>%1 is why. In Polish: System tego nie podaje: %1</extracomment>
+        <translation>System tego nie podaje: %1</translation>
+    </message>
+    <message>
+        <source>Files of Kalahari</source>
+        <extracomment>The group of Settings &gt; Files &gt; File Associations. In Polish: Pliki programu Kalahari</extracomment>
+        <translation>Pliki programu Kalahari</translation>
+    </message>
+    <message>
+        <source>The system opens these files with the program it gives them. The installer gives them Kalahari; here you can see whether it still does.</source>
+        <extracomment>In Polish: System otwiera te pliki w programie, który im przypisano. Instalator przypisuje im program Kalahari; tutaj widać, czy tak jest nadal.</extracomment>
+        <translation>System otwiera te pliki w programie, który im przypisano. Instalator przypisuje im program Kalahari; tutaj widać, czy tak jest nadal.</translation>
+    </message>
+    <message>
+        <source>Books (.klh):</source>
+        <extracomment>In Polish: Książki (.klh):</extracomment>
+        <translation>Książki (.klh):</translation>
+    </message>
+    <message>
+        <source>Documents (.kchapter):</source>
+        <extracomment>In Polish: Dokumenty (.kchapter):</extracomment>
+        <translation>Dokumenty (.kchapter):</translation>
+    </message>
+    <message>
+        <source>&amp;Associate with Kalahari</source>
+        <extracomment>In Polish: &amp;Powiąż z programem Kalahari</extracomment>
+        <translation>&amp;Powiąż z programem Kalahari</translation>
+    </message>
+    <message>
+        <source>&amp;Default Apps in Windows Settings…</source>
+        <extracomment>Opens Settings &gt; Apps &gt; Default apps of Windows. In Polish: &amp;Aplikacje domyślne w Ustawieniach systemu Windows…</extracomment>
+        <translation>&amp;Aplikacje domyślne w Ustawieniach systemu Windows…</translation>
+    </message>
+    <message>
+        <source>Windows Settings did not open.</source>
+        <extracomment>In Polish: Ustawienia systemu Windows się nie otworzyły.</extracomment>
+        <translation>Ustawienia systemu Windows się nie otworzyły.</translation>
+    </message>
+    <message>
+        <source>Windows lets only you choose the default program of a kind of files. The button registers Kalahari as a program that opens them; when another program still opens them, choose Kalahari on the Default Apps page of Windows Settings.</source>
+        <extracomment>In Polish: W systemie Windows domyślny program danego rodzaju plików możesz wybrać tylko Ty. Przycisk rejestruje Kalahari jako program, który je otwiera; jeśli nadal otwiera je inny program, wybierz Kalahari na stronie Aplikacje domyślne w Ustawieniach systemu Windows.</extracomment>
+        <translation>W systemie Windows domyślny program danego rodzaju plików możesz wybrać tylko Ty. Przycisk rejestruje Kalahari jako program, który je otwiera; jeśli nadal otwiera je inny program, wybierz Kalahari na stronie Aplikacje domyślne w Ustawieniach systemu Windows.</translation>
+    </message>
+    <message>
+        <source>macOS may ask you to confirm the change.</source>
+        <extracomment>In Polish: System macOS może poprosić o potwierdzenie zmiany.</extracomment>
+        <translation>System macOS może poprosić o potwierdzenie zmiany.</translation>
+    </message>
+    <message>
+        <source>The button makes Kalahari the default program of these files with xdg-utils; the AppImage first adds the kinds of its files and its menu entry for you.</source>
+        <extracomment>In Polish: Przycisk ustawia Kalahari jako domyślny program tych plików za pomocą xdg-utils; program w pliku AppImage najpierw dodaje dla Ciebie rodzaje swoich plików i swój skrót w menu.</extracomment>
+        <translation>Przycisk ustawia Kalahari jako domyślny program tych plików za pomocą xdg-utils; program w pliku AppImage najpierw dodaje dla Ciebie rodzaje swoich plików i swój skrót w menu.</translation>
+    </message>
+    <message>
+        <source>Kalahari could not become the program of its files: %1</source>
+        <extracomment>%1 is what went wrong. In Polish: Nie udało się powiązać plików z programem Kalahari: %1</extracomment>
+        <translation>Nie udało się powiązać plików z programem Kalahari: %1</translation>
+    </message>
+    <message>
+        <source>Kalahari opens its books and documents now.</source>
+        <extracomment>In Polish: Kalahari otwiera teraz swoje książki i dokumenty.</extracomment>
+        <translation>Kalahari otwiera teraz swoje książki i dokumenty.</translation>
+    </message>
+    <message>
+        <source>Kalahari is registered, yet Windows still opens some of the files with another program: choose Kalahari on the Default Apps page of Windows Settings.</source>
+        <extracomment>In Polish: Program Kalahari jest zarejestrowany, ale Windows nadal otwiera część tych plików innym programem: wybierz Kalahari na stronie Aplikacje domyślne w Ustawieniach systemu Windows.</extracomment>
+        <translation>Program Kalahari jest zarejestrowany, ale Windows nadal otwiera część tych plików innym programem: wybierz Kalahari na stronie Aplikacje domyślne w Ustawieniach systemu Windows.</translation>
+    </message>
+    <message>
+        <source>The system still opens some of the files with another program.</source>
+        <extracomment>In Polish: System nadal otwiera część tych plików innym programem.</extracomment>
+        <translation>System nadal otwiera część tych plików innym programem.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::FolderField</name>
     <message>
         <source>Restore Default</source>
@@ -13418,6 +13554,11 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>Import</source>
         <extracomment>The page of the choices the window of the import starts with. In Polish: Import</extracomment>
         <translation>Import</translation>
+    </message>
+    <message>
+        <source>File Associations</source>
+        <extracomment>The page of the program the system opens the books and the documents with. In Polish: Powiązania plików</extracomment>
+        <translation>Powiązania plików</translation>
     </message>
     <message>
         <source>Planned features:

@@ -14,12 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Installers of the program** - 2026-11-20. Kalahari has packages for the three systems,
   made from a Release build by `scripts/package.py` and in every run of the CI: for Windows an
   installer (NSIS; for the current user without an administrator, or for all users; the Start
-  menu, optionally the desktop, the `.klh` books opening in the program; Polish or English, as
-  Windows speaks) and a ZIP of the program without installation; for Linux an AppImage and a
+  menu, optionally the desktop, the books (`.klh`) and the documents (`.kchapter`) opening in
+  the program; Polish or English, as Windows speaks) and a ZIP of the program without installation; for Linux an AppImage and a
   `.deb` package for Ubuntu 24.04 and Linux Mint 22 (in `/opt/kalahari`, with a menu entry and
-  the type of the `.klh` files), whose windows for choosing a file are those of the system (the
+  the types of the `.klh` and `.kchapter` files), whose windows for choosing a file are those of the system (the
   GTK theme of Qt, the desktop portal) and otherwise Qt's own, in Polish; for macOS a `.dmg`
-  with `Kalahari.app` (signed ad hoc, books opened in Finder go to the program). Each package
+  with `Kalahari.app` (signed ad hoc, books and documents opened in Finder go to the program). Each package
   carries the Qt and the Python of the program and is checked before it is written by the new
   `kalahari --self-test`, which checks the resources, the icon, the translations, the Qt
   plugins of images, the database and secure connections, and the Python of the plugins. The
@@ -39,6 +39,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   clean Ubuntu 24.04 in docker, the program as a user without and with an X server, the
   removal by apt; `Kalahari.app` copied from the `.dmg`. Packaging: `cmake/Packaging.cmake`,
   `packaging/`, BUILDING.md "Packages".
+  The new page Settings > Files > File Associations shows which program the system opens the
+  books and the documents with and has the button Associate with Kalahari: on Linux it makes
+  Kalahari their default program with xdg-utils (an AppImage first installs the types of its
+  files and its menu entry for the writer), on macOS 12 and later with NSWorkspace (the system
+  may ask first). Windows lets only the writer choose a default program: there the button
+  registers Kalahari for the writer as the installer does (a ProgID for each type, the
+  Capabilities of the program and its name in RegisteredApplications), and the button Default
+  Apps in Windows Settings opens the page of Kalahari in Windows Settings
+  (`gui/utils/file_associations.h`). The CI checks that Windows opens both kinds with the
+  installed program and that the uninstaller removes their registration, that Ubuntu knows
+  both types after the `.deb` is installed, and that `Info.plist` exports both.
 
 - **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
   for Publishers, with its number in the Navigator: the sentences about the book and the

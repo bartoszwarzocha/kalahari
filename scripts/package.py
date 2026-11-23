@@ -116,10 +116,13 @@ WINDOWS_BINARIES = (".exe", ".dll", ".pyd")
 # The Windows installer: its keys in the registry (packaging/windows/kalahari.nsi)
 REGISTRY_KEY = r"Software\Kalahari"
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Kalahari"
-BOOK_TYPE = "Kalahari.Book"
-BOOKS_KEY = r"Software\Classes\.klh"
-BOOK_TYPE_KEY = rf"Software\Classes\{BOOK_TYPE}"
-BOOK_COMMAND_KEY = rf"Software\Classes\{BOOK_TYPE}\shell\open\command"
+# The files of Kalahari (gui/utils/file_associations.cpp): extension, ProgID of Windows (with
+# the Capabilities of the program and its name in RegisteredApplications) and type of macOS
+FILE_TYPES = ((".klh", "Kalahari.Book", "io.github.bartoszwarzocha.kalahari.book"),
+              (".kchapter", "Kalahari.Document", "io.github.bartoszwarzocha.kalahari.document"))
+CAPABILITIES_KEY = rf"{REGISTRY_KEY}\Capabilities"
+REGISTERED_APPLICATIONS_KEY = r"Software\RegisteredApplications"
+REGISTERED_NAME = "Kalahari"
 
 
 class PackageError(Exception):
@@ -542,6 +545,8 @@ def make_deb(appdir: Path, work: Path, out: Path, version: str) -> Path:
         "Maintainer: Kalahari Team <https://github.com/bartoszwarzocha/kalahari/issues>",
         f"Installed-Size: {size_kb}",
         f"Depends: {depends}" if depends else "",
+        # Settings > Files > File Associations: xdg-mime and xdg-desktop-menu
+        "Recommends: xdg-utils",
         "Section: editors",
         "Priority: optional",
         f"Homepage: {HOMEPAGE}",
@@ -883,7 +888,29 @@ def check_info_plist(bundle: Path) -> Dict[str, object]:
     executable = values.get("CFBundleExecutable")
     if not executable or not (bundle / "Contents" / "MacOS" / str(executable)).is_file():
         raise PackageError(f"{info}: no program {executable!r} in Contents/MacOS")
+    problems = bundle_file_type_problems(values)
+    if problems:
+        raise PackageError(f"{info}:\n  " + "\n  ".join(problems))
     return values
+
+
+def bundle_file_type_problems(values: Dict[str, object]) -> List[str]:
+    """The files of Kalahari Info.plist does not give to the program: each type is exported
+    with its extension, and the program opens it as its owner."""
+    exported = {}
+    for declaration in values.get("UTExportedTypeDeclarations") or []:
+        tags = declaration.get("UTTypeTagSpecification", {}).get("public.filename-extension", [])
+        exported[declaration.get("UTTypeIdentifier")] = list(tags)
+    opened = {content_type: document.get("LSHandlerRank")
+              for document in values.get("CFBundleDocumentTypes") or []
+              for content_type in document.get("LSItemContentTypes", [])}
+    problems = []
+    for extension, _, content_type in FILE_TYPES:
+        if exported.get(content_type) != [extension.lstrip(".")]:
+            problems.append(f"{content_type}: extensions {exported.get(content_type)}")
+        if opened.get(content_type) != "Owner":
+            problems.append(f"{content_type}: the program opens it as {opened.get(content_type)!r}")
+    return problems
 
 
 def package_macos(build: Path, out: Path) -> List[Path]:
@@ -969,6 +996,64 @@ def wait_until(condition: Callable[[], bool], timeout_s: int) -> bool:
     return True
 
 
+def file_type_problems(values: Callable[[str], Optional[Dict[str, object]]], program: Path,
+                       program_of: Callable[[str], Optional[str]]) -> List[str]:
+    """What the registration of the files of Kalahari lacks (kalahari.nsi, REGISTER_FILE_TYPE):
+    @p values gives the values of a key, @p program_of the program Windows opens an extension
+    with; both have to be @p program."""
+    problems = []
+    command = f'"{program}" "%1"'.lower()
+    capabilities = values(CAPABILITIES_KEY) or {}
+    associations = values(rf"{CAPABILITIES_KEY}\FileAssociations") or {}
+    for extension, prog_id, _ in FILE_TYPES:
+        own = (values(rf"Software\Classes\{extension}") or {}).get("")
+        listed = values(rf"Software\Classes\{extension}\OpenWithProgids") or {}
+        opens = (values(rf"Software\Classes\{prog_id}\shell\open\command") or {}).get("")
+        if own != prog_id or prog_id not in listed or str(opens).lower() != command:
+            problems.append(f"{extension}: {own!r}, OpenWithProgids {sorted(listed)}, {opens!r}")
+        if associations.get(extension) != prog_id:
+            problems.append(f"Capabilities of {extension}: {associations.get(extension)!r}")
+        found = program_of(extension)
+        if found is None or not same_path(found, program):
+            problems.append(f"Windows opens {extension} with {found!r}")
+    if capabilities.get("ApplicationName") != REGISTERED_NAME:
+        problems.append(f"ApplicationName {capabilities.get('ApplicationName')!r}")
+    registered = (values(REGISTERED_APPLICATIONS_KEY) or {}).get(REGISTERED_NAME)
+    if registered != CAPABILITIES_KEY:
+        problems.append(f"RegisteredApplications: {registered!r}")
+    return problems
+
+
+def file_type_keys_left(values: Callable[[str], Optional[Dict[str, object]]]) -> List[str]:
+    """The keys and values of the files of Kalahari an uninstaller left (@p values as above)."""
+    left = []
+    for extension, prog_id, _ in FILE_TYPES:
+        for key in (rf"Software\Classes\{extension}", rf"Software\Classes\{prog_id}"):
+            if values(key) is not None:
+                left.append(key)
+    if REGISTERED_NAME in (values(REGISTERED_APPLICATIONS_KEY) or {}):
+        left.append(rf"{REGISTERED_APPLICATIONS_KEY}\{REGISTERED_NAME}")
+    return left
+
+
+def windows_program_of(extension: str) -> Optional[str]:
+    """The program Windows opens files of @p extension with (AssocQueryStringW,
+    ASSOCSTR_EXECUTABLE, as Explorer does), None when there is none."""
+    import ctypes  # noqa: PLC0415 (Windows only)
+    from ctypes import wintypes  # noqa: PLC0415
+    assoc_query = ctypes.WinDLL("shlwapi").AssocQueryStringW
+    assoc_query.argtypes = [ctypes.c_uint, ctypes.c_int, wintypes.LPCWSTR, wintypes.LPCWSTR,
+                            wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)]
+    assoc_query.restype = ctypes.c_long
+    ignore_unknown = 0x400  # ASSOCF_INIT_IGNOREUNKNOWN: no "Open with" for a type with none
+    executable = 2  # ASSOCSTR_EXECUTABLE
+    size = wintypes.DWORD(1024)
+    buffer = ctypes.create_unicode_buffer(size.value)
+    if assoc_query(ignore_unknown, executable, extension, "open", buffer, ctypes.byref(size)):
+        return None
+    return buffer.value
+
+
 class WindowsInstallation:
     """An installation of the Windows installer: for the writer alone ("CurrentUser") or for
     all users ("AllUsers"), with the places kalahari.nsi writes to."""
@@ -992,7 +1077,7 @@ class WindowsInstallation:
 
     def problems(self, expected: Set[str], version: str) -> List[str]:
         """What the installation lacks: the files @p expected, its keys, its shortcut, the
-        program of the .klh books."""
+        program of the books (.klh) and the documents (.kchapter)."""
         if not self.folder.is_dir():
             return [f"no folder {self.folder}"]
         found = {relative.as_posix() for relative in files_of(self.folder)}
@@ -1009,10 +1094,7 @@ class WindowsInstallation:
             problems.append(f"QuietUninstallString {self.quiet_uninstall()!r}")
         if not self.shortcut.is_file():
             problems.append(f"no shortcut {self.shortcut}")
-        books = (self.values(BOOKS_KEY) or {}).get("")
-        command = (self.values(BOOK_COMMAND_KEY) or {}).get("")
-        if books != BOOK_TYPE or str(command).lower() != f'"{self.program()}" "%1"'.lower():
-            problems.append(f".klh books: {books!r}, {command!r}")
+        problems += file_type_problems(self.values, self.program(), windows_program_of)
         return problems
 
     def left_after_uninstall(self) -> List[str]:
@@ -1021,8 +1103,8 @@ class WindowsInstallation:
             left = [str(path) for path in sorted(self.folder.rglob("*"))][:20] or [str(self.folder)]
         if self.shortcut.exists():
             left.append(str(self.shortcut))
-        left += [key for key in (REGISTRY_KEY, UNINSTALL_KEY, BOOKS_KEY, BOOK_TYPE_KEY)
-                 if self.values(key) is not None]
+        left += [key for key in (REGISTRY_KEY, UNINSTALL_KEY) if self.values(key) is not None]
+        left += file_type_keys_left(self.values)
         return left
 
     def program(self) -> Path:
@@ -1037,8 +1119,9 @@ class WindowsInstallation:
 
 def check_windows_installer(dist: Path) -> None:
     """The installer of @p dist, silently, for the writer alone and for all users: the files
-    of the ZIP of the program, the keys of the registry, the Start menu and the .klh books; the
-    installed program passes its check with its own Python; its uninstaller removes it all."""
+    of the ZIP of the program, the keys of the registry, the Start menu, the books (.klh) and
+    the documents (.kchapter) Windows opens with it; the installed program passes its check
+    with its own Python; its uninstaller removes it all."""
     installers = sorted(dist.glob("Kalahari-*-windows-x64-setup.exe"))
     if len(installers) != 1:
         raise PackageError(f"{len(installers)} installers of Windows in {dist}")

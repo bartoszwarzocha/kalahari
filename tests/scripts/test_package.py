@@ -452,17 +452,79 @@ class InstalledPackagesTest(unittest.TestCase):
             self.assertIn("scripts/package.py install-check --dist dist", workflow, system)
 
 
+class WindowsFileTypesTest(unittest.TestCase):
+    """The registration of the files of Kalahari the check of the Windows installer reads."""
+
+    PROGRAM = Path(r"C:\Users\writer\AppData\Local\Programs\Kalahari\kalahari.exe")
+
+    def registry(self) -> dict:
+        keys = {
+            r"Software\Kalahari\Capabilities": {"ApplicationName": "Kalahari"},
+            r"Software\Kalahari\Capabilities\FileAssociations": {},
+            r"Software\RegisteredApplications": {"Other": "x",
+                                                  "Kalahari": r"Software\Kalahari\Capabilities"},
+        }
+        for extension, prog_id, _ in package.FILE_TYPES:
+            keys[rf"Software\Classes\{extension}"] = {"": prog_id}
+            keys[rf"Software\Classes\{extension}\OpenWithProgids"] = {prog_id: ""}
+            keys[rf"Software\Classes\{prog_id}\shell\open\command"] = {
+                "": f'"{self.PROGRAM}" "%1"'}
+            keys[rf"Software\Classes\{prog_id}"] = {"": "Kalahari"}
+            keys[r"Software\Kalahari\Capabilities\FileAssociations"][extension] = prog_id
+        return keys
+
+    def test_the_files_registered_as_the_installer_registers_them(self):
+        keys = self.registry()
+        self.assertEqual(package.file_type_problems(keys.get, self.PROGRAM,
+                                                    lambda extension: str(self.PROGRAM)), [])
+
+    def test_what_the_registration_lacks(self):
+        keys = self.registry()
+        del keys[r"Software\Classes\.kchapter\OpenWithProgids"]
+        keys[r"Software\Kalahari\Capabilities\FileAssociations"][".klh"] = "Other.Type"
+        del keys[r"Software\RegisteredApplications"]["Kalahari"]
+        word = r"C:\Word\winword.exe"
+        other = {".klh": str(self.PROGRAM), ".kchapter": word}
+        command = f'"{self.PROGRAM}" "%1"'
+        self.assertEqual(package.file_type_problems(keys.get, self.PROGRAM, other.get), [
+            "Capabilities of .klh: 'Other.Type'",
+            f".kchapter: 'Kalahari.Document', OpenWithProgids [], {command!r}",
+            f"Windows opens .kchapter with {word!r}",
+            "RegisteredApplications: None"])
+
+    def test_what_an_uninstaller_left(self):
+        self.assertEqual(package.file_type_keys_left({}.get), [])
+        keys = {r"Software\Classes\.kchapter": {"": "Kalahari.Document"},
+                r"Software\RegisteredApplications": {"Kalahari": "x"}}
+        self.assertEqual(package.file_type_keys_left(keys.get), [
+            r"Software\Classes\.kchapter", r"Software\RegisteredApplications\Kalahari"])
+
+
 class MacBundleTest(unittest.TestCase):
     """Info.plist of Kalahari.app as Finder and codesign read it."""
 
+    # The types of the files of Kalahari, as packaging/macos/Info.plist.in declares them
+    TYPES = "".join(
+        "<key>{}</key><array>{}</array>".format(key, "".join(item.format(
+            extension=extension.lstrip("."), type=content_type)
+            for extension, _, content_type in package.FILE_TYPES))
+        for key, item in (
+            ("CFBundleDocumentTypes",
+             "<dict><key>LSHandlerRank</key><string>Owner</string>"
+             "<key>LSItemContentTypes</key><array><string>{type}</string></array></dict>"),
+            ("UTExportedTypeDeclarations",
+             "<dict><key>UTTypeIdentifier</key><string>{type}</string>"
+             "<key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key>"
+             "<array><string>{extension}</string></array></dict></dict>")))
     PLIST = ('<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict>'
-             "<key>CFBundleExecutable</key><string>kalahari</string>"
-             "<key>NSHumanReadableCopyright</key><string>{}</string></dict></plist>\n")
+             "<key>CFBundleExecutable</key><string>kalahari</string>{types}"
+             "<key>NSHumanReadableCopyright</key><string>{copyright}</string></dict></plist>\n")
 
-    def bundle(self, folder: str, copyright_text: str) -> Path:
+    def bundle(self, folder: str, copyright_text: str, types: bool = True) -> Path:
         bundle = Path(folder) / "Kalahari.app"
         write(bundle / "Contents" / "MacOS" / "kalahari")
-        write(bundle / "Contents" / "Info.plist", self.PLIST.format(copyright_text))
+        write(bundle / "Contents" / "Info.plist", self.PLIST.format(
+            types=self.TYPES if types else "", copyright=copyright_text))
         return bundle
 
     def test_a_bundle_the_system_reads(self):
@@ -481,6 +543,28 @@ class MacBundleTest(unittest.TestCase):
             (bundle / "Contents" / "MacOS" / "kalahari").unlink()
             with self.assertRaises(package.PackageError):
                 package.check_info_plist(bundle)
+
+    def test_a_bundle_without_the_files_of_kalahari(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaisesRegex(package.PackageError, "kalahari.document"):
+                package.check_info_plist(self.bundle(folder, "Team", types=False))
+
+    def test_the_types_of_the_files_in_the_bundle(self):
+        values = {
+            "CFBundleDocumentTypes": [
+                {"LSItemContentTypes": ["io.github.bartoszwarzocha.kalahari.book"],
+                 "LSHandlerRank": "Owner"},
+                {"LSItemContentTypes": ["io.github.bartoszwarzocha.kalahari.document"],
+                 "LSHandlerRank": "Alternate"}],
+            "UTExportedTypeDeclarations": [
+                {"UTTypeIdentifier": "io.github.bartoszwarzocha.kalahari.book",
+                 "UTTypeTagSpecification": {"public.filename-extension": ["klh"]}},
+                {"UTTypeIdentifier": "io.github.bartoszwarzocha.kalahari.document",
+                 "UTTypeTagSpecification": {"public.filename-extension": ["kchap"]}}],
+        }
+        self.assertEqual(package.bundle_file_type_problems(values), [
+            "io.github.bartoszwarzocha.kalahari.document: extensions ['kchap']",
+            "io.github.bartoszwarzocha.kalahari.document: the program opens it as 'Alternate'"])
 
     def test_the_copyright_escaped_for_the_xml(self):
         # cmake/Packaging.cmake writes "&" of the copyright as "&amp;" into Info.plist
@@ -511,9 +595,11 @@ class PackagingFilesTest(unittest.TestCase):
         mime = (REPO_ROOT / "packaging" / "linux" / "kalahari-mime.xml").read_text(encoding="utf-8")
         self.assertIn("Icon=kalahari\n", desktop)
         self.assertIn("Exec=kalahari %f\n", desktop)  # make_deb() puts the path of /opt into it
-        book_type = re.search(r'<mime-type type="([^"]+)"', mime).group(1)
-        self.assertIn(f"MimeType={book_type};\n", desktop)
-        self.assertIn('<glob pattern="*.klh"/>', mime)
+        types = re.findall(r'<mime-type type="([^"]+)">.*?<glob pattern="\*(\.\w+)"/>', mime,
+                           re.DOTALL)
+        self.assertEqual([extension for _, extension in types],
+                         [extension for extension, _, _ in package.FILE_TYPES])
+        self.assertIn("MimeType={};\n".format(";".join(name for name, _ in types)), desktop)
         # The program names its windows after the menu entry (Wayland)
         main = (REPO_ROOT / "src" / "main.cpp").read_text(encoding="utf-8")
         self.assertIn('setDesktopFileName(QStringLiteral("kalahari"))', main)
@@ -524,7 +610,19 @@ class PackagingFilesTest(unittest.TestCase):
             self.assertIn(define, re.search(r"!ifndef (.*)", nsi).group(1))
         self.assertIn('!include "${FILES}"', nsi)
         self.assertIn('!include "${UNFILES}"', nsi)
-        self.assertIn('"$INSTDIR\\${APP_EXE}" "%1"', nsi)  # the books open in the program
+        self.assertIn('"$INSTDIR\\${APP_EXE}" "%1"', nsi)  # the files open in the program
+        defines = dict(re.findall(r'^!define (\w+) "([^"]*)"', nsi, re.MULTILINE))
+        self.assertEqual(defines["CAPABILITIES_KEY"].replace("${REGISTRY_KEY}", package.REGISTRY_KEY),
+                         package.CAPABILITIES_KEY)
+        self.assertEqual(defines["REGISTERED_APPLICATIONS_KEY"], package.REGISTERED_APPLICATIONS_KEY)
+        self.assertEqual(defines["APP_NAME"], package.REGISTERED_NAME)
+        registered = re.findall(r'^  !insertmacro REGISTER_FILE_TYPE "([^"]+)" "\$\{(\w+)\}"', nsi,
+                                re.MULTILINE)
+        removed = re.findall(r'^  !insertmacro UNREGISTER_FILE_TYPE \$\{ROOT\} "([^"]+)" "\$\{(\w+)\}"',
+                             nsi, re.MULTILINE)
+        expected = [(extension, prog_id) for extension, prog_id, _ in package.FILE_TYPES]
+        self.assertEqual([(extension, defines[name]) for extension, name in registered], expected)
+        self.assertEqual([(extension, defines[name]) for extension, name in removed], expected)
         rc = (REPO_ROOT / "packaging" / "windows" / "kalahari.rc.in").read_text(encoding="utf-8")
         self.assertIn("@KALAHARI_ICO_PATH@", rc)
 

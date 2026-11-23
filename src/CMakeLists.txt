@@ -381,6 +381,7 @@ set(KALAHARI_SOURCES
     gui/settings/network_page.cpp  # Settings > Network > Materials
     gui/settings/folders_page.cpp
     gui/settings/import_page.cpp
+    gui/settings/file_associations_page.cpp  # Settings > Files > File Associations
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     gui/settings/stats_pages.cpp  # Settings > Statistics and Goals
     gui/shortcut_rules.cpp  # Which keys a command can have
@@ -489,6 +490,7 @@ set(KALAHARI_SOURCES
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
     gui/utils/program_folders.cpp  # The folders of the program and of the windows choosing files
     gui/utils/file_location.cpp  # A file or a folder shown in the file manager of the system
+    gui/utils/file_associations.cpp  # The program the system opens the files of Kalahari with
     gui/utils/caps_lock.cpp  # Caps Lock turned off after autocorrect changed a word typed with it
     gui/utils/document_commands.cpp  # The commands that work on the document in front
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
@@ -786,6 +788,18 @@ list(APPEND KALAHARI_SOURCES
 
 # Create executable
 add_executable(kalahari ${KALAHARI_SOURCES})
+
+# The program the system opens the files of Kalahari with (gui/utils/file_associations.cpp):
+# AssocQueryStringW of Windows, NSWorkspace of macOS (Objective-C++, which the precompiled
+# headers of C++ do not serve)
+if(WIN32)
+    target_link_libraries(kalahari PRIVATE shlwapi)
+elseif(APPLE)
+    target_sources(kalahari PRIVATE gui/utils/file_associations_mac.mm)
+    set_source_files_properties(gui/utils/file_associations_mac.mm PROPERTIES
+                                SKIP_PRECOMPILE_HEADERS ON)
+    target_link_libraries(kalahari PRIVATE "-framework AppKit" "-framework UniformTypeIdentifiers")
+endif()
 
 # Precompiled headers for the executable target (same rationale as kalahari_core above).
 if(COMMAND kalahari_add_pch)

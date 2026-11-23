@@ -7,6 +7,11 @@ project(Kalahari
     LANGUAGES CXX
 )
 
+# macOS: Objective-C++ for the APIs of the system (src/gui/utils/file_associations_mac.mm)
+if(APPLE)
+    enable_language(OBJCXX)
+endif()
+
 # C++20 standard (required)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

@@ -9,8 +9,14 @@
 ; removes only what the installer put there. The installer speaks Polish or English, as Windows
 ; does. It installs for the writer alone (no administrator: %LOCALAPPDATA%\Programs\Kalahari)
 ; or for all users (Program Files), adds Kalahari to the Start menu, optionally to the desktop,
-; and makes it the program of the .klh files. /S installs silently; /AllUsers or /CurrentUser
-; choose the installation without the page.
+; and makes it the program of its files: the books (.klh) and the documents (.kchapter). /S
+; installs silently; /AllUsers or /CurrentUser choose the installation without the page.
+;
+; The files of Kalahari are registered as Microsoft describes it for Windows 8 and later: a ProgID
+; for each type, the extension with that ProgID and in its OpenWithProgids, the Capabilities of
+; the program and its name in RegisteredApplications (Settings > Apps > Default apps > Kalahari).
+; The program writes the same values for the writer (Settings > Files > File Associations,
+; file_associations.cpp); the uninstaller removes both.
 
 !ifndef VERSION | VERSION_NUMBER | STAGE | OUTFILE | FILES | UNFILES
   !error "Give VERSION, VERSION_NUMBER, STAGE, OUTFILE, FILES and UNFILES (scripts/package.py)"
@@ -27,6 +33,9 @@ ManifestDPIAware true
 !define REGISTRY_KEY "Software\Kalahari"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\Kalahari"
 !define BOOK_TYPE "Kalahari.Book"
+!define DOCUMENT_TYPE "Kalahari.Document"
+!define CAPABILITIES_KEY "${REGISTRY_KEY}\Capabilities"
+!define REGISTERED_APPLICATIONS_KEY "Software\RegisteredApplications"
 
 Name "${APP_NAME}"
 OutFile "${OUTFILE}"
@@ -80,10 +89,14 @@ LangString SECTION_PROGRAM ${LANG_ENGLISH} "Kalahari"
 LangString SECTION_PROGRAM ${LANG_POLISH} "Kalahari"
 LangString SECTION_DESKTOP ${LANG_ENGLISH} "Shortcut on the desktop"
 LangString SECTION_DESKTOP ${LANG_POLISH} "Skrót na pulpicie"
-LangString SECTION_BOOKS ${LANG_ENGLISH} "Open .klh books with Kalahari"
-LangString SECTION_BOOKS ${LANG_POLISH} "Otwieranie książek .klh w programie Kalahari"
+LangString SECTION_BOOKS ${LANG_ENGLISH} "Open books (.klh) and documents (.kchapter) with Kalahari"
+LangString SECTION_BOOKS ${LANG_POLISH} "Otwieranie książek (.klh) i dokumentów (.kchapter) w programie Kalahari"
 LangString BOOK_TYPE_NAME ${LANG_ENGLISH} "Kalahari book"
 LangString BOOK_TYPE_NAME ${LANG_POLISH} "Książka programu Kalahari"
+LangString DOCUMENT_TYPE_NAME ${LANG_ENGLISH} "Kalahari document"
+LangString DOCUMENT_TYPE_NAME ${LANG_POLISH} "Dokument programu Kalahari"
+LangString APP_DESCRIPTION ${LANG_ENGLISH} "Write, plan and publish books"
+LangString APP_DESCRIPTION ${LANG_POLISH} "Pisanie, planowanie i wydawanie książek"
 LangString NEEDS_64_BIT ${LANG_ENGLISH} "Kalahari needs a 64-bit Windows."
 LangString NEEDS_64_BIT ${LANG_POLISH} "Kalahari wymaga 64-bitowego systemu Windows."
 LangString PROGRAM_RUNS ${LANG_ENGLISH} "Kalahari is running. Close it and click Retry."
@@ -116,6 +129,36 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "${PUBLISHER}"
       Abort
     ${Loop}
   ${EndIf}
+!macroend
+
+;  A type of the files of Kalahari: extension EXT (".klh"), ProgID TYPE and its name NAME
+!macro REGISTER_FILE_TYPE EXT TYPE NAME
+  WriteRegStr SHCTX "Software\Classes\${TYPE}" "" "${NAME}"
+  WriteRegStr SHCTX "Software\Classes\${TYPE}\DefaultIcon" "" "$INSTDIR\${APP_EXE},0"
+  WriteRegStr SHCTX "Software\Classes\${TYPE}\shell\open\command" "" '"$INSTDIR\${APP_EXE}" "%1"'
+  WriteRegStr SHCTX "Software\Classes\${EXT}" "" "${TYPE}"
+  WriteRegStr SHCTX "Software\Classes\${EXT}\OpenWithProgids" "${TYPE}" ""
+  WriteRegStr SHCTX "${CAPABILITIES_KEY}\FileAssociations" "${EXT}" "${TYPE}"
+!macroend
+
+; The type TYPE of extension EXT, under ROOT (SHCTX, or HKCU: what the program wrote for the
+; writer): the extension goes when it is still Kalahari's, else only its entry of Kalahari
+!macro UNREGISTER_FILE_TYPE ROOT EXT TYPE
+  ReadRegStr $0 ${ROOT} "Software\Classes\${EXT}" ""
+  ${If} $0 == "${TYPE}"
+    DeleteRegKey ${ROOT} "Software\Classes\${EXT}"
+  ${Else}
+    DeleteRegValue ${ROOT} "Software\Classes\${EXT}\OpenWithProgids" "${TYPE}"
+  ${EndIf}
+  DeleteRegKey ${ROOT} "Software\Classes\${TYPE}"
+!macroend
+
+; All the registration of the files of Kalahari under ROOT
+!macro UNREGISTER_FILE_TYPES ROOT
+  !insertmacro UNREGISTER_FILE_TYPE ${ROOT} ".klh" "${BOOK_TYPE}"
+  !insertmacro UNREGISTER_FILE_TYPE ${ROOT} ".kchapter" "${DOCUMENT_TYPE}"
+  DeleteRegValue ${ROOT} "${REGISTERED_APPLICATIONS_KEY}" "${APP_NAME}"
+  DeleteRegKey ${ROOT} "${CAPABILITIES_KEY}"
 !macroend
 
 Function .onInit
@@ -171,12 +214,13 @@ Section /o "$(SECTION_DESKTOP)" SectionDesktop
 SectionEnd
 
 Section "$(SECTION_BOOKS)" SectionBooks
-  WriteRegStr SHCTX "Software\Classes\.klh" "" "${BOOK_TYPE}"
-  WriteRegStr SHCTX "Software\Classes\${BOOK_TYPE}" "" "$(BOOK_TYPE_NAME)"
-  WriteRegStr SHCTX "Software\Classes\${BOOK_TYPE}\DefaultIcon" "" "$INSTDIR\${APP_EXE},0"
-  WriteRegStr SHCTX "Software\Classes\${BOOK_TYPE}\shell\open\command" "" '"$INSTDIR\${APP_EXE}" "%1"'
+  !insertmacro REGISTER_FILE_TYPE ".klh" "${BOOK_TYPE}" "$(BOOK_TYPE_NAME)"
+  !insertmacro REGISTER_FILE_TYPE ".kchapter" "${DOCUMENT_TYPE}" "$(DOCUMENT_TYPE_NAME)"
+  WriteRegStr SHCTX "${CAPABILITIES_KEY}" "ApplicationName" "${APP_NAME}"
+  WriteRegStr SHCTX "${CAPABILITIES_KEY}" "ApplicationDescription" "$(APP_DESCRIPTION)"
+  WriteRegStr SHCTX "${REGISTERED_APPLICATIONS_KEY}" "${APP_NAME}" "${CAPABILITIES_KEY}"
   WriteRegStr SHCTX "${REGISTRY_KEY}" "BookFiles" "1"
-  ; Explorer shows the new type of the files at once
+  ; Explorer shows the new types of the files at once
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 SectionEnd
 
@@ -189,12 +233,12 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\${APP_NAME}.lnk"
   Delete "$DESKTOP\${APP_NAME}.lnk"
 
-  ; The type of the books, when it is still Kalahari's
-  ReadRegStr $0 SHCTX "Software\Classes\.klh" ""
-  ${If} $0 == "${BOOK_TYPE}"
-    DeleteRegKey SHCTX "Software\Classes\.klh"
+  ; The types of the files; for all users also what the program wrote for the writer who
+  ; uninstalls it (for the writer alone SHCTX is HKCU already)
+  !insertmacro UNREGISTER_FILE_TYPES SHCTX
+  ${If} $MultiUser.InstallMode == "AllUsers"
+    !insertmacro UNREGISTER_FILE_TYPES HKCU
   ${EndIf}
-  DeleteRegKey SHCTX "Software\Classes\${BOOK_TYPE}"
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 
   !include "${UNFILES}"

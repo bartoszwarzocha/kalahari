@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!-- The description of Kalahari.app: cmake/Packaging.cmake fills in the MACOSX_BUNDLE_*
-     properties of the target kalahari. The books (.klh) open in the program from Finder -->
+     properties of the target kalahari. The books (.klh) and the documents (.kchapter) open in
+     the program from Finder; the same types are in src/gui/utils/file_associations.cpp
+     (Settings > Files > File Associations) -->
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key>
@@ -55,6 +57,20 @@
                 <string>io.github.bartoszwarzocha.kalahari.book</string>
             </array>
         </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Kalahari document</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>${MACOSX_BUNDLE_ICON_FILE}</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>io.github.bartoszwarzocha.kalahari.document</string>
+            </array>
+        </dict>
     </array>
     <key>UTExportedTypeDeclarations</key>
     <array>
@@ -74,6 +90,25 @@
                 <key>public.filename-extension</key>
                 <array>
                     <string>klh</string>
+                </array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>io.github.bartoszwarzocha.kalahari.document</string>
+            <key>UTTypeDescription</key>
+            <string>Kalahari document</string>
+            <key>UTTypeIconFile</key>
+            <string>${MACOSX_BUNDLE_ICON_FILE}</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.json</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>kchapter</string>
                 </array>
             </dict>
         </dict>

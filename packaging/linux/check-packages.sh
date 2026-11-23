@@ -6,7 +6,8 @@
 #
 # DIST holds the .deb and the AppImage of scripts/package.py linux. The script runs itself in
 # the container with --inside FOLDER (FOLDER: DIST in the container), where:
-#   1. apt installs the .deb: its Depends name every library of the system it needs
+#   1. apt installs the .deb: its Depends name every library of the system it needs; the system
+#      knows the types of the files of Kalahari and the menu entry opens them
 #   2. every program and library in /opt/kalahari finds its libraries (ldd)
 #   3. the program passes its check of an installation (kalahari --self-test) as a writer, not
 #      root: without a screen and with an X server (xcb, the platform of a desktop); its
@@ -103,6 +104,15 @@ cp "${debs[0]}" /tmp/kalahari.deb
 chmod 644 /tmp/kalahari.deb
 apt_get install -y --no-install-recommends /tmp/kalahari.deb
 echo "Depends: $(dpkg-query -W -f='${Depends}' kalahari)"
+
+step "The system knows the books (.klh) and the documents (.kchapter) of Kalahari"
+# shared-mime-info (a library of the package needs it) builds globs2 from share/mime/packages
+for type in "application/x-kalahari-book:*.klh" "application/x-kalahari-document:*.kchapter"; do
+    grep -qF ":$type" /usr/share/mime/globs2 || fail "no $type in the MIME types of the system"
+    grep -q "^MimeType=.*${type%%:*};" /usr/share/applications/kalahari.desktop ||
+        fail "the menu entry does not open ${type%%:*}"
+    echo "${type#*:}: ${type%%:*}, opened by kalahari.desktop"
+done
 
 step "Every program and library of the package finds its libraries"
 # As the system loads them: by the RUNPATH of each file, then in the folders of the system. A

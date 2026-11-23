@@ -431,20 +431,23 @@ does and checks the installed program (`python scripts/package.py install-check 
 - **Linux:** in docker, on a clean Ubuntu 24.04 (the base of Linux Mint 22,
   `packaging/linux/check-packages.sh`): apt installs the `.deb` with the libraries of the
   system it names, `ldd` finds every library of the program, the program passes its check as
-  a user without and with an X server, and apt removes it without leaving a file; then the
-  AppImage starts with FUSE and passes the same check.
+  a user without and with an X server, the system knows the types of the `.klh` and
+  `.kchapter` files, and apt removes it without leaving a file; then the AppImage starts with
+  FUSE and passes the same check.
 - **Windows:** the installer runs silently for the current user and for all users; the files
-  of the ZIP, the keys of the registry, the Start menu and the `.klh` books are checked, the
-  installed program passes its check with its own Python, and the uninstaller removes it all.
+  of the ZIP, the keys of the registry, the Start menu, and the books (`.klh`) and documents
+  (`.kchapter`) Windows opens with the installed program are checked, the installed program
+  passes its check with its own Python, and the uninstaller removes it all.
   When the package is made, every DLL of every program and library in it must be in the
   package or in Windows (the runtime of Visual C++ always in the package).
 - **macOS:** `Kalahari.app` is copied from the opened `.dmg`; its signature, its `Info.plist`
-  and its libraries (none outside the bundle and macOS) are checked, and it passes its check
+  (both types of files exported, the program their owner) and its libraries (none outside the bundle and macOS) are checked, and it passes its check
   with the Python of the bundle.
 
 - **Linux.** Both packages carry the Qt and the Python the program is built with (the AppImage
   needs no installation; the `.deb` installs into `/opt/kalahari`, with `kalahari` in
-  `/usr/bin`, a menu entry and the type of the `.klh` files). The script downloads
+  `/usr/bin`, a menu entry and the types of the `.klh` and `.kchapter` files; it recommends
+  `xdg-utils`, which Settings > Files > File Associations uses). The script downloads
   linuxdeploy and its Qt plugin (pinned releases, checked by SHA-256) and needs `dpkg-dev`.
   The windows for choosing a file are the system's own (the GTK theme of Qt and the desktop
   portal); where the desktop has neither, Qt's own window, with Polish texts, opens. GTK and
@@ -454,7 +457,9 @@ does and checks the installed program (`python scripts/package.py install-check 
   `scripts/package.py windows-installer --stage <folder>`); without it only the ZIP is made.
   It installs for the current user (no administrator, `%LOCALAPPDATA%\Programs\Kalahari`) or
   for all users (`Program Files`), adds Kalahari to the Start menu, optionally to the desktop,
-  and opens the `.klh` books in it. `/S` installs silently.
+  and opens the books (`.klh`) and documents (`.kchapter`) in it, registered as Windows 8 and
+  later expect (a ProgID for each type, the Capabilities of the program, its name in
+  `RegisteredApplications`). `/S` installs silently.
 - **macOS.** `Kalahari.app` with its libraries and Python, signed ad hoc: without a Developer ID
   of Apple, macOS asks on the first start whether to open it (System Settings > Privacy &
   Security > Open Anyway).
