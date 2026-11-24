@@ -326,6 +326,8 @@ struct PlotColors {
     QColor cork;        ///< The cork under the cards (PlotBoard::BACKGROUND_CORK)
     QColor background;  ///< The writer's background of the board (PlotBoard::BACKGROUND_OWN)
 
+    /// @brief The share of the color of a card in its background (PlotBoard::COLOR_TINT)
+    static constexpr double TINT_SHARE = 0.22;
     /// @brief The key of the cork in the theme files
     static constexpr const char* CORK_KEY = "plotCork";
     /// @brief The key of the writer's background of the board in the theme files

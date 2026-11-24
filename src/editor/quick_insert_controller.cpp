@@ -7,6 +7,7 @@
 #include <kalahari/editor/quick_insert_controller.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/quick_insert.h>
+#include <kalahari/editor/text_fields.h>
 
 #include <QApplication>
 #include <QColor>
@@ -464,7 +465,17 @@ bool QuickInsertController::insertCurrent() {
 
     m_inserting = true;
     m_editor->setSelection({CursorPosition{cursor.paragraph, from}, cursor});
-    if (item.text.contains(QLatin1Char('\n'))) {
+    if (item.source == QuickInsertSource::Field) {
+        // An own field takes the place of the character and the letters, as a field
+        TextField field;
+        field.type = FieldType::Custom;
+        field.key = item.field;
+        field.name = item.name;
+        if (from == cursor.offset) {
+            m_editor->clearSelection();
+        }
+        m_editor->insertField(field);
+    } else if (item.text.contains(QLatin1Char('\n'))) {
         // The paragraphs of a fragment, as pasted text without formatting
         QMimeData paragraphs;
         paragraphs.setText(item.text);
@@ -475,7 +486,7 @@ bool QuickInsertController::insertCurrent() {
     } else {
         m_editor->insertText(item.text);
     }
-    if (isEnclosingPair(item.text)) {
+    if (item.source != QuickInsertSource::Field && isEnclosingPair(item.text)) {
         CursorPosition between = m_editor->cursorPosition();
         between.offset -= 1;
         m_editor->setCursorPosition(between);

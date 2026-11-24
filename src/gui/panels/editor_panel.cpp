@@ -6,7 +6,9 @@
 
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/book_styles.h"
+#include "kalahari/gui/book_texts.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/dialogs/edit_dialogs.h"
 #include "kalahari/gui/dialogs/font_dialog.h"
 #include "kalahari/gui/dialogs/hyperlink_dialog.h"
 #include "kalahari/gui/dialogs/image_properties_dialog.h"
@@ -16,6 +18,7 @@
 #include "kalahari/gui/dialogs/table_dialogs.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/list_sets.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/quick_insert_items.h"
 #include "kalahari/gui/read_only_book.h"
@@ -46,9 +49,11 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFont>
 #include <QSaveFile>
 #include <QGuiApplication>
 #include <QMainWindow>
+#include <QPalette>
 #include <QScreen>
 #include <QStatusBar>
 #include <QUrl>
@@ -70,10 +75,67 @@ constexpr double MAX_MARK_SCALE = 3.0;
 /// The size of the text of the cards under the paragraphs, in percent of the chapter's text
 constexpr int MIN_CARD_FONT = 60;
 constexpr int MAX_CARD_FONT = 130;
+constexpr double MAX_CARD_SIDE_MARGIN_MM = 30.0;  ///< The cards' side margin at most
 
 /// How much of the kind's color the cards have, in percent of the usual
 constexpr int MIN_CARD_TINT = 50;
 constexpr int MAX_CARD_TINT = 200;
+
+/// @brief The look of a plain text field (EditorPanel::setFieldLook())
+constexpr double FIELD_FONT_SCALE = 1.15;         ///< A little larger than the program's font
+constexpr double FIELD_LINE_SPACING = 1.15;       ///< Of the font's own line height
+constexpr double FIELD_PARAGRAPH_SPACING = 4.0;   ///< Between the paragraphs, pixels at 100%
+constexpr double FIELD_MARGIN_MM = 1.5;           ///< Between the text and the field's edges
+constexpr int DARK_FIELD_LIGHTNESS = 127;         ///< A field this dark at most has dark paper
+
+/// @brief Make @p appearance that of a plain text field of the program with @p palette and
+///        the font @p font
+void applyFieldLook(editor::EditorAppearance& appearance, const QPalette& palette, QFont font) {
+    // The program's font, a little larger
+    if (font.pointSizeF() > 0.0) {
+        font.setPointSizeF(font.pointSizeF() * FIELD_FONT_SCALE);
+    } else if (font.pixelSize() > 0) {
+        font.setPixelSize(static_cast<int>(std::lround(font.pixelSize() * FIELD_FONT_SCALE)));
+    }
+    editor::EditorTypography& typography = appearance.typography;
+    typography.textFont = font;
+    typography.lineHeight = FIELD_LINE_SPACING;
+    typography.paragraphSpacing = FIELD_PARAGRAPH_SPACING;
+    typography.firstLineIndent = false;
+
+    // The colors of the theme's text fields, on both papers; the other colors (the links,
+    // the waves, the marks) those of the paper as light or dark as the field
+    const QColor base = palette.color(QPalette::Base);
+    const QColor text = palette.color(QPalette::Text);
+    appearance.colorMode = base.lightness() > DARK_FIELD_LIGHTNESS
+                               ? editor::EditorColorMode::Light
+                               : editor::EditorColorMode::Dark;
+    editor::EditorColors::ContinuousColors& paper = appearance.colors.continuous;
+    paper.backgroundLight = base;
+    paper.backgroundDark = base;
+    paper.textLight = text;
+    paper.textDark = text;
+    paper.deskLight = base;
+    paper.deskDark = base;
+
+    // No page: the paper fills the view, the text close to its edges
+    editor::PageMarginsConfig& margins = appearance.pageMargins;
+    margins.top = FIELD_MARGIN_MM;
+    margins.bottom = FIELD_MARGIN_MM;
+    margins.left = FIELD_MARGIN_MM;
+    margins.right = FIELD_MARGIN_MM;
+    margins.mirrored = false;
+    appearance.pageLayout.pageGap = 0.0;
+    appearance.pageLayout.showPageNumbers = false;
+    appearance.pageLayout.fillsView = true;
+
+    // None of the ways to write a chapter
+    appearance.typewriter.enabled = false;
+    appearance.focusMode.enabled = false;
+    appearance.marginNumbers.numbering = editor::MarginNumbering::None;
+    appearance.textFrameBorder.show = false;
+    appearance.annotationCards.show = false;
+}
 
 /// @brief The languages with lists of abbreviations of their own in the settings
 /// (editor.autoCorrect.abbreviations.pl); another language has the English one
@@ -127,6 +189,8 @@ EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, 
     // A style of the book added, changed or removed: the text shows it at once
     connect(&m_book, &core::ProjectManager::paragraphStylesChanged,
             this, [this]() { m_bookEditor->setParagraphStyles(paragraphStyles()); });
+    // A set of list formats of the book changed: F12 and Shift+F12 give the default ones
+    connect(&m_book, &core::ProjectManager::listSetsChanged, this, &EditorPanel::applyNewLists);
 
     // The text's context menu cuts, copies, pastes and selects all with the commands of the
     // Edit menu: their icons and keys, enabled as there
@@ -138,7 +202,10 @@ EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, 
          registry.getAction(QStringLiteral("edit.selectAll")),
          registry.getAction(QStringLiteral("insert.link")),
          registry.getAction(QStringLiteral("edit.cutToClippings")),
-         registry.getAction(QStringLiteral("insert.clipping"))});
+         registry.getAction(QStringLiteral("insert.clipping")),
+         [](QMenu& submenu, editor::BookEditor& text) {
+             dialogs::PasteSpecialDialog::fillMenu(submenu, text);
+         }});
     // The context menu of a cell: the commands of the Table menu, enabled as there
     const auto actions = [&registry](std::initializer_list<const char*> ids) {
         QList<QAction*> found;
@@ -153,7 +220,8 @@ EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, 
          actions({"table.deleteRows", "table.deleteColumns", "table.deleteTable"}),
          actions({"table.selectCell", "table.selectRow", "table.selectColumn", "table.selectTable"}),
          actions({"table.mergeCells", "table.splitCells", nullptr, "table.distributeRows",
-                  "table.distributeColumns", nullptr, "table.sort", "table.properties"})});
+                  "table.distributeColumns", nullptr, "table.sort", "table.caption",
+                  "table.properties"})});
     // The context menu of an image: the commands of the Image menu, enabled as there
     m_bookEditor->setContextMenuImageActions(
         {actions({"image.properties", "image.addCaption", "image.altText"}),
@@ -171,10 +239,20 @@ EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, 
     // book only after its tab is shown
     m_bookEditor->setTextLanguage([this]() { return textLanguage(); });
 
-    // Quick insert: the cards of the book, the fragments and the characters at the cursor;
-    // the editor owns it, Insert > Quick Insert... finds it there
+    // Quick insert: the cards of the book, the fragments, the characters and the own fields of
+    // the volume of a text of the book at the cursor; the editor owns it, Insert > Quick
+    // Insert... finds it there
     m_quickInsert = new editor::QuickInsertController(
-        m_bookEditor, [this](QChar trigger) { return quickInsertItems(m_book, trigger); },
+        m_bookEditor,
+        [this](QChar trigger) {
+            std::optional<QString> fieldsOf;
+            if (isBookText()) {
+                const core::ProjectBook* volume =
+                    volumeOfText(m_book, property("elementId").toString());
+                fieldsOf = volume != nullptr ? volume->id : QString();
+            }
+            return quickInsertItems(m_book, trigger, fieldsOf);
+        },
         m_bookEditor);
 
     // A change of autocorrect undone right after it: as in Word, the exceptions keep the
@@ -360,11 +438,14 @@ void EditorPanel::setUnmodified() {
     }
 }
 
+bool EditorPanel::isBookText() const {
+    return m_book.project() != nullptr && !property("elementId").toString().isEmpty();
+}
+
 editor::ParagraphStyleSet EditorPanel::paragraphStyles() const {
     // A chapter of the book, which NavigatorCoordinator tags with its element, has the styles
     // of the book; any other text those every book has
-    const bool chapter = m_book.project() != nullptr &&
-                         !property("elementId").toString().isEmpty();
+    const bool chapter = isBookText();
     return chapter ? bookParagraphStyles(m_book)
                    : editor::ParagraphStyleSet::fromPackage(baseStyles(), programLanguage());
 }
@@ -631,10 +712,18 @@ void EditorPanel::applySettings() {
     cards.longLines = std::max(0, settings.get<int>("editor.annotationCards.longLines"));
     cards.fontPercent = std::clamp(settings.get<int>("editor.annotationCards.fontSize"),
                                    MIN_CARD_FONT, MAX_CARD_FONT);
+    cards.sideMarginMm = std::clamp(settings.get<double>("editor.annotationCards.sideMargin"),
+                                    0.0, MAX_CARD_SIDE_MARGIN_MM);
     cards.tintPercent = std::clamp(settings.get<int>("editor.annotationCards.tint"),
                                    MIN_CARD_TINT, MAX_CARD_TINT);
     cards.highlightFragment = settings.get<bool>("editor.annotationCards.highlightFragment");
     cards.inDistractionFree = text("editor.annotationCards.distractionFree") != "hide";
+
+    // The description of a card: a plain text field; otherwise a page of a chapter
+    appearance.pageLayout.fillsView = false;
+    if (m_fieldLook) {
+        applyFieldLook(appearance, palette(), font());
+    }
 
     m_bookEditor->setAppearance(appearance);
 
@@ -708,8 +797,20 @@ void EditorPanel::applySettings() {
     // What the counts take for a word (a setting of the whole program)
     m_bookEditor->setWordCountRules(core::wordCountRules());
     applyPaperScale();
+    applyNewLists();
 
     core::Logger::getInstance().debug("EditorPanel: editor settings applied");
+}
+
+void EditorPanel::applyNewLists() {
+    if (!m_bookEditor) {
+        return;
+    }
+    // The sets of the book only for a text of the book
+    const core::ProjectManager* book = isBookText() ? &m_book : nullptr;
+    for (const editor::ListKind kind : {editor::ListKind::Numbered, editor::ListKind::Bulleted}) {
+        m_bookEditor->setNewListDefinition(kind, list_sets::defaultDefinition(kind, book));
+    }
 }
 
 void EditorPanel::showBulletsAndNumbering() {
@@ -718,11 +819,25 @@ void EditorPanel::showBulletsAndNumbering() {
     }
     const std::optional<editor::ListItem> item = m_bookEditor->currentListItem();
     dialogs::BulletsNumberingDialog dialog(
-        item ? item->definition : editor::ListDefinition::numbered(), item ? item->level : 0,
-        window());
+        item ? item->definition
+             : m_bookEditor->newListDefinition(editor::ListKind::Numbered),
+        item ? item->level : 0, window());
+    dialog.setBook(isBookText() ? &m_book : nullptr);
+    // "Set as Default for F12": the keys of the commands, else their names
+    const auto keysOf = [this](const char* commandId) {
+        const Command* command = m_commands.getCommand(commandId);
+        if (command == nullptr) {
+            return QString();
+        }
+        return command->shortcut.isEmpty()
+                   ? QString::fromStdString(command->label)
+                   : command->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
+    };
+    dialog.setListKeys(keysOf("format.numbering"), keysOf("format.bullets"));
     if (dialog.exec() == QDialog::Accepted) {
         m_bookEditor->applyListDefinition(dialog.definition());
     }
+    applyNewLists();  // a set made the default in the window
 }
 
 void EditorPanel::showFontDialog() {
@@ -778,7 +893,8 @@ void EditorPanel::showInsertTableDialog() {
     }
     dialogs::InsertTableDialog dialog(window());
     if (dialog.exec() == QDialog::Accepted) {
-        m_bookEditor->insertTable(dialog.columns(), dialog.rows(), dialog.headerRow());
+        m_bookEditor->insertTable(dialog.columns(), dialog.rows(), dialog.headerRow(),
+                                  settingsNewTableOptions());
     }
 }
 
@@ -991,7 +1107,8 @@ void EditorPanel::showTextToTableDialog() {
     }
     dialogs::TextToTableDialog dialog(paragraphs, window());
     if (dialog.exec() == QDialog::Accepted) {
-        m_bookEditor->convertTextToTable(dialog.separator(), dialog.columns(), dialog.headerRow());
+        m_bookEditor->convertTextToTable(dialog.separator(), dialog.columns(), dialog.headerRow(),
+                                         settingsNewTableOptions());
     }
 }
 
@@ -1061,6 +1178,19 @@ void EditorPanel::setFirstPageLeft(bool left) {
     m_bookEditor->setAppearance(appearance);
 }
 
+void EditorPanel::setFieldLook(bool on) {
+    if (m_fieldLook == on) {
+        return;
+    }
+    m_fieldLook = on;
+    if (on) {
+        // A field has no pages, and its text the size of the program's other fields
+        m_bookEditor->setViewMode(editor::ViewMode::Continuous);
+        m_bookEditor->setZoomFactor(1.0);
+    }
+    applySettings();
+}
+
 void EditorPanel::scheduleSettings() {
     // Runs on the thread that changed the setting. The editor takes the settings on the
     // panel's thread, once for all the settings changed before the event loop runs (the
@@ -1077,13 +1207,17 @@ void EditorPanel::applyScheduledSettings() {
 }
 
 void EditorPanel::applyPaperScale() {
-    // Zoom 100% shows the pages at their size on paper, from the size of the screen
+    // Zoom 100% shows the pages at their size on paper, from the size of the screen; a plain
+    // text field has the size of the program's other fields
     const QScreen* panelScreen = screen();
-    const double scale = editor::BookEditor::paperScaleOf(panelScreen);
+    const double scale = m_fieldLook ? 1.0 : editor::BookEditor::paperScaleOf(panelScreen);
     if (std::abs(scale - m_bookEditor->paperScale()) < 1e-6) {
         return;
     }
     m_bookEditor->setPaperScale(scale);
+    if (m_fieldLook) {
+        return;
+    }
     core::Logger::getInstance().info(
         "EditorPanel: pages at their size on paper, scale {:.3f} (screen {:.1f} dpi, logical {:.1f})",
         scale, panelScreen ? panelScreen->physicalDotsPerInch() : 0.0,

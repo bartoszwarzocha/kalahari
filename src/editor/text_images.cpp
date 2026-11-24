@@ -39,7 +39,8 @@ constexpr int IMAGE_PROPERTIES[] = {
     IMAGE_FILTER_PROPERTY,          IMAGE_BRIGHTNESS_PROPERTY,    IMAGE_CONTRAST_PROPERTY,
     IMAGE_THRESHOLD_PROPERTY,       IMAGE_TRANSPARENCY_PROPERTY,  IMAGE_BORDER_LINE_PROPERTY,
     IMAGE_BORDER_WIDTH_PROPERTY,    IMAGE_BORDER_COLOR_PROPERTY,  IMAGE_BORDER_PADDING_PROPERTY,
-    IMAGE_SHADOW_PROPERTY,          IMAGE_WRAP_PROPERTY};
+    IMAGE_SHADOW_PROPERTY,          IMAGE_WRAP_PROPERTY,          IMAGE_SPACE_ABOVE_PROPERTY,
+    IMAGE_SPACE_BELOW_PROPERTY,     IMAGE_SPACE_BESIDE_PROPERTY};
 
 /// The names of the filters and border lines in KML, in the order of their enums
 constexpr const char* FILTER_NAMES[] = {"", "grayscale", "sepia", "black-white", "wash"};
@@ -225,6 +226,15 @@ std::optional<ImageProperties> imageOf(const QTextFormat& format)
     image.borderPadding = format.doubleProperty(IMAGE_BORDER_PADDING_PROPERTY);
     image.shadow = format.boolProperty(IMAGE_SHADOW_PROPERTY);
     image.wrap = static_cast<ImageWrap>(format.intProperty(IMAGE_WRAP_PROPERTY));
+    if (format.hasProperty(IMAGE_SPACE_ABOVE_PROPERTY)) {
+        image.spaceAbove = format.doubleProperty(IMAGE_SPACE_ABOVE_PROPERTY);
+    }
+    if (format.hasProperty(IMAGE_SPACE_BELOW_PROPERTY)) {
+        image.spaceBelow = format.doubleProperty(IMAGE_SPACE_BELOW_PROPERTY);
+    }
+    if (format.hasProperty(IMAGE_SPACE_BESIDE_PROPERTY)) {
+        image.spaceBeside = format.doubleProperty(IMAGE_SPACE_BESIDE_PROPERTY);
+    }
     return normalizedImage(image);
 }
 
@@ -280,6 +290,12 @@ void setImage(QTextCharFormat& format, const ImageProperties& image)
     set(IMAGE_SHADOW_PROPERTY, true, !normalized.shadow);
     set(IMAGE_WRAP_PROPERTY, static_cast<int>(normalized.wrap),
         normalized.wrap == ImageWrap::Inline);
+    set(IMAGE_SPACE_ABOVE_PROPERTY, normalized.spaceAbove,
+        normalized.spaceAbove == DEFAULT_IMAGE_SPACE_ABOVE);
+    set(IMAGE_SPACE_BELOW_PROPERTY, normalized.spaceBelow,
+        normalized.spaceBelow == DEFAULT_IMAGE_SPACE_BELOW);
+    set(IMAGE_SPACE_BESIDE_PROPERTY, normalized.spaceBeside,
+        normalized.spaceBeside == DEFAULT_IMAGE_SPACE_BESIDE);
 }
 
 void clearImage(QTextCharFormat& format)
@@ -366,6 +382,42 @@ std::optional<ImageProperties> floatingImage(const QTextBlock& block)
     return image;
 }
 
+BlockSpace imageBlockSpace(const QTextBlock& block)
+{
+    BlockSpace space;
+    if (holdsImageAlone(block)) {
+        const std::optional<ImageProperties> image = imageOf(block.begin().fragment().charFormat());
+        if (!image) {
+            return space;
+        }
+        // The caption keeps the room on its side, close to the image
+        const QTextBlock caption = captionBlockOf(block);
+        const bool above = caption.isValid() && caption == block.previous();
+        const bool below = caption.isValid() && caption == block.next();
+        space.before = above ? 0.0 : image->spaceAbove;
+        space.after = below ? 0.0 : image->spaceBelow;
+        return space;
+    }
+    if (!isCaptionBlock(block)) {
+        return space;
+    }
+    const QTextBlock imageBlock = imageBlockOfCaption(block);
+    if (!holdsImageAlone(imageBlock)) {
+        return space;
+    }
+    const std::optional<ImageProperties> image =
+        imageOf(imageBlock.begin().fragment().charFormat());
+    if (!image) {
+        return space;
+    }
+    if (imageBlock == block.next()) {
+        space.before = image->spaceAbove;
+    } else {
+        space.after = image->spaceBelow;
+    }
+    return space;
+}
+
 ImageProperties normalizedImage(const ImageProperties& image)
 {
     ImageProperties normalized = image;
@@ -409,6 +461,14 @@ ImageProperties normalizedImage(const ImageProperties& image)
             ? std::round(std::clamp(image.borderWidth, MIN_IMAGE_BORDER_WIDTH,
                                     MAX_IMAGE_BORDER_WIDTH) * 100.0) / 100.0
             : DEFAULT_IMAGE_BORDER_WIDTH;
+    const auto space = [](double points, double fallback) {
+        return std::isfinite(points)
+                   ? std::round(std::clamp(points, 0.0, MAX_IMAGE_SPACE) * 100.0) / 100.0
+                   : fallback;
+    };
+    normalized.spaceAbove = space(image.spaceAbove, DEFAULT_IMAGE_SPACE_ABOVE);
+    normalized.spaceBelow = space(image.spaceBelow, DEFAULT_IMAGE_SPACE_BELOW);
+    normalized.spaceBeside = space(image.spaceBeside, DEFAULT_IMAGE_SPACE_BESIDE);
     normalized.borderColor = image.borderColor.isValid() ? image.borderColor.toRgb() : QColor();
     if (normalized.borderColor.isValid()) {
         normalized.borderColor.setAlpha(255);
@@ -758,6 +818,15 @@ std::vector<std::pair<QString, QString>> imageKmlAttributes(const ImagePropertie
     if (normalized.wrap != ImageWrap::Inline) {
         add("wrap", imageWrapKml(normalized.wrap));
     }
+    if (normalized.spaceAbove != DEFAULT_IMAGE_SPACE_ABOVE) {
+        add("space-above", kmlLength(normalized.spaceAbove));
+    }
+    if (normalized.spaceBelow != DEFAULT_IMAGE_SPACE_BELOW) {
+        add("space-below", kmlLength(normalized.spaceBelow));
+    }
+    if (normalized.spaceBeside != DEFAULT_IMAGE_SPACE_BESIDE) {
+        add("space-beside", kmlLength(normalized.spaceBeside));
+    }
     return attributes;
 }
 
@@ -820,6 +889,13 @@ ImageProperties imagePropertiesOfKml(const QXmlStreamAttributes& attributes)
     image.borderPadding = pointsOfKmlLength(padding).value_or(0.0);
     image.shadow = kmlFlag(attributes, "shadow");
     image.wrap = static_cast<ImageWrap>(kmlName(attributes, "wrap", WRAP_NAMES));
+    const auto space = [&attributes](const char* name, double fallback) {
+        return pointsOfKmlLength(attributes.value(QLatin1String(name)).toString())
+            .value_or(fallback);
+    };
+    image.spaceAbove = space("space-above", DEFAULT_IMAGE_SPACE_ABOVE);
+    image.spaceBelow = space("space-below", DEFAULT_IMAGE_SPACE_BELOW);
+    image.spaceBeside = space("space-beside", DEFAULT_IMAGE_SPACE_BESIDE);
     return normalizedImage(image);
 }
 

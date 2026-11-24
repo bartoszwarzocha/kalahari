@@ -77,7 +77,7 @@ QString labelOf(const StoryTime& time, const ChronologyOptions& options) {
 
 QList<PlanPeriod> PlanPeriod::fromJson(const QJsonArray& json) {
     QList<PlanPeriod> periods;
-    for (const QJsonValue& value : json) {
+    for (const auto& value : json) {
         const QJsonObject object = value.toObject();
         const QString name = object.value(QStringLiteral("name")).toString().simplified();
         const std::optional<StoryTime> time =

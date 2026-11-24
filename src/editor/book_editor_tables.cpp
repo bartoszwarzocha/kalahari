@@ -58,6 +58,11 @@ bool BookEditor::isInTable() const
 
 void BookEditor::insertTable(int columns, int rows, bool headerRow)
 {
+    insertTable(columns, rows, headerRow, NewTableOptions{});
+}
+
+void BookEditor::insertTable(int columns, int rows, bool headerRow, const NewTableOptions& options)
+{
     if (refusesChange() || isInTable()) {
         return;
     }
@@ -72,6 +77,8 @@ void BookEditor::insertTable(int columns, int rows, bool headerRow)
     shape.columns = std::clamp(columns, 1, MAX_INSERTED_TABLE_COLUMNS);
     shape.rows = std::clamp(rows, 1, MAX_INSERTED_TABLE_ROWS);
     shape.headerRows = headerRow ? 1 : 0;
+    shape.properties.spaceAbove = std::clamp(options.spaceAbove, 0.0, MAX_TABLE_SPACE);
+    shape.properties.spaceBelow = std::clamp(options.spaceBelow, 0.0, MAX_TABLE_SPACE);
 
     // One undo step: the replaced selection, the table with its cells in the format of the
     // text, and the empty paragraphs it leaves next to it

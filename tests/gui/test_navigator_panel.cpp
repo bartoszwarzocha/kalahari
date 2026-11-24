@@ -187,6 +187,43 @@ TEST_CASE("Navigator: the book's dictionary at the top of the Workshop opens its
     CHECK(selected.isEmpty());
 }
 
+TEST_CASE("Navigator: the Book Plan, the first node of the Workshop, opens on its tab",
+          "[gui][navigator][plotboard]") {
+    // Test of 22.11: where to open the plot board from; the Book Plan is its board, its outline
+    // and its chronology
+    gui::NavigatorPanel panel(kalahari::test::book());
+    auto* tree = panel.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    panel.loadProject(novel({}, {element("Prologue", "kalahari.base:chapter")}), registry());
+
+    QTreeWidgetItem* board = findItem(tree, "workshop:plan");
+    REQUIRE(board != nullptr);
+    CHECK(board->text(0) == QStringLiteral("Book Plan"));
+    CHECK(typeOf(board) == QStringLiteral("book_plan"));
+    CHECK(typeOf(board->parent()) == QStringLiteral("workshop"));
+    CHECK(board->parent()->indexOfChild(board) == 0);
+    // The icon of Book > Book Plan (the tests register no icons)
+    CHECK(board->data(0, Qt::UserRole + 2).toString() == QStringLiteral("view.plotBoard"));
+    CHECK_FALSE(board->flags().testFlag(Qt::ItemIsDragEnabled));
+    CHECK_FALSE(board->flags().testFlag(Qt::ItemIsDropEnabled));
+
+    // A click shows the plan; Enter (or a double click) gives it the keys too
+    QList<bool> opened;
+    QObject::connect(&panel, &gui::NavigatorPanel::requestOpenBookPlan,
+                     [&opened](bool keys) { opened.append(keys); });
+    QList<bool> dictionary;
+    QObject::connect(&panel, &gui::NavigatorPanel::requestOpenBookDictionary,
+                     [&dictionary](bool keys) { dictionary.append(keys); });
+    QStringList selected;
+    QObject::connect(&panel, &gui::NavigatorPanel::elementSelected,
+                     [&selected](const QString& id) { selected.append(id); });
+    emit tree->itemClicked(board, 0);
+    emit tree->itemActivated(board, 0);
+    CHECK(opened == QList<bool>{false, true});
+    CHECK(dictionary.isEmpty());
+    CHECK(selected.isEmpty());
+}
+
 TEST_CASE("Navigator: the header says whether a book is open", "[gui][navigator]") {
     gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();

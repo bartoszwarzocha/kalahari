@@ -194,14 +194,16 @@ TEST_CASE("Editor panel: the text's context menu has the commands of the Edit me
                                         registry.getAction(QStringLiteral("edit.paste")),
                                         registry.getAction(QStringLiteral("edit.selectAll"))};
     REQUIRE_FALSE(edit.contains(nullptr));
-    REQUIRE(commands.size() > edit.size() + 2);
-    // Cut to Clippings under Cut, Insert > Clipping under Paste, under names of the menu
+    REQUIRE(commands.size() > edit.size() + 3);
+    // Cut to Clippings under Cut, Paste Special and Insert > Clipping under Paste, under names
+    // of the menu
     CHECK(commands.at(0) == edit.at(0));
     CHECK(texts.at(1) == QStringLiteral("Cut to C&lippings"));
     CHECK(commands.at(2) == edit.at(1));
     CHECK(commands.at(3) == edit.at(2));
-    CHECK(texts.at(4) == QStringLiteral("&Insert Clipping..."));
-    CHECK(commands.at(5) == edit.at(3));
+    CHECK(texts.at(4) == QStringLiteral("Paste &Special"));
+    CHECK(texts.at(5) == QStringLiteral("&Insert Clipping..."));
+    CHECK(commands.at(6) == edit.at(3));
 }
 
 TEST_CASE("Editor panel: says whether its text differs from the saved text", "[gui][editor]") {

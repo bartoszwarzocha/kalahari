@@ -51,7 +51,7 @@ CommandCallbacks runningCallbacks() {
           &callbacks.onSuperscript, &callbacks.onSubscript, &callbacks.onSmallCaps,
           &callbacks.onAllCaps, &callbacks.onFontColor, &callbacks.onHighlightColor,
           &callbacks.onCopyFormatting, &callbacks.onPasteFormatting, &callbacks.onInsertLink,
-          &callbacks.onInsertTable, &callbacks.onInsertImage}) {
+          &callbacks.onInsertTable, &callbacks.onInsertImage, &callbacks.onListSets}) {
         *callback = none;
     }
     callbacks.onParagraphStyle = [](const QString&) {};
@@ -111,7 +111,7 @@ TEST_CASE("Document commands: greyed out without a document in front, with their
                            "format.clearFormatting", "format.alignLeft",
                            "format.alignCenter", "format.alignRight", "format.justify",
                            "format.increaseIndent", "format.decreaseIndent", "format.bullets",
-                           "format.numbering", "format.bulletsNumbering",
+                           "format.numbering", "format.listSets", "format.bulletsNumbering",
                            "format.style.heading1",
                            "format.style.heading2", "format.style.heading3", "format.style.body",
                            "format.style.quote", "format.style.dialogue", "format.style.code",
@@ -173,7 +173,7 @@ TEST_CASE("Document commands: over a read-only chapter those that change it are 
                                    "format.alignCenter",
                                    "format.alignRight", "format.justify",
                                    "format.increaseIndent", "format.decreaseIndent",
-                                   "format.bullets", "format.numbering",
+                                   "format.bullets", "format.numbering", "format.listSets",
                                    "format.bulletsNumbering",
                                    "format.style.heading1", "format.style.heading2",
                                    "format.style.heading3", "format.style.body",

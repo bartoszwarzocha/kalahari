@@ -9,6 +9,7 @@
 
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/utils/reading_time.h"
+#include "kalahari/gui/panels/book_fields_box.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/clipping_origin_box.h"
 #include "kalahari/gui/panels/cursor_card_box.h"
@@ -328,6 +329,16 @@ QWidget* PropertiesPanel::createProjectPage() {
     m_projectInfoLayout = infoLayout;
 
     layout->addWidget(infoGroup);
+
+    // The writer's own fields of the book, under its information
+    m_bookFieldsBox = new BookFieldsBox(m_book, scrollContent);
+    connect(m_bookFieldsBox, &BookFieldsBox::requestNewField, this,
+            &PropertiesPanel::requestNewOwnField);
+    connect(m_bookFieldsBox, &BookFieldsBox::requestInsertField, this,
+            &PropertiesPanel::requestInsertOwnField);
+    connect(m_bookFieldsBox, &BookFieldsBox::requestSettings, this,
+            &PropertiesPanel::requestFieldSettings);
+    layout->addWidget(m_bookFieldsBox);
 
     // Statistics group
     QGroupBox* statsGroup = new QGroupBox(tr("Statistics"), scrollContent);
@@ -1157,6 +1168,8 @@ void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
     disconnectFromEditor();
 
     m_activeEditorPanel = editorPanel;
+    // An own field goes in a text of the book in front
+    m_bookFieldsBox->setCanInsert(editorPanel != nullptr && editorPanel->isBookText());
 
     if (!editorPanel) {
         logger.debug("PropertiesPanel::setActiveEditor() - Disconnected from editor");
@@ -1638,6 +1651,7 @@ void PropertiesPanel::populateProjectFields() {
     }
 
     m_projectGenreEdit->setText(book->genre);
+    m_bookFieldsBox->refresh();
     populateBookSections(*book);
     populateBibliographyStyle();
 

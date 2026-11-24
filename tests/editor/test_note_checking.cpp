@@ -337,13 +337,22 @@ MenuSeen contextMenu(BookEditor& editor, const std::optional<QPoint>& point,
         }
         poll.stop();
         QAction* chosen = nullptr;
-        for (QAction* action : menu->actions()) {
+        // The words in bold are in the submenu Suggestions, read after its item
+        QList<QAction*> actions = menu->actions();
+        for (qsizetype i = 0; i < actions.size(); ++i) {
+            QAction* action = actions.at(i);
             const QString text = kalahari::gui::withoutAccessKey(action->text());
             seen.texts << (action->isSeparator() ? QStringLiteral("-") : text);
             seen.bold << action->font().bold();
             if (chooseFirstBold && chosen == nullptr && action->font().bold()) {
                 chosen = action;
                 seen.chosen = text;
+            }
+            if (const QMenu* submenu = action->menu()) {
+                const QList<QAction*> inner = submenu->actions();
+                for (qsizetype j = 0; j < inner.size(); ++j) {
+                    actions.insert(i + 1 + j, inner.at(j));
+                }
             }
         }
         menu->close();

@@ -17,9 +17,14 @@
 #include <QImage>
 #include <QLocale>
 #include <QMouseEvent>
+#include <QPaintDevice>
+#include <QPaintEngine>
+#include <QPainter>
 #include <QTextBlock>
 #include <QTextDocument>
 
+#include <algorithm>
+#include <climits>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -44,6 +49,66 @@ QString cardsKml() {
         "<p>four<anchor ref=\"t1\"/> five</p>"
         "<p>six seven</p></kml>");
 }
+
+/// A text drawn on a TextRecorder: its text, its font and the painter's scale then
+struct DrawnText {
+    QString text;
+    QFont font;
+    qreal scale = 1.0;
+};
+
+/// A paint device that keeps the texts drawn on it (with the screen's resolution)
+class TextRecorder : public QPaintDevice {
+public:
+    TextRecorder() = default;
+    [[nodiscard]] QPaintEngine* paintEngine() const override { return &m_engine; }
+    [[nodiscard]] const QList<DrawnText>& texts() const { return m_engine.texts; }
+
+protected:
+    [[nodiscard]] int metric(PaintDeviceMetric metric) const override {
+        switch (metric) {
+        case PdmWidth:
+        case PdmHeight:
+            return 4000;
+        case PdmDpiX:
+        case PdmPhysicalDpiX:
+            return QImage(1, 1, QImage::Format_ARGB32).logicalDpiX();
+        case PdmDpiY:
+        case PdmPhysicalDpiY:
+            return QImage(1, 1, QImage::Format_ARGB32).logicalDpiY();
+        case PdmDepth:
+            return 32;
+        case PdmNumColors:
+            return INT_MAX;
+        case PdmDevicePixelRatio:
+            return 1;
+        case PdmDevicePixelRatioScaled:
+            return static_cast<int>(devicePixelRatioFScale());
+        default:
+            return QPaintDevice::metric(metric);
+        }
+    }
+
+private:
+    class Engine : public QPaintEngine {
+    public:
+        Engine() : QPaintEngine(QPaintEngine::AllFeatures) {}
+        bool begin(QPaintDevice* /*device*/) override { return true; }
+        bool end() override { return true; }
+        void updateState(const QPaintEngineState& /*state*/) override {}
+        void drawPixmap(const QRectF& /*r*/, const QPixmap& /*pm*/, const QRectF& /*sr*/) override {}
+        // The shapes are not kept (the default ones call one another without end)
+        void drawPath(const QPainterPath& /*path*/) override {}
+        void drawPolygon(const QPointF* /*points*/, int /*count*/,
+                         PolygonDrawMode /*mode*/) override {}
+        void drawTextItem(const QPointF& /*p*/, const QTextItem& item) override {
+            texts.append({item.text(), item.font(), state->transform().m11()});
+        }
+        [[nodiscard]] Type type() const override { return QPaintEngine::User; }
+        QList<DrawnText> texts;
+    };
+    mutable Engine m_engine;
+};
 
 /// An editor with the annotations of cardsKml(), sized like a small window, the cards shown
 /// as @p show says
@@ -191,10 +256,11 @@ TEST_CASE("Annotation cards: none by default; the setting shows them under the p
     CHECK(todo.bottom() < editor->placeRect(editor->textDocument()->findBlockByNumber(2).position(),
                                             false)
                               .top());
-    // Indented from the text's left edge, as wide as the text's right edge allows
+    // Indented from the text's left edge, as far from its right edge (test of 22.11)
     const QRectF column = editor->textColumnRect(comment.center().y());
     CHECK(comment.left() > column.left());
-    CHECK(comment.right() == Approx(column.right()).margin(1.0));
+    CHECK(column.right() - comment.right() ==
+          Approx(comment.left() - column.left()).margin(1.0));
 
     SECTION("drawn on the paper") {
         const QImage withCards = editorImage(*editor);
@@ -629,4 +695,80 @@ TEST_CASE("Annotation cards: long texts cut short, and shown whole", "[editor][a
     // In the editor: as the settings say
     setCards(*editor, [](AnnotationCardSettings& shown) { shown.longLines = 3; });
     CHECK(editor->annotationCardRect(QStringLiteral("c1")).height() < whole.height());
+}
+
+TEST_CASE("Annotation cards: as far from the text's right edge as from its left",
+          "[editor][annotations][cards]") {
+    auto editor = cardsEditor();
+    AnnotationCards cards;
+    cards.setShown(true);
+    cards.setTextFont(editor->appearance().typography.textFont);
+    const QTextBlock first = editor->textDocument()->firstBlock();
+    const qreal width = editor->textDocument()->textWidth();
+
+    // As wide as the indent of old on both sides
+    std::vector<AnnotationCardBox> boxes = cards.cardsOf(first, 0.0, width);
+    REQUIRE_FALSE(boxes.empty());
+    CHECK(boxes.front().rect.left() > 0.0);
+    CHECK(width - boxes.front().rect.right() == Approx(boxes.front().rect.left()));
+
+    // The room set
+    cards.setSideMargin(30.0);
+    boxes = cards.cardsOf(first, 0.0, width);
+    CHECK(boxes.front().rect.left() == Approx(30.0));
+    CHECK(boxes.front().rect.right() == Approx(width - 30.0));
+    cards.setSideMargin(0.0);
+    CHECK(cards.cardsOf(first, 0.0, width).front().rect.width() == Approx(width));
+
+    // A text narrower than the narrowest card: the card in the middle
+    cards.setSideMargin(30.0);
+    const qreal narrow = 130.0;
+    const QRectF small = cards.cardsOf(first, 0.0, narrow).front().rect;
+    CHECK(small.width() > narrow - 60.0);
+    CHECK(small.left() == Approx(narrow - small.right()).margin(0.01));
+
+    // In the editor: in millimetres of Settings > Annotations
+    setCards(*editor, [](AnnotationCardSettings& shown) { shown.sideMarginMm = 10.0; });
+    const QRectF wide = editor->annotationCardRect(QStringLiteral("c1"));
+    setCards(*editor, [](AnnotationCardSettings& shown) { shown.sideMarginMm = 2.0; });
+    const QRectF narrower = editor->annotationCardRect(QStringLiteral("c1"));
+    // 8 mm more on each side, at 2.5 pixels a millimetre or more (72 dpi on macOS: 2.83)
+    CHECK(narrower.width() > wide.width() + 8.0 * 2.0 * 2.5);
+    CHECK(narrower.center().x() == Approx(wide.center().x()).margin(1.0));
+}
+
+TEST_CASE("Annotation cards: their text smaller than the text by default, drawn in the font "
+          "it is written in",
+          "[editor][annotations][cards]") {
+    // 70 % of the text's (2 to 3 points smaller than 90 %, test of 22.11)
+    CHECK(AnnotationCardSettings{}.fontPercent == 70);
+
+    auto editor = cardsEditor();
+    AnnotationCards cards;
+    cards.setShown(true);
+    cards.setTextFont(editor->appearance().typography.textFont);
+    const QTextBlock first = editor->textDocument()->firstBlock();
+    const qreal width = editor->textDocument()->textWidth();
+    for (const qreal scale : {1.0, 1.1, 1.33, 2.0}) {
+        INFO(scale);
+        TextRecorder recorder;
+        QPainter painter(&recorder);
+        painter.scale(scale, scale);
+        cards.paint(&painter, first, 0.0, width);
+        painter.end();
+        const auto drawn = std::find_if(
+            recorder.texts().cbegin(), recorder.texts().cend(),
+            [](const DrawnText& text) { return text.text.contains(QStringLiteral("Check")); });
+        REQUIRE(drawn != recorder.texts().cend());
+        // In pixels of the view, in the font of the frame written on the card
+        CHECK(drawn->scale == Approx(1.0));
+        CHECK(drawn->font.pointSizeF() == Approx(cards.cardFontAt(scale).pointSizeF()));
+        CHECK(drawn->font.family() == cards.cardFont().family());
+    }
+
+    // The frame written on a card has that font, at the zoom of the view
+    editor->setZoomFactor(1.5);
+    const QFont written = editor->annotationCardTextFont();
+    const qreal scale = editor->annotationCardLineHeight() / cards.lineHeight();
+    CHECK(written.pointSizeF() == Approx(cards.cardFontAt(scale).pointSizeF()));
 }

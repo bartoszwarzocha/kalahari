@@ -264,14 +264,13 @@ bool hasFields(const QTextBlock& block)
     return false;
 }
 
-namespace {
-
-/// Whether a block is a caption: a paragraph in the style Caption
 bool isCaptionBlock(const QTextBlock& block)
 {
     return block.isValid() &&
            paragraphStyleOf(block.blockFormat()) == QLatin1String(CAPTION_STYLE_ID);
 }
+
+namespace {
 
 /// Whether two blocks are next to each other in one place: both outside tables, or in one
 /// cell of a table
@@ -320,6 +319,30 @@ QTextBlock imageBlockOfCaption(const QTextBlock& captionBlock)
     return image.isValid() && hasImages(image) && captionBlockOf(image) == captionBlock
                ? image
                : QTextBlock();
+}
+
+QTextBlock captionBlockOfTable(const QTextTable& table)
+{
+    const QTextBlock before = table.firstCursorPosition().block().previous();
+    if (isCaptionBlock(before) && isCaptionAbove(before.blockFormat()) && tableOf(before) == nullptr) {
+        return before;
+    }
+    const QTextBlock after = table.lastCursorPosition().block().next();
+    if (isCaptionBlock(after) && !isCaptionAbove(after.blockFormat()) && tableOf(after) == nullptr) {
+        return after;
+    }
+    return QTextBlock();
+}
+
+QTextTable* tableOfCaption(const QTextBlock& captionBlock)
+{
+    if (!isCaptionBlock(captionBlock) || tableOf(captionBlock) != nullptr) {
+        return nullptr;
+    }
+    const QTextBlock beside =
+        isCaptionAbove(captionBlock.blockFormat()) ? captionBlock.next() : captionBlock.previous();
+    QTextTable* table = tableOf(beside);
+    return table != nullptr && captionBlockOfTable(*table) == captionBlock ? table : nullptr;
 }
 
 CaptionParts captionParts(const QTextBlock& block)

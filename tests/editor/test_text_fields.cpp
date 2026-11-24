@@ -433,4 +433,114 @@ TEST_CASE("Fields: no gray background without the setting", "[editor][fields]") 
     CHECK_FALSE(editor->appearance().fieldShading);
 }
 
+// =============================================================================
+// Own fields
+// =============================================================================
+
+TEST_CASE("Fields: an own field shows its value, its name in brackets without one",
+          "[editor][fields][own]") {
+    FieldContext context = bookContext();
+    context.customFields.insert(QStringLiteral("field-1"),
+                                {QStringLiteral("Narrator"), QStringLiteral("Ilias"),
+                                 QStringLiteral("Who tells the story")});
+    context.customFields.insert(QStringLiteral("field-2"),
+                                {QStringLiteral("Publisher"), QString()});
+    const TextField narrator{.type = FieldType::Custom,
+                             .format = QString(),
+                             .key = QStringLiteral("field-1"),
+                             .name = QStringLiteral("Narrator")};
+    CHECK(textFieldText(narrator, context, FieldCounts{}) == QStringLiteral("Ilias"));
+    TextField upper = narrator;
+    upper.format = QStringLiteral("upper");
+    CHECK(textFieldText(upper, context, FieldCounts{}) == QStringLiteral("ILIAS"));
+    CHECK_FALSE(isTextFieldEmpty(narrator, context));
+    CHECK(textFieldTitle(narrator, context) == QStringLiteral("Narrator"));
+
+    // Without a value: its name in brackets
+    const TextField publisher{.type = FieldType::Custom,
+                              .format = QString(),
+                              .key = QStringLiteral("field-2"),
+                              .name = QStringLiteral("Publisher")};
+    CHECK(textFieldText(publisher, context, FieldCounts{}) == QStringLiteral("[Publisher]"));
+    CHECK(isTextFieldEmpty(publisher, context));
+
+    // Gone from the book: the name it was inserted with
+    const TextField gone{.type = FieldType::Custom,
+                         .format = QString(),
+                         .key = QStringLiteral("field-9"),
+                         .name = QStringLiteral("City")};
+    CHECK(textFieldText(gone, context, FieldCounts{}) == QStringLiteral("[City]"));
+    CHECK(textFieldTitle(gone, context) == QStringLiteral("City"));
+}
+
+TEST_CASE("Fields: an own field in KML, counted and replaced", "[editor][fields][own][kml]") {
+    const TextField field{.type = FieldType::Custom,
+                          .format = QString(),
+                          .key = QStringLiteral("field-1"),
+                          .name = QStringLiteral("Narrator & Co")};
+    CHECK(textFieldKml(field) ==
+          QStringLiteral("<field type=\"custom\" id=\"field-1\" name=\"Narrator &amp; Co\"/>"));
+    CHECK(fieldOfElement(textFieldKml(field)) == field);
+
+    const QString kml = QStringLiteral(
+        "<kml><p>By <field type=\"custom\" id=\"field-1\" name=\"Narrator\"/>, "
+        "<b><field type=\"custom\" id=\"field-1\" name=\"Narrator\" format=\"upper\"/></b> and "
+        "<field type=\"custom\" id=\"field-2\" name=\"City\"/>.</p></kml>");
+    CHECK(customFieldCountInKml(kml, QStringLiteral("field-1")) == 2);
+    CHECK(customFieldCountInKml(kml, QStringLiteral("field-2")) == 1);
+    CHECK(customFieldCountInKml(kml, QStringLiteral("field-3")) == 0);
+
+    // As text, in their formats; the other field stays
+    int count = 0;
+    const CustomFieldValue value{QStringLiteral("Narrator"), QStringLiteral("Ilias <I>")};
+    CHECK(customFieldsReplacedInKml(kml, QStringLiteral("field-1"), value, QStringLiteral("en"),
+                                    true, &count) ==
+          QStringLiteral("<kml><p>By Ilias &lt;I&gt;, <b>ILIAS &lt;I&gt;</b> and "
+                         "<field type=\"custom\" id=\"field-2\" name=\"City\"/>.</p></kml>"));
+    CHECK(count == 2);
+
+    // As fields, with the name the book gave them last
+    CHECK(customFieldsReplacedInKml(kml, QStringLiteral("field-2"),
+                                    {QStringLiteral("Town"), QString()}, QStringLiteral("en"),
+                                    false, &count)
+              .contains(QStringLiteral("<field type=\"custom\" id=\"field-2\" name=\"Town\"/>")));
+    CHECK(count == 1);
+
+    // In the editor, as they were
+    auto editor = editorWith(kml);
+    CHECK(editor->toKml() == kml);
+    CHECK(customFieldCount(*editor->textDocument()) == 3);
+    CHECK(customFieldCount(*editor->textDocument(), QStringLiteral("field-1")) == 2);
+}
+
+TEST_CASE("Fields: the own fields of the editor become text in one undo step",
+          "[editor][fields][own]") {
+    auto editor = editorWith(QStringLiteral(
+        "<kml><p>By <field type=\"custom\" id=\"field-1\" name=\"Narrator\"/> in "
+        "<i><field type=\"custom\" id=\"field-1\" name=\"Narrator\"/></i>.</p></kml>"));
+    FieldContext context = bookContext();
+    context.customFields.insert(QStringLiteral("field-1"),
+                                {QStringLiteral("Narrator"), QStringLiteral("Ilias")});
+    editor->setFieldContext(context);
+    CHECK(shownFields(*editor) == "Ilias|Ilias");
+    const QString before = editor->toKml();
+
+    CHECK(editor->changeCustomFields(QStringLiteral("field-1"),
+                                     {QStringLiteral("Narrator"), QStringLiteral("Ilias")},
+                                     true) == 2);
+    CHECK(editor->toKml() == QStringLiteral("<kml><p>By Ilias in <i>Ilias</i>.</p></kml>"));
+    editor->undo();
+    CHECK(editor->toKml() == before);
+
+    // Kept as fields with a new name: shown in brackets once the book has no such field
+    CHECK(editor->changeCustomFields(QStringLiteral("field-1"),
+                                     {QStringLiteral("Teller"), QString()}, false) == 2);
+    editor->setFieldContext(bookContext());
+    CHECK(shownFields(*editor) == "[Teller]|[Teller]");
+    CHECK(editor->changeCustomFields(QStringLiteral("field-7"), {}, true) == 0);
+
+    editor->setReadOnly(true);
+    CHECK(editor->changeCustomFields(QStringLiteral("field-1"), {}, true) == 0);
+}
+
 }  // namespace kalahari::editor

@@ -14,9 +14,11 @@
 
 #include "kalahari/editor/detail/book_export_internal.h"
 
+#include <kalahari/editor/block_space.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_format.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_tables.h>
@@ -30,6 +32,7 @@
 #include <QTextTable>
 #include <QTimeZone>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <deque>
@@ -46,10 +49,6 @@ using namespace exporting;
 // =============================================================================
 
 constexpr double POINTS_PER_MILLIMETRE = 72.0 / 25.4;
-
-/// The room between an image the text flows around and the text: 0.3 cm, as the editor
-/// leaves it (points)
-constexpr double FLOAT_GAP_POINTS = 0.3 * 72.0 / 2.54;
 
 /// The order of the images anchored to their paragraphs, one above another (Word's numbers
 /// start here)
@@ -148,6 +147,19 @@ QString numberFormatValue(ListNumberFormat format) {
         case ListNumberFormat::Bullet: return QStringLiteral("bullet");
     }
     return QStringLiteral("decimal");
+}
+
+/// The text of a numbered level as Word writes it: its prefix, the numbers of the levels
+/// above it the level shows ("%1."), its own number and its suffix: "§ %1.%2."
+QString wordLevelText(const ListDefinition& definition, int level) {
+    const ListLevel& format = definition.levels[static_cast<size_t>(level)];
+    QString text = format.prefix;
+    for (int above = level - std::clamp(format.shownLevels, 0, level); above < level; ++above) {
+        if (!definition.levels[static_cast<size_t>(above)].isBullet()) {
+            text += QStringLiteral("%%1.").arg(above + 1);
+        }
+    }
+    return text + QStringLiteral("%%1").arg(level + 1) + format.suffix;
 }
 
 QString noteFormatValue(NoteNumberFormat format) {
@@ -860,7 +872,7 @@ QString DocxWriter::listNumbering(size_t item, const ListItem& listItem, int sho
             const ListLevel& format = list.definition.levels[static_cast<size_t>(level)];
             const QString text = format.isBullet()
                                      ? (format.bullet.isEmpty() ? QString(QChar(BULLET_DISC)) : format.bullet)
-                                     : QStringLiteral("%%1").arg(level + 1) + format.suffix;
+                                     : wordLevelText(list.definition, level);
             const QString alignment = format.alignment == ListMarkerAlignment::Center ? QStringLiteral("center")
                                       : format.alignment == ListMarkerAlignment::Right ? QStringLiteral("right")
                                                                                         : QStringLiteral("left");
@@ -1033,17 +1045,19 @@ QString DocxWriter::drawing(const ImageProperties& image, double lineWidth, Part
                       .arg(image.wrap == ImageWrap::SquareLeft ? QStringLiteral("right")
                                                                : QStringLiteral("left"));
         const QString side = anchorSide(image.wrap, alignment);
-        const QString gap = number(emu(FLOAT_GAP_POINTS));
+        // The room above it is its paragraph's; below it and beside it the image's own
+        const QString below = number(emu(image.spaceBelow));
+        const QString beside = number(emu(image.spaceBeside));
         start = QStringLiteral("<w:r><w:drawing><wp:anchor distT=\"0\" distB=\"%1\""
-                               " distL=\"%1\" distR=\"%1\" simplePos=\"0\" relativeHeight=\"%2\""
+                               " distL=\"%2\" distR=\"%2\" simplePos=\"0\" relativeHeight=\"%3\""
                                " behindDoc=\"0\" locked=\"0\" layoutInCell=\"1\""
                                " allowOverlap=\"0\">"
                                "<wp:simplePos x=\"0\" y=\"0\"/>"
                                "<wp:positionH relativeFrom=\"column\">"
-                               "<wp:align>%3</wp:align></wp:positionH>"
+                               "<wp:align>%4</wp:align></wp:positionH>"
                                "<wp:positionV relativeFrom=\"paragraph\">"
                                "<wp:posOffset>0</wp:posOffset></wp:positionV>")
-                    .arg(gap, number(ANCHOR_HEIGHT_BASE + id), side) +
+                    .arg(below, beside, number(ANCHOR_HEIGHT_BASE + id), side) +
                 extent + wrap;
         end = QStringLiteral("</wp:anchor></w:drawing></w:r>");
     }
@@ -1242,6 +1256,22 @@ void DocxWriter::writeParagraph(const ExportText& text, size_t item, const QText
     }
     if (const Qt::Alignment alignment = ownAlignment(format); alignment) {
         properties.alignment = alignmentValue(alignment);
+    }
+    // The room of an image around its paragraph and its caption, and of a table next to the
+    // paragraph, over the paragraph's own (or its style's) room
+    if (const BlockSpace space = blockSpace(block); !space.isEmpty()) {
+        const QVariantMap& style = m_book.styles.shownStyle(styleId).properties;
+        const auto styleSpace = [&style](const char* name) {
+            return std::max(0.0, style.value(QLatin1String(name)).toDouble());
+        };
+        if (space.before > 0.0) {
+            properties.spaceBefore =
+                properties.spaceBefore.value_or(styleSpace("spaceBefore")) + space.before;
+        }
+        if (space.after > 0.0) {
+            properties.spaceAfter =
+                properties.spaceAfter.value_or(styleSpace("spaceAfter")) + space.after;
+        }
     }
     // A heading of the text: a bookmark the table of contents goes to
     QString content;
@@ -1814,7 +1844,7 @@ std::vector<std::pair<QString, QByteArray>> DocxWriter::build(ExportResult* resu
     // The texts read, the titles decided, the headings and captions of the file counted
     for (size_t index = 0; index < count; ++index) {
         const ExportItem& item = m_book.items[index];
-        m_texts.push_back(std::make_unique<ExportText>(item));
+        m_texts.push_back(std::make_unique<ExportText>(item, exportFieldContext(m_book, item)));
         const bool titled = m_book.titleHeadings && !item.title.trimmed().isEmpty() &&
                             item.kind != ExportItemKind::Contents &&
                             !(item.kind == ExportItemKind::Text &&

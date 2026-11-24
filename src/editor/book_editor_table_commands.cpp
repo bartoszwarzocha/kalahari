@@ -793,15 +793,30 @@ bool BookEditor::canConvertTextToTable() const
 
 void BookEditor::convertTextToTable(QChar separator, int columns, bool headerRow)
 {
+    convertTextToTable(separator, columns, headerRow, NewTableOptions{});
+}
+
+void BookEditor::convertTextToTable(QChar separator, int columns, bool headerRow,
+                                    const NewTableOptions& options)
+{
     if (refusesChange() || !canConvertTextToTable()) {
         return;
     }
     const auto [first, last] = selectedBlockRange();
     QTextCursor cursor(m_textBuffer.get());
     beginTableStep(cursor);
-    const QTextTable* table =
+    QTextTable* table =
         textToTable(cursor, first, last, separator, std::clamp(columns, 1, MAX_INSERTED_TABLE_COLUMNS),
                     headerRow, tableCellFormat());
+    if (table != nullptr) {
+        // The room of a new table from the text around it
+        TableProperties properties = tablePropertiesOf(table->format());
+        properties.spaceAbove = std::clamp(options.spaceAbove, 0.0, MAX_TABLE_SPACE);
+        properties.spaceBelow = std::clamp(options.spaceBelow, 0.0, MAX_TABLE_SPACE);
+        QTextTableFormat format = table->format();
+        setTableProperties(format, properties);
+        table->setFormat(format);
+    }
     endTableStep(cursor, table ? table->cellAt(0, 0).firstPosition() : cursor.position());
 }
 

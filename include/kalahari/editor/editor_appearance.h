@@ -325,6 +325,9 @@ struct PageLayout {
     qreal zoomLevel{1.0};                      ///< Zoom of a newly opened document (1.0 = 100%)
     qreal pageGap{20.0};                       ///< Gap between pages in pixels
     bool showPageNumbers{true};                ///< Page numbers at the bottom of the pages
+    bool fillsView{false};                     ///< A text field: in the continuous view the
+                                               ///< page fills the view, without the desk and
+                                               ///< the sheet (the page size is not used)
 
     /// @brief Page dimensions in millimetres
     [[nodiscard]] QSizeF pageSizeMm() const;
@@ -379,7 +382,9 @@ struct AnnotationCardSettings {
                                     ///< else its mark alone
     bool startCollapsed{false};     ///< Collapsed when the chapter opens
     int longLines{0};               ///< A longer text is cut to so many lines (0: whole)
-    int fontPercent{90};            ///< Size of the cards' text, in % of the text's
+    int fontPercent{70};            ///< Size of the cards' text, in % of the text's
+    qreal sideMarginMm{4.0};        ///< The room on each side of the cards, from the edges of
+                                    ///< the text (millimetres)
     int tintPercent{100};           ///< How much of the kind's color they have, in % of the usual
     bool highlightFragment{true};   ///< The fragment lights up while the mouse is on its card
     bool inDistractionFree{true};   ///< Shown in Distraction-Free writing too

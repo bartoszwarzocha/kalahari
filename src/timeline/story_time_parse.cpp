@@ -342,7 +342,7 @@ std::optional<StoryTime> daysSplitAt(const QString& text, qsizetype dash, Era er
 std::optional<StoryTime> monthsSplitAt(const QString& text, qsizetype dash, Era era) {
     const QString startText = text.left(dash).trimmed();
     const std::optional<DateParts> end = wholeDate(text.mid(dash + 1).trimmed(), era);
-    if (startText.isEmpty() || !end || end->day > 0 || end->month == 0) {
+    if (startText.isEmpty() || !end || end->day > 0 || end->month == 0 || !end->year) {
         return std::nullopt;
     }
     std::optional<DateParts> start = wholeDate(startText, era);

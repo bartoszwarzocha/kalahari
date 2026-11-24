@@ -235,6 +235,7 @@ void PublishingTextBox::showData() {
         return;
     }
     m_data = element->publishing;
+    m_data.done = m_book.publishingPointsOf(m_elementId);  // also those waiting for the text
     setTitle(PublishingNames::partName(m_data.part));
     const bool readOnly = m_book.isReadOnly();
     {
@@ -271,6 +272,12 @@ void PublishingTextBox::showData() {
     //: W zestawie: nie
     m_inSetLabel->setText(inSet ? tr("In the set: yes – this version") : tr("In the set: no"));
     updateLength();
+}
+
+void PublishingTextBox::showSaved(const QString& elementId) {
+    if (!m_elementId.isEmpty() && elementId == m_elementId) {
+        showData();
+    }
 }
 
 void PublishingTextBox::showPoints() {
@@ -393,11 +400,14 @@ bool PublishingTextBox::save(const core::PublishingData& publishing) {
     if (element == nullptr || m_book.isReadOnly()) {
         return false;
     }
+    // The points ticked off go their own way, waiting for the text (savePoint())
+    core::PublishingData saved = publishing;
+    saved.done = element->publishing.done;
     m_data = publishing;
-    if (element->publishing == publishing) {
+    if (element->publishing == saved) {
         return true;
     }
-    if (!m_book.setPublishing(m_elementId, publishing)) {
+    if (!m_book.setPublishing(m_elementId, saved)) {
         return false;
     }
     emit publishingChanged(m_elementId);
@@ -414,12 +424,19 @@ void PublishingTextBox::saveTemplate() {
 }
 
 void PublishingTextBox::savePoint(const QString& pointId, bool done) {
-    core::PublishingData changed = m_data;
-    changed.done.removeAll(pointId);
+    QStringList ticked = m_data.done;
+    ticked.removeAll(pointId);
     if (done) {
-        changed.done << pointId;
+        ticked << pointId;
     }
-    save(changed);
+    // While the text has changes not saved, the points are saved and dropped with them
+    const bool textChanged = m_editor != nullptr && m_editor->isModified();
+    if (m_book.isReadOnly() || !m_book.setPublishingPoints(m_elementId, ticked, textChanged)) {
+        showPoints();
+        return;
+    }
+    m_data.done = ticked;
+    emit publishingChanged(m_elementId);
 }
 
 void PublishingTextBox::saveState() {

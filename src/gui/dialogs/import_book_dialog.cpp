@@ -26,6 +26,8 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QGridLayout>
+#include <QLayoutItem>
+#include <QShowEvent>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -63,6 +65,9 @@ constexpr int PLUGIN_ROLE = Qt::UserRole + 1;
 constexpr int FILE_ROWS = 3;
 constexpr int TEXT_ROWS = 5;
 constexpr int STYLE_ROWS = 5;
+/// How much higher than its content asks for the window opens (within the screen): the lists
+/// of the files, the place, the texts and the styles take the room
+constexpr int EXTRA_HEIGHT = 100;
 /// The width of the window in the letters of a text: the remarks in fewer lines
 constexpr int WIDTH_IN_LETTERS = 140;
 /// The widest the window starts: with its frame it fits a screen of 1366x768 at 150%
@@ -255,6 +260,17 @@ QGridLayout* newTab(QTabWidget* tabs, const QString& title) {
 /// The rows of a tab start at its top
 void endTab(QGridLayout* grid) {
     grid->setRowStretch(grid->rowCount(), 1);
+}
+
+/// The row @p row of a tab takes the height the window has beyond what its rows ask for: the
+/// list in it gets as high as the tab; the label of the row stays level with its top
+void stretchRow(QGridLayout* grid, int row) {
+    grid->setRowStretch(row, 1);
+    // A label of its own, not a field across the columns, which would then keep its height
+    QLayoutItem* label = grid->itemAtPosition(row, 0);
+    if (label != nullptr && label != grid->itemAtPosition(row, 1)) {
+        label->setAlignment((label->alignment() & Qt::AlignHorizontal_Mask) | Qt::AlignTop);
+    }
 }
 
 /// A button of a window that Enter does not press
@@ -518,7 +534,8 @@ void ImportBookDialog::buildFileTab() {
     //: The name of the list of the files for screen readers. In Polish: Pliki importu
     m_fileList->setAccessibleName(tr("Files of the import"));
     m_fileList->setRows(FILE_ROWS);
-    filesLayout->addWidget(m_fileList, 0, 0, 2, 1);
+    filesLayout->addWidget(m_fileList, 0, 0, 3, 1);
+    filesLayout->setRowStretch(2, 1);
     auto* fileButtons = new QGridLayout();
     //: Adds files to the list of the import. In Polish: Dod&aj…
     QPushButton* addButton = newButton(tr("&Add..."), files);
@@ -542,6 +559,7 @@ void ImportBookDialog::buildFileTab() {
         1, 1);
     //: In Polish: Pl&iki:
     addRow(file, tr("F&iles:"), files)->setBuddy(m_fileList);
+    const int filesRow = file->rowCount() - 1;
     m_filesNote = addNote(file);
 
     m_encodingBox = new QComboBox(filePage);
@@ -563,7 +581,7 @@ void ImportBookDialog::buildFileTab() {
     m_contentsLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     //: In Polish: W pliku:
     addRow(file, tr("In the file:"), m_contentsLabel);
-    endTab(file);
+    stretchRow(file, filesRow);
     connect(addButton, &QPushButton::clicked, this, &ImportBookDialog::browseFiles);
 }
 
@@ -662,7 +680,7 @@ void ImportBookDialog::buildPlaceTab() {
     m_otherFilesNote->setAlignment(Qt::AlignTop | Qt::AlignLeft);
     m_targetPages->addWidget(m_otherFilesNote);
     place->addWidget(m_targetPages, 2, 0, 1, 2);
-    endTab(place);
+    stretchRow(place, 2);
     connect(folderButton, &QPushButton::clicked, this, &ImportBookDialog::browseFolder);
 }
 
@@ -801,6 +819,7 @@ void ImportBookDialog::buildDivisionTab() {
     m_textList->setRows(TEXT_ROWS);
     m_textList->installEventFilter(this);
     textsLayout->addWidget(m_textList, 0, 0);
+    textsLayout->setRowStretch(0, 1);
     auto* textButtons = new QVBoxLayout();
     //: Checks every text of the list. In Polish: Zaznacz wszystki&e
     QPushButton* allButton = newButton(tr("Check &All"), texts);
@@ -825,7 +844,7 @@ void ImportBookDialog::buildDivisionTab() {
     m_fullNote.widget->hide();
     textsLayout->addWidget(m_fullNote.widget, 2, 0, 1, 2);
     split->addWidget(texts, 5, 0, 1, 2);
-    endTab(split);
+    stretchRow(split, 5);
     connect(allButton, &QPushButton::clicked, this, &ImportBookDialog::checkAll);
     connect(noneButton, &QPushButton::clicked, this, &ImportBookDialog::checkNone);
 }
@@ -871,7 +890,9 @@ void ImportBookDialog::buildStylesTab() {
     m_styleList->setAccessibleName(tr("Styles of the file"));
     m_styleList->setRows(STYLE_ROWS);
     fileStyles->addWidget(m_styleList, 1, 0, 1, 2);
+    fileStyles->setRowStretch(1, 1);
     styles->addWidget(m_fileStyles, 0, 0, 1, 2);
+    m_stylesLayout = styles;
 
     m_textParagraphs = new QWidget(stylesPage);
     auto* textParagraphs = new QGridLayout(m_textParagraphs);
@@ -901,6 +922,25 @@ void ImportBookDialog::buildStylesTab() {
                                   stylesPage);
     styles->addWidget(m_dialogueBox, 2, 0, 1, 2);
     endTab(styles);
+    stretchStyles();
+}
+
+void ImportBookDialog::stretchStyles() {
+    // The list of the styles takes the height of the tab; plain text, without it, has its
+    // paragraphs at the top
+    const bool list = !m_fileStyles->isHidden();
+    m_stylesLayout->setRowStretch(0, list ? 1 : 0);
+    m_stylesLayout->setRowStretch(m_stylesLayout->rowCount() - 1, list ? 0 : 1);
+}
+
+void ImportBookDialog::showEvent(QShowEvent* event) {
+    ArchiveDialog::showEvent(event);
+    if (event->spontaneous() || m_grown) {
+        return;
+    }
+    // Higher than the content asks for, within the screen: the lists show more rows
+    m_grown = true;
+    resizeOnScreen(QSize(width(), height() + EXTRA_HEIGHT));
 }
 
 void ImportBookDialog::buildCleanupTab() {
@@ -1867,6 +1907,7 @@ void ImportBookDialog::showFormat() {
     m_fileStyles->setVisible(!text);
     m_formattingBox->parentWidget()->setVisible(word);
     m_textParagraphs->setVisible(text);
+    stretchStyles();
     m_tabs->setTabVisible(m_tabs->indexOf(m_extrasTab), !text && !plugin);
     m_commentsOption->setVisible(word);
     m_noCommentsNote->setVisible(!word);

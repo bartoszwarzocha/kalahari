@@ -91,12 +91,18 @@ public:
     /// @brief Shows the Search panel in front
     using PanelShower = std::function<void()>;
 
-    /// @brief Says something under the text of a tab, with a button
-    ///        (DocumentCoordinator::showNotice())
+    /// @brief A button of a notice: its text with a mnemonic, its tooltip and what it does
+    struct NoticeButton {
+        QString text;
+        QString toolTip;
+        std::function<void()> action;
+    };
+
+    /// @brief Says something under the text of a tab, with two buttons; without a tab under
+    ///        any tab (DocumentCoordinator::showNotice())
     using NoticeShower = std::function<void(EditorPanel* editor, const QString& message,
-                                            const QString& actionText,
-                                            const QString& actionToolTip,
-                                            std::function<void()> action)>;
+                                            const NoticeButton& first,
+                                            const NoticeButton& second)>;
 
     /// @brief Answers whether to replace @p matches matches in @p texts texts (the window asks)
     using Confirmer = std::function<bool(int matches, int texts)>;
@@ -233,6 +239,11 @@ signals:
     /// @brief The search went through all the texts (the panel shows what it found)
     void searchFinished();
 
+    /// @brief Replace All in Book, or its Undo or Redo, changed the text of @p elementId, not
+    ///        open: the book keeps it without saving it (ProjectManager::hasUnsavedText()), or
+    ///        it is its file again
+    void unsavedTextChanged(const QString& elementId);
+
 private:
     /// @brief What is searched for
     struct Query {
@@ -259,11 +270,10 @@ private:
         QString title;
     };
 
-    /// @brief A text it changed, kept so that it can be undone
+    /// @brief A text not open it changed, kept so that it can be undone
     struct SavedText {
         QString elementId;
-        QString kml;         ///< Its text before
-        bool saved = false;  ///< Its file was saved with the change
+        QString kml;  ///< Its text before
     };
 
     /// @brief The last Replace All in Book, to undo or to do again
@@ -285,6 +295,13 @@ private:
     ///        get their text back; the step back is kept
     /// @param forward Redo; false: undo
     void take(const Step& step, bool forward);
+
+    /// @brief The text of @p elementId, not open, is @p kml: kept by the book without saving
+    ///        it, or forgotten when it is the text of its file (unsavedTextChanged())
+    void keepText(const QString& elementId, const QString& kml);
+
+    /// @brief File > Save All, from the bar after Replace All in Book
+    void saveAll();
 
     /// @brief Follow the texts of a step: a change of one it changed makes it final, an open
     ///        text changed is not one whose Undo takes it any more

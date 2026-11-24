@@ -29,7 +29,7 @@ using namespace kalahari::core;
 
 // Note: ThemeConfig::DEFAULT_LIGHT and DEFAULT_DARK removed.
 // Icon colors are now synchronized from ThemeManager at runtime.
-// Fallback values (#333333/#999999) match ThemeManager Light defaults
+// Fallback values (#8f8f8f/#ebebeb) match ThemeManager Light defaults
 // and are used only in loadFromSettings() when settings file is missing or corrupted.
 
 const IconSizeConfig IconSizeConfig::DEFAULT_SIZES = {
@@ -479,8 +479,8 @@ void IconRegistry::setThemeColors(const QColor& primary, const QColor& secondary
 void IconRegistry::resetTheme() {
     // Reset to default fallback colors (Light theme)
     // Note: Actual theme colors will be provided by ThemeManager via onThemeChanged signal
-    m_theme.primaryColor = QColor("#333333");   // Match ThemeManager Light default
-    m_theme.secondaryColor = QColor("#999999"); // Match ThemeManager Light default
+    m_theme.primaryColor = QColor("#8f8f8f");   // Match ThemeManager Light default
+    m_theme.secondaryColor = QColor("#ebebeb"); // Match ThemeManager Light default
     m_theme.name = "Light";
 
     Logger::getInstance().info("IconRegistry: Theme reset to default Light (will be updated by ThemeManager)");

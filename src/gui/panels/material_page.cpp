@@ -669,7 +669,9 @@ void MaterialPage::showSource(const core::ProjectElement& element) {
     m_previewButton->setToolTip(m_picture           ? tr("Open the Preview")
                                 : problem.isEmpty() ? onlyPictures
                                                     : problem);
-    m_systemButton->setVisible(fromFile);
+    // A text of the book, like a clipping, is a file of the program: no system program opens it
+    const bool bookText = pm.formOf(element) == core::ElementForm::Text;
+    m_systemButton->setVisible(fromFile && !bookText);
     m_systemButton->setEnabled(file.exists);
     m_browserButton->setVisible(fromWeb);
     //: The tooltip of Open in Browser: %1 the address. In Polish: Otwórz %1 w przeglądarce

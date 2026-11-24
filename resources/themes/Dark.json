@@ -45,6 +45,8 @@
     "annotationComment": "#F2A93B",
     "annotationTodo": "#A08CFF",
     "annotationNote": "#4DA3F0",
+    "footnotesPanelFootnote": "#5A9BE0",
+    "footnotesPanelEndnote": "#F2A93B",
     "spelling": "#FF0000",
     "grammar": "#0064FF",
     "bookRule": "#A371F7",

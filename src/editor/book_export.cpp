@@ -9,6 +9,7 @@
 
 #include "kalahari/editor/detail/book_editor_internal.h"
 
+#include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_lists.h>
@@ -68,13 +69,25 @@ QString markdownImagesFolderName(const QString& baseName, const QString& imagesW
     return baseName + QStringLiteral(" – ") + imagesWord;
 }
 
+FieldContext exportFieldContext(const BookExport& book, const ExportItem& item) {
+    FieldContext context;
+    context.bookTitle = book.title;
+    context.author = book.author;
+    context.textTitle = item.title;
+    context.language = book.language;
+    context.customFields = book.customFields;
+    context.now = QDateTime::currentDateTime();
+    return context;
+}
+
 namespace exporting {
 
 // =============================================================================
 // A text of the export
 // =============================================================================
 
-ExportText::ExportText(const ExportItem& item) : m_document(std::make_unique<QTextDocument>()) {
+ExportText::ExportText(const ExportItem& item, const FieldContext& fields)
+    : m_document(std::make_unique<QTextDocument>()), m_fields(fields) {
     m_document->setUndoRedoEnabled(false);
     if (item.kind == ExportItemKind::Text && !item.kml.isEmpty()) {
         KmlDocumentModel model;
@@ -87,12 +100,39 @@ ExportText::ExportText(const ExportItem& item) : m_document(std::make_unique<QTe
     m_captions = CaptionNumbers(*m_document, item.captions);
     m_notes = FootnoteNumbers(*m_document, item.footnotes);
     m_listNumbers = listNumbers(*m_document);
+    m_listMarkers = listMarkers(*m_document);
     m_annotations = annotationsIn(*m_document);
+    // The words, for a field of the words (as the editor counts them, without the notes)
+    bool words = false;
+    for (QTextBlock block = m_document->begin(); block.isValid() && !words; block = block.next()) {
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd() && !words; ++it) {
+            const std::optional<TextField> field =
+                it.fragment().isValid() ? textFieldOf(it.fragment().charFormat()) : std::nullopt;
+            words = field && field->type == FieldType::Words;
+        }
+    }
+    if (words) {
+        m_words = core::countText(m_document->toPlainText(), core::WordCountRules{}).words;
+    }
+}
+
+QString ExportText::fieldText(const TextField& field) const {
+    if (isPageField(field.type)) {
+        return {};
+    }
+    FieldCounts counts;
+    counts.words = m_words;
+    return textFieldText(field, m_fields, counts);
 }
 
 int ExportText::listNumber(const QTextBlock& block) const {
     const auto index = static_cast<size_t>(block.blockNumber());
     return index < m_listNumbers.size() ? m_listNumbers[index] : -1;
+}
+
+QString ExportText::listMarker(const QTextBlock& block) const {
+    const auto index = static_cast<size_t>(block.blockNumber());
+    return index < m_listMarkers.size() ? m_listMarkers[index] : QString();
 }
 
 // =============================================================================
@@ -130,6 +170,13 @@ std::vector<Piece> piecesOf(const QTextBlock& block, const ExportText& text) {
                     piece.kind = Piece::Kind::Field;
                     piece.reference = reference;
                     piece.text = text.captions().fieldText(position, format).text;
+                } else if (const std::optional<TextField> field = textFieldOf(format)) {
+                    piece.text = text.fieldText(*field);
+                    if (piece.text.isEmpty()) {
+                        ++i;  // a page field: only a print has pages
+                        continue;
+                    }
+                    piece.kind = Piece::Kind::Field;
                 } else if (const std::optional<Footnote> note = footnoteOf(format)) {
                     piece.kind = Piece::Kind::Note;
                     piece.note = *note;

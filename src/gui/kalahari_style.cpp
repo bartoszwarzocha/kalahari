@@ -3,7 +3,7 @@
 
 /// @file kalahari_style.cpp
 /// @brief Implementation of KalahariStyle for dynamic icon sizing, grey menu items under the
-/// keys, tooltips and check boxes
+/// keys, tooltips, check boxes and checked buttons
 ///
 /// OpenSpec #00026: KalahariStyle reads icon sizes from ArtProvider (central visual resource manager)
 /// and forces style refresh when sizes change via resourcesChanged() signal.
@@ -11,10 +11,12 @@
 #include "kalahari/gui/kalahari_style.h"
 #include "kalahari/core/art_provider.h"
 #include <algorithm>
+#include <QAbstractButton>
 #include <QApplication>
 #include <QPainter>
 #include <QPainterPath>
 #include <QStyleOption>
+#include <QToolButton>
 #include <QWidget>
 
 namespace kalahari::gui {
@@ -24,12 +26,65 @@ namespace {
 /// How much of the highlight color a grey menu item under the keys gets, over the menu
 constexpr float GREY_ITEM_HIGHLIGHT = 0.3F;
 
+/// How much of the highlight color a checked button with an icon gets, over the button's
+constexpr float CHECKED_ICON_TINT = 0.3F;
+
+/// How much of the button's color a checked button under the mouse gets, over the highlight
+constexpr float CHECKED_HOVER_SHADE = 0.15F;
+
 /// @brief @p color mixed into @p base by @p amount (0: @p base, 1: @p color)
 QColor mixed(const QColor& base, const QColor& color, float amount)
 {
     const auto mix = [amount](float from, float to) { return from + (to - from) * amount; };
     return QColor::fromRgbF(mix(base.redF(), color.redF()), mix(base.greenF(), color.greenF()),
                             mix(base.blueF(), color.blueF()));
+}
+
+/// How a checked button shows that it is on
+enum class CheckedLook {
+    None,    ///< Not a checked button: as Fusion draws it
+    Filled,  ///< Text alone: in the highlight color, its text in the highlighted text's
+    Tinted,  ///< With an icon (in the color of the highlight): a tint of it, framed in it
+};
+
+/// @brief How the button @p widget drawn with @p option shows that it is checked
+///
+/// Fusion draws a checked button only a little darker than one that is not, which is hard to
+/// see (the days of writing, the buttons of a choice)
+CheckedLook checkedLook(const QStyleOption* option, const QWidget* widget)
+{
+    const auto* button = qobject_cast<const QAbstractButton*>(widget);
+    if (option == nullptr || (option->state & QStyle::State_On) == 0 || button == nullptr ||
+        !button->isCheckable()) {
+        return CheckedLook::None;
+    }
+    bool icon = !button->icon().isNull();
+    if (const auto* tool = qobject_cast<const QToolButton*>(button)) {
+        icon = icon && tool->toolButtonStyle() != Qt::ToolButtonTextOnly;
+    }
+    return icon ? CheckedLook::Tinted : CheckedLook::Filled;
+}
+
+/// @brief The panel of a checked button: filled with the highlight, or tinted and framed
+void drawCheckedPanel(CheckedLook look, const QStyleOption& option, QPainter& painter)
+{
+    const QPalette::ColorGroup group =
+        (option.state & QStyle::State_Enabled) ? QPalette::Active : QPalette::Disabled;
+    const QColor highlight = option.palette.color(group, QPalette::Highlight);
+    const QColor button = option.palette.color(group, QPalette::Button);
+    const bool hovered =
+        (option.state & QStyle::State_MouseOver) && (option.state & QStyle::State_Enabled);
+    QColor fill = look == CheckedLook::Filled ? highlight
+                                              : mixed(button, highlight, CHECKED_ICON_TINT);
+    if (hovered) {
+        fill = mixed(fill, button, CHECKED_HOVER_SHADE);
+    }
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setPen(QPen(highlight, 1.0));
+    painter.setBrush(fill);
+    painter.drawRoundedRect(QRectF(option.rect).adjusted(0.5, 0.5, -0.5, -0.5), 2.0, 2.0);
+    painter.restore();
 }
 
 } // namespace
@@ -111,6 +166,25 @@ void KalahariStyle::drawControl(ControlElement element,
                                 const QStyleOption* option,
                                 QPainter* painter,
                                 const QWidget* widget) const {
+    // The text of a checked button filled with the highlight: in the highlighted text's color
+    if ((element == CE_ToolButtonLabel || element == CE_PushButtonLabel) &&
+        checkedLook(option, widget) == CheckedLook::Filled) {
+        const QPalette::ColorGroup group =
+            (option->state & State_Enabled) ? QPalette::Active : QPalette::Disabled;
+        const QColor text = option->palette.color(group, QPalette::HighlightedText);
+        if (const auto* tool = qstyleoption_cast<const QStyleOptionToolButton*>(option)) {
+            QStyleOptionToolButton checked(*tool);
+            checked.palette.setColor(group, QPalette::ButtonText, text);
+            QProxyStyle::drawControl(element, &checked, painter, widget);
+            return;
+        }
+        if (const auto* push = qstyleoption_cast<const QStyleOptionButton*>(option)) {
+            QStyleOptionButton checked(*push);
+            checked.palette.setColor(group, QPalette::ButtonText, text);
+            QProxyStyle::drawControl(element, &checked, painter, widget);
+            return;
+        }
+    }
     const auto* item = qstyleoption_cast<const QStyleOptionMenuItem*>(option);
     const bool greyUnderKeys = element == CE_MenuItem && item != nullptr &&
                                item->menuItemType != QStyleOptionMenuItem::Separator &&
@@ -144,6 +218,13 @@ void KalahariStyle::drawPrimitive(PrimitiveElement element,
         painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
         painter->restore();
         return;
+    }
+    // A checked button: clearly on (Fusion's tool buttons are drawn as its push buttons)
+    if (element == PE_PanelButtonCommand || element == PE_PanelButtonTool) {
+        if (const CheckedLook look = checkedLook(option, widget); look != CheckedLook::None) {
+            drawCheckedPanel(look, *option, *painter);
+            return;
+        }
     }
     if (element != PE_IndicatorCheckBox || option == nullptr) {
         QProxyStyle::drawPrimitive(element, option, painter, widget);

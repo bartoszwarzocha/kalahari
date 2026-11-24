@@ -54,6 +54,7 @@ namespace gui {
 
 class ColorConfigWidget;
 class FolderField;
+struct ListSet;
 class PaletteEdit;
 struct ReplacementEntry;
 
@@ -309,6 +310,14 @@ private:
     QPushButton* m_removeLabel = nullptr;
 };
 
+/// @brief Editor > Tables: the room new tables keep from the text above and below them, and
+///        where Insert Caption puts the caption of a table
+class EditorTablesPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorTablesPage(QWidget* parent = nullptr);
+};
+
 /// @brief Editor > Auto-correct: what is changed in the text as it is typed, on three tabs
 ///
 /// While Typing has the replacements of the characters and the text elements typed,
@@ -451,6 +460,57 @@ public:
 
 private:
     CommandRegistry& m_commands;  ///< The commands of its window
+};
+
+/// @brief Editor > Lists: the sets of list formats that F12 and Shift+F12 give, and the
+/// writer's sets of the program (for every book), with their names, export and import
+///
+/// The writer's sets of the book are kept in the book; the tab Sets of Format > Bullets and
+/// Numbering... has them.
+class EditorListsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    /// @param book The book of its window: its own sets can be the defaults too
+    /// @param commands The commands of its window: the page names the keys of Numbering and
+    ///        Bullets
+    EditorListsPage(const core::ProjectManager& book, CommandRegistry& commands, QWidget* parent = nullptr);
+
+    /// @brief The list of the program's sets of the writer, as the page has it now
+    [[nodiscard]] QListWidget* programSets() const { return m_list; }
+
+    /// @brief Rename...: a new name of the set chosen in the list
+    void renameChosen();
+
+    /// @brief Delete: take the set chosen in the list out (Apply and OK keep it so)
+    void deleteChosen();
+
+    /// @brief Export...: write the program's sets to a file
+    /// @param path The file; empty: ask for it
+    bool exportSets(const QString& path = QString());
+
+    /// @brief Import...: add the sets of a file to the program's
+    /// @param path The file; empty: ask for it
+    /// @return How many sets came in; -1: the file is not one of exported sets
+    int importSets(const QString& path = QString());
+
+private:
+    /// @brief The sets of the list, as the page has them now
+    [[nodiscard]] QList<ListSet> shownSets() const;
+
+    /// @brief Show these program's sets in the list, and the defaults with them
+    void showSets(const QList<ListSet>& sets);
+
+    /// @brief The choices of the default sets: those of their kind, as the page has them now
+    void fillDefaults();
+
+    const core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;         ///< The commands of its window
+    QComboBox* m_numbered = nullptr;
+    QComboBox* m_bulleted = nullptr;
+    QListWidget* m_list = nullptr;
+    QPushButton* m_rename = nullptr;
+    QPushButton* m_delete = nullptr;
+    QPushButton* m_export = nullptr;
 };
 
 /// @brief Editor > Clippings: what Cut to Clippings and Insert > Clipping from the Workshop do,

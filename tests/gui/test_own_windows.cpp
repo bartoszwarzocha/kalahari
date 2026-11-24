@@ -17,16 +17,23 @@
 #include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/build_info.h"
 #include "kalahari/version.h"
 
 #include "kalahari_tests/gui/document_window.h"
 
 #include <QApplication>
+#include <QBoxLayout>
+#include <QClipboard>
+#include <QDateTime>
 #include <QDirIterator>
 #include <QFile>
 #include <QFrame>
+#include <QGroupBox>
+#include <QGuiApplication>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QLocale>
 #include <QMainWindow>
 #include <QPushButton>
 #include <QRegularExpression>
@@ -263,6 +270,83 @@ TEST_CASE("Own windows: About has the heading of the program's dialogs and only 
     QApplication::processEvents();
     QKeyEvent escape(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
     QApplication::sendEvent(&dialog, &escape);
+    CHECK_FALSE(dialog.isVisible());
+}
+
+TEST_CASE("Own windows: About shows what the program was built from, and copies it",
+          "[gui][dialogs]") {
+    namespace build = kalahari::build;
+
+    // The build knows when and how it was built; the commit and its branch where there is git
+    const QDateTime built = QDateTime::fromString(QString::fromLatin1(build::builtAt()),
+                                                  Qt::ISODate);
+    REQUIRE(built.isValid());
+    CHECK(built.timeSpec() == Qt::UTC);
+    CHECK(built <= QDateTime::currentDateTimeUtc());
+    const QString configuration = QString::fromLatin1(build::configuration());
+    CHECK_FALSE(configuration.isEmpty());
+
+    AboutDialog dialog;
+    REQUIRE(dialog.tabs() != nullptr);
+    CHECK(dialog.tabs()->currentIndex() == 0);  // the About tab, with the build at its end
+    CHECK(showsText(dialog, configuration));
+    CHECK(showsText(dialog, QLocale().toString(built.toLocalTime(), QLocale::ShortFormat)));
+    const QString commit = QString::fromLatin1(build::commit());
+    if (!commit.isEmpty()) {
+        CHECK(showsText(dialog, commit));
+        CHECK(showsText(dialog, build::modified()
+                                    ? QStringLiteral("%1 (with changes not committed)").arg(commit)
+                                    : commit));
+    }
+    const QString branch = QString::fromUtf8(build::branch());
+    if (!branch.isEmpty()) {
+        CHECK(showsText(dialog, branch));
+    }
+
+    // The build after the information about the program, not before it (test of 23.11)
+    const auto* group = dialog.findChild<QGroupBox*>(QStringLiteral("aboutBuildGroup"));
+    REQUIRE(group != nullptr);
+    const auto* tabLayout = qobject_cast<QBoxLayout*>(group->parentWidget()->layout());
+    REQUIRE(tabLayout != nullptr);
+    int lastLabel = -1;
+    for (int i = 0; i < tabLayout->count(); ++i) {
+        if (qobject_cast<QLabel*>(tabLayout->itemAt(i)->widget()) != nullptr &&
+            !static_cast<QLabel*>(tabLayout->itemAt(i)->widget())->text().startsWith(
+                QStringLiteral("Copyright"))) {
+            lastLabel = i;
+        }
+    }
+    CHECK(lastLabel >= 0);
+    CHECK(tabLayout->indexOf(group) > lastLabel);
+
+    // The text to copy: a line for each, the same as the dialog shows
+    const QStringList lines = AboutDialog::buildInformation().split(QLatin1Char('\n'));
+    REQUIRE(lines.size() == 9);
+    CHECK(lines.at(0) == QStringLiteral("Kalahari Writer's IDE"));
+    CHECK(lines.at(1) == QStringLiteral("Version: %1").arg(QString::fromLatin1(
+                                                                kalahari::VERSION_STRING)));
+    CHECK(lines.at(2).startsWith(QStringLiteral("Commit: %1").arg(commit.isEmpty()
+                                                                      ? QStringLiteral("–")
+                                                                      : commit)));
+    CHECK(lines.at(5) == QStringLiteral("Configuration: %1").arg(configuration));
+
+    // Copy Build Information: on the clipboard, and the dialog says so
+    REQUIRE(dialog.copyButton() != nullptr);
+    CHECK(dialog.copyButton()->text() == QStringLiteral("&Copy Build Information"));
+    QGuiApplication::clipboard()->clear();
+    dialog.copyButton()->click();
+    CHECK(QGuiApplication::clipboard()->text() == AboutDialog::buildInformation());
+    CHECK(showsText(dialog, QStringLiteral("Copied to the clipboard.")));
+
+    // Opened, Enter still presses Close. The field of the dialog that has the keys, also
+    // where the system does not make the dialog the active window (macOS on CI)
+    dialog.show();
+    QApplication::processEvents();
+    QWidget* focused = dialog.focusWidget();
+    REQUIRE(focused != nullptr);
+    CHECK(focused != dialog.copyButton());
+    QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+    QApplication::sendEvent(focused, &enter);
     CHECK_FALSE(dialog.isVisible());
 }
 

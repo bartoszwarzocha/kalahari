@@ -972,6 +972,55 @@ BookFootnotes readFootnotes(const QJsonValue& value, const QString& field,
     return footnotes;
 }
 
+/// The writer's own fields (BookCustomField) of @p field, each id once in @p ids
+QList<BookCustomField> readCustomFields(const QJsonArray& array, const QString& field,
+                                        QHash<QString, QString>& ids, QStringList& problems) {
+    QList<BookCustomField> result;
+    for (qsizetype i = 0; i < array.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(field).arg(i);
+        if (!array.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object with an id and a name"));
+            continue;
+        }
+        Fields entry(array.at(i).toObject(), path, problems);
+        BookCustomField each;
+        each.id = entry.string("id", true);
+        if (const QString first = ids.value(each.id); !each.id.isEmpty() && !first.isEmpty()) {
+            entry.problem("id", QStringLiteral("'%1' is already the id of %2").arg(each.id, first));
+        } else if (!each.id.isEmpty()) {
+            ids.insert(each.id, path);
+        }
+        each.name = entry.string("name", true);
+        each.value = entry.string("value");
+        each.description = entry.string("description");
+        each.extra = entry.rest();
+        result << each;
+    }
+    return result;
+}
+
+/// The values a book gives the fields of its series, by their ids
+QMap<QString, QString> readSeriesFieldValues(Fields& fields) {
+    QMap<QString, QString> values;
+    const QJsonValue json = fields.take("seriesFieldValues");
+    if (json.isUndefined()) {
+        return values;
+    }
+    if (!json.isObject()) {
+        fields.problem("seriesFieldValues", QStringLiteral("must be an object of texts"));
+        return values;
+    }
+    const QJsonObject object = json.toObject();
+    for (auto it = object.begin(); it != object.end(); ++it) {
+        if (!it.value().isString()) {
+            fields.problem("seriesFieldValues", QStringLiteral("must be an object of texts"));
+            continue;
+        }
+        values.insert(it.key(), it.value().toString());
+    }
+    return values;
+}
+
 /// The set for publishers of a book, its field "publishingSet"; nullopt without it
 std::optional<PublishingSet> readPublishingSet(Fields& fields, QStringList& problems) {
     const QJsonValue set = fields.take("publishingSet");
@@ -1047,6 +1096,10 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
     book.publishingSet = readPublishingSet(fields, problems);
     book.isbn = fields.string("isbn");
     book.publisher = fields.string("publisher");
+    QHash<QString, QString> fieldIds;
+    book.customFields = readCustomFields(fields.array("customFields"), fields.path("customFields"),
+                                         fieldIds, problems);
+    book.seriesFieldValues = readSeriesFieldValues(fields);
     book.extra = fields.rest();
     return book;
 }
@@ -1553,6 +1606,20 @@ QJsonObject footnotesToJson(const BookFootnotes& footnotes) {
     return json;
 }
 
+/// The writer's own fields as the .klh file has them
+QJsonArray customFieldsToJson(const QList<BookCustomField>& fields) {
+    QJsonArray array;
+    for (const BookCustomField& field : fields) {
+        QJsonObject json = field.extra;
+        json.insert(QLatin1String("id"), field.id);
+        json.insert(QLatin1String("name"), field.name);
+        setOrRemove(json, "value", field.value);
+        setOrRemove(json, "description", field.description);
+        array.append(json);
+    }
+    return array;
+}
+
 QJsonObject bookToJson(const ProjectBook& book) {
     QJsonObject json = book.extra;
     json.insert(QLatin1String("id"), book.id);
@@ -1607,7 +1674,47 @@ QJsonObject bookToJson(const ProjectBook& book) {
     }
     setOrRemove(json, "isbn", book.isbn);
     setOrRemove(json, "publisher", book.publisher);
+    if (book.customFields.isEmpty()) {
+        json.remove(QLatin1String("customFields"));
+    } else {
+        json.insert(QLatin1String("customFields"), customFieldsToJson(book.customFields));
+    }
+    if (book.seriesFieldValues.isEmpty()) {
+        json.remove(QLatin1String("seriesFieldValues"));
+    } else {
+        QJsonObject values;
+        for (auto it = book.seriesFieldValues.cbegin(); it != book.seriesFieldValues.cend(); ++it) {
+            values.insert(it.key(), it.value());
+        }
+        json.insert(QLatin1String("seriesFieldValues"), values);
+    }
     return json;
+}
+
+/// The writer's own sets of list formats (BookListSet), each id once
+QList<BookListSet> readListSets(const QJsonArray& array, QStringList& problems) {
+    QList<BookListSet> sets;
+    QHash<QString, QString> ids;
+    for (qsizetype i = 0; i < array.size(); ++i) {
+        const QString path = QStringLiteral("listSets[%1]").arg(i);
+        if (!array.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object"));
+            continue;
+        }
+        Fields entry(array.at(i).toObject(), path, problems);
+        BookListSet set;
+        set.id = entry.string("id", true);
+        if (const QString first = ids.value(set.id); !set.id.isEmpty() && !first.isEmpty()) {
+            entry.problem("id", QStringLiteral("'%1' is already the id of %2").arg(set.id, first));
+        } else if (!set.id.isEmpty()) {
+            ids.insert(set.id, path);
+        }
+        set.name = entry.string("name");
+        set.definition = entry.string("definition");
+        set.extra = entry.rest();
+        sets << set;
+    }
+    return sets;
 }
 
 /// The paragraph styles of the project (BookParagraphStyle), each id once
@@ -2498,6 +2605,24 @@ QJsonObject BookProject::toJson() const {
         }
         json.insert(QLatin1String("paragraphStyles"), styleList);
     }
+    if (listSets.isEmpty()) {
+        json.remove(QLatin1String("listSets"));
+    } else {
+        QJsonArray setList;
+        for (const BookListSet& set : listSets) {
+            QJsonObject entry = set.extra;
+            entry.insert(QLatin1String("id"), set.id);
+            entry.insert(QLatin1String("name"), set.name);
+            entry.insert(QLatin1String("definition"), set.definition);
+            setList.append(entry);
+        }
+        json.insert(QLatin1String("listSets"), setList);
+    }
+    if (seriesFields.isEmpty()) {
+        json.remove(QLatin1String("seriesFields"));
+    } else {
+        json.insert(QLatin1String("seriesFields"), customFieldsToJson(seriesFields));
+    }
     return json;
 }
 
@@ -2604,6 +2729,10 @@ std::optional<BookProject> BookProject::fromJson(const QJsonObject& json,
     project.series = fields.string("series");
     project.workshop = readWorkshop(fields.take("workshop"), seen, problems);
     project.paragraphStyles = readParagraphStyles(fields.array("paragraphStyles"), problems);
+    project.listSets = readListSets(fields.array("listSets"), problems);
+    QHash<QString, QString> seriesFieldIds;
+    project.seriesFields = readCustomFields(fields.array("seriesFields"), QStringLiteral("seriesFields"),
+                                            seriesFieldIds, problems);
     project.extra = fields.rest();
 
     if (problems.size() > problemsBefore) {

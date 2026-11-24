@@ -259,6 +259,19 @@ void EditorRenderPipeline::computePageLayout() {
     const double pointsToPixels = m_context.screenDpi / POINTS_PER_INCH;
     computed.pageWidthPixels = m_context.pageMode.pageSize.width() * pointsToPixels;
     computed.pageHeightPixels = m_context.pageMode.pageSize.height() * pointsToPixels;
+    // A text field: the page takes the view beside the scroll bar, in document units (the
+    // view scale zooms it), less the gap around it. Not before the view has a size.
+    const bool fillsView = m_context.pageMode.fillsView && !m_context.viewportSize.isEmpty();
+    if (fillsView) {
+        const double scale = computed.viewScale > 0.0 ? computed.viewScale : 1.0;
+        const double gap = std::max(0.0, m_context.pageMode.pageSpacing);
+        const double width =
+            std::max(0.0, m_context.viewportSize.width() - m_context.scrollBarWidth);
+        const double height =
+            std::max(0.0, m_context.viewportSize.height() - m_context.topBarHeight);
+        computed.pageWidthPixels = std::max(1.0, width / scale - 2.0 * gap);
+        computed.pageHeightPixels = std::max(1.0, height / scale - 2.0 * gap);
+    }
 
     // Margins taking more than the page leaves for text are scaled down together
     const auto fit = [](double first, double second, double extent) {
@@ -279,7 +292,10 @@ void EditorRenderPipeline::computePageLayout() {
     // Whole pixels, as the layout places the lines (on the pixel grid): the sheets follow
     // the same pitch, or the text drifts off them page by page (A4 is 1122.52 px high at
     // 96 dpi)
-    computed.textAreaHeight = std::max(1.0, std::round(computed.pageHeightPixels - top - bottom));
+    // A text field's text area is rounded down: a short text leaves nothing to scroll
+    const double textArea = computed.pageHeightPixels - top - bottom;
+    computed.textAreaHeight =
+        std::max(1.0, fillsView ? std::floor(textArea) : std::round(textArea));
     computed.pagePitch = std::max(
         computed.textAreaHeight,
         std::round(computed.pageHeightPixels + std::max(0.0, m_context.pageMode.pageSpacing)));
@@ -421,8 +437,13 @@ void EditorRenderPipeline::setConfigZoom(double factor) {
 
     m_context.zoomFactor = factor;
 
-    // Only the painter scale changes: the text keeps its font, width and line breaks
+    // Only the painter scale changes: the text keeps its font, width and line breaks (a
+    // text field's text takes the field's width again)
     computeDpiScaling();  // Recalculates totalScale, viewScale
+    if (m_context.pageMode.fillsView) {
+        recomputePage();
+        return;
+    }
     computeViewGeometry();
     markAllDirty();
 }
@@ -433,6 +454,10 @@ void EditorRenderPipeline::setConfigPaperScale(double scale) {
 
     m_context.paperScale = scale;
     computeDpiScaling();  // The page view's scale
+    if (m_context.pageMode.fillsView) {
+        recomputePage();
+        return;
+    }
     computeViewGeometry();
     markAllDirty();
 }
@@ -453,8 +478,12 @@ void EditorRenderPipeline::setConfigViewportSize(const QSizeF& size) {
     m_context.viewportSize = size;
 
     // The text keeps the page's width in every view: only the page's place in the view
-    // changes
-    computeViewGeometry();
+    // changes. A text field's text takes the field's new size.
+    if (m_context.pageMode.fillsView) {
+        recomputePage();
+    } else {
+        computeViewGeometry();
+    }
 
     updateVisibleRange();
     markAllDirty();
@@ -470,7 +499,17 @@ void EditorRenderPipeline::setConfigPageLayout(const QSizeF& pageSize, const QMa
     page.marginsMm = marginsMm;
     page.pageSpacing = pageGap;
     page.mirrorMargins = mirrorMargins;  // the text of every page is as wide: no relayout
+    recomputePage();
+}
 
+void EditorRenderPipeline::setConfigFillsView(bool fills) {
+    if (m_context.pageMode.fillsView == fills) return;
+
+    m_context.pageMode.fillsView = fills;
+    recomputePage();
+}
+
+void EditorRenderPipeline::recomputePage() {
     computePageLayout();
     computeMargins();
     computeTextWidth();
@@ -566,6 +605,10 @@ void EditorRenderPipeline::setConfigScrollBarWidth(double width) {
     if (std::abs(m_context.scrollBarWidth - width) < 0.01) return;
 
     m_context.scrollBarWidth = width;
+    if (m_context.pageMode.fillsView) {
+        recomputePage();
+        return;
+    }
     computeViewGeometry();
     markAllDirty();
 }
@@ -575,6 +618,10 @@ void EditorRenderPipeline::setConfigTopBarHeight(double height) {
     if (std::abs(m_context.topBarHeight - height) < 0.01) return;
 
     m_context.topBarHeight = height;
+    if (m_context.pageMode.fillsView) {
+        recomputePage();
+        return;
+    }
     computeViewGeometry();
     markAllDirty();
 }
@@ -1120,7 +1167,10 @@ void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
     if (m_context.viewMode == ViewMode::Page) {
         renderPages(painter, clipRect);
     } else {
-        renderEndlessPage(painter, clipRect);
+        // A text field is all paper (renderBackground()): no sheet on a desk
+        if (!m_context.pageMode.fillsView) {
+            renderEndlessPage(painter, clipRect);
+        }
         renderTextFrameBorder(painter, clipRect);
     }
     renderText(painter, clipRect);
@@ -1186,6 +1236,11 @@ void EditorRenderPipeline::clearDirtyRegion() {
 // =============================================================================
 
 void EditorRenderPipeline::renderBackground(QPainter* painter, const QRect& clipRect) {
+    // A text field outside the page view: the paper, up to the edges of the view
+    if (m_context.pageMode.fillsView && m_context.viewMode != ViewMode::Page) {
+        painter->fillRect(clipRect, m_context.colors.background);
+        return;
+    }
     // The desk around the page: the theme's color, otherwise a shade of the paper, darker for
     // light paper and lighter for dark paper, so the sheets stand out in both color modes
     if (m_context.colors.desk.isValid()) {

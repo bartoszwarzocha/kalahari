@@ -106,6 +106,8 @@ void MaterialListPanel::createSetPage() {
     connect(m_set, &PublishingSetView::menuRequested, this, &MaterialListPanel::showSetMenu);
     connect(&m_book, &core::ProjectManager::publishingSetChanged, this,
             &MaterialListPanel::updateSet);
+    // The length of a text as written in its editor
+    connect(&m_book, &core::ProjectManager::publishingTextChanged, this, &MaterialListPanel::updateSet);
     // Another volume of a series: its set, its cover
     connect(&m_book, &core::ProjectManager::currentBookChanged, this,
             &MaterialListPanel::updatePlan);

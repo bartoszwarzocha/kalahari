@@ -193,6 +193,11 @@ public:
     void setConfigPageLayout(const QSizeF& pageSize, const QMarginsF& marginsMm, double pageGap,
                              bool mirrorMargins = false);
 
+    /// @brief Make the page a text field, or a page again (PageModeConfig::fillsView;
+    ///        recalculates: pageLayout, textWidth, and again whenever the view, the zoom or
+    ///        the paper scale changes)
+    void setConfigFillsView(bool fills);
+
     /// @brief Show or hide the page numbers (repaint only)
     void setConfigShowPageNumbers(bool show);
 
@@ -822,6 +827,10 @@ private:
     /// @brief Calculate the view mapping: origin, page position, scroll padding; also
     ///        handed to the viewport manager (view scale and top inset)
     void computeViewGeometry();
+
+    /// @brief Calculate the page and the view mapping anew and give the text its width and
+    ///        page flow: the page's size or margins changed
+    void recomputePage();
 };
 
 }  // namespace kalahari::editor

@@ -28,12 +28,19 @@ StandaloneInfoBar::StandaloneInfoBar(QWidget* parent)
             emit addToProjectClicked();
         }
     });
+    // Only a notice has a second button
+    connect(this, &InfoBar::secondActionClicked, this, [this]() {
+        if (m_notice) {
+            emit noticeSecondActionClicked();
+        }
+    });
 }
 
 void StandaloneInfoBar::setFilePath(const QString& path) {
     m_filePath = path;
     m_readOnlyBook = false;
     m_notice = false;
+    setSecondActionText(QString());
     updateAction();
 }
 
@@ -78,6 +85,7 @@ void StandaloneInfoBar::showReadOnlyBook(const QString& message) {
     m_filePath.clear();
     m_readOnlyBook = true;
     m_notice = false;
+    setSecondActionText(QString());
     setMessage(message);
     //: The button of the message at the bottom of the window over a book open read-only, as
     //: File > Export > Project Archive... In Polish: Eksportuj archiwum projektu...
@@ -90,7 +98,8 @@ void StandaloneInfoBar::showReadOnlyBook(const QString& message) {
 }
 
 void StandaloneInfoBar::showNotice(const QString& message, const QString& actionText,
-                                   const QString& actionToolTip) {
+                                   const QString& actionToolTip, const QString& secondText,
+                                   const QString& secondToolTip) {
     m_filePath.clear();
     m_readOnlyBook = false;
     m_notice = true;
@@ -98,6 +107,8 @@ void StandaloneInfoBar::showNotice(const QString& message, const QString& action
     setActionText(actionText);
     setActionEnabled(true);
     setActionToolTip(actionToolTip);
+    setSecondActionText(secondText);
+    setSecondActionToolTip(secondToolTip);
 }
 
 } // namespace kalahari::gui

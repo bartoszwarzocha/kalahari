@@ -3173,6 +3173,99 @@ bool ProjectManager::setParagraphStyles(const QList<BookParagraphStyle>& styles)
     return true;
 }
 
+QList<BookListSet> ProjectManager::listSets() const {
+    return m_project ? m_project->listSets : QList<BookListSet>{};
+}
+
+bool ProjectManager::setListSets(const QList<BookListSet>& sets) {
+    if (!m_project) {
+        Logger::getInstance().warn("setListSets: No project is open");
+        return false;
+    }
+    if (m_project->listSets == sets) {
+        return true;
+    }
+    if (refusesChange("setListSets")) {
+        return false;
+    }
+    const QList<BookListSet> previous = m_project->listSets;
+    m_project->listSets = sets;
+    if (!saveManifest()) {
+        m_project->listSets = previous;
+        return false;
+    }
+    emit listSetsChanged();
+    return true;
+}
+
+QList<BookCustomField> ProjectManager::bookCustomFields(const QString& bookId) const {
+    if (!m_project) {
+        return {};
+    }
+    if (bookId.isEmpty()) {
+        const ProjectBook* current = book();
+        return current != nullptr ? current->customFields : QList<BookCustomField>{};
+    }
+    const qsizetype index = m_project->bookIndex(bookId);
+    return index >= 0 ? m_project->books.at(index).customFields : QList<BookCustomField>{};
+}
+
+QList<BookCustomField> ProjectManager::seriesCustomFields() const {
+    return m_project ? m_project->seriesFields : QList<BookCustomField>{};
+}
+
+QMap<QString, QString> ProjectManager::seriesFieldValues(const QString& bookId) const {
+    if (!m_project) {
+        return {};
+    }
+    if (bookId.isEmpty()) {
+        const ProjectBook* current = book();
+        return current != nullptr ? current->seriesFieldValues : QMap<QString, QString>{};
+    }
+    const qsizetype index = m_project->bookIndex(bookId);
+    return index >= 0 ? m_project->books.at(index).seriesFieldValues : QMap<QString, QString>{};
+}
+
+bool ProjectManager::setCustomFields(const QList<BookCustomField>& bookFields,
+                                     const QList<BookCustomField>& seriesFields,
+                                     const QMap<QString, QString>& seriesValues,
+                                     const QString& bookId) {
+    ProjectBook* target = book();
+    if (target == nullptr) {
+        Logger::getInstance().warn("setCustomFields: No project is open");
+        return false;
+    }
+    if (!bookId.isEmpty()) {
+        const qsizetype index = m_project->bookIndex(bookId);
+        if (index < 0) {
+            Logger::getInstance().warn("setCustomFields: No book {}", bookId.toStdString());
+            return false;
+        }
+        target = &m_project->books[index];
+    }
+    if (target->customFields == bookFields && m_project->seriesFields == seriesFields &&
+        target->seriesFieldValues == seriesValues) {
+        return true;
+    }
+    if (refusesChange("setCustomFields")) {
+        return false;
+    }
+    const QList<BookCustomField> previousBook = target->customFields;
+    const QList<BookCustomField> previousSeries = m_project->seriesFields;
+    const QMap<QString, QString> previousValues = target->seriesFieldValues;
+    target->customFields = bookFields;
+    m_project->seriesFields = seriesFields;
+    target->seriesFieldValues = seriesValues;
+    if (!saveManifest()) {
+        target->customFields = previousBook;
+        m_project->seriesFields = previousSeries;
+        target->seriesFieldValues = previousValues;
+        return false;
+    }
+    emit customFieldsChanged();
+    return true;
+}
+
 bool ProjectManager::setSource(const QString& elementId, const SourceDescription& source) {
     const ProjectElement* element = findElement(elementId);
     const bool changed = element != nullptr && element->source != source;
@@ -3524,6 +3617,7 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
     state.words = chapter->wordTally();
     state.scenes = scenesWith(state.content, state.words);
     state.editorWords.reset();
+    state.editorText.reset();
     state.notes = chapter->notes();
     logger.debug("Loaded .kchapter for element: {} ({} chars)", elementId.toStdString(),
                  state.content.length());
@@ -3563,8 +3657,21 @@ QString ProjectManager::chapterText(const QString& elementId) const {
         state != m_elementStates.cend() && state->loaded) {
         return state->content;
     }
+    return savedChapterText(elementId);
+}
+
+QString ProjectManager::savedChapterText(const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    if (!element || element->file.isEmpty() || formOf(*element) != ElementForm::Text) {
+        return QString();
+    }
     const std::optional<ChapterDocument> chapter = ChapterDocument::load(filePathOf(*element));
     return chapter ? chapter->kml() : QString();
+}
+
+bool ProjectManager::hasUnsavedText(const QString& elementId) const {
+    const auto state = m_elementStates.constFind(elementId);
+    return state != m_elementStates.cend() && state->loaded && state->dirty;
 }
 
 void ProjectManager::discardChapterContent(const QString& elementId) {
@@ -3573,6 +3680,11 @@ void ProjectManager::discardChapterContent(const QString& elementId) {
         state->loaded = false;
         state->dirty = false;
         state->editorWords.reset();  // the file counts the words again
+        state->waitingPoints.reset();  // the points ticked off are those of the file again
+        if (state->editorText) {
+            state->editorText.reset();  // the set has the text of the file again
+            emit publishingTextChanged(elementId);
+        }
     }
 }
 
@@ -3585,19 +3697,19 @@ bool ProjectManager::saveChapterContent(const QString& elementId) {
     }
 
     const ElementState state = m_elementStates.value(elementId);
-    if (!state.loaded || !state.dirty) {
-        return true;  // Nothing to save
-    }
-    if (!writeChapterFile(*element, state.content)) {
-        return false;
-    }
-    m_elementStates[elementId].dirty = false;
-    followLinkedParagraphs(elementId);
+    if (state.loaded && state.dirty) {
+        if (!writeChapterFile(*element, state.content)) {
+            return false;
+        }
+        m_elementStates[elementId].dirty = false;
+        followLinkedParagraphs(elementId);
 
-    Logger::getInstance().debug("Saved .kchapter for element: {} ({} words)",
-                                elementId.toStdString(), wordCount(elementId));
-    keepVersionOnSave(elementId, state.content);
-    return true;
+        Logger::getInstance().debug("Saved .kchapter for element: {} ({} words)",
+                                    elementId.toStdString(), wordCount(elementId));
+        keepVersionOnSave(elementId, state.content);
+    }
+    // The points of its template ticked off while the text was not saved go with it
+    return saveWaitingPoints(elementId);
 }
 
 void ProjectManager::followLinkedParagraphs(const QString& elementId) {
@@ -3829,7 +3941,8 @@ std::vector<QString> ProjectManager::getDirtyElements() const {
         return dirtyIds;
     }
     for (const ProjectElement* element : allElements(*m_project)) {
-        if (m_elementStates.value(element->id).dirty) {
+        const auto state = m_elementStates.constFind(element->id);
+        if (state != m_elementStates.cend() && (state->dirty || state->waitingPoints)) {
             dirtyIds.push_back(element->id);
         }
     }
@@ -4061,6 +4174,7 @@ bool ProjectManager::writeChapterFile(const ProjectElement& element,
     state.scenes = scenesWith(kml ? *kml : chapter.kml(), state.words);
     if (kml) {
         state.editorWords.reset();  // the file has the text of the editor now
+        state.editorText.reset();
     }
     return true;
 }

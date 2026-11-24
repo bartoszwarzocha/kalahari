@@ -619,8 +619,6 @@ void PlanChronologyView::editCard(int index) {
         return;
     }
     const QString id = eventIdOf(item);
-    //: What Undo undoes in the chronology, after "Undone:"; %1 the title of the event. In
-    //: Polish: zmiana wydarzenia „%1”
     changePlan(
         [&id, &changed](Timeline& plan, QList<PlanPeriod>& /*periods*/) {
             const TimelineEvent* found = plan.event(id);
@@ -637,6 +635,8 @@ void PlanChronologyView::editCard(int index) {
             plan.setTimeOf(event, changed.time);
             plan.setEvent(event);
         },
+        //: What Undo undoes in the chronology, after "Undone:"; %1 the title of the event. In
+        //: Polish: zmiana wydarzenia „%1”
         tr("change of the event “%1”").arg(item.title),
         //: Under the chronology. In Polish: Zmieniono wydarzenie „%1”.
         tr("The event “%1” changed.").arg(changed.title.isEmpty() ? item.title : changed.title));

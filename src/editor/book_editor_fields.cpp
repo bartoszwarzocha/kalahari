@@ -20,11 +20,15 @@
 #include <kalahari/editor/view_modes.h>
 
 #include <QMenu>
+#include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QTextFragment>
 #include <QTimer>
 
+#include <algorithm>
 #include <optional>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -113,6 +117,20 @@ QString fieldNote(const TextField& field, const FieldContext& context, bool page
             return BookEditor::tr("The words of the text, as the status bar counts them.");
         case FieldType::Date:
             return dateFieldNote(field.format);
+        case FieldType::Custom: {
+            if (!context.customFields.contains(field.key)) {
+                //: The tooltip of an own field the book does not have any more
+                return BookEditor::tr("The book has no such field any more: change the field or "
+                                      "convert it to text.");
+            }
+            const QString description =
+                context.customFields.value(field.key).description.simplified();
+            //: The tooltip of an own field of the book
+            const QString note = BookEditor::tr(
+                "It changes with the value of the field (Insert > Field..., the Properties "
+                "panel).");
+            return description.isEmpty() ? note : description + QLatin1Char('\n') + note;
+        }
     }
     return {};
 }
@@ -312,6 +330,82 @@ bool BookEditor::convertFieldToText(int position)
     return true;
 }
 
+int BookEditor::changeCustomFields(const QString& key, const CustomFieldValue& value,
+                                   bool asText)
+{
+    if (key.isEmpty() || refusesChange() || !m_textBuffer ||
+        customFieldCount(*m_textBuffer, key) == 0) {
+        return 0;
+    }
+    QTextDocument* document = m_textBuffer.get();
+
+    // The places of the fields, from the end: the positions before them stay as they were
+    std::vector<int> positions;
+    for (QTextBlock block = document->begin(); block.isValid(); block = block.next()) {
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            const std::optional<TextField> field =
+                fragment.isValid() ? textFieldOf(fragment.charFormat()) : std::nullopt;
+            if (!field || field->type != FieldType::Custom || field->key != key) {
+                continue;
+            }
+            const QString characters = fragment.text();
+            for (qsizetype i = 0; i < characters.size(); ++i) {
+                if (characters.at(i) == QChar::ObjectReplacementCharacter) {
+                    positions.push_back(fragment.position() + static_cast<int>(i));
+                }
+            }
+        }
+    }
+
+    // One undo step, the cursor where it was
+    const StepCursor before{.cursor = m_cursorPosition, .selection = m_selection};
+    QTextCursor step(document);
+    step.beginEditBlock();
+    document->appendUndoItem(new CallbackUndoItem([this, before] { m_stepCursor = before; }));
+    FieldContext context;
+    context.language = m_fieldContext.language;
+    context.customFields.insert(key, value);
+    const int cursorAt = calculateAbsolutePosition(m_cursorPosition);
+    int shift = 0;
+    for (auto it = positions.rbegin(); it != positions.rend(); ++it) {
+        QTextCursor cursor(document);
+        cursor.setPosition(*it);
+        cursor.setPosition(*it + 1, QTextCursor::KeepAnchor);
+        QTextCharFormat format = cursor.charFormat();
+        std::optional<TextField> field = textFieldOf(format);
+        if (!field) {
+            continue;
+        }
+        if (asText) {
+            const QString text = textFieldText(*field, context, FieldCounts{});
+            format.clearProperty(QTextFormat::ObjectType);
+            clearField(format);
+            cursor.insertText(text, format);
+            if (*it < cursorAt) {
+                shift += static_cast<int>(text.size()) - 1;
+            }
+        } else {
+            field->name = value.name;
+            setTextField(format, *field);
+            cursor.setCharFormat(format);
+        }
+    }
+    clearSelection();
+    const CursorPosition after = absoluteToCursorPosition(
+        document, std::clamp(cursorAt + shift, 0, document->characterCount() - 1));
+    document->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{.cursor = after, .selection = {}}] { m_stepCursor = state; }));
+    step.endEditBlock();
+    m_learnableChange.reset();
+
+    m_cursorPosition = after;
+    m_selectionAnchor = after;
+    update();
+    emit contentChanged();
+    return static_cast<int>(positions.size());
+}
+
 std::optional<int> BookEditor::fieldAt(const QPointF& widgetPos) const
 {
     const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get());
@@ -350,7 +444,7 @@ QString BookEditor::fieldToolTip(int position) const
     const QString note = fieldNote(*field, m_fieldContext, m_viewMode == ViewMode::Page);
     //: The tooltip of a field: its name in bold, what it shows, how to change it. %1: the
     //: field's name ("Page Number")
-    const QString title = tr("Field: %1").arg(fieldTypeTitle(field->type));
+    const QString title = tr("Field: %1").arg(textFieldTitle(*field, m_fieldContext));
     const QString change =
         m_readOnly ? QString() : tr("Double-click to change the field.");
     QString tip = QStringLiteral("<p style='white-space:pre-wrap'><b>%1</b><br>%2")

@@ -125,6 +125,17 @@ public:
     ///        fontPercent)
     [[nodiscard]] QFont cardFont() const;
 
+    /// @brief The font of the cards' text as the view shows it at @p scale (its zoom): the
+    ///        cards draw their text in it and the frame written on a card has it, so the text
+    ///        is as large read as written (a font drawn scaled rounds its pixels apart from a
+    ///        font of the size times the scale: about a point at some zooms, test of 22.11)
+    [[nodiscard]] QFont cardFontAt(qreal scale) const;
+
+    /// @brief The room on each side of the cards, from the edges of the text (document
+    ///        units; AnnotationCardSettings::sideMarginMm); negative: as wide as the cards'
+    ///        indent of old (1.4 of their em)
+    void setSideMargin(qreal margin) { m_sideMargin = margin; }
+
     /// @brief The height of a line of the cards' text (document units)
     qreal lineHeight() const;
 
@@ -211,6 +222,7 @@ private:
     QSet<QString> m_whole;              ///< Long ones shown whole
     Colors m_colors;
     QFont m_textFont;
+    qreal m_sideMargin = -1.0;  ///< setSideMargin()
     std::optional<Writing> m_writing;
     QString m_hovered;
     std::optional<AnnotationCardPart> m_hoveredPart;

@@ -49,6 +49,7 @@ enum class TableCommand {
     TextToTable,         ///< Convert > Text to Table...: its window
     TableToText,         ///< Convert > Table to Text...: its window
     Properties,          ///< Table Properties...: its window
+    Caption,             ///< Insert Caption...: the window of the table's caption
 };
 
 /// @brief The commands of the Image menu (the selected image of the text with the keys)
@@ -198,7 +199,10 @@ struct CommandCallbacks {
     std::function<void()> onDecreaseIndent;     ///< Format > Decrease Indent
     std::function<void()> onBullets;            ///< Format > Bullets
     std::function<void()> onNumbering;          ///< Format > Numbering
+    std::function<void()> onListSets;           ///< Format > Pick List Set, given keys: its menu
     std::function<void()> onBulletsNumbering;   ///< Format > Bullets and Numbering...
+    /// Format > Page Size and Margins...: Settings > Editor > Pages and Margins
+    std::function<void()> onPageSettings;
 
     /// Format > Text Style: puts the paragraphs of the cursor or the selection in the style
     /// of this id (editor/paragraph_styles.h)

@@ -7,14 +7,76 @@
 #include "kalahari/gui/dialogs/about_dialog.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
+#include "kalahari/build_info.h"
 #include "kalahari/version.h"
-#include <QVBoxLayout>
-#include <QTabWidget>
+#include <QClipboard>
+#include <QDateTime>
+#include <QFormLayout>
+#include <QGroupBox>
+#include <QGuiApplication>
+#include <QHBoxLayout>
 #include <QLabel>
-#include <QTextEdit>
+#include <QList>
+#include <QLocale>
+#include <QPair>
 #include <QPushButton>
+#include <QSysInfo>
+#include <QTabWidget>
+#include <QTextEdit>
+#include <QVBoxLayout>
 
 using namespace kalahari::gui::dialogs;
+
+namespace {
+
+/// @brief A text of the build, or "–" where the build does not know it (no git, no branch)
+QString orDash(const char* text) {
+    const QString value = QString::fromUtf8(text);
+    return value.isEmpty() ? QStringLiteral("–") : value;
+}
+
+/// @brief What the program was built from: a label and its value for each line
+QList<QPair<QString, QString>> buildRows() {
+    namespace build = kalahari::build;
+    QString commit = orDash(build::commit());
+    if (build::modified()) {
+        //: After the hash of the commit in About: the program was built with changes of the code
+        //: not yet committed. In Polish: %1 (z niezatwierdzonymi zmianami)
+        commit = AboutDialog::tr("%1 (with changes not committed)").arg(commit);
+    }
+    const QDateTime built =
+        QDateTime::fromString(QString::fromLatin1(build::builtAt()), Qt::ISODate);
+    QString qt = QString::fromLatin1(qVersion());
+    if (qt != QLatin1String(QT_VERSION_STR)) {
+        //: The version of Qt in About: %1 the one the program runs with, %2 the one it was built
+        //: with. In Polish: %1 (kompilacja z %2)
+        qt = AboutDialog::tr("%1 (built with %2)").arg(qt, QStringLiteral(QT_VERSION_STR));
+    }
+    return {
+        //: In Polish: Wersja:
+        {AboutDialog::tr("Version:"), QString::fromLatin1(kalahari::VERSION_STRING)},
+        //: The commit of git the program was built from. In Polish: Commit:
+        {AboutDialog::tr("Commit:"), commit},
+        //: The branch of git of that commit. In Polish: Gałąź:
+        {AboutDialog::tr("Branch:"), orDash(build::branch())},
+        //: The date and the time of the build. In Polish: Skompilowano:
+        {AboutDialog::tr("Built:"),
+         built.isValid() ? QLocale().toString(built.toLocalTime(), QLocale::ShortFormat)
+                         : QStringLiteral("–")},
+        //: Debug or Release. In Polish: Konfiguracja:
+        {AboutDialog::tr("Configuration:"), orDash(build::configuration())},
+        //: The version of Qt. In Polish: Qt:
+        {AboutDialog::tr("Qt:"), qt},
+        //: The operating system and its processor. In Polish: System:
+        {AboutDialog::tr("System:"), QStringLiteral("%1 (%2)").arg(
+                                         QSysInfo::prettyProductName(),
+                                         QSysInfo::currentCpuArchitecture())},
+        //: In Polish: Kompilator:
+        {AboutDialog::tr("Compiler:"), QString::fromLatin1(kalahari::COMPILER)},
+    };
+}
+
+}  // namespace
 
 // ============================================================================
 // Constructor
@@ -49,6 +111,45 @@ AboutDialog::AboutDialog(QWidget* parent)
 // ============================================================================
 // Tab Creation Methods
 // ============================================================================
+
+QString AboutDialog::buildInformation() {
+    QStringList lines{QStringLiteral("Kalahari Writer's IDE")};
+    for (const auto& [label, value] : buildRows()) {
+        lines << label + QLatin1Char(' ') + value;
+    }
+    return lines.join(QLatin1Char('\n'));
+}
+
+QWidget* AboutDialog::createBuildGroup(QWidget* parent) {
+    //: The group at the end of the About tab: what the program was built from. In Polish:
+    //: Kompilacja
+    auto* group = new QGroupBox(tr("Build"), parent);
+    group->setObjectName(QStringLiteral("aboutBuildGroup"));
+    auto* layout = new QVBoxLayout(group);
+    auto* form = new QFormLayout();
+    for (const auto& [label, value] : buildRows()) {
+        auto* text = new QLabel(value, group);
+        text->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
+        text->setWordWrap(true);
+        form->addRow(label, text);
+    }
+    layout->addLayout(form);
+
+    auto* row = new QHBoxLayout();
+    //: Puts the lines of the group Build on the clipboard, for a report of a fault. In Polish:
+    //: &Kopiuj informacje o kompilacji
+    m_copy = new QPushButton(tr("&Copy Build Information"), group);
+    m_copied = new QLabel(group);
+    row->addWidget(m_copy);
+    row->addWidget(m_copied, 1);
+    layout->addLayout(row);
+    connect(m_copy, &QPushButton::clicked, this, [this]() {
+        QGuiApplication::clipboard()->setText(buildInformation());
+        //: After Copy Build Information in About. In Polish: Skopiowano do schowka.
+        m_copied->setText(tr("Copied to the clipboard."));
+    });
+    return group;
+}
 
 QWidget* AboutDialog::createAboutTab() {
     // The name, the version and the version of Qt are in the heading
@@ -90,6 +191,11 @@ QWidget* AboutDialog::createAboutTab() {
            "  Target Release: February 2027 (Kalahari 1.0)"), widget);
     credits->setWordWrap(true);
     layout->addWidget(credits);
+    layout->addSpacing(10);
+
+    // At the end, after what the program is: what it was built from, which program a test or
+    // a report is about
+    layout->addWidget(createBuildGroup(widget));
     layout->addStretch(1);
 
     // Copyright

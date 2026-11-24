@@ -45,6 +45,7 @@ class BookEditor;
 
 namespace kalahari::gui {
 
+class BookFieldsBox;
 class CardPage;
 class ClippingOriginBox;
 class CursorCardBox;
@@ -113,6 +114,9 @@ public:
 
     /// @brief The page of the series
     [[nodiscard]] SeriesPage* seriesPage() const { return m_seriesPage; }
+
+    /// @brief The group of the own fields of the book, on the page of the book
+    [[nodiscard]] BookFieldsBox* bookFields() const { return m_bookFieldsBox; }
 
     /// @brief The card at the cursor of a text of the book, on the Editor page or the Chapter
     ///        page of the text in front
@@ -382,6 +386,16 @@ signals:
     /// @brief The gear of the group of the versions: Settings > Editor > Versions
     void requestVersionSettings();
 
+    /// @brief Add Field... of the group of the own fields of the book
+    void requestNewOwnField();
+
+    /// @brief Insert in Text... of the group of the own fields: Insert > Field..., its tab Own,
+    ///        for the text in front, field @p id chosen (empty: none)
+    void requestInsertOwnField(const QString& id);
+
+    /// @brief The gear of the group of the own fields: Settings > Editor > General, the fields
+    void requestFieldSettings();
+
     /// @brief Restore to Its Place of the group Origin: insert clipping @p elementId where it
     /// was cut from
     void requestClippingRestore(const QString& elementId);
@@ -533,6 +547,7 @@ private:
     QLineEdit* m_projectTitleEdit = nullptr;
     QLineEdit* m_projectAuthorEdit = nullptr;
     QComboBox* m_projectLanguageCombo = nullptr;
+    BookFieldsBox* m_bookFieldsBox = nullptr;  ///< The own fields of the book
     QComboBox* m_projectBibliographyCombo = nullptr;  ///< Its own style, or the Settings' one
     QLineEdit* m_projectGenreEdit = nullptr;
     QFormLayout* m_projectInfoLayout = nullptr;          ///< Rows of the book's information

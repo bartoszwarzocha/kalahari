@@ -225,6 +225,14 @@ void BookEditor::scrollToCursorLine()
     QTextBlock block = m_textBuffer->findBlockByNumber(static_cast<int>(m_cursorPosition.paragraph));
     if (!block.isValid()) return;
 
+    // On pages, estimated heights above the line shift it to another page when they are laid
+    // out (a paint does that): the blocks down to it are laid out first, so the line is
+    // where it will stay, and so is the text at the top of the view kept in place
+    auto* kalahariLayout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+    if (kalahariLayout && m_viewMode == ViewMode::Page) {
+        kalahariLayout->ensureLaidOut(0, block.blockNumber());
+    }
+
     QTextLayout* layout = KalahariTextDocumentLayout::blockLayout(block);
     if (!layout || layout->lineCount() == 0) return;
 
@@ -237,7 +245,6 @@ void BookEditor::scrollToCursorLine()
 
     // Cursor line position in document coordinates: the whole line box, with the line
     // spacing around the glyphs (scrolling up to the first line shows the document top)
-    auto* kalahariLayout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
     const QRectF lineBox = KalahariTextDocumentLayout::blockLineBox(block, cursorLine);
     const auto lineTop = [&] {
         return m_textBuffer->documentLayout()->blockBoundingRect(block).y() + lineBox.top();

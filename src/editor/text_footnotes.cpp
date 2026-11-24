@@ -534,4 +534,60 @@ std::vector<Footnote> notesOfKml(const QString& kml) {
     return notes;
 }
 
+QString lastWords(const QString& text, int words) {
+    QString plain = text;
+    plain.remove(QChar::ObjectReplacementCharacter);
+    const QStringList all = plain.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (words <= 0 || all.isEmpty()) {
+        return {};
+    }
+    if (all.size() <= words) {
+        return all.join(QLatin1Char(' '));
+    }
+    return QStringLiteral("…") + all.mid(all.size() - words).join(QLatin1Char(' '));
+}
+
+std::vector<NoteInText> notesInKml(const QString& kml, int words) {
+    std::vector<NoteInText> notes;
+    if (!kml.contains(QLatin1String("<footnote")) && !kml.contains(QLatin1String("<endnote"))) {
+        return notes;
+    }
+    // The elements that start a paragraph of their own: its text starts again
+    static const QSet<QString> blocks{QStringLiteral("p"),  QStringLiteral("li"),
+                                      QStringLiteral("td"), QStringLiteral("th"),
+                                      QStringLiteral("h1"), QStringLiteral("h2"),
+                                      QStringLiteral("h3"), QStringLiteral("h4"),
+                                      QStringLiteral("h5"), QStringLiteral("h6")};
+    QXmlStreamReader reader(kml);
+    QSet<QString> ids;
+    QString paragraph;
+    while (!reader.atEnd()) {
+        reader.readNext();
+        if (reader.isCharacters()) {
+            paragraph.append(reader.text());
+            continue;
+        }
+        if (!reader.isStartElement()) {
+            continue;
+        }
+        const QStringView name = reader.name();
+        if (name == u"annotations") {
+            reader.skipCurrentElement();  // the writer's comments have no notes
+        } else if (name == u"endnote" ||
+                   (name == u"footnote" && !isOldFootnote(reader.attributes()))) {
+            Footnote note = readNoteElement(reader);
+            if (note.id.isEmpty() || ids.contains(note.id)) {
+                note.id = newFootnoteId(ids);
+            }
+            ids.insert(note.id);
+            notes.push_back({std::move(note), lastWords(paragraph, words)});
+        } else if (name == u"br") {
+            paragraph.append(QLatin1Char(' '));
+        } else if (blocks.contains(name.toString())) {
+            paragraph.clear();
+        }
+    }
+    return notes;
+}
+
 }  // namespace kalahari::editor

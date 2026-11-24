@@ -77,7 +77,7 @@ void PlotBoardCoordinator::showPlan() {
 
 QJsonObject PlotBoardCoordinator::readPlan(const QString& path) {
     const std::shared_ptr<IPlanChronologyProvider> provider = planChronologyProvider();
-    const QJsonObject fresh = provider ? provider->newPlan() : QJsonObject();
+    QJsonObject fresh = provider ? provider->newPlan() : QJsonObject();
     QFile file(path);
     if (!file.exists()) {
         return fresh;

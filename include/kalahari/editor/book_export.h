@@ -25,6 +25,7 @@
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 
 #include <QDateTime>
@@ -149,8 +150,14 @@ struct BookExport {
     /// The words in front of the text of a TODO and a note in Word's comments ("TODO", "Note"),
     /// in the program's language; a comment has none
     QHash<AnnotationKind, QString> annotationLabels;
+    /// The own fields of the book and of its series, by their ids: what their fields show
+    QMap<QString, CustomFieldValue> customFields;
     std::vector<ExportItem> items;
 };
+
+/// @brief What the fields of an item of the export show: the book's title, author and
+///        language, the item's title, the own fields of the book, the time of the export
+FieldContext exportFieldContext(const BookExport& book, const ExportItem& item);
 
 /// @brief What went wrong with an export
 struct ExportProblem {

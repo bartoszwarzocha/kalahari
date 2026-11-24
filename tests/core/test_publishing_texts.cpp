@@ -33,6 +33,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 using kalahari::core::BookProject;
 using kalahari::core::BookTypeRegistry;
@@ -995,6 +996,82 @@ TEST_CASE("ProjectManager starts a synopsis with the skeleton of its template wh
     REQUIRE_FALSE(pitch.isEmpty());
     CHECK_FALSE(pm.chapterText(pitch).contains(heading));
 
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager saves the points ticked off of a synopsis with its text, and drops "
+          "them with it",
+          "[core][publishing]") {
+    // Test of 22.11 (part 38): the points ticked off were saved at once, the text not, so the
+    // book could say a point was written when its file did not have it
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Karawana", "Ewa Lis", "pl", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString id = pm.addPublishingText(QString::fromLatin1(PublishingTexts::SYNOPSIS),
+                                            QStringLiteral("kalahari.novel:one_page"),
+                                            QStringLiteral("Streszczenie"));
+    REQUIRE_FALSE(id.isEmpty());
+    const auto savedPoints = [&manifest, &id]() {
+        QStringList problems;
+        const std::optional<BookProject> saved = BookProject::load(manifest, problems);
+        REQUIRE(saved);
+        const ProjectElement* text = saved->findElement(id);
+        REQUIRE(text != nullptr);
+        return text->publishing.done;
+    };
+    const QString written =
+        QStringLiteral("<kml><p>Lejla idzie do ostatniej studni.</p></kml>");
+
+    // A text without changes: saved at once
+    REQUIRE(pm.setPublishingPoints(id, {QStringLiteral("hero")}, false));
+    CHECK_FALSE(pm.hasWaitingPoints(id));
+    CHECK(savedPoints() == QStringList{QStringLiteral("hero")});
+
+    // Changes of its editor: the points wait for them, and the book has something to save
+    REQUIRE(pm.setPublishingPoints(id, {QStringLiteral("hero"), QStringLiteral("event")}, true));
+    CHECK(pm.hasWaitingPoints(id));
+    CHECK(pm.publishingPointsOf(id) == QStringList{QStringLiteral("hero"), QStringLiteral("event")});
+    CHECK(pm.findElement(id)->publishing.done == QStringList{QStringLiteral("hero")});
+    CHECK(savedPoints() == QStringList{QStringLiteral("hero")});
+    const std::vector<QString> dirty = pm.getDirtyElements();
+    CHECK(std::find(dirty.cbegin(), dirty.cend(), id) != dirty.cend());
+    // Saved with its text
+    pm.setChapterContent(id, written);
+    REQUIRE(pm.saveAllDirty());
+    CHECK_FALSE(pm.hasWaitingPoints(id));
+    CHECK(savedPoints() == QStringList{QStringLiteral("hero"), QStringLiteral("event")});
+    CHECK(pm.savedChapterText(id).contains(QStringLiteral("ostatniej studni")));
+
+    // A text not saved yet (Replace All in Book) holds them too; dropped with it
+    pm.setChapterContent(id, QStringLiteral("<kml><p>Inny tekst.</p></kml>"));
+    REQUIRE(pm.setPublishingPoints(id, {}, false));
+    CHECK(pm.hasWaitingPoints(id));
+    CHECK(pm.publishingPointsOf(id).isEmpty());
+    pm.discardChapterContent(id);
+    CHECK_FALSE(pm.hasWaitingPoints(id));
+    CHECK(pm.publishingPointsOf(id) == QStringList{QStringLiteral("hero"), QStringLiteral("event")});
+    CHECK(pm.getDirtyElements().empty());
+
+    // Ticked back as saved: nothing waits
+    REQUIRE(pm.setPublishingPoints(id, {QStringLiteral("hero")}, true));
+    REQUIRE(pm.setPublishingPoints(id, {QStringLiteral("hero"), QStringLiteral("event")}, true));
+    CHECK_FALSE(pm.hasWaitingPoints(id));
+
+    // The text back to the saved one: the points waiting are those of the saved text
+    REQUIRE(pm.setPublishingPoints(id, {QStringLiteral("hero")}, true));
+    REQUIRE(pm.saveWaitingPoints(id));
+    CHECK_FALSE(pm.hasWaitingPoints(id));
+    CHECK(savedPoints() == QStringList{QStringLiteral("hero")});
+
+    // The book closed without saving: the points waiting go with the changes of the text
+    REQUIRE(pm.setPublishingPoints(id, {QStringLiteral("hero"), QStringLiteral("climax")}, true));
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.publishingPointsOf(id) == QStringList{QStringLiteral("hero")});
+    CHECK_FALSE(pm.hasWaitingPoints(id));
+    // Another element is no text for publishers
+    CHECK_FALSE(pm.setPublishingPoints(QStringLiteral("missing"), {}, false));
     REQUIRE(pm.closeProject(false));
 }
 

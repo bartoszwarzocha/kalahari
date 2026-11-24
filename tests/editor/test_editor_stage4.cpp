@@ -771,6 +771,89 @@ TEST_CASE("Stage4 zoom: 100% shows the pages at their size on paper",
     }
 }
 
+TEST_CASE("Stage4 text field: the page fills the view beside the scroll bar",
+          "[editor][stage4][field]") {
+    EditorRenderPipeline pipeline;
+    RenderContext context;
+    context.viewMode = ViewMode::Continuous;
+    context.screenDpi = 96.0;
+    context.pageMode.pageSize = QSizeF(595.28, 841.89);       // A4 in points: not used
+    context.pageMode.marginsMm = QMarginsF(2.54, 2.54, 2.54, 2.54);  // 9.6 pixels
+    context.pageMode.pageSpacing = 0.0;
+    context.pageMode.fillsView = true;
+    context.viewportSize = QSizeF(400.0, 300.0);
+    context.scrollBarWidth = 16.0;
+    pipeline.configure(context);
+    const RenderContext::Computed& computed = pipeline.context().computed;
+    CHECK(computed.pageWidthPixels == Approx(384.0));
+    CHECK(computed.textWidth == Approx(384.0 - 2.0 * 9.6));
+    // Rounded down: a short text leaves nothing to scroll
+    CHECK(computed.textAreaHeight == std::floor(300.0 - 2.0 * 9.6));
+    CHECK(computed.pageCenterOffset == Approx(0.0));
+    CHECK(computed.originX == Approx(9.6));
+    CHECK(computed.originY == Approx(9.6));
+
+    // A wider view, a wider text
+    pipeline.setConfigViewportSize(QSizeF(600.0, 200.0));
+    CHECK(computed.textWidth == Approx(584.0 - 2.0 * 9.6));
+    CHECK(computed.textAreaHeight == std::floor(200.0 - 2.0 * 9.6));
+    // Zoomed, the text takes the field's width in its own units: nothing to scroll sideways
+    pipeline.setConfigZoom(2.0);
+    CHECK(computed.pageWidthPixels == Approx(292.0));
+    CHECK(computed.contentWidth == Approx(584.0));
+    pipeline.setConfigZoom(1.0);
+    // The paper scale as the zoom
+    pipeline.setConfigPaperScale(2.0);
+    CHECK(computed.pageWidthPixels == Approx(292.0));
+    pipeline.setConfigPaperScale(1.0);
+    // A wider scroll bar leaves the text less room
+    pipeline.setConfigScrollBarWidth(24.0);
+    CHECK(computed.pageWidthPixels == Approx(576.0));
+
+    // A page again: the page's size
+    pipeline.setConfigFillsView(false);
+    CHECK(computed.pageWidthPixels == Approx(793.7).margin(0.1));
+    CHECK(computed.pageHeightPixels == Approx(1122.5).margin(0.1));
+}
+
+TEST_CASE("Stage4 text field: all paper, the scroll bar only for a longer text",
+          "[editor][stage4][field]") {
+    BookEditor editor;
+    resizeWidget(editor, QSize(400, 200));
+    editor.fromKml(kmlOf(QStringList{QStringLiteral("A short description.")}));
+    const QColor paper(250, 248, 240);
+    EditorAppearance appearance = editor.appearance();
+    appearance.colorMode = EditorColorMode::Light;
+    appearance.colors.continuous.backgroundLight = paper;
+    appearance.colors.continuous.deskLight = QColor(10, 10, 10);  // a desk, if one showed
+    appearance.pageMargins.top = 1.5;
+    appearance.pageMargins.bottom = 1.5;
+    appearance.pageMargins.left = 1.5;
+    appearance.pageMargins.right = 1.5;
+    appearance.pageLayout.pageGap = 0.0;
+    appearance.pageLayout.fillsView = true;
+    appearance.typography.firstLineIndent = false;
+    editor.setAppearance(appearance);
+    QImage image(editor.size(), QImage::Format_ARGB32_Premultiplied);
+    editor.render(&image);
+
+    // The paper up to the edges: no desk, no edge of a sheet, no scroll bar
+    CHECK(editor.verticalScrollBar()->isHidden());
+    CHECK(editor.verticalScrollBar()->maximum() == 0);
+    for (const QPoint& corner : {QPoint(0, 0), QPoint(399, 0), QPoint(0, 199), QPoint(399, 199)}) {
+        CAPTURE(corner.x(), corner.y());
+        CHECK(image.pixelColor(corner) == paper);
+    }
+    // The text close to the left edge: 1.5 mm
+    CHECK(caret(editor).left() == Approx(1.5 * 96.0 / 25.4).margin(2.0));
+
+    // A longer text scrolls: the bar shows
+    editor.fromKml(kmlOf(mixedParagraphs(20)));
+    paint(editor);
+    CHECK(editor.verticalScrollBar()->maximum() > 0);
+    CHECK_FALSE(editor.verticalScrollBar()->isHidden());
+}
+
 TEST_CASE("Stage4 typewriter: typing keeps the cursor line at the focus height",
           "[editor][stage4][typewriter]") {
     for (ViewMode mode : {ViewMode::Continuous, ViewMode::Page}) {

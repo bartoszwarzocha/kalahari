@@ -22,6 +22,10 @@
 /// Qt keeps a paragraph before a table at the start of the document and one after a table
 /// at its end: a table is never the first or the last block of a chapter.
 ///
+/// A table keeps room from the text above and below it, in the paragraphs next to it
+/// (tableBlockSpace(), block_space.h). Its caption is a paragraph in the style Caption right
+/// before it (above it) or right after it (captionBlockOfTable(), text_captions.h).
+///
 /// KML writes a table as <table> with <col width="...%"/>, <tr>, and <th> or <td> cells
 /// with their paragraphs (docs/kml_format.md).
 
@@ -80,6 +84,14 @@ inline constexpr int TABLE_BORDER_WIDTH_PROPERTY = QTextFormat::UserProperty + 1
 ///        tables' lines in the settings (Settings > Editor > Colors)
 inline constexpr int TABLE_BORDER_COLOR_PROPERTY = QTextFormat::UserProperty + 164;
 
+/// @brief The room between the table and the text above it, in points (double); without it:
+///        DEFAULT_TABLE_SPACE_ABOVE (block_space.h)
+inline constexpr int TABLE_SPACE_ABOVE_PROPERTY = QTextFormat::UserProperty + 206;
+
+/// @brief The room between the table and the text below it, in points (double); without it:
+///        DEFAULT_TABLE_SPACE_BELOW
+inline constexpr int TABLE_SPACE_BELOW_PROPERTY = QTextFormat::UserProperty + 207;
+
 // =============================================================================
 // Properties of a cell's format
 // =============================================================================
@@ -106,6 +118,14 @@ inline constexpr double MAX_BORDER_WIDTH = 6.0;
 
 /// @brief The greatest least height of a row, in points (22 inches)
 inline constexpr double MAX_ROW_HEIGHT = 1584.0;
+
+/// @brief The room above and below a table without its own, in points (a new table takes
+///        that of Settings > Editor > Tables)
+inline constexpr double DEFAULT_TABLE_SPACE_ABOVE = 6.0;
+inline constexpr double DEFAULT_TABLE_SPACE_BELOW = 6.0;
+
+/// @brief The most room above or below a table, in points (an inch)
+inline constexpr double MAX_TABLE_SPACE = 72.0;
 
 /// @brief Where a table is between the edges of the text
 enum class TableAlignment { Left, Center, Right };
@@ -148,6 +168,8 @@ struct TableProperties {
     TableAlignment alignment = TableAlignment::Left;
     double indent = 0.0;                         ///< Points, of a table aligned to the left
     TableBorders borders;
+    double spaceAbove = DEFAULT_TABLE_SPACE_ABOVE;  ///< Points, from the text above it
+    double spaceBelow = DEFAULT_TABLE_SPACE_BELOW;  ///< Points, from the text below it
 
     bool operator==(const TableProperties&) const = default;
 };
@@ -227,7 +249,7 @@ std::optional<double> pointsOfKmlLength(const QString& length);
 
 /// @brief The attributes of <table> for its properties, the default ones left out: width,
 ///        align, indent, borders ("none", "box", or the lines: "top bottom left right rows
-///        columns"), border-style, border-width and border-color
+///        columns"), border-style, border-width, border-color, space-above and space-below
 std::vector<KmlAttribute> tableKmlAttributes(const TableProperties& properties);
 
 /// @brief The properties of a table from the attributes of its <table> (the default ones

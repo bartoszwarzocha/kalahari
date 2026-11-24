@@ -3,7 +3,7 @@
 
 /// @file text_fields.cpp
 /// @brief The fields of a text: the book's title, its author, the text's title, the page and the
-///        pages, the text's words and the date
+///        pages, the text's words, the date and the own fields
 
 #include "kalahari/editor/text_fields.h"
 
@@ -15,8 +15,10 @@
 #include <QRegularExpression>
 #include <QTextBlock>
 #include <QTextCharFormat>
+#include <QTextDocument>
 #include <QTextFragment>
 #include <QXmlStreamAttributes>
+#include <QXmlStreamReader>
 
 #include <algorithm>
 #include <array>
@@ -29,8 +31,8 @@ namespace kalahari::editor {
 namespace {
 
 /// The names of the types in KML, in the order of FieldType
-constexpr std::array<const char*, 7> TYPE_NAMES = {"book-title", "author", "title", "page",
-                                                   "pages",      "words",  "date"};
+constexpr std::array<const char*, 8> TYPE_NAMES = {"book-title", "author", "title", "page",
+                                                   "pages",      "words",  "date",  "custom"};
 
 /// What a page field shows in a view without pages
 constexpr const char* NO_PAGE_TEXT = "#";
@@ -70,27 +72,50 @@ QString pageNumberText(int number, const QString& format)
     return QString::number(number);
 }
 
-/// The value a field of the book or the text shows: its title or its author
-const QString& titleOf(FieldType type, const FieldContext& context)
+/// The value a field of the book or the text shows: its title, its author or an own field's
+QString titleOf(const TextField& field, const FieldContext& context)
 {
-    if (type == FieldType::BookTitle) {
-        return context.bookTitle;
+    switch (field.type) {
+        case FieldType::BookTitle:
+            return context.bookTitle;
+        case FieldType::Author:
+            return context.author;
+        case FieldType::Custom:
+            return context.customFields.value(field.key).value;
+        default:
+            return context.textTitle;
     }
-    if (type == FieldType::Author) {
-        return context.author;
-    }
-    return context.textTitle;
 }
 
-/// The text of a field of the book's title, its author or the text's title, on one line
+/// The text of a field of the book's title, its author, the text's title or an own field, on
+/// one line
 QString titleFieldText(const TextField& field, const QString& format, const FieldContext& context)
 {
     if (isTextFieldEmpty(field, context)) {
-        return QStringLiteral("[%1]").arg(fieldTypeTitle(field.type));
+        return QStringLiteral("[%1]").arg(textFieldTitle(field, context));
     }
     // One line: the line breaks of a title are spaces
-    const QString text = titleOf(field.type, context).simplified();
+    const QString text = titleOf(field, context).simplified();
     return format == QLatin1String("upper") ? localeOf(context.language).toUpper(text) : text;
+}
+
+/// The <field/> elements of KML, whole
+const QRegularExpression& fieldElements()
+{
+    static const QRegularExpression elements(QStringLiteral("<field\\b[^>]*/>"));
+    return elements;
+}
+
+/// The field of a <field/> element of KML; std::nullopt for an unknown type
+std::optional<TextField> fieldOfElement(const QString& element)
+{
+    QXmlStreamReader reader(element);
+    while (!reader.atEnd()) {
+        if (reader.readNext() == QXmlStreamReader::StartElement) {
+            return textFieldOfKml(reader.attributes());
+        }
+    }
+    return std::nullopt;
 }
 
 /// The text of a field of the page or the pages: "#" without pages
@@ -121,10 +146,14 @@ std::optional<TextField> textFieldOf(const QTextFormat& format)
     }
     TextField field;
     const int type = format.intProperty(FIELD_TYPE_PROPERTY);
-    if (type >= 0 && std::cmp_less(type, FIELD_TYPES.size())) {
+    if (type >= 0 && std::cmp_less(type, TYPE_NAMES.size())) {
         field.type = static_cast<FieldType>(type);
     }
     field.format = normalizedFieldFormat(field.type, format.stringProperty(FIELD_FORMAT_PROPERTY));
+    if (field.type == FieldType::Custom) {
+        field.key = format.stringProperty(FIELD_KEY_PROPERTY);
+        field.name = format.stringProperty(FIELD_NAME_PROPERTY);
+    }
     return field;
 }
 
@@ -135,6 +164,10 @@ void setTextField(QTextCharFormat& format, const TextField& field)
     format.setProperty(FIELD_TYPE_PROPERTY, static_cast<int>(field.type));
     // The format always by its full name: formats of the same field compare equal
     format.setProperty(FIELD_FORMAT_PROPERTY, normalizedFieldFormat(field.type, field.format));
+    if (field.type == FieldType::Custom) {
+        format.setProperty(FIELD_KEY_PROPERTY, field.key);
+        format.setProperty(FIELD_NAME_PROPERTY, field.name);
+    }
 }
 
 bool isTextFieldFormat(const QTextFormat& format)
@@ -149,6 +182,8 @@ void clearTextField(QTextCharFormat& format)
     }
     format.clearProperty(FIELD_TYPE_PROPERTY);
     format.clearProperty(FIELD_FORMAT_PROPERTY);
+    format.clearProperty(FIELD_KEY_PROPERTY);
+    format.clearProperty(FIELD_NAME_PROPERTY);
 }
 
 bool hasTextFields(const QTextBlock& block)
@@ -175,7 +210,7 @@ std::optional<FieldType> fieldTypeOfName(const QString& name)
     const QString key = name.trimmed().toLower();
     for (size_t i = 0; i < TYPE_NAMES.size(); ++i) {
         if (key == QLatin1String(TYPE_NAMES.at(i))) {
-            return FIELD_TYPES.at(i);
+            return static_cast<FieldType>(i);
         }
     }
     return std::nullopt;
@@ -205,6 +240,9 @@ QString fieldTypeTitle(FieldType type)
         case FieldType::Date:
             //: A field: today's date or time. In Polish: Data
             return QCoreApplication::translate("TextFields", "Date");
+        case FieldType::Custom:
+            //: A field: one the writer gave the book. In Polish: Własne pole
+            return QCoreApplication::translate("TextFields", "Own Field");
     }
     return {};
 }
@@ -215,6 +253,7 @@ QStringList fieldFormats(FieldType type)
         case FieldType::BookTitle:
         case FieldType::Author:
         case FieldType::TextTitle:
+        case FieldType::Custom:
             return {QString(), QStringLiteral("upper")};
         case FieldType::Page:
         case FieldType::Pages:
@@ -293,6 +332,8 @@ bool isTextFieldEmpty(const TextField& field, const FieldContext& context)
             return context.author.trimmed().isEmpty();
         case FieldType::TextTitle:
             return context.textTitle.trimmed().isEmpty();
+        case FieldType::Custom:
+            return context.customFields.value(field.key).value.trimmed().isEmpty();
         case FieldType::Page:
         case FieldType::Pages:
         case FieldType::Words:
@@ -310,6 +351,7 @@ QString textFieldText(const TextField& field, const FieldContext& context,
         case FieldType::BookTitle:
         case FieldType::Author:
         case FieldType::TextTitle:
+        case FieldType::Custom:
             return titleFieldText(field, format, context);
         case FieldType::Page:
         case FieldType::Pages:
@@ -323,6 +365,35 @@ QString textFieldText(const TextField& field, const FieldContext& context,
     return {};
 }
 
+QString textFieldTitle(const TextField& field, const FieldContext& context)
+{
+    if (field.type != FieldType::Custom) {
+        return fieldTypeTitle(field.type);
+    }
+    QString name = context.customFields.contains(field.key)
+                       ? context.customFields.value(field.key).name
+                       : field.name;
+    name = name.simplified();
+    return name.isEmpty() ? fieldTypeTitle(field.type) : name;
+}
+
+int customFieldCount(const QTextDocument& document, const QString& key)
+{
+    int count = 0;
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            const std::optional<TextField> field =
+                fragment.isValid() ? textFieldOf(fragment.charFormat()) : std::nullopt;
+            if (field && field->type == FieldType::Custom && (key.isEmpty() || field->key == key)) {
+                // Fields of the same format side by side are one fragment
+                count += static_cast<int>(fragment.text().count(QChar::ObjectReplacementCharacter));
+            }
+        }
+    }
+    return count;
+}
+
 // =============================================================================
 // KML
 // =============================================================================
@@ -330,6 +401,11 @@ QString textFieldText(const TextField& field, const FieldContext& context,
 QString textFieldKml(const TextField& field)
 {
     QString kml = QStringLiteral("<field type=\"") + fieldTypeName(field.type) + QLatin1Char('"');
+    if (field.type == FieldType::Custom) {
+        kml += QStringLiteral(" id=\"") + KmlFormatRegistry::escapeXml(field.key) +
+               QStringLiteral("\" name=\"") + KmlFormatRegistry::escapeXml(field.name) +
+               QLatin1Char('"');
+    }
     const QString format = normalizedFieldFormat(field.type, field.format);
     if (format != fieldFormats(field.type).value(0)) {
         kml += QStringLiteral(" format=\"") + KmlFormatRegistry::escapeXml(format) +
@@ -349,7 +425,59 @@ std::optional<TextField> textFieldOfKml(const QXmlStreamAttributes& attributes)
     field.type = *type;
     field.format =
         normalizedFieldFormat(*type, attributes.value(QStringLiteral("format")).toString());
+    if (field.type == FieldType::Custom) {
+        field.key = attributes.value(QStringLiteral("id")).toString();
+        field.name = attributes.value(QStringLiteral("name")).toString();
+    }
     return field;
+}
+
+int customFieldCountInKml(const QString& kml, const QString& key)
+{
+    int count = 0;
+    QRegularExpressionMatchIterator it = fieldElements().globalMatch(kml);
+    while (it.hasNext()) {
+        const std::optional<TextField> field = fieldOfElement(it.next().captured());
+        if (field && field->type == FieldType::Custom && field->key == key) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+QString customFieldsReplacedInKml(const QString& kml, const QString& key,
+                                  const CustomFieldValue& value, const QString& language,
+                                  bool asText, int* count)
+{
+    FieldContext context;
+    context.language = language;
+    context.customFields.insert(key, value);
+    QString result;
+    result.reserve(kml.size());
+    int replaced = 0;
+    qsizetype from = 0;
+    QRegularExpressionMatchIterator it = fieldElements().globalMatch(kml);
+    while (it.hasNext()) {
+        const QRegularExpressionMatch match = it.next();
+        std::optional<TextField> field = fieldOfElement(match.captured());
+        if (!field || field->type != FieldType::Custom || field->key != key) {
+            continue;
+        }
+        result += QStringView(kml).mid(from, match.capturedStart() - from);
+        if (asText) {
+            result += KmlFormatRegistry::escapeXml(textFieldText(*field, context, FieldCounts{}));
+        } else {
+            field->name = value.name;
+            result += textFieldKml(*field);
+        }
+        from = match.capturedEnd();
+        ++replaced;
+    }
+    result += QStringView(kml).mid(from);
+    if (count != nullptr) {
+        *count = replaced;
+    }
+    return result;
 }
 
 }  // namespace kalahari::editor

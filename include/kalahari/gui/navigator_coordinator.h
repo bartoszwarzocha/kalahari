@@ -140,6 +140,10 @@ public:
     /// of the chapter's tab is the saved text again.
     void discardChapterChanges(const QString& elementId);
 
+    /// @brief A text not open changed in the book (Replace All in Book) or back to its file:
+    /// the Navigator shows a "*" while it is not saved, and the counts of the book its words
+    void showUnsavedText(const QString& elementId);
+
     /// @brief Clear current element ID (on project close)
     void clearCurrentElement() { m_currentElementId.clear(); }
 
@@ -168,7 +172,8 @@ public:
     QList<const core::ProjectElement*> saveTextsOf(const core::ProjectElement& element);
 
     /// @brief The new element @p elementId with @p title is shown in the Navigator; a text
-    /// element opens in the editor with the cursor at the start of its text
+    /// element opens in the editor with the cursor at the start of its text, a card on its
+    /// form with the name selected
     void showAdded(const QString& elementId, const QString& title);
 
     /// @brief Show the title of element @p elementId on its open tab, with the "*" of its
@@ -294,14 +299,15 @@ public slots:
     /// @brief Book > Add...: Add Element for what is in front (addTargetHere())
     void onRequestAddHere();
 
-    /// @brief Create Card in the context menu of a word or a selection of a text: Add Element
-    /// with the kind of card @p kind chosen and @p title in it (the book's dictionary gives the
-    /// new card its name, ProjectManager::cardAdded())
-    /// @return false when the writer closed the window without adding
+    /// @brief Create Card in the context menu of a word or a selection of a text: a card of
+    /// kind @p kind named @p title added at once, its form open (the book's dictionary gives
+    /// the new card its name, ProjectManager::cardAdded())
+    /// @return false when no card was added
     bool onRequestAddCard(const QString& title, const core::KindRef& kind);
 
-    /// @brief Book > New Chapter...: Add Element for what is in front with the main text kind
-    /// of the book chosen; the whole book when the list of the element in front cannot have it
+    /// @brief Book > New Chapter...: the small window of the title of a new element of the
+    /// main text kind of the book, for what is in front; the whole book when the list of the
+    /// element in front cannot have it
     void onRequestNewChapter();
 
     /// @brief Where Book > Add... adds: right after the element of the editor's tab in front,
@@ -536,9 +542,23 @@ private:
     /// @brief The Add Element window on @p target, which @p prepare fills before it opens (a
     /// material dropped on the Navigator), and the element added with it: a material opens on
     /// its card in the middle of the window, with the keys in its description
+    ///
+    /// A kind chosen by its name (AddTarget::byName) has the small window of its title; a card
+    /// chosen so has none: it is added at once and its form opens.
+    /// @param title The title the window starts with, or of a card added at once (Create Card);
+    /// empty: the proposed one ("Character 3")
     /// @return false when the writer closed the window without adding
     bool addWithWindow(const AddTarget& target,
-                       const std::function<void(dialogs::NewFileDialog&)>& prepare = {});
+                       const std::function<void(dialogs::NewFileDialog&)>& prepare = {},
+                       const QString& title = QString());
+
+    /// @brief Element @p elementId of @p kind, just added with @p title, shown as showAdded()
+    /// shows it, with a message in the status bar; without it (an empty @p elementId) the
+    /// writer is told that it could not be added, and @p why, or that the changes could not
+    /// be saved
+    /// @return Whether the element was added
+    bool showAddedOrWhy(const QString& elementId, const core::KindRef& kind, const QString& title,
+                        const QString& why = QString());
 
     /// @brief The kind of materials @p kindId (core::MaterialKinds) of the open book; its first
     /// kind of materials when it has not that one or @p kindId is empty; none without any

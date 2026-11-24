@@ -179,6 +179,24 @@ std::vector<SheetSide> copiesOf(const std::vector<SheetSide>& sides, int copies,
     return printed;
 }
 
+std::vector<SheetSide> reversedSheets(const std::vector<SheetSide>& sides, bool twoSided) {
+    std::vector<SheetSide> sheets = sides;
+    if (!twoSided) {
+        std::ranges::reverse(sheets);
+        return sheets;
+    }
+    if (sheets.size() % 2 != 0) {
+        sheets.emplace_back();
+    }
+    std::vector<SheetSide> reversed;
+    reversed.reserve(sheets.size());
+    for (size_t end = sheets.size(); end >= 2; end -= 2) {
+        reversed.push_back(sheets[end - 2]);
+        reversed.push_back(sheets[end - 1]);
+    }
+    return reversed;
+}
+
 std::vector<SheetSide> sidesOfSheets(const std::vector<SheetSide>& sides, bool backs) {
     std::vector<SheetSide> chosen;
     chosen.reserve((sides.size() + 1) / 2);

@@ -321,12 +321,7 @@ void BookPages::build(size_t index) {
     layout->setSceneBreakLook(m_book.sceneBreak);
     layout->setCaptionContext(source.captions);
     layout->setFootnoteContext(source.footnotes);
-    FieldContext fields;
-    fields.bookTitle = m_book.title;
-    fields.author = m_book.author;
-    fields.textTitle = source.title;
-    fields.language = m_book.language;
-    layout->setFieldContext(fields);
+    layout->setFieldContext(exportFieldContext(m_book, source));
     item.pipeline = std::make_unique<EditorRenderPipeline>();
     item.pipeline->setTextSource(std::make_unique<QTextDocumentSource>(document));
     item.pipeline->configure(m_context);

@@ -32,6 +32,7 @@
 #include <QFontComboBox>
 #include <QSpinBox>
 #include <QTimer>
+#include <QToolButton>
 #include <QLabel>
 #include <QMenuBar>
 
@@ -63,7 +64,9 @@ struct AddedCommand {
 ///   7: Statistics on the Panels toolbar
 ///   8: Repetitions in Text on the Views toolbar
 ///   9: Special Character on the Insert toolbar
-constexpr std::array<AddedCommand, 14> ADDED_COMMANDS{{
+///  10: Footnotes on the Panels toolbar; every command of the Insert menu on the Insert toolbar
+///  11: Plot Board on the Book toolbar
+constexpr std::array<AddedCommand, 37> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
@@ -78,6 +81,29 @@ constexpr std::array<AddedCommand, 14> ADDED_COMMANDS{{
     {"view", "view.statistics", 7},
     {"views", "view.repetitionMarks", 8},
     {"insert", "insert.specialChar", 9},
+    {"view", "view.footnotes", 10},
+    {"insert", "insert.caption", 10},
+    {"insert", "insert.crossReference", 10},
+    {"insert", "insert.figureList", 10},
+    {"insert", "insert.endnote", 10},
+    {"insert", "insert.annotation", 10},
+    {"insert", "insert.comment", 10},
+    {"insert", "insert.todo", 10},
+    {"insert", "insert.note", 10},
+    {"insert", "insert.quickCharacter", 10},
+    {"insert", "insert.noBreakSpace", 10},
+    {"insert", "insert.nonBreakingHyphen", 10},
+    {"insert", "insert.optionalHyphen", 10},
+    {"insert", "insert.enDash", 10},
+    {"insert", "insert.emDash", 10},
+    {"insert", "insert.quickInsert", 10},
+    {"insert", "insert.clipping", 10},
+    {"insert", "insert.dateTime", 10},
+    {"insert", "insert.field", 10},
+    {"insert", "insert.horizontalLine", 10},
+    {"insert", "insert.sceneBreak", 10},
+    {"insert", "insert.pageBreak", 10},
+    {"book", "view.plotBoard", 11},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -97,7 +123,7 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 9;
+constexpr int CHANGED_COMMANDS_VERSION = 11;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
@@ -252,7 +278,8 @@ void ToolbarManager::initializeConfigs() {
         QT_TRANSLATE_NOOP("QObject", "&Book Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
-        {"book.newChapter", "book.newCharacter", "book.newLocation", "book.properties"}
+        {"book.newChapter", "book.newCharacter", "book.newLocation", "view.plotBoard",
+         "book.properties"}
     };
 
     // Panels Toolbar (panel toggles): standing by the right edge of the window, next to the
@@ -262,7 +289,7 @@ void ToolbarManager::initializeConfigs() {
         QT_TRANSLATE_NOOP("QObject", "&Panels Toolbar"),
         Qt::RightToolBarArea,
         true,  // visible by default
-        {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.paragraph", "view.search", "view.assistant", "view.annotations", "view.statistics", "view.log"}
+        {"view.dashboard", SEPARATOR_ID, "view.navigator", "view.properties", "view.paragraph", "view.search", "view.assistant", "view.annotations", "view.footnotes", "view.statistics", "view.log"}
     };
 
     // Tools Toolbar: the switches of the text as you type together, as in the Tools menu
@@ -315,14 +342,24 @@ void ToolbarManager::initializeConfigs() {
          "format.clearFormatting"}
     };
 
-    // Insert Toolbar (quick access to insert elements)
+    // Insert Toolbar: every command of the Insert menu, in groups as the menu has them - the
+    // elements, the captions and the cross-references, the notes, the annotations, the
+    // characters and quick insert, the date and the fields, the breaks (the buttons that do not
+    // fit are under the arrow at its end)
     m_configs["insert"] = {
         "insert",
         QT_TRANSLATE_NOOP("QObject", "&Insert Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 1)
-        {"insert.image", "insert.table", "insert.link", "insert.specialChar", SEPARATOR_ID,
-         "insert.footnote"}
+        {"insert.image", "insert.table", "insert.link", SEPARATOR_ID,
+         "insert.caption", "insert.crossReference", "insert.figureList", SEPARATOR_ID,
+         "insert.footnote", "insert.endnote", SEPARATOR_ID,
+         "insert.annotation", "insert.comment", "insert.todo", "insert.note", SEPARATOR_ID,
+         "insert.specialChar", "insert.quickCharacter", "insert.noBreakSpace",
+         "insert.nonBreakingHyphen", "insert.optionalHyphen", "insert.enDash", "insert.emDash",
+         "insert.quickInsert", "insert.clipping", SEPARATOR_ID,
+         "insert.dateTime", "insert.field", SEPARATOR_ID,
+         "insert.horizontalLine", "insert.sceneBreak", "insert.pageBreak"}
     };
 
     // Styles Toolbar (quick paragraph styles)
@@ -627,7 +664,17 @@ void ToolbarManager::createViewMenuActions(QMenu* viewMenu) {
 
     // OpenSpec #00030: Create Toolbars submenu instead of adding directly to VIEW menu
     // Structure: Standard Toolbars → separator → User-defined (future) → separator → Toolbar Manager...
-    QMenu* toolbarsMenu = viewMenu->addMenu(MenuBuilder::menuText("Toolbars"));
+    // Right after View > Panels: the parts of the window together (the end of the menu without
+    // the Panels submenu)
+    auto* toolbarsMenu = new QMenu(MenuBuilder::menuText("Toolbars"), viewMenu);
+    const QList<QAction*> viewItems = viewMenu->actions();
+    const auto panels = std::find_if(viewItems.cbegin(), viewItems.cend(), [](const QAction* item) {
+        return item->menu() != nullptr && item->text() == MenuBuilder::menuText("Panels");
+    });
+    QAction* before = panels != viewItems.cend() && std::next(panels) != viewItems.cend()
+                          ? *std::next(panels)
+                          : nullptr;
+    viewMenu->insertMenu(before, toolbarsMenu);
     MenuBuilder::showSubmenuIcon(toolbarsMenu, MenuBuilder::submenuIconId("Toolbars"));
     // The menu and its items are forgotten when it goes; an earlier menu going later does not
     // touch this one's
@@ -1005,10 +1052,44 @@ void ToolbarManager::addToolbarItem(QToolBar* toolbar, const QString& cmdId, Com
         QAction* action = registry.getAction(cmdId);
         if (action) {
             toolbar->addAction(action);
+            applyButtonMenu(toolbar, action, cmdId);
         } else {
             logger.warn("ToolbarManager: Command '{}' not found or not executable", cmdId.toStdString());
         }
     }
+}
+
+void ToolbarManager::setButtonMenu(const QString& cmdId, QMenu* menu) {
+    if (menu != nullptr) {
+        m_buttonMenus[cmdId] = menu;
+    } else {
+        m_buttonMenus.remove(cmdId);
+    }
+    QAction* action = m_commands.getAction(cmdId);
+    if (action == nullptr) {
+        return;
+    }
+    for (const auto& [id, toolbar] : m_toolbars) {
+        if (toolbar != nullptr && toolbar->actions().contains(action)) {
+            applyButtonMenu(toolbar, action, cmdId);
+        }
+    }
+}
+
+QMenu* ToolbarManager::buttonMenu(const QString& cmdId) const {
+    return m_buttonMenus.value(cmdId);
+}
+
+void ToolbarManager::applyButtonMenu(QToolBar* toolbar, QAction* action,
+                                     const QString& cmdId) const {
+    auto* button = qobject_cast<QToolButton*>(toolbar->widgetForAction(action));
+    if (button == nullptr) {
+        return;
+    }
+    QMenu* menu = m_buttonMenus.value(cmdId);
+    button->setMenu(menu);
+    button->setPopupMode(menu != nullptr ? QToolButton::MenuButtonPopup
+                                         : QToolButton::DelayedPopup);
 }
 
 void ToolbarManager::resetToDefaults() {

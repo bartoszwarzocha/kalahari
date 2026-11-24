@@ -130,6 +130,11 @@ void BookEditor::updateAnnotationCards()
     m_annotationCards.setSettings(settings);
     m_annotationCards.setShown(shown);
     m_annotationCards.setTextFont(m_appearance.typography.textFont);
+    // The room on both sides, in millimetres of the screen
+    if (m_renderPipeline) {
+        m_annotationCards.setSideMargin(settings.sideMarginMm *
+                                        m_renderPipeline->context().computed.mmToPixels);
+    }
 
     // The paper's colors, the kinds' as their marks have them; the card gone to outlined in
     // the program's accent
@@ -401,14 +406,9 @@ QRectF BookEditor::annotationCardWritingTextRect() const
 
 QFont BookEditor::annotationCardTextFont() const
 {
-    QFont font = m_annotationCards.cardFont();
+    // As the cards draw their text (AnnotationCards::paint())
     const double scale = m_renderPipeline ? m_renderPipeline->context().computed.viewScale : 1.0;
-    if (font.pointSizeF() > 0) {
-        font.setPointSizeF(font.pointSizeF() * scale);
-    } else if (font.pixelSize() > 0) {
-        font.setPixelSize(std::max(1, static_cast<int>(std::lround(font.pixelSize() * scale))));
-    }
-    return font;
+    return m_annotationCards.cardFontAt(scale);
 }
 
 qreal BookEditor::annotationCardLineHeight() const

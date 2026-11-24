@@ -20,6 +20,9 @@
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/name_declension.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_appearance.h"
+#include "kalahari/editor/view_modes.h"
 #include "kalahari/gui/dialogs/color_dialog.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
 #include "kalahari/gui/dialogs/relation_dialog.h"
@@ -42,9 +45,11 @@
 #include "kalahari/gui/widgets/palette_edit.h"
 #include "kalahari/gui/widgets/relations_box.h"
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <QAbstractItemView>
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
@@ -56,12 +61,15 @@
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QFocusEvent>
+#include <QFrame>
 #include <QGroupBox>
 #include <QImage>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMouseEvent>
+#include <QPalette>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QStringListModel>
@@ -595,6 +603,27 @@ TEST_CASE("Card: the short card shows the fields of its kind marked for the Prop
     REQUIRE(pm.renameElement(jan, QStringLiteral("Jan Kos")));
     getKeys(owner);
     CHECK(suggestions(owner) == QStringList{QStringLiteral("Anka"), QStringLiteral("Jan Kos")});
+    // A list of all the cards at once (test of 22.11): the arrow at its end, Alt+Down, a click;
+    // typing narrows it
+    auto* showAll = owner->findChild<QAction*>(QStringLiteral("showAllCards"));
+    REQUIRE(showAll != nullptr);
+    CHECK(showAll->toolTip() == QStringLiteral("Show all the cards (Alt+Down)"));
+    CHECK_FALSE(showAll->icon().isNull());
+    QCompleter* completer = owner->completer();
+    completer->setCompletionPrefix(QStringLiteral("Jan"));
+    REQUIRE(completer->completionCount() == 1);
+    showAll->trigger();
+    CHECK(completer->completionPrefix().isEmpty());
+    CHECK(completer->completionCount() == 2);
+    completer->setCompletionPrefix(QStringLiteral("Jan"));
+    press(owner, Qt::Key_Down, Qt::AltModifier);
+    CHECK(completer->completionCount() == 2);
+    completer->setCompletionPrefix(QStringLiteral("Jan"));
+    QMouseEvent click(QEvent::MouseButtonRelease, QPointF(5, 5), owner->mapToGlobal(QPointF(5, 5)),
+                      Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(owner, &click);
+    CHECK(completer->completionCount() == 2);
+    completer->popup()->hide();
     // The name of a card: the relation with it, which both cards show
     owner->setText(QStringLiteral("Jan Kos"));
     press(owner, Qt::Key_Return);
@@ -1146,6 +1175,49 @@ TEST_CASE("Card: it opens on a tab beside the chapters, with its text as the des
     CHECK(panel->page()->descriptionGroup()->isAncestorOf(panel->getBookEditor()));
     CHECK(panel->getBookEditor()->accessibleName() == QStringLiteral("Description of the card"));
     CHECK_FALSE(panel->getBookEditor()->isReadOnly());
+
+    // The description is a plain text field in the frame of one (the test of 22.11): no
+    // pages, the colors of the theme's text fields, the program's font a little larger
+    CHECK(panel->hasFieldLook());
+    const editor::BookEditor& text = *panel->getBookEditor();
+    const editor::EditorAppearance& look = text.appearance();
+    CHECK(look.pageLayout.fillsView);
+    CHECK(look.pageLayout.pageGap == 0.0);
+    CHECK_FALSE(look.pageLayout.showPageNumbers);
+    CHECK(text.viewMode() == editor::ViewMode::Continuous);
+    CHECK(text.zoomFactor() == 1.0);
+    CHECK(text.paperScale() == 1.0);
+    CHECK(look.colors.background(look.colorMode) == panel->palette().color(QPalette::Base));
+    CHECK(look.colors.textColor(look.colorMode) == panel->palette().color(QPalette::Text));
+    CHECK(look.typography.textFont.family() == panel->font().family());
+    CHECK(look.typography.textFont.pointSizeF() ==
+          Catch::Approx(panel->font().pointSizeF() * 1.15));
+    CHECK_FALSE(look.typography.firstLineIndent);
+    CHECK_FALSE(look.typewriter.enabled);
+    CHECK_FALSE(look.focusMode.enabled);
+    CHECK_FALSE(look.textFrameBorder.show);
+    CHECK(look.marginNumbers.numbering == editor::MarginNumbering::None);
+    CHECK(look.pageMargins.left == Catch::Approx(1.5));
+    const auto* frame = panel->page()->findChild<QFrame*>(QStringLiteral("descriptionFrame"));
+    REQUIRE(frame != nullptr);
+    CHECK(frame->isAncestorOf(panel->getBookEditor()));
+    CHECK(frame->frameShape() == QFrame::StyledPanel);
+    CHECK(panel->page()->descriptionGroup()->isAncestorOf(frame));
+    {
+        // The settings take nothing of it back
+        const test::ChangedSetting<bool> typewriter("editor.typewriter.enabled", true);
+        panel->applySettings();
+        CHECK_FALSE(text.appearance().typewriter.enabled);
+        CHECK(text.appearance().pageLayout.fillsView);
+    }
+    // The editor of the chapters again: the settings
+    panel->setFieldLook(false);
+    CHECK_FALSE(panel->hasFieldLook());
+    CHECK_FALSE(text.appearance().pageLayout.fillsView);
+    CHECK(text.appearance().typography.textFont.pointSize() ==
+          core::SettingsManager::getInstance().get<int>("editor.fontSize"));
+    panel->setFieldLook(true);
+    CHECK(text.appearance().pageLayout.fillsView);
     CHECK(window.tabs->tabText(0).contains(QStringLiteral("Anna Wolska")));
 
     // Opened again, the same tab

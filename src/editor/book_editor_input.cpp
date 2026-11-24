@@ -329,6 +329,8 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
 
     // The word being typed gets no spelling wave until the cursor leaves it
     const QScopedValueRollback<bool> typing(m_spellTypingEdit, isTypingKey(event));
+    // What the keys of the text change is the writer's own writing (isWriting())
+    const HandWriting writing(*this);
 
     // The keys of the text, those of the system the program runs on
     bool handled = false;
@@ -386,6 +388,7 @@ void BookEditor::inputMethodEvent(QInputMethodEvent* event)
     const QScopedValueRollback<bool> typing(
         m_spellTypingEdit, !event->commitString().isEmpty() || !event->preeditString().isEmpty() ||
                                m_hasComposition);
+    const HandWriting writing(*this);
 
     // Phase 11: Use QTextCursor for IME operations
     if (!m_textBuffer) return;
@@ -1448,29 +1451,48 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         if (!menu.isEmpty() && !menu.actions().constLast()->isSeparator()) {
             menu.addSeparator();
         }
+        // Greyed out where it can do nothing, saying why (test of 22.11: no explanation)
+        const auto allowIf = [](QAction* action, bool can, const QString& whyNot) {
+            if (action->isEnabled() && !can) {
+                action->setEnabled(false);
+                action->setToolTip(whyNot);
+                action->setStatusTip(whyNot);
+            }
+        };
         if (!item->levelFormat().isBullet()) {
             const ListLevel& level = item->levelFormat();
+            const QString first = listNumberText(level.start, level.format);
             //: %1 is the first number of the level of the list item: 1, a, i
-            QAction* restart = menu.addAction(
-                tr("&Restart at %1").arg(listNumberText(level.start, level.format)), this,
-                &BookEditor::restartNumbering);
+            QAction* restart = menu.addAction(tr("&Restart at %1").arg(first), this,
+                                              &BookEditor::restartNumbering);
             disableWhileReadOnly(restart);
-            restart->setEnabled(restart->isEnabled() &&
-                                (!item->numbered || currentListNumber() != level.start));
+            //: Why Restart at 1 of the context menu of a list item is greyed out: %1 the first
+            //: number (1, a, i). In Polish: Ten element listy ma już numer %1
+            allowIf(restart, !item->numbered || currentListNumber() != level.start,
+                    tr("The item already has the number %1").arg(first));
             QAction* goOn =
                 menu.addAction(tr("Contin&ue Numbering"), this, &BookEditor::continueNumbering);
             disableWhileReadOnly(goOn);
-            goOn->setEnabled(goOn->isEnabled() && canContinueNumbering());
+            //: Why Continue Numbering of the context menu of a list item is greyed out. In
+            //: Polish: Numerowanie listy powyżej kontynuuje tylko pierwszy element listy
+            allowIf(goOn, canContinueNumbering(),
+                    tr("Only the first item of a list continues the numbering of a list above "
+                       "it"));
             disableWhileReadOnly(menu.addAction(tr("Set Numbering &Value..."), this,
                                                 &BookEditor::numberingValueAsked));
             menu.addSeparator();
         }
         QAction* deeper = menu.addAction(tr("Incr&ease Indent"), this, &BookEditor::increaseIndent);
         disableWhileReadOnly(deeper);
-        deeper->setEnabled(deeper->isEnabled() && item->level < LIST_LEVELS - 1);
+        //: Why Increase Indent of the context menu of a list item is greyed out. In Polish:
+        //: Element jest już na najgłębszym poziomie listy
+        allowIf(deeper, item->level < LIST_LEVELS - 1,
+                tr("The item is at the deepest level of the list"));
         QAction* higher = menu.addAction(tr("Decrea&se Indent"), this, &BookEditor::decreaseIndent);
         disableWhileReadOnly(higher);
-        higher->setEnabled(higher->isEnabled() && item->level > 0);
+        //: Why Decrease Indent of the context menu of a list item is greyed out. In Polish:
+        //: Element jest już na pierwszym poziomie listy
+        allowIf(higher, item->level > 0, tr("The item is at the first level of the list"));
         disableWhileReadOnly(menu.addAction(tr("Bullets and Numberin&g..."), this,
                                             &BookEditor::bulletsAndNumberingAsked));
         menu.addSeparator();
@@ -1551,6 +1573,14 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         addEditItem(commands.copy, tr("&Copy"), &BookEditor::copy, false);
     }
     addEditItem(commands.paste, tr("&Paste"), &BookEditor::paste, true);
+    // The forms of Edit > Paste Special..., those the clipboard has not greyed out (test of
+    // 22.11)
+    if (commands.pasteSpecial) {
+        //: The submenu of the text's context menu under Paste. In Polish: Wklej &specjalnie
+        QMenu* special = menu.addMenu(tr("Paste &Special"));
+        commands.pasteSpecial(*special, *this);
+        disableWhileReadOnly(special->menuAction());
+    }
     //: The item of the text's context menu under Paste: Insert > Clipping from the Workshop.
     //: In Polish: Wstaw w&ycinek...
     addCommandItem(commands.insertClipping, tr("&Insert Clipping..."));

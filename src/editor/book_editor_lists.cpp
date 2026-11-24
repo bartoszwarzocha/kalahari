@@ -208,7 +208,7 @@ void BookEditor::toggleList(ListKind kind)
     if (!target) {
         target = ListItem{};
         target->id = newListId(*m_textBuffer);
-        target->definition = ListDefinition::ofKind(kind);
+        target->definition = newListDefinition(kind);
     }
 
     for (const QTextBlock& block : blocks) {
@@ -227,6 +227,16 @@ void BookEditor::toggleList(ListKind kind)
         formats.emplace_back(block, format);
     }
     setBlockFormats(formats);
+}
+
+const ListDefinition& BookEditor::newListDefinition(ListKind kind) const
+{
+    return m_newLists.at(kind == ListKind::Bulleted ? 1 : 0);
+}
+
+void BookEditor::setNewListDefinition(ListKind kind, const ListDefinition& definition)
+{
+    m_newLists.at(kind == ListKind::Bulleted ? 1 : 0) = definition;
 }
 
 std::optional<ListKind> BookEditor::currentListKind() const
@@ -551,7 +561,7 @@ bool BookEditor::autoCorrectList(const QTextBlock& block)
         item.definition = before->definition;
     } else {
         item.id = newListId(*m_textBuffer);
-        item.definition = ListDefinition::ofKind(*kind);
+        item.definition = newListDefinition(*kind);
         if (*kind == ListKind::Numbered) {
             item.definition.levels[0].suffix = suffix;
             item.definition.levels[0].start = start;

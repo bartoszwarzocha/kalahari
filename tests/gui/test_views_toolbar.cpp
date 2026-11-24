@@ -397,17 +397,8 @@ TEST_CASE("Insert toolbar: Special Character comes to a toolbar customized befor
     const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
     const QString insert = QStringLiteral("insert");
 
-    // A new toolbar has it after Link
-    {
-        settings.set<std::string>("toolbars.configurations", "");
-        QMainWindow window;
-        ToolbarManager manager(kalahari::test::commands(), &window);
-        CHECK(manager.getToolbarCommands(insert).join(QStringLiteral(" | ")).toStdString() ==
-              "insert.image | insert.table | insert.link | insert.specialChar | _SEPARATOR_ | "
-              "insert.footnote");
-    }
-
-    // Customized before it came: Table taken away
+    // Customized before it came: Table taken away; the commands of the Insert menu that
+    // came after it come too, Table stays away
     settings.set<std::string>(
         "toolbars.configurations",
         R"({"builtIn":{"insert":["insert.image","insert.link","insert.footnote"]}})");
@@ -415,18 +406,121 @@ TEST_CASE("Insert toolbar: Special Character comes to a toolbar customized befor
     QMainWindow window;
     {
         ToolbarManager manager(kalahari::test::commands(), &window);
-        CHECK(manager.getToolbarCommands(insert).join(QStringLiteral(" | ")).toStdString() ==
-              "insert.image | insert.link | insert.specialChar | insert.footnote");
-        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 9);
+        const QStringList commands = manager.getToolbarCommands(insert);
+        CHECK_FALSE(commands.contains(QStringLiteral("insert.table")));
+        CHECK(commands.indexOf(QStringLiteral("insert.specialChar")) ==
+              commands.indexOf(QStringLiteral("insert.note")) + 1);
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) >= 9);
 
         // Taken away by the writer after that, it stays away
-        QStringList without = manager.getToolbarCommands(insert);
+        QStringList without = commands;
         without.removeAll(QStringLiteral("insert.specialChar"));
         manager.setToolbarCommands(insert, without);
     }
     ToolbarManager next(kalahari::test::commands(), &window);
-    CHECK(next.getToolbarCommands(insert).join(QStringLiteral(" | ")).toStdString() ==
-          "insert.image | insert.link | insert.footnote");
+    CHECK_FALSE(next.getToolbarCommands(insert).contains(QStringLiteral("insert.specialChar")));
+    CHECK(next.getToolbarCommands(insert).contains(QStringLiteral("insert.clipping")));
+
+    settings.set<std::string>("toolbars.configurations", savedToolbars);
+    settings.set<int>("toolbars.addedCommands", savedVersion);
+}
+
+TEST_CASE("Insert toolbar: every command of the Insert menu, in its groups",
+          "[gui][toolbar]") {
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string savedToolbars = settings.get<std::string>("toolbars.configurations", "");
+    const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
+    const QString insert = QStringLiteral("insert");
+    const QString panels = QStringLiteral("view");
+
+    // A new toolbar: the groups of the menu, the Footnotes panel after Annotations
+    {
+        settings.set<std::string>("toolbars.configurations", "");
+        QMainWindow window;
+        ToolbarManager manager(kalahari::test::commands(), &window);
+        CHECK(manager.getToolbarCommands(insert).join(QStringLiteral(" | ")).toStdString() ==
+              "insert.image | insert.table | insert.link | _SEPARATOR_ | insert.caption | "
+              "insert.crossReference | insert.figureList | _SEPARATOR_ | insert.footnote | "
+              "insert.endnote | _SEPARATOR_ | insert.annotation | insert.comment | "
+              "insert.todo | insert.note | _SEPARATOR_ | insert.specialChar | "
+              "insert.quickCharacter | insert.noBreakSpace | insert.nonBreakingHyphen | "
+              "insert.optionalHyphen | insert.enDash | insert.emDash | insert.quickInsert | "
+              "insert.clipping | _SEPARATOR_ | insert.dateTime | insert.field | _SEPARATOR_ | "
+              "insert.horizontalLine | insert.sceneBreak | insert.pageBreak");
+        const QStringList view = manager.getToolbarCommands(panels);
+        CHECK(view.indexOf(QStringLiteral("view.footnotes")) ==
+              view.indexOf(QStringLiteral("view.annotations")) + 1);
+    }
+
+    // Customized before them: the writer's order kept, the new commands where the default
+    // has them, once; Footnotes on the Panels toolbar too
+    settings.set<std::string>(
+        "toolbars.configurations",
+        R"({"builtIn":{"insert":["insert.footnote","insert.image","insert.specialChar"],)"
+        R"("view":["view.navigator","view.annotations","view.log"]}})");
+    settings.set<int>("toolbars.addedCommands", 9);
+    QMainWindow window;
+    {
+        ToolbarManager manager(kalahari::test::commands(), &window);
+        CHECK(manager.getToolbarCommands(insert).join(QStringLiteral(" | ")).toStdString() ==
+              "insert.footnote | insert.endnote | insert.annotation | insert.comment | "
+              "insert.todo | insert.note | insert.image | insert.caption | "
+              "insert.crossReference | insert.figureList | insert.specialChar | "
+              "insert.quickCharacter | insert.noBreakSpace | insert.nonBreakingHyphen | "
+              "insert.optionalHyphen | insert.enDash | insert.emDash | insert.quickInsert | "
+              "insert.clipping | insert.dateTime | insert.field | insert.horizontalLine | "
+              "insert.sceneBreak | insert.pageBreak");
+        CHECK(manager.getToolbarCommands(panels).join(QStringLiteral(" | ")).toStdString() ==
+              "view.navigator | view.annotations | view.footnotes | view.log");
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 11);
+
+        // Taken away by the writer after that, they stay away
+        QStringList without = manager.getToolbarCommands(insert);
+        without.removeAll(QStringLiteral("insert.pageBreak"));
+        manager.setToolbarCommands(insert, without);
+        manager.setToolbarCommands(panels, {QStringLiteral("view.navigator")});
+    }
+    ToolbarManager next(kalahari::test::commands(), &window);
+    CHECK_FALSE(next.getToolbarCommands(insert).contains(QStringLiteral("insert.pageBreak")));
+    CHECK(next.getToolbarCommands(panels) == QStringList{QStringLiteral("view.navigator")});
+
+    settings.set<std::string>("toolbars.configurations", savedToolbars);
+    settings.set<int>("toolbars.addedCommands", savedVersion);
+}
+
+TEST_CASE("Book toolbar: Plot Board before Book Properties, also on a toolbar saved before it",
+          "[gui][toolbar][plotboard]") {
+    // Test of 22.11: where to open the plot board from
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string savedToolbars = settings.get<std::string>("toolbars.configurations", "");
+    const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
+    const QString book = QStringLiteral("book");
+
+    // A new toolbar
+    {
+        settings.set<std::string>("toolbars.configurations", "");
+        QMainWindow window;
+        ToolbarManager manager(kalahari::test::commands(), &window);
+        CHECK(manager.getToolbarCommands(book).join(QStringLiteral(" | ")).toStdString() ==
+              "book.newChapter | book.newCharacter | book.newLocation | view.plotBoard | "
+              "book.properties");
+    }
+
+    // Customized before it: the writer's order kept, Plot Board after the command it follows
+    // in the default toolbar, or the nearest one before that the toolbar has
+    settings.set<std::string>(
+        "toolbars.configurations",
+        R"({"builtIn":{"book":["book.properties","book.newChapter"]}})");
+    settings.set<int>("toolbars.addedCommands", 10);
+    {
+        QMainWindow window;
+        ToolbarManager manager(kalahari::test::commands(), &window);
+        CHECK(manager.getToolbarCommands(book).join(QStringLiteral(" | ")).toStdString() ==
+              "book.properties | book.newChapter | view.plotBoard");
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 11);
+    }
 
     settings.set<std::string>("toolbars.configurations", savedToolbars);
     settings.set<int>("toolbars.addedCommands", savedVersion);

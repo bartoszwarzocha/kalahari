@@ -3,7 +3,8 @@
 
 /// @file text_fields.h
 /// @brief The fields of a text: the book's title, its author, the text's title, the page and the
-///        pages, the text's words and the date, each showing its value as it is now
+///        pages, the text's words, the date and the writer's own fields of the book, each
+///        showing its value as it is now
 ///
 /// A field is a character of its paragraph (the object replacement character, U+FFFC) with a
 /// format of the object type TEXT_FIELD_OBJECT that keeps what the field shows (FieldType) and
@@ -17,13 +18,20 @@
 /// gray background, which the cursor goes over at once, which is not a word and which search
 /// and spelling skip. Convert to Text puts the value in its place.
 ///
+/// An own field (FieldType::Custom) shows the value the writer gave a field of the book or of
+/// its series ("Narrator's Name": "Ilias"), by the field's id: the name and the value can
+/// change. Without a value it shows the field's name in brackets; once the field is gone from
+/// the book, the name it had when it was inserted.
+///
 /// KML writes a field as <field type="page" format="i"/>, without the format when it is the
-/// type's first (docs/kml_format.md).
+/// type's first, and an own field with its id and name: <field type="custom" id="f-1a2b"
+/// name="Narrator's Name"/> (docs/kml_format.md).
 
 #ifndef KALAHARI_EDITOR_TEXT_FIELDS_H
 #define KALAHARI_EDITOR_TEXT_FIELDS_H
 
 #include <QDateTime>
+#include <QMap>
 #include <QString>
 #include <QStringList>
 #include <QTextFormat>
@@ -33,6 +41,7 @@
 
 class QTextBlock;
 class QTextCharFormat;
+class QTextDocument;
 class QXmlStreamAttributes;
 
 namespace kalahari::editor {
@@ -46,6 +55,12 @@ inline constexpr int FIELD_TYPE_PROPERTY = QTextFormat::UserProperty + 220;
 /// @brief How a field shows it: the name of its format (QString, fieldFormats())
 inline constexpr int FIELD_FORMAT_PROPERTY = QTextFormat::UserProperty + 221;
 
+/// @brief The id of the own field a field shows (QString, FieldType::Custom)
+inline constexpr int FIELD_KEY_PROPERTY = QTextFormat::UserProperty + 222;
+
+/// @brief The name the own field had when it was inserted (QString, FieldType::Custom)
+inline constexpr int FIELD_NAME_PROPERTY = QTextFormat::UserProperty + 223;
+
 /// @brief What a field shows
 enum class FieldType {
     BookTitle,  ///< The title of the book
@@ -55,9 +70,11 @@ enum class FieldType {
     Pages,      ///< The pages of the text, in the page view
     Words,      ///< The words of the text, as the counts of the program take them
     Date,       ///< The date, the time or both, today's
+    Custom,     ///< An own field of the book or of its series (TextField::key)
 };
 
-/// @brief The types of the fields, in the order of FieldType (the order of the window Field)
+/// @brief The types of the fields the program has, in the order of FieldType (the order of
+///        the tab Book, Text, Pages and Date of the window Field); not the own fields
 inline constexpr std::array<FieldType, 7> FIELD_TYPES = {
     FieldType::BookTitle, FieldType::Author, FieldType::TextTitle, FieldType::Page,
     FieldType::Pages,     FieldType::Words,  FieldType::Date};
@@ -66,8 +83,19 @@ inline constexpr std::array<FieldType, 7> FIELD_TYPES = {
 struct TextField {
     FieldType type = FieldType::BookTitle;  ///< What it shows
     QString format;  ///< The name of its format (fieldFormats()); empty: the type's first
+    QString key{};   ///< FieldType::Custom: the id of the own field it shows
+    QString name{};  ///< FieldType::Custom: its name when it was inserted (shown once it is gone)
 
     bool operator==(const TextField&) const = default;
+};
+
+/// @brief An own field of the book or of its series, as the fields in the text show it
+struct CustomFieldValue {
+    QString name;   ///< "Narrator's Name"
+    QString value;  ///< "Ilias"; empty: the field shows its name in brackets
+    QString description{};  ///< For the tooltip; may be empty
+
+    bool operator==(const CustomFieldValue&) const = default;
 };
 
 /// @brief What a field shows of the book and the text it is in
@@ -77,6 +105,7 @@ struct FieldContext {
     QString textTitle;  ///< The title of the text (of a file outside the book: its name)
     QString language;   ///< The book's language ("pl", "en-US"); empty: the program's
     QDateTime now;      ///< What the dates show; invalid: the time they are shown
+    QMap<QString, CustomFieldValue> customFields{};  ///< The own fields, by their ids
 
     bool operator==(const FieldContext&) const = default;
 };
@@ -113,7 +142,7 @@ bool hasTextFields(const QTextBlock& block);
 // =============================================================================
 
 /// @brief The name of a type in KML: "book-title", "author", "title", "page", "pages", "words",
-///        "date"
+///        "date", "custom"
 QString fieldTypeName(FieldType type);
 
 /// @brief The type a name stands for; std::nullopt for an unknown one
@@ -123,7 +152,8 @@ std::optional<FieldType> fieldTypeOfName(const QString& name);
 QString fieldTypeTitle(FieldType type);
 
 /// @brief The formats of a type, by name, the first the type's own:
-///        - the titles and the author: "" (as they are written), "upper" (in capitals);
+///        - the titles, the author and the own fields: "" (as they are written), "upper" (in
+///          capitals);
 ///        - the page and the pages: "1", "i", "I" (in Arabic or Roman numerals);
 ///        - the words: "" (in groups of digits: "12 345"), "plain" ("12345");
 ///        - the date: "long" (11 October 2026), "short" (11.10.2026), "full" (with the day of
@@ -151,9 +181,16 @@ QString dateText(const QDateTime& when, const QString& format, const QString& la
 
 /// @brief The text a field shows: its value in its format; in a view without pages "#" for the
 ///        page and the pages; for a value the book does not have (an author not written) the
-///        name of the type in brackets: "[Author]"
+///        name of the type in brackets: "[Author]", of an own field its name: "[Publisher]"
 QString textFieldText(const TextField& field, const FieldContext& context,
                       const FieldCounts& counts);
+
+/// @brief The name of a field as the writer reads it: of its type, of an own field its own
+///        ("Publisher"; once it is gone from the book, its name when it was inserted)
+QString textFieldTitle(const TextField& field, const FieldContext& context);
+
+/// @brief The own fields with the id @p key in a text; all of them for an empty key
+int customFieldCount(const QTextDocument& document, const QString& key = QString());
 
 /// @brief Whether a field shows its type's name in place of a value the book does not have
 bool isTextFieldEmpty(const TextField& field, const FieldContext& context);
@@ -168,6 +205,18 @@ QString textFieldKml(const TextField& field);
 
 /// @brief The field of the attributes of <field>; std::nullopt for an unknown type
 std::optional<TextField> textFieldOfKml(const QXmlStreamAttributes& attributes);
+
+/// @brief The own fields with the id @p key in a text's KML
+int customFieldCountInKml(const QString& kml, const QString& key);
+
+/// @brief The KML of a text with each own field of the id @p key in it changed: replaced by
+///        the text it shows of @p field (in its format, in the language @p language), or with
+///        @p asText false kept with the name of @p field (shown once the book has no such
+///        field)
+/// @param count How many it changed (may be null)
+QString customFieldsReplacedInKml(const QString& kml, const QString& key,
+                                  const CustomFieldValue& field, const QString& language,
+                                  bool asText, int* count = nullptr);
 
 }  // namespace kalahari::editor
 

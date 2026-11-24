@@ -54,7 +54,7 @@ QList<editor::ParagraphMark> ParagraphMarksCoordinator::clippingMarksOf(
     QList<editor::ParagraphMark> marks;
     const QTextDocument* document = editor.textDocument();
     if (elementId.isEmpty() || document == nullptr ||
-        !core::SettingsManager::getInstance().get<bool>(core::Clippings::MARKS_SETTING, false)) {
+        !core::SettingsManager::getInstance().get<bool>(core::Clippings::MARKS_SETTING, true)) {
         return marks;
     }
     const QStringList paragraphs = paragraphsOf(*document);

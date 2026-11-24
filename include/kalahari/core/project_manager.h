@@ -1072,6 +1072,31 @@ public:
     ///         element keeps its data then
     bool setPublishing(const QString& elementId, const PublishingData& data);
 
+    /// @brief Tick off the points @p done of the template of text @p elementId for publishers
+    /// (PublishingData::done)
+    ///
+    /// While its text has changes not saved (@p textChanged: those of its editor; or
+    /// hasUnsavedText()), the points wait for them: saveChapterContent() saves them with the
+    /// text, discardChapterContent() and closing the book without saving drop them with it,
+    /// so the points ticked off are always those of the text saved. Otherwise the .klh file
+    /// is saved at once.
+    /// @return false when the project has no such text, it is read-only or the file cannot be
+    ///         written; the text keeps its points then
+    bool setPublishingPoints(const QString& elementId, const QStringList& done, bool textChanged);
+
+    /// @brief The points ticked off of text @p elementId for publishers, also those waiting
+    ///        for its text (setPublishingPoints())
+    [[nodiscard]] QStringList publishingPointsOf(const QString& elementId) const;
+
+    /// @brief Whether points ticked off of text @p elementId wait for its text to be saved
+    [[nodiscard]] bool hasWaitingPoints(const QString& elementId) const;
+
+    /// @brief Save the points ticked off of text @p elementId that wait for its text to the
+    ///        .klh file: its text is the saved text again, so they are its points
+    /// @return true when they are saved or none wait; false when the file cannot be written,
+    ///         and the points wait then
+    bool saveWaitingPoints(const QString& elementId);
+
     /// @brief Give text @p elementId for publishers the state @p state
     /// (PublishingTexts::CHOSEN, REJECTED; empty: a draft) and save the .klh file once
     ///
@@ -1118,8 +1143,14 @@ public:
 
     /// @brief The text of text @p elementId for publishers or of another element of the set: its
     /// paragraphs, one per line, for an element with a text of its own (a chapter file), else
-    /// its description; empty for no element
+    /// its description; empty for no element. A text open in its editor has its changes not
+    /// saved (setEditorText()), as File > Export has the open texts.
     [[nodiscard]] QString publishingTextOf(const QString& elementId) const;
+
+    /// @brief Give text @p elementId for publishers the text @p kml of its editor, with changes
+    ///        not saved, which the set has (publishingTextOf()); saving or dropping the changes
+    ///        forgets it. Emits publishingTextChanged().
+    void setEditorText(const QString& elementId, const QString& kml);
 
     /// @brief The templates of the texts for publishers of the book: those of its type and of
     /// the packages the type uses (of all types for a book without a type), then the writer's
@@ -1371,6 +1402,41 @@ public:
     bool setParagraphStyles(const QList<BookParagraphStyle>& styles);
 
     // =========================================================================
+    // Sets of List Formats and Own Fields
+    // =========================================================================
+
+    /// @brief The writer's own sets of list formats of the project (BookProject::listSets);
+    ///        none without a project
+    [[nodiscard]] QList<BookListSet> listSets() const;
+
+    /// @brief Give the project these sets of list formats and save its .klh file
+    ///        (listSetsChanged())
+    /// @return false without a project, in a book open read-only, or when the file cannot be
+    ///         saved (the sets stay as they were)
+    bool setListSets(const QList<BookListSet>& sets);
+
+    /// @brief The writer's own fields of a book (ProjectBook::customFields)
+    /// @param bookId The book of a series; empty: the current book
+    [[nodiscard]] QList<BookCustomField> bookCustomFields(const QString& bookId = QString()) const;
+
+    /// @brief The writer's own fields of all the volumes (BookProject::seriesFields)
+    [[nodiscard]] QList<BookCustomField> seriesCustomFields() const;
+
+    /// @brief The values a book gives the fields of the series (ProjectBook::seriesFieldValues)
+    /// @param bookId The book of a series; empty: the current book
+    [[nodiscard]] QMap<QString, QString> seriesFieldValues(const QString& bookId = QString()) const;
+
+    /// @brief Give a book its own fields and the values of the fields of the series, the
+    ///        series its fields, and save the .klh file (customFieldsChanged())
+    /// @param bookId The book of a series; empty: the current book
+    /// @return false without a project, without such a book, in a book open read-only, or
+    ///         when the file cannot be saved (the fields stay as they were)
+    bool setCustomFields(const QList<BookCustomField>& bookFields,
+                         const QList<BookCustomField>& seriesFields,
+                         const QMap<QString, QString>& seriesValues,
+                         const QString& bookId = QString());
+
+    // =========================================================================
     // Dictionary of the Book
     // =========================================================================
 
@@ -1442,10 +1508,21 @@ public:
     /// @return Empty when the element is not a text element or its file cannot be read
     [[nodiscard]] QString chapterText(const QString& elementId) const;
 
-    /// @brief Forget the unsaved text of a text element; it is read from its file again
+    /// @brief The text (KML) of the chapter file of a text element, whatever unsaved text it
+    ///        has (setChapterContent())
+    /// @return Empty when the element is not a text element or its file cannot be read
+    [[nodiscard]] QString savedChapterText(const QString& elementId) const;
+
+    /// @brief Whether a text element has a text not saved yet (setChapterContent()), which
+    ///        the book saves with the rest (saveAllDirty(), getDirtyElements())
+    [[nodiscard]] bool hasUnsavedText(const QString& elementId) const;
+
+    /// @brief Forget the unsaved text of a text element, and the points of its template
+    ///        waiting for it (setPublishingPoints()); it is read from its file again
     void discardChapterContent(const QString& elementId);
 
-    /// @brief Write the unsaved text of a text element to its chapter file
+    /// @brief Write the unsaved text of a text element to its chapter file, and the points of
+    ///        its template waiting for it (setPublishingPoints()) to the .klh file
     ///
     /// The text written is kept as a version of the file too (VersionOrigin::Save), when the
     /// settings editor.versions.enabled and editor.versions.onSave say so and no version kept
@@ -1519,7 +1596,8 @@ public:
     QStringList deleteVersionsOf(const QStringList& files, bool trash);
 
     /// @brief Get all dirty elements
-    /// @return IDs of the text elements whose text is not saved
+    /// @return IDs of the text elements whose text is not saved, or whose points ticked off
+    ///         wait for it (setPublishingPoints())
     [[nodiscard]] std::vector<QString> getDirtyElements() const;
 
     /// @brief Save all dirty elements
@@ -1662,6 +1740,10 @@ signals:
     void linksChanged();
     /// @brief The paragraph styles of the project changed (setParagraphStyles())
     void paragraphStylesChanged();
+    /// @brief The writer's own sets of list formats changed (setListSets())
+    void listSetsChanged();
+    /// @brief The writer's own fields of a book or of the series changed (setCustomFields())
+    void customFieldsChanged();
     /// @brief The labels and the numbering of the book's captions changed (setBookCaptions())
     void bookCaptionsChanged();
 
@@ -1669,6 +1751,9 @@ signals:
     void bookFootnotesChanged();
     /// @brief The book's set of texts for publishers changed (setPublishingSet())
     void publishingSetChanged();
+    /// @brief The text of text @p elementId for publishers changed in its editor, or its
+    ///        changes not saved were dropped (setEditorText(), discardChapterContent())
+    void publishingTextChanged(const QString& elementId);
     /// @brief A bibliographic description, the source of a quote or the style of the book's
     /// bibliography changed (setSource(), setQuoteSource(), setBookBibliographyStyle())
     void sourcesChanged();
@@ -1708,6 +1793,12 @@ private:
         /// Words of the text in its editor, with changes that are not saved
         std::optional<WordTally> editorWords;
         QString notes;         ///< Notes of the chapter file
+        /// The points ticked off of a text for publishers while its text had changes not
+        /// saved: saved and dropped with them (setPublishingPoints())
+        std::optional<QStringList> waitingPoints;
+        /// The text (KML) of a text for publishers in its editor, with changes not saved
+        /// (setEditorText())
+        std::optional<QString> editorText;
     };
 
     /// @brief Set work mode and emit signal

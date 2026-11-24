@@ -692,8 +692,9 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
-    /// @brief Add... on @p item: the Add Element window with its kinds, the kind @p kind
-    /// chosen at the start; nothing when nothing can be added there
+    /// @brief Add... on @p item: the Add Element window with its kinds; with a kind @p kind
+    /// chosen by its name (Add Chapter...), the small window of that kind
+    /// (AddTarget::byName); nothing when nothing can be added there
     void addOn(const QTreeWidgetItem* item, const core::KindRef& kind = {});
 
     /// @brief Rename @p item: an element, a section, the book or the Workshop; nothing for the
@@ -811,8 +812,8 @@ private:
     /// @brief Add New Volume... to @p menu
     QAction* addNewVolumeAction(QMenu& menu) const;
 
-    /// @brief Add the commands of the volume of @p item to @p menu: New Volume..., Volume
-    /// Earlier and Volume Later
+    /// @brief Add the commands of the volume of @p item to @p menu: Volume Earlier and Volume
+    /// Later (New Volume... is in the menu of the project)
     /// @return The commands, which change the book
     QList<QAction*> addVolumeActions(QMenu& menu, const QTreeWidgetItem* item);
 
@@ -823,8 +824,8 @@ private:
     /// the series, so a book open read-only has it too
     void addTakeOutVolumeAction(QMenu& menu, const QTreeWidgetItem* item);
 
-    /// @brief Add the commands of the node of the book @p item to @p menu: Rename... and New
-    /// Volume... of a book, the commands of the volume (addVolumeActions()) in a series
+    /// @brief Add the commands of the node of the book @p item to @p menu: Rename... of a
+    /// book, the commands of the volume (addVolumeActions()) in a series
     /// @return The commands, which change the book
     QList<QAction*> addBookActions(QMenu& menu, const QTreeWidgetItem* item);
 
@@ -837,10 +838,10 @@ private:
     /// @return The commands that change the book: Delete Volume...
     QList<QAction*> addVolumeRemovalActions(QMenu& menu, const QTreeWidgetItem* item);
 
-    /// @brief Add the commands of the project's node to @p menu: New Volume... and Series
-    /// Properties... of a series, else Project Properties..., which waits for the types of
-    /// books; the commands that change the book go to @p changing
-    void addProjectActions(QMenu& menu, QList<QAction*>& changing);
+    /// @brief Add the properties of the project's node to @p menu: Series Properties... of a
+    /// series, else Project Properties..., which waits for the types of books (New Volume...
+    /// comes before them in the menu)
+    void addProjectActions(QMenu& menu);
 
     /// @brief The keys of a volume of a series on its node @p item: Alt+Up and Alt+Down move
     /// it, Delete deletes it; run only when @p run

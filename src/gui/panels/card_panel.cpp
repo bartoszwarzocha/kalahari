@@ -26,6 +26,8 @@ CardPanel::CardPanel(core::ProjectManager& book, CommandRegistry& commands,
     m_page->setDescriptionWidget(description);
     //: The editor of the long description of a card, for screen readers. In Polish: Opis karty
     description->setAccessibleName(tr("Description of the card"));
+    // A plain text field, as the other fields of the card (the test of 22.11)
+    setFieldLook(true);
     m_page->showCard(elementId);
 }
 

@@ -405,24 +405,37 @@ void CaptionCoordinator::insertCaption() {
     if (editor == nullptr || !whyNotInsert().isEmpty()) {
         return;
     }
-    const std::optional<int> image = editor->captionTargetImage();
-    if (!image) {
-        //: Insert > Caption... without an image at the cursor. In Polish: Wstaw podpis / Zaznacz
-        //: obraz albo ustaw kursor tuż za nim – podpis dodaje się do obrazu.
-        dialogs::MessageDialog::information(
-            m_window, tr("Insert Caption"),
-            tr("Select an image, or put the cursor just after it: a caption goes with an image."));
+    if (const std::optional<int> image = editor->captionTargetImage()) {
+        editCaption(*editor, *image);
         return;
     }
-    editCaption(*editor, *image);
+    if (const std::optional<int> table = editor->captionTargetTable()) {
+        editTableCaption(*editor, *table);
+        return;
+    }
+    //: Insert > Caption... without an image or a table at the cursor. In Polish: Wstaw podpis /
+    //: Zaznacz obraz albo ustaw kursor tuż za nim lub w tabeli – podpis dodaje się do obrazu
+    //: albo tabeli.
+    dialogs::MessageDialog::information(
+        m_window, tr("Insert Caption"),
+        tr("Select an image, or put the cursor just after it or in a table: a caption goes with "
+           "an image or a table."));
 }
 
 dialogs::InsertCaptionDialog::Data CaptionCoordinator::captionDialogData(
-    editor::BookEditor& editor, int position, editor::ImageCaption caption) {
+    editor::BookEditor& editor, int position, editor::ImageCaption caption, bool table) {
     dialogs::InsertCaptionDialog::Data data;
     data.labels = captions().labels;
     data.caption = std::move(caption);
-    if (data.caption.label.isEmpty()) {
+    data.table = table;
+    if (data.caption.label.isEmpty() && table) {
+        // A table's: Table, a label of the book from now on
+        const QString tableLabel = defaultTableCaptionLabel();
+        if (!data.labels.contains(tableLabel)) {
+            data.labels << tableLabel;
+        }
+        data.caption.label = tableLabel;
+    } else if (data.caption.label.isEmpty()) {
         const QString newImageLabel = settingsNewImageOptions().captionLabel;
         data.caption.label = data.labels.contains(newImageLabel) ? newImageLabel : data.labels.value(0);
     }
@@ -435,8 +448,12 @@ dialogs::InsertCaptionDialog::Data CaptionCoordinator::captionDialogData(
         data.usedLabels.insert(entry.label);
     }
     QPointer<editor::BookEditor> text(&editor);
-    data.numberOf = [text, position](const QString& label) {
-        return text ? text->captionNumberAt(position, label) : QString();
+    data.numberOf = [text, position, table](const QString& label) {
+        if (!text) {
+            return QString();
+        }
+        return table ? text->tableCaptionNumberAt(position, label)
+                     : text->captionNumberAt(position, label);
     };
     data.numberingOf = [this](const QString& label) {
         return numberingOf(captions().numberingOf(label));
@@ -474,6 +491,28 @@ bool CaptionCoordinator::editCaption(editor::BookEditor& editor, int position) {
     }
     keepLabels(bookCaptions, dialog.labels());
     const bool done = text->setImageCaption(position, dialog.caption());
+    refresh();
+    return done;
+}
+
+bool CaptionCoordinator::editTableCaption(editor::BookEditor& editor, int position) {
+    std::optional<editor::ImageCaption> current = editor.tableCaptionOf(position);
+    if (!current || editor.isReadOnly()) {
+        return false;
+    }
+    if (!current->shown) {
+        current->above = settingsTableCaptionAbove();  // a new one where the Settings say
+    }
+    refresh();  // the numbers of the book as they are now
+    const core::BookCaptions bookCaptions = captions();
+    QPointer<editor::BookEditor> text(&editor);
+    dialogs::InsertCaptionDialog dialog(captionDialogData(editor, position, *current, true),
+                                        m_window);
+    if (dialog.exec() != QDialog::Accepted || !text) {
+        return false;
+    }
+    keepLabels(bookCaptions, dialog.labels());
+    const bool done = text->setTableCaption(position, dialog.caption());
     refresh();
     return done;
 }

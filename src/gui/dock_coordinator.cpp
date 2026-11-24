@@ -22,6 +22,7 @@
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/spelling_panel.h"
 #include "kalahari/gui/panels/repetitions_panel.h"
+#include "kalahari/gui/panels/footnotes_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/panels/writing_stats_panel.h"
 #include "kalahari/gui/settings_dialog.h"
@@ -158,6 +159,7 @@ void DockCoordinator::createDocks() {
     createSearchDock();
     createAssistantDock();
     createAnnotationsDock();
+    createFootnotesDock();
     createSpellingDock();
     createRepetitionsDock();
     createStatisticsDock();
@@ -167,15 +169,18 @@ void DockCoordinator::createDocks() {
     m_mainWindow->tabifyDockWidget(m_paragraphDock, m_searchDock);
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
-    m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
+    m_mainWindow->tabifyDockWidget(m_annotationsDock, m_footnotesDock);
+    m_mainWindow->tabifyDockWidget(m_footnotesDock, m_spellingDock);
     m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
     m_mainWindow->tabifyDockWidget(m_repetitionsDock, m_statisticsDock);
 
     // The Spelling and Grammar panel is closed until opened (View > Panels, Next Spelling or
     // Grammar Issue); then its tab is next to the Annotations tab, which is on top by default.
-    // The Repetitions panel likewise (View > Panels, Tools > Word Repetitions), after them
+    // The Repetitions panel likewise (View > Panels, Tools > Word Repetitions), after them, and
+    // the Footnotes panel (View > Panels, the Panels toolbar), right after Annotations
     m_spellingDock->hide();
     m_repetitionsDock->hide();
+    m_footnotesDock->hide();
     m_annotationsDock->raise();
 
     // A panel on the right shown again: the bar that says they were hidden has done its job
@@ -204,6 +209,7 @@ void DockCoordinator::createDocks() {
     m_panelTabs->addPanel(m_searchDock, "view.search");
     m_panelTabs->addPanel(m_assistantDock, "view.assistant");
     m_panelTabs->addPanel(m_annotationsDock, "view.annotations");
+    m_panelTabs->addPanel(m_footnotesDock, "view.footnotes");
     m_panelTabs->addPanel(m_spellingDock, "view.spelling");
     m_panelTabs->addPanel(m_statisticsDock, "view.statistics");
     m_panelTabs->applySettings();
@@ -569,6 +575,21 @@ void DockCoordinator::createSpellingDock() {
     logger.debug("DockCoordinator: Spelling dock created");
 }
 
+void DockCoordinator::createFootnotesDock() {
+    m_footnotesPanel = new FootnotesPanel(m_commands, m_mainWindow);
+    //: The title of the Footnotes panel. In Polish: Przypisy
+    m_footnotesDock = new QDockWidget(tr("Footnotes"), m_mainWindow);
+    m_footnotesDock->setWidget(m_footnotesPanel);
+    m_footnotesDock->setObjectName("FootnotesDock");
+    setupDockTitleBar(m_footnotesDock, "view.footnotes", tr("Footnotes"));
+    // The cards of the panel are set in Settings > Editor > Writing, group Footnotes and Endnotes
+    //: The tooltip of the gear of the Footnotes panel. In Polish: Ustawienia przypisów
+    addSettingsButton(m_footnotesDock, QString::fromLatin1(SettingsDialog::FOOTNOTES_PAGE),
+                      tr("Footnote Settings"));
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_footnotesDock);
+    core::Logger::getInstance().debug("DockCoordinator: Footnotes dock created");
+}
+
 void DockCoordinator::createRepetitionsDock() {
     auto& logger = core::Logger::getInstance();
 
@@ -789,6 +810,7 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.search", m_searchDock);
     connectPanelCommand("view.assistant", m_assistantDock);
     connectPanelCommand("view.annotations", m_annotationsDock);
+    connectPanelCommand("view.footnotes", m_footnotesDock);
     connectPanelCommand("view.spelling", m_spellingDock);
     connectPanelCommand("view.repetitionsPanel", m_repetitionsDock);
     connectPanelCommand("view.statistics", m_statisticsDock);
@@ -810,6 +832,7 @@ void DockCoordinator::setupViewMenuActions() {
     m_viewSearchAction = createPanelAction("view.search", m_searchDock);
     m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock);
     m_viewAnnotationsAction = createPanelAction("view.annotations", m_annotationsDock);
+    m_viewFootnotesAction = createPanelAction("view.footnotes", m_footnotesDock);
     m_viewSpellingAction = createPanelAction("view.spelling", m_spellingDock);
     m_viewRepetitionsAction = createPanelAction("view.repetitionsPanel", m_repetitionsDock);
     m_viewStatisticsAction = createPanelAction("view.statistics", m_statisticsDock);
@@ -937,6 +960,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->removeDockWidget(m_searchDock);
     m_mainWindow->removeDockWidget(m_assistantDock);
     m_mainWindow->removeDockWidget(m_annotationsDock);
+    m_mainWindow->removeDockWidget(m_footnotesDock);
     m_mainWindow->removeDockWidget(m_spellingDock);
     m_mainWindow->removeDockWidget(m_repetitionsDock);
     m_mainWindow->removeDockWidget(m_paragraphDock);
@@ -950,6 +974,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_searchDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_assistantDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_annotationsDock);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_footnotesDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_spellingDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_repetitionsDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_statisticsDock);
@@ -959,7 +984,8 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->tabifyDockWidget(m_paragraphDock, m_searchDock);
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
-    m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
+    m_mainWindow->tabifyDockWidget(m_annotationsDock, m_footnotesDock);
+    m_mainWindow->tabifyDockWidget(m_footnotesDock, m_spellingDock);
     m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
     m_mainWindow->tabifyDockWidget(m_repetitionsDock, m_statisticsDock);
 
@@ -976,6 +1002,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_annotationsDock->show();
     m_spellingDock->hide();
     m_repetitionsDock->hide();
+    m_footnotesDock->hide();
     m_statisticsDock->show();
 
     // The Annotations tab is on top, as at the first start

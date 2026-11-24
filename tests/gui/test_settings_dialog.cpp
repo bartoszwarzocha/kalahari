@@ -21,6 +21,7 @@
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/editor/text_images.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -902,22 +903,24 @@ TEST_CASE("Settings dialog: the Materials page chooses how pages and PDF files o
     settings.set<std::string>(PdfFiles::OPEN_SETTING, pdfBefore);
 }
 
-TEST_CASE("Settings dialog: the Materials page allows the highlights of PDF files, off at "
+TEST_CASE("Settings dialog: the Materials page allows the highlights of PDF files, on at "
           "first",
           "[gui][settings][materials][highlights]") {
+    // Test of 22.11: nothing keeps them off at first (the PDF file stays as it is)
     auto& settings = kalahari::core::SettingsManager::getInstance();
-    const bool before = settings.get<bool>(PdfFiles::HIGHLIGHTS_SETTING, false);
-    settings.set<bool>(PdfFiles::HIGHLIGHTS_SETTING, false);
+    const bool before = settings.get<bool>(PdfFiles::HIGHLIGHTS_SETTING, true);
+    settings.removeKey(PdfFiles::HIGHLIGHTS_SETTING);  // the default
+    CHECK(PdfFiles::highlightsOn());
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QString(), QStringLiteral("Materials"));
     auto* highlights = dialog.findChild<QCheckBox*>(QStringLiteral("materialsPdfHighlights"));
     REQUIRE(highlights != nullptr);
-    CHECK_FALSE(highlights->isChecked());
+    CHECK(highlights->isChecked());
     CHECK(highlights->isEnabled() == PdfFiles::previewAvailable());
     if (PdfFiles::previewAvailable()) {
         highlights->click();
         CHECK(dialog.applyChanges().size() == 1);
-        CHECK(PdfFiles::highlightsOn());
+        CHECK_FALSE(PdfFiles::highlightsOn());
     }
     settings.set<bool>(PdfFiles::HIGHLIGHTS_SETTING, before);
 }
@@ -1149,8 +1152,30 @@ TEST_CASE("Settings dialog: Editor > Images sets new images, their copies and th
     applyButton(dialog)->click();
     CHECK(settingsNewImageOptions().maxDpi == 0);
 
+    // The room around a new image, in points: above, below and beside the text
+    auto* above = dialog.findChild<LengthSpinBox*>(QStringLiteral("imageSpaceAbove"));
+    auto* below = dialog.findChild<LengthSpinBox*>(QStringLiteral("imageSpaceBelow"));
+    auto* beside = dialog.findChild<LengthSpinBox*>(QStringLiteral("imageSpaceBeside"));
+    REQUIRE(above != nullptr);
+    REQUIRE(below != nullptr);
+    REQUIRE(beside != nullptr);
+    CHECK(above->storedValue() == Catch::Approx(kalahari::editor::DEFAULT_IMAGE_SPACE_ABOVE));
+    CHECK(below->storedValue() == Catch::Approx(kalahari::editor::DEFAULT_IMAGE_SPACE_BELOW));
+    CHECK(beside->storedValue() == Catch::Approx(kalahari::editor::DEFAULT_IMAGE_SPACE_BESIDE));
+    above->setStoredValue(12.0);
+    below->setStoredValue(0.0);
+    beside->setStoredValue(20.0);
+    applyButton(dialog)->click();
+    const kalahari::editor::BookEditor::NewImageOptions spaced = settingsNewImageOptions();
+    CHECK(spaced.spaceAbove == Catch::Approx(12.0));
+    CHECK(spaced.spaceBelow == Catch::Approx(0.0));
+    CHECK(spaced.spaceBeside == Catch::Approx(20.0));
+
     settings.set<int>(IMAGE_WIDTH_KEY, 0);
     settings.set<int>(IMAGE_MAX_DPI_KEY, 300);
+    settings.set<double>(IMAGE_SPACE_ABOVE_KEY, kalahari::editor::DEFAULT_IMAGE_SPACE_ABOVE);
+    settings.set<double>(IMAGE_SPACE_BELOW_KEY, kalahari::editor::DEFAULT_IMAGE_SPACE_BELOW);
+    settings.set<double>(IMAGE_SPACE_BESIDE_KEY, kalahari::editor::DEFAULT_IMAGE_SPACE_BESIDE);
 }
 
 TEST_CASE("Settings dialog: the default labels of captions are in the program's language",
@@ -1164,14 +1189,14 @@ TEST_CASE("Settings dialog: the default labels of captions are in the program's 
 
     const QStringList english{QStringLiteral("Figure"), QStringLiteral("Photo"),
                               QStringLiteral("Illustration"), QStringLiteral("Map"),
-                              QStringLiteral("Diagram")};
+                              QStringLiteral("Diagram"), QStringLiteral("Table")};
     CHECK(defaultCaptionLabels() == english);
     {
         const Polish polish;
         REQUIRE(polish.loaded());
         const QStringList polishLabels{QStringLiteral("Rysunek"), QStringLiteral("Fotografia"),
                                        QStringLiteral("Ilustracja"), QStringLiteral("Mapa"),
-                                       QStringLiteral("Schemat")};
+                                       QStringLiteral("Schemat"), QStringLiteral("Tabela")};
         CHECK(defaultCaptionLabels() == polishLabels);
         // Nothing stored: the settings and a new book have the labels in Polish
         CHECK(settingsCaptionLabels() == polishLabels);

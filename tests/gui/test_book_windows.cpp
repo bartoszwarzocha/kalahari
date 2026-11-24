@@ -9,6 +9,7 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/recent_books_manager.h>
 #include <kalahari/core/settings_manager.h>
+#include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/spell_check_service.h>
 #include <kalahari/gui/command_registry.h>
 #include <kalahari/gui/dialogs/message_dialog.h>
@@ -18,6 +19,8 @@
 #include <kalahari/gui/grammar_coordinator.h>
 #include <kalahari/gui/main_window.h>
 #include <kalahari/gui/menu_builder.h>
+#include <kalahari/gui/panels/editor_panel.h>
+#include <kalahari/gui/panels/navigator_panel.h>
 #include <kalahari/gui/settings_coordinator.h>
 #include <kalahari/gui/shortcut_settings.h>
 #include <kalahari/gui/special_character_coordinator.h>
@@ -28,13 +31,18 @@
 #include "kalahari_tests/gui/document_window.h"
 
 #include <QAbstractButton>
+#include <QAction>
 #include <QApplication>
 #include <QCheckBox>
+#include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QHash>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
 #include <QPushButton>
+#include <QStatusBar>
 #include <QTabBar>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -583,4 +591,220 @@ TEST_CASE("Book windows: what the windows share", "[gui][windows][book-windows]"
         CHECK(second->actions().contains(action));
         characters->setCharacterKeys(U'→', gui::KeyboardShortcut());
     }
+}
+
+TEST_CASE("Book windows: a command that runs is not greyed out in the menus for want of its "
+          "callback",
+          "[gui][windows][book-windows][commands]") {
+    // Test of 22.11: File > Import > DOCX Document... and the other formats stayed greyed out:
+    // their callbacks came after the menus were made, and their items were never told
+    const QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    core::ProjectManager::loadBookTypes(
+        {QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    auto window = std::make_unique<MainWindow>();
+    window->show();
+    QCoreApplication::processEvents();
+    const auto greyed = [&window]() {
+        QStringList ids;
+        for (const gui::Command& command : window->commands().getAllCommands()) {
+            QAction* action = window->commands().getAction(command.id);
+            if (action != nullptr && command.canExecute() && command.checkEnabled() &&
+                !action->isEnabled()) {
+                ids << QString::fromStdString(command.id);
+            }
+        }
+        return ids;
+    };
+    // Without a book, and with one
+    CHECK(greyed().join(QLatin1Char(' ')).toStdString() == std::string());
+    REQUIRE(window->book().createProject(folder.path(), QStringLiteral("Rain"),
+                                         QStringLiteral("Author"), QStringLiteral("en"), false,
+                                         QStringLiteral("kalahari.novel")));
+    QCoreApplication::processEvents();
+    CHECK(greyed().join(QLatin1Char(' ')).toStdString() == std::string());
+    for (const char* id : {"file.import.docx", "file.import.markdown", "file.import.text"}) {
+        INFO(id);
+        QAction* action = window->commands().getAction(std::string(id));
+        REQUIRE(action != nullptr);
+        CHECK(action->isEnabled());
+    }
+    REQUIRE(window->book().closeProject(false));
+}
+
+TEST_CASE("Book windows: File > Export has the program's formats together and PDF first",
+          "[gui][windows][book-windows][commands]") {
+    // Question of 22.11: EPUB stood under a separator, as if it were an add-on; the separator
+    // was left from the plan of the first menus (DOCX, PDF, Markdown, then the e-books)
+    auto window = std::make_unique<MainWindow>();
+    QMenu* file = nullptr;
+    for (QAction* item : window->menuBar()->actions()) {
+        if (item->menu() != nullptr && item->text().remove(QLatin1Char('&')) == "File") {
+            file = item->menu();
+        }
+    }
+    REQUIRE(file != nullptr);
+    QMenu* exportMenu = nullptr;
+    for (QAction* item : file->actions()) {
+        if (item->menu() != nullptr && item->text().remove(QLatin1Char('&')) == "Export") {
+            exportMenu = item->menu();
+        }
+    }
+    REQUIRE(exportMenu != nullptr);
+    QStringList items;
+    for (const QAction* item : exportMenu->actions()) {
+        items << (item->isSeparator() ? QStringLiteral("|") : item->text());
+    }
+    REQUIRE(items.size() >= 7);
+    CHECK(items.mid(0, 7) == QStringList{QStringLiteral("&PDF..."), QStringLiteral("&DOCX..."),
+                                         QStringLiteral("&EPUB..."),
+                                         QStringLiteral("&Markdown..."), QStringLiteral("|"),
+                                         QStringLiteral("&InDesign ICML"),
+                                         QStringLiteral("&LaTeX")});
+}
+
+namespace {
+
+/// The items of @p menu and of its submenus that are greyed out and say nothing: their
+/// command's tooltip and the status bar say no reason ("Menu › Item")
+void collectSilentGreys(const QMenu* menu, const QString& where,
+                        const QHash<const QAction*, const gui::Command*>& commands,
+                        QStringList& silent) {
+    for (const QAction* item : menu->actions()) {
+        if (item->isSeparator() || !item->isVisible()) {
+            continue;
+        }
+        const QString name = where + QStringLiteral(" › ") + item->text();
+        if (!item->isEnabled()) {
+            if (commands.contains(item) && item->statusTip().isEmpty()) {
+                silent << name;
+            }
+            continue;  // Its submenu does not open
+        }
+        if (item->menu() != nullptr) {
+            collectSilentGreys(item->menu(), name, commands, silent);
+        }
+    }
+}
+
+/// The items of the menus of @p window greyed out without a word
+QStringList silentGreys(MainWindow& window) {
+    for (int i = 0; i < 5; ++i) {
+        QCoreApplication::processEvents();
+    }
+    QHash<const QAction*, const gui::Command*> commands;
+    for (const gui::Command& command : window.commands().getAllCommands()) {
+        if (const QAction* action = window.commands().getAction(command.id)) {
+            commands.insert(action, window.commands().getCommand(command.id));
+        }
+    }
+    QStringList silent;
+    for (const QAction* top : window.menuBar()->actions()) {
+        if (top->menu() != nullptr) {
+            collectSilentGreys(top->menu(), top->text(), commands, silent);
+        }
+    }
+    return silent;
+}
+
+}  // namespace
+
+TEST_CASE("Book windows: a greyed out item of the menus says why", "[gui][windows][menus]") {
+    // Test of 22.11: the commands of the text, of the view and of the tabs were greyed out
+    // with no explanation in the tooltip and in the status bar
+    if (QGuiApplication::platformName() != QStringLiteral("offscreen")) {
+        SKIP("needs an active window without a window on screen: run with "
+             "QT_QPA_PLATFORM=offscreen");
+    }
+    const QTemporaryDir folder;
+    core::ProjectManager::loadBookTypes(
+        {QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    auto window = std::make_unique<MainWindow>();
+    window->show();
+    window->activateWindow();
+    REQUIRE(waitFor([&window] { return QApplication::activeWindow() == window.get(); }));
+
+    SECTION("no book is open") {
+        CHECK(silentGreys(*window).join(QLatin1Char('\n')).toStdString() == "");
+    }
+
+    SECTION("a book is open, the Dashboard in front") {
+        REQUIRE(window->book().createProject(folder.path(), QStringLiteral("Rain"),
+                                             QStringLiteral("Author"), QStringLiteral("en"),
+                                             false, QStringLiteral("kalahari.novel")));
+        CHECK(silentGreys(*window).join(QLatin1Char('\n')).toStdString() == "");
+    }
+
+    SECTION("a chapter is in front, with the keys in its text or in a field") {
+        REQUIRE(window->book().createProject(folder.path(), QStringLiteral("Rain"),
+                                             QStringLiteral("Author"), QStringLiteral("en"),
+                                             false, QStringLiteral("kalahari.novel")));
+        const QString chapter = window->book().addElement(
+            window->book().chapterKindFor(core::BookPlace::Main), QStringLiteral("The Storm"),
+            core::BookPlace::Main);
+        REQUIRE_FALSE(chapter.isEmpty());
+        window->openChapter(chapter, QStringLiteral("The Storm"));
+        gui::EditorPanel* panel = window->getCurrentEditor();
+        REQUIRE(panel != nullptr);
+        editor::BookEditor* text = panel->getBookEditor();
+        REQUIRE(text != nullptr);
+        text->setFocus(Qt::OtherFocusReason);
+        REQUIRE(waitFor([text] { return QApplication::focusWidget() == text; }));
+        CHECK(silentGreys(*window).join(QLatin1Char('\n')).toStdString() == "");
+
+        // The Navigator's filter: the commands of the text are greyed out there
+        auto* navigator = window->findChild<gui::NavigatorPanel*>();
+        REQUIRE(navigator != nullptr);
+        auto* field = navigator->findChild<QLineEdit*>();
+        REQUIRE(field != nullptr);
+        REQUIRE(field->isVisible());
+        field->setFocus(Qt::OtherFocusReason);
+        REQUIRE(waitFor([field] { return QApplication::focusWidget() == field; }));
+        CHECK(silentGreys(*window).join(QLatin1Char('\n')).toStdString() == "");
+        const QAction* selectWord = window->commands().getAction(std::string("edit.selectWord"));
+        REQUIRE(selectWord != nullptr);
+        CHECK_FALSE(selectWord->isEnabled());
+        CHECK(selectWord->statusTip() == QStringLiteral("The cursor is not in a text of the book"));
+    }
+    REQUIRE(window->book().closeProject(false));
+}
+
+TEST_CASE("Book windows: View > Show Status Bar hides it and shows it, the Toolbars after the "
+          "Panels",
+          "[gui][windows][menus]") {
+    // Menu review of 22.11: Show Status Bar did nothing; Toolbars was far from the Panels
+    const Setting<bool> shown("window.showStatusBar", true);
+    auto window = std::make_unique<MainWindow>();
+    window->show();
+    QCoreApplication::processEvents();
+    QAction* toggle = window->commands().getAction(std::string("view.showStatusBar"));
+    REQUIRE(toggle != nullptr);
+    REQUIRE(toggle->isEnabled());
+    CHECK(toggle->isCheckable());
+    CHECK(toggle->isChecked());
+    CHECK(window->statusBar()->isVisible());
+
+    toggle->trigger();
+    REQUIRE(waitFor([&window] { return !window->statusBar()->isVisible(); }));
+    CHECK_FALSE(core::SettingsManager::getInstance().get<bool>("window.showStatusBar", true));
+    CHECK_FALSE(toggle->isChecked());
+    toggle->trigger();
+    REQUIRE(waitFor([&window] { return window->statusBar()->isVisible(); }));
+    CHECK(core::SettingsManager::getInstance().get<bool>("window.showStatusBar", false));
+
+    QMenu* view = nullptr;
+    for (QAction* item : window->menuBar()->actions()) {
+        if (item->menu() != nullptr && item->text().remove(QLatin1Char('&')) == "View") {
+            view = item->menu();
+        }
+    }
+    REQUIRE(view != nullptr);
+    QStringList items;
+    for (const QAction* item : view->actions()) {
+        items << (item->isSeparator() ? QStringLiteral("|") : item->text().remove('&'));
+    }
+    const qsizetype panels = items.indexOf(QStringLiteral("Panels"));
+    REQUIRE(panels >= 0);
+    REQUIRE(panels + 1 < items.size());
+    CHECK(items.at(panels + 1) == QStringLiteral("Toolbars"));
 }

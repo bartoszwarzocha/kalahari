@@ -187,6 +187,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.bullets", "resources/icons/twotone/format_list_bulleted.svg", "Bullets");
     iconRegistry.registerIcon("format.numbering", "resources/icons/twotone/format_list_numbered.svg", "Numbering");
     iconRegistry.registerIcon("format.bulletsNumbering", "resources/icons/twotone/format_list_numbered.svg", "Bullets and Numbering");
+    iconRegistry.registerIcon("format.page", "resources/icons/twotone/fit_page.svg", "Page Size and Margins");
+    iconRegistry.registerIcon("format.listSets", "resources/icons/twotone/view_list.svg", "Pick List Set");
     iconRegistry.registerIcon("format.fontColor", "resources/icons/twotone/format_color_text.svg", "Font Color");
     iconRegistry.registerIcon("format.highlightColor", "resources/icons/twotone/border_color.svg", "Highlight Color");
     iconRegistry.registerIcon("format.copyFormatting", "resources/icons/twotone/format_paint.svg", "Copy Formatting");
@@ -220,6 +222,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("table.sort", "resources/icons/twotone/sort.svg", "Sort");
     iconRegistry.registerIcon("table.textToTable", "resources/icons/twotone/grid_on.svg", "Text to Table");
     iconRegistry.registerIcon("table.tableToText", "resources/icons/twotone/subject.svg", "Table to Text");
+    iconRegistry.registerIcon("table.caption", "resources/icons/twotone/subtitles.svg", "Insert Caption");
     iconRegistry.registerIcon("table.properties", "resources/icons/twotone/tune.svg", "Table Properties");
 
     // -------------------------------------------------------------------------
@@ -322,6 +325,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.assistant", "resources/icons/twotone/pets.svg", "Assistant");
     iconRegistry.registerIcon("view.log", "resources/icons/twotone/description.svg", "Log");
     iconRegistry.registerIcon("view.annotations", "resources/icons/twotone/comment.svg", "Annotations");
+    iconRegistry.registerIcon("view.footnotes", "resources/icons/twotone/superscript.svg", "Footnotes");
     iconRegistry.registerIcon("view.spelling", "resources/icons/twotone/spellcheck.svg",
                               "Spelling and Grammar");
     iconRegistry.registerIcon("view.repetitionsPanel", "resources/icons/twotone/repeat.svg", "Repetitions");

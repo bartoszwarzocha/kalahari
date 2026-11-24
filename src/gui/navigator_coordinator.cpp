@@ -20,6 +20,7 @@
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/card_panel.h"
@@ -241,7 +242,9 @@ void NavigatorCoordinator::discardChapterChanges(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
 
     // Forget the unsaved text ProjectManager keeps (single source of truth), with its words
+    // and the points of its template waiting for it, which the Properties panel shows
     m_book.discardChapterContent(elementId);
+    m_propertiesPanel->publishingBox()->showSaved(elementId);
 
     // Clear the display cache
     m_dirtyChapters[elementId] = false;
@@ -255,6 +258,18 @@ void NavigatorCoordinator::discardChapterChanges(const QString& elementId) {
 
     logger.debug("NavigatorCoordinator: Discarded changes for chapter: {}",
                  elementId.toStdString());
+}
+
+void NavigatorCoordinator::showUnsavedText(const QString& elementId) {
+    const bool unsaved = m_book.hasUnsavedText(elementId);
+    if (m_dirtyChapters.value(elementId, false) != unsaved) {
+        m_dirtyChapters[elementId] = unsaved;
+        emit chapterDirtyStateChanged(elementId, unsaved);
+        if (unsaved) {
+            emit documentModified();
+        }
+    }
+    m_propertiesPanel->updateWordCounts();
 }
 
 void NavigatorCoordinator::countWords() {
@@ -277,6 +292,11 @@ void NavigatorCoordinator::countWords() {
         if (const editor::BookEditor* bookEditor = editor->getBookEditor()) {
             pm.setEditorWords(elementId, core::WordTally::of(bookEditor->textCounts(),
                                                              bookEditor->wordCountRules()));
+        }
+        // The set for the publisher has a text for publishers as written
+        if (const core::ProjectElement* element = pm.findElement(elementId);
+            element != nullptr && core::ProjectManager::isPublishingText(*element)) {
+            pm.setEditorText(elementId, editor->getContent());
         }
     }
     m_propertiesPanel->updateWordCounts();
@@ -397,6 +417,11 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     // changes are reported once at application close. This avoids nagging on every
     // chapter switch (per the user's UX design: signal with an icon, prompt at close).
 
+    // A text changed while it was not open and not saved yet (Replace All in Book): the tab
+    // has its file as the saved text and the change as an edit, to save or to undo
+    const bool unsaved = pm.hasUnsavedText(elementId);
+    const QString unsavedText = unsaved ? pm.chapterText(elementId) : QString();
+
     // Load chapter content from file via ProjectManager
     logElapsed("Before loadChapterContent");
     QString content = pm.loadChapterContent(elementId);
@@ -467,6 +492,12 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
                 keepVersionBeforeReplaceAll(m_book, elementId, bookEditor->toKml(), found,
                                             replacement, count);
             });
+
+    // The change not saved, as an edit of the tab: it shows the "*" of a text to save
+    if (unsaved) {
+        m_dirtyChapters[elementId] = false;
+        newEditor->getBookEditor()->replaceWithKml(unsavedText);
+    }
 
     // Connect to statistics collector if available (OpenSpec #00042 Task 7.7)
     if (m_statisticsCollector) {
@@ -766,16 +797,20 @@ QList<const core::ProjectElement*> NavigatorCoordinator::saveTextsOf(
         if (changed) {
             pm.setChapterContent(element.id, editor->getContent());
         }
+        // Also a text not open, changed and not saved yet (Replace All in Book)
+        const bool toSave = changed || pm.hasUnsavedText(element.id);
         if (!pm.saveChapterContent(element.id)) {
             unsaved.append(&element);
-        } else if (changed) {
+        } else if (toSave) {
             // Saved: the tab and the Navigator no longer show changes
             m_dirtyChapters[element.id] = false;
             emit chapterDirtyStateChanged(element.id, false);
-            editor->setUnmodified();
-            const QString tabText = DocumentWindows::tabText(editor);
-            if (tabText.startsWith(QLatin1Char('*'))) {
-                DocumentWindows::setTabText(editor, tabText.mid(1));
+            if (changed) {
+                editor->setUnmodified();
+                const QString tabText = DocumentWindows::tabText(editor);
+                if (tabText.startsWith(QLatin1Char('*'))) {
+                    DocumentWindows::setTabText(editor, tabText.mid(1));
+                }
             }
         }
         // The file goes back to the book with its title, status and notes: a book made before
@@ -1067,7 +1102,9 @@ void NavigatorCoordinator::showChapterModified(const QString& elementId, EditorP
         emit chapterDirtyStateChanged(elementId, true);
         emit documentModified();
     } else {
-        // Back to the saved text: nothing to save, and the words are those of its file
+        // Back to the saved text: nothing to save, and the words are those of its file. The
+        // points of a template ticked off meanwhile are those of the saved text.
+        m_book.saveWaitingPoints(elementId);
         discardChapterChanges(elementId);
         if (tabText.startsWith(QLatin1Char('*'))) {
             DocumentWindows::setTabText(editor, tabText.mid(1));
@@ -1256,12 +1293,13 @@ bool NavigatorCoordinator::onRequestAddCard(const QString& title, const core::Ki
     AddTarget target;
     target.scope = AddTarget::Scope::Workshop;
     target.kind = kind;
-    return addWithWindow(target,
-                         [&title](dialogs::NewFileDialog& dialog) { dialog.setTitle(title); });
+    target.byName = true;
+    return addWithWindow(target, {}, title);
 }
 
 bool NavigatorCoordinator::addWithWindow(
-    const AddTarget& target, const std::function<void(dialogs::NewFileDialog&)>& prepare) {
+    const AddTarget& target, const std::function<void(dialogs::NewFileDialog&)>& prepare,
+    const QString& title) {
     auto& logger = core::Logger::getInstance();
     auto& pm = m_book;
     auto* window = qobject_cast<QWidget*>(parent());
@@ -1279,7 +1317,25 @@ bool NavigatorCoordinator::addWithWindow(
         logger.warn("NavigatorCoordinator: Nothing can be added there");
         return false;
     }
+
+    // A card chosen by its name needs no window: it is added at once, with the name given or
+    // the proposed one ("Character 3"), and its form opens with the name selected
+    if (book.byName && book.kinds.at(book.current).kind.kind->isCard()) {
+        const dialogs::NewFileKind& entry = book.kinds.at(book.current);
+        const QString name = title.simplified().isEmpty() ? entry.title : title.simplified();
+        const QString elementId = pm.addElement(entry.kind, name, entry.place.place,
+                                                entry.place.groupId, entry.place.index);
+        if (!showAddedOrWhy(elementId, entry.kind, name)) {
+            return false;
+        }
+        emit documentModified();
+        return true;
+    }
+
     dialogs::NewFileDialog dialog(book, pm.bookTypes(), window);
+    if (!title.isEmpty()) {
+        dialog.setTitle(title);
+    }
     if (prepare) {
         prepare(dialog);
     }
@@ -1287,9 +1343,7 @@ bool NavigatorCoordinator::addWithWindow(
         return false;
     }
     const core::KindRef kind = dialog.kind();
-    const QString title = dialog.title();
-    // The messages name the kind added: "Working note added", "Could not add a story"
-    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
+    const QString chosenTitle = dialog.title();
 
     // A material is a copy of a file in the Workshop's folder, a picture saved there, a web
     // address or none of them; any other element gets its chapter file, and ProjectManager
@@ -1300,7 +1354,7 @@ bool NavigatorCoordinator::addWithWindow(
     const QImage picture = dialog.materialPicture();
     if (material) {
         core::NewMaterial newMaterial;
-        newMaterial.title = title;
+        newMaterial.title = chosenTitle;
         if (!picture.isNull()) {
             newMaterial.data = IncomingMaterials::pngOf(picture);
             newMaterial.fileName =
@@ -1318,41 +1372,27 @@ bool NavigatorCoordinator::addWithWindow(
         elementId = pm.addMaterial(newMaterial, kind);
     } else if (const QString part = dialog.publishingPart(); !part.isEmpty()) {
         // A text for publishers of its part, with its template
-        elementId = pm.addPublishingText(part, dialog.publishingTemplate(), title);
+        elementId = pm.addPublishingText(part, dialog.publishingTemplate(), chosenTitle);
     } else {
-        elementId = pm.addElement(kind, title, at.place, at.groupId, at.index,
+        elementId = pm.addElement(kind, chosenTitle, at.place, at.groupId, at.index,
                                   dialog.takeInside(), std::nullopt, dialog.status());
     }
-    if (elementId.isEmpty()) {
-        logger.error("NavigatorCoordinator: Failed to add '{}'", title.toStdString());
-        //: In Polish: Nie udało się dodać {kind:genitive}
-        const QString heading = core::fillWords(tr("Add {Kind} Failed"), nouns);
-        if (material && !dialog.materialFile().isEmpty()) {
-            //: %1: the file the writer chose. In Polish: Nie udało się dodać kopii pliku do
-            //: książki:\n%1\nSzczegóły są w dzienniku programu.
-            dialogs::MessageDialog::warning(
-                window, heading,
-                tr("The copy of the file could not be added to the book:\n%1\nThe program's "
-                   "log has the details.")
-                    .arg(QDir::toNativeSeparators(dialog.materialFile())));
-        } else if (material && !picture.isNull()) {
-            //: In Polish: Nie udało się zapisać obrazu w książce. Szczegóły są w dzienniku
-            //: programu.
-            dialogs::MessageDialog::warning(
-                window, heading,
-                tr("The picture could not be saved in the book. The program's log has the "
-                   "details."));
-        } else {
-            dialogs::MessageDialog::warning(window, heading, tr("Failed to save changes."));
-        }
+    QString why;
+    if (material && !dialog.materialFile().isEmpty()) {
+        //: %1: the file the writer chose. In Polish: Nie udało się dodać kopii pliku do
+        //: książki:\n%1\nSzczegóły są w dzienniku programu.
+        why = tr("The copy of the file could not be added to the book:\n%1\nThe program's "
+                 "log has the details.")
+                  .arg(QDir::toNativeSeparators(dialog.materialFile()));
+    } else if (material && !picture.isNull()) {
+        //: In Polish: Nie udało się zapisać obrazu w książce. Szczegóły są w dzienniku
+        //: programu.
+        why = tr("The picture could not be saved in the book. The program's log has the "
+                 "details.");
+    }
+    if (!showAddedOrWhy(elementId, kind, chosenTitle, elementId.isEmpty() ? why : QString())) {
         return false;
     }
-    logger.info("NavigatorCoordinator: Added '{}' (id={})", title.toStdString(),
-                elementId.toStdString());
-
-    showAdded(elementId, title);
-    //: In Polish: Dodano {kind:accusative}: %1
-    m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(title), 2000);
     if (material) {
         // What the writer asked the program to download comes after; the card of the new
         // material opens in the middle of the window, ready for its description
@@ -1363,6 +1403,27 @@ bool NavigatorCoordinator::addWithWindow(
         onRequestOpenMaterialCard(elementId, true);
     }
     emit documentModified();
+    return true;
+}
+
+bool NavigatorCoordinator::showAddedOrWhy(const QString& elementId, const core::KindRef& kind,
+                                          const QString& title, const QString& why) {
+    auto& logger = core::Logger::getInstance();
+    // The messages name the kind added: "Working note added", "Could not add a story"
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
+    if (elementId.isEmpty()) {
+        logger.error("NavigatorCoordinator: Failed to add '{}'", title.toStdString());
+        //: In Polish: Nie udało się dodać {kind:genitive}
+        const QString heading = core::fillWords(tr("Add {Kind} Failed"), nouns);
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()), heading,
+                                        why.isEmpty() ? tr("Failed to save changes.") : why);
+        return false;
+    }
+    logger.info("NavigatorCoordinator: Added '{}' (id={})", title.toStdString(),
+                elementId.toStdString());
+    showAdded(elementId, title);
+    //: In Polish: Dodano {kind:accusative}: %1
+    m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(title), 2000);
     return true;
 }
 
@@ -1393,6 +1454,8 @@ void NavigatorCoordinator::onRequestNewChapter() {
         target = AddTarget{};
         target.kind = pm.chapterKindFor(core::BookPlace::Main);
     }
+    // A chapter by its name: the small window of its title
+    target.byName = true;
     onRequestAdd(target);
 }
 
@@ -1441,8 +1504,14 @@ void NavigatorCoordinator::showAdded(const QString& elementId, const QString& ti
         return;
     }
 
-    // A text opens in the editor, ready for writing at its start
+    // A text opens in the editor, ready for writing at its start; a card on its form, with
+    // the name selected, so that typing replaces the proposed one ("Character 3")
     onElementSelected(elementId, title);
+    if (auto* card = qobject_cast<CardPanel*>(m_centralTabs->currentWidget());
+        card != nullptr && card->elementId() == elementId) {
+        card->page()->focusName();
+        return;
+    }
     if (EditorPanel* editor = getCurrentEditor();
         editor != nullptr && editor->property("elementId").toString() == elementId) {
         editor->getBookEditor()->setCursorPosition(editor::CursorPosition{});

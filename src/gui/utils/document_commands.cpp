@@ -83,7 +83,7 @@ const std::vector<std::string>& documentCommands() {
         "format.pasteFormatting", "format.clearFormatting",
         "format.alignLeft",   "format.alignCenter", "format.alignRight",    "format.justify",
         "format.increaseIndent", "format.decreaseIndent", "format.bullets", "format.numbering",
-        "format.bulletsNumbering",
+        "format.listSets",    "format.bulletsNumbering",
         "format.style.heading1", "format.style.heading2", "format.style.heading3",
         "format.style.body",  "format.style.quote", "format.style.dialogue", "format.style.code",
         "view.mode.continuous", "view.mode.page",   "view.zoomIn",          "view.zoomOut",
@@ -103,7 +103,7 @@ const std::vector<std::string>& changingDocumentCommands() {
         "format.clearFormatting", "format.alignLeft",
         "format.alignCenter", "format.alignRight",
         "format.justify",   "format.increaseIndent", "format.decreaseIndent",
-        "format.bullets",   "format.numbering", "format.bulletsNumbering",
+        "format.bullets",   "format.numbering", "format.listSets", "format.bulletsNumbering",
         "format.style.heading1", "format.style.heading2",
         "format.style.heading3", "format.style.body", "format.style.quote",
         "format.style.dialogue", "format.style.code"};

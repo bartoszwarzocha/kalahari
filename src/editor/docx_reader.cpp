@@ -342,6 +342,35 @@ int headingLevelOfName(const QString& name) {
     return match.hasMatch() ? match.captured(1).toInt() : 0;
 }
 
+/// The prefix, the levels above shown and the suffix of a numbered level from Word's text of
+/// it ("§ %1.%2."): the text before its first number, how many numbers go before its own and
+/// the text after its own; a text without numbers gives the suffix "."
+void readLevelText(const QString& text, int level, ListLevel& format) {
+    static const QRegularExpression number(QStringLiteral("%[1-9]"));
+    format.bullet.clear();
+    format.prefix.clear();
+    format.shownLevels = 0;
+    qsizetype first = -1;
+    qsizetype afterLast = -1;
+    int numbers = 0;
+    QRegularExpressionMatchIterator matches = number.globalMatch(text);
+    while (matches.hasNext()) {
+        const QRegularExpressionMatch match = matches.next();
+        if (first < 0) {
+            first = match.capturedStart();
+        }
+        afterLast = match.capturedEnd();
+        ++numbers;
+    }
+    if (numbers == 0) {
+        format.suffix = QStringLiteral(".");
+        return;
+    }
+    format.prefix = text.left(first);
+    format.suffix = text.mid(afterLast);
+    format.shownLevels = std::clamp(numbers - 1, 0, level);
+}
+
 /// The bullet of a list's level of Word: its text, the characters of Symbol and Wingdings as
 /// the bullets they show
 QString bulletOf(const QString& text) {
@@ -725,9 +754,7 @@ private:
                 format.format = ListNumberFormat::Decimal;
             }
             noNumber[static_cast<size_t>(index)] = numberFormat == QLatin1String("none");
-            const qsizetype last = text.lastIndexOf(QLatin1Char('%'));
-            format.suffix = last >= 0 && last + 2 <= text.size() ? text.mid(last + 2) : QStringLiteral(".");
-            format.bullet.clear();
+            readLevelText(text, index, format);
         };
         if (abstract) {
             for (const Node& level : abstract->children) {

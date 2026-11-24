@@ -332,6 +332,7 @@ set(KALAHARI_SOURCES
     gui/book_texts.cpp  # The texts of the book in reading order, the saved text of one not open
     gui/caption_coordinator.cpp  # CaptionCoordinator - the numbered captions of the book
     gui/book_export_coordinator.cpp  # BookExportCoordinator - the export of the book to DOCX and Markdown
+    gui/printer_driver.cpp  # The settings of the driver of a printer (Windows)
     gui/plugin_coordinator.cpp  # The commands and panels of the plugins in a book window
     gui/book_import_texts.cpp  # The texts of an imported file added to the book, and Undo import
     gui/book_import_plan.cpp  # The plan of an import: the files read, the texts, their kinds and styles
@@ -344,6 +345,9 @@ set(KALAHARI_SOURCES
     gui/clippings_coordinator_steps.cpp  # ClippingsCoordinator - the undo of the texts, the tabs
     gui/cards_in_text_coordinator.cpp  # CardsInTextCoordinator - the cards in the texts
     gui/field_coordinator.cpp  # FieldCoordinator - the fields of the open texts, Insert > Field...
+    gui/own_fields.cpp  # The writer's own fields of a book and of its series
+    gui/list_sets.cpp  # The sets of list formats: built-in, of the book and of the program
+    gui/list_sets_menu.cpp  # ListSetsMenu - Format > Pick List Set, the arrows of Numbering and Bullets
     gui/go_to_coordinator.cpp  # GoToCoordinator - Edit > Go To..., the window of the places of the text
     gui/dialogs/style_dialog.cpp  # StyleDialog - New Style and Modify Style, in two variants
     gui/dialogs/manage_styles_dialog.cpp  # ManageStylesDialog - Format > Text Style > Manage Styles
@@ -371,11 +375,13 @@ set(KALAHARI_SOURCES
     gui/settings/appearance_pages.cpp
     gui/settings/editor_pages.cpp
     gui/settings/images_page.cpp
+    gui/settings/tables_page.cpp
     gui/settings/auto_correct_page.cpp  # Settings > Editor > Auto-correct
     gui/settings/quick_insert_page.cpp  # Settings > Editor > Quick Insert
     gui/settings/repetitions_page.cpp  # Settings > Editor > Repetitions
     gui/settings/versions_page.cpp  # Settings > Editor > Versions
     gui/settings/clippings_page.cpp  # Settings > Editor > Clippings
+    gui/settings/lists_page.cpp  # Settings > Editor > Lists
     gui/settings/annotations_page.cpp
     gui/settings/navigator_page.cpp  # Settings > Navigator
     gui/settings/cards_page.cpp  # Settings > Cards
@@ -398,6 +404,7 @@ set(KALAHARI_SOURCES
     gui/widgets/path_label.cpp  # A file path that wraps also inside a long name
     gui/widgets/length_spin_box.cpp
     gui/widgets/color_menu.cpp             # The submenus Font Color and Highlight Color
+    gui/widgets/list_set_tile.cpp          # A tile of a set of list formats
     gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
     gui/widgets/plot_board_view.cpp  # PlotBoardView - the cards of the texts of the book
     gui/widgets/plot_board_view_input.cpp  # PlotBoardView - its keys, the mouse, a card dragged
@@ -407,6 +414,7 @@ set(KALAHARI_SOURCES
     gui/widgets/cover_plan.cpp  # CoverPlan - the plan of the cover with its materials in their places
     gui/widgets/publishing_set_view.cpp  # PublishingSetView - the set for a publisher as a page
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
+    gui/widgets/collapsible_section.cpp  # Fields under a header that opens and closes them
     gui/widgets/wrapping_button.cpp  # A button that wraps its text only where it does not fit
     gui/widgets/flow_layout.cpp  # A row of buttons that wraps on a narrow panel
     gui/widgets/card_bar.cpp  # The commands of the bar over a tab in the middle of the window
@@ -441,6 +449,7 @@ set(KALAHARI_SOURCES
     gui/panels/annotations_panel.cpp
     gui/panels/assistant_panel.cpp
     gui/panels/dashboard_panel.cpp
+    gui/widgets/loading_overlay.cpp       # The card of a book being opened: darkened, a spinner
     gui/panels/dashboard_layouts.cpp  # The Dashboard on a narrow or a low panel
     gui/panels/editor_panel.cpp
     gui/panels/log_panel.cpp
@@ -448,6 +457,9 @@ set(KALAHARI_SOURCES
     gui/panels/navigator_panel_series.cpp
     gui/panels/properties_panel.cpp
     gui/panels/plot_fields_box.cpp   # PlotFieldsBox - the plot of a text in the Properties panel
+    gui/panels/book_fields_box.cpp   # BookFieldsBox - the own fields of the book in the Properties panel
+    gui/panels/footnotes_panel.cpp   # FootnotesPanel - the footnotes and endnotes of a text or the book
+    gui/footnotes_panel_coordinator.cpp  # The Footnotes panel and the texts
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
     gui/widgets/own_fields_box.cpp  # OwnFieldsBox - the writer's own fields of a material or a card
     gui/widgets/relations_box.cpp  # RelationsBox - the relations of a card with the other cards
@@ -685,6 +697,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_menu.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/list_sets_menu.h  # ListSetsMenu with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h  # InfoBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_board_view.h  # PlotBoardView with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_card_editor.h  # PlotCardEditor with Q_OBJECT
@@ -693,6 +706,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/collapsible_section.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h  # StandaloneInfoBar with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/element_place_picker.h  # ElementPlacePicker with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
@@ -714,12 +728,16 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/loading_overlay.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/log_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_fields_box.h  # PlotFieldsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/book_fields_box.h  # BookFieldsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/footnotes_panel.h  # FootnotesPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnotes_panel_coordinator.h  # FootnotesPanelCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/own_fields_box.h  # OwnFieldsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/relations_box.h  # RelationsBox with Q_OBJECT
@@ -829,6 +847,7 @@ target_include_directories(kalahari PRIVATE
 # OpenSpec #00042: Added Hunspell for spell checking (via pkg-config)
 target_link_libraries(kalahari PRIVATE
     kalahari_core
+    kalahari_build_info  # What the program is built from (kalahari/build_info.h)
     Qt6::Core
     Qt6::Widgets
     Qt6::Gui
@@ -838,6 +857,12 @@ target_link_libraries(kalahari PRIVATE
 )
 target_include_directories(kalahari PRIVATE ${HUNSPELL_INCLUDE_DIRS})
 target_link_directories(kalahari PRIVATE ${HUNSPELL_LIBRARY_DIRS})
+
+# Windows: the settings of the driver of the printer go to the print engine of Qt (its
+# private API) and come from the driver itself (src/gui/printer_driver.cpp)
+if(WIN32)
+    target_link_libraries(kalahari PRIVATE Qt6::PrintSupportPrivate winspool)
+endif()
 
 # The preview of PDF files (PDFium)
 if(KALAHARI_PDF_AVAILABLE)

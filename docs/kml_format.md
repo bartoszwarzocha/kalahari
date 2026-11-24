@@ -85,7 +85,7 @@ reading.
 | `keep-together` | Flag | All its lines on one page |
 | `page-break-before` | Flag | Starts on a new page |
 | `widow-control` | Flag | No single line of it alone at the top or bottom of a page; on without the attribute |
-| `caption` | `above` | A caption above its image (see [Captions](#captions-cross-references-and-the-list-of-figures)); without it a caption is below its image |
+| `caption` | `above` | A caption above its image or table (see [Captions](#captions-cross-references-and-the-list-of-figures)); without it a caption is below its image or table |
 | `point`, `hint` | Text | A heading of a point of a skeleton: the id of the point in its template and what to write under it (see [The skeleton of a text for publishers](#the-skeleton-of-a-text-for-publishers)) |
 
 A paragraph without `align` has no alignment of its own and is shown with the alignment of its
@@ -207,6 +207,14 @@ paragraph: an item of the list.
   and its element gives the format of that level: a level may have numbers and the next one
   bullets. The levels a list does not write have the formats of a list of its kind (numbered:
   1., a), i. and again from the fourth level on; bulleted: •, ◦, ▪ and again).
+- **Multilevel numbers.** A level writes its mark as its `prefix`, the numbers of the levels
+  above it that it shows (`show-levels`), its own number and its `suffix`: with `prefix="§ "`
+  on the first level and `show-levels="1"` on the second, the items are § 1., 1.1., 1.2., § 2.
+  Word keeps them in the text of its level (`§ %1.`, `%1.%2.`), and the EPUB and the HTML of
+  the clipboard write such a mark out in front of the item, as HTML lists have no text around
+  their numbers. The sets of all nine levels at once (Format > Bullets and Numbering..., the
+  tab Sets) are kept in the settings and in the book (`listSets` of the `.klh` file), not in
+  the KML: a list keeps its formats, whatever set they came from.
 - **The numbers** of a list are counted over the whole chapter: a paragraph outside the list
   between two of its parts leaves the numbering going on (Format > Continue Numbering), which
   KML writes with `continue="true"` on the list after it. A list without it starts its numbers
@@ -227,7 +235,9 @@ paragraph: an item of the list.
 |-----------|---------|--------|---------|
 | `type` | `<ol>` | `1`, `a`, `A`, `i`, `I` (`1` without it) | The numbers: 1, 2, 3; a, b, c ... z, aa; A, B, C; i, ii, iii; I, II, III |
 | `type` | `<ul>` | `disc`, `circle`, `square`, `dash`, `check`, `arrow` or the bullet itself (`disc` without it) | The bullet: •, ◦, ▪, –, ✓, ➢ or any other character |
-| `suffix` | `<ol>` | Text (`.` without it) | After the number: `.` or `)` |
+| `suffix` | `<ol>` | Text (`.` without it) | After the number: `.`, `)`, `:` or any text |
+| `prefix` | `<ol>` | Text (none without it) | Before the number: `(`, `§ `, `Step ` |
+| `show-levels` | `<ol>` | Number (0 without it) | How many levels right above this one show their numbers before its own, each with a full stop after it: `1` on the second level gives 1.1., `2` on the third 1.1.1.; at most the levels above it, a level above with bullets shows none |
 | `start` | `<ol>` | Number | The number of the first item (1 without it) |
 | `marker-indent` | Both | Points | From the start of the text to the number or bullet; without it 18 points for each level (the first 18, the second 36) |
 | `text-indent` | Both | Points | From the start of the text to the text of the item; without it 18 points more than `marker-indent` |
@@ -296,6 +306,7 @@ it: its first item gets the number it has in the chapter as `value`.
   | `border-style` | `solid` (default), `dashed`, `dotted`, `double` | The style of the lines |
   | `border-width` | a length, at most 6 pt (default 0.5 pt) | The width of the lines |
   | `border-color` | `#rrggbb` | The color of the lines; without it the color set in Settings > Editor > Colors, for the light and the dark mode |
+  | `space-above`, `space-below` | a length, at most 72 pt (default 6 pt) | The room between the table and the text above and below it; a caption of the table is inside it, next to the table, and the room goes on the caption's far side. A new table gets the room of Settings > Editor > Tables |
 
 - **A row's attributes** (the Row tab): `height` – the least height of the row, a length (at
   most 22 inches); without it the row is as high as its text. `split="true"` – the row may be
@@ -379,6 +390,8 @@ it: its first item gets the number it has in the chapter as `value`.
 | `border-padding` | A length up to `72pt` | The room between the line (or the shadow) and the picture |
 | `shadow` | `true` | A shadow to the right and down of the picture |
 | `wrap` | `left`, `right`, `top-bottom` | The text flows around the image: the image on the left or the right of the text column, the next paragraphs beside it; or the text above and below it. Without it, the image is a part of its line |
+| `space-above`, `space-below` | A length up to `72pt`; `6pt` without it | The room above and below an image alone in its paragraph, its caption inside it |
+| `space-beside` | A length up to `72pt`; `8.5pt` (0.3 cm) without it | With `wrap` on the left or the right: the room between the image and the lines beside it |
 
 - **An image is a part of its line**, as a large character: it stands on the baseline, the
   paragraph's alignment places it, and the text, the undo, the clipboard and drag and drop take
@@ -406,11 +419,18 @@ it: its first item gets the number it has in the chapter as `value`.
   may be above or below it), outside a table; elsewhere the image stays a part of its line and
   keeps the attribute. Beside the text, the image is as wide as it is (at most the column), with
   its caption under or above it as wide; the lines of the paragraphs after it go beside it,
-  0.3 cm from it, while it reaches down, and below it where the room beside it is less than
-  2.5 cm. A table, a horizontal line and a break go below it. Two images on the same side go one
+  `space-beside` from it, while it reaches down, and below it where the room beside it is less
+  than 2.5 cm. A table, a horizontal line and a break go below it. Two images on the same side go one
   under the other. Above and below the text with page flow, an image that does not fit in the
   rest of its page goes on to the top of the next page with its caption, and the text after it
   fills the rest of the page; in the continuous views it stays where the text puts it.
+- **The room around it.** An image alone in its paragraph has `space-above` above it and
+  `space-below` below it, added to the spacing of its paragraph's style, so the text above and
+  below it does not touch it; its caption is inside that room, next to the image, and the
+  room goes on the caption's far side. An image in a line of text keeps the attributes and
+  takes no room. Word (`w:spacing` of the paragraphs, `distB`, `distL`, `distR` of an image
+  beside the text) and EPUB (`margin-top`, `margin-bottom`) get the same room. New images take
+  it from Settings > Editor > Images (`editor.images.spaceAbove`, `spaceBelow`, `spaceBeside`).
 - **The file.** `src` names a file in the book's main folder, without `..`, a drive or a
   scheme; any other `src` (`/home/...`, `C:\...`, `https://...`) is never read and is shown as
   a missing file. A text outside a book names its images relative to its own folder. The
@@ -446,8 +466,11 @@ it: its first item gets the number it has in the chapter as `value`.
 A **caption** is a paragraph in the style Caption (`caption`) right after its image's paragraph,
 or right before it with `caption="above"`, in the same table cell when the image is in a
 table: Insert > Caption... (also Image > Insert Caption...) gives an image one, Image
-Properties > Caption changes it. Its label ("Figure") is plain text the writer can change;
-its number is a field:
+Properties > Caption changes it. A table's caption is the paragraph right before the table
+with `caption="above"`, or right after it without: Insert > Caption... with the cursor in the
+table (also Table > Insert Caption...) gives it one, with the label "Table" and above the
+table unless Settings > Editor > Tables say below. Its label ("Figure") is plain text the
+writer can change; its number is a field:
 
 | Element | Attribute | Value | Meaning |
 |---------|-----------|-------|---------|
@@ -792,6 +815,21 @@ it has no text of its own in the file and adds nothing to the word and character
 | `pages` | The pages of the text | `1`, `i`, `I` |
 | `words` | The words of the text, as the status bar counts them | none (grouped in the book's language: `12 345`), `plain` (`12345`) |
 | `date` | Today's date or the time, in the book's language | `long` (`11 October 2026`), `short` (`11.10.2026` in Polish), `full` (with the day of the week), `iso` (`2026-10-11`), `time` (`14:35`), `date-time` (`11.10.2026, 14:35`) |
+| `custom` | The value of an own field of the book or of its series (Insert > Field..., the tab Own; the Properties panel): its `id` names the field, its `name` is the field's name when it was inserted | none, `upper` |
+
+```xml
+<p>Told by <field type="custom" id="field-3f2a9c1b7d44" name="Narrator"/>.</p>
+```
+
+- An own field is kept in the `.klh` file: in `customFields` of its book, or in `seriesFields`
+  of the series, the same in all the volumes (a volume that gives it a value of its own keeps
+  it in its `seriesFieldValues`). A new
+  value shows in the open texts at once and in the others as they open; the export and the
+  printing take the value as it is. Without a value the field shows its name in brackets
+  (`[Narrator]`); a field the book no longer has shows its `name` in brackets, and Edit
+  Field... or Convert to Text fixes it. Deleting an own field (Insert > Field..., the tab Own)
+  turns its places into plain text of its value, or leaves them as empty fields to fix, in one
+  step that Undo takes back in every text.
 
 - A field of an unknown `type` is left out; an unknown `format` is read as the type's first. The
   editor writes the format only when it is not the type's first.

@@ -125,6 +125,7 @@ void SettingsDialog::createNavigationTree() {
     });
     m_pageItems[FIELDS_PAGE] = m_pageItems[WORD_COUNT_PAGE];
     m_pageItems[PASTE_PAGE] = m_pageItems[WORD_COUNT_PAGE];
+    m_pageItems[FOOTNOTES_PAGE] = m_pageItems[WORD_COUNT_PAGE];
     m_pageItems[EDITOR_COLORS_PAGE] =
         addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
@@ -136,6 +137,10 @@ void SettingsDialog::createNavigationTree() {
     m_pageItems[MARGIN_NUMBERING_PAGE] = addPage(editor, tr("Margin Numbering"), []() {
         return new EditorPagesPage(EditorPagesPage::Part::MarginNumbers);
     });
+    //: Settings > Editor > Lists: the sets of list formats. In Polish: Listy
+    m_pageItems[LISTS_PAGE] = addPage(editor, tr("Lists"), [this]() {
+        return new EditorListsPage(m_book, m_commands);
+    });
     //: Settings > Editor > Images: new images, the captions of new books. In Polish: Obrazy
     m_pageItems[IMAGES_PAGE] = addPage(editor, tr("Images"), [this]() {
         auto* imagesPage = new EditorImagesPage();
@@ -143,6 +148,9 @@ void SettingsDialog::createNavigationTree() {
                 [this]() { openPage(QString::fromLatin1(EDITOR_COLORS_PAGE)); });
         return imagesPage;
     });
+    //: Settings > Editor > Tables: new tables, the captions of tables. In Polish: Tabele
+    m_pageItems[TABLES_PAGE] =
+        addPage(editor, tr("Tables"), []() { return new EditorTablesPage(); });
     m_pageItems[SPELLING_PAGE] =
         addPage(editor, tr("Spelling"), [this]() {
             auto* spellingPage = new EditorSpellingPage(m_spelling, m_book.isProjectOpen());
@@ -408,13 +416,19 @@ bool SettingsDialog::openPage(const QString& page) {
         if (auto* shortcuts = m_pageStack->findChild<ShortcutsPage*>()) {
             shortcuts->setFocus(Qt::OtherFocusReason);
         }
-    } else if (page == QLatin1String(FIELDS_PAGE) || page == QLatin1String(PASTE_PAGE)) {
-        // The cursor in the gray background of the fields, in the Paste Command, in view
+    } else if (page == QLatin1String(FIELDS_PAGE) || page == QLatin1String(PASTE_PAGE) ||
+               page == QLatin1String(FOOTNOTES_PAGE)) {
+        // The cursor in the gray background of the fields, in the Paste Command, in the words
+        // before the numbers of the Footnotes panel, in view
         const auto built = m_builtPages.find(item->second);
         auto* scrollArea =
             built != m_builtPages.end() ? qobject_cast<QScrollArea*>(built->second) : nullptr;
-        const QString name = page == QLatin1String(FIELDS_PAGE) ? QStringLiteral("fieldShading")
-                                                                : QStringLiteral("pasteMode");
+        QString name = QStringLiteral("pasteMode");
+        if (page == QLatin1String(FIELDS_PAGE)) {
+            name = QStringLiteral("fieldShading");
+        } else if (page == QLatin1String(FOOTNOTES_PAGE)) {
+            name = QStringLiteral("footnotesPanelBefore");
+        }
         auto* field = scrollArea != nullptr ? scrollArea->findChild<QWidget*>(name) : nullptr;
         if (field != nullptr) {
             field->setFocus(Qt::OtherFocusReason);

@@ -10,6 +10,7 @@
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/card_names.h"
+#include "kalahari/core/chapter_document.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/theme_manager.h"
@@ -835,7 +836,6 @@ int BookSearchCoordinator::replaceAllInBook() {
     const Query query = *m_query;
     Step step;
     int changed = 0;
-    const std::vector<QString> dirty = projects.getDirtyElements();
     for (const TextMatches& text : m_found) {
         if (editor::BookEditor* editor = openNow.value(text.elementId, nullptr)) {
             // An open text: one step of its undo history, saved with the rest of it (the book
@@ -847,7 +847,8 @@ int BookSearchCoordinator::replaceAllInBook() {
             }
             continue;
         }
-        // A text not open: its file, unless it has other changes not saved yet
+        // A text not open: the book keeps it changed, not saved, among the texts to save (the
+        // writer saves them, test of 22.11); the book keeps the text before it as a version
         const QString kml = projects.chapterText(text.elementId);
         int count = 0;
         const QString replaced =
@@ -856,16 +857,8 @@ int BookSearchCoordinator::replaceAllInBook() {
             continue;
         }
         keepVersionBeforeReplaceAll(m_book, text.elementId, kml, query.text, replacement, count);
-        const bool clean = std::find(dirty.cbegin(), dirty.cend(), text.elementId) == dirty.cend();
-        projects.setChapterContent(text.elementId, replaced);
-        const bool saved = clean && projects.saveChapterContent(text.elementId);
-        if (clean && !saved) {
-            core::Logger::getInstance().warn(
-                "BookSearchCoordinator: the text of {} with its matches replaced could not be "
-                "saved",
-                text.elementId.toStdString());
-        }
-        step.savedTexts.append({text.elementId, kml, saved});
+        keepText(text.elementId, replaced);
+        step.savedTexts.append({text.elementId, kml});
         changed += count;
     }
     m_undo = step;
@@ -880,16 +873,29 @@ int BookSearchCoordinator::replaceAllInBook() {
     shareHistory(openTexts);
     watchStep(step);
 
+    // Nothing is saved: the changed texts have their "*" in the tabs and in the Navigator
+    // until the writer saves them (test of 22.11)
     //: In Polish: Zamieniono %n trafienie w książce. / Zamieniono %n trafienia w książce. /
     //: Zamieniono %n trafień w książce.
-    const QString message = tr("%n matches replaced in the book.", nullptr, changed);
+    QString message = tr("%n matches replaced in the book.", nullptr, changed);
+    //: After "%n matches replaced in the book." In Polish: Zmienione teksty nie są jeszcze
+    //: zapisane – mają „*” w Nawigatorze.
+    message += QLatin1Char(' ') +
+               tr("The changed texts are not saved yet – they have a \"*\" in the Navigator.");
     EditorPanel* front = m_centralTabs != nullptr
                              ? qobject_cast<EditorPanel*>(DocumentWindows::of(*m_centralTabs).frontPage())
                              : nullptr;
-    if (m_showNotice && front != nullptr) {
+    if (m_showNotice) {
+        // Under the text in front, else under any tab
         //: In Polish: &Cofnij / Cofnij zamianę w książce
-        m_showNotice(front, message, tr("&Undo"), tr("Undo the replacement in the book"),
-                     [this]() { undo(); });
+        const NoticeButton undoButton{tr("&Undo"), tr("Undo the replacement in the book"),
+                                      [this]() { undo(); }};
+        //: The second button of the bar after Replace All in Book, as File > Save All. In
+        //: Polish: &Zapisz wszystko / Zapisz wszystkie zmienione teksty i dane książki
+        const NoticeButton saveAllButton{tr("&Save All"),
+                                         tr("Save all the changed texts and data of the book"),
+                                         [this]() { saveAll(); }};
+        m_showNotice(front, message, undoButton, saveAllButton);
     } else {
         say(message);
     }
@@ -985,11 +991,8 @@ void BookSearchCoordinator::take(const Step& step, bool forward) {
         }
     }
     for (const SavedText& text : taken.savedTexts) {
-        back.savedTexts.append({text.elementId, projects.chapterText(text.elementId), text.saved});
-        projects.setChapterContent(text.elementId, text.kml);
-        if (text.saved) {
-            projects.saveChapterContent(text.elementId);
-        }
+        back.savedTexts.append({text.elementId, projects.chapterText(text.elementId)});
+        keepText(text.elementId, text.kml);
     }
     m_taking = false;
 
@@ -1030,6 +1033,25 @@ void BookSearchCoordinator::undoFor(editor::BookEditor& text) {
 void BookSearchCoordinator::redoFor(editor::BookEditor& text) {
     Q_UNUSED(text)
     redo();
+}
+
+void BookSearchCoordinator::keepText(const QString& elementId, const QString& kml) {
+    // The text of its file again: nothing to save; else kept, not saved, with its words
+    if (kml == m_book.savedChapterText(elementId)) {
+        m_book.saveWaitingPoints(elementId);  // the points ticked off of the saved text
+        m_book.discardChapterContent(elementId);
+    } else {
+        m_book.setChapterContent(elementId, kml);
+        m_book.setEditorWords(elementId, core::ChapterDocument::kmlWordTally(kml));
+    }
+    emit unsavedTextChanged(elementId);
+}
+
+void BookSearchCoordinator::saveAll() {
+    if (const Command* command = m_commands.getCommand("file.saveAll");
+        command != nullptr && command->canExecute()) {
+        command->execute();
+    }
 }
 
 void BookSearchCoordinator::watchStep(const Step& step) {

@@ -55,6 +55,9 @@ inline constexpr int LIST_UNNUMBERED_PROPERTY = QTextFormat::UserProperty + 144;
 /// @brief Number of levels of a list
 inline constexpr int LIST_LEVELS = 9;
 
+/// @brief The numbers of an item's level and of the levels above it, from the first level
+using ListPath = std::array<int, LIST_LEVELS>;
+
 /// @brief Smallest and largest number of an item
 inline constexpr int MIN_LIST_NUMBER = 0;
 inline constexpr int MAX_LIST_NUMBER = 32767;
@@ -89,11 +92,19 @@ inline constexpr char16_t BULLET_CHECK = u'✓';   ///< ✓
 inline constexpr char16_t BULLET_ARROW = u'➢';   ///< ➢
 
 /// @brief The format of one level of a list
+///
+/// A level with numbers writes its mark as its prefix, the numbers of the levels above it it
+/// shows (shownLevels, each with a full stop after it), its own number and its suffix: with
+/// the prefix "§ ", one level above shown and the suffix ".", the third item under the second
+/// one is "§ 2.3.".
 struct ListLevel {
     ListNumberFormat format = ListNumberFormat::Decimal;
-    QString suffix = QStringLiteral(".");  ///< After the number: "." or ")"
+    QString suffix = QStringLiteral(".");  ///< After the number: ".", ")", ":" or any text
     QString bullet;           ///< The bullet (ListNumberFormat::Bullet)
     int start = 1;            ///< Number of the first item
+    QString prefix;           ///< Before the number: "(", "§ ", "Step "; empty: none
+    int shownLevels = 0;      ///< How many levels right above this one show their numbers
+                              ///< before its own (1 on the second level: 1.1.); 0: none
     qreal markerIndent = LIST_INDENT_STEP;      ///< Points from the start of the text to
                                                 ///< the number
     qreal textIndent = 2.0 * LIST_INDENT_STEP;  ///< Points from the start of the text to
@@ -143,8 +154,21 @@ struct ListDefinition {
 ///        (empty for Bullet; an alphabetic number past z goes on aa, bb...)
 QString listNumberText(int number, ListNumberFormat format);
 
-/// @brief The mark of an item of a level: its number with the suffix, or the bullet
+/// @brief The mark of an item of a level without the numbers of the levels above it: its
+///        number with the prefix and the suffix, or the bullet
 QString listMarkerText(const ListLevel& level, int number);
+
+/// @brief The mark of an item of a list: its number with the prefix, the numbers of the
+///        levels above it the level shows (ListLevel::shownLevels) and the suffix, or the
+///        bullet ("§ 2.3.")
+/// @param level The item's level (0 to LIST_LEVELS - 1)
+/// @param numbers The numbers of the item's level and of the levels above it; a level above
+///        with bullets shows no number
+QString listMarkerText(const ListDefinition& definition, int level, const ListPath& numbers);
+
+/// @brief The marks of the first three levels of a list, one item each, as its name: "1. –
+///        a) – i.", "1. – 1.1. – 1.1.1.", "• – ◦ – ▪"
+QString listDefinitionSummary(const ListDefinition& definition);
 
 /// @brief A number as written in a format ("3", "c", "iii", in either case) or in digits;
 ///        nothing for a text that is not one, or a number past MIN_LIST_NUMBER to
@@ -204,6 +228,11 @@ std::vector<QString> listMarkers(const QTextDocument& document, bool* hasItems =
 ///        as a numbered one)
 std::vector<int> listNumbers(const QTextDocument& document);
 
+/// @brief The numbers of each item of a document and of the levels above it, by block number,
+///        as listMarkers() counts them; nothing outside a list and for an item without a
+///        number. A level above that has no item yet has the number its level starts at.
+std::vector<std::optional<ListPath>> listPaths(const QTextDocument& document);
+
 // =============================================================================
 // KML
 // =============================================================================
@@ -213,7 +242,9 @@ QString kmlListElementOf(const ListLevel& level);
 
 /// @brief The format of a level from the attributes of its <ol> or <ul> element
 ///
-/// <ol>: type ("1", "a", "A", "i", "I"; "1" without one), suffix ("." without one), start.
+/// <ol>: type ("1", "a", "A", "i", "I"; "1" without one), suffix ("." without one), start,
+/// prefix (none without one), show-levels (the levels above shown in the number, 0 without
+/// one).
 /// <ul>: type ("disc", "circle", "square", "dash", "check", "arrow" or the bullet itself;
 /// "disc" without one). Both: marker-indent, text-indent (points; without them those of the
 /// level), marker-align ("left", "center", "right").

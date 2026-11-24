@@ -18,11 +18,11 @@ namespace kalahari::gui {
 
 /// @brief A message across the text area, in the theme's colors of an info bar
 ///
-/// +----------------------------------------------------------------------+
-/// | [i] The message, in more lines when the bar is narrow.  [Action] [X] |
-/// +----------------------------------------------------------------------+
+/// +-------------------------------------------------------------------------------+
+/// | [i] The message, in more lines when the bar is narrow.  [Action] [Second] [X] |
+/// +-------------------------------------------------------------------------------+
 ///
-/// The button does what the message suggests; without its text the bar has none. The close
+/// The buttons do what the message suggests; without their texts the bar has none. The close
 /// button only reports that the bar was dismissed: whoever shows the bar hides it.
 class InfoBar : public QFrame {
     Q_OBJECT
@@ -46,9 +46,18 @@ public:
     /// @brief Whether the button can be clicked; greyed out when not
     void setActionEnabled(bool enabled);
 
+    /// @brief The text of the second button, after the first one; empty: none
+    void setSecondActionText(const QString& text);
+
+    /// @brief The tooltip of the second button
+    void setSecondActionToolTip(const QString& toolTip);
+
 signals:
     /// @brief The button was clicked
     void actionClicked();
+
+    /// @brief The second button was clicked (setSecondActionText())
+    void secondActionClicked();
 
     /// @brief The close button was clicked
     void dismissed();
@@ -63,6 +72,7 @@ private:
     QLabel* m_iconLabel = nullptr;
     QLabel* m_messageLabel = nullptr;
     QPushButton* m_actionButton = nullptr;
+    QPushButton* m_secondButton = nullptr;
     QToolButton* m_closeButton = nullptr;
 };
 

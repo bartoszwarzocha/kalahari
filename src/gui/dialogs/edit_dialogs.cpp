@@ -22,6 +22,7 @@
 #include <QLatin1Char>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMenu>
 #include <QMimeData>
 #include <QPalette>
 #include <QPushButton>
@@ -136,6 +137,30 @@ QString formName(editor::PasteForm form)
         case editor::PasteForm::Image:
             //: In Polish: Obraz
             return PasteSpecialDialog::tr("Image");
+    }
+    return {};
+}
+
+/// The name of a form as an item of the submenu Paste Special, with its access key
+QString formItemName(editor::PasteForm form)
+{
+    switch (form) {
+        case editor::PasteForm::Kalahari:
+            //: An item of the submenu Paste Special of the text's context menu. In Polish:
+            //: Format &Kalahari (z uwagami)
+            return PasteSpecialDialog::tr("&Kalahari Format (with annotations)");
+        case editor::PasteForm::Source:
+            //: In Polish: &Zachowaj formatowanie źródła
+            return PasteSpecialDialog::tr("Keep &Source Formatting");
+        case editor::PasteForm::Merge:
+            //: In Polish: &Scal formatowanie
+            return PasteSpecialDialog::tr("&Merge Formatting");
+        case editor::PasteForm::Text:
+            //: In Polish: &Tylko tekst
+            return PasteSpecialDialog::tr("&Text Only");
+        case editor::PasteForm::Image:
+            //: In Polish: &Obraz
+            return PasteSpecialDialog::tr("&Image", "paste form");
     }
     return {};
 }
@@ -350,6 +375,23 @@ bool PasteSpecialDialog::pasteInto(editor::BookEditor& text, QWidget* parent)
     }
     text.pasteInForm(dialog.form());
     return true;
+}
+
+void PasteSpecialDialog::fillMenu(QMenu& menu, editor::BookEditor& text)
+{
+    const Data shown = dataFor(text, QGuiApplication::clipboard()->mimeData());
+    menu.setToolTipsVisible(true);
+    for (const editor::PasteForm form : PASTE_FORMS) {
+        QAction* item = menu.addAction(formItemName(form));
+        item->setObjectName(QStringLiteral("pasteSpecial%1").arg(static_cast<int>(form)));
+        if (std::ranges::find(shown.forms, form) == shown.forms.end()) {
+            item->setEnabled(false);
+            item->setToolTip(whyNoForm(form, shown));
+            continue;
+        }
+        QObject::connect(item, &QAction::triggered, &text,
+                         [&text, form]() { text.pasteInForm(form); });
+    }
 }
 
 QString PasteSpecialDialog::sourceName(editor::ClipboardSource source)

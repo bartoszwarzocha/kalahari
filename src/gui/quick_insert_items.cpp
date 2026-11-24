@@ -14,6 +14,7 @@
 #include "kalahari/editor/quick_insert.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/name_labels.h"
+#include "kalahari/gui/own_fields.h"
 
 #include <QCoreApplication>
 
@@ -318,7 +319,31 @@ QString quickInsertTriggers() {
     return triggers;
 }
 
-QList<editor::QuickInsertItem> quickInsertItems(const core::ProjectManager& book, QChar trigger) {
+QList<editor::QuickInsertItem> fieldItems(const core::ProjectManager& book,
+                                          const QString& bookId) {
+    QList<editor::QuickInsertItem> items;
+    if (!book.isProjectOpen()) {
+        return items;
+    }
+    for (const OwnField& field : own_fields::of(book, bookId)) {
+        editor::QuickInsertItem item;
+        item.source = editor::QuickInsertSource::Field;
+        item.name = field.name;
+        item.text = field.value;
+        //: Quick insert: beside an own field without a value. In Polish: bez wartości
+        item.detail = field.value.trimmed().isEmpty() ? QuickInsert::tr("no value")
+                                                      : field.value.simplified();
+        //: Quick insert: the heading of the own fields of the book in the list. In Polish:
+        //: Własne pola
+        item.group = QuickInsert::tr("Own Fields");
+        item.field = field.id;
+        items.append(item);
+    }
+    return items;
+}
+
+QList<editor::QuickInsertItem> quickInsertItems(const core::ProjectManager& book, QChar trigger,
+                                                const std::optional<QString>& fieldsOf) {
     QStringList sources;
     if (trigger == QLatin1Char('@')) {
         sources = sourcesOf(quick_insert_keys::AT_SOURCES);
@@ -327,7 +352,8 @@ QList<editor::QuickInsertItem> quickInsertItems(const core::ProjectManager& book
     } else {
         sources = {QString::fromLatin1(quick_insert_keys::SOURCE_CARDS),
                    QString::fromLatin1(quick_insert_keys::SOURCE_FRAGMENTS),
-                   QString::fromLatin1(quick_insert_keys::SOURCE_CHARACTERS)};
+                   QString::fromLatin1(quick_insert_keys::SOURCE_CHARACTERS),
+                   QString::fromLatin1(quick_insert_keys::SOURCE_FIELDS)};
     }
 
     QList<editor::QuickInsertItem> items;
@@ -349,6 +375,9 @@ QList<editor::QuickInsertItem> quickInsertItems(const core::ProjectManager& book
                 items.append(item);
             }
         }
+    }
+    if (fieldsOf && sources.contains(QLatin1String(quick_insert_keys::SOURCE_FIELDS))) {
+        items.append(fieldItems(book, *fieldsOf));
     }
     return items;
 }

@@ -19,6 +19,7 @@
 class QLabel;
 class QLineEdit;
 class QListWidget;
+class QMenu;
 class QMimeData;
 class QPushButton;
 class QVBoxLayout;
@@ -61,6 +62,11 @@ public:
     /// @brief The window over @p parent for the clipboard, and the paste in the form chosen
     /// @return Whether it pasted
     static bool pasteInto(editor::BookEditor& text, QWidget* parent);
+
+    /// @brief The forms of the window as the items of @p menu, the submenu Paste Special of
+    ///        the text's context menu: each pastes the clipboard in its form; those the
+    ///        clipboard has not are greyed out, their tooltips saying why
+    static void fillMenu(QMenu& menu, editor::BookEditor& text);
 
     /// @brief The name of a source: "Microsoft Word", "a web page or another program"
     [[nodiscard]] static QString sourceName(editor::ClipboardSource source);

@@ -56,6 +56,7 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSet>
 #include <QSignalBlocker>
 #include <QSortFilterProxyModel>
 #include <QSpacerItem>
@@ -69,6 +70,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <limits>
 #include <optional>
 #include <string>
 #include <utility>
@@ -220,15 +222,14 @@ QString copyCommandOf(const MaterialRow& row) {
     return MaterialList::tr("&Copy");
 }
 
-/// The name of the group of @p row: of a text for publishers or of a part of the cover; in a
-/// series with its volume
+/// The name of the group of @p row: of a text for publishers or of a part of the cover (in a
+/// series under the row that names its volume); of the row that names a volume, the volume's
 QString groupNameOf(const MaterialRow& row) {
-    const QString part = row.publishing || row.fromCover ? PublishingNames::groupName(row.group)
-                                                         : CoverNames::groupName(row.group);
-    //: The name of a group of the list of the cover or of the texts for publishers of a
-    //: series: %1 its volume, or the whole series, %2 what its materials are. In Polish: %1 –
-    //: %2
-    return row.volume.isEmpty() ? part : MaterialList::tr("%1 – %2").arg(row.volume, part);
+    if (row.volumeHeading) {
+        return row.volume;
+    }
+    return row.publishing || row.fromCover ? PublishingNames::groupName(row.group)
+                                           : CoverNames::groupName(row.group);
 }
 
 /// Whether @p first and @p second are in one group of the list of the cover or of the texts
@@ -237,38 +238,56 @@ bool sameGroup(const MaterialRow& first, const MaterialRow& second) {
     return first.group == second.group && first.volumeOrder == second.volumeOrder;
 }
 
-/// The place of the group of @p row in the list: by its volume of a series, then by its part
+/// Whether material @p row is under heading @p heading: in its group, or in its volume of a
+/// series for the row that names the volume
+bool isUnder(const MaterialRow& row, const MaterialRow& heading) {
+    return heading.volumeHeading ? row.volumeOrder == heading.volumeOrder
+                                 : sameGroup(row, heading);
+}
+
+/// The place of the group of @p row in the list: by its volume of a series, then by its part;
+/// the row that names a volume before the groups of the volume
 std::pair<int, int> groupPlaceOf(const MaterialRow& row) {
-    return {row.volumeOrder, groupOrderOf(row.group)};
+    return {row.volumeOrder,
+            row.volumeHeading ? std::numeric_limits<int>::min() : groupOrderOf(row.group)};
 }
 
 /// The rows that name the groups of @p rows in the list of the cover or of the texts for
-/// publishers, each with its name and its number of materials, in the order of the rows
+/// publishers, each with its name and its number of materials, in the order of the rows; in a
+/// series also a row that names each volume (and the whole series) over its groups, which
+/// collapses and expands them (test of 22.11: the volumes did not collapse)
 QList<MaterialRow> headingsOf(const QList<MaterialRow>& rows) {
     QList<MaterialRow> headings;
     QList<int> counts;
-    for (const MaterialRow& row : rows) {
-        const auto same = std::find_if(headings.cbegin(), headings.cend(),
-                                       [&row](const MaterialRow& heading) {
-                                           return sameGroup(heading, row);
-                                       });
+    const auto count = [&headings, &counts](const MaterialRow& row, bool volume) {
+        const auto same = std::find_if(
+            headings.cbegin(), headings.cend(), [&row, volume](const MaterialRow& heading) {
+                return heading.volumeHeading == volume && isUnder(row, heading);
+            });
         if (same != headings.cend()) {
             ++counts[same - headings.cbegin()];
-            continue;
+            return;
         }
         MaterialRow heading;
-        heading.group = row.group;
+        heading.group = volume ? QString() : row.group;
         heading.volume = row.volume;
         heading.volumeOrder = row.volumeOrder;
+        heading.volumeHeading = volume;
         heading.publishing = row.publishing;
         heading.fromCover = row.fromCover;
         headings << heading;
         counts << 1;
+    };
+    for (const MaterialRow& row : rows) {
+        count(row, false);
+        if (!row.volume.isEmpty()) {
+            count(row, true);
+        }
     }
     for (qsizetype i = 0; i < headings.size(); ++i) {
         MaterialRow& heading = headings[i];
-        //: The row that names a group of the list of the cover: %1 its name, %2 its
-        //: number of materials. In Polish: %1 · %2
+        //: The row that names a group of the list of the cover, or a volume of a series: %1
+        //: its name, %2 its number of materials. In Polish: %1 · %2
         heading.heading = MaterialList::tr("%1 · %2").arg(groupNameOf(heading),
                                                           QLocale().toString(counts.at(i)));
         heading.publishing = false;
@@ -511,15 +530,48 @@ public:
                                            : option.rect.width();
         painter->save();
         painter->setClipRect(option.rect);
-        painter->fillRect(option.rect, option.palette.color(QPalette::Button));
+        // The row of a volume of a series: chosen with the keys, it shows it as the others do
+        const QVariant collapsed = index.data(MaterialListPanel::COLLAPSED_ROLE);
+        const bool volume = collapsed.isValid();
+        const bool chosen = volume && option.state.testFlag(QStyle::State_Selected);
+        painter->fillRect(option.rect, option.palette.color(chosen ? QPalette::Highlight
+                                                                   : QPalette::Button));
         QFont font = option.font;
         font.setBold(true);
         painter->setFont(font);
-        painter->setPen(option.palette.color(QPalette::Normal, QPalette::ButtonText));
-        const QRect text(left + 8, option.rect.top(), std::max(0, width - 16),
+        painter->setPen(option.palette.color(
+            QPalette::Normal, chosen ? QPalette::HighlightedText : QPalette::ButtonText));
+        // Its arrow, as the arrows of the trees; the groups of a volume a step to the right
+        const int arrow = option.rect.height();
+        const int indent = volume || index.data(MaterialListPanel::HEADING_LEVEL_ROLE).toInt() > 0
+                               ? arrow + 4
+                               : 0;
+        if (volume) {
+            QStyleOption branch;
+            branch.rect = QRect(left + 4, option.rect.top(), arrow, arrow);
+            branch.palette = option.palette;
+            branch.state = QStyle::State_Children | QStyle::State_Item | QStyle::State_Enabled;
+            if (!collapsed.toBool()) {
+                branch.state |= QStyle::State_Open;
+            }
+            const QStyle* style = option.widget != nullptr ? option.widget->style()
+                                                           : QApplication::style();
+            style->drawPrimitive(QStyle::PE_IndicatorBranch, &branch, painter, option.widget);
+        }
+        const QRect text(left + 8 + indent, option.rect.top(), std::max(0, width - 16 - indent),
                          option.rect.height());
         painter->drawText(text, Qt::AlignLeft | Qt::AlignVCenter,
                           QFontMetrics(font).elidedText(heading, Qt::ElideRight, text.width()));
+        if (chosen && option.state.testFlag(QStyle::State_HasFocus)) {
+            QStyleOptionFocusRect focus;
+            focus.rect = option.rect;
+            focus.palette = option.palette;
+            focus.state = option.state;
+            focus.backgroundColor = option.palette.color(QPalette::Highlight);
+            const QStyle* style = option.widget != nullptr ? option.widget->style()
+                                                           : QApplication::style();
+            style->drawPrimitive(QStyle::PE_FrameFocusRect, &focus, painter, option.widget);
+        }
         painter->restore();
     }
 };
@@ -595,8 +647,26 @@ public:
     /// The materials, without the rows that name groups
     [[nodiscard]] int materialCount() const { return m_materials; }
 
+    /// The volumes of a series whose groups are collapsed (MaterialRow::volumeOrder), as the
+    /// rows that name them show it
+    void setCollapsed(const QSet<int>& volumes) {
+        if (volumes == m_collapsed) {
+            return;
+        }
+        m_collapsed = volumes;
+        for (int row = 0; row < m_rows.size(); ++row) {
+            if (m_rows.at(row).volumeHeading) {
+                emit dataChanged(index(row, 0), index(row, columnCount() - 1));
+            }
+        }
+    }
+
     [[nodiscard]] Qt::ItemFlags flags(const QModelIndex& index) const override {
         const MaterialRow* row = index.isValid() ? rowAt(index.row()) : nullptr;
+        // A row that names a volume of a series takes the keys, to collapse and expand it
+        if (row != nullptr && row->volumeHeading) {
+            return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+        }
         // A row that names a group is no material: the keys and the mouse pass it by
         if (row != nullptr && !row->heading.isEmpty()) {
             return Qt::NoItemFlags;
@@ -644,10 +714,34 @@ public:
             return {};
         }
         if (!row->heading.isEmpty()) {
+            const bool collapsed = m_collapsed.contains(row->volumeOrder);
             switch (role) {
             case MaterialListPanel::HEADING_ROLE:
+                return row->heading;
+            case MaterialListPanel::COLLAPSED_ROLE:
+                return row->volumeHeading ? QVariant(collapsed) : QVariant();
+            case MaterialListPanel::HEADING_LEVEL_ROLE:
+                return row->volumeHeading || row->volume.isEmpty() ? 0 : 1;
             case Qt::AccessibleTextRole:
+                if (row->volumeHeading) {
+                    return collapsed
+                               //: The row of a volume of a series in a list of materials, for
+                               //: a screen reader: %1 its name and number of materials. In
+                               //: Polish: %1, zwinięty
+                               ? MaterialList::tr("%1, collapsed").arg(row->heading)
+                               //: In Polish: %1, rozwinięty
+                               : MaterialList::tr("%1, expanded").arg(row->heading);
+                }
+                return row->heading;
             case Qt::ToolTipRole:
+                if (row->volumeHeading) {
+                    //: The tooltip of the row of a volume of a series in a list of materials:
+                    //: %1 its name and number of materials. In Polish: %1<br>Kliknięcie,
+                    //: spacja albo strzałki w lewo i w prawo zwijają i rozwijają tom
+                    return MaterialList::tr("%1<br>A click, Space or the arrows Left and Right "
+                                            "collapse and expand the volume")
+                        .arg(row->heading.toHtmlEscaped());
+                }
                 return row->heading;
             default:
                 return {};
@@ -762,6 +856,7 @@ private:
     int m_materials = 0;
     int m_leadColumn = -1;
     int m_titleColumn = -1;
+    QSet<int> m_collapsed;  ///< setCollapsed()
 };
 
 /// @brief The rows of a list that the search and the filters let through, sorted
@@ -821,7 +916,7 @@ protected:
             }
             for (int other = 0; other < model->rowCount(); ++other) {
                 const MaterialRow* material = model->materialAt(other);
-                if (material != nullptr && sameGroup(*material, *row) && accepts(*material)) {
+                if (material != nullptr && isUnder(*material, *row) && accepts(*material)) {
                     return true;
                 }
             }
@@ -1285,6 +1380,18 @@ void MaterialListPanel::createLayout() {
     connect(m_filter, &QAbstractItemModel::rowsRemoved, this, [this]() { updateFooter(); });
     connect(m_filter, &QAbstractItemModel::modelReset, this, [this]() { updateFooter(); });
     connect(m_filter, &QAbstractItemModel::layoutChanged, this, [this]() { updateFooter(); });
+    // The volumes of a series collapsed stay collapsed with other rows of the filter
+    for (const auto signal : {&QAbstractItemModel::rowsInserted, &QAbstractItemModel::rowsRemoved}) {
+        connect(m_filter, signal, this, [this]() { applyCollapsed(); });
+    }
+    connect(m_filter, &QAbstractItemModel::modelReset, this, [this]() { applyCollapsed(); });
+    connect(m_filter, &QAbstractItemModel::layoutChanged, this, [this]() { applyCollapsed(); });
+    // A click on the row of a volume collapses or expands it
+    connect(m_table, &QAbstractItemView::clicked, this, [this](const QModelIndex& index) {
+        if (const std::optional<int> volume = volumeHeadingAt(index)) {
+            setVolumeCollapsed(*volume, !isVolumeCollapsed(*volume));
+        }
+    });
 
     // The plan chooses in the list, opens and has the menu of a row
     connect(m_plan, &CoverPlan::currentChanged, this,
@@ -1486,6 +1593,12 @@ bool MaterialListPanel::selectMaterial(const QString& elementId) {
         if (index.data(ID_ROLE).toString() != elementId) {
             continue;
         }
+        // Its volume collapsed opens
+        const MaterialRow* material = m_model->materialAt(m_filter->mapToSource(index).row());
+        if (material != nullptr && !material->volume.isEmpty() &&
+            isVolumeCollapsed(material->volumeOrder)) {
+            setVolumeCollapsed(material->volumeOrder, false);
+        }
         QAbstractItemView* shown = view();
         const QModelIndex target = index.siblingAtColumn(
             shown == m_tiles ? m_tiles->modelColumn() : tableColumn());
@@ -1496,6 +1609,94 @@ bool MaterialListPanel::selectMaterial(const QString& elementId) {
         return true;
     }
     return false;
+}
+
+void MaterialListPanel::setVolumeCollapsed(int volumeOrder, bool collapsed) {
+    QSet<int>& volumes = m_states[m_list].collapsedVolumes;
+    if (volumes.contains(volumeOrder) == collapsed) {
+        return;
+    }
+    if (collapsed) {
+        volumes.insert(volumeOrder);
+    } else {
+        volumes.remove(volumeOrder);
+    }
+    applyCollapsed();
+}
+
+bool MaterialListPanel::isVolumeCollapsed(int volumeOrder) const {
+    return m_states.value(m_list).collapsedVolumes.contains(volumeOrder);
+}
+
+void MaterialListPanel::applyCollapsed() {
+    if (m_model == nullptr || m_filter == nullptr || m_table == nullptr) {
+        return;
+    }
+    const QSet<int> collapsed = groupsApply() ? m_states.value(m_list).collapsedVolumes
+                                              : QSet<int>();
+    m_model->setCollapsed(collapsed);
+    for (int proxyRow = 0; proxyRow < m_filter->rowCount(); ++proxyRow) {
+        const MaterialRow* row =
+            m_model->rowAt(m_filter->mapToSource(m_filter->index(proxyRow, 0)).row());
+        const bool hidden = row != nullptr && !row->volumeHeading && !row->volume.isEmpty() &&
+                            collapsed.contains(row->volumeOrder);
+        if (m_table->isRowHidden(proxyRow) != hidden) {
+            m_table->setRowHidden(proxyRow, hidden);
+        }
+    }
+    // The keys stay on a row that shows: the row of the volume collapsed
+    const QModelIndex current = m_table->currentIndex();
+    if (current.isValid() && m_table->isRowHidden(current.row())) {
+        const MaterialRow* row = m_model->rowAt(m_filter->mapToSource(current).row());
+        for (int proxyRow = 0; row != nullptr && proxyRow < m_filter->rowCount(); ++proxyRow) {
+            const QModelIndex index = m_filter->index(proxyRow, 0);
+            if (volumeHeadingAt(index) == row->volumeOrder) {
+                m_table->selectionModel()->setCurrentIndex(
+                    index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+                break;
+            }
+        }
+    }
+}
+
+std::optional<int> MaterialListPanel::volumeHeadingAt(const QModelIndex& index) const {
+    if (!index.isValid() || index.model() != m_filter) {
+        return std::nullopt;
+    }
+    const MaterialRow* row = m_model->rowAt(m_filter->mapToSource(index).row());
+    return row != nullptr && row->volumeHeading ? std::optional<int>(row->volumeOrder)
+                                                : std::nullopt;
+}
+
+void MaterialListPanel::addVolumeItems(QMenu& menu, int volumeOrder) {
+    const bool collapsed = isVolumeCollapsed(volumeOrder);
+    QAction* toggle = menu.addAction(collapsed
+                                         //: The menu of the row of a volume of a series in a
+                                         //: list of materials. In Polish: &Rozwiń tom
+                                         ? MaterialList::tr("&Expand Volume")
+                                         //: In Polish: &Zwiń tom
+                                         : MaterialList::tr("&Collapse Volume"));
+    connect(toggle, &QAction::triggered, this, [this, volumeOrder, collapsed]() {
+        setVolumeCollapsed(volumeOrder, !collapsed);
+    });
+    // The volumes the list shows
+    QList<int> volumes;
+    for (int proxyRow = 0; proxyRow < m_filter->rowCount(); ++proxyRow) {
+        if (const std::optional<int> volume = volumeHeadingAt(m_filter->index(proxyRow, 0))) {
+            volumes << *volume;
+        }
+    }
+    const auto all = [this, volumes](bool collapse) {
+        for (const int volume : volumes) {
+            setVolumeCollapsed(volume, collapse);
+        }
+    };
+    //: In Polish: Zwiń &wszystkie tomy
+    connect(menu.addAction(MaterialList::tr("Collapse &All Volumes")), &QAction::triggered, this,
+            [all]() { all(true); });
+    //: In Polish: Rozwiń wszystkie t&omy
+    connect(menu.addAction(MaterialList::tr("Expand All Vol&umes")), &QAction::triggered, this,
+            [all]() { all(false); });
 }
 
 void MaterialListPanel::focusSearch() {
@@ -1677,6 +1878,12 @@ void MaterialListPanel::fillMenu(QMenu& menu) {
     auto& art = core::ArtProvider::getInstance();
     auto& pm = m_book;
     const QModelIndex current = view()->currentIndex();
+    // The row of a volume of a series: collapse it, expand it
+    if (const std::optional<int> volume = view() == m_table ? volumeHeadingAt(current)
+                                                            : std::nullopt) {
+        addVolumeItems(menu, *volume);
+        menu.addSeparator();
+    }
     const MaterialRow* row = m_model->materialAt(m_filter->mapToSource(current).row());
     const bool changing = !pm.isReadOnly();
     if (row != nullptr && row->card) {
@@ -1894,6 +2101,28 @@ bool MaterialListPanel::eventFilter(QObject* watched, QEvent* event) {
         }
         if (key->key() == Qt::Key_Down && key->modifiers() == Qt::NoModifier) {
             focusList();
+            return true;
+        }
+    }
+    if (watched == m_table &&
+        (event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress)) {
+        // On the row of a volume of a series: Left collapses it, Right expands it, Space and
+        // Enter do one or the other
+        auto* key = static_cast<QKeyEvent*>(event);
+        const std::optional<int> volume = volumeHeadingAt(m_table->currentIndex());
+        const int pressed = key->key();
+        const bool volumeKey =
+            volume.has_value() &&
+            (key->modifiers() & ~Qt::KeyboardModifiers(Qt::KeypadModifier)) == Qt::NoModifier &&
+            (pressed == Qt::Key_Left || pressed == Qt::Key_Right || pressed == Qt::Key_Space ||
+             pressed == Qt::Key_Return || pressed == Qt::Key_Enter);
+        if (volumeKey) {
+            if (event->type() == QEvent::KeyPress) {
+                const bool collapse = pressed == Qt::Key_Left ||
+                                      (pressed != Qt::Key_Right && !isVolumeCollapsed(*volume));
+                setVolumeCollapsed(*volume, collapse);
+            }
+            key->accept();
             return true;
         }
     }
@@ -2391,7 +2620,8 @@ void MaterialListPanel::onCurrentChanged(QAbstractItemView* view, const QModelIn
     }
     updateCommands();
     m_plan->setCurrent(idAt(current));
-    if (!m_loading && current.isValid()) {
+    // The row of a volume of a series is no material
+    if (!m_loading && current.isValid() && !idAt(current).isEmpty()) {
         m_states[m_list].current = idAt(current);
         emit materialChosen(idAt(current));
     }

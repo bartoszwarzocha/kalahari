@@ -41,9 +41,12 @@ using editor::QuickInsertSource;
 constexpr int ITEM_ROWS = 8;
 
 /// @brief The sources of the lists, in the order of the page
-constexpr std::array<const char*, 3> SOURCES = {quick_insert_keys::SOURCE_CARDS,
-                                                quick_insert_keys::SOURCE_FRAGMENTS,
-                                                quick_insert_keys::SOURCE_CHARACTERS};
+constexpr std::array<const char*, 4> SOURCES = {
+    quick_insert_keys::SOURCE_CARDS, quick_insert_keys::SOURCE_FRAGMENTS,
+    quick_insert_keys::SOURCE_CHARACTERS, quick_insert_keys::SOURCE_FIELDS};
+
+/// @brief The number of the sources, a row each
+constexpr int SOURCE_ROWS = static_cast<int>(SOURCES.size());
 
 /// @brief The sources of a stored value, in the order of the page (another order, or a source
 ///        the program does not know, is no change)
@@ -110,10 +113,13 @@ void EditorQuickInsertPage::createSources() {
         heading->setFont(bold);
         layout->addWidget(heading, 0, column + 1);
     }
-    const std::array<QString, 3> names = {tr("Names from the book dictionary (and the cards)"),
-                                          tr("Text fragments"), tr("Typographic characters")};
-    std::array<std::array<QCheckBox*, 3>, 2> boxes{};
-    for (int row = 0; row < 3; ++row) {
+    const std::array<QString, SOURCES.size()> names = {
+        tr("Names from the book dictionary (and the cards)"), tr("Text fragments"),
+        tr("Typographic characters"),
+        //: In Polish: Własne pola książki (wstawiane jako pola)
+        tr("Own fields of the book (inserted as fields)")};
+    std::array<std::array<QCheckBox*, SOURCES.size()>, 2> boxes{};
+    for (int row = 0; row < SOURCE_ROWS; ++row) {
         auto* name = new QLabel(names.at(row));
         name->setWordWrap(true);  // the page fits a narrow window
         layout->addWidget(name, row + 1, 0);
@@ -135,7 +141,7 @@ void EditorQuickInsertPage::createSources() {
     const std::array<const char*, 2> sourceKeys = {quick_insert_keys::AT_SOURCES,
                                                    quick_insert_keys::HASH_SOURCES};
     for (int column = 0; column < 2; ++column) {
-        const std::array<QCheckBox*, 3> columnBoxes = boxes.at(column);
+        const std::array<QCheckBox*, SOURCES.size()> columnBoxes = boxes.at(column);
         const char* key = sourceKeys.at(column);
         Binding sources;
         sources.key = [key]() { return std::string(key); };
@@ -144,7 +150,7 @@ void EditorQuickInsertPage::createSources() {
         };
         sources.shown = [columnBoxes]() {
             json value = json::array();
-            for (int row = 0; row < 3; ++row) {
+            for (int row = 0; row < SOURCE_ROWS; ++row) {
                 if (columnBoxes.at(row)->isChecked()) {
                     value.push_back(SOURCES.at(row));
                 }
@@ -153,7 +159,7 @@ void EditorQuickInsertPage::createSources() {
         };
         sources.show = [columnBoxes](const json& value) {
             const json shown = sourcesValue(value);
-            for (int row = 0; row < 3; ++row) {
+            for (int row = 0; row < SOURCE_ROWS; ++row) {
                 columnBoxes.at(row)->setChecked(
                     std::find(shown.begin(), shown.end(), SOURCES.at(row)) != shown.end());
             }

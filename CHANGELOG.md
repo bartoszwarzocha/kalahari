@@ -52,6 +52,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the window is cancelled, and Delete deletes the event selected. A timeline without events
   says on its axis and in its list how to add the first. The commands of the bars of the tabs
   share one look (gui::CardBar).
+- **Sets of list formats and multilevel numbers** - 2026-11-21. Format > Bullets and
+  Numbering... opens on a new first tab, Sets: the layout of all nine levels of a list at once,
+  as tiles in groups (Numbered: 1. – a) – i., 1) – a) – i), (1) – (a) – (i); Multilevel:
+  1. – 1.1. – 1.1.1., the outline I. – A. – 1. – a) and § 1. – 1) – a); Bulleted: • – ◦ – ▪,
+  dashes, ✓ – • – ◦), then the writer's own, in the book and in the program. A click or the
+  arrows and Enter give the whole list the set; the paragraphs selected outside a list become
+  one. Save as Set... keeps the formats of the window under a name, in the book (it goes with
+  the book) or in the program; the context menu of a set renames it, deletes it and makes it
+  the default of F12 or Shift+F12. The tab Numbering has three new fields: Text before number
+  ("§ ", "Step "), Text after number (any text, not only "." and ")") and Numbers of higher
+  levels (1.1., 1.1.1.). Format > List Sets lists every set to choose from the keyboard, and the
+  buttons Bullets and Numbering of the Format toolbar have an arrow with the tiles of their
+  sets, Restart at and Continue Numbering. The new page Settings > Editor > Lists has the
+  default sets of F12 and Shift+F12 and the sets of the program with Rename..., Delete,
+  Export... and Import...; the window has a gear to it. KML keeps the new formats as `prefix`
+  and `show-levels` of `<ol>`, Word as the text of its levels (read back from Word's own
+  documents too), the EPUB writes such marks out.
+- **Own fields of the book** - 2026-11-21. Insert > Field... has a new tab, Own: the writer's
+  fields of the book, such as the narrator's name or the publisher, with New Field...,
+  Change... and Delete. A field has a name, a value and a description for its tooltip, and in
+  a series it can be a field of the series, the same in all the volumes, a volume giving it a
+  value of its own when it needs one. A field inserted in the text shows its value on the gray
+  background of the fields; a new value changes it in the open texts at once, in the others as
+  they open, and the export and the printing take it as it is. A field without a value shows
+  its name in brackets. Deleting a field used in the texts asks whether its places become plain
+  text of its value or stay as empty fields to fix, and the bar at the bottom of the window,
+  or Ctrl+Z in a text, brings it back everywhere. The Properties panel of the book has a new
+  group, Own Fields: each value can be written there, Add Field... and Insert in Text..., with
+  a gear to the settings of the fields. Quick insert after # offers the own fields too (Settings
+  > Editor > Quick Insert, a new box ticked by default).
+- **Footnotes panel** - 2026-11-21. View > Panels > Footnotes (also on the Panels toolbar)
+  lists the footnotes and endnotes of the text in front, or of the whole book in reading order
+  under the titles of its texts (of a series: of the volume in front), as cards: the number in
+  the color of its kind, the last words of the text before the number and the beginning of the
+  note. A search in the notes, the kinds with their counts (All, Footnotes, Endnotes) and the
+  scope narrow the list. A card selected takes the text to the number; Enter or F2 opens the
+  note's frame (the note's text opens first when it is closed), Delete deletes the note, with
+  Undo in the bar under the text, and the context menu converts a footnote to an endnote and
+  back, copies the note's text and opens Format > Footnote Layout.... Esc goes back to the
+  text. Settings > Editor > Writing decides whether the cards show the words before the number
+  and how many lines of the note; Settings > Editor > Colors has the colors of the two kinds,
+  in every theme.
+
 - **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
   for Publishers, with its number in the Navigator: the sentences about the book and the
   synopses, each a text of the book in as many versions as the writer wants, with a template of
@@ -293,6 +336,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **File > Print: a large preview and the fields in sections** - 2026-11-22. The window has no
+  tabs: the preview takes its left half, with Whole Sheet and Width over it (a sheet as wide as
+  the preview scrolls, with its bar, the arrows and the wheel), and the fields are in sections
+  at the right that open and close: Printer, What to Print, Pages, Sheet, Book Page and Look of
+  the Text. A closed section says what it holds in its header ("A4 · one page · fitted"); a
+  click, Enter or Space opens it, and Alt with the key of its title opens it and goes to its
+  first field. The window remembers the sections open and the zoom. Printer has the paper
+  source and the quality where the system lists them, and Printer Properties... opens the
+  window of the printer's driver (Windows), whose settings, such as the type of paper or saving
+  the toner, go to the print and whose paper, copies, color, sides, source and quality go to
+  the fields. Book Page has the size and the margins of the page of Settings > Editor > Pages
+  and Margins: a change there or here changes both, and the preview lays the pages out again.
+  The chosen texts are checked in a window of their own, Choose Texts..., with how many are
+  chosen beside it.
+
+- **Insert toolbar** - 2026-11-21. Every command of the Insert menu is on it, in the groups of
+  the menu: images, tables and links; captions, cross-references and the lists of figures;
+  footnotes and endnotes; the annotations; the characters, quick insert and the clippings;
+  the date and the fields; the lines and the breaks. A toolbar customized before gets the new
+  buttons once, next to those it has, and keeps the order of the writer's.
+
 - **Settings: shorter pages, titled groups and a note under each option** - 2026-11-16. The
   long pages are split: Editor has General, Writing (the word count and the fields) and Margin
   Numbering; Annotations has General and Annotation Cards; Navigator has Adding, Material
@@ -303,6 +367,118 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Cards, Materials, Images, Auto-correct, Quick Insert, Clippings and Plot Board. A test makes
   sure that no page has radio buttons and that every page fits the narrowest window, in English
   and in Polish.
+
+### Fixed
+
+- **After the test of 23.11** - 2026-11-23.
+  - The outline of the Plot Board shows the colors of the cards as the board does: a square
+    of the card's color before its title and, with the tint of the cards on, the row tinted.
+  - Show Clipping has no System Program: a clipping is a file of the program.
+  - New Volume... is first in the menu of the project in the Navigator, no longer in the menu
+    of a book or of a volume, which add their parts.
+  - The window of File > Import > Text... opens higher, and its lists take the height.
+  - Format > Page Size and Margins... opens Settings > Editor > Pages and Margins.
+  - The card of a book on the Dashboard is darkened, with a spinner turning on it, until the
+    book is open.
+  - The icons of the light theme are grey and light grey by default (#8f8f8f and #ebebeb).
+  - The group Build of About is at the end of its tab, before the copyright.
+- **After the test of 22.11** - 2026-11-22.
+  - The statistics count only writing: the words typed, deleted, cut or written in a note's
+    frame, and their Undo and Redo. A caption of an image or a table, a clipping cut out of the
+    text and its Undo, a paste, a field, a replacement and the changes of the program no longer
+    show as words written or deleted, so the chart of the status bar no longer jumps. Cutting
+    to the clippings keeps the words of the day by default (Settings > Statistics and Goals).
+    The text a command puts in (a field, the date, a quotation) is a step of Undo of its own,
+    apart from the text typed right before it and after it.
+  - The description of a character, a location or an item is a plain text field on the card:
+    no page, desk or margins, the colors of the theme's fields and the program's font a little
+    larger, the scroll bar only for a longer text; the spelling, the formats and the
+    annotations stay. The view modes are greyed out on the tab of a card.
+  - The context menu of the text has Paste Special under Paste, with the forms of the window
+    of Edit > Paste Special....
+  - The Navigator has the Plot Board under the book's dictionary, and the book toolbar has a
+    button to it; a toolbar customized before gets it once. A color given to a card from its
+    menu switches "Colors:" of the board to the cards' own colors and says so.
+  - A field of a card that names another card has an arrow at its end: it, a click in the
+    field or Alt+Down show all the cards, typing narrows them.
+  - Replace All in Book saves nothing: the texts it changes stay unsaved, and the bar under the
+    text offers Save All.
+  - The scissors of the clippings show in the text by default.
+  - The menu of a misspelled word opens at once; its submenu Suggestions says Loading... until
+    the words are found.
+  - The text of an annotation card keeps its size when the writer starts writing in it; cards
+    are 70% of the text by default, with the same margin on both sides.
+  - The highlights of PDF files are on by default (Settings > Materials > PDF Preview): they
+    change nothing in the file.
+  - File > Import > From DOCX... and the other imports of a book are no longer greyed out: the
+    items of the menus and toolbars take the state of their commands once the book window is
+    made. Window > Tab List works the same.
+  - About shows what the program was built from: the version, the commit (with changes not yet
+    committed, if any), its branch, the date and time of the build, Debug or Release, Qt, the
+    system and the compiler. Copy Build Information puts them on the clipboard.
+  - File > Export has the formats of the program together: PDF, DOCX, EPUB and Markdown; a
+    separator only before the formats not made yet (ICML, LaTeX).
+  - The menus, reviewed. View starts with the view modes and the zoom, then the marks, the
+    annotations, the paper and the margin numbering; the panels follow in the order of use,
+    with Toolbars right after them; the Dashboard, the perspectives and Reset Layout end the
+    menu. View > Show Status Bar hides and shows the status bar, and is remembered. Edit has
+    Paste Text Only with the other pastes and Find in Book with Find and Replace; Book has New
+    Volume and Join Book as Volume together; File > Import has the archive of a book after the
+    formats; Tools has the spelling, the grammar, the auto-correct and the next issue together,
+    then the goals, the challenges and the statistics, then the texts for publishers. Tools >
+    Customize Toolbars... is gone from the menu: View > Toolbars > Toolbar Manager... opens the
+    same window.
+  - A greyed out command says why, in its tooltip and in the status bar: no text in front, the
+    cursor not in a text of the book (in a field, in a panel), nothing to undo, nothing
+    selected, nothing on the clipboard to paste, a read-only text, no tab to move to a window
+    of its own; in the context menu of a list item, why its numbering or its level cannot
+    change.
+  - The volumes of a series collapse and expand in the lists of the Cover and of the texts for
+    publishers: the arrow of the row of a volume, a click, Space, the arrows Left and Right,
+    and its context menu (Collapse Volume, Collapse All Volumes, Expand All Volumes). A
+    material chosen elsewhere expands its volume.
+  - Printing: the marks of a scene break ("* * *" and the others) print as large as the text,
+    not several times larger on a printer or a PDF printer of many dots. The text after an
+    image above and below the text that goes to the next page no longer prints on the image:
+    the lines of a paragraph kept together go below it. File > Print has Reverse order beside
+    the pages that print: the last sheet first, for a printer that lays the sheets face up;
+    a sheet keeps its front and its back, the preview shows the sheets in that order, and the
+    window remembers the choice.
+  - Texts for publishers: the points of a synopsis ticked off while its text has changes not
+    saved are saved with the text and dropped with it (Don't Save when its tab or the book
+    closes), so the points ticked off always agree with the file; a text with no changes
+    saves them at once, as before. The set for the publisher (its list, Copy All, Export
+    Set...) has a text open in its editor as written, also before it is saved, as File >
+    Export has the open texts.
+  - Images have room around them: an image alone in its paragraph keeps 6 pt from the text
+    above and below it, with its caption inside that room, so no empty paragraph is needed. Its
+    own room is on the new page Space Around of Image Properties (above, below, beside the text,
+    As in the Settings); new images take it from Settings > Editor > Images. An image beside the
+    text keeps its room beside it (0.3 cm by default). Printing, PDF, DOCX and EPUB have the same
+    room.
+  - Image Properties has a page Text Flow: the four ways as large choices, each with a picture
+    of a page with the image and the text around it, and a note on what each way does. The
+    choice is no longer on the page Image, which chooses the file.
+  - Tables have room above and below them too: 6 pt from the text by default, with a caption
+    of the table inside it, so no empty paragraph is needed. A table's own room is on the tab
+    Table of Table Properties (with As in the Settings); new tables take it from the new page
+    Settings > Editor > Tables. Printing, PDF, DOCX and EPUB have the same room.
+  - A table has a numbered caption as an image has: Table > Insert Caption... (also in the
+    context menu of a cell) and Insert > Caption... with the cursor in a table give it one with
+    the label "Table", numbered on its own, above the table or below it (Settings > Editor >
+    Tables, and the window of the caption). The list of figures has the captions of tables too.
+  - In the page view the cursor moved several pages down (into a table, after a search) stays
+    in view: the view no longer goes to a place the pages above it then move.
+  - A button that is on is clearly on: a button with text alone (the days of writing, the
+    choices of a panel) is filled with the highlight color of the theme, its text in the
+    color of highlighted text; a button with an icon (Bold in the toolbar) gets a tint of that
+    color and a frame in it. Before, it was only a little darker than one that is off.
+  - A kind chosen by its name gets no window of all the kinds: Add Mind Map..., Add
+    Chapter..., Book > New Chapter, the Add button of a list of materials and the Workshop's
+    commands open a small window named after the kind, which asks only for the title (and for
+    the source of a material, the part of a text for publishers). A card (Add Character...,
+    Create Card in the text) needs no window at all: it is added at once and opens on its
+    form, its name selected. Only the general Add... shows the window with all the kinds.
 
 ---
 
