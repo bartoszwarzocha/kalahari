@@ -59,6 +59,9 @@ class SettingsDialog : public dialogs::KalahariDialog {
 public:
     /// @brief The pages the dialog can be opened at (openPage())
     static constexpr const char* GENERAL_PAGE = "general";           ///< General
+    /// Notifications: where the program's notifications show and their colors (the gears of the
+    /// bar of notifications, of their window and of the Notifications panel)
+    static constexpr const char* NOTIFICATIONS_PAGE = "notifications";
     static constexpr const char* EDITOR_COLORS_PAGE = "editor.colors";  ///< Editor > Colors
     /// Editor > Writing, scrolled to its group Word Count, the cursor in its counting of the
     /// notes' words (the gear of Format > Footnote Layout...)
@@ -81,6 +84,8 @@ public:
     /// Editor > Auto-correct (the gear of File > Import: the cleanups of the text follow it)
     static constexpr const char* AUTO_CORRECT_PAGE = "editor.autoCorrect";
     static constexpr const char* IMPORT_PAGE = "files.import";  ///< Files > Import
+    /// Files > File Associations
+    static constexpr const char* FILE_ASSOCIATIONS_PAGE = "files.associations";
     static constexpr const char* REPETITIONS_PAGE = "editor.repetitions";  ///< Editor > Repetitions
     static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* CLIPPINGS_PAGE = "editor.clippings";  ///< Editor > Clippings

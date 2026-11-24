@@ -46,11 +46,12 @@ class RowList;
 
 /// @brief Import of Word documents (DOCX), Markdown and plain text into a book
 ///
-/// The command of the menu chooses the format and the files in the system window first; the
-/// window shows at once what is in them and the texts they become. The options are on tabs as
-/// high as the highest, so the window keeps its size: the files, the place in the book, the
-/// division into texts (the list of the texts, their titles and kinds), the styles, the
-/// cleanups of the text, and the annotations and the images. The progress and the result show
+/// The command of the menu opens the window of its format at once; Add... on the tab of the
+/// files chooses the files of the format, and the window shows what is in them and the texts
+/// they become. The options are on tabs as high as the highest, so the window keeps its size:
+/// the files, the place in the book, the division into texts (the list of the texts, their
+/// titles and kinds), the styles, the cleanups of the text, and the annotations and the
+/// images. The progress and the result show
 /// under the tabs, with Show in Navigator, Open First Text and Undo Import. The window keeps
 /// its choices in the settings (import.*), each format its own, for the next import.
 class ImportBookDialog : public ArchiveDialog {
@@ -139,7 +140,7 @@ class ImportBookDialog : public ArchiveDialog {
     /// @param book What the window says about the open book
     /// @param registry The installed book types, for the list of the place and a new book
     /// @param format The format of the command of the menu
-    /// @param files The files chosen in the system window
+    /// @param files The files of the list at first; empty: Add... chooses them
     /// @param actions What the window does with the book
     /// @param parent Parent widget
     ImportBookDialog(const Book& book, const core::BookTypeRegistry& registry, ImportFormat format,
@@ -150,7 +151,7 @@ class ImportBookDialog : public ArchiveDialog {
     /// @param book What the window says about the open book
     /// @param registry The installed book types, for the list of the place and a new book
     /// @param plugin The id of the format (PluginImportFormat::id)
-    /// @param files The files chosen in the system window
+    /// @param files The files of the list at first; empty: Add... chooses them
     /// @param actions What the window does with the book
     /// @param parent Parent widget
     ImportBookDialog(const Book& book, const core::BookTypeRegistry& registry,
@@ -210,6 +211,9 @@ class ImportBookDialog : public ArchiveDialog {
 
     /// @brief The list of the files
     QTreeWidget* fileList() const;
+
+    /// @brief Add..., which chooses the files of the format in the system window
+    QPushButton* addButton() const { return m_addButton; }
 
     /// @brief The list of the encodings of Markdown and plain text
     QComboBox* encodingBox() const { return m_encodingBox; }
@@ -450,6 +454,7 @@ class ImportBookDialog : public ArchiveDialog {
     QTabWidget* m_tabs = nullptr;
     QComboBox* m_formatBox = nullptr;
     RowList* m_fileList = nullptr;
+    QPushButton* m_addButton = nullptr;
     QPushButton* m_upButton = nullptr;
     QPushButton* m_downButton = nullptr;
     QPushButton* m_removeButton = nullptr;

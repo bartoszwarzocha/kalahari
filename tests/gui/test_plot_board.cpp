@@ -6,6 +6,7 @@
 /// move to, the cells of the outline, the keys, and what Ctrl+Z undoes
 
 #include "kalahari_tests/gui/context_menu_reader.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari_tests/gui/document_window.h"
 
 #include "kalahari/core/book_project.h"
@@ -511,24 +512,26 @@ TEST_CASE("Plot board: the outline shows the colors of the cards as the board do
     const int part = model.rowOf(book.part);
     REQUIRE(calm >= 0);
     REQUIRE(part >= 0);
-    const auto decoration = [&model](int row, int column) {
-        return model.index(row, column).data(Qt::DecorationRole);
+    const auto color = [&model](int row, int column) {
+        return model.index(row, column).data(Column::COLOR_ROLE);
     };
     const auto background = [&model](int row, int column) {
         return model.index(row, column).data(Qt::BackgroundRole);
     };
 
     // Without colors (none set yet): nothing
-    CHECK_FALSE(decoration(calm, Column::TITLE_COLUMN).isValid());
+    CHECK_FALSE(color(calm, Column::TITLE_COLUMN).isValid());
 
-    // By state: a square of the color before the title, the other cells without it
+    // By state: the color of the card in every cell of its row (the delegate draws it at the
+    // left edge), no square before the title (test of 24.11)
     QStringList changed;
     QObject::connect(&model, &QAbstractItemModel::dataChanged,
                      [&changed]() { changed << QStringLiteral("changed"); });
     model.setColoring(QString::fromLatin1(PlotBoard::COLOR_STATUS), colors, false);
     CHECK(changed.size() == 1);
-    CHECK(decoration(calm, Column::TITLE_COLUMN).value<QColor>() == QColor(Qt::gray));
-    CHECK_FALSE(decoration(calm, Column::DESCRIPTION_COLUMN).isValid());
+    CHECK(color(calm, Column::NUMBER_COLUMN).value<QColor>() == QColor(Qt::gray));
+    CHECK(color(calm, Column::DESCRIPTION_COLUMN).value<QColor>() == QColor(Qt::gray));
+    CHECK_FALSE(model.index(calm, Column::TITLE_COLUMN).data(Qt::DecorationRole).isValid());
     CHECK_FALSE(background(calm, Column::TITLE_COLUMN).isValid());
 
     // The background as the card's, with the tint; a part's row keeps its own
@@ -538,11 +541,11 @@ TEST_CASE("Plot board: the outline shows the colors of the cards as the board do
                                                gui::PlotColors::TINT_SHARE));
     CHECK(background(part, Column::TITLE_COLUMN).value<QBrush>().color() ==
           QPalette().color(QPalette::AlternateBase));
-    CHECK_FALSE(decoration(part, Column::TITLE_COLUMN).isValid());
+    CHECK_FALSE(color(part, Column::NUMBER_COLUMN).isValid());
 
     // Without colors on the board, none in the outline
     model.setColoring(QString::fromLatin1(PlotBoard::COLOR_NONE), colors, true);
-    CHECK_FALSE(decoration(calm, Column::TITLE_COLUMN).isValid());
+    CHECK_FALSE(color(calm, Column::NUMBER_COLUMN).isValid());
     CHECK_FALSE(background(calm, Column::TITLE_COLUMN).isValid());
 
     // On the tab of the board the outline has the colors the board has
@@ -558,7 +561,38 @@ TEST_CASE("Plot board: the outline shows the colors of the cards as the board do
     REQUIRE(panel != nullptr);
     const gui::PlotOutlineModel* outline = panel->outlineModel();
     const QModelIndex title = outline->index(outline->rowOf(book.calm), Column::TITLE_COLUMN);
-    CHECK(title.data(Qt::DecorationRole).value<QColor>().isValid());
+    CHECK(title.data(Column::COLOR_ROLE).value<QColor>().isValid());
+
+    // The left edge of the row of the card is thick, in its color; further in it is not. The
+    // first column shown, also with the number hidden
+    gui::PlotOutlineDelegate delegate;
+    QTableView view;
+    view.setModel(&model);
+    view.setItemDelegate(&delegate);
+    model.setColoring(QString::fromLatin1(PlotBoard::COLOR_STATUS), colors, false);
+    view.resize(800, 400);
+    view.show();
+    REQUIRE(test::waitUntil([&view]() { return view.isVisible(); }));
+    for (const bool numberShown : {true, false}) {
+        view.setColumnHidden(Column::NUMBER_COLUMN, !numberShown);
+        const int first = numberShown ? Column::NUMBER_COLUMN : Column::TITLE_COLUMN;
+        const QRect cell = view.visualRect(model.index(calm, first));
+        REQUIRE(cell.isValid());
+        const QImage image = view.viewport()->grab().toImage();
+        const qreal ratio = image.devicePixelRatio();
+        const auto pixel = [&image, ratio](int x, int y) {
+            return image.pixelColor(qRound(x * ratio), qRound(y * ratio));
+        };
+        const int middle = cell.center().y();
+        CHECK(pixel(cell.left() + 1, middle) == QColor(Qt::gray));
+        CHECK(pixel(cell.left() + gui::PlotOutlineDelegate::EDGE_WIDTH - 1, middle) ==
+              QColor(Qt::gray));
+        CHECK(pixel(cell.left() + gui::PlotOutlineDelegate::EDGE_WIDTH + 2, middle) !=
+              QColor(Qt::gray));
+        // The other cells of the row have no edge
+        const QRect next = view.visualRect(model.index(calm, Column::DESCRIPTION_COLUMN));
+        CHECK(pixel(next.left() + 1, middle) != QColor(Qt::gray));
+    }
 }
 
 TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z undoes it",

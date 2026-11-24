@@ -488,9 +488,9 @@ QString kindHint(editor::PlaceKind kind)
 {
     switch (kind) {
         case editor::PlaceKind::Page:
-            //: In Polish: „3” – trzecia strona tekstu, „+2” – dwie strony dalej, „-1” – stronę
+            //: In Polish: „3” – strona o numerze 3, „+2” – dwie strony dalej, „-1” – stronę
             //: wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej strony.
-            return GoToDialog::tr("“3”: the third page of the text, “+2”: two pages on, “-1”: a "
+            return GoToDialog::tr("“3”: the page with the number 3, “+2”: two pages on, “-1”: a "
                                   "page back. Next and Previous go to the page after or before.");
         case editor::PlaceKind::Heading:
             //: In Polish: „3” – trzeci nagłówek tekstu, „+2” – dwa nagłówki dalej, „-1” –
@@ -535,6 +535,14 @@ QString pageOutcomeText(const editor::GoToOutcome& outcome)
 {
     switch (outcome.result) {
         case editor::GoToResult::Done:
+            if (outcome.firstNumber != 1) {
+                //: Where Go To went, the pages numbered through the book: the number the page
+                //: shows, then its page in the text. In Polish: Strona %1 (%2 z %3)
+                return GoToDialog::tr("Page %1 (%2 of %3)")
+                    .arg(outcome.firstNumber + outcome.ordinal - 1)
+                    .arg(outcome.ordinal)
+                    .arg(outcome.count);
+            }
             //: Where Go To went. In Polish: Strona %1 z %2
             return GoToDialog::tr("Page %1 of %2").arg(outcome.ordinal).arg(outcome.count);
         case editor::GoToResult::NoPlaces:
@@ -546,6 +554,12 @@ QString pageOutcomeText(const editor::GoToOutcome& outcome)
             //: In Polish: To pierwsza strona tekstu.
             return GoToDialog::tr("This is the first page of the text.");
         default:
+            if (outcome.firstNumber != 1) {
+                //: The pages numbered through the book. In Polish: Tekst ma strony od %1 do %2.
+                return GoToDialog::tr("The text has the pages %1 to %2.")
+                    .arg(outcome.firstNumber)
+                    .arg(outcome.firstNumber + outcome.count - 1);
+            }
             //: In Polish: Tekst ma %n stronę / strony / stron.
             return GoToDialog::tr("The text has %n page(s).", nullptr, outcome.count);
     }

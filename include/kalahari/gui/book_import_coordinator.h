@@ -2,8 +2,8 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file book_import_coordinator.h
-/// @brief File > Import > DOCX, Markdown and Plain Text: the system window of the files, the
-///        window of the import, and the texts added to the open book or to a new one
+/// @brief File > Import > DOCX, Markdown and Plain Text: the window of the import, with the
+///        choice of the files in it, and the texts added to the open book or to a new one
 
 #pragma once
 
@@ -31,10 +31,10 @@ class CommandRegistry;
 ///        a new book
 ///
 /// The commands work always: without an open book the import makes a new one; Other Formats
-/// while a plugin imports a format of its own (core::IImporter). A command
-/// opens the system window of the files first, then the window of the import. After the
-/// import the Navigator shows the book as it is; a new book opens as a book of File > Open
-/// Book does, when the window closes.
+/// while a plugin imports a format of its own (core::IImporter). A command opens the window
+/// of the import at once; its Add... chooses the files of the format. After the import the
+/// Navigator shows the book as it is; a new book opens as a book of File > Open Book does,
+/// when the window closes.
 class BookImportCoordinator : public QObject {
     Q_OBJECT
 
@@ -61,11 +61,11 @@ class BookImportCoordinator : public QObject {
     /// @note Call after the commands are registered
     void connectCommands();
 
-    /// @brief Choose the files of @p format in the system window, then import them
+    /// @brief Open the window of the import of @p format, without files: its Add... chooses them
     void importFormat(ImportFormat format);
 
-    /// @brief File > Import > Other Formats: choose the files of a format of a plugin in the
-    ///        system window, then import them
+    /// @brief File > Import > Other Formats: open the window of the import of the first format
+    ///        of a plugin, without files; its list of the formats chooses another
     void importPluginFormat();
 
     /// @brief Open the window of the import of @p files of @p format; of ImportFormat::Plugin,

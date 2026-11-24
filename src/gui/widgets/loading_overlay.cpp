@@ -6,14 +6,18 @@
 
 #include "kalahari/gui/widgets/loading_overlay.h"
 
+#include "kalahari/core/busy_pulse.h"
+
 #include <QApplication>
 #include <QColor>
 #include <QEvent>
 #include <QPainter>
 #include <QPen>
 #include <QRectF>
+#include <QThread>
 
 #include <algorithm>
+#include <vector>
 
 namespace kalahari::gui {
 
@@ -31,6 +35,12 @@ constexpr int ARC_DEGREES = 270;
 constexpr int FULL_TURN = 360;
 /// QPainter measures the angles in sixteenths of a degree
 constexpr int SIXTEENTHS = 16;
+
+/// The overlays on the screen now: the beats of the busy work draw them
+std::vector<LoadingOverlay*>& overlays() {
+    static std::vector<LoadingOverlay*> shown;
+    return shown;
+}
 
 /// The events the program sends to its widgets at once, also while it is busy (the widgets
 /// of a book being made): each may turn the spinner. Not the painting, nor the timers and
@@ -69,13 +79,11 @@ LoadingOverlay::LoadingOverlay(QWidget* covered) : QWidget(covered) {
     covered->installEventFilter(this);
     qApp->installEventFilter(this);
     m_timer.setInterval(FRAME_MS);
-    connect(&m_timer, &QTimer::timeout, this, [this]() {
-        if (turn()) {
-            update();
-        }
-    });
+    connect(&m_timer, &QTimer::timeout, this, qOverload<>(&QWidget::update));
     m_clock.start();
     m_timer.start();
+    overlays().push_back(this);
+    core::BusyPulse::setListener(&LoadingOverlay::beat);
     raise();
     show();
     // On the screen before the work keeps the program busy
@@ -84,15 +92,33 @@ LoadingOverlay::LoadingOverlay(QWidget* covered) : QWidget(covered) {
 
 LoadingOverlay::~LoadingOverlay() {
     qApp->removeEventFilter(this);
+    std::erase(overlays(), this);
+    if (overlays().empty()) {
+        core::BusyPulse::setListener(nullptr);
+    }
 }
 
-bool LoadingOverlay::turn() {
-    if (m_clock.elapsed() < FRAME_MS) {
-        return false;
+int LoadingOverlay::angle() const {
+    return static_cast<int>(m_clock.elapsed() % TURN_MS * FULL_TURN / TURN_MS);
+}
+
+void LoadingOverlay::beat() {
+    // Only the program's own thread draws
+    if (QThread::currentThread() != qApp->thread()) {
+        return;
     }
-    m_clock.restart();
-    m_angle = (m_angle + STEP_DEGREES) % FULL_TURN;
-    return true;
+    for (LoadingOverlay* overlay : overlays()) {
+        overlay->drawWhenDue();
+    }
+}
+
+void LoadingOverlay::drawWhenDue() {
+    if (m_painting || !isVisible() || (m_frame.isValid() && m_frame.elapsed() < FRAME_MS)) {
+        return;
+    }
+    m_painting = true;
+    repaint();
+    m_painting = false;
 }
 
 bool LoadingOverlay::eventFilter(QObject* watched, QEvent* event) {
@@ -109,15 +135,15 @@ bool LoadingOverlay::eventFilter(QObject* watched, QEvent* event) {
         return false;
     }
     // The program is busy: the timer waits, the events it sends turn the spinner
-    if (!m_painting && isVisible() && sentWhileBusy(type) && turn()) {
-        m_painting = true;
-        repaint();
-        m_painting = false;
+    if (sentWhileBusy(type)) {
+        drawWhenDue();
     }
     return false;
 }
 
 void LoadingOverlay::paintEvent(QPaintEvent* /*event*/) {
+    m_frame.start();
+    ++m_frames;
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
     // The widget darkened by the theme's shadow
@@ -138,7 +164,10 @@ void LoadingOverlay::paintEvent(QPaintEvent* /*event*/) {
     painter.setPen(pen);
     QRectF circle(0, 0, size - line, size - line);
     circle.moveCenter(QRectF(rect()).center());
-    painter.drawArc(circle, -m_angle * SIXTEENTHS, ARC_DEGREES * SIXTEENTHS);
+    // Where the time puts it, in sixteenths of a degree: the turn even, without steps
+    const auto turned = static_cast<int>(m_clock.elapsed() % TURN_MS * FULL_TURN * SIXTEENTHS /
+                                         TURN_MS);
+    painter.drawArc(circle, -turned, ARC_DEGREES * SIXTEENTHS);
 }
 
 }  // namespace kalahari::gui

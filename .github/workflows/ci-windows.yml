@@ -145,11 +145,35 @@ jobs:
         cd build
         ctest --output-on-failure --build-config ${{ matrix.build_type }} --parallel 4
 
-    - name: Upload binaries (Release only)
+    # The installer and the ZIP of the program (scripts/package.py), checked by the program's
+    # own check of an installation. The release of a version takes them from the run of main
+    # (release.yml)
+    - name: NSIS for the installer
+      if: matrix.build_type == 'Release'
+      shell: pwsh
+      run: |
+        $nsis = Join-Path ${env:ProgramFiles(x86)} "NSIS\makensis.exe"
+        if (-not (Get-Command makensis -ErrorAction SilentlyContinue) -and -not (Test-Path $nsis)) {
+          choco install nsis -y --no-progress
+        }
+
+    - name: Packages (installer and ZIP)
+      if: matrix.build_type == 'Release'
+      run: python scripts/package.py windows --build build --out dist
+
+    - name: Upload packages
       if: matrix.build_type == 'Release'
       uses: actions/upload-artifact@v4
       with:
-        name: kalahari-windows-${{ matrix.build_type }}
-        path: |
-          build/bin/kalahari.exe
-        retention-days: 7
+        name: kalahari-windows-packages
+        path: dist/*
+        if-no-files-found: error
+        compression-level: 0  # the packages are compressed already
+        retention-days: 30
+
+    # The installer as a writer runs it, silently: for the writer alone and for all users, the
+    # files of the program, the Start menu and the .klh books, the installed program's check
+    # with its own Python, then its uninstaller, which must leave nothing (scripts/package.py)
+    - name: Installer installed, checked and uninstalled
+      if: matrix.build_type == 'Release'
+      run: python scripts/package.py install-check --dist dist

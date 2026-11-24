@@ -108,6 +108,10 @@ void SettingsDialog::createNavigationTree() {
                 [this](const QString& unit) { setLengthUnit(lengthUnitFromName(unit)); });
         return generalPage;
     });
+    //: Settings > Notifications: where the program's notifications show. In Polish:
+    //: Powiadomienia
+    m_pageItems[NOTIFICATIONS_PAGE] =
+        addPage(nullptr, tr("Notifications"), []() { return new NotificationsPage(); });
 
     QTreeWidgetItem* appearance = category(tr("Appearance"));
     addPage(appearance, tr("General"), []() { return new AppearanceGeneralPage(); });
@@ -260,6 +264,11 @@ void SettingsDialog::createNavigationTree() {
     addPage(files, tr("Folders"), []() { return new FoldersPage(); });
     //: The page of the choices the window of the import starts with. In Polish: Import
     m_pageItems[IMPORT_PAGE] = addPage(files, tr("Import"), []() { return new ImportPage(); });
+    //: The page of the program the system opens the books and the documents with. In Polish:
+    //: Powiązania plików
+    m_pageItems[FILE_ASSOCIATIONS_PAGE] = addPage(files, tr("File Associations"), []() {
+        return new FileAssociationsPage();
+    });
     addPlannedPage(files, tr("Backup"),
                    tr("Planned features:\n"
                       "- Automatic backup frequency\n"

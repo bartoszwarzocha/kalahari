@@ -50,7 +50,8 @@ const QSet<QString>& metadataTagSet()
 {
     static const QSet<QString> tags = {
         QStringLiteral("charref"),
-        QStringLiteral("locref")
+        QStringLiteral("locref"),
+        QStringLiteral("points")
     };
     return tags;
 }
@@ -68,6 +69,11 @@ const QVector<MetadataTagDef>& metadataDefinitions()
             QStringLiteral("locref"),
             KmlPropLocRef,
             {QStringLiteral("id"), QStringLiteral("target")}
+        },
+        {
+            QStringLiteral("points"),
+            KmlPropTemplatePoints,
+            {QStringLiteral("ids")}
         }
     };
     return defs;

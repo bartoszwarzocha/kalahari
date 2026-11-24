@@ -722,6 +722,37 @@ TEST_CASE("Settings dialog: the words of the notes counted or not, in the open e
     restore(before);
 }
 
+TEST_CASE("Editor settings: the color of the tab guides on each paper reaches every editor",
+          "[gui][editor][settings][tabguides]") {
+    auto& settings = core::SettingsManager::getInstance();
+    auto& themes = core::ThemeManager::getInstance();
+    const std::string theme = themes.getCurrentTheme().name;
+    const std::string light =
+        core::ThemeManager::editorColorSetting(theme, editor::LIGHT_PAPER_COLOR_KEYS.tabGuide);
+    const std::string dark =
+        core::ThemeManager::editorColorSetting(theme, editor::DARK_PAPER_COLOR_KEYS.tabGuide);
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
+
+    // The theme's colors
+    const editor::EditorColors& colors = panel.getBookEditor()->appearance().colors;
+    CHECK(colors.tabGuides.light ==
+          themes.editorColor(editor::LIGHT_PAPER_COLOR_KEYS.tabGuide, QColor()));
+    CHECK(colors.tabGuides.dark ==
+          themes.editorColor(editor::DARK_PAPER_COLOR_KEYS.tabGuide, QColor()));
+
+    // Those of the Settings
+    settings.set<std::string>(light, "#123456");
+    settings.set<std::string>(dark, "#abcdef");
+    QCoreApplication::processEvents();  // the theme follows the settings
+    QCoreApplication::processEvents();  // and the editors the theme
+    CHECK(panel.getBookEditor()->appearance().colors.tabGuides.light ==
+          QColor(QStringLiteral("#123456")));
+    CHECK(panel.getBookEditor()->appearance().colors.tabGuides.dark ==
+          QColor(QStringLiteral("#abcdef")));
+    settings.removeKey(light);
+    settings.removeKey(dark);
+}
+
 TEST_CASE("Editor settings: View > Show Formatting Marks and the look of the scene breaks reach "
           "every editor",
           "[gui][editor][settings][marks]") {

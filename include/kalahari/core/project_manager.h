@@ -58,6 +58,7 @@
 #include "kalahari/core/chapter_versions.h"
 #include "kalahari/core/clipping.h"
 #include "kalahari/core/package_card.h"
+#include "kalahari/core/page_start.h"
 // OpenSpec #00041: SQLite Project Database
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/project_lock.h"
@@ -66,10 +67,6 @@
 #include "kalahari/core/backup_manager.h"
 #include "kalahari/core/text_statistics.h"
 #include "kalahari/core/volume_copies.h"
-
-namespace kalahari::editor {
-struct SkeletonPoint;
-}  // namespace kalahari::editor
 
 namespace kalahari::core {
 
@@ -808,11 +805,21 @@ public:
     /// book outside its text has no status.
     bool setStatus(const QString& elementId, const QString& status);
 
-    /// @brief Set whether a text element starts on a left page (with mirror margins its inner
-    ///        margin is on the right then); without it, it starts on a right page
+    /// @brief Set the page a text element starts on in a printed book (page_start.h): with
+    ///        mirror margins the inner margin of a left page is on its right
     ///
     /// Saves the .klh file. A file of the book outside its text has no pages of its own.
-    bool setFirstPageLeft(const QString& elementId, bool left);
+    /// PageStart::Auto: as its kind says.
+    bool setFirstPage(const QString& elementId, PageStart start);
+
+    /// @brief The page @p element starts on in a printed book: its own choice, else its
+    ///        kind's, else the setting's (editor.page.textsStart)
+    /// @return PageStart::Right, PageStart::Left or PageStart::Next
+    [[nodiscard]] PageStart pageStartOf(const ProjectElement& element) const;
+
+    /// @brief The page a text of @p element's kind starts on when it says nothing itself
+    ///        (the kind's, else the setting's): what "Auto" means in the Properties panel
+    [[nodiscard]] PageStart kindPageStartOf(const ProjectElement& element) const;
 
     /// @brief Notes of a text element, from its chapter file; of an element without a chapter
     /// file (a card of the Workshop), its description (ProjectElement::description)
@@ -1057,9 +1064,7 @@ public:
     /// the place of its kind is
     ///
     /// Every book can have texts for publishers: a book whose kinds do not have them takes
-    /// their kind with the first one. Saves the .klh file. When the points of a template are
-    /// in the text (PublishingTexts::pointsInText()), the text starts with the skeleton of its
-    /// template (templateSkeleton(), editor::skeletonKml()).
+    /// their kind with the first one. Saves the .klh file.
     /// @return The id of the new text; empty when no book is open or it is read-only, @p part
     ///         is not a part of a text, the base package has no texts for publishers, or a
     ///         file cannot be written; the book stays as it was then
@@ -1147,6 +1152,12 @@ public:
     /// saved (setEditorText()), as File > Export has the open texts.
     [[nodiscard]] QString publishingTextOf(const QString& elementId) const;
 
+    /// @brief The points of the template of synopsis @p elementId that its text, as in its
+    ///        editor, has no fragment of (PublishingTexts::linkedPointsOf()); none for another
+    ///        element and without a template with points
+    [[nodiscard]] QList<PublishingTemplatePoint> unlinkedPublishingPointsOf(
+        const QString& elementId) const;
+
     /// @brief Give text @p elementId for publishers the text @p kml of its editor, with changes
     ///        not saved, which the set has (publishingTextOf()); saving or dropping the changes
     ///        forgets it. Emits publishingTextChanged().
@@ -1165,11 +1176,6 @@ public:
     /// @brief The texts of the main part of the book, in reading order, as their ids and
     /// titles: the points of a template of each text (PublishingTemplate::pointsFor())
     [[nodiscard]] QList<std::pair<QString, QString>> mainTexts() const;
-
-    /// @brief The skeleton of the template @p reference in the book's language: its points
-    /// for mainTexts() (PublishingTemplate::pointsFor()), each with its heading and hint; none
-    /// for no template and for a template of a part without points
-    [[nodiscard]] QList<editor::SkeletonPoint> templateSkeleton(const QString& reference) const;
 
     /// @brief The target length of text @p elementId for publishers in words or in characters
     /// (PublishingTexts::targetOf()); 0 for no element or no target
@@ -1872,11 +1878,6 @@ private:
     /// (setChapterContent()), else that of its chapter file; none for another element and an
     /// unreadable file
     [[nodiscard]] std::optional<QString> textKmlOf(const QString& elementId) const;
-
-    /// @brief Give the new text @p textId for publishers the skeleton of its template
-    /// @p templateReference (templateSkeleton()) and save it, when the points of a template are
-    /// in the text (PublishingTexts::pointsInText()) and the template has points
-    void startWithSkeleton(const QString& textId, const QString& templateReference);
 
     /// @brief Write the title, status and notes of @p element to its chapter file, and
     /// @p kml when given; the file keeps its other data

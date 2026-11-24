@@ -19,10 +19,10 @@ namespace kalahari::gui::dialogs {
 /// license
 ///
 /// The heading of the program's own dialogs names the program, its version and the version of
-/// Qt it runs with; under it three tabs: About, Third-Party Components and License. The About
-/// tab opens with what the program was built from (the commit, its branch, when, the
-/// configuration), which Copy Build Information puts on the clipboard. Close (or Esc) closes
-/// the dialog.
+/// Qt it runs with; under it four tabs: About, Build, Third-Party Components and License. The
+/// Build tab has, short, what the program was built from (the commit and its branch, when,
+/// Debug or Release, the system and the compiler); Copy Build Information puts all of it on the
+/// clipboard. The copyright has the years up to this one. Close (or Esc) closes the dialog.
 ///
 /// @see MainWindow::onAbout()
 class AboutDialog : public KalahariDialog {
@@ -33,7 +33,7 @@ public:
     /// @param parent Parent widget (typically MainWindow)
     explicit AboutDialog(QWidget* parent = nullptr);
 
-    /// @brief The tabs: About, Third-Party Components, License
+    /// @brief The tabs: About, Build, Third-Party Components, License
     [[nodiscard]] QTabWidget* tabs() const { return m_tabs; }
 
     /// @brief What the program was built from, a line for each: the version, the commit, its
@@ -44,6 +44,13 @@ public:
 
     /// @brief Copy Build Information
     [[nodiscard]] QPushButton* copyButton() const { return m_copy; }
+
+    /// @brief The years of the copyright in @p year: "2025–2026"; "2025" up to 2025 (also for a
+    /// clock set earlier)
+    [[nodiscard]] static QString copyrightYears(int year);
+
+    /// @brief "Copyright © 2025–…", up to the year of the system's clock
+    [[nodiscard]] static QString copyright();
 
 private:
     /// @brief Creates "About" tab content
@@ -58,8 +65,8 @@ private:
     /// @return Widget containing full MIT license text
     QWidget* createLicenseTab();
 
-    /// @brief The group of the About tab with what the program was built from, and its button
-    QWidget* createBuildGroup(QWidget* parent);
+    /// @brief The Build tab: what the program was built from, short, and Copy Build Information
+    QWidget* createBuildTab();
 
     QTabWidget* m_tabs = nullptr;
     QPushButton* m_copy = nullptr;

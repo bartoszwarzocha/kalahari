@@ -559,6 +559,8 @@ editor::EditorColors EditorPanel::themeColors() {
     footnotes.lineDark = themes.editorColor(dark.noteLine, defaults.footnotes.lineDark);
     footnotes.frameLight = themes.editorColor(light.noteFrame, defaults.footnotes.frameLight);
     footnotes.frameDark = themes.editorColor(dark.noteFrame, defaults.footnotes.frameDark);
+    result.tabGuides.light = themes.editorColor(light.tabGuide, defaults.tabGuides.light);
+    result.tabGuides.dark = themes.editorColor(dark.tabGuide, defaults.tabGuides.dark);
     // Under the text on both papers: translucent, so the text stays readable
     result.selection =
         editor::underTextColor(themes.editorColor(editor::SELECTION_COLOR_KEY, defaults.selection),
@@ -1168,13 +1170,15 @@ void EditorPanel::showNumberingValue() {
     }
 }
 
-void EditorPanel::setFirstPageLeft(bool left) {
-    // The editor's appearance keeps it: applySettings() starts from it
+void EditorPanel::setFirstPage(int number, bool left) {
+    // The editor's appearance keeps them: applySettings() starts from it
     editor::EditorAppearance appearance = m_bookEditor->appearance();
-    if (appearance.pageMargins.firstPageLeft == left) {
+    if (appearance.pageMargins.firstPageLeft == left &&
+        appearance.pageLayout.firstPageNumber == number) {
         return;
     }
     appearance.pageMargins.firstPageLeft = left;
+    appearance.pageLayout.firstPageNumber = number;
     m_bookEditor->setAppearance(appearance);
 }
 
@@ -1189,6 +1193,22 @@ void EditorPanel::setFieldLook(bool on) {
         m_bookEditor->setZoomFactor(1.0);
     }
     applySettings();
+}
+
+QString EditorPanel::pageStatus() const {
+    const int total = m_bookEditor->totalPages();
+    if (total <= 0) {
+        return {};
+    }
+    const int page = m_bookEditor->currentPage();
+    const int first = m_bookEditor->firstPageNumber();
+    if (first != 1) {
+        //: The status bar, the pages numbered through the book: the number the page shows,
+        //: then its page in the text. In Polish: Strona %1 (%2 z %3)
+        return tr("Page %1 (%2 of %3)").arg(first + page - 1).arg(page).arg(total);
+    }
+    //: The status bar. In Polish: Strona %1 z %2
+    return tr("Page %1 of %2").arg(page).arg(total);
 }
 
 void EditorPanel::scheduleSettings() {

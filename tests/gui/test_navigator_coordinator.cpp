@@ -16,6 +16,7 @@
 #include <kalahari/core/file_trash.h>
 #include <kalahari/core/kind_words.h>
 #include <kalahari/core/name_declension.h>
+#include <kalahari/core/page_start.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/editor/book_editor.h>
@@ -29,6 +30,7 @@
 #include <kalahari/gui/icon_registrar.h>
 #include <kalahari/gui/material_downloader.h>
 #include <kalahari/gui/navigator_coordinator.h>
+#include <kalahari/gui/notifications.h>
 #include <kalahari/gui/panels/card_panel.h>
 #include <kalahari/gui/panels/editor_panel.h>
 #include <kalahari/gui/panels/image_preview_panel.h>
@@ -865,14 +867,15 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     }
     TestFileChooser chooser(picture);
 
-    // The Workshop has the Book Plan and the book's dictionary at its top, and the groups of
-    // the kinds the program makes, also empty: the cards of the characters, the locations and
-    // the items, then the working notes and the kinds of materials, in Materials, after the list Sources
+    // The Workshop has the Book Plan, the book's dictionary and For Publishers at its top, and
+    // the groups of the kinds the program makes, also empty: the cards of the characters, the
+    // locations and the items, then the working notes and the kinds of materials, in
+    // Materials, after the list Sources; the texts for publishers are on the card only
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
-          "Book Plan, Book Dictionary, Characters, Locations, Items, Materials");
+          "Book Plan, Book Dictionary, For Publishers, Characters, Locations, Items, Materials");
     CHECK(navigator.itemsIn(QStringLiteral("workshop:materials")) ==
-          "Sources, Working notes, Clippings, Cover, Texts for publishers, Quotes, Web pages, "
-          "Pictures, Documents, Publications, Recordings, Other files");
+          "Sources, Working notes, Clippings, Cover, Quotes, Web pages, Pictures, Documents, "
+          "Publications, Recordings, Other files");
 
     // A working note has no status; it opens in the editor
     CHECK(navigator.add(onWorkshop(), {addAs({.kind = "work_note"})}) == 1);
@@ -1125,13 +1128,13 @@ TEST_CASE("Navigator commands: the book and the Workshop are named and the Works
     CHECK(pm.project()->workshop.grouped);
     CHECK(novel.savedProject().workshop.grouped);
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
-          "Book Plan, Book Dictionary, Libraries, Materials");
+          "Book Plan, Book Dictionary, For Publishers, Libraries, Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop grouped"));
     navigator.coordinator.onRequestWorkshopGrouped(false);
     CHECK_FALSE(pm.project()->workshop.grouped);
     CHECK_FALSE(novel.savedProject().workshop.grouped);
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
-          "Book Plan, Book Dictionary, Characters, Locations, Items, Materials");
+          "Book Plan, Book Dictionary, For Publishers, Characters, Locations, Items, Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop not grouped"));
 }
 
@@ -2914,18 +2917,21 @@ TEST_CASE("Navigator commands: a chapter set to start on a left page in the Prop
     REQUIRE(editor != nullptr);
     CHECK_FALSE(editor->getBookEditor()->appearance().pageMargins.firstPageLeft);
 
-    // A right page unless checked
+    // As its kind and the settings say until chosen
     navigator.properties->showChapterProperties(id);
-    auto* left = navigator.properties->findChild<QCheckBox*>(QStringLiteral("chapterFirstPageLeft"));
-    REQUIRE(left != nullptr);
-    CHECK(left->isVisibleTo(navigator.properties));
-    CHECK(left->isEnabled());
-    CHECK_FALSE(left->isChecked());
+    auto* firstPage =
+        navigator.properties->findChild<QComboBox*>(QStringLiteral("chapterFirstPage"));
+    REQUIRE(firstPage != nullptr);
+    CHECK(firstPage->isVisibleTo(navigator.properties));
+    CHECK(firstPage->isEnabled());
+    CHECK(firstPage->currentData().toString().isEmpty());
+    CHECK(firstPage->findData(QStringLiteral("right")) >= 0);
+    CHECK(firstPage->findData(QStringLiteral("next")) >= 0);
 
-    left->setChecked(true);
-    CHECK(pm.findElement(id)->firstPageLeft);
+    firstPage->setCurrentIndex(firstPage->findData(QStringLiteral("left")));
+    CHECK(pm.findElement(id)->firstPage == core::PageStart::Left);
     REQUIRE(novel.savedBook().mainElements.size() == 1);
-    CHECK(novel.savedBook().mainElements.first().firstPageLeft);
+    CHECK(novel.savedBook().mainElements.first().firstPage == core::PageStart::Left);
     CHECK(editor->getBookEditor()->appearance().pageMargins.firstPageLeft);
 
     // Opened again, the editor has it from the start
@@ -2940,7 +2946,7 @@ TEST_CASE("Navigator commands: a chapter set to start on a left page in the Prop
     // A part has no pages of its own
     const QString part = navigator.added(QStringLiteral("part"));
     navigator.properties->showChapterProperties(part);
-    CHECK_FALSE(left->isVisibleTo(navigator.properties));
+    CHECK_FALSE(firstPage->isVisibleTo(navigator.properties));
 }
 
 namespace {
@@ -3412,13 +3418,43 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
         emit navigator.coordinator.materialDownloader()->finished(result);
         CHECK(pm.findElement(pageId)->title == QStringLiteral("The desert"));
 
-        // A failure nobody asked about goes to the status bar
+        // A failure nobody asked about goes to the status bar without the notifications of a
+        // window
         result.title.clear();
         result.error = QStringLiteral("The server did not answer in time.");
         emit navigator.coordinator.materialDownloader()->finished(result);
-        CHECK(navigator.statusBar->currentMessage() ==
-              QStringLiteral("Nothing was downloaded for \"The desert\": The server did not "
-                             "answer in time."));
+        const QString failed = QStringLiteral(
+            "Nothing was downloaded for \"The desert\": The server did not answer in time.");
+        CHECK(navigator.statusBar->currentMessage() == failed);
+
+        // With them, a warning among them (here as a notification of the system)
+        navigator.statusBar->clearMessage();
+        QStringList notified;
+        gui::NotificationCoordinator::setSystemNotifier(
+            [&notified](const QString& title, const QString& text, gui::Notification::Kind kind) {
+                notified << title + QStringLiteral(": ") + text +
+                                (kind == gui::Notification::Kind::Warning ? QStringLiteral(" (!)")
+                                                                          : QString());
+                return true;
+            });
+        const struct NotifierGuard {
+            NotifierGuard() = default;
+            ~NotifierGuard() { gui::NotificationCoordinator::setSystemNotifier({}); }
+            NotifierGuard(const NotifierGuard&) = delete;
+            NotifierGuard& operator=(const NotifierGuard&) = delete;
+            NotifierGuard(NotifierGuard&&) = delete;
+            NotifierGuard& operator=(NotifierGuard&&) = delete;
+        } notifierGuard;
+        core::SettingsManager::getInstance().set<std::string>(
+            gui::NotificationCoordinator::PLACE_SETTING, "system");
+        gui::NotificationCoordinator notifications(nullptr, {});
+        navigator.coordinator.setNotifications(&notifications);
+        emit navigator.coordinator.materialDownloader()->finished(result);
+        QCoreApplication::processEvents();
+        CHECK(notified ==
+              QStringList{QStringLiteral("Materials: ") + failed + QStringLiteral(" (!)")});
+        CHECK(navigator.statusBar->currentMessage().isEmpty());
+        navigator.coordinator.setNotifications(nullptr);
     }
 
     SECTION("the picture downloaded is the copy, which opens on its preview tab") {

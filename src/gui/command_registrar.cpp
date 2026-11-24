@@ -17,6 +17,7 @@
 
 #include <QCoreApplication>
 
+#include <functional>
 #include <string>
 #include <tuple>
 
@@ -39,6 +40,19 @@ static void setTexts(Command& cmd, const char* menuText) {
     cmd.label = withoutAccessKey(text).toStdString();
     cmd.tooltip = cmd.label;
 }
+
+namespace {
+
+/// The callback of a command of the tab guides; none without CommandCallbacks::onTabGuide
+std::function<void()> tabGuideCallback(const CommandCallbacks& callbacks,
+                                       TabGuideCommand command) {
+    if (!callbacks.onTabGuide) {
+        return {};
+    }
+    return [onTabGuide = callbacks.onTabGuide, command]() { onTabGuide(command); };
+}
+
+}  // namespace
 
 int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callbacks) {
     auto& logger = core::Logger::getInstance();
@@ -513,9 +527,13 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_KEY_CB("view.outline", QT_TRANSLATE_NOOP("CommandRegistrar", "O&utline"), "BOOK/Outline", 94, true, 0,
                    KeyboardShortcut(Qt::Key_L, Qt::ControlModifier | Qt::ShiftModifier),
                    callbacks.onOutline);
+    // The card For Publishers on its tab: the set, the versions of its texts and their
+    // templates, as Workshop > For Publishers in the Navigator
+    REG_CMD_KEY_CB("book.publishing", QT_TRANSLATE_NOOP("CommandRegistrar", "&For Publishers"), "BOOK/For Publishers", 95, false, 0,
+                   KeyboardShortcut(), callbacks.onPublishing);
     // The book's dictionary on its tab: its names, spelling rules and words (no keys);
     // BookDictionaryCoordinator gives it its callback
-    REG_CMD("book.dictionary", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Dictionary..."), "BOOK/Book Dictionary...", 95, false, 0);
+    REG_CMD("book.dictionary", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Dictionary..."), "BOOK/Book Dictionary...", 96, false, 0);
 
     REG_CMD_TOOL_ICON("book.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Properties..."), "BOOK/Book Properties...", 100, false, 1,
                       KeyboardShortcut(),
@@ -760,10 +778,26 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                       KeyboardShortcut(Qt::Key_R, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onAlignRight);
-    REG_CMD_TOOL_ICON("format.justify", QT_TRANSLATE_NOOP("CommandRegistrar", "&Justify"), "FORMAT/Align Text/Justify", 170, false, 0,
+    REG_CMD_TOOL_ICON("format.justify", QT_TRANSLATE_NOOP("CommandRegistrar", "&Justify"), "FORMAT/Align Text/Justify", 170, true, 0,
                       KeyboardShortcut(Qt::Key_J, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onAlignJustify);
+
+    // The tab guides of the text: dashed lines down its pages that a Tab aligns it to, set at
+    // the cursor and moved a millimetre at a time from the keys (editor/tab_guides.h). Alt+Shift
+    // with G and the arrows on Windows and Linux; on macOS Option+Shift with an arrow selects
+    // words, so they have Option+Shift+Cmd, as the pastes
+    const auto tabGuide = [&callbacks](TabGuideCommand command) {
+        return tabGuideCallback(callbacks, command);
+    };
+    REG_CMD_KEY_CB("format.tabGuide.toggle", QT_TRANSLATE_NOOP("CommandRegistrar", "Set or Remove Tab &Guide"), "FORMAT/Align Text/Set or Remove Tab Guide", 172, false, 0,
+                   KeyboardShortcut(Qt::Key_G, pasteModifiers), tabGuide(TabGuideCommand::Toggle));
+    REG_CMD_KEY_CB("format.tabGuide.moveLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Move Tab Guide Le&ft"), "FORMAT/Align Text/Move Tab Guide Left", 174, false, 0,
+                   KeyboardShortcut(Qt::Key_Left, pasteModifiers), tabGuide(TabGuideCommand::MoveLeft));
+    REG_CMD_KEY_CB("format.tabGuide.moveRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Move Tab Guide Righ&t"), "FORMAT/Align Text/Move Tab Guide Right", 176, false, 0,
+                   KeyboardShortcut(Qt::Key_Right, pasteModifiers), tabGuide(TabGuideCommand::MoveRight));
+    REG_CMD_CB("format.tabGuide.removeAll", QT_TRANSLATE_NOOP("CommandRegistrar", "Remove All Tab Guide&s"), "FORMAT/Align Text/Remove All Tab Guides", 178, false, 0,
+               tabGuide(TabGuideCommand::RemoveAll));
 
     // A list item goes a level down or up (Tab and Shift+Tab at its start), another paragraph
     // a step of the indent (editor/text_lists.h, editor/paragraph_format.h)
@@ -1000,28 +1034,25 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
 
     REG_CMD("tools.readability", QT_TRANSLATE_NOOP("CommandRegistrar", "&Readability Score"), "TOOLS/Readability Score", 60, true, 2);
 
-    // The keys to the points of the template of the synopsis in front, in the Properties panel
-    // (DockCoordinator gives it its callback); Esc gives them back to the text
-    //: In Polish: &Punkty szablonu
-    REG_CMD("tools.publishing.templatePoints",
-            QT_TRANSLATE_NOOP("CommandRegistrar", "Template &Points"),
-            "TOOLS/Texts for Publishers/Template Points", 80, false, 0);
-    // The skeleton of the synopsis in front: the headings of the points of its template with
-    // their hints at the cursor, and away again (DockCoordinator gives them their callbacks)
-    //: In Polish: &Wstaw szkielet
-    REG_CMD("tools.publishing.insertSkeleton",
-            QT_TRANSLATE_NOOP("CommandRegistrar", "Insert &Skeleton"),
-            "TOOLS/Texts for Publishers/Insert Skeleton", 81, false, 0);
-    //: In Polish: &Usuń nagłówki i podpowiedzi
-    REG_CMD("tools.publishing.removeSkeleton",
-            QT_TRANSLATE_NOOP("CommandRegistrar", "&Remove Headings and Hints"),
-            "TOOLS/Texts for Publishers/Remove Headings and Hints", 82, true, 0);
-    // The window of the templates of the book types and the writer's own (DockCoordinator gives
-    // it its callback)
-    //: In Polish: &Szablony...
-    REG_CMD("tools.publishing.templates",
-            QT_TRANSLATE_NOOP("CommandRegistrar", "&Templates..."),
-            "TOOLS/Texts for Publishers/Templates...", 83, true, 0);
+    // The selection of the version on the card For Publishers linked to a point of its
+    // template, or the link taken away: a menu of the points under the cursor (DockCoordinator
+    // gives it its callback). No menu has it: the card has its buttons, and Settings > Keyboard
+    // Shortcuts lists it under Tools
+    {
+        Command cmd;
+        cmd.id = "tools.publishing.linkPoint";
+        //: In Polish: Powiąż z punktem szablonu
+        setTexts(cmd, QT_TRANSLATE_NOOP("CommandRegistrar", "Link to a Template Point"));
+        cmd.category = "TOOLS";
+        cmd.menuPath = "TOOLS/Link to a Template Point";
+        cmd.menuOrder = 80;
+        cmd.phase = 0;
+        cmd.showInMenu = false;
+        cmd.showInToolbar = false;
+        cmd.shortcut = KeyboardShortcut(Qt::Key_D, Qt::ControlModifier | Qt::ShiftModifier);
+        registry.registerCommand(cmd);
+        count++;
+    }
 
     REG_CMD("tools.backupNow", QT_TRANSLATE_NOOP("CommandRegistrar", "&Backup Now"), "TOOLS/Backup Now", 100, false, 2);
     REG_CMD("tools.autoSaveSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "&Auto-Save Settings..."), "TOOLS/Auto-Save Settings...", 110, true, 1);
@@ -1085,13 +1116,13 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // A panel of its own, or the lower part of Properties (Settings > Appearance > General)
     REG_CMD("view.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "Pa&ragraph and Styles"), "VIEW/Panels/Paragraph and Styles", 52, false, 0);
 
-    REG_CMD_KEY("view.log", QT_TRANSLATE_NOOP("CommandRegistrar", "&Log"), "VIEW/Panels/Log", 60, false, 0,
+    REG_CMD_KEY("view.log", QT_TRANSLATE_NOOP("CommandRegistrar", "&Log"), "VIEW/Panels/Log", 61, false, 0,
                 KeyboardShortcut(Qt::Key_F4, Qt::NoModifier));
 
     REG_CMD_KEY("view.search", QT_TRANSLATE_NOOP("CommandRegistrar", "&Search"), "VIEW/Panels/Search", 55, false, 0,
                 KeyboardShortcut(Qt::Key_F5, Qt::NoModifier));
 
-    REG_CMD_KEY("view.assistant", QT_TRANSLATE_NOOP("CommandRegistrar", "&Assistant"), "VIEW/Panels/Assistant", 59, false, 0,
+    REG_CMD_KEY("view.assistant", QT_TRANSLATE_NOOP("CommandRegistrar", "&Assistant"), "VIEW/Panels/Assistant", 60, false, 0,
                 KeyboardShortcut(Qt::Key_F6, Qt::NoModifier));
 
     // F9: F7 stays for spelling
@@ -1108,6 +1139,9 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
 
     // The views of the writing: today, the week, 30 days, the book, the times of writing
     REG_CMD("view.statistics", QT_TRANSLATE_NOOP("CommandRegistrar", "Statis&tics"), "VIEW/Panels/Statistics", 58, false, 0);
+    // The notifications of the session; no key of its own: the notifications open it when it
+    // is their place (Settings > Notifications)
+    REG_CMD("view.notifications", QT_TRANSLATE_NOOP("CommandRegistrar", "Not&ifications"), "VIEW/Panels/Notifications", 59, false, 0);
 
     // View Mode submenu (OpenSpec #00042 Phase 7.3)
     // View modes for BookEditor - radio group (only one can be active)

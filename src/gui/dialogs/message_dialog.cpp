@@ -108,6 +108,15 @@ MessageDialog::MessageDialog(Kind kind, const QString& title, const QString& tex
     acceptButton()->setFocus();
 }
 
+void MessageDialog::setMessage(Kind kind, const QString& title, const QString& text)
+{
+    m_title = title;
+    m_text = text;
+    setHeading(title);
+    setHeadingIcon(iconId(kind));
+    m_textLabel->setText(text);
+}
+
 void MessageDialog::setDetails(const QString& details)
 {
     m_detailsEdit->setPlainText(details);

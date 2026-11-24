@@ -63,6 +63,7 @@ struct PaperColorKeys {
                                   ///< book does not have
     const char* noteLine;         ///< The line above the notes
     const char* noteFrame;        ///< The frame a note's text is written in
+    const char* tabGuide;         ///< The dashed lines of the tab guides
 };
 
 /// @brief The names of the light paper's colors
@@ -70,13 +71,14 @@ inline constexpr PaperColorKeys LIGHT_PAPER_COLOR_KEYS{
     "paperLight", "textLight", "focusDimmedLight", "formattingMarksLight", "linkLight",
     "deskLight", "tableLinesLight", "tableHeaderLight", "tableGridlinesLight",
     "imageCropMarksLight", "imageMissingLight", "fieldLight", "brokenFieldLight",
-    "noteLineLight", "noteFrameLight"};
+    "noteLineLight", "noteFrameLight", "tabGuideLight"};
 
 /// @brief The names of the dark paper's colors
 inline constexpr PaperColorKeys DARK_PAPER_COLOR_KEYS{
     "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "linkDark", "deskDark",
     "tableLinesDark", "tableHeaderDark", "tableGridlinesDark", "imageCropMarksDark",
-    "imageMissingDark", "fieldDark", "brokenFieldDark", "noteLineDark", "noteFrameDark"};
+    "imageMissingDark", "fieldDark", "brokenFieldDark", "noteLineDark", "noteFrameDark",
+    "tabGuideDark"};
 
 /// @brief The names of the colors drawn under the text on both papers
 inline constexpr const char* SELECTION_COLOR_KEY = "selection";
@@ -234,6 +236,17 @@ struct EditorColors {
         return mode == EditorColorMode::Light ? footnotes.frameLight : footnotes.frameDark;
     }
 
+    /// @brief The dashed lines of the tab guides across the pages
+    struct TabGuideColors {
+        QColor light{143, 168, 208};             ///< On the light paper
+        QColor dark{111, 134, 176};              ///< On the dark paper
+    } tabGuides;
+
+    /// @brief The tab guides' color on the paper of a mode
+    [[nodiscard]] QColor tabGuideColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? tabGuides.light : tabGuides.dark;
+    }
+
     /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on
     /// that paper; not valid: the text's color)
     struct AnnotationColors {
@@ -328,6 +341,9 @@ struct PageLayout {
     bool fillsView{false};                     ///< A text field: in the continuous view the
                                                ///< page fills the view, without the desk and
                                                ///< the sheet (the page size is not used)
+    /// The number of the text's first page: 1, or its page in the whole book (set by the
+    /// book: gui::BookPageNumbers)
+    int firstPageNumber{1};
 
     /// @brief Page dimensions in millimetres
     [[nodiscard]] QSizeF pageSizeMm() const;

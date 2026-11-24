@@ -21,6 +21,7 @@
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/main_window.h"
 #include "kalahari/gui/menu_builder.h"
+#include "kalahari/gui/notifications.h"
 #include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/gui/utils/access_keys.h"
@@ -634,8 +635,15 @@ void installPluginHost() {
         }
         return pluginBookOf(*front).items.front();
     });
+    // A message of a plugin is a notification, in the window in front, where the settings show
+    // them; in the bar after its title, which says what it is about. Without a book window,
+    // in a message window
     host.setMessageSink([](const std::string& title, const std::string& text) {
-        dialogs::MessageDialog::information(MainWindow::frontWindow(), qt(title), qt(text));
+        Notification notification{qt(title), qt(text)};
+        notification.titleInBar = true;
+        if (!NotificationCoordinator::notifyFront(notification)) {
+            dialogs::MessageDialog::information(MainWindow::frontWindow(), qt(title), qt(text));
+        }
     });
     host.setPanelRefresh([](const std::string& pluginId, const std::string& panelId) {
         for (PluginCoordinator* coordinator : PluginCoordinator::coordinators()) {

@@ -9,6 +9,7 @@
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/settings_coordinator.h"
 #include "kalahari/gui/shortcut_settings.h"
+#include "kalahari/gui/book_page_numbers.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/document_windows.h"
@@ -49,6 +50,7 @@
 #include "kalahari/gui/cards_in_text_coordinator.h"
 #include "kalahari/gui/repetitions_coordinator.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
+#include "kalahari/gui/notifications.h"
 #include "kalahari/gui/writing_awards_tracker.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
@@ -64,6 +66,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/window_editor_provider.h"
 #include "kalahari/core/project_database.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/recent_books_menu.h"
@@ -76,12 +79,15 @@
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/quick_insert_controller.h"
 #include "kalahari/editor/search_forms.h"
+#include "kalahari/editor/tab_guides.h"
 #include "kalahari/editor/view_modes.h"
 #include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/publishing_card_panel.h"
+#include "kalahari/gui/widgets/relations_box.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/widgets/color_menu.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
@@ -149,8 +155,14 @@ constexpr int READ_ONLY_MESSAGE_MS = 5000;
 /// How long the status bar says that Paste Special pasted
 constexpr int PASTED_MESSAGE_MS = 2000;
 
+/// How long the status bar shows what Link to a Point says
+constexpr int PANEL_MESSAGE_MS = 4000;
+
 /// View > Show Status Bar: whether the book windows show their status bars
 constexpr const char* STATUS_BAR_SETTING = "window.showStatusBar";
+
+/// How long the status bar says what a command of the tab guides did
+constexpr int TAB_GUIDE_MESSAGE_MS = 4000;
 
 /// The commands of the Book menu that add an element of a kind of the Workshop, with the id of
 /// the kind in the base package
@@ -363,12 +375,19 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestMoveTo);
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::elementMovedTo,
             m_navigatorCoordinator, &NavigatorCoordinator::onElementMovedTo);
+    // New Relation Map... and the other commands of the modules in the menus of the Navigator
+    // run as in the Book menu
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::moduleCommandRequested, this,
+            [this](const QString& commandId) { commands().executeCommand(commandId.toStdString()); });
     // A chapter title changed in the Properties panel shows on its tab too
     connect(m_dockCoordinator, &DockCoordinator::chapterStatusChanged,
             m_navigatorCoordinator, &NavigatorCoordinator::refreshTabTitle);
-    // ... and whether it starts on a left page, in the margins of its pages
+    // ... and the page it starts on, in the margins and the numbers of its pages
     connect(m_dockCoordinator, &DockCoordinator::chapterFirstPageChanged,
             m_navigatorCoordinator, &NavigatorCoordinator::refreshFirstPage);
+    // The pages of the book counted: the status bar shows the page of the book
+    connect(&m_navigatorCoordinator->pageNumbers(), &BookPageNumbers::counted, this,
+            &MainWindow::updatePageStatus);
     // Add... on a node of the Navigator: the Add Element window with the kinds of the node
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestAdd,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAdd);
@@ -530,11 +549,24 @@ MainWindow::MainWindow(QWidget* parent)
 
     logger.debug("MainWindow: DocumentCoordinator created");
 
+    // The notifications: the bar at the bottom of the middle, under the tabs of the texts, the
+    // program's window of them, the system's and the Notifications panel; those of the whole
+    // program go to the window in front
+    m_notificationCoordinator = new NotificationCoordinator(
+        m_dockCoordinator,
+        [this](const QString& page) { m_settingsCoordinator->openSettingsPage(page); }, this);
+    NotificationCoordinator::setFrontFinder([]() -> NotificationCoordinator* {
+        MainWindow* front = frontWindow();
+        return front != nullptr ? front->m_notificationCoordinator : nullptr;
+    });
+
     // The statistics bar above the tabs of the texts, and the record of writing of the book
     // that opens (after the documents, which make the collector of its editors)
     m_writingStatsCoordinator = new WritingStatsCoordinator(
         *m_book, *m_commands, m_dockCoordinator, m_documentCoordinator,
         [this](const QString& page) { m_settingsCoordinator->openSettingsPage(page); }, this);
+    m_writingStatsCoordinator->setNotifications(m_notificationCoordinator);
+    m_navigatorCoordinator->setNotifications(m_notificationCoordinator);
     m_writingStatsCoordinator->connectCommands();
     // The time of writing and the days in a row after the reading time, and the summary of
     // the session over this window
@@ -628,6 +660,11 @@ MainWindow::MainWindow(QWidget* parent)
             [this](bool keys) { m_plotBoardCoordinator->openBoard(QString(), keys); });
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestCreateTextFile,
             m_plotBoardCoordinator, &PlotBoardCoordinator::createFile);
+    // For Publishers at the top of the Workshop of the Navigator, as Book > For Publishers
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenPublishing,
+            m_navigatorCoordinator, [this](bool keys) {
+                m_navigatorCoordinator->openPublishingCard(QString(), keys);
+            });
     // The gear over the board: Settings > Plot Board
     connect(m_plotBoardCoordinator, &PlotBoardCoordinator::settingsRequested, this, [this]() {
         if (m_settingsCoordinator != nullptr) {
@@ -888,9 +925,22 @@ MainWindow::MainWindow(QWidget* parent)
         [this]() { return getCurrentEditor(); },
         m_captionCoordinator, m_footnoteCoordinator, this, this);
     m_bookExportCoordinator->connectCommands();
-    // Export Set... of the set for a publisher: the window of the export with the set
-    connect(m_materialListCoordinator, &MaterialListCoordinator::exportSetRequested,
-            m_bookExportCoordinator, &BookExportCoordinator::exportSet);
+    // The card For Publishers: its export, print, gear and the Cover
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::publishingCardCreated, this,
+            [this](PublishingCardPanel* card) {
+                connect(card, &PublishingCardPanel::requestExportSet, m_bookExportCoordinator,
+                        &BookExportCoordinator::exportSet);
+                connect(card, &PublishingCardPanel::requestPrintSet, m_bookExportCoordinator,
+                        &BookExportCoordinator::printSet);
+                connect(card, &PublishingCardPanel::requestShowInCover,
+                        m_materialListCoordinator, &MaterialListCoordinator::showInCover);
+                connect(card, &PublishingCardPanel::settingsRequested, this, [this]() {
+                    if (m_settingsCoordinator != nullptr) {
+                        m_settingsCoordinator->openSettingsPage(
+                            QString::fromLatin1(SettingsDialog::PUBLISHING_PAGE));
+                    }
+                });
+            });
 
     // The commands of the plugins in the menus (Tools > Plugins by default) and their panels
     // in docks on the right, closed until opened; they follow the plugins turned on and off
@@ -1566,6 +1616,7 @@ void MainWindow::registerCommands() {
     callbacks.onFormatItalic = [this]() { onFormatItalic(); };
     callbacks.onFormatUnderline = [this]() { onFormatUnderline(); };
     callbacks.onFormatStrikethrough = [this]() { onFormatStrikethrough(); };
+    callbacks.onTabGuide = [this](TabGuideCommand command) { onTabGuide(command); };
     callbacks.onClearFormatting = [this]() {
         EditorPanel* editor = getCurrentEditor();
         if (editor && editor->getBookEditor()) {
@@ -1769,6 +1820,12 @@ void MainWindow::registerCommands() {
             m_plotBoardCoordinator->openBoard(QString::fromLatin1(PlotBoard::VIEW_BOARD), true);
         }
     };
+    // The card For Publishers, the keys in it
+    callbacks.onPublishing = [this]() {
+        if (m_navigatorCoordinator) {
+            m_navigatorCoordinator->openPublishingCard(QString(), true);
+        }
+    };
     callbacks.onOutline = [this]() {
         if (m_plotBoardCoordinator) {
             m_plotBoardCoordinator->openBoard(QString::fromLatin1(PlotBoard::VIEW_OUTLINE), true);
@@ -1819,6 +1876,42 @@ void MainWindow::registerCommands() {
     // The Window menu: the texts in windows of their own (DocumentWindows, made with the tabs)
     count += DocumentWindows::registerCommands(
         commands(), [this]() { return m_documentWindows; }, [this]() { openNewWindow(); });
+
+    // The commands of the modules (New Relation Map... of the mind maps) in the Book menu
+    for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+         core::windowEditorProviders()) {
+        for (const core::WindowEditorCommand& moduleCommand : provider->commands()) {
+            Command command;
+            command.id = moduleCommand.id;
+            command.menuText = moduleCommand.menuText.toStdString();
+            command.label = withoutAccessKey(moduleCommand.menuText).toStdString();
+            command.tooltip = command.label;
+            command.category = "BOOK";
+            command.menuPath = "BOOK/" + command.label;
+            command.menuOrder = moduleCommand.menuOrder;
+            command.phase = 1;
+            command.execute = [this, id = moduleCommand.id]() {
+                if (m_navigatorCoordinator != nullptr) {
+                    m_navigatorCoordinator->runWindowEditorCommand(id);
+                }
+            };
+            // As New Mind Map...: in a book that can be changed and adds the kinds of the module
+            command.isEnabled = [this, editorId = provider->editorId()]() {
+                const auto& projects = book();
+                if (!projects.isProjectOpen() || projects.isReadOnly()) {
+                    return false;
+                }
+                const QList<core::KindRef> offered = projects.kindsFor(core::BookPlace::Workshop);
+                return std::any_of(offered.cbegin(), offered.cend(),
+                                   [&editorId](const core::KindRef& kind) {
+                                       return kind && kind.kind->editor == editorId &&
+                                              core::ProjectManager::canAdd(kind);
+                                   });
+            };
+            commands().registerCommand(command);
+            ++count;
+        }
+    }
 
     // The keys the user changed in Settings > Keyboard Shortcuts take the place of the
     // program's, in the menus and the toolbars built next
@@ -3008,6 +3101,66 @@ void MainWindow::onImageCommand(editor::BookEditor& text, ImageCommand command) 
     m_editCoordinator->updateStates();
 }
 
+void MainWindow::onTabGuide(TabGuideCommand command) {
+    EditorPanel* editor = getCurrentEditor();
+    editor::BookEditor* text = editor != nullptr ? editor->getBookEditor() : nullptr;
+    if (text == nullptr) {
+        return;
+    }
+    editor::TabGuideOutcome outcome;
+    switch (command) {
+        case TabGuideCommand::Toggle:
+            outcome = text->toggleTabGuideAtCursor();
+            break;
+        case TabGuideCommand::MoveLeft:
+            outcome = text->moveTabGuide(-1);
+            break;
+        case TabGuideCommand::MoveRight:
+            outcome = text->moveTabGuide(1);
+            break;
+        case TabGuideCommand::RemoveAll:
+            outcome = text->clearTabGuides();
+            break;
+    }
+    if (const QString message = tabGuideMessage(outcome); !message.isEmpty()) {
+        statusBar()->showMessage(message, TAB_GUIDE_MESSAGE_MS);
+    }
+}
+
+QString MainWindow::tabGuideMessage(const editor::TabGuideOutcome& outcome) {
+    using editor::TabGuideResult;
+    const QString at = QLocale().toString(outcome.at);
+    switch (outcome.result) {
+        case TabGuideResult::Added:
+            //: In Polish: Linia tabulatora na %1 mm: Tab wyrównuje do niej tekst
+            return tr("Tab guide at %1 mm: Tab aligns the text to it").arg(at);
+        case TabGuideResult::Removed:
+            //: In Polish: Usunięto linię tabulatora z %1 mm
+            return tr("Tab guide at %1 mm removed").arg(at);
+        case TabGuideResult::Moved:
+            return tr("Tab guide at %1 mm").arg(at);
+        case TabGuideResult::Cleared:
+            return tr("All tab guides removed");
+        case TabGuideResult::NoGuides:
+            //: The menus as the Polish program names them: Format > Wyrównanie > Ustaw lub
+            //: usuń linię tabulatora
+            return tr("The text has no tab guides: Format > Align Text > Set or Remove Tab "
+                      "Guide sets one at the cursor");
+        case TabGuideResult::AtEdge:
+            return tr("A tab guide goes inside the text: move the cursor away from its edge");
+        case TabGuideResult::Full:
+            return tr("The text has %1 tab guides, the most it can have")
+                .arg(editor::MAX_TAB_GUIDES);
+        case TabGuideResult::Blocked:
+            return tr("The tab guide at %1 mm goes no further: another guide or the edge of the "
+                      "text is there")
+                .arg(at);
+        case TabGuideResult::Refused:
+            break;
+    }
+    return {};
+}
+
 void MainWindow::updateEditorActionStates() {
     // Undo, Redo and the clipboard follow the element with the keys
     if (m_editCoordinator) {
@@ -3164,6 +3317,9 @@ void MainWindow::connectCards() {
             &NavigatorPanel::revealElement);
     connect(properties, &PropertiesPanel::cardAdded, m_navigatorCoordinator,
             &NavigatorCoordinator::refreshNavigator);
+    // What the modules offer after a new relation of a card: a map of relations
+    connect(properties, &PropertiesPanel::relationAdded, m_navigatorCoordinator,
+            &NavigatorCoordinator::offerAfterRelation);
     // What is dropped on a card: its materials; Find in Book of the full card
     connect(properties, &PropertiesPanel::requestAddCardMaterials, m_navigatorCoordinator,
             &NavigatorCoordinator::onRequestAddMaterials);
@@ -3533,6 +3689,12 @@ void MainWindow::updateBookCommands() {
     registry.updateActionState("book.joinVolume");
     for (const auto& [commandId, kindId] : WORKSHOP_COMMANDS) {
         registry.updateActionState(commandId);
+    }
+    for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+         core::windowEditorProviders()) {
+        for (const core::WindowEditorCommand& moduleCommand : provider->commands()) {
+            registry.updateActionState(moduleCommand.id);
+        }
     }
     registry.updateActionState("book.properties");
     utils::updateOpenBookCommands(registry);
@@ -4205,10 +4367,10 @@ void MainWindow::updatePageStatus() {
         m_zoomLabel->hide();
         return;
     }
-    const int total = bookEditor->totalPages();
-    m_pageLabel->setVisible(total > 0);
-    if (total > 0) {
-        m_pageLabel->setText(tr("Page %1 of %2").arg(bookEditor->currentPage()).arg(total));
+    const QString page = editor->pageStatus();
+    m_pageLabel->setVisible(!page.isEmpty());
+    if (!page.isEmpty()) {
+        m_pageLabel->setText(page);
     }
     m_zoomLabel->setText(tr("%1%").arg(qRound(bookEditor->zoomFactor() * 100.0)));
     m_zoomLabel->show();

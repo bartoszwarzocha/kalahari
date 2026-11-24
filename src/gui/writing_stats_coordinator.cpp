@@ -19,13 +19,13 @@
 #include "kalahari/gui/dialogs/session_summary_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
+#include "kalahari/gui/notifications.h"
 #include "kalahari/gui/panels/writing_awards_tab.h"
 #include "kalahari/gui/panels/writing_goals_tab.h"
 #include "kalahari/gui/panels/writing_stats_panel.h"
 #include "kalahari/gui/utils/panel_toggle.h"
 #include "kalahari/gui/utils/setting_toggle.h"
 #include "kalahari/gui/widgets/badge_painter.h"
-#include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/stats_painter.h"
 #include "kalahari/gui/widgets/status_bar_writing.h"
 #include "kalahari/gui/widgets/writing_stats_bar.h"
@@ -33,13 +33,10 @@
 #include "kalahari/gui/writing_stats_model.h"
 
 #include <QAction>
-#include <QApplication>
-#include <QClipboard>
 #include <QDockWidget>
 #include <QLocale>
 #include <QSet>
 #include <QTabWidget>
-#include <QTimer>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -168,27 +165,6 @@ WritingStatsCoordinator::WritingStatsCoordinator(core::ProjectManager& book,
     });
     applyBarVisibility();
 
-    // The bar of the messages at the bottom of the middle, under the tabs of the texts
-    m_messageBar = new InfoBar(middle);
-    m_messageBar->setObjectName(QStringLiteral("statsMessageBar"));
-    connect(m_messageBar, &QObject::destroyed, this, [this]() { m_messageBar = nullptr; });
-    //: The button of a message at the bottom of the window. In Polish: Kopiuj
-    m_messageBar->setActionText(tr("Copy"));
-    //: In Polish: Kopiuj tę wiadomość
-    m_messageBar->setActionToolTip(tr("Copy this message"));
-    m_messageBar->hide();
-    if (auto* layout = middle != nullptr ? qobject_cast<QVBoxLayout*>(middle->layout())
-                                         : nullptr) {
-        layout->addWidget(m_messageBar);
-    }
-    connect(m_messageBar, &InfoBar::actionClicked, this, [this]() {
-        QApplication::clipboard()->setText(m_messageBar->message());
-    });
-    connect(m_messageBar, &InfoBar::dismissed, m_messageBar, &QWidget::hide);
-    m_messageTimer = new QTimer(this);
-    m_messageTimer->setSingleShot(true);
-    m_messageTimer->setInterval(0);
-    connect(m_messageTimer, &QTimer::timeout, this, &WritingStatsCoordinator::flushMessages);
     connectMessages();
 
     // The Statistics panel: the views of the same statistics, with the titles of the book
@@ -253,9 +229,6 @@ WritingStatsCoordinator::~WritingStatsCoordinator()
     // went with it, if the window went first
     if (m_bar != nullptr && m_bar->parent() == nullptr) {
         delete m_bar;
-    }
-    if (m_messageBar != nullptr && m_messageBar->parent() == nullptr) {
-        delete m_messageBar;
     }
 }
 
@@ -375,24 +348,20 @@ int WritingStatsCoordinator::addChallenge()
     return id;
 }
 
-void WritingStatsCoordinator::showMessage(const QString& message)
+void WritingStatsCoordinator::setNotifications(NotificationCoordinator* notifications)
 {
-    if (message.isEmpty()) {
-        return;
-    }
-    m_pendingMessages.append(message);
-    m_messageTimer->start();
+    m_notifications = notifications;
 }
 
-void WritingStatsCoordinator::flushMessages()
+void WritingStatsCoordinator::showMessage(const QString& message)
 {
-    if (m_pendingMessages.isEmpty() || m_messageBar == nullptr) {
+    if (message.isEmpty() || m_notifications == nullptr) {
         return;
     }
-    // The messages of one moment together, in the order they came
-    m_messageBar->setMessage(m_pendingMessages.join(QLatin1Char(' ')));
-    m_pendingMessages.clear();
-    m_messageBar->show();
+    // The notifications of one moment show together, in the order they came
+    //: The title of the notifications of the goals, the deadlines, the badges and the
+    //: challenges. In Polish: Statystyki i cele
+    m_notifications->notify({tr("Statistics and Goals"), message});
 }
 
 void WritingStatsCoordinator::connectMessages()
@@ -420,20 +389,13 @@ void WritingStatsCoordinator::connectMessages()
                 }
                 showMessage(text);
             });
-    // The day at once in the Statistics panel, when the settings say so; later the assistant
-    // is to congratulate the writer there too
+    // The day in the Statistics panel, when the settings say so, after the notification: where
+    // the Notifications panel shows it, beside the Statistics panel, this one stays in front
     connect(m_tracker, &WritingAwardsTracker::dailyGoalReached, this, [this, on]() {
-        if (!on("stats.notify.showPanel", true) || m_docks == nullptr) {
-            return;
+        if (on("stats.notify.showPanel", true)) {
+            QMetaObject::invokeMethod(this, &WritingStatsCoordinator::showDayInPanel,
+                                      Qt::QueuedConnection);
         }
-        QDockWidget* dock = m_docks->statisticsDock();
-        WritingStatsPanel* panel = m_docks->statisticsPanel();
-        if (dock == nullptr || panel == nullptr) {
-            return;
-        }
-        panel->setView(WritingStatsPanel::View::Today);
-        dock->show();
-        dock->raise();
     });
     connect(m_tracker, &WritingAwardsTracker::weeklyGoalReached, this,
             [this, on](int words, int goal) {
@@ -503,6 +465,18 @@ void WritingStatsCoordinator::connectMessages()
                                 .arg(badge_painter::challengeTitle(challenge),
                                      badge_painter::challengePeriod(challenge)));
             });
+}
+
+void WritingStatsCoordinator::showDayInPanel()
+{
+    QDockWidget* dock = m_docks != nullptr ? m_docks->statisticsDock() : nullptr;
+    WritingStatsPanel* panel = m_docks != nullptr ? m_docks->statisticsPanel() : nullptr;
+    if (dock == nullptr || panel == nullptr) {
+        return;
+    }
+    panel->setView(WritingStatsPanel::View::Today);
+    dock->show();
+    dock->raise();
 }
 
 void WritingStatsCoordinator::attachStatusBar(QStatusBar* statusBar)

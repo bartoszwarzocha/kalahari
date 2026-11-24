@@ -20,7 +20,6 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
-#include <kalahari/editor/text_skeleton.h>
 #include <kalahari/editor/text_tables.h>
 
 #include <QHash>
@@ -118,11 +117,6 @@ public:
     /// @param index Paragraph index (0-based)
     [[nodiscard]] bool paragraphCaptionAbove(size_t index) const;
 
-    /// @brief The point a heading of the skeleton is (point="p1" hint="..."; text_skeleton.h)
-    /// @param index Paragraph index (0-based)
-    /// @return Its id and hint; nothing for a paragraph without one or if index is out of range
-    [[nodiscard]] std::optional<SkeletonPoint> paragraphTemplatePoint(size_t index) const;
-
     /// @brief The paragraph's place in a list: an item of <ol> or <ul>
     /// @param index Paragraph index (0-based)
     /// @return The item, its list numbered from 1 in the order of the lists of the KML
@@ -158,6 +152,14 @@ public:
     [[nodiscard]] TableShape table(size_t index) const;
 
     // =========================================================================
+    // Tab guides
+    // =========================================================================
+
+    /// @brief The tab guides of the text (<tab-guides>; tab_guides.h): millimetres from the
+    ///        left edge of the text, as normalizedTabGuides() keeps them; none without them
+    [[nodiscard]] const std::vector<double>& tabGuides() const { return m_tabGuides; }
+
+    // =========================================================================
     // Annotations of a chapter
     // =========================================================================
 
@@ -183,7 +185,6 @@ private:
         std::optional<ListItem> list;           ///< Its place in a list
         std::optional<TableCellPlace> cell;     ///< Its cell in a table
         bool captionAbove = false;              ///< A caption above its image
-        std::optional<SkeletonPoint> point;     ///< Of a heading of a point: its id and hint
     };
 
     /// @brief The table being read: its shape, its rows so far, and the columns taken in
@@ -207,6 +208,18 @@ private:
 
     /// @brief Whether an element at the top level of KML is a paragraph or an object
     static bool isBlockElement(QStringView tag);
+
+    /// @brief Read a section of the text that is not a paragraph: <annotations> or
+    ///        <tab-guides>
+    /// @param reader XML reader positioned at the section's start element; on return it is
+    ///               positioned at its end element
+    /// @return Whether @p tag is such a section (else the reader has not moved)
+    bool parseSection(QStringView tag, QXmlStreamReader& reader);
+
+    /// @brief Read the <tab-guides> section: a <guide at="..."/> for each guide
+    /// @param reader XML reader positioned at the section's start element; on return it is
+    ///               positioned at its end element
+    void parseTabGuides(QXmlStreamReader& reader);
 
     /// @brief Read the <annotations> section: the annotations the anchors refer to
     /// @param reader XML reader positioned at the section's start element; on return it is
@@ -294,6 +307,7 @@ private:
 
     std::vector<Paragraph> m_paragraphs;    ///< All paragraphs
     std::vector<TableShape> m_tables;       ///< The tables, in the order of the KML
+    std::vector<double> m_tabGuides;        ///< The tab guides, millimetres
     int m_lastListId = 0;                   ///< The number of the last list read
     ListDefinition m_lastListDefinition;    ///< The formats of its levels at its end
     QHash<QString, Annotation> m_annotations;  ///< The annotations of the section, by id

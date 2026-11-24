@@ -172,7 +172,9 @@ Delivered as free plugins or core features, in an order decided after Phase 2.
 
 - [ ] Full test suite (unit, integration, GUI with QTest, rendering snapshots)
 - [ ] User manual and plugin development guide
-- [ ] Installers: Windows, macOS (`.dmg`), Linux (`.deb`, Flatpak)
+- [x] Installers: Windows (installer, ZIP), macOS (`.dmg`), Linux (`.deb`, AppImage), made and
+      checked by the CI and attached to the draft of a release
+- [ ] Linux: Flatpak (Flathub); macOS: signing and notarization with an Apple Developer ID
 - [ ] Default layouts of the toolbars and panels, with named perspectives (Writer, Editor,
       Researcher, Planner)
 - [ ] Version 1.0.0

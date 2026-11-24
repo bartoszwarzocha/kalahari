@@ -8,6 +8,7 @@
 
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/book_texts.h"
+#include "kalahari/gui/book_page_numbers.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/dialogs/delete_dialogs.h"
@@ -20,17 +21,18 @@
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/publishing_card_panel.h"
 #include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/card_panel.h"
 #include "kalahari/gui/panels/image_preview_panel.h"
 #include "kalahari/gui/panels/material_page.h"
-#include "kalahari/gui/panels/pitch_panel.h"
 #include "kalahari/gui/panels/preview_panel.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/material_file.h"
 #include "kalahari/gui/material_source.h"
+#include "kalahari/gui/notifications.h"
 #include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
 #include "kalahari/gui/section_words.h"
@@ -47,6 +49,7 @@
 #include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/window_editor_provider.h"
+#include "kalahari/gui/widgets/relations_box.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QTabWidget>
@@ -183,6 +186,8 @@ NavigatorCoordinator::NavigatorCoordinator(core::ProjectManager& book, CommandRe
       m_downloader(new MaterialDownloader(this)),
       m_book(book),
       m_commands(commands) {
+    m_pageNumbers = new BookPageNumbers(m_book, m_commands, m_centralTabs, this);
+
     // The counts of the book follow the text being written, without counting at each key
     m_wordCountTimer->setSingleShot(true);
     m_wordCountTimer->setInterval(WORD_COUNT_DELAY_MS);
@@ -244,7 +249,6 @@ void NavigatorCoordinator::discardChapterChanges(const QString& elementId) {
     // Forget the unsaved text ProjectManager keeps (single source of truth), with its words
     // and the points of its template waiting for it, which the Properties panel shows
     m_book.discardChapterContent(elementId);
-    m_propertiesPanel->publishingBox()->showSaved(elementId);
 
     // Clear the display cache
     m_dirtyChapters[elementId] = false;
@@ -345,22 +349,63 @@ void NavigatorCoordinator::refreshTabTitle(const QString& elementId) {
     const QString title =
         m_dirtyChapters.value(elementId, false) ? "*" + element->title : element->title;
     for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
-        if (page->property("elementId").toString() == elementId) {
+        // The card For Publishers keeps its name whatever version it shows
+        if (page->property("elementId").toString() == elementId &&
+            qobject_cast<PublishingCardPanel*>(page) == nullptr) {
             DocumentWindows::setTabText(page, title);
         }
     }
 }
 
-void NavigatorCoordinator::refreshFirstPage(const QString& elementId) {
-    const core::ProjectElement* element =
-        m_book.findElement(elementId);
-    if (!element) {
-        return;
+PublishingCardPanel* NavigatorCoordinator::openPublishingCard(const QString& elementId,
+                                                              bool keys) {
+    if (!m_book.isProjectOpen()) {
+        m_statusBar->showMessage(tr("No book loaded"), 2000);
+        return nullptr;
     }
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+    DocumentWindows& texts = DocumentWindows::of(*m_centralTabs);
+    PublishingCardPanel* card = nullptr;
+    for (QWidget* page : texts.pages()) {
+        if (auto* open = qobject_cast<PublishingCardPanel*>(page)) {
+            card = open;
+        }
+    }
+    if (card == nullptr) {
+        card = new PublishingCardPanel(m_book, m_commands, m_centralTabs);
+        const QString iconId = QStringLiteral("book.publishing");
+        card->setProperty("tabIconId", iconId);
+        //: The tab of the card For Publishers. In Polish: Dla wydawnictwa
+        m_centralTabs->addTab(card, core::ArtProvider::getInstance().getIcon(iconId),
+                              tr("For Publishers"));
+        connect(card, &PublishingCardPanel::titleChanged, this,
+                [this](const QString& id) { m_navigatorPanel->refreshItem(id); });
+        connect(card, &PublishingCardPanel::publishingChanged, this,
+                &NavigatorCoordinator::onMaterialChanged);
+        connect(card, &PublishingCardPanel::requestDelete, this,
+                &NavigatorCoordinator::onRequestDelete);
+        connect(card, &PublishingCardPanel::requestOpen, this, [this](const QString& id) {
+            if (const core::ProjectElement* element = m_book.findElement(id)) {
+                onElementSelected(id, element->title);
+            }
+        });
+        connect(card, &PublishingCardPanel::statusMessage, this,
+                [this](const QString& text) { m_statusBar->showMessage(text, 4000); });
+        emit publishingCardCreated(card);
+    }
+    texts.showPage(card);
+    if (elementId.isEmpty() || !card->showVersion(elementId, keys)) {
+        card->showPart(card->part(), keys);
+    }
+    return card;
+}
+
+void NavigatorCoordinator::refreshFirstPage(const QString& elementId) {
+    // The texts after it may start on other pages too: all are placed again
+    m_pageNumbers->refresh();
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* editor = qobject_cast<EditorPanel*>(page);
         if (editor && editor->property("elementId").toString() == elementId) {
-            editor->setFirstPageLeft(element->firstPageLeft);
+            m_pageNumbers->apply(*editor, elementId);
         }
     }
 }
@@ -383,6 +428,13 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     if (!pm.isProjectOpen()) {
         logger.debug("No project loaded - ignoring Navigator selection");
         m_statusBar->showMessage(tr("No book loaded"), 2000);
+        return;
+    }
+
+    // A text for publishers is written on the card For Publishers
+    if (const core::ProjectElement* text = pm.findElement(elementId);
+        text != nullptr && core::ProjectManager::isPublishingText(*text)) {
+        openPublishingCard(elementId, true);
         return;
     }
 
@@ -441,8 +493,8 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     // A chapter of a book open read-only is read, copied and searched only; before the tab
     // comes, as the commands follow the tab in front
     newEditor->getBookEditor()->setReadOnly(pm.isReadOnly());
-    // The margins of its pages: its first page is a right one unless it says otherwise
-    newEditor->setFirstPageLeft(element != nullptr && element->firstPageLeft);
+    // The margins and the numbers of its pages: its first page in the book
+    m_pageNumbers->apply(*newEditor, elementId);
     // A kind the program does not have: its icon on the book's card of its package
     const core::PackageCard* card =
         element != nullptr && element->hasKind() && !pm.kindOf(*element)
@@ -536,13 +588,8 @@ void NavigatorCoordinator::openWindowEditor(const core::ProjectElement& element)
         return;
     }
     const QString elementId = element.id;
-    const core::WindowEditorContext context{
-        m_book, m_commands, elementId,
-        [this, editorId = provider->editorId()]() {
-            emit windowEditorSettingsRequested(editorId);
-        },
-        [this](const QString& otherId) { onRequestOpenLink(otherId); }};
-    QWidget* page = provider->createEditor(context, m_centralTabs);
+    QWidget* page =
+        provider->createEditor(windowEditorContext(provider->editorId(), elementId), m_centralTabs);
     if (page == nullptr) {
         return;
     }
@@ -557,26 +604,50 @@ void NavigatorCoordinator::openWindowEditor(const core::ProjectElement& element)
     m_statusBar->showMessage(tr("Opened: %1").arg(element.title), 2000);
 }
 
+core::WindowEditorContext NavigatorCoordinator::windowEditorContext(const QString& editorId,
+                                                                    const QString& elementId) {
+    return core::WindowEditorContext{
+        m_book, m_commands, elementId,
+        [this, editorId]() { emit windowEditorSettingsRequested(editorId); },
+        [this](const QString& otherId) { onRequestOpenLink(otherId); }};
+}
+
+void NavigatorCoordinator::offerAfterRelation(RelationsBox* box, const QString& cardId,
+                                              const QString& otherId,
+                                              const QString& relationId) {
+    if (box == nullptr) {
+        return;
+    }
+    for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+         core::windowEditorProviders()) {
+        if (QWidget* offer = provider->relationAdded(
+                windowEditorContext(provider->editorId(), QString()), cardId, otherId,
+                relationId, box)) {
+            box->showOffer(offer);
+            return;
+        }
+    }
+}
+
+void NavigatorCoordinator::runWindowEditorCommand(const std::string& commandId) {
+    for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+         core::windowEditorProviders()) {
+        for (const core::WindowEditorCommand& command : provider->commands()) {
+            if (command.id == commandId && command.run) {
+                command.run(windowEditorContext(provider->editorId(), QString()),
+                            m_centralTabs->window());
+                return;
+            }
+        }
+    }
+}
+
 EditorPanel* NavigatorCoordinator::createEditorPanel(const core::ProjectElement* element,
                                                      const QString& elementId) {
     if (element != nullptr && m_book.isCard(*element)) {
         return createCardPanel(elementId);
     }
-    if (element != nullptr &&
-        element->publishing.part == QLatin1String(core::PublishingTexts::PITCH)) {
-        return createPitchPanel(elementId);
-    }
     return new EditorPanel(m_book, m_commands, m_centralTabs);
-}
-
-PitchPanel* NavigatorCoordinator::createPitchPanel(const QString& elementId) {
-    auto* panel = new PitchPanel(m_book, m_commands, elementId, m_centralTabs);
-    connect(panel, &PitchPanel::titleChanged, this, [this](const QString& id) {
-        refreshTabTitle(id);
-        m_navigatorPanel->refreshItem(id);
-    });
-    connect(panel, &PitchPanel::publishingChanged, this, &NavigatorCoordinator::onMaterialChanged);
-    return panel;
 }
 
 CardPanel* NavigatorCoordinator::createCardPanel(const QString& elementId) {
@@ -591,6 +662,7 @@ CardPanel* NavigatorCoordinator::createCardPanel(const QString& elementId) {
     // relation
     connect(page, &CardPage::materialAdded, this, &NavigatorCoordinator::refreshNavigator);
     connect(page, &CardPage::cardAdded, this, &NavigatorCoordinator::refreshNavigator);
+    connect(page, &CardPage::relationAdded, this, &NavigatorCoordinator::offerAfterRelation);
     connect(page, &CardPage::requestSettings, this,
             &NavigatorCoordinator::cardSettingsRequested);
     // The other card of a relation: its full card; a chapter of the card in its editor
@@ -1065,6 +1137,12 @@ void NavigatorCoordinator::closeTabsOf(const core::ProjectElement& element) {
     const QList<QWidget*> pages = DocumentWindows::of(*m_centralTabs).pages();
     for (auto it = pages.crbegin(); it != pages.crend(); ++it) {
         QWidget* widget = *it;
+        if (widget->property("elementId").toString() == element.id &&
+            qobject_cast<PublishingCardPanel*>(widget) != nullptr) {
+            // The card For Publishers stays: it shows another version of the part
+            widget->setProperty("elementId", QString());
+            continue;
+        }
         if (widget->property("elementId").toString() == element.id) {
             DocumentWindows::removePage(widget);
             widget->deleteLater();
@@ -1742,6 +1820,33 @@ void NavigatorCoordinator::download(const QString& elementId, bool asked) {
     showDownloading(elementId);
 }
 
+void NavigatorCoordinator::setNotifications(NotificationCoordinator* notifications) {
+    m_notifications = notifications;
+}
+
+void NavigatorCoordinator::sayDownloadFailed(const core::ProjectElement& material,
+                                             const QString& error, bool asked) {
+    if (asked) {
+        //: In Polish: Pobieranie się nie udało
+        dialogs::MessageDialog::warning(
+            qobject_cast<QWidget*>(parent()), tr("Download Failed"),
+            //: %1: why, %2: the address. In Polish: %1\n\nMateriał zachowuje swój adres:
+            //: \n%2
+            tr("%1\n\nThe material keeps its address:\n%2").arg(error, material.url));
+        return;
+    }
+    // In the background: a notification, which stays until the writer sees it
+    //: %1: the material, %2: why. In Polish: Nie pobrano niczego dla „%1”: %2
+    const QString text = tr("Nothing was downloaded for \"%1\": %2").arg(material.title, error);
+    if (m_notifications != nullptr) {
+        //: The title of the notifications of the downloads of the materials. In Polish:
+        //: Materiały
+        m_notifications->notify({tr("Materials"), text, Notification::Kind::Warning});
+    } else {
+        m_statusBar->showMessage(text, MATERIALS_MESSAGE_MS);
+    }
+}
+
 void NavigatorCoordinator::onDownloadFinished(const MaterialDownloader::Result& result) {
     auto& pm = m_book;
     auto* window = qobject_cast<QWidget*>(parent());
@@ -1749,24 +1854,12 @@ void NavigatorCoordinator::onDownloadFinished(const MaterialDownloader::Result& 
     showDownloading(result.elementId);
     // Deleted or closed meanwhile, or in a book that cannot change now
     const core::ProjectElement* element = pm.findElement(result.elementId);
-    if (!element || element->url != result.url.toString() || pm.isReadOnly()) {
+    if (element == nullptr || element->url != result.url.toString() || pm.isReadOnly()) {
         return;
     }
     const QString title = element->title;
     if (!result.error.isEmpty()) {
-        if (asked) {
-            //: In Polish: Pobieranie się nie udało
-            dialogs::MessageDialog::warning(
-                window, tr("Download Failed"),
-                //: %1: why, %2: the address. In Polish: %1\n\nMateriał zachowuje swój adres:
-                //: \n%2
-                tr("%1\n\nThe material keeps its address:\n%2").arg(result.error, element->url));
-        } else {
-            //: %1: the material, %2: why. In Polish: Nie pobrano niczego dla „%1”: %2
-            m_statusBar->showMessage(
-                tr("Nothing was downloaded for \"%1\": %2").arg(title, result.error),
-                MATERIALS_MESSAGE_MS);
-        }
+        sayDownloadFailed(*element, result.error, asked);
         return;
     }
 

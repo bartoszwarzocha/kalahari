@@ -8,6 +8,7 @@
 #define KALAHARI_EDITOR_DETAIL_BOOK_EDITOR_INTERNAL_H
 
 #include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_tables.h>
 #include <functional>
@@ -41,6 +42,21 @@ public:
 
 private:
     std::function<void()> m_callback;
+};
+
+/// @brief An undo step of something a document keeps beside its text: undo gives back what it
+///        was before the step, redo what it is after it
+class StateUndoItem final : public QAbstractUndoItem {
+public:
+    StateUndoItem(std::function<void()> before, std::function<void()> after)
+        : m_before(std::move(before)), m_after(std::move(after)) {}
+
+    void undo() override { m_before(); }
+    void redo() override { m_after(); }
+
+private:
+    std::function<void()> m_before;
+    std::function<void()> m_after;
 };
 
 /// @brief Fill a document from a parsed KML model, starting at the cursor's (empty) block
@@ -84,7 +100,6 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
         setParagraphStyle(blockFormat, model.paragraphStyle(i));
         mergeParagraphFormat(blockFormat, model.paragraphOwnFormat(i));
         setCaptionAbove(blockFormat, model.paragraphCaptionAbove(i));
-        setTemplatePoint(blockFormat, model.paragraphTemplatePoint(i));
         if (std::optional<ListItem> item = model.paragraphList(i)) {
             item->id += listIdOffset;
             setListItem(blockFormat, *item);
@@ -146,12 +161,13 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
 
 /// @brief Fill an empty document with a text's KML as the editor reads it
 ///        (BookEditor::fromKml()), so that its paragraphs and positions are those of the
-///        editor's document; the reading is not undoable
+///        editor's document, with its tab guides; the reading is not undoable
 /// @return False for unreadable KML: the document has the paragraphs read before the error
 inline bool readKmlInto(QTextDocument& document, const QString& kml) {
     document.setUndoRedoEnabled(false);
     KmlDocumentModel model;
     const bool complete = model.loadKml(kml);
+    setTabGuidesOf(document, model.tabGuides());
     QTextCursor cursor(&document);
     cursor.beginEditBlock();
     appendParagraphs(cursor, model);

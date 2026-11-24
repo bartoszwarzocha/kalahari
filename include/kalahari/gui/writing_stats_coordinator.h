@@ -3,21 +3,20 @@
 
 /// @file writing_stats_coordinator.h
 /// @brief The statistics and goals of writing in the main window: the statistics bar above the
-/// tabs of the texts, its commands, the badges and challenges, the messages at the bottom and
-/// the record of the open book
+/// tabs of the texts, its commands, the badges and challenges, their notifications and the
+/// record of the open book
 
 #ifndef KALAHARI_GUI_WRITING_STATS_COORDINATOR_H
 #define KALAHARI_GUI_WRITING_STATS_COORDINATOR_H
 
 #include <QDateTime>
 #include <QObject>
+#include <QPointer>
 #include <QString>
-#include <QStringList>
 
 #include <functional>
 
 class QStatusBar;
-class QTimer;
 class QWidget;
 
 namespace kalahari::core {
@@ -29,7 +28,7 @@ class CommandRegistry;
 
 class DockCoordinator;
 class DocumentCoordinator;
-class InfoBar;
+class NotificationCoordinator;
 class StatusBarWriting;
 class WritingAwardsTab;
 class WritingAwardsTracker;
@@ -46,8 +45,8 @@ class WritingStatsModel;
 /// Statistics toolbar turn that setting on and off. Tools > Writing Goals and Deadlines opens
 /// the tab of the goals in the middle of the window, beside the tabs of the texts, and Tools >
 /// Challenges and Badges the tab of the badges. The goals reached, the deadlines coming, the
-/// badges won and the challenges done are said in a bar at the bottom of the middle of the
-/// window, with a button that copies the message, as the settings stats.notify.* say.
+/// badges won and the challenges done are notifications of the window (setNotifications()),
+/// as the settings stats.notify.* say; they show where Settings > Notifications says.
 class WritingStatsCoordinator : public QObject {
     Q_OBJECT
 
@@ -98,10 +97,12 @@ public:
     /// @brief The statistics bar
     [[nodiscard]] WritingStatsBar* bar() const { return m_bar; }
 
-    /// @brief The bar of the messages at the bottom of the middle of the window
-    [[nodiscard]] InfoBar* messageBar() const { return m_messageBar; }
+    /// @brief Where the messages of the goals, the deadlines, the badges and the challenges
+    ///        go: the notifications of the window; without them they are not shown
+    void setNotifications(NotificationCoordinator* notifications);
 
-    /// @brief Say @p message in the bar at the bottom, with the others of the same moment
+    /// @brief Say @p message as a notification of the statistics, with the others of the same
+    ///        moment
     void showMessage(const QString& message);
 
     /// @brief Put the time of writing and the days in a row in @p statusBar, as the setting
@@ -139,8 +140,9 @@ private:
     void showVolume();
     /// @brief The messages of the tracker, as the settings say
     void connectMessages();
-    /// @brief Show the messages of this moment in the bar
-    void flushMessages();
+    /// @brief The day in the Statistics panel, in front (a daily goal reached, when the
+    ///        settings say so)
+    void showDayInPanel();
 
     DockCoordinator* m_docks{nullptr};
     DocumentCoordinator* m_documents{nullptr};
@@ -148,9 +150,7 @@ private:
     WritingStatsModel* m_model{nullptr};
     WritingAwardsTracker* m_tracker{nullptr};
     WritingStatsBar* m_bar{nullptr};
-    InfoBar* m_messageBar{nullptr};
-    QTimer* m_messageTimer{nullptr};
-    QStringList m_pendingMessages;
+    QPointer<NotificationCoordinator> m_notifications;
     StatusBarWriting* m_statusBarWriting{nullptr};
     // Plain, cleared when the window goes: clang-tidy's analyzer reports a QPointer as a use
     // of freed memory

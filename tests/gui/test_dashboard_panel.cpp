@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/busy_pulse.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
@@ -838,6 +839,30 @@ TEST_CASE("Dashboard: the theme page has no colors of its own for the Dashboard 
     }
 }
 
+TEST_CASE("Dashboard: the spinner turns evenly with the time, one turn a second",
+          "[gui][dashboard]") {
+    // Test of 24.11: not in steps, but where the time puts it
+    QWidget covered;
+    covered.resize(200, 100);
+    showOffScreen(covered);
+    QElapsedTimer clock;
+    {
+        LoadingOverlay loading(&covered);
+        clock.start();
+        while (clock.elapsed() < LoadingOverlay::TURN_MS / 4) {
+            QApplication::processEvents();
+        }
+        const int quarter = loading.angle();
+        CAPTURE(quarter);
+        CHECK(quarter >= 80);
+        CHECK(quarter <= 180);
+        // The timer draws it while the program waits for the writer
+        CHECK(loading.frames() >= 3);
+    }
+    // Gone: the beats of the work draw nothing
+    core::BusyPulse::beat();
+}
+
 TEST_CASE("Dashboard: the card of a book being opened is darkened with a spinner until it is open",
           "[gui][dashboard]") {
     const RecentBookGuard guard;
@@ -852,6 +877,8 @@ TEST_CASE("Dashboard: the card of a book being opened is darkened with a spinner
     int opened = 0;
     bool covered = false;
     bool turned = false;
+    int beaten = 0;
+    bool still = false;
     bool stays = false;
     QObject::connect(&dashboard, &DashboardPanel::openRecentBookRequested,
                      [&](const QString& /*file*/) {
@@ -862,13 +889,28 @@ TEST_CASE("Dashboard: the card of a book being opened is darkened with a spinner
                   loading->geometry() == card->rect();
         // The program busy, without its event loop: the widgets it makes still turn the
         // spinner
-        const int before = loading->angle();
+        int before = loading->frames();
         QElapsedTimer busy;
         busy.start();
         while (busy.elapsed() < 3 * LoadingOverlay::FRAME_MS) {
             delete new QWidget(&dashboard);
         }
-        turned = loading->angle() != before;
+        turned = loading->frames() > before;
+        // So do the beats of the work that makes no widgets, the reading of a book (test of
+        // 24.11): a picture each FRAME_MS, not more often
+        before = loading->frames();
+        busy.restart();
+        while (busy.elapsed() < 10 * LoadingOverlay::FRAME_MS) {
+            core::BusyPulse::beat();
+        }
+        beaten = loading->frames() - before;
+        // Work without beats and events draws nothing
+        before = loading->frames();
+        busy.restart();
+        while (busy.elapsed() < 3 * LoadingOverlay::FRAME_MS) {
+            // busy, without beats and events
+        }
+        still = loading->frames() == before;
         // The list of the recent books changed meanwhile: the card stays with its spinner
         core::RecentBooksManager::getInstance().addRecentFile(
             QDir::temp().absoluteFilePath(QStringLiteral("Inna ksiazka.klh")));
@@ -883,6 +925,10 @@ TEST_CASE("Dashboard: the card of a book being opened is darkened with a spinner
     CHECK(opened == 1);
     CHECK(covered);
     CHECK(turned);
+    CAPTURE(beaten);
+    CHECK(beaten >= 3);
+    CHECK(beaten <= 11);
+    CHECK(still);
     CHECK(stays);
     // Open: no spinner, and the list as it is now
     CHECK(dashboard.loadingOverlay() == nullptr);

@@ -11,6 +11,7 @@
 #include "test_support/export_samples.h"
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/page_start.h>
 #include <kalahari/editor/book_export.h>
 #include <kalahari/editor/text_fields.h>
 
@@ -267,6 +268,38 @@ TEST_CASE("DOCX: the room around a table is in the spacing of the paragraphs nex
     CHECK(document.contains(QStringLiteral("w:before=\"200\"")));
 }
 
+TEST_CASE("DOCX: the tab guides of a text are the tab stops of its paragraphs",
+          "[export][docx][tabguides]") {
+    const QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    writeRedSquare(folder.path());
+    BookExport book = sampleBook(folder.path());
+    book.items.resize(3);  // the contents, the part and the first chapter
+    book.items.back().kml = QStringLiteral(
+        "<kml><tab-guides><guide at=\"40\"/><guide at=\"100\"/></tab-guides>"
+        "<p>Guided\tJohn</p><table><tr><td><p>Celled\tSmith</p></td></tr></table></kml>");
+    const QString path = folder.filePath(QStringLiteral("tabs.docx"));
+    REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+    const QByteArray xml = zipEntries(path).value(QStringLiteral("word/document.xml"));
+    CHECK(wellFormed(xml));
+    const QString document = QString::fromUtf8(xml);
+
+    // 40 mm and 100 mm from the left margin: 2268 and 5669 twentieths of a point
+    const QString tabs = QStringLiteral("<w:tabs><w:tab w:val=\"left\" w:pos=\"2268\"/>"
+                                        "<w:tab w:val=\"left\" w:pos=\"5669\"/></w:tabs>");
+    const qsizetype guided = document.indexOf(QStringLiteral("Guided"));
+    REQUIRE(guided >= 0);
+    CHECK(document.lastIndexOf(tabs, guided) >
+          document.lastIndexOf(QStringLiteral("<w:p>"), guided));
+    // A cell has its own edges
+    const qsizetype celled = document.indexOf(QStringLiteral("Celled"));
+    REQUIRE(celled >= 0);
+    CHECK(document.lastIndexOf(QStringLiteral("<w:tabs>"), celled) <
+          document.lastIndexOf(QStringLiteral("<w:p>"), celled));
+    // The other texts have none: its paragraph and the one after its table only
+    CHECK(count(document, QStringLiteral("<w:tabs>")) <= 2);
+}
+
 TEST_CASE("DOCX: the options of the export", "[export][docx]") {
     QTemporaryDir folder;
     REQUIRE(folder.isValid());
@@ -311,12 +344,23 @@ TEST_CASE("DOCX: the options of the export", "[export][docx]") {
 
     SECTION("Mirror margins: a text starts on a right page, or on a left one of its own") {
         book.page.mirrored = true;
-        book.items[3].firstPageLeft = true;
+        book.items[3].start = kalahari::core::PageStart::Left;
         REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
         keepSample(path, QStringLiteral("options-4.docx"));
-        const QString document = QString::fromUtf8(zipEntries(path).value(QStringLiteral("word/document.xml")));
+        const QString document =
+            QString::fromUtf8(zipEntries(path).value(QStringLiteral("word/document.xml")));
         CHECK(count(document, QStringLiteral("<w:type w:val=\"oddPage\"/>")) == 2);
         CHECK(count(document, QStringLiteral("<w:type w:val=\"evenPage\"/>")) == 1);
+    }
+
+    SECTION("Mirror margins: a text that starts on the next page, left or right") {
+        book.page.mirrored = true;
+        book.items[3].start = kalahari::core::PageStart::Next;
+        REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+        const QString document = QString::fromUtf8(zipEntries(path).value(QStringLiteral("word/document.xml")));
+        CHECK(count(document, QStringLiteral("<w:type w:val=\"oddPage\"/>")) == 2);
+        CHECK(count(document, QStringLiteral("<w:type w:val=\"evenPage\"/>")) == 0);
+        CHECK(count(document, QStringLiteral("<w:type w:val=\"nextPage\"/>")) == 1);
     }
 
     SECTION("Notes numbered through the book: the second chapter goes on") {

@@ -15,6 +15,7 @@
 #define KALAHARI_GUI_PANELS_NAVIGATOR_PANEL_H
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/window_editor_provider.h"
 #include "kalahari/gui/add_target.h"
 #include "kalahari/gui/material_source.h"
 
@@ -30,7 +31,9 @@
 #include <QStringList>
 
 #include <functional>
+#include <memory>
 #include <optional>
+#include <vector>
 
 class QAction;
 class QMenu;
@@ -507,6 +510,11 @@ signals:
     /// Chapter File in its menu)
     void requestCreateTextFile(const QString& elementId);
 
+    /// @brief Request to show the card For Publishers on its tab: a click on For Publishers at
+    /// the top of the Workshop, or Enter on it
+    /// @param keys The card gets the keys (Enter), else the Navigator keeps them (a click)
+    void requestOpenPublishing(bool keys);
+
     /// @brief Request to hide kind @p list of the materials (MaterialList::HIDDEN_SETTING) in
     /// the Navigator of every book: Hide Kind in the menu of the kind
     void requestHideKind(const QString& list);
@@ -570,6 +578,10 @@ signals:
     /// @note The tree does not change; it shows the new order once it is loaded again
     void elementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place,
                         const QString& bookId = QString());
+
+    /// @brief A command of a module that adds elements of its kinds was chosen in the menu of a
+    /// node where they are added (core::WindowEditorCommand: New Relation Map...)
+    void moduleCommandRequested(const QString& commandId);
 
     /// @brief Request to choose a new place of an element in the book (Move...)
     /// @param elementId Element ID
@@ -720,6 +732,11 @@ private:
     /// @brief The "+" button can add on the current node
     void updateAddButton();
 
+    /// @brief The modules whose kinds are the only ones added at @p item of the Workshop, each
+    /// once: the mind maps at their group and at a map
+    std::vector<std::shared_ptr<core::IWindowEditorProvider>> windowEditorsAddedAt(
+        const QTreeWidgetItem* item) const;
+
     /// @brief The kinds the menu of @p item names in its own commands ("Add Chapter..."),
     /// those most added there; none in variant "single" of "navigator.addCommands"
     QList<core::KindRef> namedKindsOf(const QTreeWidgetItem* item) const;
@@ -735,7 +752,7 @@ private:
     bool requestPageOf(const QTreeWidgetItem* item, bool keys);
 
     /// @brief Add Book Dictionary at the top of the Workshop (@p workshopItem)
-    void addDictionaryItem(QTreeWidgetItem* workshopItem);
+    void addDictionaryItem(QTreeWidgetItem* workshopItem);  ///< and For Publishers after it
     /// @brief The node Book Plan, the first one of the Workshop
     void addPlanItem(QTreeWidgetItem* workshopItem);
 

@@ -9,12 +9,14 @@
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_tables.h>
 #include "kalahari/editor/detail/layout_notes_internal.h"
 #include "layout_flow_internal.h"
+#include <QDynamicPropertyChangeEvent>
 #include <QElapsedTimer>
 #include <QFileInfo>
 #include <QFontInfo>
@@ -356,6 +358,10 @@ KalahariTextDocumentLayout::KalahariTextDocumentLayout(QTextDocument* doc)
                     const auto [first, last] = changedBlocks(from, charsAdded);
                     clearLines(first, last);
                 });
+
+        // The tab guides the document has, and those it is given (eventFilter())
+        m_tabGuides = tabGuidesOf(*doc);
+        doc->installEventFilter(this);
     }
     // Qt takes U+FFFC for an object only while the layout has a handler
     for (const int objectType : LAYOUT_OBJECTS) {
@@ -399,6 +405,49 @@ void KalahariTextDocumentLayout::setFont(const QFont& font) {
 
 QFont KalahariTextDocumentLayout::font() const {
     return document()->defaultFont();
+}
+
+bool KalahariTextDocumentLayout::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == document() && event->type() == QEvent::DynamicPropertyChange &&
+        static_cast<QDynamicPropertyChangeEvent*>(event)->propertyName() ==
+            TAB_GUIDES_PROPERTY) {
+        if (std::vector<double> guides = tabGuidesOf(*document()); guides != m_tabGuides) {
+            m_tabGuides = std::move(guides);
+            invalidateAll();  // the tabs of every paragraph go to the guides
+        }
+    }
+    return QAbstractTextDocumentLayout::eventFilter(watched, event);
+}
+
+std::vector<qreal> KalahariTextDocumentLayout::tabGuidePositions() const {
+    std::vector<qreal> positions;
+    if (m_typography.pixelsPerMillimetre <= 0.0) {
+        return positions;
+    }
+    positions.reserve(m_tabGuides.size());
+    for (const double guide : m_tabGuides) {
+        positions.push_back(guide * m_typography.pixelsPerMillimetre);
+    }
+    return positions;
+}
+
+QList<QTextOption::Tab> KalahariTextDocumentLayout::tabGuideTabs(const QTextBlock& block,
+                                                                const LineFrame& frame) const {
+    // The cells of a table have their own edges. Qt counts the tabs from the start of each
+    // line, and a paragraph has one set of them: they are counted from its first line, which
+    // a guide is mostly for (a line of its own: "Name<Tab>John"), so the lines after it are as
+    // far off as its indent.
+    QList<QTextOption::Tab> tabs;
+    if (m_tabGuides.empty() || frame.rightToLeft || tableOf(block) != nullptr) {
+        return tabs;
+    }
+    const qreal lineStart = frame.left + frame.firstIndent;
+    for (const qreal position : tabGuidePositions()) {
+        if (position > lineStart) {
+            tabs.append(QTextOption::Tab(position - lineStart, QTextOption::LeftTab));
+        }
+    }
+    return tabs;
 }
 
 void KalahariTextDocumentLayout::setPageFlow(const PageFlow& flow) {
@@ -1737,6 +1786,13 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* ex
     if (metrics.tabStopDistance > 0) {
         textOption.setTabStopDistance(metrics.tabStopDistance);
     }
+    // The lines lie between the margins of the style, in a cell between those of its text,
+    // the first one indented (lineFrame()). Right-to-left lines keep x at the margin: the
+    // shorter line already leaves the indent on their leading (right) side.
+    const LineFrame frame = lineFrame(block, metrics, cell);
+
+    // The tab guides across the page: a Tab goes to the next one
+    textOption.setTabs(tabGuideTabs(block, frame));
     layout->setTextOption(textOption);
 
     // Blocks laid out on demand keep only the line breaks: their glyphs are shaped again
@@ -1746,10 +1802,6 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* ex
     // paragraph again. Justified lines come out the same either way (tested).
     layout->setCacheEnabled(keepGlyphs);
 
-    // The lines lie between the margins of the style, in a cell between those of its text,
-    // the first one indented (lineFrame()). Right-to-left lines keep x at the margin: the
-    // shorter line already leaves the indent on their leading (right) side.
-    const LineFrame frame = lineFrame(block, metrics, cell);
     const qreal lineWidth = frame.right - frame.left;
     const QPointF cellOffset = cell != nullptr ? QPointF(cell->left, cell->top) : QPointF();
 

@@ -11,6 +11,7 @@
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_link.h>
+#include <kalahari/editor/text_points.h>
 
 #include <QTextBlock>
 #include <QTextBoundaryFinder>
@@ -496,6 +497,8 @@ QTextCharFormat insertionFormat(const QTextCursor& cursor) {
          linkAddressOf(characterFormat(document, position - 1)) != link)) {
         setLinkAddress(format, QString());
     }
+    // And the points of a text for publishers
+    keepTemplatePointsBetween(format, document, position);
     return format;
 }
 

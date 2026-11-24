@@ -105,6 +105,10 @@ public:
     /// @brief Open the window of the print, with the printers of the system
     void printBook();
 
+    /// @brief Open the window of the print with the set for a publisher chosen (Print Set... of
+    ///        the card For Publishers)
+    void printSet();
+
     /// @brief What the window says about the book and the text in front
     /// @param volumeId The volume of a series; empty: the current book
     [[nodiscard]] dialogs::ExportBookDialog::Book dialogBook(
@@ -148,6 +152,9 @@ public:
                                  editor::ExportResult* result, editor::ExportProblem* problem);
 
 private:
+    /// @brief Open the window of the print with, when given, @p content chosen
+    void printContent(std::optional<dialogs::BookOutputDialog::Content> content);
+
     /// @brief Open the window of the export with @p format and, when given, @p content chosen
     void exportContent(editor::ExportFormat format,
                        std::optional<dialogs::BookOutputDialog::Content> content);

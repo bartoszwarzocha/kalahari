@@ -31,6 +31,7 @@
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/table_editing.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
@@ -41,6 +42,7 @@
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/text_highlight.h>
 #include <kalahari/editor/text_link.h>
+#include <kalahari/editor/text_points.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
 // KML → QTextDocument (with QTextCharFormat) → Render visible fragment
@@ -96,7 +98,6 @@ namespace kalahari::editor {
 // Forward declarations
 class FindReplaceBar;
 class KmlDocumentModel;
-struct SkeletonPoint;
 class SpellCheckService;
 class GrammarCheckService;
 class SharedHistory;
@@ -924,6 +925,35 @@ public:
     /// The objects among the paragraphs do not count; a selection of objects only has none.
     [[nodiscard]] QString selectedParagraphStyle() const;
 
+    // =========================================================================
+    // Tab guides (tab_guides.h): dashed lines down the text that a Tab aligns it to
+    // =========================================================================
+
+    /// @brief The tab guides of the text: millimetres from its left edge, in order
+    [[nodiscard]] std::vector<double> tabGuides() const;
+
+    /// @brief Give the text its tab guides (normalizedTabGuides()) as one undo step, which
+    ///        changes the text (isModified()); refused in a text only read
+    /// @return Whether they changed
+    bool setTabGuides(const std::vector<double>& guides);
+
+    /// @brief Where the cursor is: millimetres from the left edge of the text; nothing without
+    ///        a text
+    [[nodiscard]] std::optional<double> cursorMillimetres() const;
+
+    /// @brief Format > Align Text > Set or Remove Tab Guide: the guide at the cursor (closer than
+    ///        TAB_GUIDE_MIN_GAP_MM) taken away, or else a new one there, on a step
+    TabGuideOutcome toggleTabGuideAtCursor();
+
+    /// @brief Format > Align Text > Move Tab Guide Left / Right: the guide nearest the cursor
+    ///        @p steps steps (TAB_GUIDE_STEP_MM) right, left when negative, not past the
+    ///        guides beside it (TAB_GUIDE_MIN_GAP_MM) nor the edges of the text. While the
+    ///        cursor stays, the next move takes the same guide, though another one is nearer.
+    TabGuideOutcome moveTabGuide(int steps);
+
+    /// @brief Format > Align Text > Remove All Tab Guides
+    TabGuideOutcome clearTabGuides();
+
     /// @brief The object at the cursor (a horizontal line, a break); None in a paragraph of
     ///        text
     [[nodiscard]] TextObject currentObject() const;
@@ -1439,17 +1469,33 @@ public:
     /// @return false in a read-only text
     bool insertField(const TextField& field);
 
-    /// @brief Tools > Texts for Publishers > Insert Skeleton: the headings of @p points with
-    ///        their hints at the cursor, in paragraphs of their own (text_skeleton.h), as one
-    ///        undo step; the cursor goes to the empty paragraph under the first heading
-    /// @return false in a read-only text, without points, or in a table
-    bool insertTemplateSkeleton(const QList<SkeletonPoint>& points);
+    /// @brief Show the fragments linked to the points of a text for publishers as @p look
+    ///        says (text_points.h)
+    void setTemplatePointLook(const TemplatePointLook& look);
 
-    /// @brief Tools > Texts for Publishers > Remove Headings and Hints: the headings of the
-    ///        points, each with the empty paragraph of its hint, as one undo step; the cursor
-    ///        stays at its character
-    /// @return The headings removed; 0 without any and in a read-only text
-    int removeTemplateSkeleton();
+    /// @brief How the fragments linked to the points show
+    [[nodiscard]] const TemplatePointLook& templatePointLook() const { return m_pointLook; }
+
+    /// @brief The fragments of each point of a text for publishers, in the order of the text
+    [[nodiscard]] QHash<QString, QList<PointFragment>> templatePointFragments() const;
+
+    /// @brief The points of the selected characters; without a selection, of the characters
+    ///        next to the cursor
+    [[nodiscard]] QStringList templatePointsAtCursor() const;
+
+    /// @brief Tools > Texts for Publishers > Link to a Point: link the selection to the point
+    ///        @p id, or take the link away (@p linked false); without a selection, take away
+    ///        the fragment of the point at the cursor; one undo step
+    /// @return false in a read-only text, and when no character changed
+    bool linkToTemplatePoint(const QString& id, bool linked);
+
+    /// @brief Take the point @p id away from the whole text, as one undo step
+    /// @return false in a read-only text, and when the text has no fragment of it
+    bool unlinkTemplatePointEverywhere(const QString& id);
+
+    /// @brief Put the cursor at the start of fragment @p index of the point @p id and show it
+    /// @return false when the point has no such fragment
+    bool goToTemplatePointFragment(const QString& id, int index);
 
     /// @brief The field the field commands act on (of text_fields.h): the one selected alone,
     ///        else the one just before the cursor, else the one just after it; std::nullopt:
@@ -2086,6 +2132,10 @@ public:
     /// @brief Get the total number of pages
     /// @return Total page count, or 0 if no document
     [[nodiscard]] int totalPages() const;
+
+    /// @brief The number its first page shows: 1, or its page in the whole book
+    ///        (PageLayout::firstPageNumber); page n shows this number + n - 1
+    [[nodiscard]] int firstPageNumber() const { return m_appearance.pageLayout.firstPageNumber; }
 
     /// @brief Navigate to a specific page
     /// @param page The page number (1-based)
@@ -2787,6 +2837,17 @@ private:
     /// @brief Whether a change the writer asked for is refused, as the text is read-only
     /// (isReadOnly()); then it says so (changeRefused())
     bool refusesChange();
+
+    /// @brief The document and the view take tab guides (setTabGuidesOf()), without an undo
+    ///        step: setTabGuides() and its undo and redo
+    void applyTabGuides(const std::vector<double>& guides);
+
+    /// @brief The width of the text, in millimetres; 0 before it has one
+    [[nodiscard]] double textWidthMillimetres() const;
+
+    /// @brief The guide of @p guides moveTabGuide() moves: the one it moved last, while the
+    ///        cursor stays, else the one nearest the cursor; none without guides
+    [[nodiscard]] std::optional<size_t> tabGuideToMove(const std::vector<double>& guides) const;
 
     /// @brief An item of the context menu that changes the text: greyed out while the text is
     /// only read, with the reason as its tooltip and its status tip (setReadOnlyReason())
@@ -3632,6 +3693,10 @@ private:
     qreal m_cursorLineHeightOnFirstShow = -1.0;             ///< scrollCursorLineTo() waits for the
                                                             ///< first paint (none below 0)
 
+    // The guide moveTabGuide() moved last, and the cursor it was moved from
+    std::optional<double> m_movedTabGuide;
+    CursorPosition m_movedTabGuideCursor;
+
     // Cursor state (Phase 3.4 + 3.5)
     CursorPosition m_cursorPosition;                            ///< Current cursor position
     QTimer* m_cursorBlinkTimer = nullptr;                       ///< Timer for cursor blinking
@@ -3918,6 +3983,14 @@ private:
     /// @param always Also when they are where they were (a new icon)
     void syncParagraphMarks(bool always = false);
 
+    /// @brief Give the render pipeline the marks of the fragments linked to the points, after
+    ///        the text and m_pointLook
+    void syncTemplatePointMarks();
+
+    /// @brief Link the characters from @p from to @p to to the point @p id, or take the link
+    ///        away, as one undo step that brings back the cursor and the selection
+    bool changeTemplatePointLink(int from, int to, const QString& id, bool linked);
+
     /// @brief The material or the card a paperclip or a sign of cards beside a paragraph names
     /// is chosen: at once when it names one, else in a menu at @p globalPos; the scissors open
     /// their menu there
@@ -4141,6 +4214,9 @@ private:
     /// @brief Set by the undo items of a step being undone or redone (see
     /// setParagraphAlignment(), beginAnnotationStep() and setupFindReplace())
     std::optional<StepCursor> m_stepCursor;
+
+    /// @brief How the fragments linked to the points of a text for publishers show
+    TemplatePointLook m_pointLook;
 
     /// @brief Create the document with the given content and connect it to the view
     ///

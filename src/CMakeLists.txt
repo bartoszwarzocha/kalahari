@@ -8,6 +8,7 @@ set(KALAHARI_CORE_SOURCES
     # OpenSpec #00042: Custom Text Editor
     editor/editor_types.cpp
     editor/kml_serializer.cpp  # Phase 11.2: QTextDocument to KML serializer
+    editor/tab_guides.cpp      # The tab guides of a text: lines down its pages a Tab aligns to
     editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     editor/annotation.cpp  # Comments, TODOs and notes anchored to the text
     editor/text_link.cpp   # Links in the text: the address on its characters
@@ -19,7 +20,7 @@ set(KALAHARI_CORE_SOURCES
     editor/text_images.cpp       # Images: a picture that is a character of its line
     editor/text_captions.cpp     # Numbered captions, cross-references and the list of figures
     editor/text_fields.cpp       # Fields: the book's title, the page, the words, the date
-    editor/text_skeleton.cpp     # The skeleton of a text for publishers: headings of points, hints
+    editor/text_points.cpp       # Fragments of a text for publishers linked to its points
     editor/text_footnotes.cpp    # Footnotes and endnotes: the number in the text, the note inside it
     editor/image_store.cpp       # Images: the files of a book, their sizes and pictures
     editor/table_editing.cpp     # Tables: rows, columns, cells, moving, sorting, conversions
@@ -55,6 +56,7 @@ set(KALAHARI_CORE_SOURCES
     core/extension_points.cpp
     core/window_editor_provider.cpp # The editors of the window kinds that modules bring
     core/event_bus.cpp
+    core/busy_pulse.cpp       # The beats of long work, for a spinner that waits for it
     core/chapter_document.cpp
     core/chapter_scenes.cpp     # The scenes of a text: what their breaks say, moved, added, deleted
     core/chapter_versions.cpp   # Versions of the texts of the chapter files
@@ -210,6 +212,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/toolbar_manager_dialog.cpp  # ToolbarManagerDialog - Visual Studio-style toolbar customization (OpenSpec #00031)
     gui/dialogs/kalahari_dialog.cpp  # KalahariDialog - base of the program's own dialogs
     gui/dialogs/message_dialog.cpp  # MessageDialog, TextInputDialog - own messages, questions, typed texts
+    gui/dialogs/notification_dialog.cpp  # NotificationDialog - the program's own window of notifications
     gui/dialogs/open_book_dialog.cpp  # Opening a Book: in a new window or in this one
     gui/dialogs/grammar_setup_dialog.cpp  # GrammarSetupDialog - the window of the grammar preparation
     gui/dialogs/progress_dialog.cpp  # ProgressDialog - own window for the progress of a long task
@@ -221,7 +224,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/take_out_volume_dialog.cpp  # TakeOutVolumeDialog - a volume as a book of its own
     gui/dialogs/join_book_dialog.cpp  # JoinBookDialog - a book joined as a volume
     gui/dialogs/publishing_choice.cpp  # PublishingChoice - the part and the template of a new text for publishers
-    gui/dialogs/publishing_templates_dialog.cpp  # PublishingTemplatesDialog - the templates of the texts for publishers
+    gui/widgets/publishing_template_editor.cpp  # PublishingTemplateEditor - a template changed beside a text for publishers
     gui/dialogs/move_element_dialog.cpp  # MoveElementDialog - a new place in the book for an element
     gui/dialogs/delete_dialogs.cpp  # DeleteFromBookDialog, DeleteFilesDialog - what goes, and its files
     gui/dialogs/dialog_parts.cpp  # Parts of the own dialogs: a list as high as its rows, a note, Copy
@@ -277,7 +280,6 @@ set(KALAHARI_SOURCES
     gui/link_names.cpp  # The titles, icons and places of the links of a material
     gui/material_list.cpp  # MaterialList - the lists of the materials: their kinds, columns and rows
     gui/material_list_clippings.cpp  # MaterialList - the columns of the clippings
-    gui/material_list_publishing.cpp  # MaterialList - the columns of the texts for publishers
     gui/clipping_texts.cpp  # What the program says of a clipping
     gui/card_list.cpp  # CardList - the lists of the cards: their columns and rows
     gui/version_texts.cpp  # What the program says of a version of a text
@@ -310,6 +312,7 @@ set(KALAHARI_SOURCES
     gui/paragraph_marks_coordinator.cpp  # ParagraphMarksCoordinator - paperclips of linked paragraphs
     gui/paragraph_marks_clippings.cpp  # ParagraphMarksCoordinator - scissors of the clippings
     gui/writing_stats_coordinator.cpp  # WritingStatsCoordinator - the statistics bar and goals
+    gui/notifications.cpp  # NotificationCoordinator - the notifications where Settings > Notifications says
     gui/writing_awards_tracker.cpp  # WritingAwardsTracker - the badges and challenges won
     gui/writing_stats_model.cpp  # WritingStatsModel - the statistics of writing shown
     gui/material_list_coordinator.cpp  # MaterialListCoordinator - the lists of the materials on tabs
@@ -330,6 +333,7 @@ set(KALAHARI_SOURCES
     gui/style_coordinator.cpp  # StyleCoordinator - new, changed, deleted styles of the book
     gui/caption_settings.cpp  # The settings of new images and of the captions of new books
     gui/book_texts.cpp  # The texts of the book in reading order, the saved text of one not open
+    gui/book_page_numbers.cpp  # BookPageNumbers - the first pages of the texts in the whole book
     gui/caption_coordinator.cpp  # CaptionCoordinator - the numbered captions of the book
     gui/book_export_coordinator.cpp  # BookExportCoordinator - the export of the book to DOCX and Markdown
     gui/printer_driver.cpp  # The settings of the driver of a printer (Windows)
@@ -366,6 +370,7 @@ set(KALAHARI_SOURCES
     gui/main_window.cpp
     gui/menu_builder.cpp
     gui/program_instance.cpp  # ProgramInstance - a later start hands its request to the program that runs
+    gui/installation.cpp  # Where the installed program keeps its log, and --self-test
     gui/recent_books_menu.cpp
     gui/settings_dialog.cpp
     gui/settings/settings_page.cpp
@@ -383,6 +388,7 @@ set(KALAHARI_SOURCES
     gui/settings/clippings_page.cpp  # Settings > Editor > Clippings
     gui/settings/lists_page.cpp  # Settings > Editor > Lists
     gui/settings/annotations_page.cpp
+    gui/settings/notifications_page.cpp  # Settings > Notifications
     gui/settings/navigator_page.cpp  # Settings > Navigator
     gui/settings/cards_page.cpp  # Settings > Cards
     gui/settings/materials_page.cpp  # Settings > Materials
@@ -390,6 +396,7 @@ set(KALAHARI_SOURCES
     gui/settings/network_page.cpp  # Settings > Network > Materials
     gui/settings/folders_page.cpp
     gui/settings/import_page.cpp
+    gui/settings/file_associations_page.cpp  # Settings > Files > File Associations
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     gui/settings/stats_pages.cpp  # Settings > Statistics and Goals
     gui/shortcut_rules.cpp  # Which keys a command can have
@@ -453,6 +460,7 @@ set(KALAHARI_SOURCES
     gui/panels/dashboard_layouts.cpp  # The Dashboard on a narrow or a low panel
     gui/panels/editor_panel.cpp
     gui/panels/log_panel.cpp
+    gui/panels/notifications_panel.cpp  # The notifications of the session
     gui/panels/navigator_panel.cpp
     gui/panels/navigator_panel_series.cpp
     gui/panels/properties_panel.cpp
@@ -471,8 +479,7 @@ set(KALAHARI_SOURCES
     gui/panels/cursor_card_box.cpp  # CursorCardBox - the card at the cursor in the Properties panel
     gui/panels/paragraph_cards_box.cpp  # ParagraphCardsBox - the cards of the paragraph at the cursor
     gui/panels/card_panel.cpp     # CardPanel - the full card on a tab beside the chapters
-    gui/panels/pitch_panel.cpp  # PitchPanel - the card of a sentence about the book
-    gui/panels/publishing_set_page.cpp  # PublishingSetPage - the set for a publisher in Properties
+    gui/panels/publishing_card_panel.cpp  # PublishingCardPanel - the card For Publishers
     gui/panels/series_page.cpp  # SeriesPage - the name and the volumes of a series in Properties
     gui/panels/publishing_text_box.cpp  # PublishingTextBox - a text for publishers in Properties
     gui/panels/card_parts.cpp  # The small parts of the cards of the materials
@@ -482,8 +489,6 @@ set(KALAHARI_SOURCES
     gui/panels/image_preview_panel.cpp  # ImagePreviewPanel - the preview of a material's picture on a tab
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
     gui/panels/material_list_panel_clippings.cpp  # MaterialListPanel - the commands of the clippings
-    gui/panels/material_list_panel_publishing.cpp  # MaterialListPanel - the commands of the texts for publishers
-    gui/panels/material_list_panel_set.cpp  # MaterialListPanel - the set for a publisher
     gui/panels/clipping_origin_box.cpp  # ClippingOriginBox - where a clipping comes from, in the Properties
     gui/panels/book_dictionary_panel.cpp  # BookDictionaryPanel - the book dictionary on a tab
     gui/panels/plot_board_panel.cpp  # PlotBoardPanel - the tab of the plot board and the outline
@@ -506,6 +511,7 @@ set(KALAHARI_SOURCES
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
     gui/utils/program_folders.cpp  # The folders of the program and of the windows choosing files
     gui/utils/file_location.cpp  # A file or a folder shown in the file manager of the system
+    gui/utils/file_associations.cpp  # The program the system opens the files of Kalahari with
     gui/utils/caps_lock.cpp  # Caps Lock turned off after autocorrect changed a word typed with it
     gui/utils/document_commands.cpp  # The commands that work on the document in front
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
@@ -528,8 +534,9 @@ set(KALAHARI_SOURCES
     editor/book_editor_images.cpp
     editor/book_editor_captions.cpp
     editor/book_editor_fields.cpp  # BookEditor: the fields of the book, the page, the words, the date
-    editor/book_editor_skeleton.cpp  # BookEditor: the skeleton of a text for publishers
+    editor/book_editor_points.cpp  # BookEditor: fragments linked to the points of a template
     editor/book_editor_places.cpp  # BookEditor: Edit > Go To..., the places of the text
+    editor/book_editor_tab_guides.cpp  # BookEditor: the tab guides (Format > Align Text)
     editor/book_editor_image_look.cpp
     editor/book_editor_input.cpp
     editor/book_editor_search.cpp
@@ -588,6 +595,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/notification_dialog.h  # NotificationDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/open_book_dialog.h  # OpenBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/grammar_setup_dialog.h  # GrammarSetupDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/progress_dialog.h  # ProgressDialog with Q_OBJECT
@@ -598,9 +606,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/take_out_volume_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/join_book_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_templates_dialog.h  # PublishingTemplatesDialog with Q_OBJECT
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pitch_panel.h  # PitchPanel with Q_OBJECT
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_set_page.h  # PublishingSetPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/publishing_template_editor.h  # PublishingTemplateEditor with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_card_panel.h  # PublishingCardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/series_page.h  # SeriesPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_text_box.h  # PublishingTextBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_meter.h  # LengthMeter with Q_OBJECT
@@ -649,6 +656,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/style_coordinator.h  # StyleCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/caption_coordinator.h  # CaptionCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_export_coordinator.h  # BookExportCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_page_numbers.h  # BookPageNumbers with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plugin_coordinator.h  # PluginCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_import_coordinator.h  # BookImportCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnote_coordinator.h  # FootnoteCoordinator with Q_OBJECT
@@ -670,6 +678,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/paragraph_marks_coordinator.h  # ParagraphMarksCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_coordinator.h  # WritingStatsCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/notifications.h  # NotificationCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_awards_tracker.h  # WritingAwardsTracker with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_model.h  # WritingStatsModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
@@ -731,6 +740,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/loading_overlay.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/log_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/notifications_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
@@ -810,6 +820,18 @@ list(APPEND KALAHARI_SOURCES
 
 # Create executable
 add_executable(kalahari ${KALAHARI_SOURCES})
+
+# The program the system opens the files of Kalahari with (gui/utils/file_associations.cpp):
+# AssocQueryStringW of Windows, NSWorkspace of macOS (Objective-C++, which the precompiled
+# headers of C++ do not serve)
+if(WIN32)
+    target_link_libraries(kalahari PRIVATE shlwapi)
+elseif(APPLE)
+    target_sources(kalahari PRIVATE gui/utils/file_associations_mac.mm)
+    set_source_files_properties(gui/utils/file_associations_mac.mm PROPERTIES
+                                SKIP_PRECOMPILE_HEADERS ON)
+    target_link_libraries(kalahari PRIVATE "-framework AppKit" "-framework UniformTypeIdentifiers")
+endif()
 
 # Precompiled headers for the executable target (same rationale as kalahari_core above).
 if(COMMAND kalahari_add_pch)
@@ -893,12 +915,16 @@ endif()
 
 # Copy resources to output directory after each build (OpenSpec #00029)
 # This ensures resources are always up-to-date, unlike file(COPY) which only runs at configure time
-add_custom_command(TARGET kalahari POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/resources"
-        "$<TARGET_FILE_DIR:kalahari>/resources"
-    COMMENT "Copying resources to output directory"
-)
+# macOS: only in Contents/Resources (below); Contents/MacOS holds code alone, and codesign takes
+# its folders with a dot in the name (booktypes/kalahari.base) for bundles and refuses them
+if(NOT APPLE)
+    add_custom_command(TARGET kalahari POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/resources"
+            "$<TARGET_FILE_DIR:kalahari>/resources"
+        COMMENT "Copying resources to output directory"
+    )
+endif()
 
 # Platform-specific settings
 if(WIN32)

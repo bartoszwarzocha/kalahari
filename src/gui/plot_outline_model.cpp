@@ -20,22 +20,24 @@
 #include <QEvent>
 #include <QFont>
 #include <QFontMetrics>
+#include <QHeaderView>
 #include <QLineEdit>
-#include <QMouseEvent>
-#include <QPainter>
-#include <QRect>
-#include <QSize>
-#include <QStyle>
-#include <QStyleOptionButton>
-#include <QStyleOptionViewItem>
 #include <QList>
 #include <QLocale>
 #include <QModelIndex>
+#include <QMouseEvent>
 #include <QObject>
+#include <QPainter>
 #include <QPalette>
+#include <QRect>
+#include <QSize>
 #include <QString>
 #include <QStringList>
+#include <QStyle>
 #include <QStyledItemDelegate>
+#include <QStyleOptionButton>
+#include <QStyleOptionViewItem>
+#include <QTableView>
 #include <QVariant>
 #include <QWidget>
 
@@ -208,7 +210,7 @@ void PlotOutlineModel::setColoring(const QString& colorBy, const PlotColors& col
     m_tint = tint;
     if (!m_rows.isEmpty()) {
         emit dataChanged(index(0, 0), index(rowCount() - 1, COLUMN_COUNT - 1),
-                         {Qt::DecorationRole, Qt::BackgroundRole});
+                         {COLOR_ROLE, Qt::BackgroundRole});
     }
 }
 
@@ -309,10 +311,10 @@ QVariant PlotOutlineModel::data(const QModelIndex& index, int role) const {
         return index.column() == STATUS_COLUMN && !row.part ? buttonOf(row) : QString();
     case Qt::TextAlignmentRole:
         return alignmentOf(index.column());
-    case Qt::DecorationRole:
+    case COLOR_ROLE:
     case Qt::BackgroundRole:
         if (!row.part) {
-            return colorData(row.card, index.column(), role);
+            return colorData(row.card, role);
         }
         break;
     default:
@@ -322,13 +324,13 @@ QVariant PlotOutlineModel::data(const QModelIndex& index, int role) const {
                     : cardData(row.card, index.column(), role);
 }
 
-QVariant PlotOutlineModel::colorData(const PlotCard& card, int column, int role) const {
+QVariant PlotOutlineModel::colorData(const PlotCard& card, int role) const {
     const QColor color = m_colors.ofCard(card, m_colorBy, m_povs);
     if (!color.isValid()) {
         return {};
     }
-    if (role == Qt::DecorationRole) {
-        return column == TITLE_COLUMN ? QVariant(color) : QVariant();
+    if (role == COLOR_ROLE) {
+        return color;
     }
     if (!m_tint) {
         return {};
@@ -493,8 +495,8 @@ QRect PlotOutlineDelegate::buttonRect(const QRect& rect, const QString& text, co
             width, height};
 }
 
-void PlotOutlineDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option,
-                                const QModelIndex& index) const {
+void PlotOutlineDelegate::paintCell(QPainter* painter, const QStyleOptionViewItem& option,
+                                    const QModelIndex& index) const {
     const QString button = index.data(PlotOutlineModel::BUTTON_ROLE).toString();
     if (button.isEmpty()) {
         QStyledItemDelegate::paint(painter, option, index);
@@ -567,6 +569,32 @@ QWidget* PlotOutlineDelegate::createEditor(QWidget* parent, const QStyleOptionVi
         line->setCompleter(completer);
     }
     return editor;
+}
+
+void PlotOutlineDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option,
+                                const QModelIndex& index) const {
+    paintCell(painter, option, index);
+    const QColor color = index.data(PlotOutlineModel::COLOR_ROLE).value<QColor>();
+    if (!color.isValid()) {
+        return;
+    }
+    // The left edge of the table: the first column shown (the number can be hidden)
+    int first = 0;
+    if (const auto* table = qobject_cast<const QTableView*>(option.widget)) {
+        const QHeaderView* header = table->horizontalHeader();
+        for (int visual = 0; visual < header->count(); ++visual) {
+            const int logical = header->logicalIndex(visual);
+            if (!header->isSectionHidden(logical)) {
+                first = logical;
+                break;
+            }
+        }
+    }
+    if (index.column() == first) {
+        painter->fillRect(QRect(option.rect.left(), option.rect.top(), EDGE_WIDTH,
+                                option.rect.height()),
+                          color);
+    }
 }
 
 QStringList PlotOutlineDelegate::suggestionsFor(int column) const {

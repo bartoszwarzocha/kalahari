@@ -223,9 +223,13 @@ GoToOutcome BookEditor::goToPlace(PlaceKind kind, const QString& number)
 GoToOutcome BookEditor::goToPageNumber(const PlaceNumber& wanted)
 {
     if (!wanted.valid && totalPages() > 0) {
-        return outcomeOf(GoToResult::Invalid, totalPages());
+        GoToOutcome outcome = outcomeOf(GoToResult::Invalid, totalPages());
+        outcome.firstNumber = firstPageNumber();
+        return outcome;
     }
-    return goToPageAt(wanted.relative ? currentPage() + wanted.value : wanted.value,
+    // A number of its own is the one the page shows: its page in the whole book
+    return goToPageAt(wanted.relative ? currentPage() + wanted.value
+                                      : wanted.value - firstPageNumber() + 1,
                       GoToResult::NoNumber);
 }
 
@@ -235,11 +239,13 @@ GoToOutcome BookEditor::goToPageAt(int page, GoToResult beyond)
     if (pages == 0) {
         return outcomeOf(GoToResult::NoPlaces, pages);
     }
+    GoToOutcome outcome = outcomeOf(GoToResult::Done, pages);
+    outcome.firstNumber = firstPageNumber();
     if (page < 1 || page > pages) {
-        return outcomeOf(beyond, pages);
+        outcome.result = beyond;
+        return outcome;
     }
     goToPage(page);
-    GoToOutcome outcome = outcomeOf(GoToResult::Done, pages);
     outcome.ordinal = page;
     return outcome;
 }

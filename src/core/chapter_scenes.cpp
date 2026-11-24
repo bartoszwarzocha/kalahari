@@ -101,7 +101,7 @@ QString sceneBreakKml(const ScenePlot& plot)
 /// @brief A text cut at its scene breaks
 struct SceneParts {
     QString head;            ///< Before its first scene: the start of the root element, the
-                             ///< annotations and the headings at its start
+                             ///< tab guides, the annotations and the headings at its start
     QList<QString> bodies;   ///< The elements of each scene, without its break
     QList<ScenePlot> plots;  ///< What each scene says; of the first, SceneText::opening
     QString tail;            ///< After its last scene: the end of the root element
@@ -170,11 +170,12 @@ std::optional<SceneParts> scenePartsOf(const SceneText& text)
     }
     const QString& content = whole->content;
     const QList<TopElement> elements = topElementsOf(content);
-    // The annotations and the headings at the start of the text stay there
+    // The tab guides, the annotations and the headings at the start of the text stay there
     qsizetype bodyStart = whole->rootEnd;
     qsizetype first = 0;
-    static const QStringList HEAD{QStringLiteral("annotations"), QStringLiteral("h1"),
-                                  QStringLiteral("h2"), QStringLiteral("h3")};
+    static const QStringList HEAD{QStringLiteral("tab-guides"), QStringLiteral("annotations"),
+                                  QStringLiteral("h1"), QStringLiteral("h2"),
+                                  QStringLiteral("h3")};
     while (first < elements.size() && HEAD.contains(elements.at(first).name)) {
         bodyStart = elements.at(first).end;
         ++first;

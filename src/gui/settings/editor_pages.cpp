@@ -12,6 +12,7 @@
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/gui/utils/chapter_cursor.h"
+#include "kalahari/core/page_start.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/settings_schema.h"
 #include "kalahari/core/theme_manager.h"
@@ -665,6 +666,9 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
         addThemeColor(form, tr("Text"), keys.text);
         addThemeColor(form, tr("Dimmed text (Focus)"), keys.focusDimmed);
         addThemeColor(form, tr("Formatting marks"), keys.formattingMarks);
+        //: The dashed vertical lines a Tab aligns the text to (Format > Align Text). In
+        //: Polish: Linie tabulatorów
+        addThemeColor(form, tr("Tab guides"), keys.tabGuide);
         addThemeColor(form, tr("Links"), keys.link);
         addThemeColor(form, tr("Table borders"), keys.tableLines);
         addThemeColor(form, tr("Table header rows"), keys.tableHeader);
@@ -819,6 +823,23 @@ EditorPagesPage::EditorPagesPage(Part part, QWidget* parent)
     gap->setToolTip(tr("Space between the pages and around them, at 100% zoom"));
     addField(page, tr("Gap between pages:"), gap, "editor.page.gap");
     addCheckBox(page, tr("Show page numbers"), "editor.page.showNumbers");
+    // The numbers of the pages: of the printed book, or of each text on its own
+    QComboBox* numbering = addChoice(
+        page, tr("Page numbers:"),
+        //: How the pages of a text are numbered in the editor. In Polish: W całej książce
+        {{tr("Through the whole book"), QStringLiteral("book"),
+          //: In Polish: Strony są numerowane w całej książce, w kolejności czytania: pierwsza
+          //: strona tekstu ma numer po ostatniej stronie tekstu przed nim. Pasek stanu podaje
+          //: stronę książki i stronę tekstu.
+          tr("The pages are numbered through the whole book, in reading order: the first page "
+             "of a text has the number after the last page of the text before it. The status "
+             "bar gives the page of the book and the page of the text.")},
+         //: How the pages of a text are numbered in the editor. In Polish: Każdy tekst od 1
+         {tr("Each text from 1"), QStringLiteral("text"),
+          //: In Polish: Każdy tekst ma swoje numery stron, od 1.
+          tr("Each text has its own page numbers, from 1.")}},
+        "editor.page.numbering");
+    numbering->setObjectName(QStringLiteral("pageNumbering"));
 
     const auto marginField = [](const QString& toolTip) {
         auto* field = new LengthSpinBox(LengthUnit::Millimeters, 0.0, 100.0);
@@ -841,6 +862,29 @@ EditorPagesPage::EditorPagesPage(Part part, QWidget* parent)
     QCheckBox* mirror = addCheckBox(margins, tr("Mirror margins (for book binding)"),
                                     "editor.margins.mirrorEnabled");
     mirror->setObjectName(QStringLiteral("mirrorMargins"));
+    // Where the texts start whose kind has no page of its own, as the chapters
+    QComboBox* textsStart = addChoice(
+        margins, tr("Texts start on:"),
+        //: Where a chapter starts in the printed book. In Polish: Prawej stronie
+        {{tr("A right page"), QString::fromLatin1(core::PAGE_START_RIGHT),
+          //: In Polish: Przed tekstem, który zaczynałby się na lewej stronie, zostaje pusta
+          //: lewa strona, jak w drukowanej książce.
+          tr("A text that would start on a left page has an empty left page before it, as in "
+             "a printed book.")},
+         //: Where a chapter starts in the printed book. In Polish: Następnej stronie, lewej lub
+         //: prawej
+         {tr("The next page, left or right"), QString::fromLatin1(core::PAGE_START_NEXT),
+          //: In Polish: Bez pustych stron między tekstami.
+          tr("No empty pages between the texts.")}},
+        core::TEXTS_START_KEY);
+    textsStart->setObjectName(QStringLiteral("textsStart"));
+    //: In Polish: Dotyczy rozdziałów i innych tekstów, których rodzaj nie ma swojej strony;
+    //: strona tytułowa, dedykacja czy tytuł części zaczynają się tam, gdzie mówi typ książki.
+    //: Tekst może mieć własną stronę we Właściwościach („Pierwsza strona”).
+    textsStart->setToolTip(tr("For the chapters and the other texts whose kind has no page of "
+                              "its own; the title page, the dedication or the title of a part "
+                              "start where the book type says. A text can have a page of its "
+                              "own in the Properties panel (\"First page\")."));
     LengthSpinBox* inner = marginField(tr("Inner margin of the page (up to 100 mm)"));
     LengthSpinBox* outer = marginField(tr("Outer margin of the page (up to 100 mm)"));
     inner->setObjectName(QStringLiteral("pageInner"));
@@ -854,16 +898,24 @@ EditorPagesPage::EditorPagesPage(Part part, QWidget* parent)
     auto* spreadLayout = new QHBoxLayout(spreadRow);
     spreadLayout->setContentsMargins(0, 0, 0, 0);
     spreadLayout->addWidget(spread, 0, Qt::AlignTop);
+    //: In Polish: Strony 2 i 3 rozdziału. Strona 1 jest prawa, więc jej wewnętrzny margines
+    //: jest po lewej. Rozdział może zaczynać się na lewej stronie: „Pierwsza strona” we
+    //: Właściwościach.
     addNote(spreadLayout, tr("Pages 2 and 3 of a chapter. Page 1 is a right page, so its inner "
                              "margin is on the left. A chapter can start on a left page: "
-                             "\"Starts on a left page\" in the Properties panel."));
+                             "\"First page\" in the Properties panel."));
     margins->addRow(new QLabel(tr("Preview:")), spreadRow);
     const auto syncMirror = [margins, mirror, left, leftLabel, right, rightLabel, inner, outer,
-                             spreadRow]() {
+                             spreadRow, textsStart]() {
         const bool mirrored = mirror->isChecked();
         for (QWidget* field : {static_cast<QWidget*>(left), static_cast<QWidget*>(leftLabel),
                                static_cast<QWidget*>(right), static_cast<QWidget*>(rightLabel)}) {
             field->setEnabled(!mirrored);
+        }
+        // Left and right pages are those of mirror margins
+        textsStart->setEnabled(mirrored);
+        if (QWidget* label = margins->labelForField(textsStart)) {
+            label->setEnabled(mirrored);
         }
         margins->setRowVisible(inner, mirrored);
         margins->setRowVisible(outer, mirrored);

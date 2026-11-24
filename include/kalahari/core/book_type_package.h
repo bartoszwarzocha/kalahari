@@ -73,6 +73,8 @@
 /// author), "position" (kinds of the main part: "start" for a kind that opens the story, like
 /// a prologue, "end" for one that closes it, like an epilogue), "first" (true for a kind that
 /// opens its section, like the title page: nothing is moved or added before its element),
+/// "firstPage" (the page of a printed book its elements start on, "right", "left" or "next";
+/// without it, as Settings say: page_start.h),
 /// "editor", "generated" and "settings" (window kinds; a text kind can have the editor
 /// "card": its elements are cards, such as of characters, whose text is the long
 /// description), "fields" (kinds of cards: the fields of their cards, see below),
@@ -119,6 +121,7 @@
 
 #include <kalahari/core/kind_words.h>
 #include <kalahari/core/localized_text.h>
+#include <kalahari/core/page_start.h>
 #include <kalahari/core/publishing_texts.h>
 
 #include <QJsonObject>
@@ -292,6 +295,8 @@ struct ElementKind {
     QString templateFile;                ///< Text kinds: starting .kchapter, in the package
     KindPosition position = KindPosition::Any;  ///< Where its elements stand in the main part
     bool first = false;                  ///< Its element opens its section: the title page
+    PageStart firstPage = PageStart::Auto;  ///< The page its elements start on; Auto: as the
+                                            ///< settings say (page_start.h)
     QString editor;                      ///< Window kinds: id of the window that opens the
                                          ///< element; text kinds: CARD_EDITOR or empty
     bool generated = false;              ///< Window kinds: content made by a tool of the type

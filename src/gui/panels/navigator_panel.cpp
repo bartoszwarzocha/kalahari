@@ -15,6 +15,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
+#include "kalahari/core/busy_pulse.h"
 #include "kalahari/core/card_data.h"
 #include "kalahari/core/card_relations.h"
 #include "kalahari/core/logger.h"
@@ -111,6 +112,8 @@ const QString WORKSHOP_ID_PREFIX = QStringLiteral("workshop:");
 constexpr const char* BOOK_DICTIONARY_TYPE = "book_dictionary";
 /// The type of the node of the plan of the book, the first one of the Workshop
 constexpr const char* BOOK_PLAN_TYPE = "book_plan";
+/// The type of the node of the card For Publishers at the top of the Workshop
+constexpr const char* PUBLISHING_TYPE = "publishing_card";
 /// In a list of open items, the tree has the book and the Workshop as nodes of their own; a
 /// list without it (saved before them) opens them
 const QString WORKSHOP_LAYOUT = QStringLiteral("layout:workshop");
@@ -1374,6 +1377,8 @@ QTreeWidgetItem* NavigatorPanel::addElementItem(QTreeWidgetItem* parent,
                                                 const core::ProjectElement& element,
                                                 const core::BookTypeRegistry& registry,
                                                 bool workshop) {
+    // A spinner that waits for the book turns while the tree is made (test of 24.11)
+    core::BusyPulse::beat();
     const core::ProjectManager& pm = m_book;
     const core::ElementForm form = core::BookProject::formOf(registry, element);
     // A kind the program does not have shows its icon on the book's card of its package
@@ -1613,10 +1618,13 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
     // A kind the program makes elements of has its group also empty, so that one can be added
     // to it; the other kinds when they have elements. A kind of materials hidden in the
     // settings is not there, but its materials are in the number of Materials.
+    // The texts for publishers are on the card For Publishers, not in the Materials
     const QStringList hidden = MaterialList::hiddenKinds();
+    const core::KindRef publishingKind = pm.publishingKind();
     qsizetype hiddenCount = 0;
     for (KindGroup& group : groups) {
-        if (group.elements.isEmpty() && !core::ProjectManager::canAdd(group.kind)) {
+        if ((group.elements.isEmpty() && !core::ProjectManager::canAdd(group.kind)) ||
+            (publishingKind && group.kind.kind == publishingKind.kind)) {
             continue;
         }
         if (group.shelf == core::WorkshopGroup::Resources && hidden.contains(group.key)) {
@@ -2383,6 +2391,22 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             connect(namedAction, &QAction::triggered, this,
                     [this, item, kind]() { addOn(item, kind); });
             changing << namedAction;
+        }
+        // The commands of the modules whose kinds are added here: New Relation Map... where
+        // mind maps are added
+        for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+             windowEditorsAddedAt(item)) {
+            for (const core::WindowEditorCommand& command : provider->commands()) {
+                QAction* moduleAction = menu.addAction(
+                    artProvider.getIcon(QString::fromStdString(command.id),
+                                        core::IconContext::Menu),
+                    command.menuText);
+                connect(moduleAction, &QAction::triggered, this,
+                        [this, id = QString::fromStdString(command.id)]() {
+                            emit moduleCommandRequested(id);
+                        });
+                changing << moduleAction;
+            }
         }
     };
 
@@ -3163,6 +3187,10 @@ bool NavigatorPanel::requestPageOf(const QTreeWidgetItem* item, bool keys) {
         emit requestOpenBookPlan(keys);
         return true;
     }
+    if (item != nullptr && typeOf(item) == QLatin1String(PUBLISHING_TYPE)) {
+        emit requestOpenPublishing(keys);
+        return true;
+    }
     if (const std::optional<QString> list = listOf(item)) {
         emit requestOpenMaterialList(*list, keys);
         return true;
@@ -3196,6 +3224,18 @@ void NavigatorPanel::addDictionaryItem(QTreeWidgetItem* workshopItem) {
     item->setData(0, ICON_ROLE, iconId);
     item->setIcon(0, itemIcon(item, iconId));
     item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+
+    // The card For Publishers after it, as Book > For Publishers
+    auto* publishing = new QTreeWidgetItem(workshopItem);
+    //: The node at the top of the Workshop in the Navigator, after Book Dictionary, that shows
+    //: the card of the texts for publishers and the set on a tab. In Polish: Dla wydawnictwa
+    publishing->setText(0, tr("For Publishers"));
+    publishing->setData(0, Qt::UserRole, WORKSHOP_ID_PREFIX + QStringLiteral("publishing"));
+    publishing->setData(0, Qt::UserRole + 1, QString::fromLatin1(PUBLISHING_TYPE));
+    const QString publishingIcon = QStringLiteral("book.publishing");
+    publishing->setData(0, ICON_ROLE, publishingIcon);
+    publishing->setIcon(0, itemIcon(publishing, publishingIcon));
+    publishing->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 }
 
 AddChooser NavigatorPanel::addChooser() {
@@ -3277,6 +3317,27 @@ std::optional<AddTarget> NavigatorPanel::addTargetOf(const QTreeWidgetItem* item
         return target;
     }
     return std::nullopt;
+}
+
+std::vector<std::shared_ptr<core::IWindowEditorProvider>> NavigatorPanel::windowEditorsAddedAt(
+    const QTreeWidgetItem* item) const {
+    std::vector<std::shared_ptr<core::IWindowEditorProvider>> providers;
+    const std::optional<AddTarget> target = addTargetOf(item);
+    if (!target || target->scope != AddTarget::Scope::Workshop) {
+        return providers;
+    }
+    for (const core::KindRef& kind : target->kinds) {
+        if (!kind || kind.kind->editor.isEmpty()) {
+            continue;
+        }
+        std::shared_ptr<core::IWindowEditorProvider> provider =
+            core::windowEditorProvider(kind.kind->editor);
+        if (provider && std::find(providers.cbegin(), providers.cend(), provider) ==
+                            providers.cend()) {
+            providers.push_back(std::move(provider));
+        }
+    }
+    return providers;
 }
 
 QList<core::KindRef> NavigatorPanel::namedKindsOf(const QTreeWidgetItem* item) const {
@@ -3886,6 +3947,8 @@ void NavigatorPanel::expandItemsById(const QStringList& ids) {
     auto& logger = core::Logger::getInstance();
 
     for (const QString& id : ids) {
+        // A spinner that waits for the book turns meanwhile (test of 24.11)
+        core::BusyPulse::beat();
         QTreeWidgetItem* item = nullptr;
 
         if (id.startsWith(QLatin1String("book:"))) {

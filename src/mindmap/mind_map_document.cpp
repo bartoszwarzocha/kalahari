@@ -10,12 +10,13 @@
 
 #include <QFileInfo>
 
+#include <algorithm>
 #include <utility>
 
 namespace kalahari::mindmap {
 
 MindMapDocument::MindMapDocument(const QString& path, QObject* parent)
-    : QObject(parent), m_path(path), m_selected(m_map.root()) {}
+    : QObject(parent), m_path(path), m_selected(m_map.root()), m_selection{m_map.root()} {}
 
 bool MindMapDocument::load(QString* error) {
     MindMap loaded;
@@ -26,6 +27,7 @@ bool MindMapDocument::load(QString* error) {
     }
     m_map = loaded;
     m_selected = m_map.root();
+    m_selection = {m_selected};
     m_undo.clear();
     m_redo.clear();
     emit changed();
@@ -41,8 +43,29 @@ QString MindMapDocument::shownText(const QString& id) const {
     return node != nullptr ? shownText(*node) : QString();
 }
 
+void MindMapDocument::pushStep(Step step) {
+    m_undo.append(std::move(step));
+    if (m_undo.size() > MOST_STEPS) {
+        m_undo.removeFirst();
+    }
+    m_redo.clear();
+}
+
+void MindMapDocument::keepSelection() {
+    m_selection.removeIf([this](const QString& id) { return m_map.node(id) == nullptr; });
+    if (!m_selected.isEmpty() && m_map.node(m_selected) == nullptr) {
+        m_selected = m_selection.isEmpty() ? m_map.root() : m_selection.first();
+    }
+    if (!m_selected.isEmpty() && !m_selection.contains(m_selected)) {
+        m_selection.prepend(m_selected);
+    }
+    if (m_selectedConnection >= m_map.connections().size()) {
+        m_selectedConnection = -1;
+    }
+}
+
 bool MindMapDocument::change(const QString& what, const std::function<bool(MindMap&)>& change) {
-    const Step before{m_map.toJson(), m_selected, what};
+    Step before{m_map.toJson(), m_selected, what, nullptr, nullptr};
     if (!change(m_map)) {
         m_map.fromJson(before.map);
         return false;
@@ -50,18 +73,32 @@ bool MindMapDocument::change(const QString& what, const std::function<bool(MindM
     if (m_map.toJson() == before.map) {
         return false;
     }
-    m_undo.append(before);
-    if (m_undo.size() > MOST_STEPS) {
-        m_undo.removeFirst();
-    }
-    m_redo.clear();
-    if (m_map.node(m_selected) == nullptr) {
-        m_selected = m_map.root();
-    }
-    if (m_selectedConnection >= m_map.connections().size()) {
-        m_selectedConnection = -1;
-    }
+    pushStep(std::move(before));
+    keepSelection();
     save();
+    emit changed();
+    return true;
+}
+
+bool MindMapDocument::changeWithBook(const QString& what,
+                                     const std::function<bool(MindMap&)>& change,
+                                     const std::function<bool()>& doBook,
+                                     const std::function<bool()>& undoBook) {
+    Step before{m_map.toJson(), m_selected, what, undoBook, doBook};
+    if (change && !change(m_map)) {
+        m_map.fromJson(before.map);
+        return false;
+    }
+    if (!doBook()) {
+        m_map.fromJson(before.map);
+        return false;
+    }
+    const bool mapChanged = m_map.toJson() != before.map;
+    pushStep(std::move(before));
+    keepSelection();
+    if (mapChanged) {
+        save();
+    }
     emit changed();
     return true;
 }
@@ -87,10 +124,15 @@ void MindMapDocument::restore(const Step& step) {
     // The view of the map (its zoom, its mode) stays as it is now
     const MindMapMode mode = m_map.mode();
     const double zoom = m_map.zoom();
+    const std::optional<QPointF> centre = m_map.centre();
     m_map.fromJson(step.map);
     m_map.setMode(mode);
     m_map.setZoom(zoom);
-    m_selected = m_map.node(step.selected) != nullptr ? step.selected : m_map.root();
+    m_map.setCentre(centre);
+    // Nothing was selected: nothing is
+    m_selected = step.selected.isEmpty() || m_map.node(step.selected) != nullptr ? step.selected
+                                                                                 : m_map.root();
+    m_selection = m_selected.isEmpty() ? QStringList() : QStringList{m_selected};
     m_selectedConnection = -1;
     save();
     emit changed();
@@ -102,7 +144,10 @@ void MindMapDocument::undo() {
         return;
     }
     const Step step = m_undo.takeLast();
-    m_redo.append(Step{m_map.toJson(), m_selected, step.what});
+    m_redo.append(Step{m_map.toJson(), m_selected, step.what, step.undoBook, step.redoBook});
+    if (step.undoBook && !step.undoBook()) {
+        emit bookStepFailed(step.what);
+    }
     restore(step);
 }
 
@@ -111,15 +156,66 @@ void MindMapDocument::redo() {
         return;
     }
     const Step step = m_redo.takeLast();
-    m_undo.append(Step{m_map.toJson(), m_selected, step.what});
+    m_undo.append(Step{m_map.toJson(), m_selected, step.what, step.undoBook, step.redoBook});
+    if (step.redoBook && !step.redoBook()) {
+        emit bookStepFailed(step.what);
+    }
     restore(step);
 }
 
 void MindMapDocument::select(const QString& id) {
-    if (m_map.node(id) == nullptr || (id == m_selected && m_selectedConnection < 0)) {
+    if (m_map.node(id) == nullptr ||
+        (id == m_selected && m_selectedConnection < 0 && m_selection.size() == 1)) {
         return;
     }
     m_selected = id;
+    m_selection = {id};
+    m_selectedConnection = -1;
+    emit selectionChanged();
+}
+
+void MindMapDocument::clearSelection() {
+    if (m_selected.isEmpty() && m_selection.isEmpty() && m_selectedConnection < 0) {
+        return;
+    }
+    m_selected.clear();
+    m_selection.clear();
+    m_selectedConnection = -1;
+    emit selectionChanged();
+}
+
+void MindMapDocument::setSelection(const QStringList& ids) {
+    QStringList known;
+    for (const QString& id : ids) {
+        if (m_map.node(id) != nullptr && !known.contains(id)) {
+            known.append(id);
+        }
+    }
+    if (known.isEmpty() || (known == m_selection && m_selectedConnection < 0)) {
+        return;
+    }
+    m_selection = known;
+    m_selected = known.first();
+    m_selectedConnection = -1;
+    emit selectionChanged();
+}
+
+void MindMapDocument::toggleSelection(const QString& id) {
+    if (m_map.node(id) == nullptr) {
+        return;
+    }
+    QStringList changed = m_selection;
+    if (changed.contains(id)) {
+        if (changed.size() == 1) {
+            clearSelection();
+            return;
+        }
+        changed.removeAll(id);
+    } else {
+        changed.prepend(id);
+    }
+    m_selection = changed;
+    m_selected = changed.first();
     m_selectedConnection = -1;
     emit selectionChanged();
 }
@@ -268,9 +364,8 @@ bool MindMapDocument::setLink(const QString& id, const QString& elementId) {
 
 bool MindMapDocument::moveNode(const QString& id, const QString& parent, qsizetype index) {
     //: What Undo undoes in a mind map. In Polish: przeniesienie węzła
-    return change(tr("moving a node"), [&id, &parent, index](MindMap& map) {
-        return map.move(id, parent, index);
-    });
+    return change(tr("moving a node"),
+                  [&id, &parent, index](MindMap& map) { return map.move(id, parent, index); });
 }
 
 bool MindMapDocument::moveAmongSiblings(const QString& id, int steps) {
@@ -313,9 +408,8 @@ bool MindMapDocument::movePlaces(const QHash<QString, QPointF>& places, bool fre
 
 bool MindMapDocument::connectNodes(const QString& from, const QString& to) {
     //: What Undo undoes in a mind map. In Polish: połączenie węzłów
-    const bool done = change(tr("connecting nodes"), [&from, &to](MindMap& map) {
-        return map.connect(from, to);
-    });
+    const bool done = change(tr("connecting nodes"),
+                             [&from, &to](MindMap& map) { return map.connect(from, to); });
     if (done) {
         selectConnection(m_map.connections().size() - 1);
     }
@@ -329,9 +423,8 @@ bool MindMapDocument::setConnectionLabel(qsizetype index, const QString& label) 
     MindMapConnection changed = m_map.connections().at(index);
     changed.label = label.trimmed();
     //: What Undo undoes in a mind map. In Polish: zmiana podpisu połączenia
-    return change(tr("changing the label of a connection"), [index, &changed](MindMap& map) {
-        return map.setConnection(index, changed);
-    });
+    return change(tr("changing the label of a connection"),
+                  [index, &changed](MindMap& map) { return map.setConnection(index, changed); });
 }
 
 bool MindMapDocument::reverseConnection(qsizetype index) {
@@ -341,9 +434,8 @@ bool MindMapDocument::reverseConnection(qsizetype index) {
     MindMapConnection changed = m_map.connections().at(index);
     std::swap(changed.from, changed.to);
     //: What Undo undoes in a mind map. In Polish: odwrócenie połączenia
-    return change(tr("reversing a connection"), [index, &changed](MindMap& map) {
-        return map.setConnection(index, changed);
-    });
+    return change(tr("reversing a connection"),
+                  [index, &changed](MindMap& map) { return map.setConnection(index, changed); });
 }
 
 bool MindMapDocument::removeConnection(qsizetype index) {
@@ -377,6 +469,204 @@ QStringList MindMapDocument::pasteOutline(const QString& parent, qsizetype index
         select(added.first());
     }
     return added;
+}
+
+// =============================================================================
+// The changes of the map of nodes
+// =============================================================================
+
+QString MindMapDocument::addNode(const QString& kind, const QString& text, const QPointF& place,
+                                 const QString& parent) {
+    QString added;
+    const bool folded = m_newFolded;
+    //: What Undo undoes in a mind map. In Polish: dodanie węzła
+    change(tr("adding a node"), [&](MindMap& map) {
+        added = map.addNode(kind, text, place, parent);
+        const MindMapNode* own = map.node(added);
+        if (own == nullptr) {
+            return false;
+        }
+        MindMapNode changed = *own;
+        changed.folded = folded;
+        return map.setNode(changed);
+    });
+    select(added);
+    return added;
+}
+
+QString MindMapDocument::addEntry(const CatalogEntry& entry, const QPointF& place,
+                                  const QString& parent) {
+    QString added;
+    const bool folded = m_newFolded;
+    change(tr("adding a node"), [&](MindMap& map) {
+        added = map.addNode(entry.kind, QString(), place, parent);
+        const MindMapNode* own = map.node(added);
+        if (own == nullptr) {
+            return false;
+        }
+        MindMapNode changed = *own;
+        changed.link = entry.elementId;
+        changed.scene = entry.scene;
+        changed.planned = entry.planned;
+        changed.thread = entry.thread;
+        changed.folded = folded;
+        return map.setNode(changed);
+    });
+    select(added);
+    return added;
+}
+
+QString MindMapDocument::addSiblingAt(const QString& id, const QPointF& place, bool before,
+                                      const QString& text) {
+    QString added;
+    const bool folded = m_newFolded;
+    change(tr("adding a node"), [&](MindMap& map) {
+        added = map.addSibling(id, text, before);
+        const MindMapNode* own = map.node(added);
+        if (own == nullptr) {
+            return false;
+        }
+        MindMapNode changed = *own;
+        changed.place = place;
+        changed.loosePlace.reset();
+        changed.folded = folded;
+        return map.setNode(changed);
+    });
+    select(added);
+    return added;
+}
+
+int MindMapDocument::removeNodes(const QStringList& ids) {
+    int removed = 0;
+    QString near;
+    for (const QString& id : ids) {
+        if (id != m_map.root() && m_map.node(id) != nullptr && near.isEmpty()) {
+            near = m_map.parentOf(id);
+        }
+    }
+    //: What Undo undoes in a mind map. In Polish: usunięcie węzła
+    change(tr("deleting a node"), [&ids, &removed](MindMap& map) {
+        for (const QString& id : ids) {
+            if (map.removeAlone(id)) {
+                ++removed;
+            }
+        }
+        return removed > 0;
+    });
+    if (removed > 0) {
+        select(m_map.node(near) != nullptr ? near : m_map.root());
+    }
+    return removed;
+}
+
+bool MindMapDocument::moveNodesBy(const QStringList& ids, const QPointF& delta) {
+    //: What Undo undoes in a mind map. In Polish: przesunięcie węzła
+    return change(tr("moving a node"), [&ids, &delta](MindMap& map) {
+        bool moved = false;
+        for (const QString& id : ids) {
+            const MindMapNode* node = map.node(id);
+            if (node != nullptr) {
+                moved = map.setPlace(id, node->place.value_or(QPointF()) + delta) || moved;
+            }
+        }
+        return moved;
+    });
+}
+
+bool MindMapDocument::setPlaces(const QHash<QString, QPointF>& places, const QString& what) {
+    return change(what, [&places](MindMap& map) {
+        for (auto it = places.cbegin(); it != places.cend(); ++it) {
+            map.setPlace(it.key(), it.value());
+        }
+        return true;
+    });
+}
+
+bool MindMapDocument::toggleFolded(const QStringList& ids) {
+    const bool anyFolded = std::any_of(ids.cbegin(), ids.cend(), [this](const QString& id) {
+        const MindMapNode* node = m_map.node(id);
+        return node != nullptr && node->folded;
+    });
+    return change(anyFolded
+                      //: What Undo undoes in a mind map. In Polish: rozwinięcie węzła
+                      ? tr("unfolding a node")
+                      //: What Undo undoes in a mind map. In Polish: zwinięcie węzła
+                      : tr("folding a node"),
+                  [&ids, anyFolded](MindMap& map) {
+                      for (const QString& id : ids) {
+                          if (const MindMapNode* node = map.node(id)) {
+                              MindMapNode changed = *node;
+                              changed.folded = !anyFolded;
+                              map.setNode(changed);
+                          }
+                      }
+                      return true;
+                  });
+}
+
+bool MindMapDocument::joinNodes(const QString& from, const QString& to) {
+    if (m_map.node(from) == nullptr || m_map.node(to) == nullptr || from == to) {
+        return false;
+    }
+    // A loose node joins the tree as a branch of the node; a node of a branch, or one above the
+    // node, is joined by a connection
+    const bool branch = to != m_map.root() && m_map.parentOf(to).isEmpty() &&
+                        !m_map.descendantsOf(to).contains(from);
+    if (branch) {
+        //: What Undo undoes in a mind map. In Polish: połączenie węzłów
+        return change(tr("connecting nodes"), [&](MindMap& map) {
+            const std::optional<QPointF> place = map.node(to)->place;
+            if (!map.move(to, from, -1)) {
+                return false;
+            }
+            if (place) {
+                map.setPlace(to, *place);
+            }
+            return true;
+        });
+    }
+    return connectNodes(from, to);
+}
+
+bool MindMapDocument::detachBranch(const QString& id) {
+    if (m_map.parentOf(id).isEmpty()) {
+        return false;
+    }
+    //: What Undo undoes in a mind map. In Polish: odłączenie węzła od gałęzi
+    return change(tr("detaching a node"), [&id](MindMap& map) {
+        const std::optional<QPointF> place = map.node(id)->place;
+        if (!map.makeLoose(id, QPointF())) {
+            return false;
+        }
+        MindMapNode changed = *map.node(id);
+        changed.loosePlace.reset();
+        changed.place = place;
+        return map.setNode(changed);
+    });
+}
+
+QString MindMapDocument::addFrame(const QStringList& nodes, const QString& title) {
+    QString added;
+    //: What Undo undoes in a mind map. In Polish: dodanie ramki
+    change(tr("adding a frame"), [&](MindMap& map) {
+        added = map.addFrame(title, nodes);
+        return !added.isEmpty();
+    });
+    return added;
+}
+
+bool MindMapDocument::setFrame(const MindMapFrame& frame) {
+    //: What Undo undoes in a mind map. In Polish: zmiana ramki
+    return change(tr("changing a frame"), [&frame](MindMap& map) { return map.setFrame(frame); });
+}
+
+bool MindMapDocument::removeFrame(const QString& id) {
+    //: What Undo undoes in a mind map. In Polish: usunięcie ramki
+    return change(tr("deleting a frame"), [&id](MindMap& map) { return map.removeFrame(id); });
+}
+
+bool MindMapDocument::setNode(const MindMapNode& node, const QString& what) {
+    return change(what, [&node](MindMap& map) { return map.setNode(node); });
 }
 
 void MindMapDocument::save() {

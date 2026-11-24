@@ -263,7 +263,9 @@ void defineProgram(py::module_& m) {
         [](const std::string& title, const std::string& text) {
             PluginHost::getInstance().showMessage(title, text);
         },
-        py::arg("title"), py::arg("text"), "Show a message to the writer in a window");
+        py::arg("title"), py::arg("text"),
+        "Show a message to the writer as a notification of the program, where the writer's "
+        "settings show them (Settings > Notifications)");
     m.def(
         "program_language", []() { return PluginHost::getInstance().programLanguage(); },
         "The language of the program's windows (\"pl\", \"en\")");
