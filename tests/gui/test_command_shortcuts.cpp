@@ -180,6 +180,17 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"format.alignCenter", QStringLiteral("Ctrl+E")},
         {"format.alignRight", QStringLiteral("Ctrl+R")},
         {"format.justify", QStringLiteral("Ctrl+J")},
+#ifdef Q_OS_MACOS
+        // Option+Shift+Cmd, as the pastes: Option+Shift with an arrow selects words
+        {"format.tabGuide.toggle", QStringLiteral("Ctrl+Alt+Shift+G")},
+        {"format.tabGuide.moveLeft", QStringLiteral("Ctrl+Alt+Shift+Left")},
+        {"format.tabGuide.moveRight", QStringLiteral("Ctrl+Alt+Shift+Right")},
+#else
+        // The tab guides: Alt+Shift with G and the arrows, free in the program and the systems
+        {"format.tabGuide.toggle", QStringLiteral("Alt+Shift+G")},
+        {"format.tabGuide.moveLeft", QStringLiteral("Alt+Shift+Left")},
+        {"format.tabGuide.moveRight", QStringLiteral("Alt+Shift+Right")},
+#endif
         {"format.bullets", QStringLiteral("Shift+F12")},  // as in LibreOffice
         {"format.numbering", QStringLiteral("F12")},
 #ifdef Q_OS_MACOS

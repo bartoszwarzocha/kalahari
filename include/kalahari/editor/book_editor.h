@@ -31,6 +31,7 @@
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/table_editing.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
@@ -923,6 +924,35 @@ public:
     /// Without a selection the style of the paragraph at the cursor (currentParagraphStyle()).
     /// The objects among the paragraphs do not count; a selection of objects only has none.
     [[nodiscard]] QString selectedParagraphStyle() const;
+
+    // =========================================================================
+    // Tab guides (tab_guides.h): dashed lines down the text that a Tab aligns it to
+    // =========================================================================
+
+    /// @brief The tab guides of the text: millimetres from its left edge, in order
+    [[nodiscard]] std::vector<double> tabGuides() const;
+
+    /// @brief Give the text its tab guides (normalizedTabGuides()) as one undo step, which
+    ///        changes the text (isModified()); refused in a text only read
+    /// @return Whether they changed
+    bool setTabGuides(const std::vector<double>& guides);
+
+    /// @brief Where the cursor is: millimetres from the left edge of the text; nothing without
+    ///        a text
+    [[nodiscard]] std::optional<double> cursorMillimetres() const;
+
+    /// @brief Format > Align Text > Set or Remove Tab Guide: the guide at the cursor (closer than
+    ///        TAB_GUIDE_MIN_GAP_MM) taken away, or else a new one there, on a step
+    TabGuideOutcome toggleTabGuideAtCursor();
+
+    /// @brief Format > Align Text > Move Tab Guide Left / Right: the guide nearest the cursor
+    ///        @p steps steps (TAB_GUIDE_STEP_MM) right, left when negative, not past the
+    ///        guides beside it (TAB_GUIDE_MIN_GAP_MM) nor the edges of the text. While the
+    ///        cursor stays, the next move takes the same guide, though another one is nearer.
+    TabGuideOutcome moveTabGuide(int steps);
+
+    /// @brief Format > Align Text > Remove All Tab Guides
+    TabGuideOutcome clearTabGuides();
 
     /// @brief The object at the cursor (a horizontal line, a break); None in a paragraph of
     ///        text
@@ -2087,6 +2117,10 @@ public:
     /// @return Total page count, or 0 if no document
     [[nodiscard]] int totalPages() const;
 
+    /// @brief The number its first page shows: 1, or its page in the whole book
+    ///        (PageLayout::firstPageNumber); page n shows this number + n - 1
+    [[nodiscard]] int firstPageNumber() const { return m_appearance.pageLayout.firstPageNumber; }
+
     /// @brief Navigate to a specific page
     /// @param page The page number (1-based)
     void goToPage(int page);
@@ -2787,6 +2821,17 @@ private:
     /// @brief Whether a change the writer asked for is refused, as the text is read-only
     /// (isReadOnly()); then it says so (changeRefused())
     bool refusesChange();
+
+    /// @brief The document and the view take tab guides (setTabGuidesOf()), without an undo
+    ///        step: setTabGuides() and its undo and redo
+    void applyTabGuides(const std::vector<double>& guides);
+
+    /// @brief The width of the text, in millimetres; 0 before it has one
+    [[nodiscard]] double textWidthMillimetres() const;
+
+    /// @brief The guide of @p guides moveTabGuide() moves: the one it moved last, while the
+    ///        cursor stays, else the one nearest the cursor; none without guides
+    [[nodiscard]] std::optional<size_t> tabGuideToMove(const std::vector<double>& guides) const;
 
     /// @brief An item of the context menu that changes the text: greyed out while the text is
     /// only read, with the reason as its tooltip and its status tip (setReadOnlyReason())
@@ -3631,6 +3676,10 @@ private:
     bool m_keepsPageWidth = false;                          ///< setKeepsPageWidth()
     qreal m_cursorLineHeightOnFirstShow = -1.0;             ///< scrollCursorLineTo() waits for the
                                                             ///< first paint (none below 0)
+
+    // The guide moveTabGuide() moved last, and the cursor it was moved from
+    std::optional<double> m_movedTabGuide;
+    CursorPosition m_movedTabGuideCursor;
 
     // Cursor state (Phase 3.4 + 3.5)
     CursorPosition m_cursorPosition;                            ///< Current cursor position

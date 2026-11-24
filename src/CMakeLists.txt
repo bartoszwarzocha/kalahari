@@ -8,6 +8,7 @@ set(KALAHARI_CORE_SOURCES
     # OpenSpec #00042: Custom Text Editor
     editor/editor_types.cpp
     editor/kml_serializer.cpp  # Phase 11.2: QTextDocument to KML serializer
+    editor/tab_guides.cpp      # The tab guides of a text: lines down its pages a Tab aligns to
     editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     editor/annotation.cpp  # Comments, TODOs and notes anchored to the text
     editor/text_link.cpp   # Links in the text: the address on its characters
@@ -327,6 +328,7 @@ set(KALAHARI_SOURCES
     gui/style_coordinator.cpp  # StyleCoordinator - new, changed, deleted styles of the book
     gui/caption_settings.cpp  # The settings of new images and of the captions of new books
     gui/book_texts.cpp  # The texts of the book in reading order, the saved text of one not open
+    gui/book_page_numbers.cpp  # BookPageNumbers - the first pages of the texts in the whole book
     gui/caption_coordinator.cpp  # CaptionCoordinator - the numbered captions of the book
     gui/book_export_coordinator.cpp  # BookExportCoordinator - the export of the book to DOCX and Markdown
     gui/printer_driver.cpp  # The settings of the driver of a printer (Windows)
@@ -525,6 +527,7 @@ set(KALAHARI_SOURCES
     editor/book_editor_fields.cpp  # BookEditor: the fields of the book, the page, the words, the date
     editor/book_editor_skeleton.cpp  # BookEditor: the skeleton of a text for publishers
     editor/book_editor_places.cpp  # BookEditor: Edit > Go To..., the places of the text
+    editor/book_editor_tab_guides.cpp  # BookEditor: the tab guides (Format > Align Text)
     editor/book_editor_image_look.cpp
     editor/book_editor_input.cpp
     editor/book_editor_search.cpp
@@ -644,6 +647,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/style_coordinator.h  # StyleCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/caption_coordinator.h  # CaptionCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_export_coordinator.h  # BookExportCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_page_numbers.h  # BookPageNumbers with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plugin_coordinator.h  # PluginCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_import_coordinator.h  # BookImportCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnote_coordinator.h  # FootnoteCoordinator with Q_OBJECT

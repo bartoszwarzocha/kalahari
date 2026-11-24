@@ -617,8 +617,8 @@ std::map<std::string, json> buildDefaults() {
         {"editor.cursor.lineWidth", 2},
 
         // Editor: page margins in millimetres. Mirror margins: the inner one at the binding,
-        // the outer one at the edge; the first page of a chapter is a right page unless the
-        // chapter starts on a left one (the chapter's own setting, in the book)
+        // the outer one at the edge; the first page of a text is a left or a right one as the
+        // book puts it (core/page_start.h, editor.page.textsStart)
         {"editor.margins.pageTop", 25.4},
         {"editor.margins.pageBottom", 25.4},
         {"editor.margins.pageLeft", 25.4},
@@ -633,6 +633,13 @@ std::map<std::string, json> buildDefaults() {
         {"editor.page.customHeight", 297.0},
         {"editor.page.gap", 20},
         {"editor.page.showNumbers", true},
+        // The page numbers of the page view: those of the whole book, as a PDF of it has them
+        // ("book"), or from 1 in each text ("text")
+        {"editor.page.numbering", "book"},
+        // With mirror margins, the page a text whose kind says nothing starts on (a chapter):
+        // a right one, a left page before it left empty when needed ("right"), or the next one
+        // ("next"); core/page_start.h
+        {"editor.page.textsStart", "right"},
 
         // Editor: typewriter scrolling
         {"editor.typewriter.enabled", false},
@@ -805,8 +812,8 @@ std::map<std::string, json> buildDefaults() {
         // minLength do not count. mergeForms: the forms of a word count as one (by the
         // spelling dictionary); skipCommon: the very common words of the language do not
         // count; skipped: the writer's words that do not count, in lower case. highlight: the
-        // words too close are marked in the text while the panel shows, with a "background" or
-        // a "wave"
+        // words too close are marked in the text in front, the panel shown or not, with a
+        // "background" or a "wave"
         {"editor.repetitions.distance", 30},
         {"editor.repetitions.minLength", 3},
         {"editor.repetitions.mergeForms", true},

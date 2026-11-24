@@ -56,6 +56,10 @@ constexpr double SHEET_SHADOW_OFFSET = 4.0;
 constexpr double SHEET_SHADOW_BLUR = 8.0;
 constexpr int SHEET_SHADOW_PASSES = 4;
 
+/// The tab guides: dashes and gaps of this length (screen pixels), in a line one pixel wide
+constexpr double TAB_GUIDE_DASH = 4.0;
+constexpr double TAB_GUIDE_GAP = 3.0;
+
 /// The marks of the annotations: a small triangle, its tip up, just under the line's
 /// baseline. Its height as a share of the line's ascent (at the mark size of 100%), its
 /// width to its height, the gap under the baseline as a share of the line's descent, and
@@ -239,6 +243,8 @@ void EditorRenderPipeline::computeTypography() {
     // them with the painter, like the text
     LayoutTypography typography = m_context.typography;
     typography.referencePointSize = m_context.font.pointSizeF();
+    // The tab guides are millimetres of the page, whatever the font
+    typography.pixelsPerMillimetre = m_context.screenDpi / MM_PER_INCH;
     m_context.computed.typography = typography;
 }
 
@@ -411,10 +417,12 @@ void EditorRenderPipeline::setConfigDpi(double dpi) {
 
     m_context.screenDpi = dpi;
     computeDpiScaling();
+    computeTypography();  // the millimetres of the tab guides
     computePageLayout();
     computeMargins();
     computeTextWidth();
     applyWidthToSource();
+    applyTypographyToSource();
     applyPageFlowToSource();
     computeViewGeometry();
     markAllDirty();
@@ -525,6 +533,15 @@ void EditorRenderPipeline::setConfigShowPageNumbers(bool show) {
     if (m_context.pageMode.showPageNumbers == show) return;
 
     m_context.pageMode.showPageNumbers = show;
+    markRepaintOnly();
+}
+
+void EditorRenderPipeline::setConfigFirstPageNumber(int number) {
+    if (m_context.pageMode.firstPageNumber == number) {
+        return;
+    }
+
+    m_context.pageMode.firstPageNumber = number;
     markRepaintOnly();
 }
 
@@ -1172,6 +1189,15 @@ void EditorRenderPipeline::render(QPainter* painter, const QRect& clipRect) {
             renderEndlessPage(painter, clipRect);
         }
         renderTextFrameBorder(painter, clipRect);
+        // The text area of the endless page, as its frame (renderTextFrameBorder())
+        const auto& computed = m_context.computed;
+        const double textHeight = m_textSource ? m_textSource->totalHeight() : 0.0;
+        renderTabGuides(painter,
+                        QRectF(documentToWidget(QPointF(0.0, 0.0)),
+                               QSizeF(computed.textWidth * computed.viewScale,
+                                      std::max(textHeight, computed.textAreaHeight) *
+                                          computed.viewScale)),
+                        clipRect);
     }
     renderText(painter, clipRect);
 
@@ -1280,6 +1306,42 @@ void EditorRenderPipeline::renderTextFrameBorder(QPainter* painter, const QRect&
     }
     if (bottom == frame.bottom()) {
         painter->drawLine(frame.bottomLeft(), frame.bottomRight());
+    }
+    painter->restore();
+}
+
+void EditorRenderPipeline::renderTabGuides(QPainter* painter, const QRectF& textArea,
+                                           const QRect& clipRect) const {
+    if (!m_textSource || !m_context.colors.tabGuide.isValid()) {
+        return;
+    }
+    const std::vector<qreal> positions = m_textSource->tabGuidePositions();
+    if (positions.empty()) {
+        return;
+    }
+
+    // A chapter's text area is far taller than the view: the lines are cut to the clip rect,
+    // their dashes counted from the top of the text area, so a part drawn again matches
+    const double top = std::max(textArea.top(), clipRect.top() - 1.0);
+    const double bottom = std::min(textArea.bottom(), clipRect.bottom() + 2.0);
+    if (top >= bottom) {
+        return;
+    }
+
+    QPen pen(m_context.colors.tabGuide);
+    pen.setCosmetic(true);
+    pen.setWidthF(1.0);
+    pen.setDashPattern({TAB_GUIDE_DASH, TAB_GUIDE_GAP});
+    pen.setDashOffset(std::fmod(top - textArea.top(), TAB_GUIDE_DASH + TAB_GUIDE_GAP));
+    painter->save();
+    painter->setPen(pen);
+    const double scale = m_context.computed.viewScale;
+    for (const qreal position : positions) {
+        if (position <= 0.0 || position >= m_context.computed.textWidth) {
+            continue;  // beyond the right edge of the text: no line of it reaches it
+        }
+        const double x = textArea.left() + position * scale;
+        painter->drawLine(QPointF(x, top), QPointF(x, bottom));
     }
     painter->restore();
 }
@@ -2329,12 +2391,13 @@ void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect)
                                   computed.pageHeightPixels * scale));
         renderSheet(painter, sheet);
 
+        const QRectF textRect(QPointF(computed.originX + pageShiftX(page) * scale,
+                                      documentToWidget(QPointF(0.0, pageTextTop(page))).y()),
+                              QSizeF(computed.textWidth * scale, computed.textAreaHeight * scale));
+        renderTabGuides(painter, textRect, clipRect);
+
         // Text frame border if enabled
         if (m_context.showTextFrameBorder) {
-            const QRectF textRect(QPointF(computed.originX + pageShiftX(page) * scale,
-                                          documentToWidget(QPointF(0.0, pageTextTop(page))).y()),
-                                  QSizeF(computed.textWidth * scale,
-                                         computed.textAreaHeight * scale));
             painter->save();
             QPen framePen(m_context.textFrameBorderColor);
             framePen.setWidth(m_context.textFrameBorderWidth);
@@ -2344,7 +2407,7 @@ void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect)
             painter->restore();
         }
 
-        // Page number at the bottom centre, numbered from 1 in each chapter
+        // Page number at the bottom centre: from 1 in each text, or its page in the book
         if (m_context.pageMode.showPageNumbers) {
             painter->save();
             painter->translate(sheet.topLeft());
@@ -2353,7 +2416,8 @@ void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect)
             painter->setPen(numberColor);
             const QRectF bottomMargin(0.0, computed.pageHeightPixels - computed.marginBottom,
                                       computed.pageWidthPixels, computed.marginBottom);
-            painter->drawText(bottomMargin, Qt::AlignCenter, QString::number(page + 1));
+            painter->drawText(bottomMargin, Qt::AlignCenter,
+                              QString::number(m_context.pageMode.firstPageNumber + page));
             painter->restore();
         }
     }

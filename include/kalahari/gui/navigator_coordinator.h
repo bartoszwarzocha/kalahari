@@ -51,6 +51,7 @@ namespace gui {
 
 class NavigatorPanel;
 class PropertiesPanel;
+class BookPageNumbers;
 class CardPanel;
 class PitchPanel;
 class EditorPanel;
@@ -180,9 +181,12 @@ public:
     /// unsaved changes
     void refreshTabTitle(const QString& elementId);
 
-    /// @brief Give the open tab of element @p elementId whether the element starts on a left
-    /// page (the Properties panel changed it)
+    /// @brief Give the open tab of element @p elementId its first page again: the page it
+    /// starts on changed in the Properties panel, and the pages of the book after it
     void refreshFirstPage(const QString& elementId);
+
+    /// @brief The first pages of the texts in the whole book, which the editors show
+    [[nodiscard]] BookPageNumbers& pageNumbers() { return *m_pageNumbers; }
 
     // =========================================================================
     // Statistics Integration (OpenSpec #00042 Task 7.7)
@@ -630,6 +634,9 @@ private:
 
     /// @brief Counts the words of the changed chapters a moment after the last change
     QTimer* m_wordCountTimer{nullptr};
+
+    /// @brief The first pages of the texts in the whole book
+    BookPageNumbers* m_pageNumbers{nullptr};
 
     /// @brief Chapters changed since their words were counted
     QSet<QString> m_uncountedChapters;

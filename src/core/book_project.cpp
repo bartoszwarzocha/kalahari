@@ -9,6 +9,7 @@
 #include <kalahari/core/card_field_set.h>
 #include <kalahari/core/clipping.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/page_start.h>
 #include <kalahari/core/publishing_texts.h>
 #include <kalahari/core/source_description.h>
 #include <QFile>
@@ -779,11 +780,10 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     element.file = readFile(fields, field, seen, false);
     element.url = readUrl(fields);
     element.status = fields.string("status");
-    const QString firstPage = fields.string("firstPage");
-    if (firstPage == QLatin1String("left")) {
-        element.firstPageLeft = true;
-    } else if (!firstPage.isEmpty() && firstPage != QLatin1String("right")) {
-        fields.problem("firstPage", QStringLiteral("must be \"left\" or \"right\""));
+    if (const std::optional<PageStart> firstPage = pageStartFromName(fields.string("firstPage"))) {
+        element.firstPage = *firstPage;
+    } else {
+        fields.problem("firstPage", QStringLiteral("must be \"right\", \"left\" or \"next\""));
     }
     element.elements = readElements(fields.array("elements"), fields.path("elements"), seen,
                                     problems);
@@ -1464,8 +1464,8 @@ QJsonObject elementToJson(const ProjectElement& element) {
     setOrRemove(json, "file", element.file);
     setOrRemove(json, "url", element.url);
     setOrRemove(json, "status", element.status);
-    // A right page needs no field: the first page of a text is one unless it says otherwise
-    setOrRemove(json, "firstPage", element.firstPageLeft ? QStringLiteral("left") : QString());
+    // Without the field the text starts as its kind says
+    setOrRemove(json, "firstPage", pageStartName(element.firstPage));
     if (element.elements.isEmpty()) {
         json.remove(QLatin1String("elements"));
     } else {
@@ -2125,7 +2125,7 @@ const ElementLink* ProjectElement::linkTo(const QString& target) const {
 bool ProjectElement::operator==(const ProjectElement& other) const {
     const auto fieldsOf = [](const ProjectElement& element) {
         return std::tie(element.id, element.kind, element.title, element.file, element.url,
-                        element.status, element.firstPageLeft, element.elements,
+                        element.status, element.firstPage, element.elements,
                         element.description, element.fields, element.links, element.rotation,
                         element.cover, element.clipping, element.card, element.plot,
                         element.source, element.bookmarks, element.highlights,

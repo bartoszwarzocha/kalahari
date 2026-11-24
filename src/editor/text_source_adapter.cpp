@@ -451,6 +451,11 @@ int QTextDocumentSource::pageCount() const {
     return layout ? layout->pageCount() : 1;
 }
 
+std::vector<double> QTextDocumentSource::tabGuidePositions() const {
+    const auto* layout = kalahariLayout();
+    return layout != nullptr ? layout->tabGuidePositions() : std::vector<double>{};
+}
+
 MarginCounts QTextDocumentSource::marginCountsBefore(size_t index) const {
     if (const auto* layout = kalahariLayout()) {
         return layout->marginCountsBefore(static_cast<int>(index));

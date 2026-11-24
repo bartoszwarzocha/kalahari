@@ -45,6 +45,8 @@ struct GoToOutcome {
     int ordinal = 0;  ///< Done: the place's one among the places of its kind, from 1 (a page:
                       ///< its number)
     int count = 0;    ///< The places of the kind in the text (the pages)
+    int firstNumber = 1;  ///< A page: the number the text's first page shows (its page in the
+                          ///< whole book); the ordinal is the page of the text
     QString number;   ///< Done, a note: the number it shows
 
     bool operator==(const GoToOutcome&) const = default;

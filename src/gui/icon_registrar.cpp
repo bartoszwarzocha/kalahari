@@ -182,6 +182,10 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.alignCenter", "resources/icons/twotone/format_align_center.svg", "Align Center");
     iconRegistry.registerIcon("format.alignRight", "resources/icons/twotone/format_align_right.svg", "Align Right");
     iconRegistry.registerIcon("format.justify", "resources/icons/twotone/format_align_justify.svg", "Justify");
+    iconRegistry.registerIcon("format.tabGuide.toggle", "resources/icons/twotone/align_horizontal_center.svg", "Set or Remove Tab Guide");
+    iconRegistry.registerIcon("format.tabGuide.moveLeft", "resources/icons/twotone/arrow_back.svg", "Move Tab Guide Left");
+    iconRegistry.registerIcon("format.tabGuide.moveRight", "resources/icons/twotone/arrow_forward.svg", "Move Tab Guide Right");
+    iconRegistry.registerIcon("format.tabGuide.removeAll", "resources/icons/twotone/close.svg", "Remove All Tab Guides");
     iconRegistry.registerIcon("format.increaseIndent", "resources/icons/twotone/format_indent_increase.svg", "Increase Indent");
     iconRegistry.registerIcon("format.decreaseIndent", "resources/icons/twotone/format_indent_decrease.svg", "Decrease Indent");
     iconRegistry.registerIcon("format.bullets", "resources/icons/twotone/format_list_bulleted.svg", "Bullets");

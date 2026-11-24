@@ -201,6 +201,9 @@ public:
     /// @brief Show or hide the page numbers (repaint only)
     void setConfigShowPageNumbers(bool show);
 
+    /// @brief Set the number of the first page: its page in the whole book (repaint only)
+    void setConfigFirstPageNumber(int number);
+
     /// @brief Set typewriter scrolling (recalculates: origin and scroll padding)
     /// @param enabled Keep the cursor line at a fixed height of the view
     /// @param focusPosition That height as a share of the view height (0 = top)
@@ -554,6 +557,11 @@ private:
 
     /// @brief Render text frame border
     void renderTextFrameBorder(QPainter* painter, const QRect& clipRect);
+
+    /// @brief Render the tab guides of the text (TextSource::tabGuidePositions()): dashed
+    ///        lines down a text area (widget coordinates), where they reach into the clip rect;
+    ///        none without their color (a printed page)
+    void renderTabGuides(QPainter* painter, const QRectF& textArea, const QRect& clipRect) const;
 
     /// @brief Render visible paragraphs
     void renderParagraphs(QPainter* painter, const QRect& clipRect);

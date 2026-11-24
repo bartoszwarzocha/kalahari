@@ -16,6 +16,7 @@
 #include <kalahari/core/file_trash.h>
 #include <kalahari/core/kind_words.h>
 #include <kalahari/core/name_declension.h>
+#include <kalahari/core/page_start.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/editor/book_editor.h>
@@ -2914,18 +2915,21 @@ TEST_CASE("Navigator commands: a chapter set to start on a left page in the Prop
     REQUIRE(editor != nullptr);
     CHECK_FALSE(editor->getBookEditor()->appearance().pageMargins.firstPageLeft);
 
-    // A right page unless checked
+    // As its kind and the settings say until chosen
     navigator.properties->showChapterProperties(id);
-    auto* left = navigator.properties->findChild<QCheckBox*>(QStringLiteral("chapterFirstPageLeft"));
-    REQUIRE(left != nullptr);
-    CHECK(left->isVisibleTo(navigator.properties));
-    CHECK(left->isEnabled());
-    CHECK_FALSE(left->isChecked());
+    auto* firstPage =
+        navigator.properties->findChild<QComboBox*>(QStringLiteral("chapterFirstPage"));
+    REQUIRE(firstPage != nullptr);
+    CHECK(firstPage->isVisibleTo(navigator.properties));
+    CHECK(firstPage->isEnabled());
+    CHECK(firstPage->currentData().toString().isEmpty());
+    CHECK(firstPage->findData(QStringLiteral("right")) >= 0);
+    CHECK(firstPage->findData(QStringLiteral("next")) >= 0);
 
-    left->setChecked(true);
-    CHECK(pm.findElement(id)->firstPageLeft);
+    firstPage->setCurrentIndex(firstPage->findData(QStringLiteral("left")));
+    CHECK(pm.findElement(id)->firstPage == core::PageStart::Left);
     REQUIRE(novel.savedBook().mainElements.size() == 1);
-    CHECK(novel.savedBook().mainElements.first().firstPageLeft);
+    CHECK(novel.savedBook().mainElements.first().firstPage == core::PageStart::Left);
     CHECK(editor->getBookEditor()->appearance().pageMargins.firstPageLeft);
 
     // Opened again, the editor has it from the start
@@ -2940,7 +2944,7 @@ TEST_CASE("Navigator commands: a chapter set to start on a left page in the Prop
     // A part has no pages of its own
     const QString part = navigator.added(QStringLiteral("part"));
     navigator.properties->showChapterProperties(part);
-    CHECK_FALSE(left->isVisibleTo(navigator.properties));
+    CHECK_FALSE(firstPage->isVisibleTo(navigator.properties));
 }
 
 namespace {

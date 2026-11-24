@@ -23,6 +23,7 @@
 #include <kalahari/core/material_kinds.h>
 #include <kalahari/core/old_book_conversion.h>
 #include <kalahari/core/package_card.h>
+#include <kalahari/core/page_start.h>
 #include <kalahari/core/resource_paths.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/source_description.h>
@@ -2493,25 +2494,38 @@ bool ProjectManager::setStatus(const QString& elementId, const QString& status) 
     return true;
 }
 
-bool ProjectManager::setFirstPageLeft(const QString& elementId, bool left) {
-    if (refusesChange("setFirstPageLeft")) {
+bool ProjectManager::setFirstPage(const QString& elementId, PageStart start) {
+    if (refusesChange("setFirstPage")) {
         return false;
     }
     ProjectElement* element = findElement(elementId);
     if (!element || !stateOf(elementId) || isBookFile(elementId)) {
-        Logger::getInstance().warn("setFirstPageLeft: Not a text element: {}",
+        Logger::getInstance().warn("setFirstPage: Not a text element: {}",
                                    elementId.toStdString());
         return false;
     }
-    if (element->firstPageLeft == left) {
+    if (element->firstPage == start) {
         return true;
     }
-    element->firstPageLeft = left;
+    const PageStart before = element->firstPage;
+    element->firstPage = start;
     if (!saveManifest()) {
-        element->firstPageLeft = !left;
+        element->firstPage = before;
         return false;
     }
     return true;
+}
+
+PageStart ProjectManager::pageStartOf(const ProjectElement& element) const {
+    return resolvedPageStart(element.firstPage, kindPageStartOf(element), PageStart::Auto);
+}
+
+PageStart ProjectManager::kindPageStartOf(const ProjectElement& element) const {
+    const KindRef kind = kindOf(element);
+    const PageStart texts = textsStartFromName(
+        QString::fromStdString(SettingsManager::getInstance().get<std::string>(TEXTS_START_KEY)));
+    return resolvedPageStart(PageStart::Auto, kind ? kind.kind->firstPage : PageStart::Auto,
+                             texts);
 }
 
 QString ProjectManager::notes(const QString& elementId) const {

@@ -17,6 +17,7 @@
 
 #include <QCoreApplication>
 
+#include <functional>
 #include <string>
 #include <tuple>
 
@@ -39,6 +40,19 @@ static void setTexts(Command& cmd, const char* menuText) {
     cmd.label = withoutAccessKey(text).toStdString();
     cmd.tooltip = cmd.label;
 }
+
+namespace {
+
+/// The callback of a command of the tab guides; none without CommandCallbacks::onTabGuide
+std::function<void()> tabGuideCallback(const CommandCallbacks& callbacks,
+                                       TabGuideCommand command) {
+    if (!callbacks.onTabGuide) {
+        return {};
+    }
+    return [onTabGuide = callbacks.onTabGuide, command]() { onTabGuide(command); };
+}
+
+}  // namespace
 
 int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callbacks) {
     auto& logger = core::Logger::getInstance();
@@ -759,10 +773,26 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                       KeyboardShortcut(Qt::Key_R, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onAlignRight);
-    REG_CMD_TOOL_ICON("format.justify", QT_TRANSLATE_NOOP("CommandRegistrar", "&Justify"), "FORMAT/Align Text/Justify", 170, false, 0,
+    REG_CMD_TOOL_ICON("format.justify", QT_TRANSLATE_NOOP("CommandRegistrar", "&Justify"), "FORMAT/Align Text/Justify", 170, true, 0,
                       KeyboardShortcut(Qt::Key_J, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onAlignJustify);
+
+    // The tab guides of the text: dashed lines down its pages that a Tab aligns it to, set at
+    // the cursor and moved a millimetre at a time from the keys (editor/tab_guides.h). Alt+Shift
+    // with G and the arrows on Windows and Linux; on macOS Option+Shift with an arrow selects
+    // words, so they have Option+Shift+Cmd, as the pastes
+    const auto tabGuide = [&callbacks](TabGuideCommand command) {
+        return tabGuideCallback(callbacks, command);
+    };
+    REG_CMD_KEY_CB("format.tabGuide.toggle", QT_TRANSLATE_NOOP("CommandRegistrar", "Set or Remove Tab &Guide"), "FORMAT/Align Text/Set or Remove Tab Guide", 172, false, 0,
+                   KeyboardShortcut(Qt::Key_G, pasteModifiers), tabGuide(TabGuideCommand::Toggle));
+    REG_CMD_KEY_CB("format.tabGuide.moveLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Move Tab Guide Le&ft"), "FORMAT/Align Text/Move Tab Guide Left", 174, false, 0,
+                   KeyboardShortcut(Qt::Key_Left, pasteModifiers), tabGuide(TabGuideCommand::MoveLeft));
+    REG_CMD_KEY_CB("format.tabGuide.moveRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Move Tab Guide Righ&t"), "FORMAT/Align Text/Move Tab Guide Right", 176, false, 0,
+                   KeyboardShortcut(Qt::Key_Right, pasteModifiers), tabGuide(TabGuideCommand::MoveRight));
+    REG_CMD_CB("format.tabGuide.removeAll", QT_TRANSLATE_NOOP("CommandRegistrar", "Remove All Tab Guide&s"), "FORMAT/Align Text/Remove All Tab Guides", 178, false, 0,
+               tabGuide(TabGuideCommand::RemoveAll));
 
     // A list item goes a level down or up (Tab and Shift+Tab at its start), another paragraph
     // a step of the indent (editor/text_lists.h, editor/paragraph_format.h)

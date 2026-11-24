@@ -8,6 +8,7 @@
 
 #include "kalahari/core/card_package.h"
 #include "kalahari/core/package_json.h"
+#include "kalahari/core/page_start.h"
 #include "kalahari/core/publishing_texts.h"
 
 #include <QDir>
@@ -174,6 +175,40 @@ QMap<QString, KindWords> readWords(const QJsonValue& value, const QString& field
     return words;
 }
 
+/// Where the elements of a kind start: "first", whether one opens its section (the title page
+/// opens its section; a prologue opens the story after it), and "firstPage", the page of a
+/// printed book a text, a part's title or the table of contents starts on (PageStart::Auto,
+/// as the settings say, without it)
+void readStart(const QJsonObject& object, const QString& field, ElementKind& kind,
+               QStringList& problems) {
+    const QJsonValue first = object.value(QStringLiteral("first"));
+    if (!first.isUndefined()) {
+        if (!first.isBool()) {
+            addProblem(problems, field + QStringLiteral(".first"),
+                       QStringLiteral("must be true or false"));
+        } else if (first.toBool() && !object.value(QStringLiteral("position")).isUndefined()) {
+            addProblem(problems, field + QStringLiteral(".first"),
+                       QStringLiteral("a kind that opens its section has no position"));
+        } else {
+            kind.first = first.toBool();
+        }
+    }
+
+    const QJsonValue firstPage = object.value(QStringLiteral("firstPage"));
+    if (firstPage.isUndefined()) {
+        return;
+    }
+    const std::optional<PageStart> start = firstPage.isString() && !firstPage.toString().isEmpty()
+                                               ? pageStartFromName(firstPage.toString())
+                                               : std::nullopt;
+    if (start) {
+        kind.firstPage = *start;
+    } else {
+        addProblem(problems, field + QStringLiteral(".firstPage"),
+                   QStringLiteral("must be \"right\", \"left\" or \"next\""));
+    }
+}
+
 std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
                                     const QString& directory, QStringList& problems) {
     const QString field = QStringLiteral("kinds.") + id;
@@ -194,8 +229,8 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
     const QJsonObject object = value.toObject();
     checkKeys(object, field,
               {"form", "name", "plural", "words", "icon", "places", "limit", "title",
-               "numbering", "template", "position", "first", "editor", "generated",
-               "settings", "workshopGroup", "retired", "fields", "chapterRoles"},
+               "numbering", "template", "position", "first", "firstPage", "editor",
+               "generated", "settings", "workshopGroup", "retired", "fields", "chapterRoles"},
               problems);
 
     ElementKind kind;
@@ -306,19 +341,7 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
         }
     }
 
-    // The title page opens its section; a prologue opens the story after it
-    const QJsonValue first = object.value(QStringLiteral("first"));
-    if (!first.isUndefined()) {
-        if (!first.isBool()) {
-            addProblem(problems, field + QStringLiteral(".first"),
-                       QStringLiteral("must be true or false"));
-        } else if (first.toBool() && !position.isUndefined()) {
-            addProblem(problems, field + QStringLiteral(".first"),
-                       QStringLiteral("a kind that opens its section has no position"));
-        } else {
-            kind.first = first.toBool();
-        }
-    }
+    readStart(object, field, kind, problems);
 
     const QJsonValue editor = object.value(QStringLiteral("editor"));
     if (kind.form == ElementForm::Window) {

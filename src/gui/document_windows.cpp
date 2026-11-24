@@ -1039,12 +1039,11 @@ void DetachedWindow::updatePageStatus() {
         m_zoomLabel->hide();
         return;
     }
-    const int total = bookEditor->totalPages();
-    m_pageLabel->setVisible(total > 0);
-    if (total > 0) {
-        //: The status bar of a window of its own, as that of the book window. In Polish:
-        //: Strona %1 z %2
-        m_pageLabel->setText(tr("Page %1 of %2").arg(bookEditor->currentPage()).arg(total));
+    // As the status bar of the book window
+    const QString page = editor->pageStatus();
+    m_pageLabel->setVisible(!page.isEmpty());
+    if (!page.isEmpty()) {
+        m_pageLabel->setText(page);
     }
     m_zoomLabel->setText(tr("%1%").arg(qRound(bookEditor->zoomFactor() * 100.0)));
     m_zoomLabel->show();

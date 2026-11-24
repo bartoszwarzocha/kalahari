@@ -47,12 +47,14 @@ namespace core {
 
 namespace editor {
 class BookEditor;
+struct TabGuideOutcome;
 } // namespace editor
 
 namespace gui {
 
 enum class TableCommand;  // The commands of the Table menu (command_registrar.h)
 enum class ImageCommand;  // The commands of the Image menu (command_registrar.h)
+enum class TabGuideCommand;  // The commands of the tab guides (command_registrar.h)
 
 // Forward declarations for panels
 class DashboardPanel;
@@ -424,6 +426,14 @@ private slots:
     /// @brief Show the cursor's page and the zoom of the editor in front in the status bar, or
     /// the zoom of the preview of a material in front
     void updatePageStatus();
+
+    /// @brief A command of the tab guides in the text in front (Format > Align Text), what
+    ///        it did in the status bar
+    void onTabGuide(TabGuideCommand command);
+
+    /// @brief What a command of the tab guides did, as the status bar says it; empty when it
+    ///        changed nothing in a text only read (the text says so itself)
+    [[nodiscard]] static QString tabGuideMessage(const editor::TabGuideOutcome& outcome);
 
     /// @brief Show "Read-only" with a lock in the status bar while the open book is
     /// read-only, its tooltip saying why

@@ -5,19 +5,21 @@
 /// @brief Export of a book to a Word document (WordprocessingML, ECMA-376)
 ///
 /// Each item of the export is a section of the document: a section starts it on a new page
-/// (on a right one with mirror margins, unless the text starts on a left one) or goes on after
-/// the item before, and it numbers the item's notes as the book does. The paragraph styles of
-/// the book are the document's: Normal, Heading 1-3, Quote, Caption and the footnotes' style
-/// are Word's own (Word shows their names in its language), the others have their names in
-/// the program's language. The lists are Word's lists, the notes Word's footnotes and
-/// endnotes, the annotations, when the export takes them, Word's comments.
+/// (with mirror margins on the page the item starts on: a right, a left or the next one) or
+/// goes on after the item before, and it numbers the item's notes as the book does. The
+/// paragraph styles of the book are the document's: Normal, Heading 1-3, Quote, Caption and
+/// the footnotes' style are Word's own (Word shows their names in its language), the others
+/// have their names in the program's language. The lists are Word's lists, the notes Word's
+/// footnotes and endnotes, the annotations, when the export takes them, Word's comments.
 
 #include "kalahari/editor/detail/book_export_internal.h"
 
+#include <kalahari/core/page_start.h>
 #include <kalahari/editor/block_space.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_format.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_lists.h>
@@ -37,6 +39,7 @@
 #include <cmath>
 #include <deque>
 #include <map>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -75,6 +78,31 @@ constexpr int RUNNING_HEAD_SPACING_TWIPS = 16;
 /// Twentieths of a point: the lengths of WordprocessingML
 int twips(double points) {
     return static_cast<int>(std::lround(points * 20.0));
+}
+
+/// The type of a section that starts on a new page: with mirror margins on the page the item
+/// starts on, a right page odd in Word and a left one even
+QString newPageSectionType(bool mirrored, core::PageStart start) {
+    if (!mirrored || start == core::PageStart::Next) {
+        return QStringLiteral("nextPage");
+    }
+    return start == core::PageStart::Left ? QStringLiteral("evenPage")
+                                          : QStringLiteral("oddPage");
+}
+
+/// The tab stops of the text's tab guides (tab_guides.h): Word counts them from the left
+/// margin of the text, as the guides are; empty without guides
+QString tabStops(const QTextDocument& document) {
+    const std::vector<double> guides = tabGuidesOf(document);
+    if (guides.empty()) {
+        return {};
+    }
+    QString tabs = QStringLiteral("<w:tabs>");
+    for (const double guide : guides) {
+        tabs += QStringLiteral("<w:tab w:val=\"left\" w:pos=\"%1\"/>")
+                    .arg(twips(guide * POINTS_PER_MILLIMETRE));
+    }
+    return tabs + QStringLiteral("</w:tabs>");
 }
 
 /// English Metric Units: the lengths of DrawingML
@@ -306,6 +334,7 @@ struct ParagraphProperties {
     std::optional<bool> widowControl;
     QString numbering;  ///< <w:numPr>...</w:numPr>
     QString borders;    ///< <w:pBdr>...</w:pBdr>
+    QString tabs;       ///< <w:tabs>...</w:tabs>
     std::optional<double> spaceBefore;  ///< Points
     std::optional<double> spaceAfter;
     std::optional<LineSpacing> lineSpacing;
@@ -340,6 +369,7 @@ struct ParagraphProperties {
         if (widowControl) result += flagElement("widowControl", *widowControl);
         result += numbering;
         result += borders;
+        result += tabs;
         if (spaceBefore || spaceAfter || lineSpacing) {
             result += QStringLiteral("<w:spacing");
             if (spaceBefore) result += attribute("w:before", number(twips(*spaceBefore)));
@@ -1273,6 +1303,10 @@ void DocxWriter::writeParagraph(const ExportText& text, size_t item, const QText
                 properties.spaceAfter.value_or(styleSpace("spaceAfter")) + space.after;
         }
     }
+    // A Tab goes to the guides of the text, as in the editor (not in the cells of a table)
+    if (topLevel) {
+        properties.tabs = tabStops(text.document());
+    }
     // A heading of the text: a bookmark the table of contents goes to
     QString content;
     const QString bookmark = m_headingBookmarks.value(qMakePair(static_cast<int>(item), block.blockNumber()));
@@ -1619,9 +1653,7 @@ QString DocxWriter::sectionProperties(size_t index) const {
     xml += notes("endnotePr", item.footnotes.endnotesBefore, endnotesBefore, endnotesIn, item.footnotes.endnoteFormat);
     QString type = QStringLiteral("continuous");
     if (index > 0 && m_book.textsOnNewPage) {
-        type = !page.mirrored ? QStringLiteral("nextPage")
-               : item.firstPageLeft ? QStringLiteral("evenPage")
-                                    : QStringLiteral("oddPage");
+        type = newPageSectionType(page.mirrored, item.start);
     }
     xml += valueElement("type", type);
     xml += QStringLiteral("<w:pgSz") + attribute("w:w", number(twips(page.width * POINTS_PER_MILLIMETRE))) +

@@ -8,6 +8,7 @@
 
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/book_texts.h"
+#include "kalahari/gui/book_page_numbers.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/dialogs/delete_dialogs.h"
@@ -183,6 +184,8 @@ NavigatorCoordinator::NavigatorCoordinator(core::ProjectManager& book, CommandRe
       m_downloader(new MaterialDownloader(this)),
       m_book(book),
       m_commands(commands) {
+    m_pageNumbers = new BookPageNumbers(m_book, m_commands, m_centralTabs, this);
+
     // The counts of the book follow the text being written, without counting at each key
     m_wordCountTimer->setSingleShot(true);
     m_wordCountTimer->setInterval(WORD_COUNT_DELAY_MS);
@@ -352,15 +355,12 @@ void NavigatorCoordinator::refreshTabTitle(const QString& elementId) {
 }
 
 void NavigatorCoordinator::refreshFirstPage(const QString& elementId) {
-    const core::ProjectElement* element =
-        m_book.findElement(elementId);
-    if (!element) {
-        return;
-    }
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
+    // The texts after it may start on other pages too: all are placed again
+    m_pageNumbers->refresh();
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* editor = qobject_cast<EditorPanel*>(page);
         if (editor && editor->property("elementId").toString() == elementId) {
-            editor->setFirstPageLeft(element->firstPageLeft);
+            m_pageNumbers->apply(*editor, elementId);
         }
     }
 }
@@ -434,8 +434,8 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     // A chapter of a book open read-only is read, copied and searched only; before the tab
     // comes, as the commands follow the tab in front
     newEditor->getBookEditor()->setReadOnly(pm.isReadOnly());
-    // The margins of its pages: its first page is a right one unless it says otherwise
-    newEditor->setFirstPageLeft(element != nullptr && element->firstPageLeft);
+    // The margins and the numbers of its pages: its first page in the book
+    m_pageNumbers->apply(*newEditor, elementId);
     // A kind the program does not have: its icon on the book's card of its package
     const core::PackageCard* card =
         element != nullptr && element->hasKind() && !pm.kindOf(*element)

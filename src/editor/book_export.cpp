@@ -11,6 +11,7 @@
 
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_tables.h>
@@ -92,6 +93,7 @@ ExportText::ExportText(const ExportItem& item, const FieldContext& fields)
     if (item.kind == ExportItemKind::Text && !item.kml.isEmpty()) {
         KmlDocumentModel model;
         model.loadKml(item.kml);  // unreadable KML: the paragraphs read before the error
+        setTabGuidesOf(*m_document, model.tabGuides());
         QTextCursor cursor(m_document.get());
         cursor.beginEditBlock();
         appendParagraphs(cursor, model);

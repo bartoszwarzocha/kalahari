@@ -125,7 +125,7 @@ RepetitionsCoordinator::RepetitionsCoordinator(core::ProjectManager& book,
             m_panel->setScope(RepetitionsPanel::Scope::Chapter);
         }
         m_stale = true;
-        if (m_shown) {
+        if (counts()) {
             refresh();
         }
     };
@@ -270,7 +270,7 @@ bool RepetitionsCoordinator::goToNextRepetition() {
 
 void RepetitionsCoordinator::refresh() {
     m_countTimer->stop();
-    if (m_panel->scope() == RepetitionsPanel::Scope::Book) {
+    if (countsBook()) {
         countBook();
     } else {
         countChapter();
@@ -313,7 +313,7 @@ void RepetitionsCoordinator::onSettingsChanged() {
     // What is counted may be other
     m_baseForms.clear();
     m_stale = true;
-    if (m_shown) {
+    if (counts()) {
         refresh();
     } else {
         updateMarks();
@@ -508,7 +508,8 @@ void RepetitionsCoordinator::countChapter() {
     follow(editor);
     m_texts = {Text{elementIdOf(panel), titleOf(panel), paragraphsOf(*editor), editor}};
     m_analysis = analyze(m_texts, editor->spellCheckService());
-    m_stale = false;
+    // Counted for the marks while the panel is closed: the whole book when it shows, if chosen
+    m_stale = m_panel->scope() == RepetitionsPanel::Scope::Book;
     showResults();
 }
 
@@ -537,6 +538,14 @@ void RepetitionsCoordinator::countBook() {
     showResults();
 }
 
+bool RepetitionsCoordinator::counts() const {
+    return m_shown || core::SettingsManager::getInstance().get<bool>(HIGHLIGHT_KEY);
+}
+
+bool RepetitionsCoordinator::countsBook() const {
+    return m_shown && m_panel->scope() == RepetitionsPanel::Scope::Book;
+}
+
 void RepetitionsCoordinator::onTextChanged(editor::BookEditor* editor) {
     const int text = textOf(editor);
     if (text < 0) {
@@ -560,9 +569,9 @@ void RepetitionsCoordinator::onTextChanged(editor::BookEditor* editor) {
                                              : editor::RepetitionMarkStyle::Background);
     }
 
-    if (m_panel->scope() == RepetitionsPanel::Scope::Chapter) {
-        // Counted again when the writing stops, while the panel shows
-        if (m_shown) {
+    if (!countsBook()) {
+        // Counted again when the writing stops, while the panel shows or the words are marked
+        if (counts()) {
             m_countTimer->start();
         } else {
             m_stale = true;
@@ -577,11 +586,11 @@ void RepetitionsCoordinator::onTextChanged(editor::BookEditor* editor) {
 }
 
 void RepetitionsCoordinator::onCurrentTabChanged() {
-    if (m_panel->scope() == RepetitionsPanel::Scope::Book) {
+    if (countsBook()) {
         updateMarks();
         return;
     }
-    if (m_shown) {
+    if (counts()) {
         refresh();
     } else {
         m_stale = true;
@@ -671,10 +680,25 @@ void RepetitionsCoordinator::updateMarks() {
             continue;
         }
         editor::BookEditor* editor = panel->getBookEditor();
-        const int text = m_shown ? textOf(editor) : -1;
+        const int text = textOf(editor);
         editor->setRepetitionMarks(text >= 0 ? marksOf(text) : std::vector<editor::RepetitionMark>{},
                                    style);
     }
+}
+
+const QList<int>* RepetitionsCoordinator::framedWords() const {
+    if (!m_shown) {
+        return nullptr;
+    }
+    if (m_panel->page() == RepetitionsPanel::Page::Close) {
+        const int card = m_panel->currentCard();
+        return card >= 0 && card < m_analysis.clusters.size()
+                   ? &m_analysis.clusters.at(card).words
+                   : nullptr;
+    }
+    const int word = m_panel->currentWord();
+    return word >= 0 && word < m_analysis.counts.size() ? &m_analysis.counts.at(word).words
+                                                        : nullptr;
 }
 
 std::vector<editor::RepetitionMark> RepetitionsCoordinator::marksOf(int text) const {
@@ -682,21 +706,11 @@ std::vector<editor::RepetitionMark> RepetitionsCoordinator::marksOf(int text) co
     if (m_changedTexts.contains(text)) {
         return marks;  // the words are not where they were counted
     }
-    // The words of the card or of the word chosen: framed
+    // The words of the card or of the word chosen: framed, while the panel shows
     QSet<int> chosen;
-    if (m_panel->page() == RepetitionsPanel::Page::Close) {
-        const int card = m_panel->currentCard();
-        if (card >= 0 && card < m_analysis.clusters.size()) {
-            for (const int i : m_analysis.clusters.at(card).words) {
-                chosen.insert(i);
-            }
-        }
-    } else {
-        const int word = m_panel->currentWord();
-        if (word >= 0 && word < m_analysis.counts.size()) {
-            for (const int i : m_analysis.counts.at(word).words) {
-                chosen.insert(i);
-            }
+    if (const QList<int>* framed = framedWords(); framed != nullptr) {
+        for (const int i : *framed) {
+            chosen.insert(i);
         }
     }
     const auto add = [this, text, &marks](int i, bool current) {
@@ -897,7 +911,7 @@ void RepetitionsCoordinator::onWordActivated(int index) {
 
 void RepetitionsCoordinator::onDockVisibilityChanged(bool visible) {
     m_shown = visible;
-    if (visible && m_stale) {
+    if (m_stale && counts()) {
         refresh();
     } else {
         updateMarks();

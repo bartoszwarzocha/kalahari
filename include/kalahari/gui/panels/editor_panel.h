@@ -263,9 +263,16 @@ public:
     ///        message in the status bar (editor::isOpenableLinkAddress())
     void openLink(const QString& address);
 
-    /// @brief Set whether the text starts on a left page: the chapter's own setting
-    ///        (ProjectElement::firstPageLeft), which the margins of its pages follow
-    void setFirstPageLeft(bool left);
+    /// @brief Set the first page of the text in the book: the number it shows and whether it
+    ///        is a left page, which the margins of its pages follow (gui::BookPageNumbers)
+    /// @param number 1, or its page in the whole book
+    /// @param left It is a left page (with mirror margins)
+    void setFirstPage(int number, bool left);
+
+    /// @brief The page of the cursor for the status bar: "Page 3 of 12", with the pages
+    ///        numbered through the book "Page 37 (3 of 12)"; empty without pages (not the Page
+    ///        Layout view)
+    [[nodiscard]] QString pageStatus() const;
 
 signals:
     /// @brief Emitted when editor content changes

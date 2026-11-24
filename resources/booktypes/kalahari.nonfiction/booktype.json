@@ -13,6 +13,7 @@
   "kinds": {
     "abbreviations": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "firstPage": "right",
       "name": { "pl": "Wykaz skrótów", "en": "List of abbreviations" },
       "plural": { "pl": "Wykazy skrótów", "en": "Lists of abbreviations" },
       "words": {

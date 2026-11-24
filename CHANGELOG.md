@@ -53,6 +53,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   text. Settings > Editor > Writing decides whether the cards show the words before the number
   and how many lines of the note; Settings > Editor > Colors has the colors of the two kinds,
   in every theme.
+- **Left and right pages through the book, and page numbers of the whole book** - 2026-11-20.
+  With mirror margins every text starts on the page its start says. Settings > Editor > Pages
+  and Margins > Texts start on: A right page (the default, as in a printed book: a text that
+  would start on a left page has an empty left page before it) or The next page, left or right
+  (no empty pages). The Properties panel of a text has First page: Automatic (the page its
+  kind or the setting gives, named in brackets), Right, Left or Next (left or right); a book
+  type can give it for a kind of text. The page view, the PDF, the print and DOCX follow it.
+  Settings > Editor > Page numbers: Through the whole book (the default: the first page of a
+  text has the number after the last page of the text before it, in reading order, a part with
+  a page of its title) or Each text from 1. The editor counts the pages of the texts as the
+  page view lays them out, while an editor shows pages, and again a moment after a text is
+  written longer or shorter; the page view, the status bar ("Page 7 (2 of 12)": the page of
+  the book and of the text) and Edit > Go To... (a page by the number it shows) use the
+  numbers of the book.
+- **Tab guides** - 2026-11-20. A text can have simple tab stops of its own: dashed vertical
+  lines down its pages, from its left edge, that a Tab aligns the text after it to. Format >
+  Align Text > Set or Remove Tab Guide (Alt+Shift+G) sets one where the cursor is or takes
+  away the one there; Move Tab Guide Left and Right (Alt+Shift+Left, Alt+Shift+Right) move the
+  guide nearest the cursor a millimetre, the text aligned to it with it; Remove All Tab
+  Guides takes them all away; the status bar says where the guide is, and each change is one
+  step of Undo. On macOS the keys are Option+Shift+Cmd with G and the arrows. Their color is
+  in Settings > Editor > Colors (Tab guides), for each paper. KML keeps them in a
+  `<tab-guides>` section of the text; DOCX gets them as the tab stops of its paragraphs, a PDF
+  and the print the text aligned to them, without the lines.
 
 - **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
   for Publishers, with its number in the Navigator: the sentences about the book and the
@@ -449,6 +473,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     the source of a material, the part of a text for publishers). A card (Add Character...,
     Create Card in the text) needs no window at all: it is added at once and opens on its
     form, its name selected. Only the general Add... shows the window with all the kinds.
+- **Repetitions: the marks in the text with the Repetitions panel closed** - 2026-11-20. With
+  "Mark the repetitions in the text" on (View > Repetitions in Text, Settings > Editor >
+  Repetitions) the repeated words of the text in front were marked only while the panel was
+  open. They are marked with the panel closed too, counted again as the writer types; the
+  frames of the words of the card chosen in the panel stay with the panel.
 
 ---
 

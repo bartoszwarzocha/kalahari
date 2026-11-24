@@ -58,6 +58,7 @@
 #include "kalahari/core/chapter_versions.h"
 #include "kalahari/core/clipping.h"
 #include "kalahari/core/package_card.h"
+#include "kalahari/core/page_start.h"
 // OpenSpec #00041: SQLite Project Database
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/project_lock.h"
@@ -760,11 +761,21 @@ public:
     /// book outside its text has no status.
     bool setStatus(const QString& elementId, const QString& status);
 
-    /// @brief Set whether a text element starts on a left page (with mirror margins its inner
-    ///        margin is on the right then); without it, it starts on a right page
+    /// @brief Set the page a text element starts on in a printed book (page_start.h): with
+    ///        mirror margins the inner margin of a left page is on its right
     ///
     /// Saves the .klh file. A file of the book outside its text has no pages of its own.
-    bool setFirstPageLeft(const QString& elementId, bool left);
+    /// PageStart::Auto: as its kind says.
+    bool setFirstPage(const QString& elementId, PageStart start);
+
+    /// @brief The page @p element starts on in a printed book: its own choice, else its
+    ///        kind's, else the setting's (editor.page.textsStart)
+    /// @return PageStart::Right, PageStart::Left or PageStart::Next
+    [[nodiscard]] PageStart pageStartOf(const ProjectElement& element) const;
+
+    /// @brief The page a text of @p element's kind starts on when it says nothing itself
+    ///        (the kind's, else the setting's): what "Auto" means in the Properties panel
+    [[nodiscard]] PageStart kindPageStartOf(const ProjectElement& element) const;
 
     /// @brief Notes of a text element, from its chapter file; of an element without a chapter
     /// file (a card of the Workshop), its description (ProjectElement::description)

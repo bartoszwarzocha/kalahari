@@ -270,6 +270,10 @@ public:
     /// @brief Number of pages the text fills (1 without page flow)
     [[nodiscard]] virtual int pageCount() const { return 1; }
 
+    /// @brief The places of the tab guides of the text from the left edge of the text
+    ///        (document units, tab_guides.h); none in sources without them
+    [[nodiscard]] virtual std::vector<double> tabGuidePositions() const { return {}; }
+
     /// @brief What the numbers on the margin count before a paragraph (see MarginCounts)
     /// @param index Paragraph index; paragraphCount(): the whole text
     /// @note Sources without the count take every paragraph for one line with text
@@ -336,6 +340,7 @@ public:
     [[nodiscard]] double paragraphSpacing() const override;
     void setPageFlow(const PageFlow& flow) override;
     [[nodiscard]] int pageCount() const override;
+    [[nodiscard]] std::vector<double> tabGuidePositions() const override;
     [[nodiscard]] MarginCounts marginCountsBefore(size_t index) const override;
     [[nodiscard]] bool isNumberedParagraph(size_t index) const override;
 

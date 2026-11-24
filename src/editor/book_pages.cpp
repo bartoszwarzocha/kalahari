@@ -10,10 +10,12 @@
 #include "kalahari/editor/detail/book_editor_internal.h"
 #include "kalahari/editor/detail/book_export_internal.h"
 
+#include <kalahari/core/page_start.h>
 #include <kalahari/editor/editor_render_pipeline.h>
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_images.h>
@@ -155,6 +157,13 @@ void drawMarginLine(QPainter* painter, const QString& text, const QFont& font, c
     line.setLineWidth(area.width());
     layout.endLayout();
     layout.draw(painter, QPointF(area.left(), area.top() + (area.height() - line.height()) / 2.0));
+}
+
+/// @brief With mirror margins, whether a text that @p start says where it starts waits for
+///        its side: the page of index @p page is not on it (a right page has an even index);
+///        a text that starts on the next page waits for none
+bool waitsForItsSide(core::PageStart start, int page) {
+    return start != core::PageStart::Next && (page % 2 == 1) != (start == core::PageStart::Left);
 }
 
 }  // namespace
@@ -340,6 +349,7 @@ void BookPages::build(size_t index) {
     } else if (source.kind == ExportItemKind::Contents) {
         model.loadKml(contentsKml());
     }
+    setTabGuidesOf(*document, model.tabGuides());  // its tabs go to its guides, as in the editor
     item.titled = m_book.titleHeadings && !source.title.trimmed().isEmpty() &&
                   (source.kind != ExportItemKind::Text || !modelStartsWithHeading(model, styles));
     QTextCursor cursor(document);
@@ -480,10 +490,10 @@ void BookPages::place() {
         int start =
             item.goesOn ? static_cast<int>(m_pages.size()) - 1 : static_cast<int>(m_pages.size());
 
-        // With mirror margins a text starts on a right page (an even index), unless it starts
-        // on a left one: the page before it is left empty
+        // With mirror margins a text starts on a right page (an even index) or a left one: the
+        // page before it is left empty when needed; or on the next page
         if (!item.goesOn && index > 0 && m_book.textsOnNewPage && m_book.page.mirrored &&
-            (start % 2 == 1) != item.source->firstPageLeft) {
+            waitsForItsSide(item.source->start, start)) {
             m_pages.push_back(Page{{}, true});
             ++start;
         }
