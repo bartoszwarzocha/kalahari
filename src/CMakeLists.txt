@@ -211,6 +211,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/toolbar_manager_dialog.cpp  # ToolbarManagerDialog - Visual Studio-style toolbar customization (OpenSpec #00031)
     gui/dialogs/kalahari_dialog.cpp  # KalahariDialog - base of the program's own dialogs
     gui/dialogs/message_dialog.cpp  # MessageDialog, TextInputDialog - own messages, questions, typed texts
+    gui/dialogs/notification_dialog.cpp  # NotificationDialog - the program's own window of notifications
     gui/dialogs/open_book_dialog.cpp  # Opening a Book: in a new window or in this one
     gui/dialogs/grammar_setup_dialog.cpp  # GrammarSetupDialog - the window of the grammar preparation
     gui/dialogs/progress_dialog.cpp  # ProgressDialog - own window for the progress of a long task
@@ -311,6 +312,7 @@ set(KALAHARI_SOURCES
     gui/paragraph_marks_coordinator.cpp  # ParagraphMarksCoordinator - paperclips of linked paragraphs
     gui/paragraph_marks_clippings.cpp  # ParagraphMarksCoordinator - scissors of the clippings
     gui/writing_stats_coordinator.cpp  # WritingStatsCoordinator - the statistics bar and goals
+    gui/notifications.cpp  # NotificationCoordinator - the notifications where Settings > Notifications says
     gui/writing_awards_tracker.cpp  # WritingAwardsTracker - the badges and challenges won
     gui/writing_stats_model.cpp  # WritingStatsModel - the statistics of writing shown
     gui/material_list_coordinator.cpp  # MaterialListCoordinator - the lists of the materials on tabs
@@ -382,6 +384,7 @@ set(KALAHARI_SOURCES
     gui/settings/clippings_page.cpp  # Settings > Editor > Clippings
     gui/settings/lists_page.cpp  # Settings > Editor > Lists
     gui/settings/annotations_page.cpp
+    gui/settings/notifications_page.cpp  # Settings > Notifications
     gui/settings/navigator_page.cpp  # Settings > Navigator
     gui/settings/cards_page.cpp  # Settings > Cards
     gui/settings/materials_page.cpp  # Settings > Materials
@@ -451,6 +454,7 @@ set(KALAHARI_SOURCES
     gui/panels/dashboard_layouts.cpp  # The Dashboard on a narrow or a low panel
     gui/panels/editor_panel.cpp
     gui/panels/log_panel.cpp
+    gui/panels/notifications_panel.cpp  # The notifications of the session
     gui/panels/navigator_panel.cpp
     gui/panels/navigator_panel_series.cpp
     gui/panels/properties_panel.cpp
@@ -586,6 +590,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT (OpenSpec #00033)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/notification_dialog.h  # NotificationDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/open_book_dialog.h  # OpenBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/grammar_setup_dialog.h  # GrammarSetupDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/progress_dialog.h  # ProgressDialog with Q_OBJECT
@@ -669,6 +674,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/paragraph_marks_coordinator.h  # ParagraphMarksCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_coordinator.h  # WritingStatsCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/notifications.h  # NotificationCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_awards_tracker.h  # WritingAwardsTracker with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_model.h  # WritingStatsModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
@@ -729,6 +735,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/loading_overlay.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/log_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/notifications_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h

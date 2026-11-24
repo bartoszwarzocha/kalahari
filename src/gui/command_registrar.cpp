@@ -1114,13 +1114,13 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // A panel of its own, or the lower part of Properties (Settings > Appearance > General)
     REG_CMD("view.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "Pa&ragraph and Styles"), "VIEW/Panels/Paragraph and Styles", 52, false, 0);
 
-    REG_CMD_KEY("view.log", QT_TRANSLATE_NOOP("CommandRegistrar", "&Log"), "VIEW/Panels/Log", 60, false, 0,
+    REG_CMD_KEY("view.log", QT_TRANSLATE_NOOP("CommandRegistrar", "&Log"), "VIEW/Panels/Log", 61, false, 0,
                 KeyboardShortcut(Qt::Key_F4, Qt::NoModifier));
 
     REG_CMD_KEY("view.search", QT_TRANSLATE_NOOP("CommandRegistrar", "&Search"), "VIEW/Panels/Search", 55, false, 0,
                 KeyboardShortcut(Qt::Key_F5, Qt::NoModifier));
 
-    REG_CMD_KEY("view.assistant", QT_TRANSLATE_NOOP("CommandRegistrar", "&Assistant"), "VIEW/Panels/Assistant", 59, false, 0,
+    REG_CMD_KEY("view.assistant", QT_TRANSLATE_NOOP("CommandRegistrar", "&Assistant"), "VIEW/Panels/Assistant", 60, false, 0,
                 KeyboardShortcut(Qt::Key_F6, Qt::NoModifier));
 
     // F9: F7 stays for spelling
@@ -1137,6 +1137,9 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
 
     // The views of the writing: today, the week, 30 days, the book, the times of writing
     REG_CMD("view.statistics", QT_TRANSLATE_NOOP("CommandRegistrar", "Statis&tics"), "VIEW/Panels/Statistics", 58, false, 0);
+    // The notifications of the session; no key of its own: the notifications open it when it
+    // is their place (Settings > Notifications)
+    REG_CMD("view.notifications", QT_TRANSLATE_NOOP("CommandRegistrar", "Not&ifications"), "VIEW/Panels/Notifications", 59, false, 0);
 
     // View Mode submenu (OpenSpec #00042 Phase 7.3)
     // View modes for BookEditor - radio group (only one can be active)

@@ -23,6 +23,7 @@
 #include "kalahari/gui/panels/spelling_panel.h"
 #include "kalahari/gui/panels/repetitions_panel.h"
 #include "kalahari/gui/panels/footnotes_panel.h"
+#include "kalahari/gui/panels/notifications_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/panels/writing_stats_panel.h"
 #include "kalahari/gui/settings_dialog.h"
@@ -163,6 +164,7 @@ void DockCoordinator::createDocks() {
     createSpellingDock();
     createRepetitionsDock();
     createStatisticsDock();
+    createNotificationsDock();
 
     // Tab right-side docks: Paragraph and Styles next to Properties
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_paragraphDock);
@@ -173,14 +175,17 @@ void DockCoordinator::createDocks() {
     m_mainWindow->tabifyDockWidget(m_footnotesDock, m_spellingDock);
     m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
     m_mainWindow->tabifyDockWidget(m_repetitionsDock, m_statisticsDock);
+    m_mainWindow->tabifyDockWidget(m_statisticsDock, m_notificationsDock);
 
     // The Spelling and Grammar panel is closed until opened (View > Panels, Next Spelling or
     // Grammar Issue); then its tab is next to the Annotations tab, which is on top by default.
-    // The Repetitions panel likewise (View > Panels, Tools > Word Repetitions), after them, and
-    // the Footnotes panel (View > Panels, the Panels toolbar), right after Annotations
+    // The Repetitions panel likewise (View > Panels, Tools > Word Repetitions), after them, the
+    // Footnotes panel (View > Panels, the Panels toolbar), right after Annotations, and the
+    // Notifications panel (View > Panels, or the notifications when it is their place)
     m_spellingDock->hide();
     m_repetitionsDock->hide();
     m_footnotesDock->hide();
+    m_notificationsDock->hide();
     m_annotationsDock->raise();
 
     // A panel on the right shown again: the bar that says they were hidden has done its job
@@ -212,6 +217,7 @@ void DockCoordinator::createDocks() {
     m_panelTabs->addPanel(m_footnotesDock, "view.footnotes");
     m_panelTabs->addPanel(m_spellingDock, "view.spelling");
     m_panelTabs->addPanel(m_statisticsDock, "view.statistics");
+    m_panelTabs->addPanel(m_notificationsDock, "view.notifications");
     m_panelTabs->applySettings();
 
     // The Paragraph and Styles panel where the settings say
@@ -629,6 +635,24 @@ void DockCoordinator::createStatisticsDock() {
     core::Logger::getInstance().debug("DockCoordinator: Statistics dock created");
 }
 
+void DockCoordinator::createNotificationsDock() {
+    m_notificationsPanel = new NotificationsPanel(m_mainWindow);
+    //: The panel of the notifications of the session. In Polish: Powiadomienia
+    m_notificationsDock = new QDockWidget(tr("Notifications"), m_mainWindow);
+    m_notificationsDock->setWidget(scrollingPanel(m_notificationsPanel, m_notificationsDock));
+    m_notificationsDock->setObjectName("NotificationsDock");
+    setupDockTitleBar(m_notificationsDock, "view.notifications", tr("Notifications"));
+    // Where the notifications show and their colors are on the Notifications page, as the gear
+    // of their bar says
+    //: The gear of the Notifications panel. In Polish: Ustawienia powiadomień
+    addSettingsButton(m_notificationsDock,
+                      QString::fromLatin1(SettingsDialog::NOTIFICATIONS_PAGE),
+                      tr("Notification Settings"));
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_notificationsDock);
+
+    core::Logger::getInstance().debug("DockCoordinator: Notifications dock created");
+}
+
 void DockCoordinator::placeStatisticsPanel(bool savedLayout) {
     auto& settings = core::SettingsManager::getInstance();
     if (settings.get<bool>(STATISTICS_PLACED_SETTING, false)) {
@@ -814,6 +838,7 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.spelling", m_spellingDock);
     connectPanelCommand("view.repetitionsPanel", m_repetitionsDock);
     connectPanelCommand("view.statistics", m_statisticsDock);
+    connectPanelCommand("view.notifications", m_notificationsDock);
 
     // Paragraph and Styles: a panel of its own or the lower part of Properties
     auto& registry = m_commands;
@@ -836,6 +861,7 @@ void DockCoordinator::setupViewMenuActions() {
     m_viewSpellingAction = createPanelAction("view.spelling", m_spellingDock);
     m_viewRepetitionsAction = createPanelAction("view.repetitionsPanel", m_repetitionsDock);
     m_viewStatisticsAction = createPanelAction("view.statistics", m_statisticsDock);
+    m_viewNotificationsAction = createPanelAction("view.notifications", m_notificationsDock);
     m_viewParagraphAction = registry.getAction(std::string("view.paragraph"));
     if (m_viewParagraphAction != nullptr) {
         m_viewParagraphAction->setCheckable(true);
@@ -965,6 +991,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->removeDockWidget(m_repetitionsDock);
     m_mainWindow->removeDockWidget(m_paragraphDock);
     m_mainWindow->removeDockWidget(m_statisticsDock);
+    m_mainWindow->removeDockWidget(m_notificationsDock);
 
     // Re-add in default layout
     m_mainWindow->addDockWidget(Qt::LeftDockWidgetArea, m_navigatorDock);
@@ -978,6 +1005,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_spellingDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_repetitionsDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_statisticsDock);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_notificationsDock);
 
     // Tab right-side docks
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_paragraphDock);
@@ -988,9 +1016,11 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->tabifyDockWidget(m_footnotesDock, m_spellingDock);
     m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
     m_mainWindow->tabifyDockWidget(m_repetitionsDock, m_statisticsDock);
+    m_mainWindow->tabifyDockWidget(m_statisticsDock, m_notificationsDock);
 
     // Show docks (LogDock only in diagnostic/dev mode; the Spelling and Grammar panel and the
-    // Repetitions panel only when opened; Paragraph and Styles unfolded where the settings put it)
+    // Repetitions and Notifications panels only when opened; Paragraph and Styles unfolded where
+    // the settings put it)
     m_navigatorDock->show();
     m_propertiesDock->show();
     m_paragraphDock->setVisible(!paragraphInProperties());
@@ -1004,6 +1034,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_repetitionsDock->hide();
     m_footnotesDock->hide();
     m_statisticsDock->show();
+    m_notificationsDock->hide();
 
     // The Annotations tab is on top, as at the first start
     m_annotationsDock->raise();

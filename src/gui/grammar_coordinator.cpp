@@ -19,6 +19,7 @@
 #include "kalahari/gui/grammar_components.h"
 #include "kalahari/gui/grammar_setup.h"
 #include "kalahari/gui/language_tool_server.h"
+#include "kalahari/gui/notifications.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/spelling_coordinator.h"
 
@@ -50,6 +51,13 @@ constexpr int SERVER_MESSAGE_MS = 10000;
 
 /// @brief How long the status bar says the preparation is done (ms)
 constexpr int READY_MESSAGE_MS = 5000;
+
+/// @brief The windows of the preparation open now, in all the book windows: the one that is
+///        open says the preparation is done, not a notification
+int& openSetupWindows() {
+    static int count = 0;
+    return count;
+}
 
 /// @brief The server of LanguageTool, in its folder
 constexpr const char* SERVER_JAR = "languagetool-server.jar";
@@ -510,7 +518,9 @@ void GrammarCoordinator::showSetup(QWidget* parent) {
     m_setupDialog = &dialog;
     m_failureUnseen = false;
     updateSetupButton();
+    ++openSetupWindows();
     dialog.exec();
+    --openSetupWindows();
     m_setupDialog = nullptr;
     updateSetupButton();
 }
@@ -562,8 +572,13 @@ void GrammarCoordinator::onSetupFinished() {
         settings.set<bool>(EXTERNAL_KEY, false);
         settings.set<std::string>(MODE_KEY, LOCAL_MODE);
         settings.set<bool>(ENABLED_KEY, true);
-        if (m_setupDialog == nullptr) {
-            showMessage(tr("Grammar checking is ready"), READY_MESSAGE_MS);
+        // A notification of the whole program, as the preparation is (once, also with several
+        // book windows), unless its window says it; without a book window, the status bar
+        //: The title of the notification that grammar checking is ready. In Polish: Gramatyka
+        const Notification ready{tr("Grammar"), tr("Grammar checking is ready")};
+        if (m_setupDialog == nullptr && openSetupWindows() == 0 &&
+            !NotificationCoordinator::notifyFront(ready)) {
+            showMessage(ready.text, READY_MESSAGE_MS);
         }
     }
     m_failureUnseen =

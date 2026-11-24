@@ -149,8 +149,12 @@ std::map<std::string, json> buildDefaults() {
         {"stats.panel.hours", true},
         {"stats.panel.awards", true},
         {"stats.statusBar", true},
-        // Messages in the bar at the bottom of the window (Settings > Statistics and Goals >
-        // Notifications), the summary of the session and the badges and challenges
+        // Where the program's notifications show: "bar" (at the bottom of the window),
+        // "window" (the program's own), "system" or "panel" (the Notifications panel; Settings >
+        // Notifications)
+        {"notifications.place", "bar"},
+        // Notifications of the statistics (Settings > Statistics and Goals > Notifications),
+        // the summary of the session and the badges and challenges
         {"stats.notify.dailyGoal", true},
         // The daily goal reached opens the Statistics panel on the view Today
         {"stats.notify.showPanel", true},

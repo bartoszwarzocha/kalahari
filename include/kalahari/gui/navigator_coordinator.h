@@ -11,6 +11,7 @@
 #define KALAHARI_GUI_NAVIGATOR_COORDINATOR_H
 
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QMap>
 #include <QList>
@@ -56,6 +57,7 @@ class CardPanel;
 class PitchPanel;
 class EditorPanel;
 class MaterialCardPanel;
+class NotificationCoordinator;
 class PreviewPanel;
 
 namespace dialogs {
@@ -415,6 +417,10 @@ public slots:
     /// @brief The downloads for the materials with an address, for tests
     [[nodiscard]] MaterialDownloader* materialDownloader() const { return m_downloader; }
 
+    /// @brief Where a download nobody asked for says that nothing was downloaded: the
+    ///        notifications of the window; without them, the status bar
+    void setNotifications(NotificationCoordinator* notifications);
+
     /// @brief Show the preview of material @p elementId on a tab of its own beside the
     /// chapters, or bring its tab to the front, with the keys in it: of a picture, or of a PDF
     /// file (which opens in the system program without the preview of PDF files)
@@ -566,12 +572,17 @@ private:
 
     /// @brief Download what material @p elementId needs from its address: the title of its
     /// page, or the copy of its picture; @p asked: the writer asked for it, so a failure is
-    /// told in a window, else on the status bar
+    /// told in a window, else as a notification (on the status bar without notifications)
     void download(const QString& elementId, bool asked);
 
     /// @brief A download for a material ended with @p result: the title of its page replaces
     /// the title its address gave, unless the writer changed it, and the picture is its copy
     void onDownloadFinished(const MaterialDownloader::Result& result);
+
+    /// @brief Nothing was downloaded for @p material because of @p error: in a window when
+    ///        the writer asked for it (@p asked), else as a notification
+    void sayDownloadFailed(const core::ProjectElement& material, const QString& error,
+                           bool asked);
 
     /// @brief The cards of material @p elementId show whether a download for it is on its way
     void showDownloading(const QString& elementId);
@@ -622,6 +633,7 @@ private:
     PropertiesPanel* m_propertiesPanel;
     QTabWidget* m_centralTabs;
     QStatusBar* m_statusBar;
+    QPointer<NotificationCoordinator> m_notifications;
 
     /// @brief Tracks dirty state per chapter elementId
     QMap<QString, bool> m_dirtyChapters;

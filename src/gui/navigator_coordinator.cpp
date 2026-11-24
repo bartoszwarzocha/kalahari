@@ -32,6 +32,7 @@
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/material_file.h"
 #include "kalahari/gui/material_source.h"
+#include "kalahari/gui/notifications.h"
 #include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
 #include "kalahari/gui/section_words.h"
@@ -1735,6 +1736,33 @@ void NavigatorCoordinator::download(const QString& elementId, bool asked) {
     showDownloading(elementId);
 }
 
+void NavigatorCoordinator::setNotifications(NotificationCoordinator* notifications) {
+    m_notifications = notifications;
+}
+
+void NavigatorCoordinator::sayDownloadFailed(const core::ProjectElement& material,
+                                             const QString& error, bool asked) {
+    if (asked) {
+        //: In Polish: Pobieranie się nie udało
+        dialogs::MessageDialog::warning(
+            qobject_cast<QWidget*>(parent()), tr("Download Failed"),
+            //: %1: why, %2: the address. In Polish: %1\n\nMateriał zachowuje swój adres:
+            //: \n%2
+            tr("%1\n\nThe material keeps its address:\n%2").arg(error, material.url));
+        return;
+    }
+    // In the background: a notification, which stays until the writer sees it
+    //: %1: the material, %2: why. In Polish: Nie pobrano niczego dla „%1”: %2
+    const QString text = tr("Nothing was downloaded for \"%1\": %2").arg(material.title, error);
+    if (m_notifications != nullptr) {
+        //: The title of the notifications of the downloads of the materials. In Polish:
+        //: Materiały
+        m_notifications->notify({tr("Materials"), text, Notification::Kind::Warning});
+    } else {
+        m_statusBar->showMessage(text, MATERIALS_MESSAGE_MS);
+    }
+}
+
 void NavigatorCoordinator::onDownloadFinished(const MaterialDownloader::Result& result) {
     auto& pm = m_book;
     auto* window = qobject_cast<QWidget*>(parent());
@@ -1742,24 +1770,12 @@ void NavigatorCoordinator::onDownloadFinished(const MaterialDownloader::Result& 
     showDownloading(result.elementId);
     // Deleted or closed meanwhile, or in a book that cannot change now
     const core::ProjectElement* element = pm.findElement(result.elementId);
-    if (!element || element->url != result.url.toString() || pm.isReadOnly()) {
+    if (element == nullptr || element->url != result.url.toString() || pm.isReadOnly()) {
         return;
     }
     const QString title = element->title;
     if (!result.error.isEmpty()) {
-        if (asked) {
-            //: In Polish: Pobieranie się nie udało
-            dialogs::MessageDialog::warning(
-                window, tr("Download Failed"),
-                //: %1: why, %2: the address. In Polish: %1\n\nMateriał zachowuje swój adres:
-                //: \n%2
-                tr("%1\n\nThe material keeps its address:\n%2").arg(result.error, element->url));
-        } else {
-            //: %1: the material, %2: why. In Polish: Nie pobrano niczego dla „%1”: %2
-            m_statusBar->showMessage(
-                tr("Nothing was downloaded for \"%1\": %2").arg(title, result.error),
-                MATERIALS_MESSAGE_MS);
-        }
+        sayDownloadFailed(*element, result.error, asked);
         return;
     }
 

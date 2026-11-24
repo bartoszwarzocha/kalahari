@@ -108,6 +108,10 @@ void SettingsDialog::createNavigationTree() {
                 [this](const QString& unit) { setLengthUnit(lengthUnitFromName(unit)); });
         return generalPage;
     });
+    //: Settings > Notifications: where the program's notifications show. In Polish:
+    //: Powiadomienia
+    m_pageItems[NOTIFICATIONS_PAGE] =
+        addPage(nullptr, tr("Notifications"), []() { return new NotificationsPage(); });
 
     QTreeWidgetItem* appearance = category(tr("Appearance"));
     addPage(appearance, tr("General"), []() { return new AppearanceGeneralPage(); });

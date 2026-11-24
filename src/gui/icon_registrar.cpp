@@ -325,6 +325,8 @@ void registerAllIcons() {
                               "Spelling and Grammar");
     iconRegistry.registerIcon("view.repetitionsPanel", "resources/icons/twotone/repeat.svg", "Repetitions");
     iconRegistry.registerIcon("view.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
+    iconRegistry.registerIcon("view.notifications", "resources/icons/twotone/notifications.svg",
+                              "Notifications");
     iconRegistry.registerIcon("view.perspectives.writer", "resources/icons/twotone/edit.svg", "Writer Perspective");
     iconRegistry.registerIcon("view.perspectives.editor", "resources/icons/twotone/rate_review.svg", "Editor Perspective");
     iconRegistry.registerIcon("view.perspectives.researcher", "resources/icons/twotone/science.svg", "Researcher Perspective");

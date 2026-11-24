@@ -10,6 +10,8 @@
 #include <QFrame>
 #include <QString>
 
+#include <string>
+
 class QLabel;
 class QPushButton;
 class QToolButton;
@@ -18,12 +20,14 @@ namespace kalahari::gui {
 
 /// @brief A message across the text area, in the theme's colors of an info bar
 ///
-/// +-------------------------------------------------------------------------------+
-/// | [i] The message, in more lines when the bar is narrow.  [Action] [Second] [X] |
-/// +-------------------------------------------------------------------------------+
+/// +-------------------------------------------------------------------------------------+
+/// | [i] The message, in more lines when the bar is narrow.  [Action] [Second] [*] [X]   |
+/// +-------------------------------------------------------------------------------------+
 ///
-/// The buttons do what the message suggests; without their texts the bar has none. The close
-/// button only reports that the bar was dismissed: whoever shows the bar hides it.
+/// The buttons do what the message suggests; without their texts the bar has none. The gear
+/// (only when showSettingsButton() asks for it) reports that the settings of the messages
+/// were asked for. The close button only reports that the bar was dismissed: whoever shows
+/// the bar hides it.
 class InfoBar : public QFrame {
     Q_OBJECT
 
@@ -52,6 +56,26 @@ public:
     /// @brief The tooltip of the second button
     void setSecondActionToolTip(const QString& toolTip);
 
+    /// @brief The icon before the message
+    /// @param iconId ArtProvider id (by default "help.about", the info icon)
+    void setIconId(const QString& iconId);
+
+    /// @brief The icon before the message (ArtProvider id)
+    [[nodiscard]] QString iconId() const { return m_iconId; }
+
+    /// @brief Show the gear before the close button; a click emits settingsClicked()
+    /// @param toolTip What the settings are ("Notification Settings"), also its accessible name
+    void showSettingsButton(const QString& toolTip);
+
+    /// @brief The gear (nullptr until showSettingsButton())
+    [[nodiscard]] QToolButton* settingsButton() const { return m_settingsButton; }
+
+    /// @brief Take the background and the border from colors of the theme's "editor" section
+    ///        (the writer can change them in Settings) instead of the colors of all info bars
+    /// @param backgroundKey Key of the background (ThemeManager::editorColor())
+    /// @param borderKey Key of the border
+    void setColorKeys(const std::string& backgroundKey, const std::string& borderKey);
+
 signals:
     /// @brief The button was clicked
     void actionClicked();
@@ -61,6 +85,9 @@ signals:
 
     /// @brief The close button was clicked
     void dismissed();
+
+    /// @brief The gear was clicked (showSettingsButton())
+    void settingsClicked();
 
 private:
     /// @brief The colors of the theme
@@ -74,6 +101,10 @@ private:
     QPushButton* m_actionButton = nullptr;
     QPushButton* m_secondButton = nullptr;
     QToolButton* m_closeButton = nullptr;
+    QToolButton* m_settingsButton = nullptr;
+    QString m_iconId;
+    std::string m_backgroundKey;  ///< Empty: the colors of all info bars
+    std::string m_borderKey;
 };
 
 } // namespace kalahari::gui

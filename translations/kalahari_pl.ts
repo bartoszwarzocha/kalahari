@@ -1003,6 +1003,10 @@
         <translation>S&amp;tatystyki</translation>
     </message>
     <message>
+        <source>Not&amp;ifications</source>
+        <translation>P&amp;owiadomienia</translation>
+    </message>
+    <message>
         <source>&amp;Non-breaking Space</source>
         <translation>&amp;Spacja nierozdzielająca</translation>
     </message>
@@ -6539,6 +6543,16 @@ Szczegóły zapisano w panelu Dziennik.</translation>
         <extracomment>The tooltip of the gear of the Footnotes panel. In Polish: Ustawienia przypisów</extracomment>
         <translation>Ustawienia przypisów</translation>
     </message>
+    <message>
+        <source>Notification Settings</source>
+        <extracomment>The gear of the Notifications panel. In Polish: Ustawienia powiadomień</extracomment>
+        <translation>Ustawienia powiadomień</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <extracomment>The panel of the notifications of the session. In Polish: Powiadomienia</extracomment>
+        <translation>Powiadomienia</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::DocumentCoordinator</name>
@@ -9894,6 +9908,7 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     </message>
     <message>
         <source>Grammar</source>
+        <extracomment>The title of the notification that grammar checking is ready. In Polish: Gramatyka</extracomment>
         <translation>Gramatyka</translation>
     </message>
     <message>
@@ -10836,7 +10851,9 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
     <message>
         <source>Materials</source>
-        <extracomment>The node of the Navigator with the materials of several kinds added at once. In Polish: Materiały</extracomment>
+        <extracomment>The title of the notifications of the downloads of the materials. In Polish: Materiały
+----------
+The node of the Navigator with the materials of several kinds added at once. In Polish: Materiały</extracomment>
         <translation>Materiały</translation>
     </message>
     <message>
@@ -11769,6 +11786,168 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
         <source>%1 – keep · Esc – cancel</source>
         <extracomment>%1 is the keys that keep the text: &quot;Ctrl+Enter&quot; (on macOS their symbols). In Polish: %1 – zachowaj · Esc – anuluj</extracomment>
         <translation>%1 – zachowaj · Esc – anuluj</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::NotificationCoordinator</name>
+    <message>
+        <source>%1: %2</source>
+        <translation>%1: %2</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <extracomment>The title of notifications of several titles. In Polish: Powiadomienia
+----------
+The title of the sample notification of Settings &gt; Notifications. In Polish: Powiadomienia</extracomment>
+        <translation>Powiadomienia</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <extracomment>The button of a notification at the bottom of the window. In Polish: Kopiuj</extracomment>
+        <translation>Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copy this message</source>
+        <extracomment>In Polish: Kopiuj tę wiadomość</extracomment>
+        <translation>Kopiuj tę wiadomość</translation>
+    </message>
+    <message>
+        <source>Notification Settings</source>
+        <extracomment>The gear of the bar of notifications. In Polish: Ustawienia powiadomień</extracomment>
+        <translation>Ustawienia powiadomień</translation>
+    </message>
+    <message>
+        <source>This is how the program&apos;s notifications look.</source>
+        <extracomment>The sample notification of Settings &gt; Notifications. In Polish: Tak wyglądają powiadomienia programu.</extracomment>
+        <translation>Tak wyglądają powiadomienia programu.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::NotificationsPage</name>
+    <message>
+        <source>Notifications are what the program says on its own: goals reached, new badges, deadlines coming, messages of plugins, grammar checking ready, a material that could not be downloaded. The answers to commands (e.g. a bar with Undo after a command) stay where they are.</source>
+        <extracomment>In Polish: Powiadomienia to to, co program mówi sam z siebie: osiągnięte cele, nowe odznaki, zbliżające się terminy, wiadomości dodatków, gotowe sprawdzanie gramatyki, materiał, którego nie udało się pobrać. Odpowiedzi na polecenia (np. pasek z przyciskiem „Cofnij” po poleceniu) zostają tam, gdzie są.</extracomment>
+        <translation>Powiadomienia to to, co program mówi sam z siebie: osiągnięte cele, nowe odznaki, zbliżające się terminy, wiadomości dodatków, gotowe sprawdzanie gramatyki, materiał, którego nie udało się pobrać. Odpowiedzi na polecenia (np. pasek z przyciskiem „Cofnij” po poleceniu) zostają tam, gdzie są.</translation>
+    </message>
+    <message>
+        <source>Where They Show</source>
+        <extracomment>In Polish: Gdzie pokazywać</extracomment>
+        <translation>Gdzie pokazywać</translation>
+    </message>
+    <message>
+        <source>Show notifications:</source>
+        <translation>Pokazuj powiadomienia:</translation>
+    </message>
+    <message>
+        <source>In the bar at the bottom of the window</source>
+        <extracomment>In Polish: Na pasku na dole okna</extracomment>
+        <translation>Na pasku na dole okna</translation>
+    </message>
+    <message>
+        <source>Under the text, with Copy. It does not stop the writing; it stays until it is closed or the next notification comes.</source>
+        <extracomment>In Polish: Pod tekstem, z przyciskiem „Kopiuj”. Nie przerywa pisania; zostaje, dopóki nie zostanie zamknięty albo nie przyjdzie następne powiadomienie.</extracomment>
+        <translation>Pod tekstem, z przyciskiem „Kopiuj”. Nie przerywa pisania; zostaje, dopóki nie zostanie zamknięty albo nie przyjdzie następne powiadomienie.</translation>
+    </message>
+    <message>
+        <source>In the program&apos;s window</source>
+        <extracomment>In Polish: W oknie programu</extracomment>
+        <translation>W oknie programu</translation>
+    </message>
+    <message>
+        <source>A window over the book window, with Copy. It does not take the keys from the text; the next notifications are added to it while it is open.</source>
+        <extracomment>In Polish: Okno nad oknem książki, z przyciskiem „Kopiuj”. Nie zabiera klawiszy tekstowi; kolejne powiadomienia dochodzą do niego, dopóki jest otwarte.</extracomment>
+        <translation>Okno nad oknem książki, z przyciskiem „Kopiuj”. Nie zabiera klawiszy tekstowi; kolejne powiadomienia dochodzą do niego, dopóki jest otwarte.</translation>
+    </message>
+    <message>
+        <source>As notifications of the system</source>
+        <extracomment>In Polish: Jako powiadomienia systemu</extracomment>
+        <translation>Jako powiadomienia systemu</translation>
+    </message>
+    <message>
+        <source>In the corner of the screen, as the notifications of other programs, with the program&apos;s icon in the system tray.</source>
+        <extracomment>In Polish: W rogu ekranu, jak powiadomienia innych programów, z ikoną programu w zasobniku systemowym.</extracomment>
+        <translation>W rogu ekranu, jak powiadomienia innych programów, z ikoną programu w zasobniku systemowym.</translation>
+    </message>
+    <message>
+        <source>This system shows no notifications of programs here: the bar at the bottom of the window shows them.</source>
+        <translation>Ten system nie pokazuje tu powiadomień programów: pokaże je pasek na dole okna.</translation>
+    </message>
+    <message>
+        <source>In the Notifications panel</source>
+        <extracomment>In Polish: W panelu „Powiadomienia”</extracomment>
+        <translation>W panelu „Powiadomienia”</translation>
+    </message>
+    <message>
+        <source>The panel on the right opens with them (View &gt; Panels &gt; Notifications).</source>
+        <extracomment>In Polish: Panel po prawej otwiera się z nimi (Widok &gt; Panele &gt; Powiadomienia).</extracomment>
+        <translation>Panel po prawej otwiera się z nimi (Widok &gt; Panele &gt; Powiadomienia).</translation>
+    </message>
+    <message>
+        <source>Show a &amp;Sample</source>
+        <extracomment>In Polish: Pokaż &amp;przykład</extracomment>
+        <translation>Pokaż &amp;przykład</translation>
+    </message>
+    <message>
+        <source>Show a sample notification in the place chosen</source>
+        <extracomment>In Polish: Pokaż przykładowe powiadomienie w wybranym miejscu</extracomment>
+        <translation>Pokaż przykładowe powiadomienie w wybranym miejscu</translation>
+    </message>
+    <message>
+        <source>Whatever the choice, the Notifications panel keeps the notifications of this session with their time, and copies them. Which messages of the statistics show is chosen on the page Statistics and Goals &gt; Notifications.</source>
+        <extracomment>In Polish: Niezależnie od wyboru panel „Powiadomienia” przechowuje powiadomienia tej sesji z godziną i pozwala je skopiować. Które wiadomości statystyk się pokazują – wybiera się na stronie Statystyki i cele &gt; Powiadomienia.</extracomment>
+        <translation>Niezależnie od wyboru panel „Powiadomienia” przechowuje powiadomienia tej sesji z godziną i pozwala je skopiować. Które wiadomości statystyk się pokazują – wybiera się na stronie Statystyki i cele &gt; Powiadomienia.</translation>
+    </message>
+    <message>
+        <source>Colors</source>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>The colors of the bar of notifications at the bottom of the window and of the notifications in the Notifications panel. Each theme has its own colors: these are the colors of the current theme.</source>
+        <extracomment>In Polish: Kolory paska powiadomień na dole okna i powiadomień w panelu „Powiadomienia”. Każdy motyw ma własne kolory: to kolory bieżącego motywu.</extracomment>
+        <translation>Kolory paska powiadomień na dole okna i powiadomień w panelu „Powiadomienia”. Każdy motyw ma własne kolory: to kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <extracomment>In Polish: Tło</extracomment>
+        <translation>Tło</translation>
+    </message>
+    <message>
+        <source>Border</source>
+        <extracomment>In Polish: Obramowanie</extracomment>
+        <translation>Obramowanie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::NotificationsPanel</name>
+    <message>
+        <source>The program&apos;s notifications of this session show here: goals reached, deadlines coming, messages of plugins and more. Settings &gt; Notifications chooses where they show first.</source>
+        <extracomment>The Notifications panel without notifications. In Polish: Tu pojawiają się powiadomienia programu z tej sesji: osiągnięte cele, zbliżające się terminy, wiadomości dodatków i inne. Gdzie pokazują się najpierw – wybiera się w Ustawieniach &gt; Powiadomienia.</extracomment>
+        <translation>Tu pojawiają się powiadomienia programu z tej sesji: osiągnięte cele, zbliżające się terminy, wiadomości dodatków i inne. Gdzie pokazują się najpierw – wybiera się w Ustawieniach &gt; Powiadomienia.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <extracomment>In Polish: Powiadomienia</extracomment>
+        <translation>Powiadomienia</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <extracomment>Copies the chosen notification of the Notifications panel. In Polish: Kopiuj</extracomment>
+        <translation>Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copy the chosen notification, or the latest without a choice</source>
+        <extracomment>In Polish: Kopiuj wybrane powiadomienie, a bez wyboru – ostatnie</extracomment>
+        <translation>Kopiuj wybrane powiadomienie, a bez wyboru – ostatnie</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <extracomment>Takes all the notifications away from the Notifications panel. In Polish: Wyczyść</extracomment>
+        <translation>Wyczyść</translation>
+    </message>
+    <message>
+        <source>Take all the notifications away from the panel</source>
+        <extracomment>In Polish: Usuń wszystkie powiadomienia z panelu</extracomment>
+        <translation>Usuń wszystkie powiadomienia z panelu</translation>
     </message>
 </context>
 <context>
@@ -13906,7 +14085,9 @@ The page of the downloads for the materials with a web address. In Polish: Mater
     </message>
     <message>
         <source>Notifications</source>
-        <extracomment>In Polish: Powiadomienia</extracomment>
+        <extracomment>Settings &gt; Notifications: where the program&apos;s notifications show. In Polish: Powiadomienia
+----------
+In Polish: Powiadomienia</extracomment>
         <translation>Powiadomienia</translation>
     </message>
     <message>
@@ -26583,11 +26764,6 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
 <context>
     <name>kalahari::gui::StatsNotificationsPage</name>
     <message>
-        <source>The messages show in the bar at the bottom of the window, with a button that copies them.</source>
-        <extracomment>In Polish: Wiadomości pokazują się na pasku na dole okna, z przyciskiem kopiowania.</extracomment>
-        <translation>Wiadomości pokazują się na pasku na dole okna, z przyciskiem kopiowania.</translation>
-    </message>
-    <message>
         <source>Messages</source>
         <translation>Wiadomości</translation>
     </message>
@@ -26658,6 +26834,11 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         <source>When the daily goal is reached, the panel opens on the view Today.</source>
         <extracomment>In Polish: Gdy cel dzienny zostanie osiągnięty, panel otwiera się na widoku „Dzisiaj”.</extracomment>
         <translation>Gdy cel dzienny zostanie osiągnięty, panel otwiera się na widoku „Dzisiaj”.</translation>
+    </message>
+    <message>
+        <source>The messages show where the program&apos;s notifications do: by default in the bar at the bottom of the window (Settings &gt; Notifications).</source>
+        <extracomment>In Polish: Wiadomości pokazują się tam, gdzie powiadomienia programu: domyślnie na pasku na dole okna (Ustawienia &gt; Powiadomienia).</extracomment>
+        <translation>Wiadomości pokazują się tam, gdzie powiadomienia programu: domyślnie na pasku na dole okna (Ustawienia &gt; Powiadomienia).</translation>
     </message>
 </context>
 <context>
@@ -27257,16 +27438,6 @@ After the length of the book. In Polish: słów</extracomment>
 <context>
     <name>kalahari::gui::WritingStatsCoordinator</name>
     <message>
-        <source>Copy</source>
-        <extracomment>The button of a message at the bottom of the window. In Polish: Kopiuj</extracomment>
-        <translation>Kopiuj</translation>
-    </message>
-    <message>
-        <source>Copy this message</source>
-        <extracomment>In Polish: Kopiuj tę wiadomość</extracomment>
-        <translation>Kopiuj tę wiadomość</translation>
-    </message>
-    <message>
         <source>Daily goal reached: %1 of %2 words.</source>
         <extracomment>%1 and %2: numbers. In Polish: Cel dzienny osiągnięty: %1 z %2 słów.</extracomment>
         <translation>Cel dzienny osiągnięty: %1 z %2 słów.</translation>
@@ -27336,6 +27507,11 @@ After the length of the book. In Polish: słów</extracomment>
         <source>Challenge done: %1 (%2).</source>
         <extracomment>In Polish: Wyzwanie ukończone: %1 (%2).</extracomment>
         <translation>Wyzwanie ukończone: %1 (%2).</translation>
+    </message>
+    <message>
+        <source>Statistics and Goals</source>
+        <extracomment>The title of the notifications of the goals, the deadlines, the badges and the challenges. In Polish: Statystyki i cele</extracomment>
+        <translation>Statystyki i cele</translation>
     </message>
 </context>
 <context>
@@ -40187,6 +40363,23 @@ In Polish: Nie udało się zapisać nazwy serii: nie można zapisać projektu.</
         <source>The pages of the front and back sections of volume %1 with their text, the title page with the title of the new volume, and the first chapter.</source>
         <extracomment>%1: the number of the volume. In Polish: Strony sekcji początkowej i końcowej tomu %1 wraz z tekstem, strona tytułowa z tytułem nowego tomu i pierwszy rozdział.</extracomment>
         <translation>Strony sekcji początkowej i końcowej tomu %1 wraz z tekstem, strona tytułowa z tytułem nowego tomu i pierwszy rozdział.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::NotificationDialog</name>
+    <message>
+        <source>Notification Settings</source>
+        <extracomment>The gear of the window of notifications. In Polish: Ustawienia powiadomień</extracomment>
+        <translation>Ustawienia powiadomień</translation>
+    </message>
+    <message>
+        <source>%1: %2</source>
+        <translation>%1: %2</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <extracomment>The title of the window of notifications of several titles. In Polish: Powiadomienia</extracomment>
+        <translation>Powiadomienia</translation>
     </message>
 </context>
 <context>

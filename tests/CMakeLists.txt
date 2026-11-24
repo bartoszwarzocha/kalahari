@@ -187,6 +187,7 @@ set(TEST_SOURCES
     gui/test_book_import_plan.cpp                # The plan of an import: the texts, their kinds and styles
     gui/test_print_book_dialog.cpp               # File > Print: the window, its sheets and the print
     gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
+    gui/test_notifications.cpp                   # Notifications in the bar, a window, the system, their panel
     gui/test_own_windows.cpp                     # Only own windows, on their common base
     gui/test_widget_wheel.cpp                    # The mouse wheel changes only the field with the focus
     gui/test_distraction_free_layout.cpp         # The window's layout for Distraction-Free writing
@@ -443,6 +444,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/clippings_page.cpp  # Settings > Editor > Clippings
     ${CMAKE_SOURCE_DIR}/src/gui/settings/lists_page.cpp  # Settings > Editor > Lists
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/notifications_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/navigator_page.cpp  # Settings > Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/settings/cards_page.cpp  # Settings > Cards
     ${CMAKE_SOURCE_DIR}/src/gui/settings/materials_page.cpp  # Settings > Materials
@@ -559,7 +561,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/log_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/search_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/assistant_panel.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/notifications_panel.cpp   # The notifications of the session
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/info_bar.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/notifications.cpp            # The notifications of a book window
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/cover_plan.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/publishing_set_view.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/standalone_info_bar.cpp
@@ -587,6 +591,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/icon_downloader_dialog.cpp   # Icon Downloader on the common base
     ${CMAKE_SOURCE_DIR}/src/core/utils/icon_downloader.cpp           # Downloads of the Icon Downloader
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/message_dialog.cpp           # Own messages, questions and typed texts
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/notification_dialog.cpp      # The program's own window of notifications
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/open_book_dialog.cpp         # Opening a Book: in a new window or in this one
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/grammar_setup_dialog.cpp     # The window of the grammar preparation
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/progress_dialog.cpp          # Own window for the progress of a long task
@@ -829,7 +834,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/log_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/notifications_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/notifications.h  # NotificationCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/cover_plan.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/publishing_set_view.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/standalone_info_bar.h
@@ -846,6 +853,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h  # IconDownloaderDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/notification_dialog.h  # NotificationDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/open_book_dialog.h  # OpenBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/grammar_setup_dialog.h  # GrammarSetupDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/progress_dialog.h  # ProgressDialog with Q_OBJECT

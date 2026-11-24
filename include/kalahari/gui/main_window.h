@@ -99,6 +99,7 @@ class CardsInTextCoordinator;
 class RepetitionsCoordinator;
 class DocumentWindows;
 class WritingStatsCoordinator;
+class NotificationCoordinator;
 class ColorMenu;
 class ListSetsMenu;
 namespace utils {
@@ -223,6 +224,12 @@ public:
 
     /// @brief The commands and panels of the plugins in the window
     [[nodiscard]] PluginCoordinator* pluginCoordinator() const { return m_pluginCoordinator; }
+
+    /// @brief The notifications of this window (Settings > Notifications)
+    [[nodiscard]] NotificationCoordinator* notifications() const
+    {
+        return m_notificationCoordinator;
+    }
 
     /// @brief Window > New Window: a new book window with the Dashboard, its panels and bars
     /// as in this one, a little lower and to the right; it closes and is deleted on its own
@@ -587,6 +594,8 @@ private:
     MaterialListCoordinator* m_materialListCoordinator{nullptr};
     /// @brief The plot board of the book and its outline on their tab
     PlotBoardCoordinator* m_plotBoardCoordinator{nullptr};
+    /// @brief What the program tells the writer on its own, where the settings say
+    NotificationCoordinator* m_notificationCoordinator{nullptr};
     /// @brief The statistics bar and the goals of writing
     WritingStatsCoordinator* m_writingStatsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};

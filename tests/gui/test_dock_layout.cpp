@@ -296,6 +296,52 @@ TEST_CASE("Panels: the Repetitions panel opens as a tab after the Annotations ta
     CHECK(tabIndex(panels.window, repetitions) > tabIndex(panels.window, annotations));
 }
 
+TEST_CASE("Panels: the Notifications panel opens as a tab after the Statistics tab",
+          "[gui][panels][notifications]") {
+    // The layout of a window saved before the panel existed, which does not know the panel
+    QByteArray oldLayout;
+    {
+        Panels old;
+        old.window.removeDockWidget(old.docks->notificationsDock());
+        oldLayout = old.window.saveState();
+    }
+    Panels panels;
+    QDockWidget* notifications = panels.docks->notificationsDock();
+    QDockWidget* statistics = panels.docks->statisticsDock();
+    QDockWidget* annotations = panels.docks->annotationsDock();
+    REQUIRE(notifications != nullptr);
+    CHECK(notifications->objectName() == QStringLiteral("NotificationsDock"));
+
+    SECTION("in the default layout") {
+    }
+    SECTION("in a layout saved before the panel existed") {
+        REQUIRE(panels.window.restoreState(oldLayout));
+        QApplication::processEvents();
+    }
+    SECTION("after Reset Layout") {
+        kalahari::test::commands().executeCommand("view.notifications");
+        QApplication::processEvents();
+        panels.docks->resetLayout(false, false);
+        panels.docks->showRightPanels();  // hidden by Reset Layout on a small screen
+        QApplication::processEvents();
+    }
+
+    // Closed until opened
+    CHECK(notifications->isHidden());
+    CHECK_FALSE(panels.docks->viewNotificationsAction()->isChecked());
+    CHECK(panels.onTop(annotations));
+
+    // View > Panels > Notifications
+    kalahari::test::commands().executeCommand("view.notifications");
+    QApplication::processEvents();
+    CHECK(notifications->isVisible());
+    CHECK(panels.docks->viewNotificationsAction()->isChecked());
+    CHECK(panels.onTop(notifications));
+    CHECK(panels.window.dockWidgetArea(notifications) == Qt::RightDockWidgetArea);
+    REQUIRE(tabIndex(panels.window, statistics) >= 0);
+    CHECK(tabIndex(panels.window, notifications) > tabIndex(panels.window, statistics));
+}
+
 TEST_CASE("Panels: the Paragraph and Styles panel is the tab after Properties",
           "[gui][panels][styles]") {
     Panels panels;

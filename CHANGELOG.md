@@ -77,7 +77,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in Settings > Editor > Colors (Tab guides), for each paper. KML keeps them in a
   `<tab-guides>` section of the text; DOCX gets them as the tab stops of its paragraphs, a PDF
   and the print the text aligned to them, without the lines.
-
+- **Notifications where the writer wants them** - 2026-11-20. What the program says on its
+  own (the goals reached, the badges won, the deadlines coming and the challenges done, the
+  messages of the plugins, grammar checking ready after its preparation, a material that could
+  not be downloaded in the background) is a notification, and the new page Settings >
+  Notifications chooses where they show: in the bar at the bottom of the window, under the
+  text, with Copy (by default, as the messages of the statistics showed before); in the
+  program's own window over the book window, with Copy, which does not take the keys from the
+  text and takes in the next ones while it is open; as notifications of the system, in the
+  corner of the screen with the program's icon in the system tray (where the system has none,
+  the bar shows them); or in the new Notifications panel on the right (View > Panels >
+  Notifications), which opens with them. The notifications of one moment show together; those
+  of the whole program (the plugins, grammar checking) show once, in the window in front.
+  Whatever the place, the Notifications panel keeps the notifications of the session in
+  bubbles with their time and title, the latest at the bottom, with Copy (also Ctrl+C) and
+  Clear; it is closed until opened. The page shows a sample in the place chosen, before
+  Apply, and has the background and the border of the bar and of the bubbles, kept for each
+  theme; the bar, the window and the panel have the gear of these settings. The answers to
+  commands (a bar with Undo after a command, the status bar after a save) stay where they
+  were. The Assistant panel stays as it was. All of it in Polish too.
 - **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
   for Publishers, with its number in the Navigator: the sentences about the book and the
   synopses, each a text of the book in as many versions as the writer wants, with a template of
@@ -478,6 +496,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Repetitions) the repeated words of the text in front were marked only while the panel was
   open. They are marked with the panel closed too, counted again as the writer types; the
   frames of the words of the card chosen in the panel stay with the panel.
+- **The colors of the bars under the text and under the plot board** - 2026-11-20. A bar of
+  messages with a name of its own (the messages of the statistics until now, the bar under the
+  plot board) had none of the theme's background and border of the bars of messages: their
+  style looked for the bar by its name. It looks for the class of the bar now.
 
 ---
 
