@@ -708,8 +708,8 @@ QColor PlotColors::ofCard(const PlotCard& card, const QString& colorBy,
     }
     // The writer's own color of the card comes first: it shows at once, whatever colors the
     // other cards
-    if (const QColor own = ofOwn(card.plot.color); own.isValid()) {
-        return own;
+    if (const QColor color = ofOwn(card.plot.color); color.isValid()) {
+        return color;
     }
     if (colorBy == QLatin1String(PlotBoard::COLOR_STATUS)) {
         return ofStatus(card);
