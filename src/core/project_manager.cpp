@@ -9,6 +9,7 @@
 #include <kalahari/core/book_dictionary.h>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_package.h>
+#include <kalahari/core/busy_pulse.h>
 #include <kalahari/core/card_data.h>
 #include <kalahari/core/card_name_index.h>
 #include <kalahari/core/card_relations.h>
@@ -921,6 +922,8 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
     if (!project) {
         return fail(OpenFailure::Unreadable, QString());
     }
+    // A spinner that waits for the book turns between the steps of the opening (test of 24.11)
+    BusyPulse::beat();
 
     // The book works with the packages the program has; without one of them it can only be
     // read, and nothing is written into its folder: no lock, no database, no backups
@@ -967,6 +970,7 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
     if (!readOnly) {
         m_backupManager = std::make_unique<BackupManager>(projectDir);
     }
+    BusyPulse::beat();
 
     m_project = std::make_unique<BookProject>(std::move(*project));
     m_currentBook.clear();
@@ -985,6 +989,7 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
         for (const QString& problem : cards.problems) {
             logger.warn("openProject: {}", problem.toStdString());
         }
+        BusyPulse::beat();
 
         // The .klh file names the newest version of the type the book was opened with
         if (std::optional<ProjectType>& named = m_project->type) {
@@ -1004,6 +1009,7 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
         convertOldMaterials();
     }
     m_packageCards = PackageCards::readAll(projectDir, *m_project);
+    BusyPulse::beat();
 
     loadElementStates();
 
@@ -4119,6 +4125,8 @@ void ProjectManager::loadNewElementStates() {
             state.notes = chapter->notes();
         }
         m_elementStates.insert(element->id, state);
+        // Each text read: a spinner that waits for the book turns (test of 24.11)
+        BusyPulse::beat();
     }
 }
 

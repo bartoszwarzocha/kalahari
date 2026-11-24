@@ -2,8 +2,8 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file book_import_coordinator.cpp
-/// @brief File > Import > DOCX, Markdown and Plain Text: the system window of the files, the
-///        window of the import, and the texts added to the open book or to a new one
+/// @brief File > Import > DOCX, Markdown and Plain Text: the window of the import, with the
+///        choice of the files in it, and the texts added to the open book or to a new one
 
 #include "kalahari/gui/book_import_coordinator.h"
 
@@ -15,7 +15,6 @@
 #include "kalahari/gui/utils/program_folders.h"
 
 #include <QDir>
-#include <QFileDialog>
 #include <QFileInfo>
 
 #include <algorithm>
@@ -184,77 +183,19 @@ void BookImportCoordinator::importPluginFormat() {
     if (formats.empty()) {
         return;
     }
-    // A filter of the system window for each format
-    QStringList filters;
-    for (const PluginImportFormat& format : formats) {
-        QStringList patterns;
-        for (const QString& extension : format.extensions) {
-            patterns << QLatin1Char('*') + extension;
-        }
-        filters << QStringLiteral("%1 (%2)").arg(format.name, patterns.join(QLatin1Char(' ')));
-    }
-    QString filter = filters.front();
-    const QStringList files = QFileDialog::getOpenFileNames(
-        m_parent, tr("Files to Import"),
-        ProgramFolders::startFolder(ProgramFolders::Operation::ImportText),
-        filters.join(QStringLiteral(";;")), &filter);
-    if (files.isEmpty()) {
-        return;
-    }
-    ProgramFolders::remember(ProgramFolders::Operation::ImportText,
-                             QFileInfo(files.front()).absolutePath());
-    // The format of the filter chosen, else the one of the extension of the first file
-    const qsizetype chosen = filters.indexOf(filter);
-    QString id = formats[static_cast<size_t>(std::max<qsizetype>(chosen, 0))].id;
-    const QString suffix = QLatin1Char('.') + QFileInfo(files.front()).suffix().toLower();
-    if (chosen < 0) {
-        for (const PluginImportFormat& format : formats) {
-            if (format.extensions.contains(suffix)) {
-                id = format.id;
-                break;
-            }
-        }
-    }
-    importFiles(ImportFormat::Plugin, files, id);
+    // The window of the import at once: its list of the formats chooses another one, Add...
+    // the files (test of 24.11)
+    importFiles(ImportFormat::Plugin, {}, formats.front().id);
 }
 
 void BookImportCoordinator::importFormat(ImportFormat format) {
-    QStringList patterns;
-    for (const QString& extension : importExtensions(format)) {
-        patterns << QLatin1Char('*') + extension;
-    }
-    QString name;
-    switch (format) {
-        case ImportFormat::Docx:
-            //: The files of the system window of File > Import > DOCX. In Polish: Dokumenty Worda
-            name = tr("Word documents");
-            break;
-        case ImportFormat::Markdown:
-            //: The files of the system window of File > Import > Markdown. In Polish: Pliki
-            //: Markdown
-            name = tr("Markdown files");
-            break;
-        case ImportFormat::PlainText:
-            //: The files of the system window of File > Import > Plain Text. In Polish: Pliki
-            //: zwykłego tekstu
-            name = tr("Plain text files");
-            break;
-        case ImportFormat::Plugin:
-            importPluginFormat();
-            return;
-    }
-    //: The title of the system window that chooses the files of the import. In Polish: Pliki
-    //: do importu
-    const QStringList files = QFileDialog::getOpenFileNames(
-        m_parent, tr("Files to Import"),
-        ProgramFolders::startFolder(ProgramFolders::Operation::ImportText),
-        QStringLiteral("%1 (%2)").arg(name, patterns.join(QLatin1Char(' '))));
-    if (files.isEmpty()) {
+    if (format == ImportFormat::Plugin) {
+        importPluginFormat();
         return;
     }
-    ProgramFolders::remember(ProgramFolders::Operation::ImportText,
-                             QFileInfo(files.front()).absolutePath());
-    importFiles(format, files);
+    // The window of the import at once, its Add... chooses the files of the format (test of
+    // 24.11)
+    importFiles(format, {});
 }
 
 void BookImportCoordinator::importFiles(ImportFormat format, const QStringList& files,

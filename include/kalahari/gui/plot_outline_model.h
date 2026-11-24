@@ -17,6 +17,8 @@
 #include <QStyledItemDelegate>
 #include <QVariant>
 
+class QPainter;
+
 namespace kalahari::gui {
 
 /// @brief The rows of the outline: each part over its texts, and the texts outside the parts,
@@ -45,6 +47,8 @@ public:
 
     static constexpr int ID_ROLE = Qt::UserRole + 1;    ///< The id of the text or the part
     static constexpr int PART_ROLE = Qt::UserRole + 2;  ///< Whether the row is a part's
+    /// The color of the card of the row (setColoring()), in every cell; none: no color
+    static constexpr int COLOR_ROLE = Qt::UserRole + 3;
 
     /// @brief An outline without rows
     explicit PlotOutlineModel(QObject* parent = nullptr);
@@ -59,8 +63,9 @@ public:
     void setShowScenes(bool show);
 
     /// @brief Show the colors of the cards as the board does: @p colorBy (PlotBoard::
-    /// COLOR_STATUS...) in @p colors, a square before the title of each text and scene; with
-    /// @p tint (PlotBoard::COLOR_TINT) the background of its row too
+    /// COLOR_STATUS...) in @p colors, the left edge of the row of each text and scene
+    /// (COLOR_ROLE, drawn by PlotOutlineDelegate); with @p tint (PlotBoard::COLOR_TINT) the
+    /// background of its row too
     void setColoring(const QString& colorBy, const PlotColors& colors, bool tint);
 
     /// @brief The name of @p column in its setting (PlotBoard::outlineSetting()): "number",
@@ -107,9 +112,9 @@ private:
     [[nodiscard]] static QVariant partData(const Row& row, int column, int role);
     /// @brief What cell @p column of the row of @p card shows in @p role
     [[nodiscard]] static QVariant cardData(const PlotCard& card, int column, int role);
-    /// @brief The color of the row of @p card in cell @p column: Qt::DecorationRole (the
-    /// square before the title) and Qt::BackgroundRole (with the tint)
-    [[nodiscard]] QVariant colorData(const PlotCard& card, int column, int role) const;
+    /// @brief The color of the row of @p card: COLOR_ROLE (its left edge) and
+    /// Qt::BackgroundRole (with the tint)
+    [[nodiscard]] QVariant colorData(const PlotCard& card, int role) const;
 
     QList<PlotBand> m_bands;
     QList<Row> m_rows;
@@ -122,11 +127,15 @@ private:
 };
 
 /// @brief The editors of the cells of the outline: a list of the states, and the points of
-/// view and places of the Workshop suggested
+/// view and places of the Workshop suggested; the color of a card (PlotOutlineModel::
+/// COLOR_ROLE) as a thick left edge of its row
 class PlotOutlineDelegate : public QStyledItemDelegate {
     Q_OBJECT
 
 public:
+    /// The width of the colored left edge of the row of a card, in pixels
+    static constexpr int EDGE_WIDTH = 5;
+
     /// @brief The editors without suggestions
     explicit PlotOutlineDelegate(QObject* parent = nullptr);
 
@@ -138,6 +147,9 @@ public:
     void setEditorData(QWidget* editor, const QModelIndex& index) const override;
     void setModelData(QWidget* editor, QAbstractItemModel* model,
                       const QModelIndex& index) const override;
+    /// @brief The cell, and in the first column shown the color of the card at its left edge
+    void paint(QPainter* painter, const QStyleOptionViewItem& option,
+               const QModelIndex& index) const override;
 
 private:
     /// @brief The points of view or the places suggested in @p column; empty: none

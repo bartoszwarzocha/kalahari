@@ -55,6 +55,7 @@ set(KALAHARI_CORE_SOURCES
     core/extension_points.cpp
     core/window_editor_provider.cpp # The editors of the window kinds that modules bring
     core/event_bus.cpp
+    core/busy_pulse.cpp       # The beats of long work, for a spinner that waits for it
     core/chapter_document.cpp
     core/chapter_scenes.cpp     # The scenes of a text: what their breaks say, moved, added, deleted
     core/chapter_versions.cpp   # Versions of the texts of the chapter files

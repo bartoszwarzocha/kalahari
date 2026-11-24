@@ -10,9 +10,9 @@
 #include "kalahari/build_info.h"
 #include "kalahari/version.h"
 #include <QClipboard>
+#include <QDate>
 #include <QDateTime>
 #include <QFormLayout>
-#include <QGroupBox>
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -76,6 +76,38 @@ QList<QPair<QString, QString>> buildRows() {
     };
 }
 
+/// @brief What the Build tab shows, short: the commit and its branch, when and how it was built,
+/// the system and the compiler (the version and Qt are in the heading)
+QList<QPair<QString, QString>> shortBuildRows() {
+    namespace build = kalahari::build;
+    QString commit = orDash(build::commit());
+    if (build::modified()) {
+        commit = AboutDialog::tr("%1 (with changes not committed)").arg(commit);
+    }
+    const QString branch = QString::fromUtf8(build::branch());
+    if (!branch.isEmpty()) {
+        //: The commit and its branch on the Build tab of About. In Polish: %1, gałąź %2
+        commit = AboutDialog::tr("%1, branch %2").arg(commit, branch);
+    }
+    const QDateTime built =
+        QDateTime::fromString(QString::fromLatin1(build::builtAt()), Qt::ISODate);
+    const QString when = built.isValid()
+                             ? QLocale().toString(built.toLocalTime(), QLocale::ShortFormat)
+                             : QStringLiteral("–");
+    return {
+        {AboutDialog::tr("Commit:"), commit},
+        //: When and how (Debug or Release) on the Build tab of About. In Polish: %1, %2
+        {AboutDialog::tr("Built:"),
+         AboutDialog::tr("%1, %2").arg(when, orDash(build::configuration()))},
+        {AboutDialog::tr("System:"),
+         //: The system, its processor and the compiler on the Build tab of About. In Polish:
+         //: %1 (%2), %3
+         AboutDialog::tr("%1 (%2), %3")
+             .arg(QSysInfo::prettyProductName(), QSysInfo::currentCpuArchitecture(),
+                  QString::fromLatin1(kalahari::COMPILER))},
+    };
+}
+
 }  // namespace
 
 // ============================================================================
@@ -96,6 +128,8 @@ AboutDialog::AboutDialog(QWidget* parent)
     // Tab widget
     m_tabs = new QTabWidget(this);
     m_tabs->addTab(createAboutTab(), tr("About"));
+    //: The tab of About with what the program was built from. In Polish: Kompilacja
+    m_tabs->addTab(createBuildTab(), tr("Build"));
     m_tabs->addTab(createComponentsTab(), tr("Third-Party Components"));
     m_tabs->addTab(createLicenseTab(), tr("License"));
     contentLayout()->addWidget(m_tabs, 1);
@@ -120,15 +154,27 @@ QString AboutDialog::buildInformation() {
     return lines.join(QLatin1Char('\n'));
 }
 
-QWidget* AboutDialog::createBuildGroup(QWidget* parent) {
-    //: The group at the end of the About tab: what the program was built from. In Polish:
-    //: Kompilacja
-    auto* group = new QGroupBox(tr("Build"), parent);
-    group->setObjectName(QStringLiteral("aboutBuildGroup"));
-    auto* layout = new QVBoxLayout(group);
+QString AboutDialog::copyrightYears(int year) {
+    // The first year of the program; a clock set earlier changes nothing
+    constexpr int FIRST_YEAR = 2025;
+    return year > FIRST_YEAR ? QStringLiteral("%1–%2").arg(FIRST_YEAR).arg(year)
+                             : QString::number(FIRST_YEAR);
+}
+
+QString AboutDialog::copyright() {
+    //: The copyright of About and of its License tab. %1: the years, "2025–2026". In Polish:
+    //: Copyright © %1 Kalahari Project
+    return tr("Copyright © %1 Kalahari Project")
+        .arg(copyrightYears(QDate::currentDate().year()));
+}
+
+QWidget* AboutDialog::createBuildTab() {
+    auto* widget = new QWidget();
+    widget->setObjectName(QStringLiteral("aboutBuildTab"));
+    auto* layout = new QVBoxLayout(widget);
     auto* form = new QFormLayout();
-    for (const auto& [label, value] : buildRows()) {
-        auto* text = new QLabel(value, group);
+    for (const auto& [label, value] : shortBuildRows()) {
+        auto* text = new QLabel(value, widget);
         text->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
         text->setWordWrap(true);
         form->addRow(label, text);
@@ -136,19 +182,20 @@ QWidget* AboutDialog::createBuildGroup(QWidget* parent) {
     layout->addLayout(form);
 
     auto* row = new QHBoxLayout();
-    //: Puts the lines of the group Build on the clipboard, for a report of a fault. In Polish:
-    //: &Kopiuj informacje o kompilacji
-    m_copy = new QPushButton(tr("&Copy Build Information"), group);
-    m_copied = new QLabel(group);
+    //: Puts what the program was built from on the clipboard, for a report of a fault. In
+    //: Polish: &Kopiuj informacje o kompilacji
+    m_copy = new QPushButton(tr("&Copy Build Information"), widget);
+    m_copied = new QLabel(widget);
     row->addWidget(m_copy);
     row->addWidget(m_copied, 1);
     layout->addLayout(row);
+    layout->addStretch(1);
     connect(m_copy, &QPushButton::clicked, this, [this]() {
         QGuiApplication::clipboard()->setText(buildInformation());
         //: After Copy Build Information in About. In Polish: Skopiowano do schowka.
         m_copied->setText(tr("Copied to the clipboard."));
     });
-    return group;
+    return widget;
 }
 
 QWidget* AboutDialog::createAboutTab() {
@@ -191,17 +238,13 @@ QWidget* AboutDialog::createAboutTab() {
            "  Target Release: February 2027 (Kalahari 1.0)"), widget);
     credits->setWordWrap(true);
     layout->addWidget(credits);
-    layout->addSpacing(10);
-
-    // At the end, after what the program is: what it was built from, which program a test or
-    // a report is about
-    layout->addWidget(createBuildGroup(widget));
     layout->addStretch(1);
 
-    // Copyright
-    QLabel* copyright = new QLabel(tr("Copyright (c) 2025 Kalahari Project"), widget);
-    copyright->setAlignment(Qt::AlignCenter);
-    layout->addWidget(copyright);
+    // Copyright, the years up to this one
+    auto* copyrightLabel = new QLabel(copyright(), widget);
+    copyrightLabel->setObjectName(QStringLiteral("aboutCopyright"));
+    copyrightLabel->setAlignment(Qt::AlignCenter);
+    layout->addWidget(copyrightLabel);
 
     // The texts scroll in a low window, e.g. on 1366x768 at 150%
     auto* area = new kalahari::gui::FittingScrollArea(widget);
@@ -284,7 +327,7 @@ QWidget* AboutDialog::createLicenseTab() {
 
     QString license;
     license += tr("MIT License\n\n");
-    license += tr("Copyright (c) 2025 Kalahari Project\n\n");
+    license += copyright() + QStringLiteral("\n\n");
     license += tr("Permission is hereby granted, free of charge, to any person obtaining a copy\n");
     license += tr("of this software and associated documentation files (the \"Software\"), to deal\n");
     license += tr("in the Software without restriction, including without limitation the rights\n");

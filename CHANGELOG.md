@@ -329,9 +329,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **After the test of 24.11** - 2026-11-24.
+  - The outline of the Plot Board shows the color of a card as a thick left edge of its row,
+    in place of the square before its title.
+  - File > Import > DOCX, Markdown, Plain Text and Other Formats open the window of the import
+    at once, without the system window before it: Add... on its tab of the files chooses the
+    files of the format, and the window opens at it.
+  - The spinner on the card of a book being opened turns evenly, its angle taken from the
+    time, about 60 pictures a second, also while the book loads: the reading of the book, its
+    texts and the tree of the Navigator give it the beat (core::BusyPulse).
+  - About has a tab Build of its own, with three short rows (the commit and the branch, the
+    date and the configuration, the system and the compiler); the copyright has the sign ©
+    and the years from 2025 to this one, only 2025 on a clock set earlier.
 - **After the test of 23.11** - 2026-11-23.
-  - The outline of the Plot Board shows the colors of the cards as the board does: a square
-    of the card's color before its title and, with the tint of the cards on, the row tinted.
+  - The outline of the Plot Board shows the colors of the cards as the board does: with the
+    tint of the cards on, the row tinted.
   - Show Clipping has no System Program: a clipping is a file of the program.
   - New Volume... is first in the menu of the project in the Navigator, no longer in the menu
     of a book or of a volume, which add their parts.
@@ -340,7 +352,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The card of a book on the Dashboard is darkened, with a spinner turning on it, until the
     book is open.
   - The icons of the light theme are grey and light grey by default (#8f8f8f and #ebebeb).
-  - The group Build of About is at the end of its tab, before the copyright.
 - **After the test of 22.11** - 2026-11-22.
   - The statistics count only writing: the words typed, deleted, cut or written in a note's
     frame, and their Undo and Redo. A caption of an image or a table, a clipping cut out of the

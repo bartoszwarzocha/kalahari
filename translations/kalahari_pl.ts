@@ -16859,10 +16859,6 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <translation>Środowisko pracy pisarza dla systemów Windows, macOS i Linux</translation>
     </message>
     <message>
-        <source>Copyright (c) 2025 Kalahari Project</source>
-        <translation>Copyright (c) 2025 Kalahari Project</translation>
-    </message>
-    <message>
         <source>Kalahari uses the following third-party components:
 
 </source>
@@ -17011,14 +17007,6 @@ The page of the downloads for the materials with a web address. In Polish: Mater
 
 </source>
         <translation>Licencja MIT (oryginalny tekst)
-
-</translation>
-    </message>
-    <message>
-        <source>Copyright (c) 2025 Kalahari Project
-
-</source>
-        <translation>Copyright (c) 2025 Kalahari Project
 
 </translation>
     </message>
@@ -17288,13 +17276,33 @@ Harmonogram projektu:
         <translation>Kompilator:</translation>
     </message>
     <message>
+        <source>%1, branch %2</source>
+        <extracomment>The commit and its branch on the Build tab of About. In Polish: %1, gałąź %2</extracomment>
+        <translation>%1, gałąź %2</translation>
+    </message>
+    <message>
+        <source>%1, %2</source>
+        <extracomment>When and how (Debug or Release) on the Build tab of About. In Polish: %1, %2</extracomment>
+        <translation>%1, %2</translation>
+    </message>
+    <message>
+        <source>%1 (%2), %3</source>
+        <extracomment>The system, its processor and the compiler on the Build tab of About. In Polish: %1 (%2), %3</extracomment>
+        <translation>%1 (%2), %3</translation>
+    </message>
+    <message>
         <source>Build</source>
-        <extracomment>The group at the end of the About tab: what the program was built from. In Polish: Kompilacja</extracomment>
+        <extracomment>The tab of About with what the program was built from. In Polish: Kompilacja</extracomment>
         <translation>Kompilacja</translation>
     </message>
     <message>
+        <source>Copyright © %1 Kalahari Project</source>
+        <extracomment>The copyright of About and of its License tab. %1: the years, &quot;2025–2026&quot;. In Polish: Copyright © %1 Kalahari Project</extracomment>
+        <translation>Copyright © %1 Kalahari Project</translation>
+    </message>
+    <message>
         <source>&amp;Copy Build Information</source>
-        <extracomment>Puts the lines of the group Build on the clipboard, for a report of a fault. In Polish: &amp;Kopiuj informacje o kompilacji</extracomment>
+        <extracomment>Puts what the program was built from on the clipboard, for a report of a fault. In Polish: &amp;Kopiuj informacje o kompilacji</extracomment>
         <translation>&amp;Kopiuj informacje o kompilacji</translation>
     </message>
     <message>
@@ -30170,26 +30178,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>Nie udało się dodać do książki wszystkich tekstów, więc to, co import dodał, zostało usunięte. Import przerywa rodzaj tekstu, którego książka nie może mieć w tym miejscu, albo plik, którego nie można zapisać.</translation>
     </message>
     <message>
-        <source>Word documents</source>
-        <extracomment>The files of the system window of File &gt; Import &gt; DOCX. In Polish: Dokumenty Worda</extracomment>
-        <translation>Dokumenty Worda</translation>
-    </message>
-    <message>
-        <source>Markdown files</source>
-        <extracomment>The files of the system window of File &gt; Import &gt; Markdown. In Polish: Pliki Markdown</extracomment>
-        <translation>Pliki Markdown</translation>
-    </message>
-    <message>
-        <source>Plain text files</source>
-        <extracomment>The files of the system window of File &gt; Import &gt; Plain Text. In Polish: Pliki zwykłego tekstu</extracomment>
-        <translation>Pliki zwykłego tekstu</translation>
-    </message>
-    <message>
-        <source>Files to Import</source>
-        <extracomment>The title of the system window that chooses the files of the import. In Polish: Pliki do importu</extracomment>
-        <translation>Pliki do importu</translation>
-    </message>
-    <message>
         <source>Book</source>
         <extracomment>The title of a book without one. In Polish: Książka</extracomment>
         <translation>Książka</translation>
@@ -30864,8 +30852,9 @@ No parts in the file. In Polish: – bez części –</extracomment>
         <translation>Z właściwości pliku: tytuł „%1”.</translation>
     </message>
     <message>
-        <source>No files.</source>
-        <translation>Brak plików.</translation>
+        <source>No files: choose them with Add...</source>
+        <extracomment>Under the empty list of the files. In Polish: Brak plików – wybierz je przyciskiem Dodaj…</extracomment>
+        <translation>Brak plików – wybierz je przyciskiem Dodaj…</translation>
     </message>
     <message>
         <source>Files to Import</source>

@@ -493,6 +493,10 @@ ImportBookDialog::ImportBookDialog(const Book& book, const core::BookTypeRegistr
     setFiles(files);
     showFormat();
     m_tabs->setCurrentIndex(0);
+    // Without files the window opens at Add...: Enter chooses them (test of 24.11)
+    if (m_files.empty()) {
+        m_addButton->setFocus();
+    }
 }
 
 void ImportBookDialog::buildFileTab() {
@@ -538,14 +542,14 @@ void ImportBookDialog::buildFileTab() {
     filesLayout->setRowStretch(2, 1);
     auto* fileButtons = new QGridLayout();
     //: Adds files to the list of the import. In Polish: Dod&aj…
-    QPushButton* addButton = newButton(tr("&Add..."), files);
+    m_addButton = newButton(tr("&Add..."), files);
     //: Moves the file up in the list. In Polish: W &górę
     m_upButton = newButton(tr("Move &Up"), files);
     //: Moves the file down in the list. In Polish: &W dół
     m_downButton = newButton(tr("Move Do&wn"), files);
     //: Takes the file out of the list of the import. In Polish: &Usuń z listy
     m_removeButton = newButton(tr("&Remove from List"), files);
-    fileButtons->addWidget(addButton, 0, 0);
+    fileButtons->addWidget(m_addButton, 0, 0);
     fileButtons->addWidget(m_removeButton, 0, 1);
     fileButtons->addWidget(m_upButton, 1, 0);
     fileButtons->addWidget(m_downButton, 1, 1);
@@ -582,7 +586,7 @@ void ImportBookDialog::buildFileTab() {
     //: In Polish: W pliku:
     addRow(file, tr("In the file:"), m_contentsLabel);
     stretchRow(file, filesRow);
-    connect(addButton, &QPushButton::clicked, this, &ImportBookDialog::browseFiles);
+    connect(m_addButton, &QPushButton::clicked, this, &ImportBookDialog::browseFiles);
 }
 
 void ImportBookDialog::buildPlaceTab() {
@@ -1779,7 +1783,8 @@ void ImportBookDialog::showFiles() {
         //: After what is in the file; %1: its title. In Polish: Z właściwości pliku: tytuł „%1”.
         contents += QLatin1Char(' ') + tr("From its properties: the title \"%1\".").arg(title);
     }
-    m_contentsLabel->setText(m_files.empty() ? tr("No files.") : contents);
+    //: Under the empty list of the files. In Polish: Brak plików – wybierz je przyciskiem Dodaj…
+    m_contentsLabel->setText(m_files.empty() ? tr("No files: choose them with Add...") : contents);
 
     // A new book takes its title, author and language from the file, until the writer types
     if (!m_newBookTyped) {

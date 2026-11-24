@@ -46,6 +46,7 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTemporaryDir>
+#include <QTimer>
 #include <QToolButton>
 #include <QTranslator>
 #include <QTreeWidget>
@@ -795,7 +796,7 @@ TEST_CASE("Import Text: the files in the order of their names, moved, added, and
     dialog.removeFile();
     dialog.removeFile();
     CHECK(fileNames(dialog).isEmpty());
-    CHECK(dialog.contentsText() == QStringLiteral("No files."));
+    CHECK(dialog.contentsText() == QStringLiteral("No files: choose them with Add..."));
     CHECK_FALSE(dialog.acceptButton()->isEnabled());
 }
 
@@ -1072,6 +1073,77 @@ TEST_CASE("Import Text: a new book, and the group Other Files", "[gui][dialogs][
     }
 }
 
+namespace {
+
+/// What the window of the import said when the command @p id opened it
+struct Opened {
+    bool opened = false;
+    int format = -1;
+    QString plugin;
+    size_t files = 0;
+    QString contents;
+    bool addFocused = false;
+    bool addEnabled = false;
+};
+
+/// Run the command @p id of @p commands; its window of the import, once open, is closed
+Opened openedBy(gui::CommandRegistry& commands, const char* id) {
+    Opened said;
+    QTimer timer;
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&said]() {
+        auto* dialog = qobject_cast<ImportBookDialog*>(QApplication::activeModalWidget());
+        if (dialog == nullptr || said.opened) {
+            return;
+        }
+        said.opened = true;
+        said.format = dialog->formatBox()->currentData().toInt();
+        said.plugin = dialog->pluginFormat();
+        said.files = dialog->files().size();
+        said.contents = dialog->contentsText();
+        said.addFocused = dialog->focusWidget() == dialog->addButton();
+        said.addEnabled = dialog->addButton()->isEnabled();
+        QMetaObject::invokeMethod(dialog, "reject", Qt::QueuedConnection);
+    });
+    timer.start();
+    gui::Command* command = commands.getCommand(id);
+    REQUIRE(command != nullptr);
+    command->execute();
+    timer.stop();
+    return said;
+}
+
+}  // namespace
+
+TEST_CASE("Import Text: the command opens the window of the import at once, Add... chooses "
+          "the files",
+          "[gui][import]") {
+    SettingsKept kept;
+    Novel novel;
+    // Test of 24.11: no system window before the window of the import
+    gui::CommandRegistry commands;
+    for (const char* id : {"file.import.docx", "file.import.markdown", "file.import.text"}) {
+        gui::Command command;
+        command.id = id;
+        commands.registerCommand(command);
+    }
+    BookImportCoordinator coordinator(test::book(), commands, {}, nullptr);
+    coordinator.connectCommands();
+    for (const auto& [id, format] :
+         {std::pair{"file.import.docx", ImportFormat::Docx},
+          std::pair{"file.import.markdown", ImportFormat::Markdown},
+          std::pair{"file.import.text", ImportFormat::PlainText}}) {
+        CAPTURE(id);
+        const Opened said = openedBy(commands, id);
+        REQUIRE(said.opened);
+        CHECK(said.format == static_cast<int>(format));
+        CHECK(said.files == 0);
+        CHECK(said.contents == QStringLiteral("No files: choose them with Add..."));
+        CHECK(said.addEnabled);
+        CHECK(said.addFocused);
+    }
+}
+
 TEST_CASE("Import Text: the commands of the menu and the window of the book", "[gui][import]") {
     Novel novel;
     const ImportBookDialog::Book book = Novel::dialogBook();
@@ -1298,6 +1370,15 @@ TEST_CASE("Import Text: a format of a plugin, its tab of options and its texts",
 
     RegisteredImporter registered;
     CHECK(command->checkEnabled());
+    // Other Formats opens the window of the import of the plugin's format at once
+    {
+        const Opened said = openedBy(commands, "file.import.plugin");
+        REQUIRE(said.opened);
+        CHECK(said.format == static_cast<int>(ImportFormat::Plugin));
+        CHECK(said.plugin == QStringLiteral("screenplay"));
+        CHECK(said.files == 0);
+        CHECK(said.addFocused);
+    }
     // Its formats with an id, a name and an extension, not the program's own
     const std::vector<gui::PluginImportFormat> formats = gui::pluginImportFormats();
     REQUIRE(formats.size() == 1);

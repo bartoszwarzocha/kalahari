@@ -23,13 +23,13 @@
 #include "kalahari_tests/gui/document_window.h"
 
 #include <QApplication>
-#include <QBoxLayout>
 #include <QClipboard>
+#include <QDate>
 #include <QDateTime>
 #include <QDirIterator>
 #include <QFile>
+#include <QFormLayout>
 #include <QFrame>
-#include <QGroupBox>
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QLabel>
@@ -40,7 +40,9 @@
 #include <QScreen>
 #include <QString>
 #include <QStringList>
+#include <QSysInfo>
 #include <QTabWidget>
+#include <QTextEdit>
 #include <QTimer>
 
 #include <algorithm>
@@ -258,7 +260,7 @@ TEST_CASE("Own windows: About has the heading of the program's dialogs and only 
     CHECK(showsText(dialog, QString::fromLatin1(kalahari::VERSION_STRING)));
     CHECK(showsText(dialog, QStringLiteral("Qt %1").arg(QString::fromLatin1(qVersion()))));
     REQUIRE(dialog.tabs() != nullptr);
-    CHECK(dialog.tabs()->count() == 3);
+    CHECK(dialog.tabs()->count() == 4);
 
     // Close is the only button: Enter presses it, and Esc closes the dialog too
     CHECK(dialog.acceptButton()->text() == QStringLiteral("Close"));
@@ -288,7 +290,12 @@ TEST_CASE("Own windows: About shows what the program was built from, and copies 
 
     AboutDialog dialog;
     REQUIRE(dialog.tabs() != nullptr);
-    CHECK(dialog.tabs()->currentIndex() == 0);  // the About tab, with the build at its end
+    // The build on a tab of its own after About, not on the About tab (test of 24.11)
+    CHECK(dialog.tabs()->currentIndex() == 0);
+    CHECK(dialog.tabs()->tabText(0) == QStringLiteral("About"));
+    CHECK(dialog.tabs()->tabText(1) == QStringLiteral("Build"));
+    CHECK_FALSE(showsText(dialog, configuration));
+    dialog.tabs()->setCurrentIndex(1);
     CHECK(showsText(dialog, configuration));
     CHECK(showsText(dialog, QLocale().toString(built.toLocalTime(), QLocale::ShortFormat)));
     const QString commit = QString::fromLatin1(build::commit());
@@ -303,21 +310,14 @@ TEST_CASE("Own windows: About shows what the program was built from, and copies 
         CHECK(showsText(dialog, branch));
     }
 
-    // The build after the information about the program, not before it (test of 23.11)
-    const auto* group = dialog.findChild<QGroupBox*>(QStringLiteral("aboutBuildGroup"));
-    REQUIRE(group != nullptr);
-    const auto* tabLayout = qobject_cast<QBoxLayout*>(group->parentWidget()->layout());
-    REQUIRE(tabLayout != nullptr);
-    int lastLabel = -1;
-    for (int i = 0; i < tabLayout->count(); ++i) {
-        if (qobject_cast<QLabel*>(tabLayout->itemAt(i)->widget()) != nullptr &&
-            !static_cast<QLabel*>(tabLayout->itemAt(i)->widget())->text().startsWith(
-                QStringLiteral("Copyright"))) {
-            lastLabel = i;
-        }
-    }
-    CHECK(lastLabel >= 0);
-    CHECK(tabLayout->indexOf(group) > lastLabel);
+    // Short: three lines, the version and Qt are in the heading (test of 24.11)
+    const auto* tab = dialog.findChild<QWidget*>(QStringLiteral("aboutBuildTab"));
+    REQUIRE(tab != nullptr);
+    const auto* form = tab->findChild<QFormLayout*>();
+    REQUIRE(form != nullptr);
+    CHECK(form->rowCount() == 3);
+    CHECK(showsText(dialog, QSysInfo::prettyProductName()));
+    CHECK(showsText(dialog, QString::fromLatin1(kalahari::COMPILER)));
 
     // The text to copy: a line for each, the same as the dialog shows
     const QStringList lines = AboutDialog::buildInformation().split(QLatin1Char('\n'));
@@ -348,6 +348,32 @@ TEST_CASE("Own windows: About shows what the program was built from, and copies 
     QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
     QApplication::sendEvent(focused, &enter);
     CHECK_FALSE(dialog.isVisible());
+}
+
+TEST_CASE("Own windows: About has the copyright sign and the years up to this one",
+          "[gui][dialogs]") {
+    // 2025 and the year of the clock; a clock set before 2025 changes nothing (test of 24.11)
+    CHECK(AboutDialog::copyrightYears(2026) == QStringLiteral("2025–2026"));
+    CHECK(AboutDialog::copyrightYears(2031) == QStringLiteral("2025–2031"));
+    CHECK(AboutDialog::copyrightYears(2025) == QStringLiteral("2025"));
+    CHECK(AboutDialog::copyrightYears(2019) == QStringLiteral("2025"));
+    const QString copyright =
+        QStringLiteral("Copyright © %1 Kalahari Project")
+            .arg(AboutDialog::copyrightYears(QDate::currentDate().year()));
+    CHECK(AboutDialog::copyright() == copyright);
+
+    AboutDialog dialog;
+    const auto* label = dialog.findChild<QLabel*>(QStringLiteral("aboutCopyright"));
+    REQUIRE(label != nullptr);
+    CHECK(label->text() == copyright);
+    CHECK_FALSE(label->text().contains(QStringLiteral("(c)")));
+    // The License tab says the same
+    bool inLicense = false;
+    for (const QTextEdit* text : dialog.findChildren<QTextEdit*>()) {
+        inLicense = inLicense || text->toPlainText().contains(copyright);
+        CHECK_FALSE(text->toPlainText().contains(QStringLiteral("Copyright (c)")));
+    }
+    CHECK(inLicense);
 }
 
 TEST_CASE("Own windows: the Icon Downloader stays open after Download", "[gui][dialogs]") {

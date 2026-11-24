@@ -15,6 +15,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
+#include "kalahari/core/busy_pulse.h"
 #include "kalahari/core/card_data.h"
 #include "kalahari/core/card_relations.h"
 #include "kalahari/core/logger.h"
@@ -1369,6 +1370,8 @@ QTreeWidgetItem* NavigatorPanel::addElementItem(QTreeWidgetItem* parent,
                                                 const core::ProjectElement& element,
                                                 const core::BookTypeRegistry& registry,
                                                 bool workshop) {
+    // A spinner that waits for the book turns while the tree is made (test of 24.11)
+    core::BusyPulse::beat();
     const core::ProjectManager& pm = m_book;
     const core::ElementForm form = core::BookProject::formOf(registry, element);
     // A kind the program does not have shows its icon on the book's card of its package
@@ -3851,6 +3854,8 @@ void NavigatorPanel::expandItemsById(const QStringList& ids) {
     auto& logger = core::Logger::getInstance();
 
     for (const QString& id : ids) {
+        // A spinner that waits for the book turns meanwhile (test of 24.11)
+        core::BusyPulse::beat();
         QTreeWidgetItem* item = nullptr;
 
         if (id.startsWith(QLatin1String("book:"))) {

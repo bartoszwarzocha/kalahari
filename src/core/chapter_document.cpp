@@ -7,6 +7,7 @@
 /// OpenSpec #00035: KChapter Document Format
 
 #include <kalahari/core/chapter_document.h>
+#include <kalahari/core/busy_pulse.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/kml_format_registry.h>
@@ -571,6 +572,9 @@ QString ChapterDocument::kmlToPlainText(const QString& kml, QStringView skippedS
     }
     ParagraphTexts paragraphs(result);
     while (reader.readNextStartElement()) {
+        // A long text read while a book opens: a spinner that waits for it turns (test of
+        // 24.11)
+        BusyPulse::beat();
         const bool skipped = !skippedStyle.isEmpty() &&
                              reader.attributes().value(QStringLiteral("style")) == skippedStyle;
         if (isParagraphElement(reader.name()) && !skipped) {
