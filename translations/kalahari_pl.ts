@@ -371,7 +371,7 @@
     <name>CommandRegistrar</name>
     <message>
         <source>&amp;For Publishers</source>
-        <translation>D&amp;la wydawnictwa</translation>
+        <translation>Dla w&amp;ydawnictwa</translation>
     </message>
     <message>
         <source>Link to a Template Point</source>
@@ -11929,8 +11929,8 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
     </message>
     <message>
         <source>Show in the &amp;Book Plan</source>
-        <extracomment>The command of the book, a part and a text of the main section in the Navigator: the plan of the book with its card chosen. In Polish: Pokaż w planie &amp;książki</extracomment>
-        <translation>Pokaż w planie &amp;książki</translation>
+        <extracomment>The command of the book, a part and a text of the main section in the Navigator: the plan of the book with its card chosen. In Polish: Pokaż w p&amp;lanie książki</extracomment>
+        <translation>Pokaż w p&amp;lanie książki</translation>
     </message>
     <message>
         <source>Book Plan</source>

@@ -2884,7 +2884,7 @@ void NavigatorPanel::addPlotBoardAction(QMenu& menu, const QString& elementId) {
     const QAction* action = menu.addAction(
         core::ArtProvider::getInstance().getIcon("view.plotBoard", core::IconContext::Menu),
         //: The command of the book, a part and a text of the main section in the Navigator:
-        //: the plan of the book with its card chosen. In Polish: Pokaż w planie &książki
+        //: the plan of the book with its card chosen. In Polish: Pokaż w p&lanie książki
         tr("Show in the &Book Plan"));
     connect(action, &QAction::triggered, this,
             [this, elementId]() { emit requestShowOnPlotBoard(elementId); });
