@@ -52,6 +52,7 @@ class EditorPanel;
 class LinkedMaterialsBox;
 class ParagraphCardsBox;
 class PlotFieldsBox;
+class RelationsBox;
 class PublishingSetPage;
 class SeriesPage;
 class PublishingTextBox;
@@ -75,6 +76,7 @@ class SectionsComboBox;
 /// Connects to BookEditor for real-time selection statistics.
 class PropertiesPanel : public QWidget {
     Q_OBJECT
+    Q_MOC_INCLUDE("kalahari/gui/widgets/relations_box.h")
 
 public:
     /// @brief Page indices for QStackedWidget
@@ -355,6 +357,10 @@ signals:
     /// @brief Card @p elementId was made with a relation on the short card: the Navigator
     /// shows it
     void cardAdded(const QString& elementId);
+
+    /// @brief A relation was added on a card of the panel (RelationsBox::relationAdded())
+    void relationAdded(kalahari::gui::RelationsBox* box, const QString& cardId,
+                       const QString& otherId, const QString& relationId);
 
     /// @brief Files, web addresses or pictures @p incoming were dropped on the short card: new
     /// materials linked with card @p link

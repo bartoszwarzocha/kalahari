@@ -281,6 +281,8 @@ void RelationsBox::openRelation(const std::optional<core::ShownRelation>& edited
         return;
     }
     const QSet<QString> before = cardIds(m_book);
+    const QList<core::ShownRelation> had = m_book.cardRelations().of(m_cardId);
+    const QString cardId = m_cardId;
     const QString otherId = dialogs::editRelation(m_book, m_cardId, edited, window());
     if (otherId.isEmpty()) {
         return;
@@ -291,6 +293,24 @@ void RelationsBox::openRelation(const std::optional<core::ShownRelation>& edited
     refresh();
     selectRow([&otherId](const core::ShownRelation& each) { return each.otherId == otherId; });
     m_list->setFocus(Qt::OtherFocusReason);
+    if (!edited) {
+        // The relation the card did not have before
+        for (const core::ShownRelation& relation : m_book.cardRelations().of(cardId)) {
+            if (relation.otherId == otherId && !had.contains(relation)) {
+                emit relationAdded(this, cardId, otherId, relation.relation);
+                break;
+            }
+        }
+    }
+}
+
+void RelationsBox::showOffer(QWidget* offer) {
+    if (offer == nullptr) {
+        return;
+    }
+    offer->setParent(this);
+    layout()->addWidget(offer);
+    offer->show();
 }
 
 void RelationsBox::removeRelation() {

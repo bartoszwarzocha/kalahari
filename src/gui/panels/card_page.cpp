@@ -406,6 +406,7 @@ CardPage::CardPage(core::ProjectManager& book, bool full, QWidget* parent)
     connect(m_relations, &RelationsBox::requestShowCard, this,
             full ? &CardPage::requestOpenCard : &CardPage::requestSelectCard);
     connect(m_relations, &RelationsBox::cardAdded, this, &CardPage::cardAdded);
+    connect(m_relations, &RelationsBox::relationAdded, this, &CardPage::relationAdded);
     // The declension of the name, as the book's dictionary has it
     m_nameBox = new CardNameBox(m_book, full, this);
     connect(m_nameBox, &CardNameBox::requestNameWindow, this, &CardPage::requestNameWindow);

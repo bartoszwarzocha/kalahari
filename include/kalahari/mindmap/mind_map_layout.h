@@ -33,15 +33,26 @@ struct MindMapPlace {
 /// @brief The size a node takes, drawn at depth @p depth (0 the main topic)
 using MindMapSizes = std::function<QSizeF(const MindMapNode& node, int depth)>;
 
+/// @brief How a layout places the nodes
+struct MindMapLayoutOptions {
+    bool everyNode = false;        ///< The nodes inside collapsed nodes too (the map of
+                                   ///< nodes, where the list's collapsing hides none)
+    double gaps = 1.0;             ///< The gaps between the nodes, times this
+    QPointF placeScale{1.0, 1.0};  ///< The places of format 1 (free, loose), times this
+    bool stackLoose = false;       ///< The loose branches under the tree, one under another,
+                                   ///< not at their loose places
+};
+
 /// @brief The places of the nodes of a mind map that show: the nodes inside a collapsed node
-/// do not
+/// do not, unless @p options say every node
 ///
 /// The layouts on both sides, to the right and down place the tree from the main topic, and
 /// the loose nodes at their loose places. The free layout puts each node at its free place;
 /// a node without one takes its place on both sides, moved a little, as if put there by
 /// hand (MindMap::fixFreePlaces() keeps it).
-[[nodiscard]] QHash<QString, MindMapPlace> layOutMindMap(const MindMap& map, MindMapLayout layout,
-                                                         const MindMapSizes& sizes);
+[[nodiscard]] QHash<QString, MindMapPlace> layOutMindMap(
+    const MindMap& map, MindMapLayout layout, const MindMapSizes& sizes,
+    const MindMapLayoutOptions& options = MindMapLayoutOptions());
 
 }  // namespace kalahari::mindmap
 

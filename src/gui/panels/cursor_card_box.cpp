@@ -89,6 +89,7 @@ CursorCardBox::CursorCardBox(core::ProjectManager& book, QWidget* parent)
     connect(m_relations, &RelationsBox::requestShowCard, this,
             &CursorCardBox::requestSelectCard);
     connect(m_relations, &RelationsBox::cardAdded, this, &CursorCardBox::cardAdded);
+    connect(m_relations, &RelationsBox::relationAdded, this, &CursorCardBox::relationAdded);
 
     //: The button of the card at the cursor in the Properties panel, which opens its full
     //: card. In Polish: Otwórz kartę

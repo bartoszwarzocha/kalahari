@@ -2362,6 +2362,22 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
                     [this, item, kind]() { addOn(item, kind); });
             changing << namedAction;
         }
+        // The commands of the modules whose kinds are added here: New Relation Map... where
+        // mind maps are added
+        for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+             windowEditorsAddedAt(item)) {
+            for (const core::WindowEditorCommand& command : provider->commands()) {
+                QAction* moduleAction = menu.addAction(
+                    artProvider.getIcon(QString::fromStdString(command.id),
+                                        core::IconContext::Menu),
+                    command.menuText);
+                connect(moduleAction, &QAction::triggered, this,
+                        [this, id = QString::fromStdString(command.id)]() {
+                            emit moduleCommandRequested(id);
+                        });
+                changing << moduleAction;
+            }
+        }
     };
 
     const auto addRenameDeleteActions = [&]() {
@@ -3218,6 +3234,27 @@ std::optional<AddTarget> NavigatorPanel::addTargetOf(const QTreeWidgetItem* item
         return target;
     }
     return std::nullopt;
+}
+
+std::vector<std::shared_ptr<core::IWindowEditorProvider>> NavigatorPanel::windowEditorsAddedAt(
+    const QTreeWidgetItem* item) const {
+    std::vector<std::shared_ptr<core::IWindowEditorProvider>> providers;
+    const std::optional<AddTarget> target = addTargetOf(item);
+    if (!target || target->scope != AddTarget::Scope::Workshop) {
+        return providers;
+    }
+    for (const core::KindRef& kind : target->kinds) {
+        if (!kind || kind.kind->editor.isEmpty()) {
+            continue;
+        }
+        std::shared_ptr<core::IWindowEditorProvider> provider =
+            core::windowEditorProvider(kind.kind->editor);
+        if (provider && std::find(providers.cbegin(), providers.cend(), provider) ==
+                            providers.cend()) {
+            providers.push_back(std::move(provider));
+        }
+    }
+    return providers;
 }
 
 QList<core::KindRef> NavigatorPanel::namedKindsOf(const QTreeWidgetItem* item) const {

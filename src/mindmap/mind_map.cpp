@@ -2,21 +2,30 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file mind_map.cpp
-/// @brief A mind map of the Workshop: its tree of nodes, its loose nodes and its connections,
-/// and their changes
+/// @brief A mind map of the Workshop: its tree of nodes, its loose nodes, its connections and
+/// its frames, and their changes
 
 #include <kalahari/mindmap/mind_map.h>
 
 #include <algorithm>
+#include <array>
 
 namespace kalahari::mindmap {
 
-namespace {
+QString MindMapNode::kindOrIdea(bool root) const {
+    if (!kind.isEmpty()) {
+        return kind;
+    }
+    return QString::fromLatin1(root ? TOPIC_KIND : IDEA_KIND);
+}
 
-constexpr double MIN_ZOOM = 0.25;
-constexpr double MAX_ZOOM = 4.0;
-
-}  // namespace
+bool MindMapNode::isOwn(bool root) const {
+    static const std::array<QString, 4> own{QString::fromLatin1(TOPIC_KIND),
+                                            QString::fromLatin1(IDEA_KIND),
+                                            QString::fromLatin1(QUESTION_KIND),
+                                            QString::fromLatin1(NOTE_KIND)};
+    return std::find(own.cbegin(), own.cend(), kindOrIdea(root)) != own.cend();
+}
 
 MindMap::MindMap() : m_root(QStringLiteral("n1")) {
     MindMapNode root;
@@ -188,6 +197,10 @@ QStringList MindMap::remove(const QString& id) {
     m_connections.removeIf([&removed](const MindMapConnection& connection) {
         return removed.contains(connection.from) || removed.contains(connection.to);
     });
+    for (MindMapFrame& frame : m_frames) {
+        frame.nodes.removeIf([&removed](const QString& in) { return removed.contains(in); });
+    }
+    m_frames.removeIf([](const MindMapFrame& frame) { return frame.nodes.isEmpty(); });
     return removed;
 }
 
@@ -207,8 +220,8 @@ bool MindMap::move(const QString& id, const QString& parent, qsizetype index) {
     detach(id);
     own->loosePlace.reset();
     MindMapNode* target = findNode(parent);
-    const qsizetype at =
-        index < 0 || index > target->children.size() ? target->children.size() : index;
+    const qsizetype at = index < 0 || index > target->children.size() ? target->children.size()
+                                                                      : index;
     target->children.insert(at, id);
     target->collapsed = false;
     m_parents.insert(id, parent);
@@ -265,16 +278,22 @@ bool MindMap::connect(const QString& from, const QString& to, const QString& lab
     if (from == to || node(from) == nullptr || node(to) == nullptr) {
         return false;
     }
-    const bool known = std::any_of(m_connections.cbegin(), m_connections.cend(),
-                                   [&from, &to](const MindMapConnection& connection) {
-                                       return (connection.from == from && connection.to == to) ||
-                                              (connection.from == to && connection.to == from);
-                                   });
-    if (known) {
+    if (connectionOf(from, to) >= 0) {
         return false;
     }
     m_connections.append(MindMapConnection{from, to, label, QJsonObject()});
     return true;
+}
+
+qsizetype MindMap::connectionOf(const QString& from, const QString& to, bool eitherWay) const {
+    for (qsizetype i = 0; i < m_connections.size(); ++i) {
+        const MindMapConnection& connection = m_connections.at(i);
+        if ((connection.from == from && connection.to == to) ||
+            (eitherWay && connection.from == to && connection.to == from)) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 bool MindMap::setConnection(qsizetype index, const MindMapConnection& connection) {
@@ -294,6 +313,178 @@ bool MindMap::disconnect(qsizetype index) {
     return true;
 }
 
+// =============================================================================
+// The map of nodes
+// =============================================================================
+
+QString MindMap::addNode(const QString& kind, const QString& text, const QPointF& place,
+                         const QString& parent) {
+    QString id;
+    if (parent.isEmpty()) {
+        id = addLoose(text, QPointF());
+        findNode(id)->loosePlace.reset();
+    } else {
+        id = addChild(parent, text);
+    }
+    if (MindMapNode* own = findNode(id)) {
+        own->kind = kind == QLatin1String(MindMapNode::IDEA_KIND) ? QString() : kind;
+        own->place = place;
+    }
+    return id;
+}
+
+bool MindMap::showsRoot() const {
+    const MindMapNode* main = node(m_root);
+    return !m_relationMap || (main != nullptr && !main->children.isEmpty());
+}
+
+bool MindMap::setPlace(const QString& id, const QPointF& place) {
+    MindMapNode* own = findNode(id);
+    if (own == nullptr) {
+        return false;
+    }
+    own->place = place;
+    return true;
+}
+
+bool MindMap::removeAlone(const QString& id) {
+    MindMapNode* own = findNode(id);
+    if (id == m_root || own == nullptr) {
+        return false;
+    }
+    const QStringList children = own->children;
+    for (const QString& child : children) {
+        detach(child);
+        m_loose.append(child);
+    }
+    own->children.clear();
+    remove(id);
+    return true;
+}
+
+QString MindMap::topOf(const QString& id) const {
+    if (node(id) == nullptr) {
+        return QString();
+    }
+    QString at = id;
+    while (!m_parents.value(at).isEmpty()) {
+        at = m_parents.value(at);
+    }
+    return at;
+}
+
+QString MindMap::nodeOfElement(const QString& elementId) const {
+    if (elementId.isEmpty()) {
+        return QString();
+    }
+    for (const QString& id : nodeIds()) {
+        const MindMapNode* own = node(id);
+        if (own->link == elementId && own->kind == QLatin1String(MindMapNode::ELEMENT_KIND)) {
+            return id;
+        }
+    }
+    return QString();
+}
+
+const MindMapFrame* MindMap::frame(const QString& id) const {
+    const auto it = std::find_if(m_frames.cbegin(), m_frames.cend(),
+                                 [&id](const MindMapFrame& frame) { return frame.id == id; });
+    return it != m_frames.cend() ? &*it : nullptr;
+}
+
+const MindMapFrame* MindMap::frameOf(const QString& nodeId) const {
+    const auto it = std::find_if(m_frames.cbegin(), m_frames.cend(),
+                                 [&nodeId](const MindMapFrame& frame) {
+                                     return frame.nodes.contains(nodeId);
+                                 });
+    return it != m_frames.cend() ? &*it : nullptr;
+}
+
+QString MindMap::newFrameId() const {
+    for (qsizetype number = m_frames.size() + 1;; ++number) {
+        const QString id = QStringLiteral("f%1").arg(number);
+        if (frame(id) == nullptr) {
+            return id;
+        }
+    }
+}
+
+QString MindMap::addFrame(const QString& title, const QStringList& nodes) {
+    MindMapFrame added;
+    added.id = newFrameId();
+    added.title = title;
+    added.nodes = nodes;
+    return setFrame(added) ? added.id : QString();
+}
+
+bool MindMap::setFrame(const MindMapFrame& frame) {
+    MindMapFrame own = frame;
+    QStringList nodes;
+    for (const QString& id : frame.nodes) {
+        if (node(id) != nullptr && !nodes.contains(id)) {
+            nodes.append(id);
+        }
+    }
+    own.nodes = nodes;
+    if (own.id.isEmpty() || own.nodes.isEmpty()) {
+        return false;
+    }
+    // Each node in one frame at most
+    for (MindMapFrame& other : m_frames) {
+        if (other.id != own.id) {
+            other.nodes.removeIf([&nodes](const QString& id) { return nodes.contains(id); });
+        }
+    }
+    const auto it = std::find_if(m_frames.begin(), m_frames.end(),
+                                 [&own](const MindMapFrame& other) { return other.id == own.id; });
+    if (it != m_frames.end()) {
+        *it = own;
+    } else {
+        m_frames.append(own);
+    }
+    m_frames.removeIf([](const MindMapFrame& other) { return other.nodes.isEmpty(); });
+    return true;
+}
+
+bool MindMap::removeFrame(const QString& id) {
+    return m_frames.removeIf([&id](const MindMapFrame& frame) { return frame.id == id; }) > 0;
+}
+
+bool MindMap::setFrameOf(const QString& nodeId, const QString& frameId) {
+    if (node(nodeId) == nullptr || (!frameId.isEmpty() && frame(frameId) == nullptr)) {
+        return false;
+    }
+    if (!frameId.isEmpty()) {
+        MindMapFrame changed = *frame(frameId);
+        if (!changed.nodes.contains(nodeId)) {
+            changed.nodes.append(nodeId);
+        }
+        return setFrame(changed);
+    }
+    for (MindMapFrame& own : m_frames) {
+        own.nodes.removeAll(nodeId);
+    }
+    m_frames.removeIf([](const MindMapFrame& own) { return own.nodes.isEmpty(); });
+    return true;
+}
+
+QStringList MindMap::attributeNames() const {
+    QStringList names;
+    for (const QString& id : nodeIds()) {
+        for (const NodeAttribute& attribute : node(id)->attributes) {
+            if (!attribute.name.isEmpty() && !names.contains(attribute.name)) {
+                names.append(attribute.name);
+            }
+        }
+    }
+    return names;
+}
+
+bool MindMap::hasNodesWithoutPlace() const {
+    return std::any_of(m_nodes.cbegin(), m_nodes.cend(),
+                       [](const MindMapNode& own) { return !own.place; });
+}
+
 bool MindMap::forgetElement(const QString& elementId, const QString& title) {
     bool changed = false;
     for (MindMapNode& own : m_nodes) {
@@ -303,6 +494,17 @@ bool MindMap::forgetElement(const QString& elementId, const QString& title) {
         own.link.clear();
         if (own.text.isEmpty()) {
             own.text = title;
+        }
+        // A node of the element, of its scene or of its thread is an idea now
+        if (!own.isOwn(own.id == m_root)) {
+            own.kind.clear();
+            own.rows.reset();
+            own.scene = -1;
+            own.planned = false;
+            own.thread.clear();
+            if (own.image == QLatin1String(MindMapNode::PORTRAIT)) {
+                own.image.clear();
+            }
         }
         changed = true;
     }

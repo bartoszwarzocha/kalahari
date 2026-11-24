@@ -94,6 +94,7 @@ class RelationsBox;
 /// what is typed in it. A book open read-only shows it all and changes nothing.
 class CardPage : public QWidget {
     Q_OBJECT
+    Q_MOC_INCLUDE("kalahari/gui/widgets/relations_box.h")
 
 public:
     /// @brief Side of the portrait of the short card
@@ -284,6 +285,10 @@ signals:
 
     /// @brief Card @p elementId was made with a relation: the Navigator shows it
     void cardAdded(const QString& elementId);
+
+    /// @brief A relation was added on the card (RelationsBox::relationAdded())
+    void relationAdded(kalahari::gui::RelationsBox* box, const QString& cardId,
+                       const QString& otherId, const QString& relationId);
 
     /// @brief Open Settings > Cards
     void requestSettings();

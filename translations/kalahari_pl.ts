@@ -1944,6 +1944,149 @@
     </message>
 </context>
 <context>
+    <name>MindMapContent</name>
+    <message>
+        <source>Main topic</source>
+        <extracomment>The kind of a node of a mind map. In Polish: Temat główny</extracomment>
+        <translation>Temat główny</translation>
+    </message>
+    <message>
+        <source>Question</source>
+        <extracomment>The kind of a node of a mind map. In Polish: Pytanie</extracomment>
+        <translation>Pytanie</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>The kind of a node of a mind map. In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>Idea</source>
+        <extracomment>The kind of a node of a mind map. In Polish: Pomysł</extracomment>
+        <translation>Pomysł</translation>
+    </message>
+    <message>
+        <source>Final</source>
+        <extracomment>The status of a text on a node of a mind map. In Polish: Gotowy</extracomment>
+        <translation>Gotowy</translation>
+    </message>
+    <message>
+        <source>Revision</source>
+        <extracomment>The status of a text on a node of a mind map. In Polish: Poprawki</extracomment>
+        <translation>Poprawki</translation>
+    </message>
+    <message>
+        <source>Draft</source>
+        <extracomment>The status of a text on a node of a mind map. In Polish: Szkic</extracomment>
+        <translation>Szkic</translation>
+    </message>
+    <message>
+        <source>Planned scene %1</source>
+        <extracomment>The title of a node of a mind map: a scene in the plan of a text, without a title of its own. %1: its number. In Polish: Scena w planie %1</extracomment>
+        <translation>Scena w planie %1</translation>
+    </message>
+    <message>
+        <source>Scene %1</source>
+        <extracomment>The title of a node of a mind map: a scene of a text without a title of its own. %1: its number. In Polish: Scena %1</extracomment>
+        <translation>Scena %1</translation>
+    </message>
+    <message>
+        <source>(deleted element)</source>
+        <extracomment>The title of a node of a mind map whose element is not in the book any more. In Polish: (usunięty element)</extracomment>
+        <translation>(usunięty element)</translation>
+    </message>
+    <message>
+        <source>(deleted thread)</source>
+        <extracomment>The title of a node of a mind map whose thread is not in the timeline any more. In Polish: (usunięty wątek)</extracomment>
+        <translation>(usunięty wątek)</translation>
+    </message>
+    <message>
+        <source>Family</source>
+        <extracomment>A row of a node of a card on a mind map: its family, with its socket. In Polish: Rodzina</extracomment>
+        <translation>Rodzina</translation>
+    </message>
+    <message>
+        <source>Relations</source>
+        <extracomment>A row of a node of a card on a mind map: its other relations with cards of its kind. In Polish: Relacje</extracomment>
+        <translation>Relacje</translation>
+    </message>
+    <message>
+        <source>In short</source>
+        <extracomment>A row of a node of a mind map: the short description of its element. In Polish: W skrócie</extracomment>
+        <translation>W skrócie</translation>
+    </message>
+    <message>
+        <source>Status</source>
+        <extracomment>A row of a node of a mind map. In Polish: Stan</extracomment>
+        <translation>Stan</translation>
+    </message>
+    <message>
+        <source>Words</source>
+        <extracomment>A row of a node of a mind map. In Polish: Słowa</extracomment>
+        <translation>Słowa</translation>
+    </message>
+    <message>
+        <source>Point of view</source>
+        <extracomment>A row of a node of a mind map: the point of view. In Polish: Punkt widzenia</extracomment>
+        <translation>Punkt widzenia</translation>
+    </message>
+    <message>
+        <source>Place of the action</source>
+        <extracomment>A row of a node of a mind map: the place of the action. In Polish: Miejsce akcji</extracomment>
+        <translation>Miejsce akcji</translation>
+    </message>
+    <message>
+        <source>Time of the action</source>
+        <extracomment>A row of a node of a mind map: the time of the action. In Polish: Czas akcji</extracomment>
+        <translation>Czas akcji</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <extracomment>A row of a node of a scene on a mind map. In Polish: Opis</extracomment>
+        <translation>Opis</translation>
+    </message>
+    <message>
+        <source>Events</source>
+        <extracomment>A row of a node of a thread of a timeline on a mind map: how many events it has. In Polish: Wydarzenia</extracomment>
+        <translation>Wydarzenia</translation>
+    </message>
+    <message>
+        <source>In the plan</source>
+        <extracomment>The status of a scene in the plan on a node of a mind map. In Polish: W planie</extracomment>
+        <translation>W planie</translation>
+    </message>
+    <message>
+        <source>Element</source>
+        <extracomment>A row of a node of a mind map: the element of the book it is about. In Polish: Element</extracomment>
+        <translation>Element</translation>
+    </message>
+    <message>
+        <source>Scene</source>
+        <extracomment>The kind of a node of a mind map: a scene of a text. In Polish: Scena</extracomment>
+        <translation>Scena</translation>
+    </message>
+    <message>
+        <source>Thread</source>
+        <extracomment>The kind of a node of a mind map: a thread of a timeline. In Polish: Wątek</extracomment>
+        <translation>Wątek</translation>
+    </message>
+    <message>
+        <source>Texts</source>
+        <extracomment>A group of the menu Add Node of a mind map. In Polish: Teksty</extracomment>
+        <translation>Teksty</translation>
+    </message>
+    <message>
+        <source>Scenes</source>
+        <extracomment>A group of the menu Add Node of a mind map. In Polish: Sceny</extracomment>
+        <translation>Sceny</translation>
+    </message>
+    <message>
+        <source>Threads</source>
+        <extracomment>A group of the menu Add Node of a mind map: the threads of the timelines. In Polish: Wątki</extracomment>
+        <translation>Wątki</translation>
+    </message>
+</context>
+<context>
     <name>PlotBoard</name>
     <message>
         <source>Draft</source>
@@ -22294,6 +22437,222 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     </message>
 </context>
 <context>
+    <name>kalahari::mindmap::MindMapNodeDialog</name>
+    <message>
+        <source>Node Properties</source>
+        <extracomment>The window of a node of a mind map. %1: its name. In Polish: Właściwości węzła / Węzeł „%1”: nazwa, notatka, wiersze z książki, własne atrybuty i obraz.</extracomment>
+        <translation>Właściwości węzła</translation>
+    </message>
+    <message>
+        <source>“%1”: its name, its note, the rows of the book, its own attributes and its picture.</source>
+        <translation>„%1”: nazwa, notatka, wiersze z książki, własne atrybuty i obraz.</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Kind</source>
+        <extracomment>In Polish: Rodzaj</extracomment>
+        <translation>Rodzaj</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>Rows of the node</source>
+        <extracomment>The accessible name of the list of the rows of a node. In Polish: Wiersze węzła</extracomment>
+        <translation>Wiersze węzła</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <extracomment>In Polish: W górę</extracomment>
+        <translation>W górę</translation>
+    </message>
+    <message>
+        <source>Down</source>
+        <extracomment>In Polish: W dół</extracomment>
+        <translation>W dół</translation>
+    </message>
+    <message>
+        <source>As at First</source>
+        <extracomment>The rows a node shows at first. In Polish: Jak na początku</extracomment>
+        <translation>Jak na początku</translation>
+    </message>
+    <message>
+        <source>Rows</source>
+        <extracomment>The rows of the book a node shows. In Polish: Wiersze</extracomment>
+        <translation>Wiersze</translation>
+    </message>
+    <message>
+        <source>Add Attribute</source>
+        <extracomment>In Polish: Dodaj atrybut</extracomment>
+        <translation>Dodaj atrybut</translation>
+    </message>
+    <message>
+        <source>Attributes</source>
+        <extracomment>The writer&apos;s own attributes of a node: a name and a value. In Polish: Atrybuty</extracomment>
+        <translation>Atrybuty</translation>
+    </message>
+    <message>
+        <source>as the settings say</source>
+        <extracomment>The picture of a node: as Settings &gt; Mind Maps say (the portraits of the cards). In Polish: jak w ustawieniach</extracomment>
+        <translation>jak w ustawieniach</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <extracomment>In Polish: bez obrazu</extracomment>
+        <translation>bez obrazu</translation>
+    </message>
+    <message>
+        <source>the main portrait of the card</source>
+        <extracomment>In Polish: główny portret karty</extracomment>
+        <translation>główny portret karty</translation>
+    </message>
+    <message>
+        <source>Picture</source>
+        <extracomment>In Polish: Obraz</extracomment>
+        <translation>Obraz</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <extracomment>In Polish: Zapisz</extracomment>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>Name, e.g. Motive</source>
+        <extracomment>The name of an attribute of a node. In Polish: Nazwa, np. Motyw</extracomment>
+        <translation>Nazwa, np. Motyw</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <extracomment>In Polish: Wartość</extracomment>
+        <translation>Wartość</translation>
+    </message>
+    <message>
+        <source>Delete the Attribute</source>
+        <extracomment>In Polish: Usuń atrybut</extracomment>
+        <translation>Usuń atrybut</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::mindmap::MindMapPicker</name>
+    <message>
+        <source>Search…</source>
+        <extracomment>The search of the small window that adds a node to a mind map or connects nodes. In Polish: Szukaj…</extracomment>
+        <translation>Szukaj…</translation>
+    </message>
+    <message>
+        <source>Nothing matches</source>
+        <extracomment>The small window that adds a node to a mind map, when nothing matches the search. In Polish: Nic nie pasuje</extracomment>
+        <translation>Nic nie pasuje</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::mindmap::RelationMapDialog</name>
+    <message>
+        <source>New Relation Map</source>
+        <extracomment>The window that makes a map of the relations of the cards. In Polish: Nowa mapa relacji</extracomment>
+        <translation>Nowa mapa relacji</translation>
+    </message>
+    <message>
+        <source>The cards of the Workshop on a mind map, with the relations they have.</source>
+        <extracomment>In Polish: Karty Warsztatu na mapie myśli, z relacjami, które mają.</extracomment>
+        <translation>Karty Warsztatu na mapie myśli, z relacjami, które mają.</translation>
+    </message>
+    <message>
+        <source>Relations of the characters</source>
+        <extracomment>The name of a new map of relations. In Polish: Relacje postaci</extracomment>
+        <translation>Relacje postaci</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Cards</source>
+        <extracomment>In Polish: Karty</extracomment>
+        <translation>Karty</translation>
+    </message>
+    <message>
+        <source>Family</source>
+        <extracomment>The relations a map of relations shows. In Polish: Rodzina</extracomment>
+        <translation>Rodzina</translation>
+    </message>
+    <message>
+        <source>Other relations</source>
+        <extracomment>In Polish: Inne relacje</extracomment>
+        <translation>Inne relacje</translation>
+    </message>
+    <message>
+        <source>Places and items of the characters</source>
+        <extracomment>In Polish: Miejsca i przedmioty postaci</extracomment>
+        <translation>Miejsca i przedmioty postaci</translation>
+    </message>
+    <message>
+        <source>Relations</source>
+        <extracomment>In Polish: Relacje</extracomment>
+        <translation>Relacje</translation>
+    </message>
+    <message>
+        <source>the family in generations</source>
+        <extracomment>The layout of a new map of relations. In Polish: rodzina w pokoleniach</extracomment>
+        <translation>rodzina w pokoleniach</translation>
+    </message>
+    <message>
+        <source>free</source>
+        <extracomment>In Polish: swobodny</extracomment>
+        <translation>swobodny</translation>
+    </message>
+    <message>
+        <source>Layout</source>
+        <extracomment>In Polish: Układ</extracomment>
+        <translation>Układ</translation>
+    </message>
+    <message>
+        <source>The map takes the relations the cards have now; new ones come to it when it opens.</source>
+        <extracomment>In Polish: Mapa bierze relacje, które karty mają teraz; nowe relacje dochodzą do niej przy otwarciu.</extracomment>
+        <translation>Mapa bierze relacje, które karty mają teraz; nowe relacje dochodzą do niej przy otwarciu.</translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <extracomment>In Polish: Utwórz</extracomment>
+        <translation>Utwórz</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::mindmap::RelationMapOffer</name>
+    <message>
+        <source>Create Relation Map</source>
+        <extracomment>The button of the offer of a map of relations. In Polish: Utwórz mapę relacji</extracomment>
+        <translation>Utwórz mapę relacji</translation>
+    </message>
+    <message>
+        <source>Not Now</source>
+        <extracomment>In Polish: Nie teraz</extracomment>
+        <translation>Nie teraz</translation>
+    </message>
+    <message>
+        <source>Do Not Ask Again</source>
+        <extracomment>In Polish: Nie pytaj więcej</extracomment>
+        <translation>Nie pytaj więcej</translation>
+    </message>
+    <message>
+        <source>Relation map</source>
+        <extracomment>The accessible name of the offer of a map of relations. In Polish: Mapa relacji</extracomment>
+        <translation>Mapa relacji</translation>
+    </message>
+    <message>
+        <source>%1 has the first relation: “%2” – %3. Create a relation map of the {kind:plural}? You will see the relations of the cards on one map.</source>
+        <extracomment>The offer after the first relation of a card: %1 the card, %2 the relation, %3 the other card, {kind:plural} its kind (&quot;characters&quot;). In Polish: %1 ma pierwszą relację: „%2” – %3. Utworzyć mapę relacji {kind:genitivePlural}? Relacje kart zobaczysz na jednej mapie.</extracomment>
+        <translation>%1 ma pierwszą relację: „%2” – %3. Utworzyć mapę relacji {kind:genitivePlural}? Relacje kart zobaczysz na jednej mapie.</translation>
+    </message>
+</context>
+<context>
     <name>main</name>
     <message>
         <source>Writer&apos;s IDE for book authors</source>
@@ -34844,14 +35203,33 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <extracomment>What Undo undoes in a mind map. In Polish: wklejenie</extracomment>
         <translation>wklejenie</translation>
     </message>
+    <message>
+        <source>unfolding a node</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: rozwinięcie węzła</extracomment>
+        <translation>rozwinięcie węzła</translation>
+    </message>
+    <message>
+        <source>folding a node</source>
+        <translation>zwinięcie węzła</translation>
+    </message>
+    <message>
+        <source>adding a frame</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: dodanie ramki</extracomment>
+        <translation>dodanie ramki</translation>
+    </message>
+    <message>
+        <source>changing a frame</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana ramki</extracomment>
+        <translation>zmiana ramki</translation>
+    </message>
+    <message>
+        <source>deleting a frame</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: usunięcie ramki</extracomment>
+        <translation>usunięcie ramki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::mindmap::MindMapEditor</name>
-    <message>
-        <source>(a deleted element)</source>
-        <extracomment>A node about an element of the book that was deleted. In Polish: (element usunięty)</extracomment>
-        <translation>(element usunięty)</translation>
-    </message>
     <message>
         <source>Undone: %1.</source>
         <translation>Cofnięto: %1.</translation>
@@ -34877,34 +35255,9 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>Widok:</translation>
     </message>
     <message>
-        <source>Both sides</source>
-        <extracomment>A layout of a mind map. In Polish: Na obie strony</extracomment>
-        <translation>Na obie strony</translation>
-    </message>
-    <message>
-        <source>To the right</source>
-        <extracomment>A layout of a mind map. In Polish: W prawo</extracomment>
-        <translation>W prawo</translation>
-    </message>
-    <message>
         <source>Down</source>
         <extracomment>A layout of a mind map: a tree going down. In Polish: W dół</extracomment>
         <translation>W dół</translation>
-    </message>
-    <message>
-        <source>Free</source>
-        <extracomment>A layout of a mind map: where the writer puts the nodes. In Polish: Swobodny</extracomment>
-        <translation>Swobodny</translation>
-    </message>
-    <message>
-        <source>Layout:</source>
-        <extracomment>In the bar of a mind map. In Polish: Układ:</extracomment>
-        <translation>Układ:</translation>
-    </message>
-    <message>
-        <source>The layout of the map: %1.</source>
-        <extracomment>In Polish: Układ mapy: %1.</extracomment>
-        <translation>Układ mapy: %1.</translation>
     </message>
     <message>
         <source>nothing</source>
@@ -34952,34 +35305,14 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>Wyróżnij:</translation>
     </message>
     <message>
-        <source>Zoom Out (Ctrl+-)</source>
-        <extracomment>In Polish: Pomniejsz (Ctrl+−)</extracomment>
-        <translation>Pomniejsz (Ctrl+−)</translation>
-    </message>
-    <message>
         <source>Zoom Out</source>
         <extracomment>In Polish: Pomniejsz</extracomment>
         <translation>Pomniejsz</translation>
     </message>
     <message>
-        <source>Zoom In (Ctrl++)</source>
-        <extracomment>In Polish: Powiększ (Ctrl++)</extracomment>
-        <translation>Powiększ (Ctrl++)</translation>
-    </message>
-    <message>
         <source>Zoom In</source>
         <extracomment>In Polish: Powiększ</extracomment>
         <translation>Powiększ</translation>
-    </message>
-    <message>
-        <source>100%</source>
-        <extracomment>In Polish: 100%</extracomment>
-        <translation>100%</translation>
-    </message>
-    <message>
-        <source>Zoom 100% (Ctrl+0)</source>
-        <extracomment>In Polish: Powiększenie 100% (Ctrl+0)</extracomment>
-        <translation>Powiększenie 100% (Ctrl+0)</translation>
     </message>
     <message>
         <source>Mind Map Settings</source>
@@ -34995,38 +35328,10 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
             <numerusform>%n węzłów</numerusform>
         </translation>
     </message>
-    <message numerus="yes">
-        <source>%n connection(s)</source>
-        <extracomment>In Polish: %n połączenie / połączenia / połączeń</extracomment>
-        <translation>
-            <numerusform>%n połączenie</numerusform>
-            <numerusform>%n połączenia</numerusform>
-            <numerusform>%n połączeń</numerusform>
-        </translation>
-    </message>
     <message>
         <source>Undo</source>
         <extracomment>The button of the bar under a mind map. In Polish: Cofnij</extracomment>
         <translation>Cofnij</translation>
-    </message>
-    <message>
-        <source>Note of the Node</source>
-        <extracomment>The window of the note of a node of a mind map. %1: the text of the node. In Polish: Notatka węzła / Notatka do „%1”. Widać ją w podpowiedzi i na liście.</extracomment>
-        <translation>Notatka węzła</translation>
-    </message>
-    <message>
-        <source>The note of “%1”. It shows in the tooltip and in the list.</source>
-        <translation>Notatka do „%1”. Widać ją w podpowiedzi i na liście.</translation>
-    </message>
-    <message>
-        <source>Note</source>
-        <extracomment>In Polish: Notatka</extracomment>
-        <translation>Notatka</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <extracomment>In Polish: Zapisz</extracomment>
-        <translation>Zapisz</translation>
     </message>
     <message>
         <source>Element of the Book</source>
@@ -35042,6 +35347,182 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>This element is not in the book any more.</source>
         <extracomment>In Polish: Tego elementu nie ma już w książce.</extracomment>
         <translation>Tego elementu nie ma już w książce.</translation>
+    </message>
+    <message>
+        <source>The cards could not be changed: %1.</source>
+        <extracomment>In the bar under a mind map, when Undo or Redo cannot change the cards back. In Polish: Nie udało się zmienić kart: %1.</extracomment>
+        <translation>Nie udało się zmienić kart: %1.</translation>
+    </message>
+    <message>
+        <source>Add Node…</source>
+        <extracomment>A command over a mind map. In Polish: Dodaj węzeł…</extracomment>
+        <translation>Dodaj węzeł…</translation>
+    </message>
+    <message>
+        <source>Add Branch</source>
+        <extracomment>In Polish: Dodaj gałąź</extracomment>
+        <translation>Dodaj gałąź</translation>
+    </message>
+    <message>
+        <source>Add Below</source>
+        <extracomment>In Polish: Dodaj poniżej</extracomment>
+        <translation>Dodaj poniżej</translation>
+    </message>
+    <message>
+        <source>Enter; above: Shift+Enter</source>
+        <extracomment>The keys of Add Below, Add Above. In Polish: Enter; powyżej: Shift+Enter</extracomment>
+        <translation>Enter; powyżej: Shift+Enter</translation>
+    </message>
+    <message>
+        <source>Edit Name</source>
+        <extracomment>In Polish: Edytuj nazwę</extracomment>
+        <translation>Edytuj nazwę</translation>
+    </message>
+    <message>
+        <source>Fold / Unfold</source>
+        <extracomment>In Polish: Zwiń / rozwiń</extracomment>
+        <translation>Zwiń / rozwiń</translation>
+    </message>
+    <message>
+        <source>Frame</source>
+        <extracomment>In Polish: Ramka</extracomment>
+        <translation>Ramka</translation>
+    </message>
+    <message>
+        <source>Arrange</source>
+        <extracomment>In Polish: Uporządkuj</extracomment>
+        <translation>Uporządkuj</translation>
+    </message>
+    <message>
+        <source>On Both Sides</source>
+        <extracomment>A layout of a mind map. In Polish: Na obie strony</extracomment>
+        <translation>Na obie strony</translation>
+    </message>
+    <message>
+        <source>To the Right</source>
+        <extracomment>In Polish: W prawo</extracomment>
+        <translation>W prawo</translation>
+    </message>
+    <message>
+        <source>Family in Generations</source>
+        <extracomment>In Polish: Rodzina w pokoleniach</extracomment>
+        <translation>Rodzina w pokoleniach</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Redo</source>
+        <extracomment>In Polish: Ponów</extracomment>
+        <translation>Ponów</translation>
+    </message>
+    <message>
+        <source>Redone: %1.</source>
+        <extracomment>In Polish: Ponowiono: %1.</extracomment>
+        <translation>Ponowiono: %1.</translation>
+    </message>
+    <message>
+        <source>Zoom (Ctrl+0: 100%)</source>
+        <extracomment>The zoom of a mind map, in the bar. In Polish: Powiększenie (Ctrl+0: 100%)</extracomment>
+        <translation>Powiększenie (Ctrl+0: 100%)</translation>
+    </message>
+    <message>
+        <source>Whole Map</source>
+        <extracomment>In Polish: Cała mapa</extracomment>
+        <translation>Cała mapa</translation>
+    </message>
+    <message>
+        <source>grid</source>
+        <extracomment>The background of the mind maps. In Polish: kratka</extracomment>
+        <translation>kratka</translation>
+    </message>
+    <message>
+        <source>dots</source>
+        <extracomment>In Polish: kropki</extracomment>
+        <translation>kropki</translation>
+    </message>
+    <message>
+        <source>plain</source>
+        <extracomment>In Polish: gładkie</extracomment>
+        <translation>gładkie</translation>
+    </message>
+    <message>
+        <source>own color</source>
+        <extracomment>In Polish: własny kolor</extracomment>
+        <translation>własny kolor</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <extracomment>In the bar of a mind map. In Polish: Tło:</extracomment>
+        <translation>Tło:</translation>
+    </message>
+    <message>
+        <source>curved</source>
+        <extracomment>The lines of the mind maps: their branches and other links. In Polish: krzywe</extracomment>
+        <translation>krzywe</translation>
+    </message>
+    <message>
+        <source>straight</source>
+        <extracomment>In Polish: proste</extracomment>
+        <translation>proste</translation>
+    </message>
+    <message>
+        <source>elbow</source>
+        <extracomment>In Polish: łamane</extracomment>
+        <translation>łamane</translation>
+    </message>
+    <message>
+        <source>Lines:</source>
+        <extracomment>In the bar of a mind map. In Polish: Linie:</extracomment>
+        <translation>Linie:</translation>
+    </message>
+    <message>
+        <source>Undo: %1 (Ctrl+Z)</source>
+        <translation>Cofnij: %1 (Ctrl+Z)</translation>
+    </message>
+    <message>
+        <source>Redo: %1 (Ctrl+Y)</source>
+        <translation>Ponów: %1 (Ctrl+Y)</translation>
+    </message>
+    <message>
+        <source>Relation map of the Workshop cards</source>
+        <extracomment>What a map is, in its bar. In Polish: Mapa relacji z kart Warsztatu</extracomment>
+        <translation>Mapa relacji z kart Warsztatu</translation>
+    </message>
+    <message>
+        <source>Mind map</source>
+        <translation>Mapa myśli</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n link(s)</source>
+        <extracomment>In Polish: %n połączenie / połączenia / połączeń</extracomment>
+        <translation>
+            <numerusform>%n połączenie</numerusform>
+            <numerusform>%n połączenia</numerusform>
+            <numerusform>%n połączeń</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Enter adds a node below, Tab puts a node a level down, Shift+Tab a level up, Ctrl+arrows among its siblings.</source>
+        <extracomment>The line under the list of a mind map. In Polish: Enter dodaje węzeł poniżej, Tab przenosi węzeł poziom niżej, Shift+Tab – poziom wyżej, Ctrl+strzałki – wśród rodzeństwa.</extracomment>
+        <translation>Enter dodaje węzeł poniżej, Tab przenosi węzeł poziom niżej, Shift+Tab – poziom wyżej, a Ctrl+strzałki – między sąsiednimi węzłami.</translation>
+    </message>
+    <message>
+        <source>changing a node</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana węzła</extracomment>
+        <translation>zmiana węzła</translation>
+    </message>
+    <message>
+        <source>The node “%1” is changed.</source>
+        <extracomment>In the bar under a mind map. In Polish: Zmieniono węzeł „%1”.</extracomment>
+        <translation>Zmieniono węzeł „%1”.</translation>
+    </message>
+    <message>
+        <source>Cards with new relations came to the map: %1.</source>
+        <extracomment>In the bar under a map of relations, when it opens. In Polish: Doszły karty z nowymi relacjami: %1.</extracomment>
+        <translation>Na mapę doszły karty z nowymi relacjami: %1.</translation>
     </message>
 </context>
 <context>
@@ -35149,6 +35630,11 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <extracomment>The page of Settings of the mind maps. In Polish: Mapy myśli</extracomment>
         <translation>Mapy myśli</translation>
     </message>
+    <message>
+        <source>New &amp;Relation Map...</source>
+        <extracomment>The command of the Book menu and of the Navigator that makes a map of the relations of the cards. In Polish: Nowa mapa &amp;relacji...</extracomment>
+        <translation>Nowa mapa &amp;relacji...</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::mindmap::MindMapSettingsPage</name>
@@ -35173,10 +35659,6 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
     <message>
         <source>Down</source>
         <translation>W dół</translation>
-    </message>
-    <message>
-        <source>Free</source>
-        <translation>Swobodny</translation>
     </message>
     <message>
         <source>A map opens on:</source>
@@ -35219,16 +35701,6 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>prostokąty</translation>
     </message>
     <message>
-        <source>ovals</source>
-        <extracomment>In Polish: owale</extracomment>
-        <translation>owale</translation>
-    </message>
-    <message>
-        <source>text over a line</source>
-        <extracomment>In Polish: tekst nad linią</extracomment>
-        <translation>tekst nad linią</translation>
-    </message>
-    <message>
         <source>Lines:</source>
         <extracomment>In Polish: Linie:</extracomment>
         <translation>Linie:</translation>
@@ -35247,11 +35719,6 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>with right angles</source>
         <extracomment>In Polish: łamane pod kątem prostym</extracomment>
         <translation>łamane pod kątem prostym</translation>
-    </message>
-    <message>
-        <source>Thinner lines deeper in the branches</source>
-        <extracomment>In Polish: Linie cieńsze w głębi gałęzi</extracomment>
-        <translation>Linie cieńsze w głębi gałęzi</translation>
     </message>
     <message>
         <source>Colors of the branches:</source>
@@ -35359,24 +35826,9 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>Tło</translation>
     </message>
     <message>
-        <source>Dots and grid</source>
-        <extracomment>In Polish: Kropki i kratka</extracomment>
-        <translation>Kropki i kratka</translation>
-    </message>
-    <message>
         <source>Own background</source>
         <extracomment>In Polish: Własny kolor tła</extracomment>
         <translation>Własny kolor tła</translation>
-    </message>
-    <message>
-        <source>Main topic</source>
-        <extracomment>In Polish: Temat główny</extracomment>
-        <translation>Temat główny</translation>
-    </message>
-    <message>
-        <source>Text of the main topic</source>
-        <extracomment>In Polish: Tekst tematu głównego</extracomment>
-        <translation>Tekst tematu głównego</translation>
     </message>
     <message>
         <source>Nodes</source>
@@ -35387,16 +35839,6 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>Connections</source>
         <extracomment>In Polish: Połączenia</extracomment>
         <translation>Połączenia</translation>
-    </message>
-    <message>
-        <source>Lines without colors</source>
-        <extracomment>In Polish: Linie bez kolorów</extracomment>
-        <translation>Linie bez kolorów</translation>
-    </message>
-    <message>
-        <source>Where a dragged node goes</source>
-        <extracomment>In Polish: Miejsce upuszczenia węzła</extracomment>
-        <translation>Miejsce upuszczenia węzła</translation>
     </message>
     <message>
         <source>Signs in the markers</source>
@@ -35428,6 +35870,146 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <extracomment>In Polish: Znacznik: do sprawdzenia</extracomment>
         <translation>Znacznik: do sprawdzenia</translation>
     </message>
+    <message>
+        <source>The nodes of the cards show the main portraits of the cards</source>
+        <extracomment>In Polish: Węzły kart pokazują główne portrety kart</extracomment>
+        <translation>Węzły kart pokazują główne portrety kart</translation>
+    </message>
+    <message>
+        <source>A new node shows only its header (H unfolds it)</source>
+        <extracomment>In Polish: Nowy węzeł pokazuje tylko nagłówek (rozwija go H)</extracomment>
+        <translation>Nowy węzeł pokazuje tylko nagłówek (rozwija go H)</translation>
+    </message>
+    <message>
+        <source>The first relation of a card offers a relation map</source>
+        <extracomment>In Polish: Pierwsza relacja karty proponuje mapę relacji</extracomment>
+        <translation>Po pierwszej relacji karty program proponuje mapę relacji</translation>
+    </message>
+    <message>
+        <source>A relation map shows the cards of the Workshop with the relations they have. Book &gt; New Relation Map… makes a new one.</source>
+        <extracomment>In Polish: Mapa relacji pokazuje karty Warsztatu z relacjami, które mają. Nową tworzy Książka &gt; Nowa mapa relacji…</extracomment>
+        <translation>Mapa relacji pokazuje karty Warsztatu z relacjami, które mają. Nową tworzy Książka &gt; Nowa mapa relacji…</translation>
+    </message>
+    <message>
+        <source>Dots</source>
+        <extracomment>In Polish: Kropki</extracomment>
+        <translation>Kropki</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <extracomment>In Polish: Kratka</extracomment>
+        <translation>Kratka</translation>
+    </message>
+    <message>
+        <source>Every fifth line of the grid</source>
+        <extracomment>In Polish: Co piąta linia kratki</extracomment>
+        <translation>Co piąta linia kratki</translation>
+    </message>
+    <message>
+        <source>Edge of a node</source>
+        <extracomment>In Polish: Krawędź węzła</extracomment>
+        <translation>Krawędź węzła</translation>
+    </message>
+    <message>
+        <source>Text of the header</source>
+        <extracomment>In Polish: Tekst nagłówka</extracomment>
+        <translation>Tekst nagłówka</translation>
+    </message>
+    <message>
+        <source>Frames</source>
+        <extracomment>In Polish: Ramki</extracomment>
+        <translation>Ramki</translation>
+    </message>
+    <message>
+        <source>Edge of a frame</source>
+        <extracomment>In Polish: Krawędź ramki</extracomment>
+        <translation>Krawędź ramki</translation>
+    </message>
+    <message>
+        <source>Where a dragged card goes</source>
+        <extracomment>In Polish: Miejsce upuszczenia karty</extracomment>
+        <translation>Miejsce upuszczenia karty</translation>
+    </message>
+    <message>
+        <source>Header: main topic</source>
+        <extracomment>The color of the header of a kind of nodes. In Polish: Nagłówek: temat główny</extracomment>
+        <translation>Nagłówek: temat główny</translation>
+    </message>
+    <message>
+        <source>Header: idea</source>
+        <extracomment>In Polish: Nagłówek: pomysł</extracomment>
+        <translation>Nagłówek: pomysł</translation>
+    </message>
+    <message>
+        <source>Header: question</source>
+        <extracomment>In Polish: Nagłówek: pytanie</extracomment>
+        <translation>Nagłówek: pytanie</translation>
+    </message>
+    <message>
+        <source>Header: note</source>
+        <extracomment>In Polish: Nagłówek: notatka</extracomment>
+        <translation>Nagłówek: notatka</translation>
+    </message>
+    <message>
+        <source>Header: character</source>
+        <extracomment>In Polish: Nagłówek: postać</extracomment>
+        <translation>Nagłówek: postać</translation>
+    </message>
+    <message>
+        <source>Header: place</source>
+        <extracomment>In Polish: Nagłówek: miejsce</extracomment>
+        <translation>Nagłówek: miejsce</translation>
+    </message>
+    <message>
+        <source>Header: item</source>
+        <extracomment>In Polish: Nagłówek: przedmiot</extracomment>
+        <translation>Nagłówek: przedmiot</translation>
+    </message>
+    <message>
+        <source>Header: text</source>
+        <extracomment>In Polish: Nagłówek: tekst</extracomment>
+        <translation>Nagłówek: tekst</translation>
+    </message>
+    <message>
+        <source>Header: scene</source>
+        <extracomment>In Polish: Nagłówek: scena</extracomment>
+        <translation>Nagłówek: scena</translation>
+    </message>
+    <message>
+        <source>Header: thread</source>
+        <extracomment>In Polish: Nagłówek: wątek</extracomment>
+        <translation>Nagłówek: wątek</translation>
+    </message>
+    <message>
+        <source>Header: another element</source>
+        <extracomment>In Polish: Nagłówek: inny element</extracomment>
+        <translation>Nagłówek: inny element</translation>
+    </message>
+    <message>
+        <source>Sockets: branch</source>
+        <extracomment>The color of the sockets and links of a kind. In Polish: Gniazda: gałąź</extracomment>
+        <translation>Gniazda: gałąź</translation>
+    </message>
+    <message>
+        <source>Sockets: family</source>
+        <extracomment>In Polish: Gniazda: rodzina</extracomment>
+        <translation>Gniazda: rodzina</translation>
+    </message>
+    <message>
+        <source>Sockets: relations</source>
+        <extracomment>In Polish: Gniazda: relacje</extracomment>
+        <translation>Gniazda: relacje</translation>
+    </message>
+    <message>
+        <source>Sockets: places</source>
+        <extracomment>In Polish: Gniazda: miejsca</extracomment>
+        <translation>Gniazda: miejsca</translation>
+    </message>
+    <message>
+        <source>Sockets: items</source>
+        <extracomment>In Polish: Gniazda: przedmioty</extracomment>
+        <translation>Gniazda: przedmioty</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::mindmap::MindMapView</name>
@@ -35437,67 +36019,9 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>Mapa myśli</translation>
     </message>
     <message>
-        <source>Text of the node</source>
-        <extracomment>The accessible name of the field of the text of a node. In Polish: Tekst węzła</extracomment>
-        <translation>Tekst węzła</translation>
-    </message>
-    <message>
         <source>Label of the connection</source>
         <extracomment>The accessible name of the field of the label of a connection. In Polish: Podpis połączenia</extracomment>
         <translation>Podpis połączenia</translation>
-    </message>
-    <message>
-        <source>“%1” has no nodes inside it, so there is nothing to collapse.</source>
-        <extracomment>In Polish: „%1” nie ma węzłów podrzędnych, więc nie ma czego zwinąć.</extracomment>
-        <translation>„%1” nie ma węzłów podrzędnych, więc nie ma czego zwinąć.</translation>
-    </message>
-    <message>
-        <source>It is the first node of this branch already.</source>
-        <translation>To już pierwszy węzeł tej gałęzi.</translation>
-    </message>
-    <message>
-        <source>It is the last node of this branch already.</source>
-        <translation>To już ostatni węzeł tej gałęzi.</translation>
-    </message>
-    <message>
-        <source>“%1” is a main branch already.</source>
-        <extracomment>In Polish: „%1” to już gałąź główna.</extracomment>
-        <translation>„%1” to już gałąź główna.</translation>
-    </message>
-    <message>
-        <source>There is no node before “%1” that it could go into.</source>
-        <extracomment>In Polish: Przed „%1” nie ma węzła, do którego mógłby wejść.</extracomment>
-        <translation>Przed „%1” nie ma węzła, do którego mógłby wejść.</translation>
-    </message>
-    <message>
-        <source>This node is not about an element of the book. Choose one with “Element of the book…” in the menu of the node.</source>
-        <extracomment>In Polish: Ten węzeł nie jest o żadnym elemencie książki. Wskaż go poleceniem „Element książki…” z menu węzła.</extracomment>
-        <translation>Ten węzeł nie jest o żadnym elemencie książki. Wskaż go poleceniem „Element książki…” z menu węzła.</translation>
-    </message>
-    <message>
-        <source>Choose the node to connect “%1” with: click it, or go to it with the arrows and press Enter. Esc cancels.</source>
-        <extracomment>In Polish: Wskaż węzeł, z którym połączyć „%1” – kliknięciem albo strzałkami i Enter. Esc odwołuje.</extracomment>
-        <translation>Wskaż węzeł, z którym połączyć „%1” – kliknięciem albo strzałkami i Enter. Esc odwołuje.</translation>
-    </message>
-    <message>
-        <source>The connection is cancelled.</source>
-        <extracomment>In Polish: Połączenie odwołane.</extracomment>
-        <translation>Połączenie odwołane.</translation>
-    </message>
-    <message>
-        <source>These nodes are connected already.</source>
-        <extracomment>In Polish: Te węzły są już połączone.</extracomment>
-        <translation>Te węzły są już połączone.</translation>
-    </message>
-    <message>
-        <source>Connected “%1” with “%2”. Type a label and press Enter.</source>
-        <extracomment>In Polish: Połączono „%1” z „%2”. Wpisz podpis i naciśnij Enter.</extracomment>
-        <translation>Połączono „%1” z „%2”. Wpisz podpis i naciśnij Enter.</translation>
-    </message>
-    <message>
-        <source>Done again: %1.</source>
-        <extracomment>In Polish: Ponowiono: %1.</extracomment>
-        <translation>Ponowiono: %1.</translation>
     </message>
     <message>
         <source>Undone: %1.</source>
@@ -35508,44 +36032,6 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>The connection is deleted.</source>
         <extracomment>In Polish: Usunięto połączenie.</extracomment>
         <translation>Usunięto połączenie.</translation>
-    </message>
-    <message>
-        <source>“%1” is inside “%2” already.</source>
-        <extracomment>In Polish: „%1” już jest w „%2”.</extracomment>
-        <translation>„%1” już jest w „%2”.</translation>
-    </message>
-    <message>
-        <source>moving a node</source>
-        <extracomment>What Undo undoes in a mind map. In Polish: przeniesienie węzła</extracomment>
-        <translation>przeniesienie węzła</translation>
-    </message>
-    <message>
-        <source>Moved “%1” into “%2”.</source>
-        <extracomment>In Polish: Przeniesiono „%1” do „%2”.</extracomment>
-        <translation>Przeniesiono „%1” do „%2”.</translation>
-    </message>
-    <message>
-        <source>“%1” is now before “%2”.</source>
-        <translation>„%1” jest teraz przed „%2”.</translation>
-    </message>
-    <message>
-        <source>“%1” is now after “%2”.</source>
-        <translation>„%1” jest teraz za „%2”.</translation>
-    </message>
-    <message>
-        <source>“%1” is a loose node now. Drag it onto a node to bring it back into a branch.</source>
-        <extracomment>In Polish: „%1” jest teraz luźnym węzłem. Przeciągnij go na węzeł, żeby wrócił do gałęzi.</extracomment>
-        <translation>„%1” jest teraz luźnym węzłem. Przeciągnij go na węzeł, żeby wrócił do gałęzi.</translation>
-    </message>
-    <message>
-        <source>A node cannot be dropped here.</source>
-        <extracomment>In Polish: Tu nie można upuścić węzła.</extracomment>
-        <translation>Tu nie można upuścić węzła.</translation>
-    </message>
-    <message>
-        <source>New loose node here</source>
-        <extracomment>In the menu of an empty place of a mind map. In Polish: Nowy luźny węzeł tutaj</extracomment>
-        <translation>Nowy luźny węzeł tutaj</translation>
     </message>
     <message>
         <source>Paste</source>
@@ -35562,72 +36048,14 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>Podpis…</translation>
     </message>
     <message>
-        <source>Reverse the arrow</source>
-        <extracomment>In Polish: Odwróć strzałkę</extracomment>
-        <translation>Odwróć strzałkę</translation>
-    </message>
-    <message>
         <source>Delete the connection</source>
         <extracomment>In Polish: Usuń połączenie</extracomment>
         <translation>Usuń połączenie</translation>
     </message>
     <message>
-        <source>New node inside</source>
-        <extracomment>In the menu of a node of a mind map. In Polish: Nowy węzeł w środku</extracomment>
-        <translation>Nowy węzeł w środku</translation>
-    </message>
-    <message>
-        <source>New node after it</source>
-        <extracomment>In Polish: Nowy węzeł za nim</extracomment>
-        <translation>Nowy węzeł za nim</translation>
-    </message>
-    <message>
-        <source>New node before it</source>
-        <extracomment>In Polish: Nowy węzeł przed nim</extracomment>
-        <translation>Nowy węzeł przed nim</translation>
-    </message>
-    <message>
-        <source>Change the text</source>
-        <extracomment>In Polish: Zmień tekst</extracomment>
-        <translation>Zmień tekst</translation>
-    </message>
-    <message>
-        <source>Note…</source>
-        <extracomment>In Polish: Notatka…</extracomment>
-        <translation>Notatka…</translation>
-    </message>
-    <message>
         <source>Element of the book…</source>
         <extracomment>In Polish: Element książki…</extracomment>
         <translation>Element książki…</translation>
-    </message>
-    <message>
-        <source>Open the element</source>
-        <extracomment>In Polish: Otwórz element</extracomment>
-        <translation>Otwórz element</translation>
-    </message>
-    <message>
-        <source>Unlink the element</source>
-        <extracomment>In Polish: Odłącz element</extracomment>
-        <translation>Odłącz element</translation>
-    </message>
-    <message>
-        <source>Connect to…</source>
-        <extracomment>In Polish: Połącz z…</extracomment>
-        <translation>Połącz z…</translation>
-    </message>
-    <message>
-        <source>Expand the branch</source>
-        <translation>Rozwiń gałąź</translation>
-    </message>
-    <message>
-        <source>Collapse the branch</source>
-        <translation>Zwiń gałąź</translation>
-    </message>
-    <message>
-        <source>Detach from the branch</source>
-        <extracomment>In Polish: Odłącz od gałęzi</extracomment>
-        <translation>Odłącz od gałęzi</translation>
     </message>
     <message>
         <source>Copy as text</source>
@@ -35638,6 +36066,456 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>Delete</source>
         <extracomment>In Polish: Usuń</extracomment>
         <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>The map is arranged.</source>
+        <extracomment>In the bar under a mind map. In Polish: Uporządkowano mapę.</extracomment>
+        <translation>Uporządkowano mapę.</translation>
+    </message>
+    <message>
+        <source>Name of the node</source>
+        <extracomment>The accessible name of the field of the title of a node. In Polish: Nazwa węzła</extracomment>
+        <translation>Nazwa węzła</translation>
+    </message>
+    <message>
+        <source>Title of the frame</source>
+        <extracomment>The accessible name of the field of the title of a frame. In Polish: Tytuł ramki</extracomment>
+        <translation>Tytuł ramki</translation>
+    </message>
+    <message>
+        <source>branch</source>
+        <extracomment>The sockets of a node of a mind map, in a message. In Polish: gałąź</extracomment>
+        <translation>gałąź</translation>
+    </message>
+    <message>
+        <source>family</source>
+        <extracomment>In Polish: rodzina</extracomment>
+        <translation>rodzina</translation>
+    </message>
+    <message>
+        <source>relations</source>
+        <extracomment>In Polish: relacje</extracomment>
+        <translation>relacje</translation>
+    </message>
+    <message>
+        <source>places</source>
+        <extracomment>In Polish: miejsca</extracomment>
+        <translation>miejsca</translation>
+    </message>
+    <message>
+        <source>items</source>
+        <extracomment>In Polish: przedmioty</extracomment>
+        <translation>przedmioty</translation>
+    </message>
+    <message>
+        <source>These sockets do not join: %1 and %2. Sockets of the same color join.</source>
+        <extracomment>In the bar under a mind map, when a link is dropped on a socket of another color. In Polish: Te gniazda się nie łączą: %1 i %2. Łączą się gniazda tego samego koloru.</extracomment>
+        <translation>Te gniazda się nie łączą: %1 i %2. Łączą się gniazda tego samego koloru.</translation>
+    </message>
+    <message>
+        <source>This node has no socket that joins with this link.</source>
+        <extracomment>In the bar under a mind map. In Polish: Ten węzeł nie ma gniazda, które łączy się z tym połączeniem.</extracomment>
+        <translation>Ten węzeł nie ma gniazda, które łączy się z tym połączeniem.</translation>
+    </message>
+    <message>
+        <source>Drop the link on a socket of the same color. From the socket of a branch on the right to an empty place, you add a joined node.</source>
+        <extracomment>In the bar under a mind map, when a link is dropped on an empty place. In Polish: Upuść połączenie na gnieździe tego samego koloru. Z prawego gniazda gałęzi w puste miejsce dodasz połączony węzeł.</extracomment>
+        <translation>Upuść połączenie na gnieździe tego samego koloru. Z prawego gniazda gałęzi w puste miejsce dodasz połączony węzeł.</translation>
+    </message>
+    <message>
+        <source>A branch. Delete detaches it; the node stays on the map.</source>
+        <extracomment>In the line under a mind map, when a branch is selected. In Polish: Gałąź. Delete ją odłącza; węzeł zostaje na mapie.</extracomment>
+        <translation>Gałąź. Delete ją odłącza; węzeł zostaje na mapie.</translation>
+    </message>
+    <message>
+        <source>a connection</source>
+        <extracomment>In Polish: połączenie</extracomment>
+        <translation>połączenie</translation>
+    </message>
+    <message>
+        <source>Link: %1. Delete removes it.</source>
+        <extracomment>In the line under a mind map; %1: &quot;relacje&quot;, &quot;rodzina&quot;, &quot;połączenie&quot;. In Polish: Połączenie: %1. Delete je usuwa.</extracomment>
+        <translation>Połączenie: %1. Delete je usuwa.</translation>
+    </message>
+    <message>
+        <source>Link: %1, “%2”. Delete removes it.</source>
+        <extracomment>%2: its label. In Polish: Połączenie: %1, „%2”. Delete je usuwa.</extracomment>
+        <translation>Połączenie: %1, „%2”. Delete je usuwa.</translation>
+    </message>
+    <message>
+        <source>A frame. Its title drags it with its nodes; Delete removes the frame, the nodes stay.</source>
+        <extracomment>In the line under a mind map, when a frame is selected. In Polish: Ramka. Jej tytuł przeciąga ją razem z węzłami; Delete usuwa ramkę, węzły zostają.</extracomment>
+        <translation>Ramka. Przeciągnięcie tytułu przesuwa ją razem z węzłami; Delete usuwa ramkę, a węzły zostają.</translation>
+    </message>
+    <message>
+        <source>%1: a node of a Workshop card (%2). Sockets in the colors of the kinds join with the sockets of the same color.</source>
+        <extracomment>In the line under a mind map; %1: the name of a card, %2: its kind (&quot;postać&quot;). In Polish: %1: węzeł karty Warsztatu (%2). Gniazda w kolorach rodzajów łączą się z gniazdami tego samego koloru.</extracomment>
+        <translation>%1: węzeł karty Warsztatu (%2). Gniazda w kolorach rodzajów łączą się z gniazdami tego samego koloru.</translation>
+    </message>
+    <message>
+        <source>%1: the main topic. Tab adds a branch on the right, Shift+A – a node of any kind.</source>
+        <extracomment>In Polish: %1: główny temat. Tab dodaje gałąź po prawej, Shift+A – węzeł dowolnego rodzaju.</extracomment>
+        <translation>%1: temat główny. Tab dodaje gałąź po prawej, Shift+A – węzeł dowolnego rodzaju.</translation>
+    </message>
+    <message>
+        <source>%1: %2. Tab adds a branch on the right, Enter – a node below.</source>
+        <extracomment>%2: its kind (&quot;pomysł&quot;). In Polish: %1: %2. Tab dodaje gałąź po prawej, Enter – węzeł poniżej.</extracomment>
+        <translation>%1: %2. Tab dodaje gałąź po prawej, Enter – węzeł poniżej.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Selected nodes: %n. Dragging moves them together; Ctrl+J puts a frame around them.</source>
+        <extracomment>In the line under a mind map. In Polish: Wybrane węzły: %n. Przeciągnięcie przesuwa je razem; Ctrl+J otacza je ramką.</extracomment>
+        <translation>
+            <numerusform>Wybrane węzły: %n. Przeciągnięcie przesuwa je razem; Ctrl+J otacza je ramką.</numerusform>
+            <numerusform>Wybrane węzły: %n. Przeciągnięcie przesuwa je razem; Ctrl+J otacza je ramką.</numerusform>
+            <numerusform>Wybrane węzły: %n. Przeciągnięcie przesuwa je razem; Ctrl+J otacza je ramką.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Drag from socket to socket to connect. The mouse wheel zooms, dragging the background moves the map.</source>
+        <extracomment>In the line under a mind map, when nothing is selected. In Polish: Przeciągnij od gniazda do gniazda, aby połączyć. Kółko myszy powiększa, przeciągnięcie tła przesuwa mapę.</extracomment>
+        <translation>Przeciągnij od gniazda do gniazda, aby połączyć. Kółko myszy powiększa, przeciągnięcie tła przesuwa mapę.</translation>
+    </message>
+    <message>
+        <source>Family</source>
+        <extracomment>The heading of the relations of a family in the list over a mind map. In Polish: Rodzina</extracomment>
+        <translation>Rodzina</translation>
+    </message>
+    <message>
+        <source>Places</source>
+        <extracomment>In Polish: Miejsca</extracomment>
+        <translation>Miejsca</translation>
+    </message>
+    <message>
+        <source>Items</source>
+        <extracomment>In Polish: Przedmioty</extracomment>
+        <translation>Przedmioty</translation>
+    </message>
+    <message>
+        <source>Relations</source>
+        <extracomment>In Polish: Relacje</extracomment>
+        <translation>Relacje</translation>
+    </message>
+    <message>
+        <source>New idea</source>
+        <extracomment>The title of a new node of a mind map, which the writer changes at once. In Polish: Nowy pomysł</extracomment>
+        <translation>Nowy pomysł</translation>
+    </message>
+    <message>
+        <source>Added a node.</source>
+        <extracomment>In the bar under a mind map. In Polish: Dodano węzeł.</extracomment>
+        <translation>Dodano węzeł.</translation>
+    </message>
+    <message>
+        <source>Added a branch: a new node on the right, joined with the one selected.</source>
+        <translation>Dodano gałąź: nowy węzeł po prawej, połączony z wybranym.</translation>
+    </message>
+    <message>
+        <source>Added a node above, of the same branch.</source>
+        <extracomment>In the bar under a mind map. In Polish: Dodano węzeł powyżej, z tej samej gałęzi.</extracomment>
+        <translation>Dodano węzeł powyżej, z tej samej gałęzi.</translation>
+    </message>
+    <message>
+        <source>Added a node above.</source>
+        <translation>Dodano węzeł powyżej.</translation>
+    </message>
+    <message>
+        <source>Added a node below, of the same branch.</source>
+        <extracomment>In Polish: Dodano węzeł poniżej, z tej samej gałęzi.</extracomment>
+        <translation>Dodano węzeł poniżej, z tej samej gałęzi.</translation>
+    </message>
+    <message>
+        <source>Added a node below.</source>
+        <translation>Dodano węzeł poniżej.</translation>
+    </message>
+    <message>
+        <source>New</source>
+        <extracomment>The heading of the kinds of the new nodes in Add Node over a mind map. In Polish: Nowy</extracomment>
+        <translation>Nowy</translation>
+    </message>
+    <message>
+        <source>Add Node</source>
+        <extracomment>The small window over a mind map that adds a node. In Polish: Dodaj węzeł</extracomment>
+        <translation>Dodaj węzeł</translation>
+    </message>
+    <message>
+        <source>Added a node joined with “%1”.</source>
+        <extracomment>In Polish: Dodano węzeł połączony z „%1”.</extracomment>
+        <translation>Dodano węzeł połączony z „%1”.</translation>
+    </message>
+    <message>
+        <source>“%1” is already on the map.</source>
+        <extracomment>In the bar under a mind map. In Polish: „%1” już jest na mapie.</extracomment>
+        <translation>„%1” już jest na mapie.</translation>
+    </message>
+    <message>
+        <source>Added “%1” with its relations to the cards on the map: %2.</source>
+        <extracomment>In the bar under a mind map. In Polish: Dodano „%1” z relacjami do kart na mapie: %2.</extracomment>
+        <translation>Dodano „%1” z relacjami do kart na mapie: %2.</translation>
+    </message>
+    <message>
+        <source>Added “%1”.</source>
+        <extracomment>In Polish: Dodano „%1”.</extracomment>
+        <translation>Dodano „%1”.</translation>
+    </message>
+    <message>
+        <source>Added elements: %1.</source>
+        <extracomment>In the bar under a mind map, after cards dragged from the Navigator. In Polish: Dodano elementy: %1.</extracomment>
+        <translation>Dodano elementy: %1.</translation>
+    </message>
+    <message>
+        <source>Connected “%1” with “%2”.</source>
+        <extracomment>In the bar under a mind map. In Polish: Połączono „%1” z „%2”.</extracomment>
+        <translation>Połączono „%1” z „%2”.</translation>
+    </message>
+    <message>
+        <source>Other relation…</source>
+        <extracomment>The last item of the relations over a mind map, which opens the window Relation. In Polish: Inna relacja…</extracomment>
+        <translation>Inna relacja…</translation>
+    </message>
+    <message>
+        <source>Relation</source>
+        <extracomment>The small window over a mind map that picks the relation of two cards. In Polish: Relacja</extracomment>
+        <translation>Relacja</translation>
+    </message>
+    <message>
+        <source>adding a relation</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: dodanie relacji</extracomment>
+        <translation>dodanie relacji</translation>
+    </message>
+    <message>
+        <source>The relation could not be saved.</source>
+        <extracomment>In the bar under a mind map. In Polish: Nie udało się zapisać relacji.</extracomment>
+        <translation>Nie udało się zapisać relacji.</translation>
+    </message>
+    <message>
+        <source>The relation is saved on the cards: %1 and %2.</source>
+        <extracomment>In the bar under a mind map. In Polish: Relacja zapisana na kartach: %1 i %2.</extracomment>
+        <translation>Relacja zapisana na kartach: %1 i %2.</translation>
+    </message>
+    <message>
+        <source>The relation is saved on both cards.</source>
+        <extracomment>In the bar under a mind map. In Polish: Relacja zapisana na obu kartach.</extracomment>
+        <translation>Relacja zapisana na obu kartach.</translation>
+    </message>
+    <message>
+        <source>changing a relation</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana relacji</extracomment>
+        <translation>zmiana relacji</translation>
+    </message>
+    <message>
+        <source>The relation is changed on both cards.</source>
+        <extracomment>In the bar under a mind map. In Polish: Zmieniono relację na obu kartach.</extracomment>
+        <translation>Zmieniono relację na obu kartach.</translation>
+    </message>
+    <message>
+        <source>deleting a relation</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: usunięcie relacji</extracomment>
+        <translation>usunięcie relacji</translation>
+    </message>
+    <message>
+        <source>The relation is deleted from both cards.</source>
+        <extracomment>In the bar under a mind map. In Polish: Usunięto relację z obu kart.</extracomment>
+        <translation>Usunięto relację z obu kart.</translation>
+    </message>
+    <message>
+        <source>Connect To</source>
+        <extracomment>The small window over a mind map that connects the node selected with another. In Polish: Połącz z</extracomment>
+        <translation>Połącz z</translation>
+    </message>
+    <message>
+        <source>Select the nodes to put in a frame.</source>
+        <extracomment>In the bar under a mind map. In Polish: Wybierz węzły, które ma objąć ramka.</extracomment>
+        <translation>Wybierz węzły, które ma objąć ramka.</translation>
+    </message>
+    <message>
+        <source>New frame</source>
+        <extracomment>The title of a new frame of a mind map. In Polish: Nowa ramka</extracomment>
+        <translation>Nowa ramka</translation>
+    </message>
+    <message>
+        <source>Added a frame. Drag its title to move it with its nodes.</source>
+        <extracomment>In the bar under a mind map. In Polish: Dodano ramkę. Przeciągnij jej tytuł, aby przesunąć ją razem z węzłami.</extracomment>
+        <translation>Dodano ramkę. Przeciągnij jej tytuł, aby przesunąć ją razem z węzłami.</translation>
+    </message>
+    <message>
+        <source>The branch is detached; “%1” stays on the map.</source>
+        <extracomment>In the bar under a mind map. In Polish: Odłączono gałąź; „%1” zostaje na mapie.</extracomment>
+        <translation>Odłączono gałąź; „%1” zostaje na mapie.</translation>
+    </message>
+    <message>
+        <source>The frame is deleted; its nodes stay.</source>
+        <extracomment>In the bar under a mind map. In Polish: Usunięto ramkę; węzły zostają.</extracomment>
+        <translation>Usunięto ramkę; węzły zostają.</translation>
+    </message>
+    <message>
+        <source>The main topic stays: it is the title of the map. Delete its branches, or the whole map in the Navigator.</source>
+        <extracomment>In Polish: Temat główny zostaje: to tytuł mapy. Usuń jego gałęzie albo całą mapę w Nawigatorze.</extracomment>
+        <translation>Temat główny zostaje: to tytuł mapy. Usuń jego gałęzie albo całą mapę w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>Deleted nodes from the map: %1.</source>
+        <extracomment>In the bar under a mind map. In Polish: Usunięto węzły z mapy: %1.</extracomment>
+        <translation>Usunięto węzły z mapy: %1.</translation>
+    </message>
+    <message>
+        <source>Deleted “%1” from the map; the card stays in the Workshop.</source>
+        <extracomment>In Polish: Usunięto „%1” z mapy; karta zostaje w Warsztacie.</extracomment>
+        <translation>Usunięto „%1” z mapy; karta zostaje w Warsztacie.</translation>
+    </message>
+    <message>
+        <source>Deleted “%1” from the map.</source>
+        <extracomment>In Polish: Usunięto „%1” z mapy.</extracomment>
+        <translation>Usunięto „%1” z mapy.</translation>
+    </message>
+    <message>
+        <source>The nodes of its branches stay.</source>
+        <extracomment>Added to the message of a deleted node. In Polish: Węzły jego gałęzi zostają.</extracomment>
+        <translation>Węzły jego gałęzi zostają.</translation>
+    </message>
+    <message>
+        <source>This node is not about an element of the book.</source>
+        <extracomment>In Polish: Ten węzeł nie jest o żadnym elemencie książki.</extracomment>
+        <translation>Ten węzeł nie jest związany z żadnym elementem książki.</translation>
+    </message>
+    <message>
+        <source>Redone: %1.</source>
+        <extracomment>In the bar under a mind map; %1 is what was done again: &quot;dodanie węzła&quot;. In Polish: Ponowiono: %1.</extracomment>
+        <translation>Ponowiono: %1.</translation>
+    </message>
+    <message>
+        <source>arranging the map</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: uporządkowanie mapy</extracomment>
+        <translation>uporządkowanie mapy</translation>
+    </message>
+    <message>
+        <source>Reverse the direction</source>
+        <extracomment>In Polish: Odwróć kierunek</extracomment>
+        <translation>Odwróć kierunek</translation>
+    </message>
+    <message>
+        <source>Change the relation…</source>
+        <extracomment>In the menu of a relation of two cards on a mind map. In Polish: Zmień relację…</extracomment>
+        <translation>Zmień relację…</translation>
+    </message>
+    <message>
+        <source>Delete the relation from the cards</source>
+        <extracomment>In Polish: Usuń relację z kart</extracomment>
+        <translation>Usuń relację z kart</translation>
+    </message>
+    <message>
+        <source>Detach the branch</source>
+        <extracomment>In the menu of a branch of a mind map. In Polish: Odłącz gałąź</extracomment>
+        <translation>Odłącz gałąź</translation>
+    </message>
+    <message>
+        <source>Change the title</source>
+        <extracomment>In the menu of a frame of a mind map. In Polish: Zmień tytuł</extracomment>
+        <translation>Zmień tytuł</translation>
+    </message>
+    <message>
+        <source>Color</source>
+        <extracomment>In the menu of a frame of a mind map. In Polish: Kolor</extracomment>
+        <translation>Kolor</translation>
+    </message>
+    <message>
+        <source>Plain</source>
+        <extracomment>The color of a frame: that of the frames of the theme. In Polish: Zwykły</extracomment>
+        <translation>Zwykły</translation>
+    </message>
+    <message>
+        <source>Color %1</source>
+        <extracomment>A color of the palette of a frame; %1 is its number. In Polish: Kolor %1</extracomment>
+        <translation>Kolor %1</translation>
+    </message>
+    <message>
+        <source>Delete the frame</source>
+        <extracomment>In Polish: Usuń ramkę</extracomment>
+        <translation>Usuń ramkę</translation>
+    </message>
+    <message>
+        <source>Add Branch</source>
+        <extracomment>In the menu of a node of a mind map. In Polish: Dodaj gałąź</extracomment>
+        <translation>Dodaj gałąź</translation>
+    </message>
+    <message>
+        <source>Add Below</source>
+        <extracomment>In Polish: Dodaj poniżej</extracomment>
+        <translation>Dodaj poniżej</translation>
+    </message>
+    <message>
+        <source>Add Above</source>
+        <extracomment>In Polish: Dodaj powyżej</extracomment>
+        <translation>Dodaj powyżej</translation>
+    </message>
+    <message>
+        <source>Add Node…</source>
+        <extracomment>In Polish: Dodaj węzeł…</extracomment>
+        <translation>Dodaj węzeł…</translation>
+    </message>
+    <message>
+        <source>Edit Name</source>
+        <extracomment>In Polish: Edytuj nazwę</extracomment>
+        <translation>Edytuj nazwę</translation>
+    </message>
+    <message>
+        <source>Node Properties…</source>
+        <extracomment>The window of a node: its note, its rows, its attributes, its picture. In Polish: Właściwości węzła…</extracomment>
+        <translation>Właściwości węzła…</translation>
+    </message>
+    <message>
+        <source>Connect To…</source>
+        <extracomment>In Polish: Połącz z…</extracomment>
+        <translation>Połącz z…</translation>
+    </message>
+    <message>
+        <source>Open the Element</source>
+        <extracomment>In Polish: Otwórz element</extracomment>
+        <translation>Otwórz element</translation>
+    </message>
+    <message>
+        <source>Unfold</source>
+        <extracomment>In Polish: Rozwiń</extracomment>
+        <translation>Rozwiń</translation>
+    </message>
+    <message>
+        <source>Fold</source>
+        <translation>Zwiń</translation>
+    </message>
+    <message>
+        <source>Frame</source>
+        <extracomment>In Polish: Ramka</extracomment>
+        <translation>Ramka</translation>
+    </message>
+    <message>
+        <source>Arrange</source>
+        <extracomment>The menu of the layouts of a mind map. In Polish: Uporządkuj</extracomment>
+        <translation>Uporządkuj</translation>
+    </message>
+    <message>
+        <source>On Both Sides</source>
+        <extracomment>A layout of a mind map. In Polish: Na obie strony</extracomment>
+        <translation>Na obie strony</translation>
+    </message>
+    <message>
+        <source>To the Right</source>
+        <extracomment>In Polish: W prawo</extracomment>
+        <translation>W prawo</translation>
+    </message>
+    <message>
+        <source>Down</source>
+        <extracomment>In Polish: W dół</extracomment>
+        <translation>W dół</translation>
+    </message>
+    <message>
+        <source>Family in Generations</source>
+        <extracomment>In Polish: Rodzina w pokoleniach</extracomment>
+        <translation>Rodzina w pokoleniach</translation>
+    </message>
+    <message>
+        <source>Whole Map</source>
+        <extracomment>In Polish: Cała mapa</extracomment>
+        <translation>Cała mapa</translation>
     </message>
 </context>
 <context>

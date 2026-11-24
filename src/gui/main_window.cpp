@@ -62,6 +62,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/window_editor_provider.h"
 #include "kalahari/core/project_database.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/recent_books_menu.h"
@@ -80,6 +81,7 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/widgets/relations_box.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/widgets/color_menu.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
@@ -357,6 +359,10 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestMoveTo);
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::elementMovedTo,
             m_navigatorCoordinator, &NavigatorCoordinator::onElementMovedTo);
+    // New Relation Map... and the other commands of the modules in the menus of the Navigator
+    // run as in the Book menu
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::moduleCommandRequested, this,
+            [this](const QString& commandId) { commands().executeCommand(commandId.toStdString()); });
     // A chapter title changed in the Properties panel shows on its tab too
     connect(m_dockCoordinator, &DockCoordinator::chapterStatusChanged,
             m_navigatorCoordinator, &NavigatorCoordinator::refreshTabTitle);
@@ -1693,6 +1699,42 @@ void MainWindow::registerCommands() {
     count += DocumentWindows::registerCommands(
         commands(), [this]() { return m_documentWindows; }, [this]() { openNewWindow(); });
 
+    // The commands of the modules (New Relation Map... of the mind maps) in the Book menu
+    for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+         core::windowEditorProviders()) {
+        for (const core::WindowEditorCommand& moduleCommand : provider->commands()) {
+            Command command;
+            command.id = moduleCommand.id;
+            command.menuText = moduleCommand.menuText.toStdString();
+            command.label = withoutAccessKey(moduleCommand.menuText).toStdString();
+            command.tooltip = command.label;
+            command.category = "BOOK";
+            command.menuPath = "BOOK/" + command.label;
+            command.menuOrder = moduleCommand.menuOrder;
+            command.phase = 1;
+            command.execute = [this, id = moduleCommand.id]() {
+                if (m_navigatorCoordinator != nullptr) {
+                    m_navigatorCoordinator->runWindowEditorCommand(id);
+                }
+            };
+            // As New Mind Map...: in a book that can be changed and adds the kinds of the module
+            command.isEnabled = [this, editorId = provider->editorId()]() {
+                const auto& projects = book();
+                if (!projects.isProjectOpen() || projects.isReadOnly()) {
+                    return false;
+                }
+                const QList<core::KindRef> offered = projects.kindsFor(core::BookPlace::Workshop);
+                return std::any_of(offered.cbegin(), offered.cend(),
+                                   [&editorId](const core::KindRef& kind) {
+                                       return kind && kind.kind->editor == editorId &&
+                                              core::ProjectManager::canAdd(kind);
+                                   });
+            };
+            commands().registerCommand(command);
+            ++count;
+        }
+    }
+
     // The keys the user changed in Settings > Keyboard Shortcuts take the place of the
     // program's, in the menus and the toolbars built next
     commands().setCustomShortcuts(loadCustomShortcuts());
@@ -2987,6 +3029,9 @@ void MainWindow::connectCards() {
             &NavigatorPanel::revealElement);
     connect(properties, &PropertiesPanel::cardAdded, m_navigatorCoordinator,
             &NavigatorCoordinator::refreshNavigator);
+    // What the modules offer after a new relation of a card: a map of relations
+    connect(properties, &PropertiesPanel::relationAdded, m_navigatorCoordinator,
+            &NavigatorCoordinator::offerAfterRelation);
     // What is dropped on a card: its materials; Find in Book of the full card
     connect(properties, &PropertiesPanel::requestAddCardMaterials, m_navigatorCoordinator,
             &NavigatorCoordinator::onRequestAddMaterials);
@@ -3356,6 +3401,12 @@ void MainWindow::updateBookCommands() {
     registry.updateActionState("book.joinVolume");
     for (const auto& [commandId, kindId] : WORKSHOP_COMMANDS) {
         registry.updateActionState(commandId);
+    }
+    for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+         core::windowEditorProviders()) {
+        for (const core::WindowEditorCommand& moduleCommand : provider->commands()) {
+            registry.updateActionState(moduleCommand.id);
+        }
     }
     registry.updateActionState("book.properties");
     utils::updateOpenBookCommands(registry);
