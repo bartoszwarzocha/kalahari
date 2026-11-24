@@ -152,13 +152,14 @@ struct PlanBook {
         if (gui::PlotCardEditor* editor = board->cardEditor()) {
             press(editor->titleEdit(), Qt::Key_Escape);
         }
+        QString added;
         for (const QString& id : ids()) {
             if (!before.contains(id)) {
-                return id;
+                added = id;
             }
         }
-        FAIL("no new card");
-        return {};
+        REQUIRE_FALSE(added.isEmpty());
+        return added;
     }
 
     [[nodiscard]] QStringList ids() const {
