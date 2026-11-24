@@ -49,6 +49,7 @@
 #include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/window_editor_provider.h"
+#include "kalahari/gui/widgets/relations_box.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/statistics_collector.h"
 #include <QTabWidget>
@@ -580,13 +581,8 @@ void NavigatorCoordinator::openWindowEditor(const core::ProjectElement& element)
         return;
     }
     const QString elementId = element.id;
-    const core::WindowEditorContext context{
-        m_book, m_commands, elementId,
-        [this, editorId = provider->editorId()]() {
-            emit windowEditorSettingsRequested(editorId);
-        },
-        [this](const QString& otherId) { onRequestOpenLink(otherId); }};
-    QWidget* page = provider->createEditor(context, m_centralTabs);
+    QWidget* page =
+        provider->createEditor(windowEditorContext(provider->editorId(), elementId), m_centralTabs);
     if (page == nullptr) {
         return;
     }
@@ -599,6 +595,44 @@ void NavigatorCoordinator::openWindowEditor(const core::ProjectElement& element)
     page->setFocus(Qt::OtherFocusReason);
     m_currentElementId = elementId;
     m_statusBar->showMessage(tr("Opened: %1").arg(element.title), 2000);
+}
+
+core::WindowEditorContext NavigatorCoordinator::windowEditorContext(const QString& editorId,
+                                                                    const QString& elementId) {
+    return core::WindowEditorContext{
+        m_book, m_commands, elementId,
+        [this, editorId]() { emit windowEditorSettingsRequested(editorId); },
+        [this](const QString& otherId) { onRequestOpenLink(otherId); }};
+}
+
+void NavigatorCoordinator::offerAfterRelation(RelationsBox* box, const QString& cardId,
+                                              const QString& otherId,
+                                              const QString& relationId) {
+    if (box == nullptr) {
+        return;
+    }
+    for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+         core::windowEditorProviders()) {
+        if (QWidget* offer = provider->relationAdded(
+                windowEditorContext(provider->editorId(), QString()), cardId, otherId,
+                relationId, box)) {
+            box->showOffer(offer);
+            return;
+        }
+    }
+}
+
+void NavigatorCoordinator::runWindowEditorCommand(const std::string& commandId) {
+    for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+         core::windowEditorProviders()) {
+        for (const core::WindowEditorCommand& command : provider->commands()) {
+            if (command.id == commandId && command.run) {
+                command.run(windowEditorContext(provider->editorId(), QString()),
+                            m_centralTabs->window());
+                return;
+            }
+        }
+    }
 }
 
 EditorPanel* NavigatorCoordinator::createEditorPanel(const core::ProjectElement* element,
@@ -621,6 +655,7 @@ CardPanel* NavigatorCoordinator::createCardPanel(const QString& elementId) {
     // relation
     connect(page, &CardPage::materialAdded, this, &NavigatorCoordinator::refreshNavigator);
     connect(page, &CardPage::cardAdded, this, &NavigatorCoordinator::refreshNavigator);
+    connect(page, &CardPage::relationAdded, this, &NavigatorCoordinator::offerAfterRelation);
     connect(page, &CardPage::requestSettings, this,
             &NavigatorCoordinator::cardSettingsRequested);
     // The other card of a relation: its full card; a chapter of the card in its editor

@@ -18,9 +18,11 @@
 #include <QSet>
 #include <functional>
 #include <optional>
+#include <string>
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/window_editor_provider.h"
 #include "kalahari/gui/add_target.h"
 #include "kalahari/gui/material_downloader.h"
 #include "kalahari/gui/material_source.h"
@@ -59,6 +61,7 @@ class EditorPanel;
 class MaterialCardPanel;
 class NotificationCoordinator;
 class PreviewPanel;
+class RelationsBox;
 
 namespace dialogs {
 class NewFileDialog;
@@ -87,6 +90,7 @@ using BookSaver = std::function<bool(const QString&)>;
 /// @endcode
 class NavigatorCoordinator : public QObject {
     Q_OBJECT
+    Q_MOC_INCLUDE("kalahari/gui/widgets/relations_box.h")
 
 public:
     /// @brief Constructor
@@ -173,6 +177,20 @@ public:
     /// elements, for the files that stay when the elements leave the book.
     /// @return The elements whose text could not be written: @p element or elements inside it
     QList<const core::ProjectElement*> saveTextsOf(const core::ProjectElement& element);
+
+    /// @brief What the window gives the module of editor @p editorId for element
+    /// @p elementId (empty: for a command of the module)
+    [[nodiscard]] core::WindowEditorContext windowEditorContext(const QString& editorId,
+                                                                const QString& elementId);
+
+    /// @brief Run command @p commandId of a module (core::WindowEditorCommand): New Relation
+    /// Map... of the mind maps
+    void runWindowEditorCommand(const std::string& commandId);
+
+    /// @brief Show under @p box what a module offers after relation @p relationId of card
+    /// @p cardId with card @p otherId was added: a map of relations after the first relation
+    void offerAfterRelation(kalahari::gui::RelationsBox* box, const QString& cardId,
+                            const QString& otherId, const QString& relationId);
 
     /// @brief The new element @p elementId with @p title is shown in the Navigator; a text
     /// element opens in the editor with the cursor at the start of its text, a card on its

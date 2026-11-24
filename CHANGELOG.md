@@ -447,6 +447,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   footnotes and endnotes; the annotations; the characters, quick insert and the clippings;
   the date and the fields; the lines and the breaks. A toolbar customized before gets the new
   buttons once, next to those it has, and keeps the order of the writer's.
+- **Mind maps as node editors** - 2026-11-24. A node of a mind map is a box with a header in the
+  color of its kind (idea, question, note, character, place, item, text, scene, thread) and
+  sockets on its edges: a branch joins the output on the right with the input on the left, and
+  the rows of a card (its fields, its family, its relations, its places and its items) have
+  sockets in their own colors, which join only with sockets of the same color. A link is drawn
+  from socket to socket; a link dropped in an empty place opens Add Node and the new node is
+  joined at once; a relation drawn between two cards opens the list of its kinds and is saved on
+  both cards. The bar over the map has Add Node... (Shift+A, a list of the kinds and of the cards
+  of the Workshop with a search field), Add Branch (Tab), Add Below and Above (Enter,
+  Shift+Enter), Edit Name (F2), Fold (H or the arrow of the header), Frame (Ctrl+J: a titled
+  frame that moves with its nodes), Arrange (both sides, to the right, down, the family in
+  generations), Delete (a node alone, its branches stay; a link; a frame), Undo and Redo (also
+  for moves and links) and the zoom; the bar of the view has the background (a grid by
+  default, dots, plain) and the lines (curved, straight, elbow). The wheel zooms smoothly around
+  the cursor, dragging the background or the middle button moves the map, Ctrl+0 is 100%, Home
+  the whole map, the arrows choose the next node. The line under the map says what was done,
+  with Undo, and what the selection is. A card dragged from the Navigator becomes its node with
+  its relations to the cards on the map. Node Properties has the name, the kind, the note, the
+  rows the node shows of the book, the writer's own attributes (a name and a value) and its
+  picture (the main portrait of a card, a picture of the Workshop). New Relation Map... (the
+  Book menu, the menu of the mind maps in the Navigator) makes a map of the cards of the kinds
+  chosen with their relations, the family in generations; new relations of the cards come to
+  it when it opens, and the first relation of a card offers such a map. The .kmap file keeps
+  the kinds, the cards, the folds, the frames and the sockets; the maps of before open with
+  their nodes as ideas. The colors of the kinds and the sockets are in the themes and in
+  Settings > Mind Maps.
 
 - **Settings: shorter pages, titled groups and a note under each option** - 2026-11-16. The
   long pages are split: Editor has General, Writing (the word count and the fields) and Margin

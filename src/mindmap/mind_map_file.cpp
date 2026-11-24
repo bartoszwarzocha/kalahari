@@ -45,6 +45,26 @@ const QString VIEW = QStringLiteral("view");
 const QString LAYOUT = QStringLiteral("layout");
 const QString MODE = QStringLiteral("mode");
 const QString ZOOM = QStringLiteral("zoom");
+const QString CENTRE = QStringLiteral("centre");
+const QString KIND = QStringLiteral("kind");
+const QString FOLDED = QStringLiteral("folded");
+const QString PLACE = QStringLiteral("place");
+const QString ROWS = QStringLiteral("rows");
+const QString ATTRIBUTES = QStringLiteral("attributes");
+const QString NAME = QStringLiteral("name");
+const QString VALUE = QStringLiteral("value");
+const QString IMAGE = QStringLiteral("image");
+const QString SCENE = QStringLiteral("scene");
+const QString PLANNED = QStringLiteral("planned");
+const QString THREAD = QStringLiteral("thread");
+const QString FRAMES = QStringLiteral("frames");
+const QString TITLE = QStringLiteral("title");
+const QString RELATIONS = QStringLiteral("relations");
+const QString KINDS = QStringLiteral("kinds");
+const QString FAMILY = QStringLiteral("family");
+const QString OTHERS = QStringLiteral("others");
+const QString ACROSS = QStringLiteral("across");
+const QString GENERATIONS = QStringLiteral("generations");
 
 constexpr std::array<const char*, 4> LAYOUT_NAMES{"bothSides", "right", "down", "free"};
 constexpr std::array<const char*, 2> MODE_NAMES{"map", "list"};
@@ -81,8 +101,12 @@ QJsonObject nodeToJson(const MindMapNode& node) {
     QJsonObject json = node.extra;
     json.insert(ID, node.id);
     json.insert(TEXT, node.text);
-    const std::array<std::pair<const QString*, const QString*>, 3> texts{
-        {{&LINK, &node.link}, {&NOTE, &node.note}, {&COLOR, &node.color}}};
+    const std::array<std::pair<const QString*, const QString*>, 6> texts{{{&KIND, &node.kind},
+                                                                          {&LINK, &node.link},
+                                                                          {&NOTE, &node.note},
+                                                                          {&COLOR, &node.color},
+                                                                          {&IMAGE, &node.image},
+                                                                          {&THREAD, &node.thread}}};
     for (const auto& [key, value] : texts) {
         if (!value->isEmpty()) {
             json.insert(*key, *value);
@@ -97,11 +121,38 @@ QJsonObject nodeToJson(const MindMapNode& node) {
     if (node.collapsed) {
         json.insert(COLLAPSED, true);
     }
-    if (node.freePlace) {
-        json.insert(FREE, pointToJson(*node.freePlace));
+    if (node.folded) {
+        json.insert(FOLDED, true);
     }
-    if (node.loosePlace) {
-        json.insert(LOOSE, pointToJson(*node.loosePlace));
+    if (node.place) {
+        json.insert(PLACE, pointToJson(*node.place));
+    } else {
+        // Not on the map yet: the places of format 1 stay until it is
+        if (node.freePlace) {
+            json.insert(FREE, pointToJson(*node.freePlace));
+        }
+        if (node.loosePlace) {
+            json.insert(LOOSE, pointToJson(*node.loosePlace));
+        }
+    }
+    if (node.rows) {
+        json.insert(ROWS, QJsonArray::fromStringList(*node.rows));
+    }
+    if (!node.attributes.isEmpty()) {
+        QJsonArray attributes;
+        for (const NodeAttribute& attribute : node.attributes) {
+            QJsonObject item = attribute.extra;
+            item.insert(NAME, attribute.name);
+            item.insert(VALUE, attribute.value);
+            attributes.append(item);
+        }
+        json.insert(ATTRIBUTES, attributes);
+    }
+    if (node.scene >= 0) {
+        json.insert(SCENE, node.scene);
+    }
+    if (node.planned) {
+        json.insert(PLANNED, true);
     }
     return json;
 }
@@ -120,17 +171,79 @@ MindMapNode nodeFromJson(const QJsonObject& json) {
     MindMapNode node;
     node.id = json.value(ID).toString();
     node.text = json.value(TEXT).toString();
+    node.kind = json.value(KIND).toString();
+    if (node.kind == QLatin1String(MindMapNode::IDEA_KIND)) {
+        node.kind.clear();
+    }
     node.link = json.value(LINK).toString();
     node.note = json.value(NOTE).toString();
     node.markers = textsOf(json.value(MARKERS));
     node.color = json.value(COLOR).toString();
     node.children = textsOf(json.value(CHILDREN));
     node.collapsed = json.value(COLLAPSED).toBool();
-    node.freePlace = pointFromJson(json.value(FREE));
-    node.loosePlace = pointFromJson(json.value(LOOSE));
-    node.extra = unknownOf(json, {ID, TEXT, LINK, NOTE, MARKERS, COLOR, CHILDREN, COLLAPSED,
-                                  FREE, LOOSE});
+    node.folded = json.value(FOLDED).toBool();
+    node.place = pointFromJson(json.value(PLACE));
+    if (!node.place) {
+        node.freePlace = pointFromJson(json.value(FREE));
+        node.loosePlace = pointFromJson(json.value(LOOSE));
+    }
+    if (json.value(ROWS).isArray()) {
+        node.rows = textsOf(json.value(ROWS));
+    }
+    for (const auto& value : json.value(ATTRIBUTES).toArray()) {
+        const QJsonObject item = value.toObject();
+        node.attributes.append(NodeAttribute{item.value(NAME).toString(),
+                                             item.value(VALUE).toString(),
+                                             unknownOf(item, {NAME, VALUE})});
+    }
+    node.attributes.removeIf(
+        [](const NodeAttribute& attribute) { return attribute.name.trimmed().isEmpty(); });
+    node.image = json.value(IMAGE).toString();
+    node.scene = json.value(SCENE).toInt(-1);
+    node.planned = json.value(PLANNED).toBool();
+    node.thread = json.value(THREAD).toString();
+    node.extra = unknownOf(json,
+                           {ID, TEXT, KIND, LINK, NOTE, MARKERS, COLOR, CHILDREN, COLLAPSED, FOLDED,
+                            PLACE, FREE, LOOSE, ROWS, ATTRIBUTES, IMAGE, SCENE, PLANNED, THREAD});
     return node;
+}
+
+QJsonObject frameToJson(const MindMapFrame& frame) {
+    QJsonObject json = frame.extra;
+    json.insert(ID, frame.id);
+    json.insert(TITLE, frame.title);
+    json.insert(NODES, QJsonArray::fromStringList(frame.nodes));
+    if (!frame.color.isEmpty()) {
+        json.insert(COLOR, frame.color);
+    }
+    return json;
+}
+
+MindMapFrame frameFromJson(const QJsonObject& json) {
+    return MindMapFrame{json.value(ID).toString(), json.value(TITLE).toString(),
+                        textsOf(json.value(NODES)), json.value(COLOR).toString(),
+                        unknownOf(json, {ID, TITLE, NODES, COLOR})};
+}
+
+QJsonObject relationsToJson(const RelationMapOptions& options) {
+    QJsonObject json = options.extra;
+    json.insert(KINDS, QJsonArray::fromStringList(options.kinds));
+    json.insert(FAMILY, options.family);
+    json.insert(OTHERS, options.others);
+    json.insert(ACROSS, options.across);
+    json.insert(GENERATIONS, options.generations);
+    return json;
+}
+
+RelationMapOptions relationsFromJson(const QJsonObject& json) {
+    RelationMapOptions options;
+    options.kinds = textsOf(json.value(KINDS));
+    options.family = json.value(FAMILY).toBool(options.family);
+    options.others = json.value(OTHERS).toBool(options.others);
+    options.across = json.value(ACROSS).toBool(options.across);
+    options.generations = json.value(GENERATIONS).toBool(options.generations);
+    options.extra = unknownOf(json, {KINDS, FAMILY, OTHERS, ACROSS, GENERATIONS});
+    return options;
 }
 
 /// A line of an outline: how deep its indent is, and its text without a bullet
@@ -140,8 +253,7 @@ struct OutlineLine {
 };
 
 std::optional<OutlineLine> outlineLine(const QString& line) {
-    static const QRegularExpression bullet(
-        QStringLiteral("^(?:[-*+•·–]|\\d{1,3}[.)])\\s+"));
+    static const QRegularExpression bullet(QStringLiteral("^(?:[-*+•·–]|\\d{1,3}[.)])\\s+"));
     int indent = 0;
     qsizetype at = 0;
     for (; at < line.size() && line.at(at).isSpace(); ++at) {
@@ -233,11 +345,24 @@ QJsonObject MindMap::toJson() const {
     view.insert(LAYOUT, nameOf(m_layout));
     view.insert(MODE, QLatin1String(MODE_NAMES.at(static_cast<std::size_t>(m_mode))));
     view.insert(ZOOM, m_zoom);
+    if (m_centre) {
+        view.insert(CENTRE, pointToJson(*m_centre));
+    }
     QJsonObject json = m_extra;
     json.insert(FORMAT_KEY, FORMAT);
     json.insert(ROOT, m_root);
     json.insert(NODES, nodes);
     json.insert(CONNECTIONS, connections);
+    if (!m_frames.isEmpty()) {
+        QJsonArray frames;
+        for (const MindMapFrame& frame : m_frames) {
+            frames.append(frameToJson(frame));
+        }
+        json.insert(FRAMES, frames);
+    }
+    if (m_relationMap) {
+        json.insert(RELATIONS, relationsToJson(*m_relationMap));
+    }
     json.insert(VIEW, view);
     return json;
 }
@@ -292,7 +417,7 @@ bool MindMap::fromJson(const QJsonObject& json, QString* error) {
         if (!placed.contains(id)) {
             place(id);
             m_loose.append(id);
-            if (!m_nodes[id].loosePlace) {
+            if (!m_nodes[id].loosePlace && !m_nodes[id].place) {
                 m_nodes[id].loosePlace = QPointF();
             }
         }
@@ -310,13 +435,23 @@ bool MindMap::fromJson(const QJsonObject& json, QString* error) {
             m_connections.last().extra = unknownOf(item, {FROM, TO, LABEL});
         }
     }
+    for (const auto& value : json.value(FRAMES).toArray()) {
+        const MindMapFrame frame = frameFromJson(value.toObject());
+        if (this->frame(frame.id) == nullptr) {
+            setFrame(frame);
+        }
+    }
+    if (json.value(RELATIONS).isObject()) {
+        m_relationMap = relationsFromJson(json.value(RELATIONS).toObject());
+    }
     const QJsonObject view = json.value(VIEW).toObject();
     m_layout = layoutOf(view.value(LAYOUT).toString()).value_or(m_layout);
     m_mode = view.value(MODE).toString() == QLatin1String(MODE_NAMES.at(1)) ? MindMapMode::List
                                                                             : MindMapMode::Map;
     setZoom(view.value(ZOOM).toDouble(m_zoom));
-    m_viewExtra = unknownOf(view, {LAYOUT, MODE, ZOOM});
-    m_extra = unknownOf(json, {FORMAT_KEY, ROOT, NODES, CONNECTIONS, VIEW});
+    m_centre = pointFromJson(view.value(CENTRE));
+    m_viewExtra = unknownOf(view, {LAYOUT, MODE, ZOOM, CENTRE});
+    m_extra = unknownOf(json, {FORMAT_KEY, ROOT, NODES, CONNECTIONS, FRAMES, RELATIONS, VIEW});
     return true;
 }
 

@@ -8,6 +8,7 @@
 /// OpenSpec #00042 Task 7.4: PropertiesPanel Integration with BookEditor.
 
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/widgets/relations_box.h"
 #include "kalahari/gui/utils/reading_time.h"
 #include "kalahari/gui/panels/book_fields_box.h"
 #include "kalahari/gui/panels/card_page.h"
@@ -771,6 +772,7 @@ QWidget* PropertiesPanel::createEditorPage() {
     connect(m_cursorCard, &CursorCardBox::requestSelectCard, this,
             &PropertiesPanel::requestSelectCard);
     connect(m_cursorCard, &CursorCardBox::cardAdded, this, &PropertiesPanel::cardAdded);
+    connect(m_cursorCard, &CursorCardBox::relationAdded, this, &PropertiesPanel::relationAdded);
     // Then the cards linked with the paragraph at the cursor of a chapter
     m_paragraphCards = new ParagraphCardsBox(m_book, scrollContent);
     layout->addWidget(m_paragraphCards);
@@ -850,6 +852,7 @@ QWidget* PropertiesPanel::createCardPage() {
     connect(m_cardPage, &CardPage::materialAdded, this, &PropertiesPanel::cardMaterialAdded);
     connect(m_cardPage, &CardPage::requestSelectCard, this, &PropertiesPanel::requestSelectCard);
     connect(m_cardPage, &CardPage::cardAdded, this, &PropertiesPanel::cardAdded);
+    connect(m_cardPage, &CardPage::relationAdded, this, &PropertiesPanel::relationAdded);
     connect(m_cardPage, &CardPage::requestAddMaterials, this,
             &PropertiesPanel::requestAddCardMaterials);
     // The Navigator and the tab of the full card show the new name

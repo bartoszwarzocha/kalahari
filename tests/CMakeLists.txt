@@ -998,6 +998,7 @@ list(APPEND TEST_SOURCES
     ${KALAHARI_TIMELINE_SOURCES} ${KALAHARI_TIMELINE_GUI_SOURCES}
     mindmap/test_mind_map.cpp     # Mind maps: the tree and its changes, file, outlines, layouts
     mindmap/test_mind_map_editor.cpp  # Mind maps: Undo, the drawing, the keys, the module
+    mindmap/test_mind_map_relations.cpp  # Mind maps of relations: cards, generations, offer
     timeline/test_story_time.cpp  # The time of the story: dates and days read and written
     timeline/test_timeline.cpp    # Timelines: events, order, file, and the axis with its gaps
     timeline/test_timeline_editor.cpp  # Timelines: Undo, the axis, the list, the book, the module

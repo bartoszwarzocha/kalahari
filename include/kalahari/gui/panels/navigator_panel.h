@@ -15,6 +15,7 @@
 #define KALAHARI_GUI_PANELS_NAVIGATOR_PANEL_H
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/window_editor_provider.h"
 #include "kalahari/gui/add_target.h"
 #include "kalahari/gui/material_source.h"
 
@@ -30,7 +31,9 @@
 #include <QStringList>
 
 #include <functional>
+#include <memory>
 #include <optional>
+#include <vector>
 
 class QAction;
 class QMenu;
@@ -572,6 +575,10 @@ signals:
     void elementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place,
                         const QString& bookId = QString());
 
+    /// @brief A command of a module that adds elements of its kinds was chosen in the menu of a
+    /// node where they are added (core::WindowEditorCommand: New Relation Map...)
+    void moduleCommandRequested(const QString& commandId);
+
     /// @brief Request to choose a new place of an element in the book (Move...)
     /// @param elementId Element ID
     void requestMoveTo(const QString& elementId);
@@ -720,6 +727,11 @@ private:
 
     /// @brief The "+" button can add on the current node
     void updateAddButton();
+
+    /// @brief The modules whose kinds are the only ones added at @p item of the Workshop, each
+    /// once: the mind maps at their group and at a map
+    std::vector<std::shared_ptr<core::IWindowEditorProvider>> windowEditorsAddedAt(
+        const QTreeWidgetItem* item) const;
 
     /// @brief The kinds the menu of @p item names in its own commands ("Add Chapter..."),
     /// those most added there; none in variant "single" of "navigator.addCommands"

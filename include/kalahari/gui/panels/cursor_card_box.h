@@ -43,6 +43,7 @@ class RelationsBox;
 /// (cardsAtCursor()) chooses what the Properties panel shows of the cards at the cursor.
 class CursorCardBox : public QGroupBox {
     Q_OBJECT
+    Q_MOC_INCLUDE("kalahari/gui/widgets/relations_box.h")
 
 public:
     /// @brief What the Properties panel shows of the cards at the cursor
@@ -102,6 +103,10 @@ signals:
 
     /// @brief Card @p cardId was made with a relation: the Navigator shows it
     void cardAdded(const QString& cardId);
+
+    /// @brief A relation was added on the card (RelationsBox::relationAdded())
+    void relationAdded(kalahari::gui::RelationsBox* box, const QString& cardId,
+                       const QString& otherId, const QString& relationId);
 
     /// @brief Open Settings > Cards
     void requestSettings();

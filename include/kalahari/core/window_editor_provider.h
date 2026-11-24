@@ -15,6 +15,7 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 class QWidget;
@@ -37,6 +38,17 @@ struct WindowEditorContext {
     /// Open element @p elementId of the book as the Navigator does: a chapter in its editor,
     /// a card, a material, another element of a module on its tab
     std::function<void(const QString& elementId)> openElement;
+};
+
+/// @brief A command of a module in the Book menu, and in the menu of the Navigator where
+/// elements of the kinds of its editor are added: "New Relation Map..."; the module registers
+/// its icon under its id
+struct WindowEditorCommand {
+    std::string id;     ///< The id of the command: "book.newRelationMap"
+    QString menuText;   ///< In the language of the program, with its access key
+    int menuOrder = 0;  ///< Its place in the Book menu
+    /// Run it in the book of @p context (its elementId empty), its windows over @p parent
+    std::function<void(const WindowEditorContext& context, QWidget* parent)> run;
 };
 
 /// @brief A module that edits the elements of the window kinds whose editor
@@ -74,6 +86,24 @@ public:
 
     /// @brief Its page of Settings (a gui::SettingsPage), owned by the window of Settings
     [[nodiscard]] virtual QWidget* createSettingsPage() { return nullptr; }
+
+    /// @brief Its commands in the Book menu and in the Navigator
+    [[nodiscard]] virtual std::vector<WindowEditorCommand> commands() const { return {}; }
+
+    /// @brief What the module offers after relation @p relationId of card @p cardId with card
+    /// @p otherId was added: a bar the card shows under its relations, a child of @p parent
+    /// that closes itself
+    /// @return nullptr: nothing
+    [[nodiscard]] virtual QWidget* relationAdded(const WindowEditorContext& context,
+                                                 const QString& cardId, const QString& otherId,
+                                                 const QString& relationId, QWidget* parent) {
+        (void)context;
+        (void)cardId;
+        (void)otherId;
+        (void)relationId;
+        (void)parent;
+        return nullptr;
+    }
 
 protected:
     IWindowEditorProvider() = default;
