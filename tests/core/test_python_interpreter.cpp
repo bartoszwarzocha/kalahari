@@ -5,9 +5,12 @@
 /// @brief Unit tests for PythonInterpreter
 
 #include <catch2/catch_test_macros.hpp>
+#include <pybind11/embed.h>
 #include <kalahari/core/python_interpreter.h>
+#include <kalahari/core/unicode_paths.h>
 
 using namespace kalahari::core;
+namespace py = pybind11;
 
 TEST_CASE("PythonInterpreter initialization", "[python]") {
     auto& python = PythonInterpreter::getInstance();
@@ -50,4 +53,20 @@ TEST_CASE("PythonInterpreter executeTest", "[python]") {
         REQUIRE(result.find("[FAIL]") == std::string::npos);
         REQUIRE(result.find("ERROR") == std::string::npos);
     }
+}
+
+TEST_CASE("Python keeps its compiled modules in the cache of the user", "[python]") {
+    auto& python = PythonInterpreter::getInstance();
+    python.initialize();  // No-op when already initialized
+
+    // Not next to the modules: an installed program does not write into its folder
+    const std::filesystem::path folder = PythonInterpreter::compiledModulesFolder();
+    REQUIRE_FALSE(folder.empty());
+    CHECK(folder.filename() == "python");
+    CHECK(folder.parent_path().filename() == "kalahari");
+
+    py::gil_scoped_acquire gil;
+    const py::object prefix = py::module_::import("sys").attr("pycache_prefix");
+    REQUIRE_FALSE(prefix.is_none());
+    CHECK(pathOfText(prefix.cast<std::string>()) == folder);
 }

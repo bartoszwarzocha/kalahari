@@ -264,6 +264,11 @@ void SettingsDialog::createNavigationTree() {
     addPage(files, tr("Folders"), []() { return new FoldersPage(); });
     //: The page of the choices the window of the import starts with. In Polish: Import
     m_pageItems[IMPORT_PAGE] = addPage(files, tr("Import"), []() { return new ImportPage(); });
+    //: The page of the program the system opens the books and the documents with. In Polish:
+    //: Powiązania plików
+    m_pageItems[FILE_ASSOCIATIONS_PAGE] = addPage(files, tr("File Associations"), []() {
+        return new FileAssociationsPage();
+    });
     addPlannedPage(files, tr("Backup"),
                    tr("Planned features:\n"
                       "- Automatic backup frequency\n"

@@ -383,8 +383,11 @@ them together, and the CTest test `scripts.release_check` fails when they disagr
    `git tag -a vX.Y.Z-alpha -m "Kalahari X.Y.Z-alpha"` and `git push origin vX.Y.Z-alpha`.
 6. The RELEASE workflow (`.github/workflows/release.yml`) checks that the tag is the version
    of the files and makes a **draft** pre-release on GitHub with the summary of step 1.
-   Nothing is public until the owner publishes the draft. No installers are attached yet:
-   they belong to Phase 4.
+   Nothing is public until the owner publishes the draft. Its job "Packages of the release"
+   waits for the runs of LINUX, WINDOWS and MACOS of the tagged commit on main and attaches
+   their packages (the Windows installer and ZIP, the AppImage and the `.deb`, the `.dmg`,
+   each with its `.sha256`; BUILDING.md, "Packages"). Install them on each system before the
+   draft is published.
 
 **Example:**
 ```markdown

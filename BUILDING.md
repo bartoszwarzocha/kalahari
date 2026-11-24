@@ -404,6 +404,69 @@ ctest --output-on-failure
 
 ---
 
+## Packages
+
+The installers of the program are made from a **Release** build by `scripts/package.py`, from
+what `cmake --install` puts in the folder of an installation (`cmake/Packaging.cmake`). Every
+package is checked before it is written: the packaged program runs its own check of an
+installation, `kalahari --self-test` (resources, icon, translations, the Qt plugins of images,
+the database and secure connections, the Python of the plugins), and the package is not made
+when a part is missing. The CI makes the packages in the Release jobs of every run (artifacts
+`kalahari-<system>-packages`); a version tag attaches those of main to the draft release
+(`.github/workflows/release.yml`).
+
+| System | Command | Packages |
+|---|---|---|
+| Linux (Ubuntu 24.04, Linux Mint 22 and newer) | `python3 scripts/package.py linux --build build` | `Kalahari-<version>-x86_64.AppImage`, `kalahari_<version>_amd64.deb` |
+| Windows 10/11 x64 | `python scripts/package.py windows --build build-windows` | `Kalahari-<version>-windows-x64-setup.exe`, `Kalahari-<version>-windows-x64.zip` |
+| macOS (Apple Silicon) | `python3 scripts/package.py macos --build build` | `Kalahari-<version>-macos-arm64.dmg` |
+
+The packages go to `dist/` (`--out` gives another folder), each with its `.sha256`.
+
+Each package carries everything the program needs that the system does not give: Qt, the
+Python of the plugins with its standard library, the other libraries, the resources, and on
+Windows the runtime of Visual C++. After the packages are made, the CI installs them as a writer
+does and checks the installed program (`python scripts/package.py install-check --dist dist`):
+
+- **Linux:** in docker, on a clean Ubuntu 24.04 (the base of Linux Mint 22,
+  `packaging/linux/check-packages.sh`): apt installs the `.deb` with the libraries of the
+  system it names, `ldd` finds every library of the program, the program passes its check as
+  a user without and with an X server, the system knows the types of the `.klh` and
+  `.kchapter` files, and apt removes it without leaving a file; then the AppImage starts with
+  FUSE and passes the same check.
+- **Windows:** the installer runs silently for the current user and for all users; the files
+  of the ZIP, the keys of the registry, the Start menu, and the books (`.klh`) and documents
+  (`.kchapter`) Windows opens with the installed program are checked, the installed program
+  passes its check with its own Python, and the uninstaller removes it all.
+  When the package is made, every DLL of every program and library in it must be in the
+  package or in Windows (the runtime of Visual C++ always in the package).
+- **macOS:** `Kalahari.app` is copied from the opened `.dmg`; its signature, its `Info.plist`
+  (both types of files exported, the program their owner) and its libraries (none outside the bundle and macOS) are checked, and it passes its check
+  with the Python of the bundle.
+
+- **Linux.** Both packages carry the Qt and the Python the program is built with (the AppImage
+  needs no installation; the `.deb` installs into `/opt/kalahari`, with `kalahari` in
+  `/usr/bin`, a menu entry and the types of the `.klh` and `.kchapter` files; it recommends
+  `xdg-utils`, which Settings > Files > File Associations uses). The script downloads
+  linuxdeploy and its Qt plugin (pinned releases, checked by SHA-256) and needs `dpkg-dev`.
+  The windows for choosing a file are the system's own (the GTK theme of Qt and the desktop
+  portal); where the desktop has neither, Qt's own window, with Polish texts, opens. GTK and
+  GLib are left to the system (the `.deb` depends on them), so that their modules and themes
+  match them.
+- **Windows.** The installer needs NSIS 3 (`makensis`, also the one of Linux:
+  `scripts/package.py windows-installer --stage <folder>`); without it only the ZIP is made.
+  It installs for the current user (no administrator, `%LOCALAPPDATA%\Programs\Kalahari`) or
+  for all users (`Program Files`), adds Kalahari to the Start menu, optionally to the desktop,
+  and opens the books (`.klh`) and documents (`.kchapter`) in it, registered as Windows 8 and
+  later expect (a ProgID for each type, the Capabilities of the program, its name in
+  `RegisteredApplications`). `/S` installs silently.
+- **macOS.** `Kalahari.app` with its libraries and Python, signed ad hoc: without a Developer ID
+  of Apple, macOS asks on the first start whether to open it (System Settings > Privacy &
+  Security > Open Anyway).
+
+The icons of the program are made from its logo by `scripts/make_app_icons.py` (needs
+Pillow); run it again after `resources/images/app_logo.png` changes.
+
 ## Manual Testing Checklist
 
 ### Task #00001: Basic GUI Window

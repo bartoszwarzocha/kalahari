@@ -65,7 +65,11 @@ void ResourcePaths::initSearchPaths() {
 #endif
 
 #ifdef Q_OS_LINUX
-    // Priority 2b: Linux FHS standard locations
+    // Priority 2b: an installation under any prefix, with the program in <prefix>/bin: the
+    // AppImage (usr/bin, usr/share), the .deb package (/opt/kalahari) and cmake --install
+    m_searchPaths << QDir::cleanPath(appDir + "/../share/kalahari/resources");
+
+    // Priority 2c: Linux FHS standard locations
     // System-wide installation
     m_searchPaths << "/usr/share/kalahari/resources";
     m_searchPaths << "/usr/local/share/kalahari/resources";

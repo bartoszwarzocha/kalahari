@@ -1,15 +1,17 @@
 name: RELEASE
 
 # A version tag pushed to GitHub (e.g. v0.4.0-alpha, on a commit of main) makes a draft
-# release of that version, with the summary of its section of the CHANGELOG. Nothing is
-# public until the owner publishes the draft on the Releases page. The steps before the tag
-# are in project_docs/06_roadmap.md, section 5.2.
+# release of that version, with the summary of its section of the CHANGELOG and the packages
+# of the program the CI made for that commit. Nothing is public until the owner publishes the
+# draft on the Releases page. The steps before the tag are in project_docs/06_roadmap.md,
+# section 5.2.
 on:
   push:
     tags: [ 'v*' ]
 
 permissions:
-  contents: write  # gh release create
+  contents: write  # gh release create, gh release upload
+  actions: read    # the runs of the CI and their packages
 
 jobs:
   draft:
@@ -57,3 +59,40 @@ jobs:
         esac
         gh release create "$GITHUB_REF_NAME" --draft $prerelease --verify-tag \
           --title "Kalahari $version" --notes-file "$RUNNER_TEMP/release-notes.md"
+
+  # The packages are not built again: the Release jobs of LINUX, WINDOWS and MACOS made and
+  # checked them for the tagged commit when it was pushed to main (scripts/package.py). This
+  # job waits for those runs and attaches their packages to the draft
+  packages:
+    name: Packages of the release
+    needs: draft
+    runs-on: ubuntu-24.04
+    # The runs of the CI may still be building: Windows and macOS take up to two hours
+    timeout-minutes: 240
+
+    steps:
+    - name: Attach the packages of the CI to the draft
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        mkdir -p "$RUNNER_TEMP/packages"
+        for workflow in ci-linux.yml ci-windows.yml ci-macos.yml; do
+          run_id=""
+          # The run of the push of the commit to main (it may take a moment to start)
+          for attempt in $(seq 1 30); do
+            run_id=$(gh run list --workflow "$workflow" --commit "$GITHUB_SHA" --event push \
+                       --branch main --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+            [ -n "$run_id" ] && break
+            sleep 60
+          done
+          if [ -z "$run_id" ]; then
+            echo "::error::$workflow has no run of $GITHUB_SHA on main: the packages come from it"
+            exit 1
+          fi
+          echo "$workflow: run $run_id"
+          gh run watch "$run_id" --exit-status --interval 60 > /dev/null
+          gh run download "$run_id" --pattern 'kalahari-*-packages' --dir "$RUNNER_TEMP/packages"
+        done
+        ls -l "$RUNNER_TEMP"/packages/*/
+        gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP"/packages/*/* --clobber

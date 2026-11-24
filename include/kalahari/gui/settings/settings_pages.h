@@ -23,11 +23,13 @@
 
 class QCheckBox;
 class QComboBox;
+class QEvent;
 class QHBoxLayout;
 class QLabel;
 class QLineEdit;
 class QListWidget;
 class QPushButton;
+class QShowEvent;
 class QSpinBox;
 class QTableWidget;
 class QTableWidgetItem;
@@ -849,6 +851,36 @@ public:
 private:
     /// @brief The headings, the dialogue and the cleanups of each format, one format at a time
     void addFormats();
+};
+
+/// @brief Files > File Associations: the program the system opens the books (.klh) and the
+///        documents (.kchapter) with, and a button that makes it Kalahari
+///
+/// Nothing on the page is a setting: the button does it at once, as far as the system lets it
+/// (FileAssociationSystem). Windows lets only the writer choose the default program, so there
+/// the page also opens the Default Apps page of Windows Settings. The page shows the state again
+/// whenever its window becomes active (the writer comes back from the system's settings).
+class FileAssociationsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit FileAssociationsPage(QWidget* parent = nullptr);
+
+    /// @brief Show again which program opens each kind of files
+    /// @return Whether Kalahari opens all of them
+    bool refresh();
+
+protected:
+    void showEvent(QShowEvent* event) override;
+    void changeEvent(QEvent* event) override;
+
+private:
+    /// @brief Make Kalahari the program of its files, then show what came of it
+    void associate();
+
+    std::vector<QLabel*> m_states;  ///< Which program opens each kind (kalahariFileTypes())
+    QPushButton* m_associate = nullptr;
+    QPushButton* m_systemSettings = nullptr;  ///< Windows: the Default Apps page of Settings
+    QLabel* m_result = nullptr;               ///< What the last press of a button did
 };
 
 /// @brief Advanced > General: the diagnostic menu (this session only, not stored)

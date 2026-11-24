@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The types of the files of Kalahari, installed as share/mime/packages/kalahari.xml: the file
+     managers show them as books and documents of Kalahari, with the icons
+     application-x-kalahari-book and application-x-kalahari-document of the icon theme (the logo
+     of the program, cmake/Packaging.cmake), and open them with the program (kalahari.desktop).
+     Both are JSON files. The same types are in src/gui/utils/file_associations.cpp
+     (Settings > Files > File Associations) -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-kalahari-book">
+    <comment>Kalahari book</comment>
+    <comment xml:lang="pl">Książka programu Kalahari</comment>
+    <sub-class-of type="application/json"/>
+    <generic-icon name="x-office-document"/>
+    <glob pattern="*.klh"/>
+  </mime-type>
+  <mime-type type="application/x-kalahari-document">
+    <comment>Kalahari document</comment>
+    <comment xml:lang="pl">Dokument programu Kalahari</comment>
+    <sub-class-of type="application/json"/>
+    <generic-icon name="x-office-document"/>
+    <glob pattern="*.kchapter"/>
+  </mime-type>
+</mime-info>

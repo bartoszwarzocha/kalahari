@@ -367,6 +367,7 @@ set(KALAHARI_SOURCES
     gui/main_window.cpp
     gui/menu_builder.cpp
     gui/program_instance.cpp  # ProgramInstance - a later start hands its request to the program that runs
+    gui/installation.cpp  # Where the installed program keeps its log, and --self-test
     gui/recent_books_menu.cpp
     gui/settings_dialog.cpp
     gui/settings/settings_page.cpp
@@ -392,6 +393,7 @@ set(KALAHARI_SOURCES
     gui/settings/network_page.cpp  # Settings > Network > Materials
     gui/settings/folders_page.cpp
     gui/settings/import_page.cpp
+    gui/settings/file_associations_page.cpp  # Settings > Files > File Associations
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     gui/settings/stats_pages.cpp  # Settings > Statistics and Goals
     gui/shortcut_rules.cpp  # Which keys a command can have
@@ -507,6 +509,7 @@ set(KALAHARI_SOURCES
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
     gui/utils/program_folders.cpp  # The folders of the program and of the windows choosing files
     gui/utils/file_location.cpp  # A file or a folder shown in the file manager of the system
+    gui/utils/file_associations.cpp  # The program the system opens the files of Kalahari with
     gui/utils/caps_lock.cpp  # Caps Lock turned off after autocorrect changed a word typed with it
     gui/utils/document_commands.cpp  # The commands that work on the document in front
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
@@ -816,6 +819,18 @@ list(APPEND KALAHARI_SOURCES
 # Create executable
 add_executable(kalahari ${KALAHARI_SOURCES})
 
+# The program the system opens the files of Kalahari with (gui/utils/file_associations.cpp):
+# AssocQueryStringW of Windows, NSWorkspace of macOS (Objective-C++, which the precompiled
+# headers of C++ do not serve)
+if(WIN32)
+    target_link_libraries(kalahari PRIVATE shlwapi)
+elseif(APPLE)
+    target_sources(kalahari PRIVATE gui/utils/file_associations_mac.mm)
+    set_source_files_properties(gui/utils/file_associations_mac.mm PROPERTIES
+                                SKIP_PRECOMPILE_HEADERS ON)
+    target_link_libraries(kalahari PRIVATE "-framework AppKit" "-framework UniformTypeIdentifiers")
+endif()
+
 # Precompiled headers for the executable target (same rationale as kalahari_core above).
 if(COMMAND kalahari_add_pch)
     kalahari_add_pch(kalahari)
@@ -898,12 +913,16 @@ endif()
 
 # Copy resources to output directory after each build (OpenSpec #00029)
 # This ensures resources are always up-to-date, unlike file(COPY) which only runs at configure time
-add_custom_command(TARGET kalahari POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/resources"
-        "$<TARGET_FILE_DIR:kalahari>/resources"
-    COMMENT "Copying resources to output directory"
-)
+# macOS: only in Contents/Resources (below); Contents/MacOS holds code alone, and codesign takes
+# its folders with a dot in the name (booktypes/kalahari.base) for bundles and refuses them
+if(NOT APPLE)
+    add_custom_command(TARGET kalahari POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/resources"
+            "$<TARGET_FILE_DIR:kalahari>/resources"
+        COMMENT "Copying resources to output directory"
+    )
+endif()
 
 # Platform-specific settings
 if(WIN32)
