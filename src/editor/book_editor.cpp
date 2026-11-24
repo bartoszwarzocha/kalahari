@@ -1187,6 +1187,10 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,
             [this]() { syncParagraphMarks(); });
 
+    // and the marks of the fragments linked to the points of a text for publishers
+    connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,
+            [this]() { syncTemplatePointMarks(); });
+
     // The content goes in in a single edit block: Qt then reports one change and the
     // layout runs once, at endEditBlock().
     QTextCursor cursor(m_textBuffer.get());

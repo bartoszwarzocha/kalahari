@@ -432,6 +432,25 @@ public:
         return m_fragmentHighlight;
     }
 
+    /// @brief A fragment of a text for publishers linked to a point of its template: a fill
+    ///        under its text (the points shown in the text) and a bar beside its lines on the
+    ///        left margin
+    struct PointMark {
+        CursorPosition start;  ///< Where it starts
+        CursorPosition end;    ///< Where it ends
+        QColor fill;           ///< Under the text; invalid: none
+        QColor bar;            ///< Beside the lines; invalid: none
+        int lane = 0;          ///< Of the bars side by side: 0 is next to the text
+
+        bool operator==(const PointMark& other) const = default;
+    };
+
+    /// @brief Show the fragments linked to the points (none: no marks)
+    void setPointMarks(std::vector<PointMark> marks);
+
+    /// @brief The fragments linked to the points, as shown
+    const std::vector<PointMark>& pointMarks() const { return m_pointMarks; }
+
     // =========================================================================
     // Main Render Entry Point (Stage 3+4)
     // =========================================================================
@@ -591,11 +610,6 @@ private:
     void renderFormattingMarks(QPainter* painter, size_t index,
                                const std::vector<FormattingMark>& marks, double widgetY);
 
-    /// @brief Draw the hint of an empty paragraph under a heading of a point of the skeleton
-    ///        (ITextSource::paragraphHint()) in the color of the formatting marks, on its first
-    ///        line, as far as the line reaches; a printed page has none
-    void renderHint(QPainter* painter, size_t index, double widgetY);
-
     /// @brief Render selection highlights
     void renderSelection(QPainter* painter, const QRect& clipRect);
 
@@ -661,6 +675,9 @@ private:
 
     /// @brief Draw the fragment shown in a color (under the text)
     void renderFragmentHighlight(QPainter* painter);
+
+    /// @brief Draw the fills and the bars of the fragments linked to the points
+    void renderPointMarks(QPainter* painter);
 
     /// @brief Draw what a paragraph has in the room under its text (the decorator)
     void renderParagraphDecoration(QPainter* painter, size_t index, double widgetY);
@@ -757,6 +774,7 @@ private:
     std::vector<ParagraphHighlight> m_repetitions;   ///< Repeated words, by paragraph
     RepetitionMarkStyle m_repetitionStyle = RepetitionMarkStyle::Background;
     std::optional<FragmentHighlight> m_fragmentHighlight;  ///< Fragment shown in a color
+    std::vector<PointMark> m_pointMarks;  ///< Fragments linked to the points
     ParagraphDecorator m_paragraphDecorator;     ///< Draws the room under the paragraphs
     PageDecorator m_pageDecorator;               ///< Draws on the pages besides their lines
     /// While renderPrintedPage() draws: the page, the top and the bottom of its text area

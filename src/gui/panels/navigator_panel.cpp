@@ -110,6 +110,7 @@ const QString WORKSHOP_ID_PREFIX = QStringLiteral("workshop:");
 constexpr const char* BOOK_DICTIONARY_TYPE = "book_dictionary";
 /// The node of the plot board at the top of the Workshop
 constexpr const char* PLOT_BOARD_TYPE = "plot_board";
+constexpr const char* PUBLISHING_TYPE = "publishing_card";
 /// In a list of open items, the tree has the book and the Workshop as nodes of their own; a
 /// list without it (saved before them) opens them
 const QString WORKSHOP_LAYOUT = QStringLiteral("layout:workshop");
@@ -1597,10 +1598,13 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
     // A kind the program makes elements of has its group also empty, so that one can be added
     // to it; the other kinds when they have elements. A kind of materials hidden in the
     // settings is not there, but its materials are in the number of Materials.
+    // The texts for publishers are on the card For Publishers, not in the Materials
     const QStringList hidden = MaterialList::hiddenKinds();
+    const core::KindRef publishingKind = pm.publishingKind();
     qsizetype hiddenCount = 0;
     for (KindGroup& group : groups) {
-        if (group.elements.isEmpty() && !core::ProjectManager::canAdd(group.kind)) {
+        if ((group.elements.isEmpty() && !core::ProjectManager::canAdd(group.kind)) ||
+            (publishingKind && group.kind.kind == publishingKind.kind)) {
             continue;
         }
         if (group.shelf == core::WorkshopGroup::Resources && hidden.contains(group.key)) {
@@ -3134,6 +3138,10 @@ bool NavigatorPanel::requestPageOf(const QTreeWidgetItem* item, bool keys) {
         emit requestOpenPlotBoard(keys);
         return true;
     }
+    if (item != nullptr && typeOf(item) == QLatin1String(PUBLISHING_TYPE)) {
+        emit requestOpenPublishing(keys);
+        return true;
+    }
     if (const std::optional<QString> list = listOf(item)) {
         emit requestOpenMaterialList(*list, keys);
         return true;
@@ -3164,6 +3172,18 @@ void NavigatorPanel::addDictionaryItem(QTreeWidgetItem* workshopItem) {
     board->setData(0, ICON_ROLE, boardIcon);
     board->setIcon(0, itemIcon(board, boardIcon));
     board->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+
+    // The card For Publishers after it, as Book > For Publishers
+    auto* publishing = new QTreeWidgetItem(workshopItem);
+    //: The node at the top of the Workshop in the Navigator, after Plot Board, that shows the
+    //: card of the texts for publishers and the set on a tab. In Polish: Dla wydawnictwa
+    publishing->setText(0, tr("For Publishers"));
+    publishing->setData(0, Qt::UserRole, WORKSHOP_ID_PREFIX + QStringLiteral("publishing"));
+    publishing->setData(0, Qt::UserRole + 1, QString::fromLatin1(PUBLISHING_TYPE));
+    const QString publishingIcon = QStringLiteral("book.publishing");
+    publishing->setData(0, ICON_ROLE, publishingIcon);
+    publishing->setIcon(0, itemIcon(publishing, publishingIcon));
+    publishing->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 }
 
 AddChooser NavigatorPanel::addChooser() {

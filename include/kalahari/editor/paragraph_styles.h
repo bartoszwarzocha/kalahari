@@ -50,6 +50,10 @@ inline constexpr int PARAGRAPH_STYLE_PROPERTY = QTextFormat::UserProperty + 110;
 /// @brief Id of the style Normal: the text of the book
 inline constexpr char NORMAL_STYLE_ID[] = "normal";
 
+/// @brief Id of the style of the headings of the skeleton of a text for publishers, which the
+///        program wrote earlier; such a paragraph is read as a plain one
+inline constexpr char OLD_TEMPLATE_POINT_STYLE_ID[] = "template_point";
+
 /// @brief Font size of Normal when the package gives none, in points (the size StyleResolver
 ///        assumes)
 inline constexpr qreal DEFAULT_NORMAL_POINT_SIZE = 12.0;

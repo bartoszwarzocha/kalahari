@@ -505,7 +505,16 @@ bool BookExportCoordinator::writeFile(const editor::BookExport& book, const QStr
     return false;  // A format the program does not write
 }
 
+void BookExportCoordinator::printSet() {
+    printContent(dialogs::BookOutputDialog::Content::Set);
+}
+
 void BookExportCoordinator::printBook() {
+    printContent(std::nullopt);
+}
+
+void BookExportCoordinator::printContent(
+    std::optional<dialogs::BookOutputDialog::Content> content) {
     if (!whyNotPrint().isEmpty()) {
         return;
     }
@@ -559,6 +568,9 @@ void BookExportCoordinator::printBook() {
     // Printer Properties...: the window of the driver of the printer, where the system has one
     if (printer_driver::hasDriverWindow()) {
         dialog.setDriverWindow(&printer_driver::showDriverWindow);
+    }
+    if (content) {
+        dialog.setContent(*content);
     }
     dialog.exec();
 }

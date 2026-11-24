@@ -100,7 +100,6 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
         setParagraphStyle(blockFormat, model.paragraphStyle(i));
         mergeParagraphFormat(blockFormat, model.paragraphOwnFormat(i));
         setCaptionAbove(blockFormat, model.paragraphCaptionAbove(i));
-        setTemplatePoint(blockFormat, model.paragraphTemplatePoint(i));
         if (std::optional<ListItem> item = model.paragraphList(i)) {
             item->id += listIdOffset;
             setListItem(blockFormat, *item);

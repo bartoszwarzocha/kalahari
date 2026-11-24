@@ -18,7 +18,6 @@
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_link.h>
-#include <kalahari/editor/text_skeleton.h>
 #include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_tables.h>
 #include <kalahari/core/logger.h>
@@ -525,15 +524,6 @@ QString KmlSerializer::serializeBlockAttributes(const QTextBlock& block) const
     if (isCaptionAbove(block.blockFormat())) {
         attrs += QStringLiteral(" caption=\"above\"");
     }
-    // A heading of a point of the skeleton: the id of the point and its hint
-    if (const std::optional<SkeletonPoint> point = templatePointOf(block.blockFormat())) {
-        attrs += QStringLiteral(" point=\"") + KmlFormatRegistry::escapeXmlAttribute(point->id) +
-                 QLatin1Char('"');
-        if (!point->hint.isEmpty()) {
-            attrs += QStringLiteral(" hint=\"") +
-                     KmlFormatRegistry::escapeXmlAttribute(point->hint) + QLatin1Char('"');
-        }
-    }
     return attrs;
 }
 
@@ -781,8 +771,10 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
 bool KmlSerializer::hasMetadata(const QTextCharFormat& format) const
 {
     // Check if any metadata property is set
-    return format.property(KmlPropCharRef).isValid() ||
-           format.property(KmlPropLocRef).isValid();
+    const auto& defs = KmlFormatRegistry::metadataTagDefinitions();
+    return std::any_of(defs.cbegin(), defs.cend(), [&format](const MetadataTagDef& def) {
+        return format.property(def.propertyId).isValid();
+    });
 }
 
 QString KmlSerializer::metadataToOpenTag(const QTextCharFormat& format) const

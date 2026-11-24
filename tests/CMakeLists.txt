@@ -111,7 +111,7 @@ set(TEST_SOURCES
     editor/test_text_captions.cpp                # Captions: numbers, cross-references, list of figures
     editor/test_text_fields.cpp                  # Fields: values, formats, KML, layout, editing
     editor/test_text_places.cpp                  # Edit > Go To...: the places of a text
-    editor/test_text_skeleton.cpp                # The skeleton of a text for publishers
+    editor/test_text_points.cpp                  # Fragments linked to the points of a template
     editor/test_text_footnotes.cpp               # Footnotes and endnotes: model, numbers, KML
     editor/test_note_checking.cpp                # Notes: search, replace, spelling, grammar
     editor/test_image_look.cpp                   # Images: their look (turn, crop, filters, frame)
@@ -220,14 +220,13 @@ set(TEST_SOURCES
     gui/test_cursor_card.cpp          # The card at the cursor in the Properties panel
     gui/test_paragraph_cards.cpp      # A paragraph linked with a card: the window, the signs, the commands
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
-    gui/test_publishing_list.cpp                 # The list of the texts for publishers
     gui/test_publishing_set.cpp                  # The set for a publisher, the second view of the list
-    gui/test_publishing_templates.cpp            # The window of the templates of the texts for publishers
+    gui/test_publishing_template_editor.cpp      # A template changed beside a text for publishers
     gui/test_series_window.cpp                   # A series in the window: Navigator, New Volume, Properties
     gui/test_series_cover.cpp                    # A series: the cover of each volume
     gui/test_series_join.cpp                     # A series: a volume taken out, a book joined
     gui/test_publishing_add.cpp                  # Add Element of a text for publishers
-    gui/test_pitch_panel.cpp                     # The card of a sentence about the book
+    gui/test_publishing_card.cpp                 # The card For Publishers
     gui/test_publishing_text_box.cpp             # A text for publishers in the Properties panel
     gui/test_publishing_settings.cpp             # The names of the texts for publishers and their settings
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
@@ -367,7 +366,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/text_images.cpp       # Images of the text
     ${CMAKE_SOURCE_DIR}/src/editor/text_captions.cpp     # Numbered captions, cross-references, the list of figures
     ${CMAKE_SOURCE_DIR}/src/editor/text_fields.cpp       # Fields of the text
-    ${CMAKE_SOURCE_DIR}/src/editor/text_skeleton.cpp     # The skeleton of a text for publishers
+    ${CMAKE_SOURCE_DIR}/src/editor/text_points.cpp       # Fragments linked to the points of a template
     ${CMAKE_SOURCE_DIR}/src/editor/text_footnotes.cpp    # Footnotes and endnotes
     ${CMAKE_SOURCE_DIR}/src/editor/image_store.cpp       # The image files of a book
     ${CMAKE_SOURCE_DIR}/src/editor/table_editing.cpp     # Changes of tables (the Table menu)
@@ -389,7 +388,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_images.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_captions.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_fields.cpp
-    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_skeleton.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_points.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_places.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_tab_guides.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_image_look.cpp
@@ -623,7 +622,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/take_out_volume_dialog.cpp   # A volume taken out
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/join_book_dialog.cpp   # A book joined as a volume
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/publishing_choice.cpp  # The part and the template of a new text for publishers
-    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/publishing_templates_dialog.cpp  # The templates of the texts for publishers
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/publishing_template_editor.cpp  # A template changed beside a text for publishers
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/move_element_dialog.cpp      # A new place in the book for an element
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/delete_dialogs.cpp           # What goes from the book, and its files
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/dialog_parts.cpp             # Parts of the own dialogs
@@ -674,8 +673,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/cursor_card_box.cpp           # The card at the cursor in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/panels/paragraph_cards_box.cpp  # ParagraphCardsBox - the cards of the paragraph at the cursor
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_panel.cpp                # The full card on a tab
-    ${CMAKE_SOURCE_DIR}/src/gui/panels/pitch_panel.cpp  # The card of a sentence about the book
-    ${CMAKE_SOURCE_DIR}/src/gui/panels/publishing_set_page.cpp  # The set for a publisher in Properties
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/publishing_card_panel.cpp  # The card For Publishers
     ${CMAKE_SOURCE_DIR}/src/gui/panels/series_page.cpp  # The name and the volumes of a series in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/panels/publishing_text_box.cpp  # A text for publishers in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/palette_edit.cpp             # A palette of colors to change
@@ -686,13 +684,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/image_preview_panel.cpp       # The preview of a material's picture
     ${CMAKE_SOURCE_DIR}/src/gui/material_list.cpp                    # The lists of the materials
     ${CMAKE_SOURCE_DIR}/src/gui/material_list_clippings.cpp          # The columns of the clippings
-    ${CMAKE_SOURCE_DIR}/src/gui/material_list_publishing.cpp         # The texts for publishers
     ${CMAKE_SOURCE_DIR}/src/gui/clipping_texts.cpp                   # What the program says of a clipping
     ${CMAKE_SOURCE_DIR}/src/gui/card_list.cpp                        # The lists of the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel.cpp       # The list of a kind of materials
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel_clippings.cpp  # The commands of the clippings
-    ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel_publishing.cpp  # The commands of the texts for publishers
-    ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel_set.cpp  # The set for a publisher
     ${CMAKE_SOURCE_DIR}/src/gui/panels/clipping_origin_box.cpp       # Where a clipping comes from
     ${CMAKE_SOURCE_DIR}/src/gui/plot_board.cpp                       # What the plot board shows
     ${CMAKE_SOURCE_DIR}/src/gui/plot_board_titles.cpp                # The numbers in the titles
@@ -870,9 +865,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/take_out_volume_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/join_book_dialog.h  # Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_choice.h  # PublishingChoice with Q_OBJECT
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/publishing_templates_dialog.h  # PublishingTemplatesDialog with Q_OBJECT
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pitch_panel.h  # PitchPanel with Q_OBJECT
-    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_set_page.h  # PublishingSetPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/publishing_template_editor.h  # PublishingTemplateEditor with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_card_panel.h  # PublishingCardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/series_page.h  # SeriesPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/publishing_text_box.h  # PublishingTextBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_meter.h  # LengthMeter with Q_OBJECT

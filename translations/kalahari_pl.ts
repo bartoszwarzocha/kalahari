@@ -370,6 +370,15 @@
 <context>
     <name>CommandRegistrar</name>
     <message>
+        <source>&amp;For Publishers</source>
+        <translation>D&amp;la wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Link to a Template Point</source>
+        <extracomment>In Polish: Powiąż z punktem szablonu</extracomment>
+        <translation>Powiąż z punktem szablonu</translation>
+    </message>
+    <message>
         <source>not available yet</source>
         <comment>Kalahari Help</comment>
         <translation>jeszcze niedostępna</translation>
@@ -1401,26 +1410,6 @@
     <message>
         <source>Text &amp;Above and Below the Image</source>
         <translation>Tekst &amp;nad i pod obrazem</translation>
-    </message>
-    <message>
-        <source>Template &amp;Points</source>
-        <extracomment>In Polish: &amp;Punkty szablonu</extracomment>
-        <translation>&amp;Punkty szablonu</translation>
-    </message>
-    <message>
-        <source>Insert &amp;Skeleton</source>
-        <extracomment>In Polish: &amp;Wstaw szkielet</extracomment>
-        <translation>&amp;Wstaw szkielet</translation>
-    </message>
-    <message>
-        <source>&amp;Remove Headings and Hints</source>
-        <extracomment>In Polish: &amp;Usuń nagłówki i podpowiedzi</extracomment>
-        <translation>&amp;Usuń nagłówki i podpowiedzi</translation>
-    </message>
-    <message>
-        <source>&amp;Templates...</source>
-        <extracomment>In Polish: &amp;Szablony...</extracomment>
-        <translation>&amp;Szablony...</translation>
     </message>
     <message>
         <source>New &amp;Volume...</source>
@@ -2843,11 +2832,6 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>Te&amp;xt Effects</source>
         <translation>&amp;Efekty tekstu</translation>
-    </message>
-    <message>
-        <source>Texts &amp;for Publishers</source>
-        <extracomment>The submenu of Tools for the texts for publishers. In Polish: Teksty d&amp;la wydawnictwa</extracomment>
-        <translation>Teksty d&amp;la wydawnictwa</translation>
     </message>
 </context>
 <context>
@@ -6520,18 +6504,6 @@ Szczegóły zapisano w panelu Dziennik.</translation>
         <source>The text in front has no template points.</source>
         <extracomment>Tools &gt; Texts for Publishers &gt; Template Points, when the text in front has none. In Polish: Tekst na wierzchu nie ma punktów szablonu.</extracomment>
         <translation>Tekst na wierzchu nie ma punktów szablonu.</translation>
-    </message>
-    <message numerus="yes">
-        <source>Removed %n heading(s) of the points with their hints.</source>
-        <translation>
-            <numerusform>Usunięto %n nagłówek punktu z podpowiedzią.</numerusform>
-            <numerusform>Usunięto %n nagłówki punktów z podpowiedziami.</numerusform>
-            <numerusform>Usunięto %n nagłówków punktów z podpowiedziami.</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>The text in front has no headings of template points.</source>
-        <translation>Tekst na wierzchu nie ma nagłówków punktów szablonu.</translation>
     </message>
     <message>
         <source>Footnotes</source>
@@ -10612,6 +10584,11 @@ Czy zapisać go przed zamknięciem?</translation>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
     <message>
+        <source>For Publishers</source>
+        <extracomment>The tab of the card For Publishers. In Polish: Dla wydawnictwa</extracomment>
+        <translation>Dla wydawnictwa</translation>
+    </message>
+    <message>
         <source>Opened: %1</source>
         <translation>Otwarto: %1</translation>
     </message>
@@ -11125,6 +11102,31 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
 <context>
     <name>kalahari::gui::NavigatorPage</name>
     <message>
+        <source>Points of a Synopsis in the Text</source>
+        <extracomment>The group of Settings &gt; Navigator &gt; Texts for Publishers. In Polish: Punkty streszczenia w tekście</extracomment>
+        <translation>Punkty streszczenia w tekście</translation>
+    </message>
+    <message>
+        <source>A mark on the margin</source>
+        <extracomment>In Polish: Znacznik na marginesie</extracomment>
+        <translation>Znacznik na marginesie</translation>
+    </message>
+    <message>
+        <source>Warn of points with no fragment</source>
+        <extracomment>In Polish: Ostrzeżenie o punktach bez fragmentu</extracomment>
+        <translation>Ostrzeżenie o punktach bez fragmentu</translation>
+    </message>
+    <message>
+        <source>Select a fragment of a synopsis and press Ctrl+Shift+D to link it to a point of its template. The mark is a bar on the left margin beside the fragment. The warning comes when the set is copied or exported and a point has no fragment in the text. Each point has its color: of the mark and of the fill of its fragments (Show in the Text over the points). Each theme has its own colors: these are the colors of the current theme.</source>
+        <extracomment>In Polish: Zaznacz fragment streszczenia i naciśnij Ctrl+Shift+D, aby powiązać go z punktem szablonu. Znacznik to kreska na lewym marginesie obok fragmentu. Ostrzeżenie pojawia się przy kopiowaniu i eksporcie zestawu, gdy punkt nie ma fragmentu w tekście. Każdy punkt ma swój kolor: znacznika i podświetlenia fragmentów (Pokaż w tekście nad punktami). Każdy motyw ma własne kolory: to są kolory bieżącego motywu.</extracomment>
+        <translation>Zaznacz fragment streszczenia i naciśnij Ctrl+Shift+D, aby powiązać go z punktem szablonu. Znacznik to kreska na lewym marginesie obok fragmentu. Ostrzeżenie pojawia się przy kopiowaniu i eksporcie zestawu, gdy punkt nie ma fragmentu w tekście. Każdy punkt ma swój kolor: znacznika i podświetlenia fragmentów (Pokaż w tekście nad punktami). Każdy motyw ma własne kolory: to są kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Point %1</source>
+        <extracomment>A color of the points of a synopsis. In Polish: Punkt %1</extracomment>
+        <translation>Punkt %1</translation>
+    </message>
+    <message>
         <source>Node Menus</source>
         <translation>Menu węzłów</translation>
     </message>
@@ -11397,49 +11399,14 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
         <extracomment>In Polish: Książka zmienia swój zestaw w widoku zestawu; jego kolejność i części zapisują się w książce.</extracomment>
         <translation>Książka zmienia swój zestaw w widoku zestawu; jego kolejność i części zapisują się w książce.</translation>
     </message>
-    <message>
-        <source>Templates</source>
-        <extracomment>The group of Settings &gt; Navigator &gt; Texts for Publishers. In Polish: Szablony</extracomment>
-        <translation>Szablony</translation>
-    </message>
-    <message>
-        <source>Te&amp;mplates...</source>
-        <extracomment>Opens the window of the templates of the texts for publishers. In Polish: Sza&amp;blony...</extracomment>
-        <translation>Sza&amp;blony...</translation>
-    </message>
-    <message>
-        <source>The templates of the book types and your own, in a window of their own. Your templates are kept at once and work in all your books.</source>
-        <extracomment>In Polish: Szablony typów książek i Twoje własne, w osobnym oknie. Twoje szablony zapisują się od razu i działają we wszystkich Twoich książkach.</extracomment>
-        <translation>Szablony typów książek i Twoje własne, w osobnym oknie. Twoje szablony zapisują się od razu i działają we wszystkich Twoich książkach.</translation>
-    </message>
-    <message>
-        <source>&amp;Points of a synopsis:</source>
-        <extracomment>The choice of the group Templates. In Polish: &amp;Punkty streszczenia:</extracomment>
-        <translation>&amp;Punkty streszczenia:</translation>
-    </message>
-    <message>
-        <source>Beside the text</source>
-        <extracomment>In Polish: Obok tekstu</extracomment>
-        <translation>Obok tekstu</translation>
-    </message>
-    <message>
-        <source>The points of the template are a list in the Properties panel. Tools &gt; Texts for Publishers &gt; Insert Skeleton puts them in the text when you want.</source>
-        <extracomment>In Polish: Punkty szablonu są listą w panelu Właściwości. Narzędzia &gt; Teksty dla wydawnictwa &gt; Wstaw szkielet wstawia je do tekstu, gdy chcesz.</extracomment>
-        <translation>Punkty szablonu są listą w panelu Właściwości. Narzędzia &gt; Teksty dla wydawnictwa &gt; Wstaw szkielet wstawia je do tekstu, gdy chcesz.</translation>
-    </message>
-    <message>
-        <source>In the text, as headings</source>
-        <extracomment>In Polish: W tekście, jako nagłówki</extracomment>
-        <translation>W tekście, jako nagłówki</translation>
-    </message>
-    <message>
-        <source>A new synopsis starts with the headings of the points, each with a gray hint that goes when you type. The length and the set leave the headings out.</source>
-        <extracomment>In Polish: Nowe streszczenie zaczyna się od nagłówków punktów, każdy z szarą podpowiedzią, która znika, gdy piszesz. Długość i zestaw pomijają nagłówki.</extracomment>
-        <translation>Nowe streszczenie zaczyna się od nagłówków punktów, każdy z szarą podpowiedzią, która znika, gdy piszesz. Długość i zestaw pomijają nagłówki.</translation>
-    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>
+    <message>
+        <source>For Publishers</source>
+        <extracomment>The node at the top of the Workshop in the Navigator, after Plot Board, that shows the card of the texts for publishers and the set on a tab. In Polish: Dla wydawnictwa</extracomment>
+        <translation>Dla wydawnictwa</translation>
+    </message>
     <message>
         <source>All</source>
         <translation>Wszystko</translation>
@@ -13796,6 +13763,351 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>Automatic (right)</source>
         <extracomment>In Polish: Automatycznie (prawa)</extracomment>
         <translation>Automatycznie (prawa)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PublishingCardPanel</name>
+    <message>
+        <source>For Publishers</source>
+        <extracomment>The title of the card of the texts for publishers and the set for a publisher. In Polish: Dla wydawnictwa</extracomment>
+        <translation>Dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Set for the Publisher</source>
+        <extracomment>The tiles of the parts of the set for a publisher, for screen readers. In Polish: Zestaw dla wydawnictwa</extracomment>
+        <translation>Zestaw dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Versions</source>
+        <extracomment>The versions of the part of the set chosen on the card For Publishers, for screen readers. In Polish: Wersje</extracomment>
+        <translation>Wersje</translation>
+    </message>
+    <message>
+        <source>Text of the version</source>
+        <extracomment>The editor of a text for publishers on its card, for screen readers. In Polish: Tekst wersji</extracomment>
+        <translation>Tekst wersji</translation>
+    </message>
+    <message>
+        <source>New Version (Insert)</source>
+        <extracomment>The command bar of the card For Publishers. In Polish: Nowa wersja (Insert)</extracomment>
+        <translation>Nowa wersja (Insert)</translation>
+    </message>
+    <message>
+        <source>Copy of the Version</source>
+        <extracomment>In Polish: Kopia wersji</extracomment>
+        <translation>Kopia wersji</translation>
+    </message>
+    <message>
+        <source>Choose for the Set (Space)</source>
+        <extracomment>In Polish: Wybierz do zestawu (Spacja)</extracomment>
+        <translation>Wybierz do zestawu (Spacja)</translation>
+    </message>
+    <message>
+        <source>Reject</source>
+        <extracomment>In Polish: Odrzuć</extracomment>
+        <translation>Odrzuć</translation>
+    </message>
+    <message>
+        <source>Copy the Text</source>
+        <extracomment>In Polish: Kopiuj tekst</extracomment>
+        <translation>Kopiuj tekst</translation>
+    </message>
+    <message>
+        <source>Earlier in the Set (Alt+Left)</source>
+        <extracomment>In Polish: Wcześniej w zestawie (Alt+←)</extracomment>
+        <translation>Wcześniej w zestawie (Alt+←)</translation>
+    </message>
+    <message>
+        <source>Later in the Set (Alt+Right)</source>
+        <extracomment>In Polish: Później w zestawie (Alt+→)</extracomment>
+        <translation>Później w zestawie (Alt+→)</translation>
+    </message>
+    <message>
+        <source>Copy All</source>
+        <extracomment>In Polish: Kopiuj wszystko</extracomment>
+        <translation>Kopiuj wszystko</translation>
+    </message>
+    <message>
+        <source>Export Set...</source>
+        <extracomment>In Polish: Eksportuj zestaw...</extracomment>
+        <translation>Eksportuj zestaw...</translation>
+    </message>
+    <message>
+        <source>Print Set...</source>
+        <extracomment>In Polish: Drukuj zestaw...</extracomment>
+        <translation>Drukuj zestaw...</translation>
+    </message>
+    <message>
+        <source>Preview of the Set</source>
+        <extracomment>In Polish: Podgląd zestawu</extracomment>
+        <translation>Podgląd zestawu</translation>
+    </message>
+    <message>
+        <source>Undo (Ctrl+Z)</source>
+        <extracomment>In Polish: Cofnij (Ctrl+Z)</extracomment>
+        <translation>Cofnij (Ctrl+Z)</translation>
+    </message>
+    <message>
+        <source>Redo (Ctrl+Y)</source>
+        <extracomment>In Polish: Ponów (Ctrl+Y)</extracomment>
+        <translation>Ponów (Ctrl+Y)</translation>
+    </message>
+    <message>
+        <source>Texts for Publishers Settings</source>
+        <extracomment>The gear of the card For Publishers: Settings &gt; Navigator &gt; Texts for Publishers. In Polish: Ustawienia tekstów dla wydawnictwa</extracomment>
+        <translation>Ustawienia tekstów dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>The sentence was changed by hand – the fields of the pattern no longer change it.</source>
+        <extracomment>A sentence about the book changed by hand. In Polish: Zdanie poprawione ręcznie – pola wzoru już go nie zmieniają.</extracomment>
+        <translation>Zdanie poprawione ręcznie – pola wzoru już go nie zmieniają.</translation>
+    </message>
+    <message>
+        <source>Compose from the &amp;Fields</source>
+        <extracomment>Composes the sentence about the book of the fields of its pattern again. In Polish: Złóż zdanie z &amp;pól</extracomment>
+        <translation>Złóż zdanie z &amp;pól</translation>
+    </message>
+    <message>
+        <source>No version</source>
+        <extracomment>A tile of a part of the set without a version. In Polish: Brak wersji</extracomment>
+        <translation>Brak wersji</translation>
+    </message>
+    <message>
+        <source>chosen part</source>
+        <extracomment>A tile of the set chosen, for screen readers. In Polish: wybrana część</extracomment>
+        <translation>wybrana część</translation>
+    </message>
+    <message>
+        <source>%1 ★</source>
+        <extracomment>A version in the set on the card For Publishers: %1 its title. In Polish: %1 ★</extracomment>
+        <translation>%1 ★</translation>
+    </message>
+    <message>
+        <source>in the set</source>
+        <extracomment>For screen readers. In Polish: w zestawie</extracomment>
+        <translation>w zestawie</translation>
+    </message>
+    <message>
+        <source>rejected</source>
+        <extracomment>For screen readers. In Polish: odrzucona</extracomment>
+        <translation>odrzucona</translation>
+    </message>
+    <message>
+        <source>It comes from the Cover – it is changed there.</source>
+        <extracomment>Over a tagline or a description on the card For Publishers. In Polish: Pochodzi z Okładki – tam się go zmienia.</extracomment>
+        <translation>Pochodzi z Okładki – tam się go zmienia.</translation>
+    </message>
+    <message>
+        <source>Show in the &amp;Cover</source>
+        <extracomment>In Polish: Pokaż w &amp;Okładce</extracomment>
+        <translation>Pokaż w &amp;Okładce</translation>
+    </message>
+    <message>
+        <source>It comes from the back part of the book – it is changed there.</source>
+        <extracomment>Over the note about the author on the card For Publishers. In Polish: Pochodzi z sekcji końcowej książki – tam się ją zmienia.</extracomment>
+        <translation>Pochodzi z sekcji końcowej książki – tam się ją zmienia.</translation>
+    </message>
+    <message>
+        <source>&amp;Open</source>
+        <extracomment>In Polish: &amp;Otwórz</extracomment>
+        <translation>&amp;Otwórz</translation>
+    </message>
+    <message>
+        <source>This part has no version yet. Insert or New Version adds the first.</source>
+        <translation>Ta część nie ma jeszcze wersji. Insert albo Nowa wersja dodaje pierwszą.</translation>
+    </message>
+    <message>
+        <source>This part has no text yet.</source>
+        <translation>Ta część nie ma jeszcze tekstu.</translation>
+    </message>
+    <message>
+        <source>A tagline and a description are written in the Cover.</source>
+        <extracomment>Insert on a tagline or a description on the card For Publishers. In Polish: Hasło i opis pisze się w Okładce.</extracomment>
+        <translation>Hasło i opis pisze się w Okładce.</translation>
+    </message>
+    <message>
+        <source>%1 – copy</source>
+        <extracomment>The title of a copy of a version on the card For Publishers: %1 its title. In Polish: %1 – kopia</extracomment>
+        <translation>%1 – kopia</translation>
+    </message>
+    <message>
+        <source>The text is copied to the clipboard</source>
+        <extracomment>The status bar after Copy the Text on the card For Publishers. In Polish: Tekst skopiowany do schowka</extracomment>
+        <translation>Tekst skopiowany do schowka</translation>
+    </message>
+    <message>
+        <source>Choose for the &amp;Set</source>
+        <extracomment>The menu of a version on the card For Publishers. In Polish: Wybierz do &amp;zestawu</extracomment>
+        <translation>Wybierz do &amp;zestawu</translation>
+    </message>
+    <message>
+        <source>Restore as a &amp;Draft</source>
+        <extracomment>In Polish: Przywróć jako &amp;roboczą</extracomment>
+        <translation>Przywróć jako &amp;roboczą</translation>
+    </message>
+    <message>
+        <source>&amp;Reject</source>
+        <translation>Od&amp;rzuć</translation>
+    </message>
+    <message>
+        <source>Re&amp;name (F2)</source>
+        <extracomment>In Polish: Zmień &amp;nazwę (F2)</extracomment>
+        <translation>Zmień &amp;nazwę (F2)</translation>
+    </message>
+    <message>
+        <source>Cop&amp;y of the Version</source>
+        <extracomment>In Polish: &amp;Kopia wersji</extracomment>
+        <translation>&amp;Kopia wersji</translation>
+    </message>
+    <message>
+        <source>Copy the &amp;Text</source>
+        <extracomment>In Polish: Kopiuj &amp;tekst</extracomment>
+        <translation>Kopiuj &amp;tekst</translation>
+    </message>
+    <message>
+        <source>&amp;Delete (Delete)</source>
+        <extracomment>In Polish: &amp;Usuń (Delete)</extracomment>
+        <translation>&amp;Usuń (Delete)</translation>
+    </message>
+    <message>
+        <source>Without a template – you write the sentence in the field below.</source>
+        <extracomment>The card For Publishers, a sentence about the book without a template. In Polish: Bez szablonu – zdanie piszesz od razu w polu niżej.</extracomment>
+        <translation>Bez szablonu – zdanie piszesz od razu w polu niżej.</translation>
+    </message>
+    <message>
+        <source>Type the fields – the sentence below is composed at once. Tab goes through the fields.</source>
+        <extracomment>Under the fields of the pattern of a sentence about the book. In Polish: Wpisz pola – zdanie niżej składa się od razu. Pola przechodzi się klawiszem Tab.</extracomment>
+        <translation>Wpisz pola – zdanie niżej składa się od razu. Pola przechodzi się klawiszem Tab.</translation>
+    </message>
+    <message>
+        <source>The text of the version cannot be saved.</source>
+        <extracomment>The status bar when the text on the card For Publishers cannot be saved. In Polish: Nie można zapisać tekstu wersji.</extracomment>
+        <translation>Nie można zapisać tekstu wersji.</translation>
+    </message>
+    <message>
+        <source>The book is open read-only.</source>
+        <extracomment>The footer of the card For Publishers in a book open read-only. In Polish: Książka jest otwarta tylko do odczytu.</extracomment>
+        <translation>Książka jest otwarta tylko do odczytu.</translation>
+    </message>
+    <message>
+        <source>Everything in this card is saved at once.</source>
+        <translation>Wszystko w tej karcie zapisuje się od razu.</translation>
+    </message>
+    <message>
+        <source>Everything in this card is saved at once · saved at %1</source>
+        <translation>Wszystko w tej karcie zapisuje się od razu · zapisano o %1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PublishingTemplateEditor</name>
+    <message>
+        <source>N&amp;ame:</source>
+        <extracomment>The name of a template changed beside a text for publishers. In Polish: N&amp;azwa:</extracomment>
+        <translation>N&amp;azwa:</translation>
+    </message>
+    <message>
+        <source>Target &amp;length:</source>
+        <extracomment>The target length of a template changed beside a text for publishers. In Polish: Docelowa &amp;długość:</extracomment>
+        <translation>Docelowa &amp;długość:</translation>
+    </message>
+    <message>
+        <source>&amp;Points:</source>
+        <extracomment>Over the points of a template changed beside a synopsis. In Polish: P&amp;unkty:</extracomment>
+        <translation>P&amp;unkty:</translation>
+    </message>
+    <message>
+        <source>Point</source>
+        <extracomment>The columns of the points of a template. In Polish: Punkt, Podpowiedź</extracomment>
+        <translation>Punkt</translation>
+    </message>
+    <message>
+        <source>Hint</source>
+        <translation>Podpowiedź</translation>
+    </message>
+    <message>
+        <source>Add Point (Insert)</source>
+        <extracomment>The buttons of the points of a template. In Polish: Dodaj punkt (Insert), Usuń punkt (Delete), W górę (Alt+↑), W dół (Alt+↓)</extracomment>
+        <translation>Dodaj punkt (Insert)</translation>
+    </message>
+    <message>
+        <source>Remove Point (Delete)</source>
+        <translation>Usuń punkt (Delete)</translation>
+    </message>
+    <message>
+        <source>Up (Alt+Up)</source>
+        <translation>W górę (Alt+↑)</translation>
+    </message>
+    <message>
+        <source>Down (Alt+Down)</source>
+        <translation>W dół (Alt+↓)</translation>
+    </message>
+    <message>
+        <source>When {event}, {hero} must {goal} before {stakes}.</source>
+        <extracomment>The pattern of a sentence about the book: the fields in braces. In Polish: Gdy {event}, {hero} musi {goal}, zanim {stakes}.</extracomment>
+        <translation>Gdy {event}, {hero} musi {goal}, zanim {stakes}.</translation>
+    </message>
+    <message>
+        <source>Patte&amp;rn:</source>
+        <extracomment>The pattern of a template of a sentence changed beside it. In Polish: Wzó&amp;r:</extracomment>
+        <translation>Wzó&amp;r:</translation>
+    </message>
+    <message>
+        <source>Field</source>
+        <extracomment>The columns of the fields of a pattern. In Polish: Pole, Co wpisać, Podpowiedź</extracomment>
+        <translation>Pole</translation>
+    </message>
+    <message>
+        <source>What to Type</source>
+        <translation>Co wpisać</translation>
+    </message>
+    <message>
+        <source>Fiel&amp;ds:</source>
+        <extracomment>The fields of the pattern of a sentence. In Polish: Po&amp;la:</extracomment>
+        <translation>Po&amp;la:</translation>
+    </message>
+    <message>
+        <source>Keep (Ctrl+Enter)</source>
+        <extracomment>Keeps the changes of a template. In Polish: Zachowaj (Ctrl+Enter)</extracomment>
+        <translation>Zachowaj (Ctrl+Enter)</translation>
+    </message>
+    <message>
+        <source>Drop (Esc)</source>
+        <extracomment>Drops the changes of a template. In Polish: Porzuć (Esc)</extracomment>
+        <translation>Porzuć (Esc)</translation>
+    </message>
+    <message>
+        <source>Your template – the changes are for all books.</source>
+        <extracomment>Over a template of the writer changed beside a text. In Polish: Twój szablon – zmiany obowiązują we wszystkich książkach.</extracomment>
+        <translation>Twój szablon – zmiany obowiązują we wszystkich książkach.</translation>
+    </message>
+    <message>
+        <source>A built-in template stays as it is – the changes are kept as your template, for all books.</source>
+        <extracomment>Over a template of a book type changed beside a text. In Polish: Szablon wbudowany zostaje bez zmian – zmiany zapiszą się jako Twój szablon, dostępny we wszystkich książkach.</extracomment>
+        <translation>Szablon wbudowany zostaje bez zmian – zmiany zapiszą się jako Twój szablon, dostępny we wszystkich książkach.</translation>
+    </message>
+    <message>
+        <source>words</source>
+        <extracomment>The unit of the target length of a template. In Polish: słów / znaków ze spacjami</extracomment>
+        <translation>słów</translation>
+    </message>
+    <message>
+        <source>characters with spaces</source>
+        <translation>znaków ze spacjami</translation>
+    </message>
+    <message>
+        <source>%1 – mine</source>
+        <extracomment>The name of the writer's template made of a built-in one. In Polish: %1 – mój</extracomment>
+        <translation>%1 – mój</translation>
+    </message>
+    <message>
+        <source>New template</source>
+        <extracomment>The name of a new template of the writer. In Polish: Nowy szablon</extracomment>
+        <translation>Nowy szablon</translation>
+    </message>
+    <message>
+        <source>Point %1</source>
+        <extracomment>The name of a new point of a template. In Polish: Punkt %1</extracomment>
+        <translation>Punkt %1</translation>
     </message>
 </context>
 <context>
@@ -25199,88 +25511,8 @@ Where a quote comes from: a source and its page. In Polish: Źródło</extracomm
         <translation>Kopiuje zapisy w bibliografii wszystkich źródeł widocznych na liście, w jej kolejności</translation>
     </message>
     <message>
-        <source>Template</source>
-        <extracomment>The template of a text for publishers. In Polish: Szablon</extracomment>
-        <translation>Szablon</translation>
-    </message>
-    <message>
-        <source>Set Not Saved</source>
-        <extracomment>In Polish: Nie zapisano zestawu</extracomment>
-        <translation>Nie zapisano zestawu</translation>
-    </message>
-    <message>
-        <source>&quot;%1&quot; is now in the set for publishers.</source>
-        <extracomment>The status bar after a description or a tagline of the cover became the version of its part in the set for publishers; %1: its title. In Polish: „%1” jest teraz w zestawie dla wydawnictwa.</extracomment>
-        <translation>„%1” jest teraz w zestawie dla wydawnictwa.</translation>
-    </message>
-    <message>
-        <source>Copy &amp;Text</source>
-        <extracomment>Copies the words of a text for publishers, of a description or of a tagline. In Polish: Kopiuj &amp;tekst</extracomment>
-        <translation>Kopiuj &amp;tekst</translation>
-    </message>
-    <message>
-        <source>From the Cover</source>
-        <extracomment>Shows or hides the descriptions and the taglines of the cover in the list of the texts for publishers. In Polish: Z Okładki</extracomment>
-        <translation>Z Okładki</translation>
-    </message>
-    <message>
-        <source>Show or hide the descriptions and the taglines of the cover</source>
-        <extracomment>In Polish: Pokaż albo schowaj opisy i hasła z Okładki</extracomment>
-        <translation>Pokaż albo schowaj opisy i hasła z Okładki</translation>
-    </message>
-    <message>
-        <source>Texts for Publishers Settings</source>
-        <extracomment>The gear of the list of the texts for publishers: Settings &gt; Navigator &gt; Texts for Publishers. In Polish: Ustawienia tekstów dla wydawnictwa</extracomment>
-        <translation>Ustawienia tekstów dla wydawnictwa</translation>
-    </message>
-    <message>
-        <source>%1... (to the Cover)</source>
-        <extracomment>An item of Add of the list of the texts for publishers that adds a material of the cover; %1: what it is. In Polish: %1... (do Okładki)</extracomment>
-        <translation>%1... (do Okładki)</translation>
-    </message>
-    <message>
-        <source>In the Set</source>
-        <extracomment>In the menu of a text for publishers that the set has. In Polish: Jest w zestawie</extracomment>
-        <translation>Jest w zestawie</translation>
-    </message>
-    <message>
-        <source>C&amp;hoose for the Set</source>
-        <extracomment>Makes a text for publishers, a description or a tagline the version of its part in the set for publishers. In Polish: &amp;Wybierz do zestawu</extracomment>
-        <translation>&amp;Wybierz do zestawu</translation>
-    </message>
-    <message>
-        <source>Show in the &amp;Cover</source>
-        <extracomment>Shows a description or a tagline in the list of the cover. In Polish: Pokaż w &amp;Okładce</extracomment>
-        <translation>Pokaż w &amp;Okładce</translation>
-    </message>
-    <message>
-        <source>Set for the Publisher</source>
-        <extracomment>Shows the set for a publisher, the second view of the list of the texts for publishers. In Polish: Zestaw dla wydawnictwa</extracomment>
-        <translation>Zestaw dla wydawnictwa</translation>
-    </message>
-    <message>
-        <source>Copy All</source>
-        <extracomment>Copies the whole set for a publisher. In Polish: Kopiuj wszystko</extracomment>
-        <translation>Kopiuj wszystko</translation>
-    </message>
-    <message>
-        <source>Export Set...</source>
-        <extracomment>Opens the window of the export with the set for a publisher. In Polish: Eksportuj zestaw...</extracomment>
-        <translation>Eksportuj zestaw...</translation>
-    </message>
-    <message>
-        <source>The arrows choose a part, Enter opens its text, Space includes it or leaves it out</source>
-        <extracomment>The footer of the set for a publisher: what its keys do. In Polish: Strzałki wybierają część, Enter otwiera jej tekst, Spacja włącza ją albo wyłącza</extracomment>
-        <translation>Strzałki wybierają część, Enter otwiera jej tekst, Spacja włącza ją albo wyłącza</translation>
-    </message>
-    <message>
-        <source>&amp;In the Set</source>
-        <extracomment>Includes a part in the set for a publisher, or leaves it out. In Polish: &amp;W zestawie</extracomment>
-        <translation>&amp;W zestawie</translation>
-    </message>
-    <message>
         <source>Volume</source>
-        <extracomment>The volume of a series a material of the cover or a text for publishers is for, or the whole series. In Polish: Tom</extracomment>
+        <extracomment>The volume of a series a material of the cover is for, or the whole series. In Polish: Tom</extracomment>
         <translation>Tom</translation>
     </message>
     <message>
@@ -39578,83 +39810,6 @@ In Polish: pasmo „%1”</extracomment>
     </message>
 </context>
 <context>
-    <name>kalahari::gui::PitchPanel</name>
-    <message>
-        <source>Title</source>
-        <extracomment>The title of a sentence about the book on its card. In Polish: Tytuł</extracomment>
-        <translation>Tytuł</translation>
-    </message>
-    <message>
-        <source>%1 · Texts for Publishers</source>
-        <extracomment>Under the title of a sentence about the book on its card; %1 what it is. In Polish: %1 · Teksty dla wydawnictwa</extracomment>
-        <translation>%1 · Teksty dla wydawnictwa</translation>
-    </message>
-    <message>
-        <source>Sentence about the book</source>
-        <extracomment>The editor of a sentence about the book, for screen readers. In Polish: Zdanie o książce</extracomment>
-        <translation>Zdanie o książce</translation>
-    </message>
-    <message>
-        <source>Pattern</source>
-        <extracomment>The section of the card of a sentence with the fields of its pattern. In Polish: Wzór</extracomment>
-        <translation>Wzór</translation>
-    </message>
-    <message>
-        <source>Te&amp;mplate:</source>
-        <extracomment>The template of a sentence about the book on its card. In Polish: Sza&amp;blon:</extracomment>
-        <translation>Sza&amp;blon:</translation>
-    </message>
-    <message>
-        <source>Sentence</source>
-        <extracomment>The section of the card of a sentence about the book with the sentence. In Polish: Zdanie</extracomment>
-        <translation>Zdanie</translation>
-    </message>
-    <message>
-        <source>The sentence was changed by hand – the fields of the pattern no longer change it.</source>
-        <extracomment>A sentence about the book changed by hand. In Polish: Zdanie poprawione ręcznie – pola wzoru już go nie zmieniają.</extracomment>
-        <translation>Zdanie poprawione ręcznie – pola wzoru już go nie zmieniają.</translation>
-    </message>
-    <message>
-        <source>Compose from the &amp;Fields</source>
-        <extracomment>Composes the sentence about the book of the fields of its pattern again. In Polish: Złóż zdanie z &amp;pól</extracomment>
-        <translation>Złóż zdanie z &amp;pól</translation>
-    </message>
-    <message>
-        <source>Target le&amp;ngth:</source>
-        <extracomment>The own target length of a sentence about the book. In Polish: Docelowa dłu&amp;gość:</extracomment>
-        <translation>Docelowa dłu&amp;gość:</translation>
-    </message>
-    <message>
-        <source>–</source>
-        <extracomment>The own target length of a text when it has none, which takes that of its template or of the Settings. In Polish: –</extracomment>
-        <translation>–</translation>
-    </message>
-    <message>
-        <source>&amp;State:</source>
-        <extracomment>The state of a text for publishers on its card. In Polish: &amp;Stan:</extracomment>
-        <translation>&amp;Stan:</translation>
-    </message>
-    <message>
-        <source>Without a template – you write the sentence in the field below.</source>
-        <extracomment>The card of a sentence about the book without a template. In Polish: Bez szablonu – zdanie piszesz od razu w polu niżej.</extracomment>
-        <translation>Bez szablonu – zdanie piszesz od razu w polu niżej.</translation>
-    </message>
-    <message>
-        <source>Type the fields – the sentence below is composed at once. Tab goes through the fields.</source>
-        <extracomment>Under the fields of the pattern of a sentence about the book. In Polish: Wpisz pola – zdanie niżej składa się od razu. Pola przechodzi się klawiszem Tab.</extracomment>
-        <translation>Wpisz pola – zdanie niżej składa się od razu. Pola przechodzi się klawiszem Tab.</translation>
-    </message>
-    <message>
-        <source>In the set: yes – this version</source>
-        <extracomment>Whether a text for publishers is in the set. In Polish: W zestawie: tak – ta wersja / W zestawie: nie</extracomment>
-        <translation>W zestawie: tak – ta wersja</translation>
-    </message>
-    <message>
-        <source>In the set: no</source>
-        <translation>W zestawie: nie</translation>
-    </message>
-</context>
-<context>
     <name>kalahari::gui::PublishingNames</name>
     <message>
         <source>Sentence about the book</source>
@@ -39687,26 +39842,6 @@ In Polish: pasmo „%1”</extracomment>
         <translation>roboczy</translation>
     </message>
     <message>
-        <source>★ in the set</source>
-        <extracomment>The state of a text for publishers in a list. In Polish: ★ w zestawie</extracomment>
-        <translation>★ w zestawie</translation>
-    </message>
-    <message>
-        <source>Sentences about the book</source>
-        <extracomment>A group of the list of the texts for publishers. In Polish: Zdania o książce</extracomment>
-        <translation>Zdania o książce</translation>
-    </message>
-    <message>
-        <source>Synopses</source>
-        <extracomment>A group of the list of the texts for publishers. In Polish: Streszczenia</extracomment>
-        <translation>Streszczenia</translation>
-    </message>
-    <message>
-        <source>%1 · from the Cover</source>
-        <extracomment>A group of the list of the texts for publishers: the descriptions or the taglines of the Cover; %1 the group of the cover. In Polish: %1 · z Okładki</extracomment>
-        <translation>%1 · z Okładki</translation>
-    </message>
-    <message>
         <source>%1 – version %2</source>
         <extracomment>The title of a new text for publishers: %1 its part, %2 its number. In Polish: %1 – wersja %2</extracomment>
         <translation>%1 – wersja %2</translation>
@@ -39725,16 +39860,6 @@ In Polish: pasmo „%1”</extracomment>
         <source>%1 / %2 ch.</source>
         <extracomment>The length of a text for publishers in a list with its target: %1 its characters with spaces, %2 the target. In Polish: %1 / %2 zn.</extracomment>
         <translation>%1 / %2 zn.</translation>
-    </message>
-    <message>
-        <source>Chosen for the set: “%1”</source>
-        <extracomment>The status bar: a text is chosen for the set for publishers; %1 its title. In Polish: Wybrano do zestawu: „%1”</extracomment>
-        <translation>Wybrano do zestawu: „%1”</translation>
-    </message>
-    <message>
-        <source>“%1” is a draft again</source>
-        <extracomment>The status bar, after a text is chosen for the set: the one chosen before for its part is a draft again; %1 its title. In Polish: „%1” wraca do roboczych</extracomment>
-        <translation>„%1” wraca do roboczych</translation>
     </message>
     <message>
         <source>about %1 of a standard page</source>
@@ -39765,6 +39890,114 @@ In Polish: pasmo „%1”</extracomment>
 <context>
     <name>kalahari::gui::PublishingTextBox</name>
     <message>
+        <source>Change Template</source>
+        <extracomment>The pencil beside the template of a text for publishers: its name, length and points in place of the points. In Polish: Zmień szablon</extracomment>
+        <translation>Zmień szablon</translation>
+    </message>
+    <message>
+        <source>New Template...</source>
+        <extracomment>The last item of the list of the templates of a text for publishers: a template of the writer from scratch. In Polish: Nowy szablon...</extracomment>
+        <translation>Nowy szablon...</translation>
+    </message>
+    <message>
+        <source>The fields of its pattern are over the sentence.</source>
+        <extracomment>Beside a sentence about the book on the card For Publishers. In Polish: Pola wzoru są nad zdaniem.</extracomment>
+        <translation>Pola wzoru są nad zdaniem.</translation>
+    </message>
+    <message>
+        <source>Select a fragment of the text and press Ctrl+Shift+D to link it to a point. You tick off the points yourself (Space). In a point Enter selects its next fragment, Insert links the selection to it, Delete takes its links away, and Esc takes the keys back to the text.</source>
+        <extracomment>Under the points of the template of a synopsis on the card For Publishers. In Polish: Zaznacz fragment tekstu i naciśnij Ctrl+Shift+D, aby powiązać go z punktem. Punkty odhaczasz sam (Spacja). W punkcie Enter wybiera jego następny fragment, Insert wiąże z nim zaznaczenie, Delete usuwa jego powiązania, a Esc wraca do tekstu.</extracomment>
+        <translation>Zaznacz fragment tekstu i naciśnij Ctrl+Shift+D, aby powiązać go z punktem. Punkty odhaczasz sam (Spacja). W punkcie Enter wybiera jego następny fragment, Insert wiąże z nim zaznaczenie, Delete usuwa jego powiązania, a Esc wraca do tekstu.</translation>
+    </message>
+    <message>
+        <source>Template "%1" saved – it is available in all books.</source>
+        <extracomment>The status bar after a template was changed beside a text. In Polish: Zapisano szablon „%1” – jest dostępny we wszystkich książkach.</extracomment>
+        <translation>Zapisano szablon „%1” – jest dostępny we wszystkich książkach.</translation>
+    </message>
+    <message>
+        <source>Show in the Text</source>
+        <extracomment>The button over the points of a synopsis that fills the fragments of all of them in the text while it is on. In Polish: Pokaż w tekście</extracomment>
+        <translation>Pokaż w tekście</translation>
+    </message>
+    <message>
+        <source>Settings of Texts for Publishers</source>
+        <extracomment>The gear over the points of a synopsis. In Polish: Ustawienia tekstów dla wydawnictwa</extracomment>
+        <translation>Ustawienia tekstów dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Link the selected fragment of the text to this point (Insert)</source>
+        <extracomment>The button of a point of a synopsis. In Polish: Powiąż zaznaczony fragment tekstu z tym punktem (Insert)</extracomment>
+        <translation>Powiąż zaznaczony fragment tekstu z tym punktem (Insert)</translation>
+    </message>
+    <message>
+        <source>Take the links of the fragments of the text to this point away; the text stays (Delete)</source>
+        <extracomment>The button of a point of a synopsis. In Polish: Usuń powiązania fragmentów tekstu z tym punktem; tekst zostaje (Delete)</extracomment>
+        <translation>Usuń powiązania fragmentów tekstu z tym punktem; tekst zostaje (Delete)</translation>
+    </message>
+    <message>
+        <source>Ticked off, but the text has no fragment of it</source>
+        <extracomment>Under a point of a synopsis ticked off without a fragment linked to it. In Polish: Odhaczony, a w tekście nie ma jego fragmentu</extracomment>
+        <translation>Odhaczony, a w tekście nie ma jego fragmentu</translation>
+    </message>
+    <message>
+        <source>In the text: %1, %2</source>
+        <extracomment>Under a point of a synopsis: its fragments in the text and their length. In Polish: W tekście: %1, %2 (2 fragmenty, 140 znaków)</extracomment>
+        <translation>W tekście: %1, %2</translation>
+    </message>
+    <message>
+        <source>1 fragment</source>
+        <extracomment>In Polish: 1 fragment</extracomment>
+        <translation>1 fragment</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n fragments</source>
+        <extracomment>In Polish: %n fragment / fragmenty / fragmentów</extracomment>
+        <translation>
+            <numerusform>%n fragment</numerusform>
+            <numerusform>%n fragmenty</numerusform>
+            <numerusform>%n fragmentów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 character</source>
+        <extracomment>In Polish: 1 znak</extracomment>
+        <translation>1 znak</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n characters</source>
+        <extracomment>In Polish: %n znak / znaki / znaków</extracomment>
+        <translation>
+            <numerusform>%n znak</numerusform>
+            <numerusform>%n znaki</numerusform>
+            <numerusform>%n znaków</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>In the text</source>
+        <extracomment>Under a point of a synopsis with a fragment linked to it. In Polish: W tekście</extracomment>
+        <translation>W tekście</translation>
+    </message>
+    <message>
+        <source>Not in the text</source>
+        <extracomment>Under a point of a synopsis without a fragment linked to it. In Polish: Brak w tekście</extracomment>
+        <translation>Brak w tekście</translation>
+    </message>
+    <message>
+        <source>In the text: %1 of %3 · Done: %2 of %3</source>
+        <extracomment>Over the points of a synopsis. In Polish: W tekście: %1 z %3 · Gotowe: %2 z %3</extracomment>
+        <translation>W tekście: %1 z %3 · Gotowe: %2 z %3</translation>
+    </message>
+    <message>
+        <source>Select the fragment of the text you want to link to a point.</source>
+        <extracomment>Link to a Point without a selection. In Polish: Zaznacz fragment tekstu, który chcesz powiązać z punktem.</extracomment>
+        <translation>Zaznacz fragment tekstu, który chcesz powiązać z punktem.</translation>
+    </message>
+    <message>
+        <source>The text has no fragment of this point yet.</source>
+        <extracomment>Enter in a point of a synopsis without a fragment. In Polish: Tekst nie ma jeszcze fragmentu tego punktu.</extracomment>
+        <translation>Tekst nie ma jeszcze fragmentu tego punktu.</translation>
+    </message>
+    <message>
         <source>Te&amp;mplate:</source>
         <extracomment>The template of a text for publishers in the Properties panel. In Polish: Sza&amp;blon:</extracomment>
         <translation>Sza&amp;blon:</translation>
@@ -39794,24 +40027,9 @@ In Polish: pasmo „%1”</extracomment>
         <translation>W zestawie: nie</translation>
     </message>
     <message>
-        <source>The fields of its pattern are on the card of the sentence – Enter in the list or the Navigator opens it.</source>
-        <extracomment>The Properties panel of a sentence about the book. In Polish: Pola wzoru są na karcie zdania – otwiera ją Enter na liście albo w Nawigatorze.</extracomment>
-        <translation>Pola wzoru są na karcie zdania – otwiera ją Enter na liście albo w Nawigatorze.</translation>
-    </message>
-    <message>
         <source>A text without a template. Choose a template and its points show here.</source>
         <extracomment>The Properties panel of a synopsis without a template. In Polish: Tekst bez szablonu. Wybierz szablon, a jego punkty pokażą się tutaj.</extracomment>
         <translation>Tekst bez szablonu. Wybierz szablon, a jego punkty pokażą się tutaj.</translation>
-    </message>
-    <message>
-        <source>You tick off the points yourself (Space). Tools &gt; Texts for Publishers &gt; Template Points brings the keys here, and Esc takes them back to the text.</source>
-        <extracomment>Under the points of the template of a synopsis in the Properties panel. In Polish: Punkty odhaczasz sam (Spacja). Narzędzia &gt; Teksty dla wydawnictwa &gt; Punkty szablonu przenosi tu klawiaturę, a Esc wraca do tekstu.</extracomment>
-        <translation>Punkty odhaczasz sam (Spacja). Narzędzia &gt; Teksty dla wydawnictwa &gt; Punkty szablonu przenosi tu klawiaturę, a Esc wraca do tekstu.</translation>
-    </message>
-    <message>
-        <source>Templates of Texts for Publishers...</source>
-        <extracomment>The button beside the template that opens the window of the templates. In Polish: Szablony tekstów dla wydawnictwa...</extracomment>
-        <translation>Szablony tekstów dla wydawnictwa...</translation>
     </message>
     <message>
         <source>&amp;Volume:</source>
@@ -39880,6 +40098,39 @@ In Polish: pasmo „%1”</extracomment>
 <context>
     <name>kalahari::gui::PublishingSetContents</name>
     <message>
+        <source>Points with No Fragment in the Text</source>
+        <extracomment>The title of the window before the set for a publisher is copied or exported while its synopsis has points without a fragment. In Polish: Punkty bez fragmentu w tekście</extracomment>
+        <translation>Punkty bez fragmentu w tekście</translation>
+    </message>
+    <message>
+        <source>The synopsis of the set has no fragments linked to these points of its template:
+
+%1
+
+You can write them and link them (Ctrl+Shift+D) or send the set as it is.</source>
+        <extracomment>In Polish: Streszczenie w zestawie nie ma fragmentów powiązanych z tymi punktami szablonu:\n\n%1\n\nMożna je dopisać i powiązać (Ctrl+Shift+D) albo wysłać zestaw tak, jak jest.</extracomment>
+        <translation>Streszczenie w zestawie nie ma fragmentów powiązanych z tymi punktami szablonu:
+
+%1
+
+Można je dopisać i powiązać (Ctrl+Shift+D) albo wysłać zestaw tak, jak jest.</translation>
+    </message>
+    <message>
+        <source>Export &amp;Anyway</source>
+        <extracomment>In Polish: Eksportuj &amp;mimo to</extracomment>
+        <translation>Eksportuj &amp;mimo to</translation>
+    </message>
+    <message>
+        <source>Copy &amp;Anyway</source>
+        <extracomment>In Polish: Kopiuj &amp;mimo to</extracomment>
+        <translation>Kopiuj &amp;mimo to</translation>
+    </message>
+    <message>
+        <source>&amp;Back to the Synopsis</source>
+        <extracomment>In Polish: &amp;Wróć do streszczenia</extracomment>
+        <translation>&amp;Wróć do streszczenia</translation>
+    </message>
+    <message>
         <source>%1 ★</source>
         <extracomment>A version of a part of the set for a publisher chosen for the set: %1 its title. In Polish: %1 ★</extracomment>
         <translation>%1 ★</translation>
@@ -39890,138 +40141,9 @@ In Polish: pasmo „%1”</extracomment>
         <translation>%1 ★ na okładce</translation>
     </message>
     <message>
-        <source>Set for the Publisher · %1 of %2</source>
-        <extracomment>The name of the set for a publisher with how many of its parts it has: %1 those in it, %2 all. In Polish: Zestaw dla wydawnictwa · %1 z %2</extracomment>
-        <translation>Zestaw dla wydawnictwa · %1 z %2</translation>
-    </message>
-    <message numerus="yes">
-        <source>%Ln parts</source>
-        <extracomment>The parts in the set for a publisher, before their length in all. In Polish: %Ln część / %Ln części / %Ln części</extracomment>
-        <translation>
-            <numerusform>%Ln część</numerusform>
-            <numerusform>%Ln części</numerusform>
-            <numerusform>%Ln części</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
-        <source>%Ln words in all</source>
-        <extracomment>The length of the texts of the set for a publisher in all. In Polish: %Ln słowo razem / %Ln słowa razem / %Ln słów razem; %Ln znak razem / %Ln znaki razem / %Ln znaków razem</extracomment>
-        <translation>
-            <numerusform>%Ln słowo razem</numerusform>
-            <numerusform>%Ln słowa razem</numerusform>
-            <numerusform>%Ln słów razem</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
-        <source>%Ln characters in all</source>
-        <translation>
-            <numerusform>%Ln znak razem</numerusform>
-            <numerusform>%Ln znaki razem</numerusform>
-            <numerusform>%Ln znaków razem</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>Cover</source>
-        <extracomment>Where a part of the set for a publisher comes from: the materials of the cover. In Polish: Okładka</extracomment>
-        <translation>Okładka</translation>
-    </message>
-    <message>
-        <source>The back matter of the book</source>
-        <extracomment>Where the note about the author in the set for a publisher comes from. In Polish: strony końcowe książki</extracomment>
-        <translation>Strony końcowe książki</translation>
-    </message>
-    <message>
-        <source>Texts for Publishers</source>
-        <extracomment>Where a sentence or a synopsis of the set for a publisher comes from. In Polish: Teksty dla wydawnictwa</extracomment>
-        <translation>Teksty dla wydawnictwa</translation>
-    </message>
-    <message>
         <source>Copied the set for the publisher</source>
         <extracomment>The status bar after Copy All of the set for a publisher. In Polish: Skopiowano zestaw dla wydawnictwa</extracomment>
         <translation>Skopiowano zestaw dla wydawnictwa</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::gui::PublishingSetPage</name>
-    <message>
-        <source>Set for the Publisher</source>
-        <extracomment>The heading of the set for a publisher in the Properties panel. In Polish: Zestaw dla wydawnictwa</extracomment>
-        <translation>Zestaw dla wydawnictwa</translation>
-    </message>
-    <message>
-        <source>Contents of the Set</source>
-        <extracomment>The group of the parts of the set for a publisher in the Properties panel. In Polish: Zawartość zestawu</extracomment>
-        <translation>Zawartość zestawu</translation>
-    </message>
-    <message>
-        <source>Move Up (%1)</source>
-        <extracomment>Moves a part of the set for a publisher up. In Polish: W górę (Alt+↑)</extracomment>
-        <translation>W górę (%1)</translation>
-    </message>
-    <message>
-        <source>Move Down (%1)</source>
-        <extracomment>Moves a part of the set for a publisher down. In Polish: W dół (Alt+↓)</extracomment>
-        <translation>W dół (%1)</translation>
-    </message>
-    <message>
-        <source>Space includes a part or leaves it out, Alt+Up and Alt+Down move it. The set keeps this in the book; the contents for new books are in the Settings.</source>
-        <extracomment>Under the contents of the set for a publisher. In Polish: Spacja włącza i wyłącza część, Alt+↑ i Alt+↓ ją przestawiają. Zestaw zapamiętuje to w książce; zawartość dla nowych książek ustawia się w Ustawieniach.</extracomment>
-        <translation>Spacja włącza i wyłącza część, Alt+↑ i Alt+↓ ją przestawiają. Zestaw zapamiętuje to w książce; zawartość dla nowych książek ustawia się w Ustawieniach.</translation>
-    </message>
-    <message>
-        <source>Version:</source>
-        <extracomment>The version of the part chosen of the set for a publisher. In Polish: Wersja:</extracomment>
-        <translation>Wersja:</translation>
-    </message>
-    <message>
-        <source>Source:</source>
-        <extracomment>Where the text of the part chosen of the set comes from. In Polish: Skąd:</extracomment>
-        <translation>Skąd:</translation>
-    </message>
-    <message>
-        <source>Open (%1)</source>
-        <extracomment>Opens the version of the part chosen of the set for a publisher. In Polish: Otwórz (%1)</extracomment>
-        <translation>Otwórz (%1)</translation>
-    </message>
-    <message>
-        <source>This part has no version chosen yet.</source>
-        <extracomment>The part chosen of the set for a publisher has no version. In Polish: Ta część nie ma jeszcze wybranej wersji.</extracomment>
-        <translation>Ta część nie ma jeszcze wybranej wersji.</translation>
-    </message>
-    <message>
-        <source>Export</source>
-        <extracomment>The group of the export of the set for a publisher. In Polish: Eksport</extracomment>
-        <translation>Eksport</translation>
-    </message>
-    <message>
-        <source>Texts for Publishers Settings</source>
-        <extracomment>The gear of the set for a publisher: Settings &gt; Navigator. In Polish: Ustawienia tekstów dla wydawnictwa</extracomment>
-        <translation>Ustawienia tekstów dla wydawnictwa</translation>
-    </message>
-    <message>
-        <source>The window of the export is that of File &gt; Export; the set is its fourth source beside the whole book, the texts chosen and the text in front. DOCX and Markdown files get the headings of the parts of the set.</source>
-        <extracomment>Under Export of the set for a publisher. In Polish: Okno eksportu to to samo okno co Plik › Eksportuj; zestaw jest w nim czwartym źródłem obok całej książki, wybranych tekstów i tekstu na wierzchu. Pliki DOCX i Markdown dostają nagłówki części zestawu.</extracomment>
-        <translation>Okno eksportu to to samo okno co Plik › Eksportuj; zestaw jest w nim czwartym źródłem obok całej książki, wybranych tekstów i tekstu na wierzchu. Pliki DOCX i Markdown dostają nagłówki części zestawu.</translation>
-    </message>
-    <message>
-        <source>Copy All</source>
-        <extracomment>Copies the whole set for a publisher. In Polish: Kopiuj wszystko</extracomment>
-        <translation>Kopiuj wszystko</translation>
-    </message>
-    <message>
-        <source>Export Set...</source>
-        <extracomment>Opens the window of the export with the set for a publisher. In Polish: Eksportuj zestaw...</extracomment>
-        <translation>Eksportuj zestaw...</translation>
-    </message>
-    <message>
-        <source>no version</source>
-        <extracomment>A part of the set for a publisher without a version, in its contents. In Polish: brak wersji</extracomment>
-        <translation>brak wersji</translation>
-    </message>
-    <message>
-        <source>Part Chosen: %1</source>
-        <extracomment>The group of the part chosen of the set for a publisher; %1 its name. In Polish: Wybrana część: %1</extracomment>
-        <translation>Wybrana część: %1</translation>
     </message>
 </context>
 <context>
@@ -40055,220 +40177,6 @@ In Polish: pasmo „%1”</extracomment>
         <source>Open</source>
         <extracomment>Opens the text of a part of the set for a publisher where it is written. In Polish: Otwórz</extracomment>
         <translation>Otwórz</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::gui::dialogs::PublishingTemplatesDialog</name>
-    <message>
-        <source>Templates of Texts for Publishers</source>
-        <extracomment>The title of the window. In Polish: Szablony tekstów dla wydawnictwa</extracomment>
-        <translation>Szablony tekstów dla wydawnictwa</translation>
-    </message>
-    <message>
-        <source>The templates of the type &quot;%1&quot; and your own, kept at once, in all your books. A template suggests what to write and sets the target length.</source>
-        <extracomment>%1: the book type of the book, &quot;Novel&quot;. In Polish: Szablony typu „%1” i Twoje własne, zapisywane od razu, we wszystkich Twoich książkach. Szablon podpowiada, co napisać, i ustala docelową długość.</extracomment>
-        <translation>Szablony typu „%1” i Twoje własne, zapisywane od razu, we wszystkich Twoich książkach. Szablon podpowiada, co napisać, i ustala docelową długość.</translation>
-    </message>
-    <message>
-        <source>The templates of the book types and your own, kept at once, in all your books. A template suggests what to write and sets the target length.</source>
-        <extracomment>In Polish: Szablony typów książek i Twoje własne, zapisywane od razu, we wszystkich Twoich książkach. Szablon podpowiada, co napisać, i ustala docelową długość.</extracomment>
-        <translation>Szablony typów książek i Twoje własne, zapisywane od razu, we wszystkich Twoich książkach. Szablon podpowiada, co napisać, i ustala docelową długość.</translation>
-    </message>
-    <message>
-        <source>Close</source>
-        <extracomment>The button that closes the window of the templates, whose changes are kept at once. In Polish: Zamknij</extracomment>
-        <translation>Zamknij</translation>
-    </message>
-    <message>
-        <source>&amp;Templates:</source>
-        <extracomment>The list of the templates. In Polish: &amp;Szablony:</extracomment>
-        <translation>&amp;Szablony:</translation>
-    </message>
-    <message>
-        <source>&amp;New Template</source>
-        <extracomment>Makes a new template of the writer. In Polish: &amp;Nowy szablon</extracomment>
-        <translation>&amp;Nowy szablon</translation>
-    </message>
-    <message>
-        <source>Make a &amp;Copy</source>
-        <extracomment>Makes the template chosen a template of the writer. In Polish: Utwórz &amp;kopię</extracomment>
-        <translation>Utwórz &amp;kopię</translation>
-    </message>
-    <message>
-        <source>&amp;Delete</source>
-        <extracomment>Deletes the writer&apos;s template chosen. In Polish: &amp;Usuń</extracomment>
-        <translation>&amp;Usuń</translation>
-    </message>
-    <message>
-        <source>Choose a template in the list, or make a new one.</source>
-        <extracomment>Where the fields of a template are while none is chosen. In Polish: Wybierz szablon z listy albo utwórz nowy.</extracomment>
-        <translation>Wybierz szablon z listy albo utwórz nowy.</translation>
-    </message>
-    <message>
-        <source>&amp;Part:</source>
-        <extracomment>What a template is for: a synopsis or a sentence about the book. In Polish: &amp;Rodzaj tekstu:</extracomment>
-        <translation>&amp;Rodzaj tekstu:</translation>
-    </message>
-    <message>
-        <source>N&amp;ame:</source>
-        <extracomment>The name of a template. In Polish: N&amp;azwa:</extracomment>
-        <translation>N&amp;azwa:</translation>
-    </message>
-    <message>
-        <source>Book t&amp;ypes:</source>
-        <extracomment>The book types a template is for. In Polish: &amp;Typy książek:</extracomment>
-        <translation>&amp;Typy książek:</translation>
-    </message>
-    <message>
-        <source>&amp;Length:</source>
-        <extracomment>The target length of a template. In Polish: Dług&amp;ość:</extracomment>
-        <translation>Dług&amp;ość:</translation>
-    </message>
-    <message>
-        <source>(none ticked: every type)</source>
-        <extracomment>After the boxes of the book types of the writer&apos;s template. In Polish: (bez zaznaczenia: każdy typ)</extracomment>
-        <translation>(bez zaznaczenia: każdy typ)</translation>
-    </message>
-    <message>
-        <source>none</source>
-        <extracomment>A target length of 0: the text takes the length of the Settings. In Polish: brak</extracomment>
-        <translation>brak</translation>
-    </message>
-    <message>
-        <source>characters with spaces</source>
-        <extracomment>After the target length in characters. In Polish: znaków ze spacjami</extracomment>
-        <translation>znaków ze spacjami</translation>
-    </message>
-    <message>
-        <source>&amp;words</source>
-        <extracomment>After the target length in words. In Polish: słó&amp;w</extracomment>
-        <translation>słó&amp;w</translation>
-    </message>
-    <message>
-        <source>Point</source>
-        <extracomment>The column of the names of the points. In Polish: Punkt</extracomment>
-        <translation>Punkt</translation>
-    </message>
-    <message>
-        <source>Hint</source>
-        <extracomment>The column of the hints of the points. In Polish: Podpowiedź
-----------
-The column of the hints of the fields. In Polish: Podpowiedź</extracomment>
-        <translation>Podpowiedź</translation>
-    </message>
-    <message>
-        <source>Add P&amp;oint</source>
-        <extracomment>In Polish: Doda&amp;j punkt</extracomment>
-        <translation>Doda&amp;j punkt</translation>
-    </message>
-    <message>
-        <source>R&amp;emove Point</source>
-        <extracomment>In Polish: Usuń &amp;punkt</extracomment>
-        <translation>Usuń &amp;punkt</translation>
-    </message>
-    <message>
-        <source>Move &amp;Up</source>
-        <extracomment>In Polish: W &amp;górę</extracomment>
-        <translation>W &amp;górę</translation>
-    </message>
-    <message>
-        <source>Mo&amp;ve Down</source>
-        <extracomment>In Polish: W &amp;dół</extracomment>
-        <translation>W &amp;dół</translation>
-    </message>
-    <message>
-        <source>Po&amp;ints:</source>
-        <extracomment>The points of a template of a synopsis. In Polish: Punkt&amp;y:</extracomment>
-        <translation>Punkt&amp;y:</translation>
-    </message>
-    <message>
-        <source>For example: When {event}, {hero} must {goal}, before {stakes}.</source>
-        <extracomment>In Polish: Na przykład: Gdy {event}, {hero} musi {goal}, zanim {stakes}.</extracomment>
-        <translation>Na przykład: Gdy {event}, {hero} musi {goal}, zanim {stakes}.</translation>
-    </message>
-    <message>
-        <source>The fields go in braces: {hero}. Each gets a box on the card of the sentence.</source>
-        <extracomment>Under the pattern. In Polish: Pola wzoru są w nawiasach klamrowych: {hero}. Każde ma swoje miejsce na karcie zdania.</extracomment>
-        <translation>Pola wzoru są w nawiasach klamrowych: {hero}. Każde ma swoje miejsce na karcie zdania.</translation>
-    </message>
-    <message>
-        <source>Patte&amp;rn:</source>
-        <extracomment>The pattern of a sentence about the book. In Polish: W&amp;zór:</extracomment>
-        <translation>W&amp;zór:</translation>
-    </message>
-    <message>
-        <source>In the Pattern</source>
-        <extracomment>The column of the fields as the pattern names them. In Polish: We wzorze</extracomment>
-        <translation>We wzorze</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <extracomment>The column of the names of the fields. In Polish: Nazwa</extracomment>
-        <translation>Nazwa</translation>
-    </message>
-    <message>
-        <source>&amp;Fields:</source>
-        <extracomment>The fields of the pattern. In Polish: Po&amp;la:</extracomment>
-        <translation>Po&amp;la:</translation>
-    </message>
-    <message>
-        <source>%1 – Built-in</source>
-        <extracomment>A group of the list of the templates: those of a book type. In Polish: %1 – wbudowane</extracomment>
-        <translation>%1 – wbudowane</translation>
-    </message>
-    <message>
-        <source>My Templates</source>
-        <extracomment>The group of the writer&apos;s own templates. In Polish: Moje szablony</extracomment>
-        <translation>Moje szablony</translation>
-    </message>
-    <message>
-        <source>%1 – a template of the book type, which does not change. Make a Copy to change it.</source>
-        <extracomment>Where the book types of a template of a book type are. %1: the type, &quot;Novel&quot;. In Polish: %1 – szablon typu książki, który się nie zmienia. Utwórz kopię, by go zmienić.</extracomment>
-        <translation>%1 – szablon typu książki, który się nie zmienia. Utwórz kopię, by go zmienić.</translation>
-    </message>
-    <message>
-        <source>For each text of the main part of the book.</source>
-        <extracomment>The length of a template with a point for each text, without a book. In Polish: Dla każdego tekstu głównej części książki.</extracomment>
-        <translation>Dla każdego tekstu głównej części książki.</translation>
-    </message>
-    <message numerus="yes">
-        <source>For each text; this book has %n texts, %1 characters (%2 words) in all.</source>
-        <extracomment>The length of a template with a point for each text. %1, %2: the length of all of them. In Polish: Dla każdego tekstu; ta książka ma %n tekst/teksty/tekstów, razem %1 znaków (%2 słów).</extracomment>
-        <translation>
-            <numerusform>Dla każdego tekstu; ta książka ma %n tekst, razem znaków: %1, słów: %2.</numerusform>
-            <numerusform>Dla każdego tekstu; ta książka ma %n teksty, razem znaków: %1, słów: %2.</numerusform>
-            <numerusform>Dla każdego tekstu; ta książka ma %n tekstów, razem znaków: %1, słów: %2.</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>The points are the titles of the texts of the main part of the book, so they change with them.</source>
-        <extracomment>Under the points of a template with a point for each text. In Polish: Punkty to tytuły tekstów głównej części książki, więc zmieniają się razem z nimi.</extracomment>
-        <translation>Punkty to tytuły tekstów głównej części książki, więc zmieniają się razem z nimi.</translation>
-    </message>
-    <message>
-        <source>New template</source>
-        <extracomment>The name of a new template of the writer. In Polish: Nowy szablon</extracomment>
-        <translation>Nowy szablon</translation>
-    </message>
-    <message>
-        <source>Point %1</source>
-        <extracomment>The name of a new point of a template. In Polish: Punkt %1</extracomment>
-        <translation>Punkt %1</translation>
-    </message>
-    <message>
-        <source>%1 – copy</source>
-        <extracomment>The name of a copy of a template. In Polish: %1 – kopia</extracomment>
-        <translation>%1 – kopia</translation>
-    </message>
-    <message>
-        <source>Delete the template &quot;%1&quot;? The texts written with it stay, without a template.</source>
-        <extracomment>%1: the name of the template. In Polish: Usunąć szablon „%1”? Teksty, które z niego korzystają, zostają i nie mają już szablonu.</extracomment>
-        <translation>Usunąć szablon „%1”? Teksty napisane z nim zostają, bez szablonu.</translation>
-    </message>
-    <message>
-        <source>Delete Template</source>
-        <extracomment>The title of the question. In Polish: Usuń szablon</extracomment>
-        <translation>Usuń szablon</translation>
     </message>
 </context>
 <context>

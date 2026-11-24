@@ -21,8 +21,6 @@
 #include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
-#include "kalahari/gui/panels/publishing_set_page.h"
-#include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/source_names.h"
 #include "kalahari/gui/utils/file_location.h"
 
@@ -58,9 +56,6 @@ constexpr const char* COVER_SETTINGS = "materials.cover.";
 /// bibliography and the form of the references (core::Bibliography::STYLE_SETTING...)
 constexpr const char* SOURCE_SETTINGS = "materials.sources.";
 
-/// @brief The beginning of the keys of the settings of the texts for publishers: their target
-/// lengths and the standard pages (core::PublishingTexts::TARGETS_SETTING...)
-constexpr const char* PUBLISHING_SETTINGS = "materials.publishing.";
 
 /// @brief The titles of the elements @p ids of the open book, those it has
 QStringList titlesOf(const core::ProjectManager& book, const QStringList& ids) {
@@ -131,7 +126,6 @@ MaterialListCoordinator::MaterialListCoordinator(core::ProjectManager& book,
             &MaterialListCoordinator::refresh);
     connect(m_centralTabs, &QTabWidget::currentChanged, this,
             &MaterialListCoordinator::onCurrentTabChanged);
-    connectSetPage();
 
     // The setting may change on another thread: the Navigator is built on this one
     m_settingsListener = core::SettingsManager::getInstance().subscribe(
@@ -143,10 +137,8 @@ MaterialListCoordinator::MaterialListCoordinator(core::ProjectManager& book,
                 QMetaObject::invokeMethod(self, "onTreeSettingChanged", Qt::QueuedConnection);
             } else if (key == MaterialList::HIDDEN_SETTING) {
                 QMetaObject::invokeMethod(self, "onHiddenSettingChanged", Qt::QueuedConnection);
-            } else if (key.starts_with(COVER_SETTINGS) || key.starts_with(SOURCE_SETTINGS) ||
-                       key.starts_with(PUBLISHING_SETTINGS)) {
-                // The unit and the targets of the texts of the cover and of the texts for
-                // publishers; the style of the entries
+            } else if (key.starts_with(COVER_SETTINGS) || key.starts_with(SOURCE_SETTINGS)) {
+                // The unit and the targets of the texts of the cover; the style of the entries
                 QMetaObject::invokeMethod(self, "refresh", Qt::QueuedConnection);
             }
         });
@@ -226,35 +218,6 @@ void MaterialListCoordinator::refreshNow() {
             panel->setProperty(STALE_PROPERTY, true);
         }
     }
-    // The set for a publisher in the Properties panel follows the same changes
-    if (PropertiesPanel* properties = m_navigator->propertiesPanel();
-        properties != nullptr &&
-        properties->currentPage() == PropertiesPanel::Page::PublishingSet) {
-        properties->publishingSetPage()->refresh();
-    }
-}
-
-void MaterialListCoordinator::connectSetPage() {
-    PropertiesPanel* properties = m_navigator->propertiesPanel();
-    if (properties == nullptr) {
-        return;
-    }
-    PublishingSetPage* page = properties->publishingSetPage();
-    // A part chosen in the contents is chosen on the page of the set too
-    connect(page, &PublishingSetPage::partChosen, this, [this](const QString& part) {
-        for (MaterialListPanel* panel : lists()) {
-            if (MaterialList::isPublishing(panel->list())) {
-                panel->showSetPart(part);
-            }
-        }
-    });
-    connect(page, &PublishingSetPage::requestOpen, this, &MaterialListCoordinator::open);
-    connect(page, &PublishingSetPage::requestExportSet, this,
-            &MaterialListCoordinator::exportSetRequested);
-    connect(page, &PublishingSetPage::requestSettings, this,
-            &MaterialListCoordinator::settingsRequested);
-    connect(page, &PublishingSetPage::message, this,
-            [this](const QString& text) { m_statusBar->showMessage(text, MESSAGE_TIMEOUT); });
 }
 
 void MaterialListCoordinator::onTreeSettingChanged() {
@@ -343,17 +306,6 @@ void MaterialListCoordinator::connectList(MaterialListPanel* panel) {
             });
     connect(panel, &MaterialListPanel::requestCoverState, this,
             &MaterialListCoordinator::setCoverState);
-    connect(panel, &MaterialListPanel::requestPublishingState, this,
-            &MaterialListCoordinator::setPublishingState);
-    connect(panel, &MaterialListPanel::requestSetPick, this, &MaterialListCoordinator::pickForSet);
-    // The set shown, a part chosen in it: the Properties panel shows the set, brought to the
-    // front as a material chosen
-    connect(panel, &MaterialListPanel::requestSetProperties, this,
-            &MaterialListCoordinator::showSetProperties);
-    connect(panel, &MaterialListPanel::requestExportSet, this,
-            &MaterialListCoordinator::exportSetRequested);
-    connect(panel, &MaterialListPanel::requestShowInCover, this,
-            &MaterialListCoordinator::showInCover);
     connect(panel, &MaterialListPanel::requestShowKind, this, &MaterialListCoordinator::showKind);
     connect(panel, &MaterialListPanel::requestSettings, this,
             [this, shown = QPointer<MaterialListPanel>(panel)]() {
@@ -471,12 +423,8 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
         target.kind = target.kinds.constFirst();
         target.byName = !sources;
     }
-    // The part asked for: of a text for publishers, of a material of the cover
-    if (MaterialList::isPublishing(list)) {
-        target.publishingPart = coverPart;
-    } else {
-        target.coverPart = coverPart;
-    }
+    // The part of a material of the cover asked for
+    target.coverPart = coverPart;
     const QSet<QString> before = workshopIds(m_book);
     m_navigator->onRequestAdd(target);
 
@@ -533,58 +481,6 @@ void MaterialListCoordinator::setCoverState(const QString& elementId, const QStr
     m_navigator->onMaterialChanged(elementId);
     for (const QString& id : drafts) {
         m_navigator->onMaterialChanged(id);
-    }
-}
-
-void MaterialListCoordinator::setPublishingState(const QString& elementId,
-                                                 const QString& state) {
-    auto& pm = m_book;
-    const core::ProjectElement* element = pm.findElement(elementId);
-    if (pm.isReadOnly() || element == nullptr) {
-        return;
-    }
-    const QString title = element->title;
-    QStringList drafts;
-    if (!pm.setPublishingState(elementId, state, &drafts)) {
-        dialogs::MessageDialog::warning(window(), MaterialList::tr("State Not Saved"),
-                                        MaterialList::tr("Failed to save changes."));
-        return;
-    }
-    m_statusBar->showMessage(PublishingNames::stateMessage(title, state, titlesOf(pm, drafts)),
-                             LONG_MESSAGE_TIMEOUT);
-    m_navigator->onMaterialChanged(elementId);
-    for (const QString& id : drafts) {
-        m_navigator->onMaterialChanged(id);
-    }
-}
-
-void MaterialListCoordinator::pickForSet(const QString& elementId) {
-    auto& pm = m_book;
-    const core::ProjectElement* element = pm.findElement(elementId);
-    if (pm.isReadOnly() || element == nullptr) {
-        return;
-    }
-    const QString title = element->title;
-    if (!pm.pickForPublishingSet(elementId)) {
-        //: In Polish: Nie zapisano zestawu
-        dialogs::MessageDialog::warning(window(), MaterialList::tr("Set Not Saved"),
-                                        MaterialList::tr("Failed to save changes."));
-        return;
-    }
-    //: The status bar after a description or a tagline of the cover became the version of its
-    //: part in the set for publishers; %1: its title. In Polish: „%1” jest teraz w zestawie dla
-    //: wydawnictwa.
-    m_statusBar->showMessage(
-        MaterialList::tr("\"%1\" is now in the set for publishers.").arg(title),
-        LONG_MESSAGE_TIMEOUT);
-}
-
-void MaterialListCoordinator::showSetProperties(const QString& part) {
-    if (PropertiesPanel* properties = m_navigator->propertiesPanel()) {
-        properties->showPublishingSetProperties(part);
-    }
-    if (m_showProperties) {
-        m_showProperties(false);
     }
 }
 

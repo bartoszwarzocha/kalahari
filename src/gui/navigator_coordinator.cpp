@@ -21,13 +21,13 @@
 #include "kalahari/gui/dialogs/rename_element_dialog.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/publishing_card_panel.h"
 #include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/card_panel.h"
 #include "kalahari/gui/panels/image_preview_panel.h"
 #include "kalahari/gui/panels/material_page.h"
-#include "kalahari/gui/panels/pitch_panel.h"
 #include "kalahari/gui/panels/preview_panel.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/material_file.h"
@@ -248,7 +248,6 @@ void NavigatorCoordinator::discardChapterChanges(const QString& elementId) {
     // Forget the unsaved text ProjectManager keeps (single source of truth), with its words
     // and the points of its template waiting for it, which the Properties panel shows
     m_book.discardChapterContent(elementId);
-    m_propertiesPanel->publishingBox()->showSaved(elementId);
 
     // Clear the display cache
     m_dirtyChapters[elementId] = false;
@@ -349,10 +348,54 @@ void NavigatorCoordinator::refreshTabTitle(const QString& elementId) {
     const QString title =
         m_dirtyChapters.value(elementId, false) ? "*" + element->title : element->title;
     for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
-        if (page->property("elementId").toString() == elementId) {
+        // The card For Publishers keeps its name whatever version it shows
+        if (page->property("elementId").toString() == elementId &&
+            qobject_cast<PublishingCardPanel*>(page) == nullptr) {
             DocumentWindows::setTabText(page, title);
         }
     }
+}
+
+PublishingCardPanel* NavigatorCoordinator::openPublishingCard(const QString& elementId,
+                                                              bool keys) {
+    if (!m_book.isProjectOpen()) {
+        m_statusBar->showMessage(tr("No book loaded"), 2000);
+        return nullptr;
+    }
+    DocumentWindows& texts = DocumentWindows::of(*m_centralTabs);
+    PublishingCardPanel* card = nullptr;
+    for (QWidget* page : texts.pages()) {
+        if (auto* open = qobject_cast<PublishingCardPanel*>(page)) {
+            card = open;
+        }
+    }
+    if (card == nullptr) {
+        card = new PublishingCardPanel(m_book, m_commands, m_centralTabs);
+        const QString iconId = QStringLiteral("book.publishing");
+        card->setProperty("tabIconId", iconId);
+        //: The tab of the card For Publishers. In Polish: Dla wydawnictwa
+        m_centralTabs->addTab(card, core::ArtProvider::getInstance().getIcon(iconId),
+                              tr("For Publishers"));
+        connect(card, &PublishingCardPanel::titleChanged, this,
+                [this](const QString& id) { m_navigatorPanel->refreshItem(id); });
+        connect(card, &PublishingCardPanel::publishingChanged, this,
+                &NavigatorCoordinator::onMaterialChanged);
+        connect(card, &PublishingCardPanel::requestDelete, this,
+                &NavigatorCoordinator::onRequestDelete);
+        connect(card, &PublishingCardPanel::requestOpen, this, [this](const QString& id) {
+            if (const core::ProjectElement* element = m_book.findElement(id)) {
+                onElementSelected(id, element->title);
+            }
+        });
+        connect(card, &PublishingCardPanel::statusMessage, this,
+                [this](const QString& text) { m_statusBar->showMessage(text, 4000); });
+        emit publishingCardCreated(card);
+    }
+    texts.showPage(card);
+    if (elementId.isEmpty() || !card->showVersion(elementId, keys)) {
+        card->showPart(card->part(), keys);
+    }
+    return card;
 }
 
 void NavigatorCoordinator::refreshFirstPage(const QString& elementId) {
@@ -384,6 +427,13 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     if (!pm.isProjectOpen()) {
         logger.debug("No project loaded - ignoring Navigator selection");
         m_statusBar->showMessage(tr("No book loaded"), 2000);
+        return;
+    }
+
+    // A text for publishers is written on the card For Publishers
+    if (const core::ProjectElement* text = pm.findElement(elementId);
+        text != nullptr && core::ProjectManager::isPublishingText(*text)) {
+        openPublishingCard(elementId, true);
         return;
     }
 
@@ -556,21 +606,7 @@ EditorPanel* NavigatorCoordinator::createEditorPanel(const core::ProjectElement*
     if (element != nullptr && m_book.isCard(*element)) {
         return createCardPanel(elementId);
     }
-    if (element != nullptr &&
-        element->publishing.part == QLatin1String(core::PublishingTexts::PITCH)) {
-        return createPitchPanel(elementId);
-    }
     return new EditorPanel(m_book, m_commands, m_centralTabs);
-}
-
-PitchPanel* NavigatorCoordinator::createPitchPanel(const QString& elementId) {
-    auto* panel = new PitchPanel(m_book, m_commands, elementId, m_centralTabs);
-    connect(panel, &PitchPanel::titleChanged, this, [this](const QString& id) {
-        refreshTabTitle(id);
-        m_navigatorPanel->refreshItem(id);
-    });
-    connect(panel, &PitchPanel::publishingChanged, this, &NavigatorCoordinator::onMaterialChanged);
-    return panel;
 }
 
 CardPanel* NavigatorCoordinator::createCardPanel(const QString& elementId) {
@@ -1059,6 +1095,12 @@ void NavigatorCoordinator::closeTabsOf(const core::ProjectElement& element) {
     const QList<QWidget*> pages = DocumentWindows::of(*m_centralTabs).pages();
     for (auto it = pages.crbegin(); it != pages.crend(); ++it) {
         QWidget* widget = *it;
+        if (widget->property("elementId").toString() == element.id &&
+            qobject_cast<PublishingCardPanel*>(widget) != nullptr) {
+            // The card For Publishers stays: it shows another version of the part
+            widget->setProperty("elementId", QString());
+            continue;
+        }
         if (widget->property("elementId").toString() == element.id) {
             DocumentWindows::removePage(widget);
             widget->deleteLater();

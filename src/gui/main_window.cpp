@@ -85,6 +85,7 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/publishing_card_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/widgets/color_menu.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
@@ -151,6 +152,9 @@ constexpr int READ_ONLY_MESSAGE_MS = 5000;
 
 /// How long the status bar says that Paste Special pasted
 constexpr int PASTED_MESSAGE_MS = 2000;
+
+/// How long the status bar shows what Link to a Point says
+constexpr int PANEL_MESSAGE_MS = 4000;
 
 /// View > Show Status Bar: whether the book windows show their status bars
 constexpr const char* STATUS_BAR_SETTING = "window.showStatusBar";
@@ -647,6 +651,11 @@ MainWindow::MainWindow(QWidget* parent)
                 m_plotBoardCoordinator->openBoard(QString::fromLatin1(PlotBoard::VIEW_BOARD),
                                                   keys);
             });
+    // For Publishers at the top of the Workshop of the Navigator, as Book > For Publishers
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenPublishing,
+            m_navigatorCoordinator, [this](bool keys) {
+                m_navigatorCoordinator->openPublishingCard(QString(), keys);
+            });
     // The gear over the board: Settings > Plot Board
     connect(m_plotBoardCoordinator, &PlotBoardCoordinator::settingsRequested, this, [this]() {
         if (m_settingsCoordinator != nullptr) {
@@ -907,9 +916,22 @@ MainWindow::MainWindow(QWidget* parent)
         [this]() { return getCurrentEditor(); },
         m_captionCoordinator, m_footnoteCoordinator, this, this);
     m_bookExportCoordinator->connectCommands();
-    // Export Set... of the set for a publisher: the window of the export with the set
-    connect(m_materialListCoordinator, &MaterialListCoordinator::exportSetRequested,
-            m_bookExportCoordinator, &BookExportCoordinator::exportSet);
+    // The card For Publishers: its export, print, gear and the Cover
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::publishingCardCreated, this,
+            [this](PublishingCardPanel* card) {
+                connect(card, &PublishingCardPanel::requestExportSet, m_bookExportCoordinator,
+                        &BookExportCoordinator::exportSet);
+                connect(card, &PublishingCardPanel::requestPrintSet, m_bookExportCoordinator,
+                        &BookExportCoordinator::printSet);
+                connect(card, &PublishingCardPanel::requestShowInCover,
+                        m_materialListCoordinator, &MaterialListCoordinator::showInCover);
+                connect(card, &PublishingCardPanel::settingsRequested, this, [this]() {
+                    if (m_settingsCoordinator != nullptr) {
+                        m_settingsCoordinator->openSettingsPage(
+                            QString::fromLatin1(SettingsDialog::PUBLISHING_PAGE));
+                    }
+                });
+            });
 
     // The commands of the plugins in the menus (Tools > Plugins by default) and their panels
     // in docks on the right, closed until opened; they follow the plugins turned on and off
@@ -1787,6 +1809,12 @@ void MainWindow::registerCommands() {
     callbacks.onPlotBoard = [this]() {
         if (m_plotBoardCoordinator) {
             m_plotBoardCoordinator->openBoard(QString::fromLatin1(PlotBoard::VIEW_BOARD), true);
+        }
+    };
+    // The card For Publishers, the keys in it
+    callbacks.onPublishing = [this]() {
+        if (m_navigatorCoordinator) {
+            m_navigatorCoordinator->openPublishingCard(QString(), true);
         }
     };
     callbacks.onOutline = [this]() {

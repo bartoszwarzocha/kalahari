@@ -117,7 +117,7 @@ after them.
 The styles are those of the book's type: its style pack (`resources/booktypes/*/styles.json`)
 gives their names, fonts, sizes, spacing and alignment. The types that come with Kalahari use
 the base pack, with the styles `normal`, `heading_1`, `heading_2`, `heading_3`, `quote`,
-`dialogue`, `code`, `caption`, `footnote` and `template_point`; each adds its own styles or
+`dialogue`, `code`, `caption` and `footnote`; each adds its own styles or
 changes these.
 
 | Written as | Style |
@@ -133,26 +133,38 @@ changes these.
 - A style the book's type does not have is kept: the paragraph is shown in Normal and written
   back with its `style`, so the text loses nothing when it moves to a book of another type.
 
-### The skeleton of a text for publishers
+### The headings of an old skeleton
 
-Tools > Texts for Publishers > Insert Skeleton puts the points of the template of a synopsis in
-its text: each a heading in the style Template Point (`template_point`) with an empty paragraph
-under it.
+The program wrote the points of the template of a synopsis into its text, as headings in the
+style `template_point` with the attributes `point` and `hint`. It no longer does: such a
+paragraph is read as a plain paragraph in Normal, its text stays, and `point` and `hint` are
+dropped when the text is saved.
 
 ```xml
 <p style="template_point" point="hero" hint="Who the hero is, where and when.">Hero and world</p>
-<p></p>
 ```
 
-- `point` is the id of the point in its template, `hint` what to write under it. The editor
-  shows the hint, gray and in italics, in the empty paragraph after the heading until the
-  writer types there; it is no text: the print, the export, the counts and the search never see
-  it.
-- The length of the text, the set for a publisher and its copies leave the paragraphs in the
-  style `template_point` out. Remove Headings and Hints takes the headings away with their empty
-  paragraphs; the paragraphs the writer wrote under them stay.
-- Enter at the end of a heading gives a paragraph in Normal, without `point` and `hint`. A paragraph with
-  `point` in another style is no heading of a point: the attributes are kept and written back.
+### Fragments linked to the points
+
+Link to a Template Point (Ctrl+Shift+D) on the card For Publishers links the selected text of
+a synopsis to a point of its template, so that the points beside the text show what it
+covers. `ids` holds the ids of the points, separated by spaces (a fragment may serve
+several points):
+
+```xml
+<p>The <points ids="hero">hero </points><points ids="hero"><b>rides</b></points></p>
+<p><points ids="hero event">far</points> away</p>
+```
+
+- The element is written for each piece of the text with one format, as the references are,
+  and pieces next to each other make one fragment: above, `hero` has one fragment, "hero
+  rides" and "far", as it continues across a paragraph break when the characters on both
+  sides of the break are linked to it. A reader may also put one element around formatting
+  (`<points ids="hero">hero <b>rides</b></points>`).
+- The element is a reference (see "References"): the text in it is the writer's text, in the
+  print, the export, the counts and the set for a publisher; only the editor shows the links,
+  as a bar on the left margin and, on demand, a fill under the text.
+- Text typed inside a fragment joins it; typed right before or after it, it does not.
 
 ## Horizontal line and breaks
 
@@ -949,6 +961,7 @@ editor does not know, and written back.
 |---------|------------------|---------|
 | `<charref>` | `id`, `target` | Reference to a character |
 | `<locref>` | `id`, `target` | Reference to a location |
+| `<points>` | `ids` | Fragment of a text for publishers linked to points of its template |
 
 - A flag is set by `true` or `1` (any letter case). It is written as `true`, and not at all
   when it is not set. Empty attributes are not written.

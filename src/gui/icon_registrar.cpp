@@ -279,14 +279,10 @@ void registerAllIcons() {
     // The button on the graph of the statistics bar that puts now in the middle
     iconRegistry.registerIcon("stats.nowInMiddle", "resources/icons/twotone/align_horizontal_center.svg", "Now in the Middle");
     iconRegistry.registerIcon("tools.readability", "resources/icons/twotone/auto_stories.svg", "Readability Analysis");
-    iconRegistry.registerIcon("tools.publishing.templatePoints", "resources/icons/twotone/fact_check.svg", "Template Points");
-    iconRegistry.registerIcon("tools.publishing.insertSkeleton",
-                              "resources/icons/twotone/segment.svg", "Insert Skeleton");
-    iconRegistry.registerIcon("tools.publishing.removeSkeleton",
-                              "resources/icons/twotone/subject.svg", "Remove Headings and Hints");
-    iconRegistry.registerIcon("tools.publishing.templates",
-                              "resources/icons/twotone/view_quilt.svg",
-                              "Templates of Texts for Publishers");
+    iconRegistry.registerIcon("tools.publishing.linkPoint", "resources/icons/twotone/link.svg",
+                              "Link to a Point");
+    iconRegistry.registerIcon("publishing.changeTemplate", "resources/icons/twotone/edit.svg",
+                              "Change Template");
     iconRegistry.registerIcon("tools.toolbarManager", "resources/icons/twotone/build.svg", "Toolbar Manager");
 
     // -------------------------------------------------------------------------
@@ -307,6 +303,7 @@ void registerAllIcons() {
     // -------------------------------------------------------------------------
     iconRegistry.registerIcon("view.dashboard", "resources/icons/twotone/home.svg", "Dashboard");
     iconRegistry.registerIcon("view.plotBoard", "resources/icons/twotone/view_module.svg", "Plot Board");
+    iconRegistry.registerIcon("book.publishing", "resources/icons/twotone/outbox.svg", "For Publishers");
     iconRegistry.registerIcon("view.outline", "resources/icons/twotone/table_chart.svg", "Outline");
     // The point of view, the place and the time of the action on the cards of the plot board
     iconRegistry.registerIcon("plotBoard.pov", "resources/icons/twotone/visibility.svg", "Point of View");
@@ -398,7 +395,6 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.imageFilter", "resources/icons/twotone/palette.svg", "Filter");
     iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("menu.plugins", "resources/icons/twotone/extension.svg", "Plugins");
-    iconRegistry.registerIcon("menu.publishing", "resources/icons/twotone/outbox.svg", "Texts for Publishers");
     iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");
     iconRegistry.registerIcon("menu.viewMode", "resources/icons/twotone/visibility.svg", "View Mode");
     iconRegistry.registerIcon("menu.zoom", "resources/icons/twotone/zoom_in.svg", "Zoom");

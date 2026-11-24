@@ -206,6 +206,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"tools.spellcheck", QStringLiteral("Shift+F7")},
         {"tools.nextMisspelling", QStringLiteral("F7")},
         {"tools.nextRepetition", QStringLiteral("Ctrl+Shift+F7")},
+        {"tools.publishing.linkPoint", QStringLiteral("Ctrl+Shift+D")},
         {"view.navigator", QStringLiteral("F2")},
         {"view.log", QStringLiteral("F4")},
         {"view.search", QStringLiteral("F5")},

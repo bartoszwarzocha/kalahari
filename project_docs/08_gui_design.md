@@ -1589,6 +1589,7 @@ Rules for a new shortcut:
 | Tools > Check Spelling as You Type | Shift+F7 |
 | Tools > Next Misspelling | F7 |
 | Tools > Next Repetition | Ctrl+Shift+F7 |
+| Link to a Template Point (the text of a synopsis on the card For Publishers) | Ctrl+Shift+D |
 | View > Panels > Navigator | F2 |
 | View > Panels > Log | F4 |
 | View > Panels > Search | F5 |

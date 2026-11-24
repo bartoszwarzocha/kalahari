@@ -54,9 +54,7 @@ class EditorPanel;
 class LinkedMaterialsBox;
 class ParagraphCardsBox;
 class PlotFieldsBox;
-class PublishingSetPage;
 class SeriesPage;
-class PublishingTextBox;
 class MaterialPage;
 class SectionNamesEdit;
 class SectionsComboBox;
@@ -89,8 +87,7 @@ public:
         Editor = 5,     ///< Editor statistics view (selection/document stats)
         Material = 6,   ///< The short card of a material of the Workshop
         Card = 7,       ///< The short card of a character, a location or an item
-        PublishingSet = 8,  ///< The set for a publisher (PublishingSetPage)
-        Series = 9          ///< The name and the volumes of a series (SeriesPage)
+        Series = 8      ///< The name and the volumes of a series (SeriesPage)
     };
 
     /// @brief Constructor
@@ -109,9 +106,6 @@ public:
 
     /// @brief The short card of a character, a location or an item
     [[nodiscard]] CardPage* cardPage() const { return m_cardPage; }
-
-    /// @brief The set for a publisher
-    [[nodiscard]] PublishingSetPage* publishingSetPage() const { return m_publishingSetPage; }
 
     /// @brief The page of the series
     [[nodiscard]] SeriesPage* seriesPage() const { return m_seriesPage; }
@@ -135,17 +129,8 @@ public:
     /// @brief Where the clipping of the chapter page comes from (hidden for another element)
     [[nodiscard]] ClippingOriginBox* clippingOrigin() const { return m_clippingOrigin; }
 
-    /// @brief The length, the template and the state of a text for publishers, under the
-    /// information of its element or under the counts of its editor (hidden for another one)
-    [[nodiscard]] PublishingTextBox* publishingBox() const { return m_publishingBox; }
 
-    /// @brief Give the keys to the first point of the template of the text in front, on its
-    /// page (Tools > Texts for Publishers > Template Points); false when it has no points
-    bool focusTemplatePoints();
 
-    /// @brief The box of the text in front when it is a text for publishers, on its page;
-    ///        nullptr for another text and without one
-    PublishingTextBox* frontPublishingBox();
 
 public slots:
     /// @brief Show project properties view
@@ -171,9 +156,6 @@ public slots:
     /// @brief Show the short card of card @p elementId of the Workshop: a character, a
     /// location or an item
     void showCardProperties(const QString& elementId);
-
-    /// @brief Show the set for a publisher of the book with part @p part chosen
-    void showPublishingSetProperties(const QString& part);
 
     /// @brief Show the name and the volumes of the series; the book's properties in a project
     /// with one book
@@ -580,7 +562,6 @@ private:
     QTextEdit* m_chapterNotesEdit = nullptr;
     LinkedMaterialsBox* m_chapterMaterials = nullptr;  ///< The materials of the element
     ClippingOriginBox* m_clippingOrigin = nullptr;     ///< Where a clipping comes from
-    PublishingTextBox* m_publishingBox = nullptr;      ///< A text for publishers
     PlotFieldsBox* m_chapterPlot = nullptr;  ///< What the plot board says of a text
     QGroupBox* m_chapterVersionsGroup = nullptr;  ///< The versions of the text (showVersions())
     QLabel* m_versionsCountLabel = nullptr;       ///< How many, and when the last one was kept
@@ -616,7 +597,6 @@ private:
     // The card of a material
     MaterialPage* m_materialPage = nullptr;
     CardPage* m_cardPage = nullptr;  ///< The short card of a character, a location or an item
-    PublishingSetPage* m_publishingSetPage = nullptr;
     SeriesPage* m_seriesPage = nullptr;  ///< The name and the volumes of a series
     QLabel* m_projectVolumeLabel = nullptr;  ///< "2 of 3": the number of the volume of a series
     CursorCardBox* m_cursorCard = nullptr;  ///< The card at the cursor (placeTextGroups())

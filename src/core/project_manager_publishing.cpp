@@ -14,7 +14,6 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/volume_materials.h"
-#include "kalahari/editor/text_skeleton.h"
 
 #include <QFile>
 #include <QList>
@@ -109,25 +108,7 @@ QString ProjectManager::addPublishingText(const QString& part, const QString& te
         }
         return {};
     }
-    startWithSkeleton(textId, templateReference);
     return textId;
-}
-
-void ProjectManager::startWithSkeleton(const QString& textId, const QString& templateReference) {
-    if (!PublishingTexts::pointsInText()) {
-        return;
-    }
-    // The headings of the points of its template, each with its hint, in its text
-    const QList<editor::SkeletonPoint> skeleton = templateSkeleton(templateReference);
-    if (skeleton.isEmpty()) {
-        return;
-    }
-    setChapterContent(textId, QStringLiteral("<kml>") + editor::skeletonKml(skeleton) +
-                                  QStringLiteral("</kml>"));
-    if (!saveChapterContent(textId)) {
-        Logger::getInstance().warn("startWithSkeleton: The skeleton of {} is not saved yet",
-                                   textId.toStdString());
-    }
 }
 
 bool ProjectManager::setPublishing(const QString& elementId, const PublishingData& data) {
@@ -324,17 +305,41 @@ QString ProjectManager::publishingTextOf(const QString& elementId) const {
         return {};
     }
     if (!element->file.isEmpty() && formOf(*element) == ElementForm::Text) {
-        // As in its editor; without the headings of the points of a skeleton, which are no
-        // text of the writer
+        // As in its editor
         const auto state = m_elementStates.constFind(elementId);
         const std::optional<QString> kml = state != m_elementStates.cend() && state->editorText
                                                ? state->editorText
                                                : textKmlOf(elementId);
-        return kml ? ChapterDocument::kmlToPlainText(
-                         *kml, QString::fromLatin1(editor::TEMPLATE_POINT_STYLE_ID))
-                   : QString();
+        return kml ? ChapterDocument::kmlToPlainText(*kml) : QString();
     }
     return element->description;
+}
+
+QList<PublishingTemplatePoint> ProjectManager::unlinkedPublishingPointsOf(
+    const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    if (element == nullptr || !PublishingTexts::hasPoints(element->publishing.part) ||
+        element->publishing.templateId.isEmpty() || element->file.isEmpty() ||
+        formOf(*element) != ElementForm::Text) {
+        return {};
+    }
+    const std::optional<PublishingTemplate> templ =
+        publishingTemplate(element->publishing.templateId);
+    if (!templ) {
+        return {};
+    }
+    const auto state = m_elementStates.constFind(elementId);
+    const std::optional<QString> kml = state != m_elementStates.cend() && state->editorText
+                                           ? state->editorText
+                                           : textKmlOf(elementId);
+    const QSet<QString> linked = kml ? PublishingTexts::linkedPointsOf(*kml) : QSet<QString>();
+    QList<PublishingTemplatePoint> unlinked;
+    for (const PublishingTemplatePoint& point : templ->pointsFor(mainTexts())) {
+        if (!linked.contains(point.id)) {
+            unlinked << point;
+        }
+    }
+    return unlinked;
 }
 
 void ProjectManager::setEditorText(const QString& elementId, const QString& kml) {
@@ -399,19 +404,6 @@ QList<std::pair<QString, QString>> ProjectManager::mainTexts() const {
         }
     }
     return texts;
-}
-
-QList<editor::SkeletonPoint> ProjectManager::templateSkeleton(const QString& reference) const {
-    const std::optional<PublishingTemplate> templ = publishingTemplate(reference);
-    if (!templ || !PublishingTexts::hasPoints(templ->part)) {
-        return {};
-    }
-    const QString language = bookLanguage();
-    QList<editor::SkeletonPoint> skeleton;
-    for (const PublishingTemplatePoint& point : templ->pointsFor(mainTexts())) {
-        skeleton.append({point.id, point.name.text(language), point.hint.text(language)});
-    }
-    return skeleton;
 }
 
 int ProjectManager::publishingTargetOf(const QString& elementId, bool words) const {

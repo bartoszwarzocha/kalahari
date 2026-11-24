@@ -551,11 +551,6 @@ private:
 
 QString ChapterDocument::kmlToPlainText(const QString& kml)
 {
-    return kmlToPlainText(kml, QStringView());
-}
-
-QString ChapterDocument::kmlToPlainText(const QString& kml, QStringView skippedStyle)
-{
     // Collect the text of the paragraphs in a single streaming pass, by the editor's
     // rules (KmlDocumentModel): a fragment gets the same root element; the paragraphs are
     // the <p>, <paragraph> and heading children of the root and the items of its lists, with
@@ -575,9 +570,7 @@ QString ChapterDocument::kmlToPlainText(const QString& kml, QStringView skippedS
         // A long text read while a book opens: a spinner that waits for it turns (test of
         // 24.11)
         BusyPulse::beat();
-        const bool skipped = !skippedStyle.isEmpty() &&
-                             reader.attributes().value(QStringLiteral("style")) == skippedStyle;
-        if (isParagraphElement(reader.name()) && !skipped) {
+        if (isParagraphElement(reader.name())) {
             paragraphs.addParagraph(reader);
         } else if (isListElement(reader.name())) {
             paragraphs.addList(reader);
