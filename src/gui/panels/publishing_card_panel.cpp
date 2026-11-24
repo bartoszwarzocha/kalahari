@@ -929,9 +929,9 @@ QString PublishingCardPanel::addVersion(bool copy) {
     }
     if (copy) {
         // The copy has the text and what the version says, as a draft
-        core::PublishingData data = sourceData;
-        data.state.clear();
-        m_book.setPublishing(id, data);
+        core::PublishingData copied = sourceData;
+        copied.state.clear();
+        m_book.setPublishing(id, copied);
         m_book.setChapterContent(id, sourceText);
         m_book.saveChapterContent(id);
     }
