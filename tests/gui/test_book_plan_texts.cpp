@@ -16,6 +16,7 @@
 #include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/plot_board_coordinator.h"
 #include "kalahari/gui/plot_outline_model.h"
+#include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/gui/widgets/plot_board_view.h"
 #include "kalahari/gui/widgets/plot_card_editor.h"
 
@@ -268,7 +269,11 @@ TEST_CASE("Book plan: the pencil edits a card, the bar adds texts and scenes",
     CHECK(board->cardEditor() == nullptr);
 
     // The commands of the bar, with their keys in their tips
-    CHECK(panel->command(Command::PlanText)->toolTip().contains(QStringLiteral("Ctrl+Shift+Ins")));
+    // As the system writes the keys (on macOS ⇧⌘Ins)
+    CHECK(panel->command(Command::PlanText)
+              ->toolTip()
+              .contains(gui::ShortcutRules::keysText(
+                  QKeyCombination(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_Insert))));
     const QStringList before = book.ids();
     panel->command(Command::NewText)->trigger();
     if (gui::PlotCardEditor* editor = board->cardEditor()) {

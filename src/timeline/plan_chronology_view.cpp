@@ -486,6 +486,9 @@ QString PlanChronologyView::hint() const {
 
 void PlanChronologyView::runCommand(Command which) {
     const ChronologyItem* item = currentItem();
+    // Read before the command: a change makes the layout again, and the item goes with it
+    const bool opensText = which == Command::Open && item != nullptr && !item->outside &&
+                           !item->planned;
     switch (which) {
     case Command::NewEvent:
         addEvent();
@@ -505,7 +508,8 @@ void PlanChronologyView::runCommand(Command which) {
                              "on the board gives it its text.")
                               .arg(item->title));
             } else {
-                emit openRequested(item->id);
+                const QString id = item->id;
+                emit openRequested(id);
             }
         }
         break;
@@ -527,7 +531,7 @@ void PlanChronologyView::runCommand(Command which) {
     case Command::Count:
         break;
     }
-    if (which != Command::Open || item == nullptr || item->outside || item->planned) {
+    if (!opensText) {
         focusCards();
     }
 }
@@ -723,8 +727,11 @@ void PlanChronologyView::shift(int steps) {
         const std::optional<QString> time =
             shiftedTime(item->timeText, steps, m_plan.dayOne(), m_periods, m_look.style);
         if (time) {
-            emit cardEdited(item->id, gui::PlanChronologyEdit{item->title, item->description,
-                                                               item->pov, item->place, *time});
+            // Copies: the change makes the layout again while its signal is handled
+            const QString id = item->id;
+            const gui::PlanChronologyEdit edit{item->title, item->description, item->pov,
+                                               item->place, *time};
+            emit cardEdited(id, edit);
         }
         return;
     }
@@ -763,9 +770,11 @@ void PlanChronologyView::removeCurrent() {
     }
     if (!item->outside) {
         if (!item->timeText.isEmpty()) {
-            emit cardEdited(item->id, gui::PlanChronologyEdit{item->title, item->description,
-                                                               item->pov, item->place,
-                                                               QString()});
+            // Copies: the change makes the layout again while its signal is handled
+            const QString id = item->id;
+            const gui::PlanChronologyEdit edit{item->title, item->description, item->pov,
+                                               item->place, QString()};
+            emit cardEdited(id, edit);
         }
         return;
     }
