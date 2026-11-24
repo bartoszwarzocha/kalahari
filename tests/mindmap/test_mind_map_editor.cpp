@@ -38,6 +38,7 @@
 #include <QPushButton>
 #include <QTemporaryDir>
 
+#include <algorithm>
 #include <memory>
 
 using namespace kalahari::mindmap;
@@ -357,13 +358,11 @@ TEST_CASE("Mind map view: the mouse drags the nodes and the links between their 
     const auto socketOf = [&view](const QString& node, bool right) {
         const NodeBox* box = view.scene()->box(node);
         REQUIRE(box != nullptr);
-        for (const SocketBox& socket : box->sockets) {
-            if (socket.row.isEmpty() && socket.right == right) {
-                return view.toView(socket.centre);
-            }
-        }
-        FAIL("The node has no socket of its branch there");
-        return QPointF();
+        const auto socket = std::find_if(
+            box->sockets.cbegin(), box->sockets.cend(),
+            [right](const SocketBox& each) { return each.row.isEmpty() && each.right == right; });
+        REQUIRE(socket != box->sockets.cend());
+        return view.toView(socket->centre);
     };
 
     // From the output of the main topic to the input of a loose node: a branch; Ctrl+Z
