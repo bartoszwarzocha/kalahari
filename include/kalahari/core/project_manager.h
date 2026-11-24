@@ -682,6 +682,54 @@ public:
     /// deletes no file of another element.
     [[nodiscard]] QStringList filesOf(const ProjectElement& element) const;
 
+    /// @brief Put @p element, with the elements inside it, back at @p place, as
+    /// removeElement() gave it: its id, its title, its links, its plot; saves the .klh file
+    ///
+    /// A text with a file gets its chapter file back with @p kml when it is given (Undo of
+    /// the removal of a new text, whose file went to the Trash); else the files stay as they
+    /// are.
+    /// @return false when no project is open, the project has an element of one of its ids
+    ///         already, the place is beyond its list, or a file cannot be written (the project
+    ///         stays as it was then)
+    bool insertElement(const ProjectElement& element, const ElementPlace& place,
+                       const std::optional<QString>& kml = std::nullopt);
+
+    // =========================================================================
+    // Texts in the plan of the book
+    // =========================================================================
+
+    /// @brief Whether @p element is a text in the plan: a text element without a chapter file
+    ///
+    /// The plan of the book shows it in a dashed frame with its scenes in the plan; it has no
+    /// words and no state, and the finished book (the export, the print) does not have it
+    /// until createTextFile() gives it its file.
+    [[nodiscard]] bool isPlannedText(const ProjectElement& element) const;
+
+    /// @brief Whether element @p elementId is a text in the plan (isPlannedText())
+    [[nodiscard]] bool isPlannedText(const QString& elementId) const;
+
+    /// @brief Add a text in the plan of @p kind with @p title, as addElement() adds a text,
+    /// but without a file and without a state; saves the .klh file
+    /// @return The new element's id; empty when @p kind is not a text kind or cannot be
+    ///         there, or the file cannot be written
+    QString addPlannedText(const KindRef& kind, const QString& title, BookPlace place,
+                           const QString& groupId = QString(), qsizetype index = -1);
+
+    /// @brief Give text in the plan @p elementId its chapter file in the folder of its part
+    /// (newChapterFile()) with @p kml, else the text of its kind's template, and the state
+    /// "draft"; saves the .klh file
+    /// @return The path of the new file; empty when the element is not a text in the plan, or
+    ///         a file cannot be written (the element stays in the plan then)
+    QString createTextFile(const QString& elementId,
+                           const std::optional<QString>& kml = std::nullopt);
+
+    /// @brief Put text @p elementId back into the plan: its chapter file goes to the Trash of
+    /// the system (for good, @p trash false), and the element keeps its title, its description
+    /// and its plot, without a file and a state; saves the .klh file
+    /// @return false when the element is not a text with a file in the book, its file cannot
+    ///         go, or the .klh file cannot be written (the text keeps its file then)
+    bool returnToPlan(const QString& elementId, bool trash = true);
+
     /// @brief Chapter files (.kchapter) in the folders of the book and of the Workshop that no
     /// element of the project has, by folder and name
     ///

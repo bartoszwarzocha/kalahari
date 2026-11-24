@@ -786,7 +786,7 @@ TEST_CASE("Series: the plot board and the outline show the current volume, chose
     CHECK(outlineTitles(*panel).contains(QStringLiteral("The Oasis")));
     CHECK_FALSE(outlineTitles(*panel).contains(QStringLiteral("The Storm")));
 
-    // Show on the Plot Board of a text of the first volume: the board shows that volume
+    // Show in the Book Plan of a text of the first volume: the board shows that volume
     boards.showOnBoard(novel.chapterId);
     QCoreApplication::processEvents();
     CHECK(novel.pm.book()->id == sand);

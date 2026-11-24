@@ -305,6 +305,15 @@ void registerAllIcons() {
     iconRegistry.registerIcon("plotBoard.pov", "resources/icons/twotone/visibility.svg", "Point of View");
     iconRegistry.registerIcon("plotBoard.place", "resources/icons/twotone/place.svg", "Place");
     iconRegistry.registerIcon("plotBoard.time", "resources/icons/twotone/schedule.svg", "Time of the Action");
+    // The commands of the bar over the plan of the book
+    iconRegistry.registerIcon("plotBoard.planText", "resources/icons/twotone/add_box.svg", "Chapter in the Plan");
+    iconRegistry.registerIcon("plotBoard.planScene", "resources/icons/twotone/view_agenda.svg", "Scene in the Plan");
+    iconRegistry.registerIcon("plotBoard.createFile", "resources/icons/twotone/note_add.svg", "Create the Chapter File");
+    iconRegistry.registerIcon("plotBoard.writeScene", "resources/icons/twotone/edit_note.svg", "Write the Scene");
+    iconRegistry.registerIcon("plotBoard.state", "resources/icons/twotone/label.svg", "State");
+    iconRegistry.registerIcon("plotBoard.chronology", "resources/icons/twotone/timeline.svg", "Chronology");
+    iconRegistry.registerIcon("plotBoard.periods", "resources/icons/twotone/calendar_month.svg", "Periods of the Story");
+    iconRegistry.registerIcon("plotBoard.outside", "resources/icons/twotone/event.svg", "Event outside the Text");
     iconRegistry.registerIcon("view.navigator", "resources/icons/twotone/import_contacts.svg", "Navigator");
     iconRegistry.registerIcon("view.search", "resources/icons/twotone/search.svg", "Search Panel");
     iconRegistry.registerIcon("view.properties", "resources/icons/twotone/tune.svg", "Properties");

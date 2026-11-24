@@ -238,6 +238,37 @@ void PlotBoardView::setReadOnly(bool readOnly) {
     viewport()->update();
 }
 
+void PlotBoardView::setScenesVariant(const QString& variant) {
+    if (variant == m_scenesVariant) {
+        return;
+    }
+    m_scenesVariant = variant;
+    relayout();
+}
+
+QRect PlotBoardView::pencilRect(const QString& cardId) const {
+    const CardPlace* place = placeOf(cardId);
+    return place != nullptr ? pencilRectOf(*place).translated(-horizontalScrollBar()->value(),
+                                                              -verticalScrollBar()->value())
+                            : QRect();
+}
+
+QRect PlotBoardView::planButtonRect(const QString& cardId) const {
+    const CardPlace* place = placeOf(cardId);
+    return place != nullptr ? planButtonRectOf(*place).translated(
+                                  -horizontalScrollBar()->value(), -verticalScrollBar()->value())
+                            : QRect();
+}
+
+QString PlotBoardView::noteUnder(const QString& textId) const {
+    for (const NotePlace& note : m_notes) {
+        if (note.textId == textId) {
+            return note.text;
+        }
+    }
+    return {};
+}
+
 void PlotBoardView::setMarkedCard(const QString& elementId) {
     m_marked = placeOf(elementId) != nullptr ? elementId : QString();
     viewport()->update();
@@ -296,6 +327,10 @@ QString PlotBoardView::spokenText(const QString& elementId) const {
         //: Read by the screen reader on a card of a scene in the plan beside the scenes of its
         //: text, after "In the Plan: The Storm". In Polish: Enter wpisuje ją do tekstu
         parts << tr("Enter writes it in the text");
+    } else if (card->planned && !card->isScene()) {
+        //: Read by the screen reader on the card of a text in the plan, without a file, after
+        //: "Chapter: The Storm". In Polish: W planie, bez pliku – Enter tworzy plik rozdziału
+        parts << tr("In the plan, without a file – Enter creates the chapter file");
     } else if (!card->planned) {
         // A scene in the plan has no state and no words
         parts << PlotBoard::statusName(card->status) << PlotBoard::wordsText(card->words);
@@ -399,7 +434,28 @@ bool PlotBoardView::viewportEvent(QEvent* event) {
         return QAbstractScrollArea::viewportEvent(event);
     }
     const auto* help = static_cast<QHelpEvent*>(event);
-    const CardPlace* place = cardAt(contentsPos(help->pos()));
+    const QPoint pos = contentsPos(help->pos());
+    const CardPlace* place = cardAt(pos);
+    if (place != nullptr && pencilRectOf(*place).contains(pos)) {
+        //: The tooltip of the pencil on a card of the plot board. In Polish: Edytuj kartę (F2)
+        QToolTip::showText(help->globalPos(), tr("Edit the Card (F2)"), viewport(),
+                           pencilRect(place->id));
+        return true;
+    }
+    if (place != nullptr && planButtonRectOf(*place).contains(pos)) {
+        const PlotCard& card = cardOfPlace(*place);
+        const QString tip = card.isScene()
+                                //: The tooltip of the button on the card of a scene in the
+                                //: plan. In Polish: Napisz scenę: podział sceny z jej tytułem i
+                                //: opisem w tekście (Enter)
+                                ? tr("Write the scene: a scene break with its title and "
+                                     "description in the text (Enter)")
+                                //: The tooltip of the button "Create" on the card of a text in
+                                //: the plan. In Polish: Utwórz plik rozdziału (Enter)
+                                : tr("Create the Chapter File (Enter)");
+        QToolTip::showText(help->globalPos(), tip, viewport(), planButtonRect(place->id));
+        return true;
+    }
     if (place != nullptr) {
         QToolTip::showText(help->globalPos(), toolTipOf(cardOfPlace(*place)), viewport(),
                            cardRect(place->id));

@@ -783,10 +783,6 @@
         <translation>Konsp&amp;ekt</translation>
     </message>
     <message>
-        <source>Plot &amp;Board</source>
-        <translation>Tablica &amp;fabuły</translation>
-    </message>
-    <message>
         <source>&amp;Navigator</source>
         <translation>&amp;Nawigator</translation>
     </message>
@@ -1422,6 +1418,10 @@
         <source>&amp;Join Book as Volume...</source>
         <extracomment>In Polish: Dołącz książkę &amp;jako tom...</extracomment>
         <translation>Dołącz książkę &amp;jako tom...</translation>
+    </message>
+    <message>
+        <source>&amp;Book Plan</source>
+        <translation>P&amp;lan książki</translation>
     </message>
 </context>
 <context>
@@ -11231,11 +11231,6 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
         <translation>&amp;Ustawienia źródeł...</translation>
     </message>
     <message>
-        <source>Show on the Plot &amp;Board</source>
-        <extracomment>The command of the book, a part and a text of the main section in the Navigator: the plot board with its card chosen. In Polish: Pokaż na &amp;tablicy fabuły</extracomment>
-        <translation>Pokaż na &amp;tablicy fabuły</translation>
-    </message>
-    <message>
         <source>Series Structure</source>
         <extracomment>The header of the Navigator with the open series of books. In Polish: Struktura serii</extracomment>
         <translation>Struktura serii</translation>
@@ -11284,6 +11279,36 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
         <source>Take &amp;Out as a Book...</source>
         <extracomment>The command of a volume in the Navigator: the volume copied out as a book of its own. In Polish: Wydziel jako osobną &amp;książkę...</extracomment>
         <translation>Wydziel jako osobną &amp;książkę...</translation>
+    </message>
+    <message>
+        <source>in the plan</source>
+        <extracomment>At the right of a text in the plan, without a file, in the Navigator. In Polish: w planie</extracomment>
+        <translation>w planie</translation>
+    </message>
+    <message>
+        <source>A chapter in the plan, without a file. Menu: Create the Chapter File</source>
+        <extracomment>The tooltip of a text in the plan in the Navigator. In Polish: Rozdział w planie, bez pliku. Menu: Utwórz plik rozdziału</extracomment>
+        <translation>Rozdział w planie, bez pliku. Menu: Utwórz plik rozdziału</translation>
+    </message>
+    <message>
+        <source>&amp;Create the Chapter File</source>
+        <extracomment>The menu of a text in the plan, without a file, in the Navigator. In Polish: Utwó&amp;rz plik rozdziału</extracomment>
+        <translation>Utwó&amp;rz plik rozdziału</translation>
+    </message>
+    <message>
+        <source>Show in the &amp;Book Plan</source>
+        <extracomment>The command of the book, a part and a text of the main section in the Navigator: the plan of the book with its card chosen. In Polish: Pokaż w planie &amp;książki</extracomment>
+        <translation>Pokaż w planie &amp;książki</translation>
+    </message>
+    <message>
+        <source>Book Plan</source>
+        <extracomment>The first node of the Workshop in the Navigator: the board, the outline and the chronology of the book on their tab. In Polish: Plan książki</extracomment>
+        <translation>Plan książki</translation>
+    </message>
+    <message>
+        <source>The board, the outline and the chronology of the book</source>
+        <extracomment>In Polish: Tablica, konspekt i chronologia książki</extracomment>
+        <translation>Tablica, konspekt i chronologia książki</translation>
     </message>
 </context>
 <context>
@@ -11578,16 +11603,6 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
 <context>
     <name>kalahari::gui::PlotBoardCoordinator</name>
     <message>
-        <source>The plot board shows the texts of an open book.</source>
-        <extracomment>The status bar after Book &gt; Plot Board without a book. In Polish: Tablica fabuły pokazuje teksty otwartej książki.</extracomment>
-        <translation>Tablica fabuły pokazuje teksty otwartej książki.</translation>
-    </message>
-    <message>
-        <source>Plot Board</source>
-        <extracomment>The tab of the cards of the texts of the book. In Polish: Tablica fabuły</extracomment>
-        <translation>Tablica fabuły</translation>
-    </message>
-    <message>
         <source>The card &quot;%1&quot; changed.</source>
         <extracomment>Under the plot board after a card was edited; %1 the title. In Polish: Zmieniono kartę „%1”.</extracomment>
         <translation>Zmieniono kartę „%1”.</translation>
@@ -11868,6 +11883,98 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
         <extracomment>Under the plot board: the only scene of a text was to move to another text; %1 the scene. In Polish: „%1” to jedyna scena tekstu.</extracomment>
         <translation>„%1” to jedyna scena tekstu.</translation>
     </message>
+    <message>
+        <source>The book plan shows the texts of an open book.</source>
+        <extracomment>The status bar after Book &gt; Book Plan without a book. In Polish: Plan książki pokazuje teksty otwartej książki.</extracomment>
+        <translation>Plan książki pokazuje teksty otwartej książki.</translation>
+    </message>
+    <message>
+        <source>Book Plan</source>
+        <extracomment>The tab of the plan of the book: the board, the outline and the chronology. In Polish: Plan książki</extracomment>
+        <translation>Plan książki</translation>
+    </message>
+    <message>
+        <source>adding &quot;%1&quot; to the plan</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title of a text in the plan. In Polish: dodanie „%1” do planu</extracomment>
+        <translation>dodanie „%1” do planu</translation>
+    </message>
+    <message>
+        <source>adding &quot;%1&quot;</source>
+        <translation>dodanie „%1”</translation>
+    </message>
+    <message>
+        <source>Added &quot;%1&quot; to the plan after &quot;%2&quot;, without a file yet.</source>
+        <extracomment>Under the plot board after Ctrl+Shift+Insert; %1 the title of the new text in the plan, %2 the card it is after. In Polish: Dodano „%1” do planu za „%2”, jeszcze bez pliku.</extracomment>
+        <translation>Dodano „%1” do planu za „%2”, jeszcze bez pliku.</translation>
+    </message>
+    <message>
+        <source>Added &quot;%1&quot; to the plan at the end of the book, without a file yet.</source>
+        <extracomment>Under the plot board after Ctrl+Shift+Insert with no card; %1 the title of the new text in the plan. In Polish: Dodano „%1” do planu na końcu książki, jeszcze bez pliku.</extracomment>
+        <translation>Dodano „%1” do planu na końcu książki, jeszcze bez pliku.</translation>
+    </message>
+    <message>
+        <source>creating the file of &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title of the text. In Polish: utworzenie pliku „%1”</extracomment>
+        <translation>utworzenie pliku „%1”</translation>
+    </message>
+    <message>
+        <source>Created the chapter file of &quot;%1&quot; and opened it in the editor. The scenes of the plan wait for Write the Scene.</source>
+        <extracomment>Under the plot board after &quot;Create the Chapter File&quot;; %1 the title of the text. In Polish: Utworzono plik rozdziału „%1” i otwarto go w edytorze. Sceny z planu czekają na „Napisz scenę”.</extracomment>
+        <translation>Utworzono plik rozdziału „%1” i otwarto go w edytorze. Sceny z planu czekają na „Napisz scenę”.</translation>
+    </message>
+    <message>
+        <source>deleting &quot;%1&quot; from the plan</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title of a text in the plan. In Polish: usunięcie „%1” z planu</extracomment>
+        <translation>usunięcie „%1” z planu</translation>
+    </message>
+    <message>
+        <source>Added scene %1 to &quot;%2&quot;: the text has a new scene break.</source>
+        <extracomment>Under the plot board after &quot;New Scene&quot;; %1 its number in the text, %2 the title of the text. In Polish: Dodano scenę %1 do „%2”: w tekście jest nowy podział sceny.</extracomment>
+        <translation>Dodano scenę %1 do „%2”: w tekście jest nowy podział sceny.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; has changes not saved: save or discard them first.</source>
+        <extracomment>Under the plot board after Ctrl+Z on a new text with changes not saved in its tab; %1 its title. In Polish: „%1” ma niezapisane zmiany: najpierw trzeba je zapisać albo porzucić.</extracomment>
+        <translation>„%1” ma niezapisane zmiany: najpierw trzeba je zapisać albo porzucić.</translation>
+    </message>
+    <message>
+        <source>Times from the Timelines</source>
+        <extracomment>The title of the question of the chronology of the Book Plan. In Polish: Czasy z osi czasu</extracomment>
+        <translation>Czasy z osi czasu</translation>
+    </message>
+    <message numerus="yes">
+        <source>The timelines of the Workshop (%1) say when %n text(s) of the book happen (“In the book”). Copy their times, points of view and places to the cards without a time of the action? The timelines stay as they are, and Ctrl+Z takes it back.</source>
+        <extracomment>%n how many texts, %1 the titles of the timelines (&quot;Wyprawa, Rodzina&quot;). In Polish: Osie czasu w Warsztacie (%1) mówią, kiedy dzieje się %n tekst(ów) książki („W książce”). Przenieść ich czas, punkt widzenia i miejsce na karty bez czasu akcji? Osie zostaną bez zmian, a Ctrl+Z cofnie przeniesienie.</extracomment>
+        <translation>
+            <numerusform>Osie czasu w Warsztacie (%1) mówią, kiedy dzieje się %n tekst książki („W książce”). Przenieść czas, punkt widzenia i miejsce na karty bez czasu akcji? Osie zostaną bez zmian, a Ctrl+Z cofnie przeniesienie.</numerusform>
+            <numerusform>Osie czasu w Warsztacie (%1) mówią, kiedy dzieją się %n teksty książki („W książce”). Przenieść czas, punkt widzenia i miejsce na karty bez czasu akcji? Osie zostaną bez zmian, a Ctrl+Z cofnie przeniesienie.</numerusform>
+            <numerusform>Osie czasu w Warsztacie (%1) mówią, kiedy dzieje się %n tekstów książki („W książce”). Przenieść czas, punkt widzenia i miejsce na karty bez czasu akcji? Osie zostaną bez zmian, a Ctrl+Z cofnie przeniesienie.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>&amp;Copy the Times</source>
+        <extracomment>In Polish: &amp;Przenieś czasy</extracomment>
+        <translation>&amp;Przenieś czasy</translation>
+    </message>
+    <message>
+        <source>&amp;Don&apos;t Copy</source>
+        <extracomment>In Polish: &amp;Nie przenoś</extracomment>
+        <translation>&amp;Nie przenoś</translation>
+    </message>
+    <message>
+        <source>the times from the timelines</source>
+        <extracomment>What Undo undoes in the Book Plan, after &quot;Undone:&quot;. In Polish: przeniesienie czasów z osi czasu</extracomment>
+        <translation>przeniesienie czasów z osi czasu</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n card(s) got the time of the action from the timelines; the timelines stay as they were.</source>
+        <extracomment>Under the chronology of the Book Plan. In Polish: Przeniesiono czas akcji na %n kart(y) z osi czasu; osie zostały bez zmian.</extracomment>
+        <translation>
+            <numerusform>Przeniesiono czas akcji z osi czasu na %n kartę; osie zostały bez zmian.</numerusform>
+            <numerusform>Przeniesiono czas akcji z osi czasu na %n karty; osie zostały bez zmian.</numerusform>
+            <numerusform>Przeniesiono czas akcji z osi czasu na %n kart; osie zostały bez zmian.</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotBoardPage</name>
@@ -11920,11 +12027,6 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
         <source>the view used last</source>
         <extracomment>In Polish: ostatnio używanym</extracomment>
         <translation>ostatnio używanym</translation>
-    </message>
-    <message>
-        <source>Book &gt; Plot Board and Book &gt; Outline open their own views; this is how the tab opens from Show on the Plot Board in the Navigator.</source>
-        <extracomment>The note under the view a tab opens on. In Polish: Książka &gt; Tablica fabuły i Książka &gt; Konspekt otwierają swój widok; tak otwiera się karta z polecenia „Pokaż na tablicy fabuły” w Nawigatorze.</extracomment>
-        <translation>Książka &gt; Tablica fabuły i Książka &gt; Konspekt otwierają swój widok; tak otwiera się karta z polecenia „Pokaż na tablicy fabuły” w Nawigatorze.</translation>
     </message>
     <message>
         <source>Layout of the board:</source>
@@ -12171,6 +12273,21 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
         <extracomment>In Polish: Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma swoje kolory: to są kolory bieżącego motywu.</extracomment>
         <translation>Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma swoje kolory: to są kolory bieżącego motywu.</translation>
     </message>
+    <message>
+        <source>Book &gt; Book Plan opens the board and Book &gt; Outline the outline; this is how the tab opens from Book Plan in the Workshop and from Show in the Book Plan in the Navigator.</source>
+        <extracomment>The note under the view a tab opens on. In Polish: Książka &gt; Plan książki otwiera tablicę, a Książka &gt; Konspekt konspekt; tak otwiera się karta z Planu książki w Warsztacie i z polecenia „Pokaż w planie książki” w Nawigatorze.</extracomment>
+        <translation>Książka &gt; Plan książki otwiera tablicę, a Książka &gt; Konspekt konspekt; tak otwiera się karta z Planu książki w Warsztacie i z polecenia „Pokaż w planie książki” w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>the chronology</source>
+        <extracomment>The view of the scenes in the order of the story. In Polish: chronologii</extracomment>
+        <translation>chronologii</translation>
+    </message>
+    <message>
+        <source>The cards of the chronology have the colors of the cards of the board; the ring of a flashback, the bands and how times are written are in Settings &gt; Timelines.</source>
+        <extracomment>In Polish: Karty chronologii mają kolory kart tablicy; obwódkę retrospekcji, pasma i zapis czasu ustawia się w Ustawieniach &gt; Osie czasu.</extracomment>
+        <translation>Karty chronologii mają kolory kart tablicy; obwódkę retrospekcji, pasma i zapis czasu ustawia się w Ustawieniach &gt; Osie czasu.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotBoardPanel</name>
@@ -12260,11 +12377,6 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>&amp;Undo</source>
         <extracomment>The button of the bar under the plot board that undoes what it says. In Polish: &amp;Cofnij</extracomment>
         <translation>&amp;Cofnij</translation>
-    </message>
-    <message>
-        <source>Plot Board Settings</source>
-        <extracomment>The gear over the plot board and the outline: Settings &gt; Plot Board. In Polish: Ustawienia tablicy fabuły</extracomment>
-        <translation>Ustawienia tablicy fabuły</translation>
     </message>
     <message>
         <source>%1 · %2</source>
@@ -12371,6 +12483,161 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <extracomment>The list over the plot board: the volume of the series whose texts it shows. In Polish: To&amp;m:</extracomment>
         <translation>To&amp;m:</translation>
     </message>
+    <message>
+        <source>&amp;Create the Chapter File</source>
+        <extracomment>The menu of the card of a text in the plan, without a file. In Polish: Utwó&amp;rz plik rozdziału</extracomment>
+        <translation>Utwó&amp;rz plik rozdziału</translation>
+    </message>
+    <message>
+        <source>New Chapter in the P&amp;lan</source>
+        <extracomment>The menu of a card: a text in the plan, without a file, after the text of the card. In Polish: Nowy rozdział w p&amp;lanie</extracomment>
+        <translation>Nowy rozdział w p&amp;lanie</translation>
+    </message>
+    <message>
+        <source>New Scene in the &amp;Text</source>
+        <extracomment>The menu of a card: a scene break after the scene, or at the end of the text. In Polish: Nowa scena w &amp;tekście</extracomment>
+        <translation>Nowa s&amp;cena w tekście</translation>
+    </message>
+    <message>
+        <source>Chronology</source>
+        <extracomment>The switch: the scenes in the order of the story. In Polish: Chronologia</extracomment>
+        <translation>Chronologia</translation>
+    </message>
+    <message>
+        <source>Book Plan Settings</source>
+        <extracomment>The gear over the plan of the book: Settings &gt; Book Plan. In Polish: Ustawienia planu książki</extracomment>
+        <translation>Ustawienia planu książki</translation>
+    </message>
+    <message>
+        <source>New Chapter</source>
+        <extracomment>A command of the bar over the plan of the book: a text after the text of the card. In Polish: Nowy rozdział</extracomment>
+        <translation>Nowy rozdział</translation>
+    </message>
+    <message>
+        <source>Chapter in the Plan</source>
+        <extracomment>A text in the plan, without a file. In Polish: Rozdział w planie</extracomment>
+        <translation>Rozdział w planie</translation>
+    </message>
+    <message>
+        <source>New Scene</source>
+        <extracomment>A scene written: a scene break in the text. In Polish: Nowa scena</extracomment>
+        <translation>Nowa scena</translation>
+    </message>
+    <message>
+        <source>Scene in the Plan</source>
+        <extracomment>A scene in the plan of the text. In Polish: Scena w planie</extracomment>
+        <translation>Scena w planie</translation>
+    </message>
+    <message>
+        <source>Edit the Card</source>
+        <extracomment>In Polish: Edytuj kartę</extracomment>
+        <translation>Edytuj kartę</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <extracomment>Open the text of the card. In Polish: Otwórz</extracomment>
+        <translation>Otwórz</translation>
+    </message>
+    <message>
+        <source>Card Color</source>
+        <extracomment>The own color of the card, in a menu. In Polish: Kolor karty</extracomment>
+        <translation>Kolor karty</translation>
+    </message>
+    <message>
+        <source>State</source>
+        <extracomment>The state of the text, in a menu. In Polish: Stan</extracomment>
+        <translation>Stan</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Undo</source>
+        <extracomment>The command of the bar over the plan of the book. In Polish: Cofnij</extracomment>
+        <translation>Cofnij</translation>
+    </message>
+    <message>
+        <source>Redo</source>
+        <extracomment>The command of the bar over the plan of the book. In Polish: Ponów</extracomment>
+        <translation>Ponów</translation>
+    </message>
+    <message>
+        <source>Create the Chapter File</source>
+        <extracomment>The command of the bar on a text in the plan, without a file. In Polish: Utwórz plik rozdziału</extracomment>
+        <translation>Utwórz plik rozdziału</translation>
+    </message>
+    <message>
+        <source>Write the Scene</source>
+        <extracomment>The command of the bar on a scene in the plan. In Polish: Napisz scenę</extracomment>
+        <translation>Napisz scenę</translation>
+    </message>
+    <message>
+        <source>Delete from the Plan</source>
+        <extracomment>The command of the bar on a card in the plan. In Polish: Usuń z planu</extracomment>
+        <translation>Usuń z planu</translation>
+    </message>
+    <message>
+        <source>Delete the Scene…</source>
+        <extracomment>The command of the bar on the card of a scene. In Polish: Usuń scenę…</extracomment>
+        <translation>Usuń scenę…</translation>
+    </message>
+    <message>
+        <source>Delete from the Book…</source>
+        <extracomment>The command of the bar on the card of a text. In Polish: Usuń z książki…</extracomment>
+        <translation>Usuń z książki…</translation>
+    </message>
+    <message>
+        <source>The arrows choose a card, Insert adds one, F2 or the pencil edits it, Enter opens it.</source>
+        <extracomment>The line under the plan of the book without a card chosen. In Polish: Strzałki wybierają kartę, Insert dodaje, F2 albo ołówek edytuje, Enter otwiera.</extracomment>
+        <translation>Strzałki wybierają kartę, Insert dodaje, F2 albo ołówek edytuje, Enter otwiera.</translation>
+    </message>
+    <message>
+        <source>%1: in the plan, without a file yet. Create the Chapter File makes it in the folder of the book.</source>
+        <extracomment>The line under the plan of the book on a text in the plan; %1 its title. In Polish: %1: w planie, jeszcze bez pliku. „Utwórz plik rozdziału” utworzy go w folderze książki.</extracomment>
+        <translation>%1: w planie, jeszcze bez pliku. „Utwórz plik rozdziału” utworzy go w folderze książki.</translation>
+    </message>
+    <message>
+        <source>%1: one scene, as the text has no scene breaks. New Scene adds the first break.</source>
+        <extracomment>The line under the plan of the book on a text without scene breaks; %1 its title. In Polish: %1: jedna scena, bo tekst nie ma podziałów sceny. „Nowa scena” doda pierwszy podział.</extracomment>
+        <translation>%1: jedna scena, bo tekst nie ma podziałów sceny. „Nowa scena” doda pierwszy podział.</translation>
+    </message>
+    <message>
+        <source>%1: %2.</source>
+        <extracomment>The line under the plan of the book on a text with scenes; %1 its title, %2 &quot;3 scenes&quot;. In Polish: %1: %2.</extracomment>
+        <translation>%1: %2.</translation>
+    </message>
+    <message>
+        <source>%1: %2, %3 of them in the plan.</source>
+        <extracomment>The line under the plan of the book on a text with scenes; %1 its title, %2 &quot;3 scenes&quot;, %3 how many of them are in the plan. In Polish: %1: %2, w tym %3 w planie.</extracomment>
+        <translation>%1: %2, w tym %3 w planie.</translation>
+    </message>
+    <message>
+        <source>A scene in the plan, without text yet. The chapter file comes first: Create the Chapter File on the card of the text.</source>
+        <extracomment>The line under the plan of the book on a scene in the plan of a text in the plan. In Polish: Scena w planie, jeszcze bez tekstu. Najpierw trzeba utworzyć plik rozdziału: „Utwórz plik rozdziału” na karcie tekstu.</extracomment>
+        <translation>Scena w planie, jeszcze bez tekstu. Najpierw trzeba utworzyć plik rozdziału: „Utwórz plik rozdziału” na karcie tekstu.</translation>
+    </message>
+    <message>
+        <source>A scene in the plan, without text yet. Write the Scene puts a scene break with its title and description in the text.</source>
+        <extracomment>The line under the plan of the book on a scene in the plan. In Polish: Scena w planie, jeszcze bez tekstu. „Napisz scenę” wstawi do tekstu podział sceny z jej tytułem i opisem.</extracomment>
+        <translation>Scena w planie, jeszcze bez tekstu. „Napisz scenę” wstawi do tekstu podział sceny z jej tytułem i opisem.</translation>
+    </message>
+    <message>
+        <source>A scene in the plan of &quot;%1&quot;.</source>
+        <extracomment>The line under the plan of the book on a scene in the plan; %1 the title of its text. In Polish: Scena w planie tekstu „%1”.</extracomment>
+        <translation>Scena w planie tekstu „%1”.</translation>
+    </message>
+    <message>
+        <source>Scene 1 of &quot;%1&quot;: the text from its start to the first scene break.</source>
+        <extracomment>The line under the plan of the book on the first scene of a text; %1 the title of the text. In Polish: Scena 1 tekstu „%1”: tekst od początku do pierwszego podziału sceny.</extracomment>
+        <translation>Scena 1 tekstu „%1”: tekst od początku do pierwszego podziału sceny.</translation>
+    </message>
+    <message>
+        <source>Scene %1 of &quot;%2&quot;: the text from scene break %3 to the next one (Insert &gt; Scene Break).</source>
+        <extracomment>The line under the plan of the book on a scene of a text; %1 its number, %2 the title of the text, %3 the number of the scene break it starts at. In Polish: Scena %1 tekstu „%2”: tekst od %3. podziału sceny do następnego (Wstaw &gt; Podział sceny).</extracomment>
+        <translation>Scena %1 tekstu „%2”: tekst od %3. podziału sceny do następnego (Wstaw &gt; Podział sceny).</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotBoardView</name>
@@ -12434,6 +12701,49 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <extracomment>Read by the screen reader on a card of a scene in the plan beside the scenes of its text, after &quot;In the Plan: The Storm&quot;. In Polish: Enter wpisuje ją do tekstu</extracomment>
         <translation>Enter wpisuje ją do tekstu</translation>
     </message>
+    <message>
+        <source>In the plan, without a file – Enter creates the chapter file</source>
+        <extracomment>Read by the screen reader on the card of a text in the plan, without a file, after &quot;Chapter: The Storm&quot;. In Polish: W planie, bez pliku – Enter tworzy plik rozdziału</extracomment>
+        <translation>W planie, bez pliku – Enter tworzy plik rozdziału</translation>
+    </message>
+    <message>
+        <source>Edit the Card (F2)</source>
+        <extracomment>The tooltip of the pencil on a card of the plot board. In Polish: Edytuj kartę (F2)</extracomment>
+        <translation>Edytuj kartę (F2)</translation>
+    </message>
+    <message>
+        <source>Write the scene: a scene break with its title and description in the text (Enter)</source>
+        <extracomment>The tooltip of the button on the card of a scene in the plan. In Polish: Napisz scenę: podział sceny z jej tytułem i opisem w tekście (Enter)</extracomment>
+        <translation>Napisz scenę: podział sceny z jej tytułem i opisem w tekście (Enter)</translation>
+    </message>
+    <message>
+        <source>Create the Chapter File (Enter)</source>
+        <translation>Utwórz plik rozdziału (Enter)</translation>
+    </message>
+    <message>
+        <source>No scenes in the plan.</source>
+        <extracomment>Under the card of a text without scenes in the plan, on the plot board. In Polish: Bez scen w planie.</extracomment>
+        <translation>Bez scen w planie.</translation>
+    </message>
+    <message>
+        <source>One scene: the text has no scene breaks (Insert &gt; Scene Break).</source>
+        <extracomment>Under the card of a text without scene breaks, on the plot board. In Polish: Jedna scena: tekst nie ma podziałów sceny (Wstaw &gt; Podział sceny).</extracomment>
+        <translation>Jedna scena: tekst nie ma podziałów sceny (Wstaw &gt; Podział sceny).</translation>
+    </message>
+    <message>
+        <source>Write the Scene</source>
+        <extracomment>The button on the card of a scene in the plan: a scene break with what it says in the text. In Polish: Napisz scenę</extracomment>
+        <translation>Napisz scenę</translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <translation>Utwórz</translation>
+    </message>
+    <message>
+        <source>In the plan – no file</source>
+        <extracomment>The head of the card of a text in the plan, after its kind (&quot;Chapter · In the plan – no file&quot;). In Polish: W planie – bez pliku</extracomment>
+        <translation>W planie – bez pliku</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotCardEditor</name>
@@ -12486,11 +12796,6 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
 <context>
     <name>kalahari::gui::PlotFieldsBox</name>
     <message>
-        <source>Plot Board</source>
-        <extracomment>The group of the Properties panel with what the plot board says of a text. In Polish: Tablica fabuły</extracomment>
-        <translation>Tablica fabuły</translation>
-    </message>
-    <message>
         <source>Description:</source>
         <extracomment>The short description of a text on its card of the plot board. In Polish: Opis:</extracomment>
         <translation>Opis:</translation>
@@ -12529,6 +12834,11 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>No Color</source>
         <extracomment>A card without an own color. In Polish: Bez koloru</extracomment>
         <translation>Bez koloru</translation>
+    </message>
+    <message>
+        <source>Book Plan</source>
+        <extracomment>The group of the Properties panel with what the plan of the book says of a text. In Polish: Plan książki</extracomment>
+        <translation>Plan książki</translation>
     </message>
 </context>
 <context>
@@ -12572,6 +12882,16 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>State</source>
         <extracomment>In Polish: Stan</extracomment>
         <translation>Stan</translation>
+    </message>
+    <message>
+        <source>Write the Scene</source>
+        <extracomment>The button beside the state of a scene in the plan in the outline. In Polish: Napisz scenę</extracomment>
+        <translation>Napisz scenę</translation>
+    </message>
+    <message>
+        <source>Create the File</source>
+        <extracomment>The button beside the state of a text in the plan, without a file, in the outline. In Polish: Utwórz plik</extracomment>
+        <translation>Utwórz plik</translation>
     </message>
 </context>
 <context>
@@ -13487,11 +13807,6 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <translation>Obrazy</translation>
     </message>
     <message>
-        <source>Plot Board</source>
-        <extracomment>Settings &gt; Plot Board: the scenes on the board, the colors of the cards. In Polish: Tablica fabuły</extracomment>
-        <translation>Tablica fabuły</translation>
-    </message>
-    <message>
         <source>Clippings</source>
         <extracomment>Settings &gt; Editor &gt; Clippings: Cut to Clippings and Insert &gt; Clipping from the Workshop. In Polish: Wycinki</extracomment>
         <translation>Wycinki</translation>
@@ -13540,6 +13855,11 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <source>Texts for Publishers</source>
         <extracomment>Settings &gt; Navigator &gt; Texts for Publishers: the lengths, the template of a synopsis and the set. Short: the list of the pages is as wide as its longest name. In Polish: Dla wydawnictwa</extracomment>
         <translation>Dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Book Plan</source>
+        <extracomment>Settings &gt; Book Plan: the scenes on the board, the colors of the cards, the chronology. In Polish: Plan książki</extracomment>
+        <translation>Plan książki</translation>
     </message>
 </context>
 <context>
@@ -34641,11 +34961,6 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>Nowe wydarzenie</translation>
     </message>
     <message>
-        <source>“14 April 1931, in the morning”, “March 1931”, “16–17 April 1931”, “Day 3, night”, “Days 5–7”, “about 1931”</source>
-        <extracomment>Times the program reads; keep the quotes. In Polish: „14 kwietnia 1931, rano”, „marzec 1931”, „16–17 kwietnia 1931”, „Dzień 3, noc”, „Dni 5–7”, „ok. 1931”</extracomment>
-        <translation>„14 kwietnia 1931, rano”, „marzec 1931”, „16–17 kwietnia 1931”, „Dzień 3, noc”, „Dni 5–7”, „ok. 1931”</translation>
-    </message>
-    <message>
         <source>Not on the axis</source>
         <extracomment>The tray of the events of a timeline without a time. In Polish: Bez miejsca na osi</extracomment>
         <translation>Bez miejsca na osi</translation>
@@ -34719,6 +35034,11 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>One lane</source>
         <extracomment>The lanes of a timeline: one for all. In Polish: Jedno pasmo</extracomment>
         <translation>Jedno pasmo</translation>
+    </message>
+    <message>
+        <source>“14 April 1931, in the morning”, “March 1931”, “spring 1931”, “first half of 1931”, “16–17 April 1931”, “Day 3, night”, “day one”, “Days 5–7”, “about 1931”</source>
+        <extracomment>Times the program reads; keep the quotes. In Polish: „14 kwietnia 1931, rano”, „marzec 1931”, „wiosna 1931”, „pierwsza połowa 1931”, „16–17 kwietnia 1931”, „Dzień 3, noc”, „dzień pierwszy”, „Dni 5–7”, „ok. 1931”</extracomment>
+        <translation>„14 kwietnia 1931, rano”, „marzec 1931”, „wiosna 1931”, „pierwsza połowa 1931”, „16–17 kwietnia 1931”, „Dzień 3, noc”, „dzień pierwszy”, „Dni 5–7”, „ok. 1931”</translation>
     </message>
 </context>
 <context>
@@ -35638,6 +35958,475 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>Delete</source>
         <extracomment>In Polish: Usuń</extracomment>
         <translation>Usuń</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::PlanCardDialog</name>
+    <message>
+        <source>No time – the card waits under the chronology, in “Without a time of the action”.</source>
+        <extracomment>The note under &quot;When&quot; of a card of the chronology without a time. In Polish: Bez czasu – karta czeka pod chronologią, w „Bez czasu akcji”.</extracomment>
+        <translation>Bez czasu – karta czeka pod chronologią, w „Bez czasu akcji”.</translation>
+    </message>
+    <message>
+        <source>Not recognized – the card waits in “Without a time of the action”. Examples: %1. Names of your own: Periods….</source>
+        <extracomment>In Polish: Nie rozpoznano – karta czeka w „Bez czasu akcji”. Przykłady: %1. Własne nazwy okresów: „Okresy…”.</extracomment>
+        <translation>Nie rozpoznano – karta czeka w „Bez czasu akcji”. Przykłady: %1. Własne nazwy okresów: „Okresy…”.</translation>
+    </message>
+    <message>
+        <source>Recognized: %1.</source>
+        <extracomment>The note under &quot;When&quot;; %1 the time. In Polish: Rozpoznano: %1.</extracomment>
+        <translation>Rozpoznano: %1.</translation>
+    </message>
+    <message>
+        <source>Recognized: %1 – %2.</source>
+        <extracomment>The note under &quot;When&quot;; %1 the time in dates, %2 in days of the story. In Polish: Rozpoznano: %1 – %2.</extracomment>
+        <translation>Rozpoznano: %1 – %2.</translation>
+    </message>
+    <message>
+        <source>Event Outside the Text</source>
+        <extracomment>The window of an event of the chronology outside the text. In Polish: Wydarzenie poza tekstem / Dzieje się w opowieści, ale książka go nie opowiada.</extracomment>
+        <translation>Wydarzenie poza tekstem</translation>
+    </message>
+    <message>
+        <source>It happens in the story, but the book does not tell it.</source>
+        <translation>Dzieje się w opowieści, ale książka go nie opowiada.</translation>
+    </message>
+    <message>
+        <source>Card</source>
+        <extracomment>The window of a card of the chronology. In Polish: Karta / Tytuł, czas akcji, punkt widzenia, miejsce i opis, jak na tablicy.</extracomment>
+        <translation>Karta</translation>
+    </message>
+    <message>
+        <source>The title, the time of the action, the point of view, the place and the description, as on the board.</source>
+        <translation>Tytuł, czas akcji, punkt widzenia, miejsce i opis, jak na tablicy.</translation>
+    </message>
+    <message>
+        <source>Timeline Settings</source>
+        <extracomment>The gear of the window. In Polish: Ustawienia osi czasu</extracomment>
+        <translation>Ustawienia osi czasu</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <extracomment>In Polish: Tytuł</extracomment>
+        <translation>Tytuł</translation>
+    </message>
+    <message>
+        <source>e.g. Day 3, night / spring 1931</source>
+        <extracomment>Examples of a time of the action. In Polish: np. Dzień 3, noc / wiosna 1931</extracomment>
+        <translation>np. Dzień 3, noc / wiosna 1931</translation>
+    </message>
+    <message>
+        <source>Time of the action</source>
+        <extracomment>In Polish: Czas akcji</extracomment>
+        <translation>Czas akcji</translation>
+    </message>
+    <message>
+        <source>Point of view</source>
+        <extracomment>In Polish: Punkt widzenia</extracomment>
+        <translation>Punkt widzenia</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <extracomment>In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <extracomment>In Polish: Opis</extracomment>
+        <translation>Opis</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <extracomment>In Polish: Zapisz</extracomment>
+        <translation>Zapisz</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::PlanChronologyGrid</name>
+    <message>
+        <source>Chronology</source>
+        <extracomment>The cards of the chronology of the Book Plan, for the screen reader. In Polish: Chronologia</extracomment>
+        <translation>Chronologia</translation>
+    </message>
+    <message>
+        <source>no time</source>
+        <translation>bez czasu</translation>
+    </message>
+    <message>
+        <source>Outside the text</source>
+        <extracomment>The foot of an event of the chronology that the book does not tell. In Polish: Poza tekstem</extracomment>
+        <translation>Poza tekstem</translation>
+    </message>
+    <message>
+        <source>Flashback</source>
+        <extracomment>The foot of a card told later than it happens. In Polish: Retrospekcja</extracomment>
+        <translation>Retrospekcja</translation>
+    </message>
+    <message>
+        <source>In the plan</source>
+        <extracomment>The foot of a card in the plan. In Polish: W planie</extracomment>
+        <translation>W planie</translation>
+    </message>
+    <message>
+        <source>Time not recognized</source>
+        <extracomment>The foot of a card whose time the program does not read. In Polish: Czas nierozpoznany</extracomment>
+        <translation>Czas nierozpoznany</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::PlanChronologyView</name>
+    <message>
+        <source>Without a time of the action:</source>
+        <extracomment>The line of the cards of the chronology without a time. In Polish: Bez czasu akcji:</extracomment>
+        <translation>Bez czasu akcji:</translation>
+    </message>
+    <message>
+        <source>The number on a card is its place in the order of reading: 3.2 – text 3, scene 2. A ring marks a flashback: a scene told after a scene that happens later. A dashed frame – a card in the plan or an event outside the text.</source>
+        <extracomment>The note under the chronology. In Polish: Numer na karcie to jej miejsce w kolejności czytania: 3.2 – tekst 3, scena 2. Obwódka oznacza retrospekcję: scenę opowiedzianą po scenie, która dzieje się później. Przerywana ramka – karta w planie albo wydarzenie poza tekstem.</extracomment>
+        <translation>Numer na karcie to jej miejsce w kolejności czytania: 3.2 – tekst 3, scena 2. Obwódka oznacza retrospekcję: scenę opowiedzianą po scenie, która dzieje się później. Przerywana ramka – karta w planie albo wydarzenie poza tekstem.</translation>
+    </message>
+    <message>
+        <source>S&amp;cale:</source>
+        <extracomment>The scale of the chronology. In Polish: S&amp;kala:</extracomment>
+        <translation>S&amp;kala:</translation>
+    </message>
+    <message>
+        <source>Days of the story</source>
+        <extracomment>In Polish: Dni opowieści</extracomment>
+        <translation>Dni opowieści</translation>
+    </message>
+    <message>
+        <source>Dates</source>
+        <extracomment>In Polish: Daty</extracomment>
+        <translation>Daty</translation>
+    </message>
+    <message>
+        <source>Order</source>
+        <extracomment>The order of the story, without lengths of time. In Polish: Kolejność</extracomment>
+        <translation>Kolejność</translation>
+    </message>
+    <message>
+        <source>&amp;Bands:</source>
+        <extracomment>The bands of the chronology. In Polish: &amp;Pasma:</extracomment>
+        <translation>&amp;Pasma:</translation>
+    </message>
+    <message>
+        <source>Point of view</source>
+        <extracomment>In Polish: Punkt widzenia</extracomment>
+        <translation>Punkt widzenia</translation>
+    </message>
+    <message>
+        <source>Places</source>
+        <extracomment>In Polish: Miejsca</extracomment>
+        <translation>Miejsca</translation>
+    </message>
+    <message>
+        <source>One band</source>
+        <extracomment>In Polish: Jedno pasmo</extracomment>
+        <translation>Jedno pasmo</translation>
+    </message>
+    <message>
+        <source>Shorten Gaps</source>
+        <extracomment>The switch of the chronology: a gap without cards is one narrow column. In Polish: Skracaj przerwy</extracomment>
+        <translation>Skracaj przerwy</translation>
+    </message>
+    <message>
+        <source>A gap without cards is one narrow column with its length; without it the days of a gap of up to a month are empty columns.</source>
+        <extracomment>In Polish: Przerwa bez kart to jedna wąska kolumna z jej długością; bez tego dni przerwy do miesiąca są pustymi kolumnami.</extracomment>
+        <translation>Przerwa bez kart to jedna wąska kolumna z jej długością; bez tego dni przerwy do miesiąca są pustymi kolumnami.</translation>
+    </message>
+    <message>
+        <source>&amp;Periods…</source>
+        <extracomment>Day one and the periods of the chronology. In Polish: &amp;Okresy…</extracomment>
+        <translation>&amp;Okresy…</translation>
+    </message>
+    <message>
+        <source>Day one of the story and names of your own for periods (“Expedition” is “winter 1931”)</source>
+        <extracomment>In Polish: Dzień pierwszy opowieści i własne nazwy okresów („Wyprawa” to „zima 1931”)</extracomment>
+        <translation>Dzień pierwszy opowieści i własne nazwy okresów („Wyprawa” to „zima 1931”)</translation>
+    </message>
+    <message>
+        <source>New Event Outside the Text</source>
+        <extracomment>A command of the bar of the chronology. In Polish: Nowe wydarzenie poza tekstem</extracomment>
+        <translation>Nowe wydarzenie poza tekstem</translation>
+    </message>
+    <message>
+        <source>Edit the Card</source>
+        <extracomment>In Polish: Edytuj kartę</extracomment>
+        <translation>Edytuj kartę</translation>
+    </message>
+    <message>
+        <source>Open the Text</source>
+        <extracomment>In Polish: Otwórz tekst</extracomment>
+        <translation>Otwórz tekst</translation>
+    </message>
+    <message>
+        <source>A Day Earlier</source>
+        <extracomment>The time of the card a day (a month, a season...) earlier. In Polish: Dzień wcześniej</extracomment>
+        <translation>Dzień wcześniej</translation>
+    </message>
+    <message>
+        <source>A Day Later</source>
+        <extracomment>In Polish: Dzień później</extracomment>
+        <translation>Dzień później</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Undo</source>
+        <extracomment>In Polish: Cofnij</extracomment>
+        <translation>Cofnij</translation>
+    </message>
+    <message>
+        <source>Redo</source>
+        <extracomment>In Polish: Ponów</extracomment>
+        <translation>Ponów</translation>
+    </message>
+    <message>
+        <source>Without a place</source>
+        <extracomment>The band of the cards without a point of view; of a place. In Polish: Bez punktu widzenia / Bez miejsca</extracomment>
+        <translation>Bez miejsca</translation>
+    </message>
+    <message>
+        <source>Without a point of view</source>
+        <translation>Bez punktu widzenia</translation>
+    </message>
+    <message>
+        <source>All cards</source>
+        <extracomment>The one band of the chronology. In Polish: Wszystkie karty</extracomment>
+        <translation>Wszystkie karty</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <extracomment>The cards of the chronology; %1 &quot;12 cards&quot;, %2 &quot;2 events outside the text&quot;. In Polish: %1 · %2</extracomment>
+        <translation>%1 · %2</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n card(s) of the book</source>
+        <translation>
+            <numerusform>%n karta książki</numerusform>
+            <numerusform>%n karty książki</numerusform>
+            <numerusform>%n kart książki</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n event(s) outside the text</source>
+        <translation>
+            <numerusform>%n wydarzenie poza tekstem</numerusform>
+            <numerusform>%n wydarzenia poza tekstem</numerusform>
+            <numerusform>%n wydarzeń poza tekstem</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Earlier</source>
+        <extracomment>The time of the card a step earlier: a month, a season, a year. In Polish: Wcześniej</extracomment>
+        <translation>Wcześniej</translation>
+    </message>
+    <message>
+        <source>Later</source>
+        <extracomment>In Polish: Później</extracomment>
+        <translation>Później</translation>
+    </message>
+    <message>
+        <source>Delete the Time of the Action</source>
+        <extracomment>The command of the chronology on a card of the book. In Polish: Usuń czas akcji</extracomment>
+        <translation>Usuń czas akcji</translation>
+    </message>
+    <message>
+        <source>Delete the Event</source>
+        <extracomment>In Polish: Usuń wydarzenie</extracomment>
+        <translation>Usuń wydarzenie</translation>
+    </message>
+    <message>
+        <source>The arrows choose a card, Insert adds an event outside the text, F2 edits a card, Ctrl+Left and Ctrl+Right change its time.</source>
+        <extracomment>The line under the chronology without a card chosen. In Polish: Strzałki wybierają kartę, Insert dodaje wydarzenie poza tekstem, F2 edytuje kartę, Ctrl+← i Ctrl+→ zmieniają jej czas.</extracomment>
+        <translation>Strzałki wybierają kartę, Insert dodaje wydarzenie poza tekstem, F2 edytuje kartę, Ctrl+← i Ctrl+→ zmieniają jej czas.</translation>
+    </message>
+    <message>
+        <source>“%1”: an event outside the text – it happens, but the book does not tell it.</source>
+        <extracomment>The line under the chronology on an event outside the text; %1 its title. In Polish: „%1”: wydarzenie poza tekstem – dzieje się, ale książka go nie opowiada.</extracomment>
+        <translation>„%1”: wydarzenie poza tekstem – dzieje się, ale książka go nie opowiada.</translation>
+    </message>
+    <message>
+        <source>%1: no time of the action. F2 gives it one, e.g. %2.</source>
+        <extracomment>%1 &quot;3.2 Burza&quot;. In Polish: %1: bez czasu akcji. F2 nada go, np. %2.</extracomment>
+        <translation>%1: bez czasu akcji. F2 nada go, np. %2.</translation>
+    </message>
+    <message>
+        <source>%1: the program does not read the time “%2”. F2 changes it; names of your own: Periods….</source>
+        <extracomment>%1 &quot;3.2 Burza&quot;, %2 what the writer typed. In Polish: %1: program nie czyta czasu „%2”. F2 go zmieni; własne nazwy okresów: „Okresy…”.</extracomment>
+        <translation>%1: program nie czyta czasu „%2”. F2 go zmieni; własne nazwy okresów: „Okresy…”.</translation>
+    </message>
+    <message>
+        <source>%1: %2 – a flashback: the book tells it after a scene that happens later.</source>
+        <extracomment>%1 &quot;3.2 Burza&quot;, %2 its time. In Polish: %1: %2 – retrospekcja: książka opowiada ją po scenie, która dzieje się później.</extracomment>
+        <translation>%1: %2 – retrospekcja: książka opowiada ją po scenie, która dzieje się później.</translation>
+    </message>
+    <message>
+        <source>%1: %2 – the time of the text “%3”. F2 or Ctrl+Left and Ctrl+Right give the scene its own.</source>
+        <extracomment>A scene without a time of its own; %1 &quot;3.2 Burza&quot;, %2 the time of its text, %3 the title of the text. In Polish: %1: %2 – czas tekstu „%3”. F2 albo Ctrl+← i Ctrl+→ dadzą scenie własny.</extracomment>
+        <translation>%1: %2 – czas tekstu „%3”. F2 albo Ctrl+← i Ctrl+→ dadzą scenie własny.</translation>
+    </message>
+    <message>
+        <source>%1: %2, in the plan – no text yet.</source>
+        <extracomment>In Polish: %1: %2, w planie – jeszcze bez tekstu.</extracomment>
+        <translation>%1: %2, w planie – jeszcze bez tekstu.</translation>
+    </message>
+    <message>
+        <source>%1: %2.</source>
+        <extracomment>In Polish: %1: %2.</extracomment>
+        <translation>%1: %2.</translation>
+    </message>
+    <message>
+        <source>“%1” is in the plan: Create the Chapter File or Write the Scene on the board gives it its text.</source>
+        <extracomment>Under the chronology after Enter on a card in the plan. In Polish: „%1” jest w planie: tekst daje „Utwórz plik rozdziału” albo „Napisz scenę” na tablicy.</extracomment>
+        <translation>„%1” jest w planie: tekst daje „Utwórz plik rozdziału” albo „Napisz scenę” na tablicy.</translation>
+    </message>
+    <message>
+        <source>change of the event “%1”</source>
+        <translation>zmiana wydarzenia „%1”</translation>
+    </message>
+    <message>
+        <source>The event “%1” changed.</source>
+        <extracomment>Under the chronology. In Polish: Zmieniono wydarzenie „%1”.</extracomment>
+        <translation>Zmieniono wydarzenie „%1”.</translation>
+    </message>
+    <message>
+        <source>New event</source>
+        <extracomment>The title of a new event outside the text. In Polish: Nowe wydarzenie</extracomment>
+        <translation>Nowe wydarzenie</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>adding the event “%1”</source>
+        <extracomment>What Undo undoes, after &quot;Undone:&quot;. In Polish: dodanie wydarzenia „%1”</extracomment>
+        <translation>dodanie wydarzenia „%1”</translation>
+    </message>
+    <message>
+        <source>Added the event outside the text “%1”.</source>
+        <extracomment>Under the chronology. In Polish: Dodano wydarzenie poza tekstem „%1”.</extracomment>
+        <translation>Dodano wydarzenie poza tekstem „%1”.</translation>
+    </message>
+    <message>
+        <source>moving the event “%1”</source>
+        <extracomment>What Undo undoes, after &quot;Undone:&quot;. In Polish: przesunięcie wydarzenia „%1”</extracomment>
+        <translation>przesunięcie wydarzenia „%1”</translation>
+    </message>
+    <message>
+        <source>“%1”: now %2.</source>
+        <extracomment>Under the chronology; %1 the event, %2 its new time. In Polish: „%1”: teraz %2.</extracomment>
+        <translation>„%1”: teraz %2.</translation>
+    </message>
+    <message>
+        <source>deleting the event “%1”</source>
+        <extracomment>What Undo undoes, after &quot;Undone:&quot;. In Polish: usunięcie wydarzenia „%1”</extracomment>
+        <translation>usunięcie wydarzenia „%1”</translation>
+    </message>
+    <message>
+        <source>Deleted the event “%1”.</source>
+        <extracomment>Under the chronology. In Polish: Usunięto wydarzenie „%1”.</extracomment>
+        <translation>Usunięto wydarzenie „%1”.</translation>
+    </message>
+    <message>
+        <source>change of the periods</source>
+        <extracomment>What Undo undoes, after &quot;Undone:&quot;. In Polish: zmiana okresów</extracomment>
+        <translation>zmiana okresów</translation>
+    </message>
+    <message>
+        <source>Day one and the periods changed.</source>
+        <extracomment>Under the chronology. In Polish: Zmieniono dzień pierwszy i okresy.</extracomment>
+        <translation>Zmieniono dzień pierwszy i okresy.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::PlanPeriodsDialog</name>
+    <message>
+        <source>Day One and Periods</source>
+        <extracomment>The window of day one and the periods of the chronology. In Polish: Dzień pierwszy i okresy / Od dnia pierwszego liczą się dni opowieści („Dzień 3”, „dzień drugi”); okres to własna nazwa czasu, którą może podać czas akcji.</extracomment>
+        <translation>Dzień pierwszy i okresy</translation>
+    </message>
+    <message>
+        <source>The days of the story count from day one (“Day 3”, “day two”); a period is a name of your own for a time, which a time of the action may say.</source>
+        <translation>Od dnia pierwszego liczą się dni opowieści („Dzień 3”, „dzień drugi”); okres to własna nazwa czasu, którą może podać czas akcji.</translation>
+    </message>
+    <message>
+        <source>Timeline Settings</source>
+        <translation>Ustawienia osi czasu</translation>
+    </message>
+    <message>
+        <source>e.g. 14 April 1931</source>
+        <extracomment>In Polish: np. 14 kwietnia 1931</extracomment>
+        <translation>np. 14 kwietnia 1931</translation>
+    </message>
+    <message>
+        <source>Day one of the story</source>
+        <extracomment>In Polish: Dzień pierwszy opowieści</extracomment>
+        <translation>Dzień pierwszy opowieści</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The columns of the periods. In Polish: Nazwa / Czas</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Time</source>
+        <translation>Czas</translation>
+    </message>
+    <message>
+        <source>Periods</source>
+        <extracomment>In Polish: Okresy</extracomment>
+        <translation>Okresy</translation>
+    </message>
+    <message>
+        <source>&amp;Add Period</source>
+        <extracomment>In Polish: &amp;Dodaj okres</extracomment>
+        <translation>&amp;Dodaj okres</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Period</source>
+        <extracomment>In Polish: &amp;Usuń okres</extracomment>
+        <translation>&amp;Usuń okres</translation>
+    </message>
+    <message>
+        <source>New period</source>
+        <extracomment>A new period. In Polish: Nowy okres / lato 1931</extracomment>
+        <translation>Nowy okres</translation>
+    </message>
+    <message>
+        <source>summer 1931</source>
+        <translation>lato 1931</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <extracomment>In Polish: Zapisz</extracomment>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>Recognized: %1.</source>
+        <extracomment>The note under day one. In Polish: Rozpoznano: %1.</extracomment>
+        <translation>Rozpoznano: %1.</translation>
+    </message>
+    <message>
+        <source>Day one is one day of the calendar, e.g. 14 April 1931.</source>
+        <extracomment>In Polish: Dzień pierwszy to jeden dzień kalendarza, np. 14 kwietnia 1931.</extracomment>
+        <translation>Dzień pierwszy to jeden dzień kalendarza, np. 14 kwietnia 1931.</translation>
+    </message>
+    <message>
+        <source>The time of a period is any time the program reads: “winter 1931”, “first half of 1932”, “Days 1–30”, “1931”. A card whose time of the action is “Expedition” or “Expedition, in the evening” stands at its time.</source>
+        <extracomment>The note under the periods. In Polish: Czas okresu to dowolny czas, który program czyta: „zima 1931”, „pierwsza połowa 1932”, „Dni 1–30”, „1931”. Karta z czasem akcji „Wyprawa” albo „Wyprawa, wieczorem” stanie w jego czasie.</extracomment>
+        <translation>Czas okresu to dowolny czas, który program czyta: „zima 1931”, „pierwsza połowa 1932”, „Dni 1–30”, „1931”. Karta z czasem akcji „Wyprawa” albo „Wyprawa, wieczorem” stanie w jego czasie.</translation>
+    </message>
+    <message>
+        <source>The program does not read the time of the periods: %1. They will not be kept.</source>
+        <extracomment>%1 the names of the periods. In Polish: Program nie czyta czasu okresów: %1. Te okresy nie zostaną zapisane.</extracomment>
+        <translation>Program nie czyta czasu okresów: %1. Te okresy nie zostaną zapisane.</translation>
     </message>
 </context>
 <context>

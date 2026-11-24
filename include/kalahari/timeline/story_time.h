@@ -60,10 +60,15 @@ struct StoryTimeStyle {
 /// @brief When something happens in a story
 ///
 /// The writer types it as a date, a month or a year ("14 kwietnia 1931, rano", "marzec 1931",
-/// "ok. 1931", "44 p.n.e.", "16–17 kwietnia 1931") or as days of the story ("Dzień 3, noc",
-/// "Dni 5–7"), which count from the first day of the story, day one. English works as well
-/// ("14 April 1931, in the morning", "Day 3"). The program keeps the days of the calendar, so
-/// the same time shows as dates or as days of the story.
+/// "ok. 1931", "44 p.n.e.", "rok 1931", "16–17 kwietnia 1931"), as months in a row: a season,
+/// a half of a year or months from one to another ("wiosna 1931", "zima 1931/32", "pierwsza
+/// połowa 1931", "marzec – maj 1931"), or as days of the story ("Dzień 3, noc", "Dzień
+/// pierwszy", "drugiego dnia", "Dni 5–7"), which count from the first day of the story, day
+/// one. English works as well ("14 April 1931, in the morning", "summer 1931", "first half of
+/// 1931", "Day 3", "the second day"). A season or a half without its year is the first one
+/// that does not end before day one ("lato", "zima"). Winter has the year of its January:
+/// "zima 1931" is December 1930 to February 1931. The program keeps the days of the calendar,
+/// so the same time shows as dates or as days of the story.
 ///
 /// A file keeps it as an object:
 /// @code{.json}
@@ -71,8 +76,9 @@ struct StoryTimeStyle {
 /// @endcode
 /// "from" says how exactly the time is known: "1931" a year, "1931-04" a month, "1931-04-16"
 /// a day; a year before the Common Era is astronomical and has its sign: "-0043-03-15" is
-/// 15 March 44 BC. "to" is the last day of days in a row. "part" is a part of the day or a time
-/// of the clock ("19:30").
+/// 15 March 44 BC. "to" is the last day of days in a row, or the last month of months in a row
+/// ("from": "1931-03", "to": "1931-05": spring 1931). "part" is a part of the day or a time of
+/// the clock ("19:30").
 struct StoryTime {
     /// @brief How exactly the time is known
     enum class Precision { Day, Month, Year };
@@ -82,7 +88,9 @@ struct StoryTime {
 
     qint64 first = 0;                       ///< Julian day of its first day; of a month or a
                                             ///< year, of their first day
-    qint64 last = 0;                        ///< Julian day of its last day; first for one day
+    qint64 last = 0;                        ///< Julian day of its last day; first for one day,
+                                            ///< one month or one year; of months in a row,
+                                            ///< the last day of their last month
     Precision precision = Precision::Day;
     Part part = Part::None;
     int minutes = 0;                        ///< Part::Clock: minutes after midnight
@@ -91,8 +99,15 @@ struct StoryTime {
     /// @brief One day @p julianDay
     [[nodiscard]] static StoryTime day(qint64 julianDay);
 
-    /// @brief Whether it is days in a row
+    /// @brief Whether it is days in a row, or months in a row
     [[nodiscard]] bool isSpan() const { return last != first; }
+
+    /// @brief Months @p count in a row from month @p month of year @p year (one month for 1):
+    /// a season, a half of a year; nullopt when there is no such month
+    [[nodiscard]] static std::optional<StoryTime> monthsInRow(int year, int month, int count);
+
+    /// @brief How many months it is: 1 for one month, 3 for a season; 0 for a day or a year
+    [[nodiscard]] int months() const;
 
     /// @brief Where it starts on a time axis, in days: its first day and the part of the day
     /// (the middle of the day without one); the middle of a month or of a year
@@ -113,7 +128,8 @@ struct StoryTime {
     /// @param dayOne Julian day of day one of the story: "Dzień 3" is two days after it
     [[nodiscard]] static std::optional<StoryTime> parse(const QString& text, qint64 dayOne);
 
-    /// @brief The time in dates: "14 kwietnia 1931, rano", "marzec 1931", "ok. 44 p.n.e."
+    /// @brief The time in dates: "14 kwietnia 1931, rano", "marzec 1931", "wiosna 1931",
+    /// "pierwsza połowa 1931", "ok. 44 p.n.e."
     ///
     /// The text in words or numbers reads back as the same time (parse()).
     [[nodiscard]] QString dateText(const StoryTimeStyle& style) const;

@@ -197,6 +197,7 @@ set(KALAHARI_SOURCES
     core/project_manager_card_fields.cpp # ProjectManager: the fields of the cards of the book
     core/project_manager_publishing.cpp # ProjectManager: the texts for publishers of the book
     core/project_manager_series.cpp     # ProjectManager: a series, several books of one project
+    core/project_manager_plan.cpp       # ProjectManager: the texts in the plan, without files
     core/package_card.cpp   # Cards of the packages a book uses: names and icons (IconRegistry)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus
@@ -315,9 +316,12 @@ set(KALAHARI_SOURCES
     gui/plot_board.cpp  # PlotBoard - what the plot board shows of the book, where its cards move
     gui/plot_board_titles.cpp  # PlotBoard - the numbers in the titles after a move
     gui/plot_board_coordinator.cpp  # PlotBoardCoordinator - the plot board on its tab, its changes
+    gui/plot_board_coordinator_texts.cpp  # PlotBoardCoordinator - new texts, texts in the plan
     gui/plot_board_coordinator_arrange.cpp  # PlotBoardCoordinator - cards moved, added, cut
     gui/plot_board_coordinator_plan.cpp  # PlotBoardCoordinator - the scenes moved, the plans
     gui/plot_board_coordinator_scenes.cpp  # PlotBoardCoordinator - the scenes changed
+    gui/plot_board_coordinator_chronology.cpp  # PlotBoardCoordinator - the chronology of the plan
+    gui/plan_chronology.cpp  # The module of the chronology of the Book Plan
     gui/plot_outline_model.cpp  # PlotOutlineModel - the outline: the texts of the book in a table
     gui/edit_coordinator.cpp  # EditCoordinator - clipboard and undo on the element with the keys
     gui/paragraph_style_menu.cpp  # ParagraphStyleMenu - Format > Text Style shows the text's styles
@@ -472,6 +476,7 @@ set(KALAHARI_SOURCES
     gui/panels/book_dictionary_panel.cpp  # BookDictionaryPanel - the book dictionary on a tab
     gui/panels/plot_board_panel.cpp  # PlotBoardPanel - the tab of the plot board and the outline
     gui/panels/plot_board_panel_header.cpp  # PlotBoardPanel - its switches and look from the settings
+    gui/panels/plot_board_panel_commands.cpp  # PlotBoardPanel - the bar of its commands, the line under it
     gui/panels/paragraph_panel.cpp
     gui/panels/search_panel.cpp
     gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards, made only in view
@@ -657,6 +662,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_model.h  # WritingStatsModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plot_board_coordinator.h  # PlotBoardCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plan_chronology.h  # PlanChronology with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plot_outline_model.h  # PlotOutlineModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT

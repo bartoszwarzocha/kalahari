@@ -68,8 +68,16 @@ constexpr const char* BOARD_ICON = "view.plotBoard";
 /// push() calls, does nothing.
 class BoardChange : public QUndoCommand {
 public:
-    BoardChange(const QString& text, std::function<bool()> undoIt, std::function<bool()> redoIt)
-        : QUndoCommand(text), m_undo(std::move(undoIt)), m_redo(std::move(redoIt)) {}
+    BoardChange(const QString& text, std::function<bool()> undoIt, std::function<bool()> redoIt,
+                std::function<QString()> undoGuard)
+        : QUndoCommand(text),
+          m_undo(std::move(undoIt)),
+          m_redo(std::move(redoIt)),
+          m_undoGuard(std::move(undoGuard)) {}
+
+    /// @brief Why the change cannot be undone now (a text with changes not saved); empty: it
+    /// can
+    [[nodiscard]] QString undoRefusal() const { return m_undoGuard ? m_undoGuard() : QString(); }
 
     void undo() override { m_done = m_undo(); }
 
@@ -87,6 +95,7 @@ public:
 private:
     std::function<bool()> m_undo;
     std::function<bool()> m_redo;
+    std::function<QString()> m_undoGuard;
     bool m_first = true;
     bool m_done = true;
 };
@@ -134,9 +143,9 @@ PlotBoardCoordinator::~PlotBoardCoordinator() {
 
 PlotBoardPanel* PlotBoardCoordinator::openBoard(const QString& view, bool keys) {
     if (!m_book.isProjectOpen()) {
-        //: The status bar after Book > Plot Board without a book. In Polish: Tablica fabuły
+        //: The status bar after Book > Book Plan without a book. In Polish: Plan książki
         //: pokazuje teksty otwartej książki.
-        m_statusBar->showMessage(tr("The plot board shows the texts of an open book."),
+        m_statusBar->showMessage(tr("The book plan shows the texts of an open book."),
                                  MESSAGE_TIMEOUT);
         return nullptr;
     }
@@ -215,6 +224,7 @@ void PlotBoardCoordinator::refreshNow() {
     m_panel->setSuggestions(PlotBoard::povSuggestions(m_book),
                             PlotBoard::placeSuggestions(m_book));
     m_panel->setBands(PlotBoard::bandsOf(m_book, unsavedTexts()));
+    showPlan();
     m_panel->setSections(PlotBoard::sectionBand(m_book, core::BookPlace::Front),
                          PlotBoard::sectionBand(m_book, core::BookPlace::Back));
     m_panel->setMarkedCard(m_marked);
@@ -238,6 +248,8 @@ void PlotBoardCoordinator::onProjectChanged() {
 void PlotBoardCoordinator::forget() {
     m_undo->clear();
     m_marked.clear();
+    m_planPath.clear();
+    m_plan = QJsonObject();
     if (m_panel != nullptr) {
         m_panel->setMarkedCard(QString());
         m_panel->showMessage(QString(), false);
@@ -261,6 +273,7 @@ void PlotBoardCoordinator::connectBoard(PlotBoardPanel* panel) {
     connect(m_undo, &QUndoStack::canUndoChanged, panel, undoState);
     connect(m_undo, &QUndoStack::canRedoChanged, panel, undoState);
     undoState();
+    connectChronology(panel);
     connect(panel, &PlotBoardPanel::currentCardChanged, this, [this](const QString& cardId) {
         // The text chosen shows in the Properties panel, as one chosen in the Navigator; for a
         // scene, its text
@@ -280,7 +293,10 @@ void PlotBoardCoordinator::connectBoard(PlotBoardPanel* panel) {
     connect(panel, &PlotBoardPanel::dropInPartRequested, this,
             &PlotBoardCoordinator::dropInPart);
     connect(panel, &PlotBoardPanel::addRequested, this, &PlotBoardCoordinator::add);
+    connect(panel, &PlotBoardPanel::addPlannedRequested, this,
+            [this](const QString& afterId) { addText(PlotBoard::textOf(afterId), true); });
     connect(panel, &PlotBoardPanel::addSceneRequested, this, &PlotBoardCoordinator::addScene);
+    connect(panel, &PlotBoardPanel::newSceneRequested, this, &PlotBoardCoordinator::newScene);
     connect(panel, &PlotBoardPanel::deleteRequested, this, &PlotBoardCoordinator::remove);
     connect(panel, &PlotBoardPanel::cutRequested, this, &PlotBoardCoordinator::cut);
     connect(panel, &PlotBoardPanel::pasteRequested, this, &PlotBoardCoordinator::paste);
@@ -306,9 +322,10 @@ void PlotBoardCoordinator::updateTab() {
     // DockCoordinator::refreshTabIcons() gives the tab the icon of another theme
     m_panel->setProperty("tabIconId", QString::fromLatin1(BOARD_ICON));
     m_centralTabs->setTabIcon(index, core::ArtProvider::getInstance().getIcon(BOARD_ICON));
-    //: The tab of the cards of the texts of the book. In Polish: Tablica fabuły
-    m_centralTabs->setTabText(index, tr("Plot Board"));
-    m_centralTabs->setTabToolTip(index, tr("Plot Board"));
+    //: The tab of the plan of the book: the board, the outline and the chronology. In Polish:
+    //: Plan książki
+    m_centralTabs->setTabText(index, tr("Book Plan"));
+    m_centralTabs->setTabToolTip(index, tr("Book Plan"));
 }
 
 // =============================================================================
@@ -316,6 +333,13 @@ void PlotBoardCoordinator::updateTab() {
 // =============================================================================
 
 void PlotBoardCoordinator::open(const QString& elementId) {
+    // A text in the plan gets its file
+    if (m_book.isPlannedText(elementId)) {
+        if (!m_book.isReadOnly()) {
+            createFile(elementId);
+        }
+        return;
+    }
     // A scene in the plan beside the scenes of its text is written there
     if (const auto planned = PlotBoard::plannedOf(elementId);
         planned && !m_book.isReadOnly() &&
@@ -476,6 +500,10 @@ void PlotBoardCoordinator::undo() {
     }
     const QString text = m_undo->undoText();
     const auto* change = static_cast<const BoardChange*>(m_undo->command(m_undo->index() - 1));
+    if (const QString refusal = change->undoRefusal(); !refusal.isEmpty()) {
+        say(refusal);
+        return;
+    }
     m_changedElsewhere = false;
     m_undo->undo();
     if (!change->done()) {
@@ -640,8 +668,10 @@ bool PlotBoardCoordinator::changeStatus(const QString& elementId, const QString&
 }
 
 void PlotBoardCoordinator::pushChange(const QString& undoText, std::function<bool()> undoIt,
-                                      std::function<bool()> redoIt) {
-    m_undo->push(new BoardChange(undoText, std::move(undoIt), std::move(redoIt)));
+                                      std::function<bool()> redoIt,
+                                      std::function<QString()> undoGuard) {
+    m_undo->push(
+        new BoardChange(undoText, std::move(undoIt), std::move(redoIt), std::move(undoGuard)));
 }
 
 // =============================================================================

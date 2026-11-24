@@ -377,6 +377,13 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         }
     }
 
+    // A text in the plan has no file to edit yet: its card of the Book Plan shows it
+    if (const core::ProjectElement* planned = pm.findElement(elementId);
+        planned != nullptr && pm.isPlannedText(*planned)) {
+        emit requestShowPlanned(elementId);
+        return;
+    }
+
     // An element of a window kind opens on the tab of the module that edits it
     if (const core::ProjectElement* element = pm.findElement(elementId);
         element != nullptr && pm.formOf(*element) == core::ElementForm::Window &&

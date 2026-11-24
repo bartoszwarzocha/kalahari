@@ -498,6 +498,15 @@ signals:
     /// @param keys The page gets the keys (Enter), else the Navigator keeps them (a click)
     void requestOpenBookDictionary(bool keys);
 
+    /// @brief Request to show the plan of the book (the plot board) on its tab: a click on
+    /// Book Plan at the top of the Workshop, or Enter on it
+    /// @param keys The plan gets the keys (Enter), else the Navigator keeps them (a click)
+    void requestOpenBookPlan(bool keys);
+
+    /// @brief Request to give text in the plan @p elementId its chapter file (Create the
+    /// Chapter File in its menu)
+    void requestCreateTextFile(const QString& elementId);
+
     /// @brief Request to hide kind @p list of the materials (MaterialList::HIDDEN_SETTING) in
     /// the Navigator of every book: Hide Kind in the menu of the kind
     void requestHideKind(const QString& list);
@@ -726,6 +735,8 @@ private:
 
     /// @brief Add Book Dictionary at the top of the Workshop (@p workshopItem)
     void addDictionaryItem(QTreeWidgetItem* workshopItem);
+    /// @brief The node Book Plan, the first one of the Workshop
+    void addPlanItem(QTreeWidgetItem* workshopItem);
 
     /// @brief Add the groups of the kinds of the Workshop of @p project with their elements
     /// under @p workshopItem

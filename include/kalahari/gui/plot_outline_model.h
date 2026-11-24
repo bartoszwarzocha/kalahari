@@ -45,6 +45,9 @@ public:
 
     static constexpr int ID_ROLE = Qt::UserRole + 1;    ///< The id of the text or the part
     static constexpr int PART_ROLE = Qt::UserRole + 2;  ///< Whether the row is a part's
+    /// What the button beside the state of a row in the plan says ("Create the File", "Write
+    /// the Scene"); empty: none (PlotBoardView::planButtonText())
+    static constexpr int BUTTON_ROLE = Qt::UserRole + 3;
 
     /// @brief An outline without rows
     explicit PlotOutlineModel(QObject* parent = nullptr);
@@ -52,7 +55,8 @@ public:
     /// @brief Show @p bands
     void setBands(const QList<PlotBand>& bands);
 
-    /// @brief Whether the book is open read-only: no cell can be edited
+    /// @brief Whether the book is open read-only: no cell can be edited, and the rows in the
+    /// plan have no buttons
     void setReadOnly(bool readOnly);
 
     /// @brief Show the rows of the scenes of the texts under the rows of the texts, or not
@@ -94,7 +98,10 @@ private:
         int partWords = 0;   ///< Of a part: the words of its texts
         QString partId;
         PlotCard card;       ///< Of a text or a scene
+        bool textPlanned = false;  ///< Of a scene: its text is in the plan, without a file
     };
+    /// @brief What the button beside the state of @p row says; empty: none
+    [[nodiscard]] QString buttonOf(const Row& row) const;
     /// @brief The rows of the bands shown
     [[nodiscard]] QList<Row> rowsOf() const;
     void fill();
@@ -110,13 +117,25 @@ private:
 };
 
 /// @brief The editors of the cells of the outline: a list of the states, and the points of
-/// view and places of the Workshop suggested
+/// view and places of the Workshop suggested; the button beside the state of a row in the plan
+/// (PlotOutlineModel::BUTTON_ROLE), which a click presses (buttonClicked())
 class PlotOutlineDelegate : public QStyledItemDelegate {
     Q_OBJECT
 
 public:
     /// @brief The editors without suggestions
     explicit PlotOutlineDelegate(QObject* parent = nullptr);
+
+    /// @brief Where the button of cell @p rect is, for button text @p text in font @p font
+    [[nodiscard]] static QRect buttonRect(const QRect& rect, const QString& text,
+                                          const QFont& font);
+
+    void paint(QPainter* painter, const QStyleOptionViewItem& option,
+               const QModelIndex& index) const override;
+    bool editorEvent(QEvent* event, QAbstractItemModel* model,
+                     const QStyleOptionViewItem& option, const QModelIndex& index) override;
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& index) const override;
 
     /// @brief The points of view and the places suggested
     void setSuggestions(const QStringList& povs, const QStringList& places);
@@ -126,6 +145,10 @@ public:
     void setEditorData(QWidget* editor, const QModelIndex& index) const override;
     void setModelData(QWidget* editor, QAbstractItemModel* model,
                       const QModelIndex& index) const override;
+
+signals:
+    /// @brief The button beside the state of the row of @p cardId was pressed
+    void buttonClicked(const QString& cardId);
 
 private:
     /// @brief The points of view or the places suggested in @p column; empty: none

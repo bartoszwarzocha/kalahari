@@ -95,6 +95,8 @@ constexpr int COUNT_ROLE = Qt::UserRole + 7;
 /// The color of a card (core::CardData::color) as a dot at the right of its row, while the
 /// setting core::CardColors::NAVIGATOR_DOT_SETTING shows it
 constexpr int COLOR_ROLE = Qt::UserRole + 8;
+/// A note at the right of the row, grey as a number: "in the plan" of a text without a file
+constexpr int NOTE_ROLE = Qt::UserRole + 9;
 /// Room between the name of a node and its number, in multiples of the width of a space
 constexpr int COUNT_GAP = 3;
 /// Room between the number of a node and the right edge of the tree, in multiples of the width
@@ -107,6 +109,8 @@ const QString WORKSHOP_ID_PREFIX = QStringLiteral("workshop:");
 
 /// The type of the node of the book's dictionary at the top of the Workshop
 constexpr const char* BOOK_DICTIONARY_TYPE = "book_dictionary";
+/// The type of the node of the plan of the book, the first one of the Workshop
+constexpr const char* BOOK_PLAN_TYPE = "book_plan";
 /// In a list of open items, the tree has the book and the Workshop as nodes of their own; a
 /// list without it (saved before them) opens them
 const QString WORKSHOP_LAYOUT = QStringLiteral("layout:workshop");
@@ -380,7 +384,8 @@ public:
                const QModelIndex& index) const override {
         const QVariant count = index.data(COUNT_ROLE);
         const auto color = index.data(COLOR_ROLE).value<QColor>();
-        if (!count.isValid() && !color.isValid()) {
+        const QString note = index.data(NOTE_ROLE).toString();
+        if (!count.isValid() && !color.isValid() && note.isEmpty()) {
             QStyledItemDelegate::paint(painter, option, index);
             return;
         }
@@ -388,7 +393,7 @@ public:
         initStyleOption(&item, index);
         const QWidget* widget = option.widget;
         QStyle* style = widget ? widget->style() : QApplication::style();
-        const QString number = count.isValid() ? QLocale().toString(count.toInt()) : QString();
+        const QString number = count.isValid() ? QLocale().toString(count.toInt()) : note;
         const QRect textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &item, widget);
         item.text = item.fontMetrics.elidedText(
             item.text, item.textElideMode,
@@ -423,9 +428,10 @@ public:
         QSize size = QStyledItemDelegate::sizeHint(option, index);
         const QVariant count = index.data(COUNT_ROLE);
         const auto color = index.data(COLOR_ROLE).value<QColor>();
-        if (count.isValid() || color.isValid()) {
+        const QString note = index.data(NOTE_ROLE).toString();
+        if (count.isValid() || color.isValid() || !note.isEmpty()) {
             const QString number =
-                count.isValid() ? QLocale().toString(count.toInt()) : QString();
+                count.isValid() ? QLocale().toString(count.toInt()) : note;
             size.rwidth() += room(option.fontMetrics, number, color);
         }
         return size;
@@ -1022,6 +1028,7 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
     workshopItem->setIcon(0, artProvider.getIcon(getIconIdForType(QStringLiteral("workshop")),
                                                  core::IconContext::TreeView));
     workshopItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+    addPlanItem(workshopItem);
     addDictionaryItem(workshopItem);
     addWorkshopItems(workshopItem, project, registry);
     workshopItem->setExpanded(true);
@@ -1405,6 +1412,20 @@ QTreeWidgetItem* NavigatorPanel::addElementItem(QTreeWidgetItem* parent,
         item->setData(0, CARD_ROLE, element.kind.packageId);
     }
     showCardColor(item, element);
+    // A text in the plan, without a file: in italics, "in the plan" at the right
+    if (form == core::ElementForm::Text && !workshop && element.hasKind() &&
+        element.file.isEmpty()) {
+        QFont italic = item->font(0);
+        italic.setItalic(true);
+        item->setFont(0, italic);
+        //: At the right of a text in the plan, without a file, in the Navigator. In Polish: w
+        //: planie
+        item->setData(0, NOTE_ROLE, tr("in the plan"));
+        //: The tooltip of a text in the plan in the Navigator. In Polish: Rozdział w planie, bez
+        //: pliku. Menu: Utwórz plik rozdziału
+        item->setToolTip(0, tr("A chapter in the plan, without a file. Menu: Create the Chapter "
+                               "File"));
+    }
     item->setIcon(0, itemIcon(item, iconId));
     item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled) | flags);
     return item;
@@ -1764,8 +1785,9 @@ QString NavigatorPanel::getDisplayTitle(const core::ProjectElement& element, boo
                                         bool isModified) {
     QString title = element.title;
     // Final status = no suffix, others show [Status] with the names of the "Set Status" menu;
-    // a file of the book outside its text has no status
-    if (isText && element.hasKind()) {
+    // a file of the book outside its text has no status, nor has a text in the plan, without a
+    // file
+    if (isText && element.hasKind() && !element.file.isEmpty()) {
         const QString status = core::ProjectManager::statusOf(element);
         QString statusName;
         if (status == QLatin1String("draft")) {
@@ -2475,8 +2497,20 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         addPropertiesAction();
 
     } else if (elementType == "text_element") {
-        // Text elements (chapters, front/back matter items)
-        addOpenAction();
+        // Text elements (chapters, front/back matter items); a text in the plan gets its file
+        if (const core::ProjectElement* element = pm.findElement(elementId);
+            element != nullptr && pm.isPlannedText(*element)) {
+            QAction* createAction = menu.addAction(
+                artProvider.getIcon("plotBoard.createFile", core::IconContext::Menu),
+                //: The menu of a text in the plan, without a file, in the Navigator. In
+                //: Polish: Utwó&rz plik rozdziału
+                tr("&Create the Chapter File"));
+            changing << createAction;
+            connect(createAction, &QAction::triggered, this,
+                    [this, elementId]() { emit requestCreateTextFile(elementId); });
+        } else {
+            addOpenAction();
+        }
         addAddActions();
         menu.addSeparator();
         addRenameDeleteActions();
@@ -2816,12 +2850,12 @@ void NavigatorPanel::addPlotBoardAction(QMenu& menu, const QString& elementId) {
     if (!elementId.isEmpty() && (!place || place->place != core::BookPlace::Main)) {
         return;
     }
-    // The icon of Book > Plot Board
+    // The icon of Book > Book Plan
     const QAction* action = menu.addAction(
         core::ArtProvider::getInstance().getIcon("view.plotBoard", core::IconContext::Menu),
         //: The command of the book, a part and a text of the main section in the Navigator:
-        //: the plot board with its card chosen. In Polish: Pokaż na &tablicy fabuły
-        tr("Show on the Plot &Board"));
+        //: the plan of the book with its card chosen. In Polish: Pokaż w planie &książki
+        tr("Show in the &Book Plan"));
     connect(action, &QAction::triggered, this,
             [this, elementId]() { emit requestShowOnPlotBoard(elementId); });
     menu.addSeparator();
@@ -3119,11 +3153,30 @@ bool NavigatorPanel::requestPageOf(const QTreeWidgetItem* item, bool keys) {
         emit requestOpenBookDictionary(keys);
         return true;
     }
+    if (item != nullptr && typeOf(item) == QLatin1String(BOOK_PLAN_TYPE)) {
+        emit requestOpenBookPlan(keys);
+        return true;
+    }
     if (const std::optional<QString> list = listOf(item)) {
         emit requestOpenMaterialList(*list, keys);
         return true;
     }
     return false;
+}
+
+void NavigatorPanel::addPlanItem(QTreeWidgetItem* workshopItem) {
+    auto* item = new QTreeWidgetItem(workshopItem);
+    //: The first node of the Workshop in the Navigator: the board, the outline and the
+    //: chronology of the book on their tab. In Polish: Plan książki
+    item->setText(0, tr("Book Plan"));
+    //: In Polish: Tablica, konspekt i chronologia książki
+    item->setToolTip(0, tr("The board, the outline and the chronology of the book"));
+    item->setData(0, Qt::UserRole, WORKSHOP_ID_PREFIX + QStringLiteral("plan"));
+    item->setData(0, Qt::UserRole + 1, QString::fromLatin1(BOOK_PLAN_TYPE));
+    const QString iconId = QStringLiteral("view.plotBoard");
+    item->setData(0, ICON_ROLE, iconId);
+    item->setIcon(0, itemIcon(item, iconId));
+    item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 }
 
 void NavigatorPanel::addDictionaryItem(QTreeWidgetItem* workshopItem) {

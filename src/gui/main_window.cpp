@@ -613,6 +613,15 @@ MainWindow::MainWindow(QWidget* parent)
     // Show on the Plot Board in the menu of the book, a part and a text of the Navigator
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowOnPlotBoard,
             m_plotBoardCoordinator, &PlotBoardCoordinator::showOnBoard);
+    // A text in the plan opens on its card; Book Plan in the Workshop opens the plan; Create
+    // the Chapter File in the menu of a text in the plan
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::requestShowPlanned,
+            m_plotBoardCoordinator, &PlotBoardCoordinator::showOnBoard);
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenBookPlan,
+            m_plotBoardCoordinator,
+            [this](bool keys) { m_plotBoardCoordinator->openBoard(QString(), keys); });
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestCreateTextFile,
+            m_plotBoardCoordinator, &PlotBoardCoordinator::createFile);
     // The gear over the board: Settings > Plot Board
     connect(m_plotBoardCoordinator, &PlotBoardCoordinator::settingsRequested, this, [this]() {
         if (m_settingsCoordinator != nullptr) {

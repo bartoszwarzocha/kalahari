@@ -514,7 +514,7 @@ TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z u
         boards.openBoard(QString::fromLatin1(PlotBoard::VIEW_BOARD), true);
     REQUIRE(panel != nullptr);
     CHECK(window.tabs->currentWidget() == panel);
-    CHECK(window.tabs->tabText(window.tabs->indexOf(panel)) == QStringLiteral("Plot Board"));
+    CHECK(window.tabs->tabText(window.tabs->indexOf(panel)) == QStringLiteral("Book Plan"));
     CHECK(panel->view() == QLatin1String(PlotBoard::VIEW_BOARD));
     // One tab of the board
     CHECK(boards.openBoard(QString(), false) == panel);
@@ -1681,9 +1681,9 @@ QStringList navigatorMenu(gui::NavigatorPanel& navigator, QTreeWidgetItem* item,
     return texts;
 }
 
-/// The text of Show on the Plot Board in the Navigator
+/// The text of Show in the Book Plan in the Navigator
 const QString& showOnBoardText() {
-    static const QString TEXT = QStringLiteral("Show on the Plot &Board");
+    static const QString TEXT = QStringLiteral("Show in the &Book Plan");
     return TEXT;
 }
 
@@ -1787,7 +1787,7 @@ TEST_CASE("Plot board: the Edit menu works on the board and in the outline",
     }
 }
 
-TEST_CASE("Plot board: Show on the Plot Board in the Navigator", "[gui][plotboard]") {
+TEST_CASE("Plot board: Show in the Book Plan in the Navigator", "[gui][plotboard]") {
     gui::registerAllIcons();
     StormBoard s;
     auto& pm = s.pm;
@@ -1807,7 +1807,7 @@ TEST_CASE("Plot board: Show on the Plot Board in the Navigator", "[gui][plotboar
 
     SECTION("a text: its card") {
         const QStringList texts =
-            navigatorMenu(navigator, navigatorItem(navigator, s.storm), QStringLiteral("Show on"));
+            navigatorMenu(navigator, navigatorItem(navigator, s.storm), QStringLiteral("Show in"));
         CHECK(texts.contains(showOnBoardText()));
         CHECK(s.board->currentCard() == s.storm);
         CHECK(s.window.tabs->currentWidget() == s.panel);
@@ -1815,14 +1815,14 @@ TEST_CASE("Plot board: Show on the Plot Board in the Navigator", "[gui][plotboar
 
     SECTION("a part: the card of its first text") {
         CHECK(navigatorMenu(navigator, navigatorItem(navigator, s.book.part),
-                            QStringLiteral("Show on"))
+                            QStringLiteral("Show in"))
                   .contains(showOnBoardText()));
         CHECK(s.board->currentCard() == s.book.calm);
     }
 
     SECTION("the book: the board as it was") {
         CHECK(navigatorMenu(navigator, navigatorItem(navigator, QString(), QStringLiteral("book")),
-                            QStringLiteral("Show on"))
+                            QStringLiteral("Show in"))
                   .contains(showOnBoardText()));
         CHECK(s.board->currentCard() == s.book.first);
         CHECK(s.window.tabs->currentWidget() == s.panel);
@@ -2093,7 +2093,7 @@ TEST_CASE("Plot board: the gear over the board and the outline opens Settings > 
     auto* gear = panel->findChild<QToolButton*>(QStringLiteral("plotBoardSettings"));
     REQUIRE(gear != nullptr);
     CHECK_FALSE(gear->icon().isNull());
-    CHECK(gear->toolTip() == QStringLiteral("Plot Board Settings"));
+    CHECK(gear->toolTip() == QStringLiteral("Book Plan Settings"));
     CHECK(gear->accessibleName() == gear->toolTip());
     CHECK(gear->focusPolicy() == Qt::TabFocus);
     CHECK_FALSE(gear->isHidden());

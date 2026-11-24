@@ -8,6 +8,7 @@
 #define KALAHARI_TIMELINE_TIMELINE_MODULE_H
 
 #include <kalahari/core/window_editor_provider.h>
+#include <kalahari/gui/plan_chronology.h>
 
 namespace kalahari::timeline {
 
@@ -32,7 +33,22 @@ public:
     [[nodiscard]] QWidget* createSettingsPage() override;
 };
 
-/// @brief Register the module of the timelines: its provider and the defaults of its settings
+/// @brief The chronology of the Book Plan: its view, which the board knows as
+/// gui::PlanChronology, and the plan of the time of a new book
+class PlanChronologyModule : public core::IPlugin, public gui::IPlanChronologyProvider {
+public:
+    [[nodiscard]] std::string getPluginId() const override;
+    [[nodiscard]] std::string getVersion() const override;
+    void onInit() override;
+    void onActivate() override;
+    [[nodiscard]] gui::PlanChronology* createChronology(QWidget* parent) override;
+    [[nodiscard]] QJsonObject newPlan() const override;
+    [[nodiscard]] gui::PlanTimelineTimes timelineTimes(
+        const core::ProjectManager& book) const override;
+};
+
+/// @brief Register the module of the timelines: its providers (the editor of the timelines, the
+/// chronology of the Book Plan) and the defaults of its settings
 ///
 /// The program calls it once, before its first window; nothing else of the program names the
 /// classes of the module.

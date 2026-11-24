@@ -453,6 +453,10 @@ signals:
     /// out of the series does
     void requestOpenBookInNewWindow(const QString& manifest);
 
+    /// @brief Text @p elementId is in the plan, without a file: it opens on its card of the
+    /// Book Plan, where Create gives it its file
+    void requestShowPlanned(const QString& elementId);
+
     /// @brief Emitted when navigator should be refreshed
     void refreshNavigatorRequested();
 

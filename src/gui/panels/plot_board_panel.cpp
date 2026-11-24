@@ -20,15 +20,19 @@
 #include <QEvent>
 #include <QHeaderView>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QMenu>
 #include <QStackedWidget>
 #include <QTableView>
 #include <QVBoxLayout>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <functional>
+#include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 
 namespace kalahari::gui {
@@ -36,6 +40,8 @@ namespace kalahari::gui {
 namespace {
 
 constexpr int SWATCH_SIZE = 12;  ///< Of a color in the menu Card Color
+constexpr int HINT_MARGIN_X = 8;  ///< On the left and right of the line under the board
+constexpr int HINT_MARGIN_Y = 3;  ///< Over and under it
 
 // The widths of the columns of the outline in average characters
 constexpr int NUMBER_CHARACTERS = 5;   ///< The number of a text
@@ -88,11 +94,13 @@ struct BoardRequest {
 
 /// @brief The keys of the board the outline takes for the card chosen; Enter on a cell edited
 /// is the cell's
-constexpr std::array<CardRequest, 7> CARD_REQUESTS{{
+constexpr std::array<CardRequest, 9> CARD_REQUESTS{{
     {Key::Open, &PlotBoardPanel::openRequested},
     {Key::Properties, &PlotBoardPanel::propertiesRequested},
     {Key::Add, &PlotBoardPanel::addRequested},
+    {Key::AddPlanned, &PlotBoardPanel::addPlannedRequested},
     {Key::AddScene, &PlotBoardPanel::addSceneRequested},
+    {Key::NewScene, &PlotBoardPanel::newSceneRequested},
     {Key::Delete, &PlotBoardPanel::deleteRequested},
     {Key::Cut, &PlotBoardPanel::cutRequested},
     {Key::Paste, &PlotBoardPanel::pasteRequested},
@@ -154,14 +162,21 @@ void addTextsOf(const std::optional<PlotCard>& card, CardMenuTexts& texts) {
 CardMenuTexts menuTextsOf(const std::optional<PlotCard>& card) {
     CardMenuTexts texts;
     const bool planned = card && card->planned;
-    texts.writes =
-        planned && PlotBoard::scenesVariant() == QLatin1String(PlotBoard::SCENES_BOTH);
-    texts.open = texts.writes
-                     //: The menu of a card of a scene in the plan: a scene break with what it
-                     //: says at its place in the text. In Polish: Na&pisz scenę
-                     ? PlotBoardPanel::tr("&Write the Scene")
-                     //: The menu of a card of the plot board. In Polish: &Otwórz
-                     : PlotBoardPanel::tr("&Open");
+    const bool plannedText = planned && !card->isScene();
+    texts.writes = plannedText || (planned && PlotBoard::scenesVariant() ==
+                                                  QLatin1String(PlotBoard::SCENES_BOTH));
+    if (plannedText) {
+        //: The menu of the card of a text in the plan, without a file. In Polish: Utwó&rz
+        //: plik rozdziału
+        texts.open = PlotBoardPanel::tr("&Create the Chapter File");
+    } else {
+        texts.open = texts.writes
+                         //: The menu of a card of a scene in the plan: a scene break with what
+                         //: it says at its place in the text. In Polish: Na&pisz scenę
+                         ? PlotBoardPanel::tr("&Write the Scene")
+                         //: The menu of a card of the plot board. In Polish: &Otwórz
+                         : PlotBoardPanel::tr("&Open");
+    }
     addTextsOf(card, texts);
     if (planned) {
         //: The menu of the card of a scene in the plan. In Polish: &Usuń z planu
@@ -184,6 +199,11 @@ PlotBoardPanel::PlotBoardPanel(QWidget* parent) : QWidget(parent) {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
+    auto* bar = new QWidget(this);
+    bar->setObjectName(QStringLiteral("plotBoardCommands"));
+    m_commandBar = bar;
+    buildCommands(bar);
+    layout->addWidget(bar);
     auto* header = new QWidget(this);
     header->setObjectName(QStringLiteral("plotBoardHeader"));
     buildHeader(header);
@@ -191,6 +211,7 @@ PlotBoardPanel::PlotBoardPanel(QWidget* parent) : QWidget(parent) {
     buildBody(layout);
     connectBoard();
     connectOutline();
+    connectChronology();
     followSettings();
 
     applySettings();
@@ -202,6 +223,7 @@ PlotBoardPanel::PlotBoardPanel(QWidget* parent) : QWidget(parent) {
         }
     }
     showView(PlotBoard::startView());
+    updateCommands();
 }
 
 void PlotBoardPanel::buildBody(QVBoxLayout* layout) {
@@ -231,7 +253,20 @@ void PlotBoardPanel::buildBody(QVBoxLayout* layout) {
     m_outline->installEventFilter(this);
     m_stack->addWidget(m_board);
     m_stack->addWidget(m_outline);
+    // The chronology comes from the module of the timelines
+    if (const std::shared_ptr<IPlanChronologyProvider> provider = planChronologyProvider()) {
+        m_chronology = provider->createChronology(m_stack);
+        m_chronology->setObjectName(QStringLiteral("planChronology"));
+        m_stack->addWidget(m_chronology);
+    }
     layout->addWidget(m_stack, 1);
+
+    m_hint = new QLabel(this);
+    m_hint->setObjectName(QStringLiteral("plotBoardHint"));
+    m_hint->setWordWrap(true);
+    m_hint->setForegroundRole(QPalette::PlaceholderText);
+    m_hint->setContentsMargins(HINT_MARGIN_X, HINT_MARGIN_Y, HINT_MARGIN_X, HINT_MARGIN_Y);
+    layout->addWidget(m_hint);
 
     m_infoBar = new InfoBar(this);
     m_infoBar->setObjectName(QStringLiteral("plotBoardInfoBar"));
@@ -244,7 +279,10 @@ void PlotBoardPanel::buildBody(QVBoxLayout* layout) {
             emit undoRequested();
         }
     });
-    connect(m_infoBar, &InfoBar::dismissed, m_infoBar, &QWidget::hide);
+    connect(m_infoBar, &InfoBar::dismissed, this, [this]() {
+        m_infoBar->hide();
+        updateHint();
+    });
 
     m_menu = new QMenu(this);
 }
@@ -257,6 +295,7 @@ void PlotBoardPanel::connectBoard() {
         }
         emit currentCardChanged(id);
         emit editStatesChanged();
+        updateCommands();
     });
     connect(m_board, &PlotBoardView::openRequested, this, &PlotBoardPanel::openRequested);
     connect(m_board, &PlotBoardView::editRequested, this, &PlotBoardPanel::editCard);
@@ -269,7 +308,10 @@ void PlotBoardPanel::connectBoard() {
     connect(m_board, &PlotBoardView::dropInPartRequested, this,
             &PlotBoardPanel::dropInPartRequested);
     connect(m_board, &PlotBoardView::addRequested, this, &PlotBoardPanel::addRequested);
+    connect(m_board, &PlotBoardView::addPlannedRequested, this,
+            &PlotBoardPanel::addPlannedRequested);
     connect(m_board, &PlotBoardView::addSceneRequested, this, &PlotBoardPanel::addSceneRequested);
+    connect(m_board, &PlotBoardView::newSceneRequested, this, &PlotBoardPanel::newSceneRequested);
     connect(m_board, &PlotBoardView::deleteRequested, this, &PlotBoardPanel::deleteRequested);
     connect(m_board, &PlotBoardView::cutRequested, this, &PlotBoardPanel::cutRequested);
     connect(m_board, &PlotBoardView::pasteRequested, this, &PlotBoardPanel::pasteRequested);
@@ -289,7 +331,14 @@ void PlotBoardPanel::connectOutline() {
                 if (!id.isEmpty() && m_stack->currentWidget() == m_outline) {
                     m_board->setCurrentCard(id);
                 }
+                updateCommands();
             });
+    // The button of a row in the plan does what Enter does
+    connect(m_delegate, &PlotOutlineDelegate::buttonClicked, this, [this](const QString& id) {
+        if (!id.isEmpty()) {
+            emit openRequested(id);
+        }
+    });
     connect(m_outline, &QTableView::doubleClicked, this, [this](const QModelIndex& index) {
         // A double-click edits the cells that can be edited, and opens the text on the others
         const QString id = m_model->cardIdAt(index.row());
@@ -306,6 +355,98 @@ void PlotBoardPanel::connectOutline() {
     });
 }
 
+void PlotBoardPanel::connectChronology() {
+    if (m_chronology == nullptr) {
+        return;
+    }
+    connect(m_chronology, &PlanChronology::currentChanged, this, [this]() {
+        if (showsChronology()) {
+            emit currentCardChanged(m_chronology->currentCard());
+            emit editStatesChanged();
+            updateHint();
+        }
+    });
+    connect(m_chronology, &PlanChronology::openRequested, this, &PlotBoardPanel::openRequested);
+    connect(m_chronology, &PlanChronology::cardEdited, this,
+            &PlotBoardPanel::onChronologyEdited);
+    connect(m_chronology, &PlanChronology::undoRequested, this, &PlotBoardPanel::undoRequested);
+    connect(m_chronology, &PlanChronology::redoRequested, this, &PlotBoardPanel::redoRequested);
+    connect(m_chronology, &PlanChronology::told, this,
+            [this](const QString& message) { showMessage(message, false); });
+}
+
+bool PlotBoardPanel::showsChronology() const {
+    return m_chronology != nullptr && m_stack != nullptr &&
+           m_stack->currentWidget() == m_chronology;
+}
+
+QList<PlanChronologyCard> PlotBoardPanel::chronologyCards() const {
+    const QList<PlotCard> all = PlotBoard::allCardsOf(m_bands);
+    const QStringList povs = povsOf(all);
+    const QString colorBy = QString::fromStdString(core::SettingsManager::getInstance().get<std::string>(
+        PlotBoard::COLOR_SETTING, std::string()));
+    const PlotColors palette = PlotColors::current();
+    QList<PlanChronologyCard> cards;
+    // A scene without a point of view, a place or a time of its own has those of its text
+    const auto add = [&](const PlotCard& each, const PlotCard& text, const QString& number) {
+        const auto orText = [](const QString& own, const QString& ofText) {
+            return own.trimmed().isEmpty() ? ofText : own;
+        };
+        cards << PlanChronologyCard{
+            .id = each.id,
+            .number = number,
+            .title = each.title.isEmpty() ? each.kindName : each.title,
+            .description = each.description,
+            .pov = orText(each.plot.pov, text.plot.pov),
+            .place = orText(each.plot.place, text.plot.place),
+            .time = orText(each.plot.time, text.plot.time),
+            .textTitle = text.title,
+            .color = palette.ofCard(each, colorBy, povs),
+            .planned = each.planned,
+            .textTime = each.isScene() && each.plot.time.trimmed().isEmpty() &&
+                        !text.plot.time.trimmed().isEmpty()};
+    };
+    for (const PlotCard& text : PlotBoard::cardsOf(m_bands)) {
+        const QString number = QString::number(text.number);
+        // A text with scene breaks is its scenes; a text without them is one scene, before
+        // the scenes of its plan; a text in the plan is the scenes of its plan, if it has any
+        const bool written = std::ranges::any_of(
+            text.scenes, [](const PlotCard& scene) { return !scene.planned; });
+        if (text.scenes.isEmpty() || (!written && !text.planned)) {
+            add(text, text, number);
+        }
+        for (qsizetype index = 0; index < text.scenes.size(); ++index) {
+            add(text.scenes.at(index), text,
+                QStringLiteral("%1.%2").arg(number).arg(index + 1));
+        }
+    }
+    return cards;
+}
+
+void PlotBoardPanel::onChronologyEdited(const QString& cardId, const PlanChronologyEdit& edit) {
+    const std::optional<PlotCard> found = card(cardId);
+    if (!found) {
+        return;
+    }
+    PlotCardEdit change{.title = edit.title, .description = edit.description,
+                        .plot = found->plot};
+    // A scene without a title of its own shows the name of its kind
+    if (found->title.isEmpty() && edit.title.trimmed() == found->kindName) {
+        change.title.clear();
+    }
+    // What a scene shows of its text stays its text's until the writer changes it
+    const std::optional<PlotCard> text =
+        found->isScene() ? card(PlotBoard::textOf(cardId)) : std::nullopt;
+    const auto ownOf = [](const QString& edited, const QString& own, const QString& ofText) {
+        return own.trimmed().isEmpty() && edited == ofText ? own : edited;
+    };
+    const core::ElementPlot ofText = text ? text->plot : core::ElementPlot();
+    change.plot.pov = ownOf(edit.pov, found->plot.pov, ofText.pov);
+    change.plot.place = ownOf(edit.place, found->plot.place, ofText.place);
+    change.plot.time = ownOf(edit.time, found->plot.time, ofText.time);
+    emit editFinished(cardId, change);
+}
+
 PlotBoardPanel::~PlotBoardPanel() {
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 }
@@ -319,6 +460,9 @@ void PlotBoardPanel::setBands(const QList<PlotBand>& bands) {
     const QString current = currentCard();
     m_board->setBands(bands);
     m_model->setBands(bands);
+    if (m_chronology != nullptr) {
+        m_chronology->setCards(chronologyCards());
+    }
     const int row = m_model->rowOf(m_board->currentCard().isEmpty() ? current
                                                                     : m_board->currentCard());
     if (row >= 0 && !m_outline->currentIndex().isValid()) {
@@ -326,13 +470,18 @@ void PlotBoardPanel::setBands(const QList<PlotBand>& bands) {
     }
     updateTotals();
     emit editStatesChanged();
+    updateCommands();
 }
 
 void PlotBoardPanel::setReadOnly(bool readOnly) {
     m_readOnly = readOnly;
     m_board->setReadOnly(readOnly);
     m_model->setReadOnly(readOnly);
+    if (m_chronology != nullptr) {
+        m_chronology->setReadOnly(readOnly);
+    }
     emit editStatesChanged();
+    updateCommands();
 }
 
 void PlotBoardPanel::setSuggestions(const QStringList& povs, const QStringList& places) {
@@ -342,27 +491,43 @@ void PlotBoardPanel::setSuggestions(const QStringList& povs, const QStringList& 
 }
 
 void PlotBoardPanel::showView(const QString& view) {
-    const bool outline = view == QLatin1String(PlotBoard::VIEW_OUTLINE);
     const QString current = currentCard();
-    m_stack->setCurrentWidget(outline ? static_cast<QWidget*>(m_outline)
-                                      : static_cast<QWidget*>(m_board));
+    if (view == QLatin1String(PlotBoard::VIEW_OUTLINE)) {
+        m_stack->setCurrentWidget(m_outline);
+    } else if (view == QLatin1String(PlotBoard::VIEW_CHRONOLOGY) && m_chronology != nullptr) {
+        m_stack->setCurrentWidget(m_chronology);
+    } else {
+        m_stack->setCurrentWidget(m_board);
+    }
     if (!current.isEmpty()) {
         setCurrentCard(current);
     }
     updateSwitches();
     emit editStatesChanged();
+    updateCommands();
+    emit viewShown(this->view());
 }
 
 QString PlotBoardPanel::view() const {
+    if (showsChronology()) {
+        return QString::fromLatin1(PlotBoard::VIEW_CHRONOLOGY);
+    }
     return QString::fromLatin1(m_stack->currentWidget() == m_outline ? PlotBoard::VIEW_OUTLINE
                                                                      : PlotBoard::VIEW_BOARD);
 }
 
 void PlotBoardPanel::focusView() {
+    if (showsChronology()) {
+        m_chronology->focusCards();
+        return;
+    }
     m_stack->currentWidget()->setFocus(Qt::OtherFocusReason);
 }
 
 QString PlotBoardPanel::currentCard() const {
+    if (showsChronology()) {
+        return m_chronology->currentCard();
+    }
     if (m_stack != nullptr && m_stack->currentWidget() == m_outline) {
         const QString id = m_model->cardIdAt(m_outline->currentIndex().row());
         if (!id.isEmpty()) {
@@ -373,7 +538,21 @@ QString PlotBoardPanel::currentCard() const {
 }
 
 bool PlotBoardPanel::setCurrentCard(const QString& elementId) {
-    const bool found = m_board->setCurrentCard(elementId);
+    bool found = m_board->setCurrentCard(elementId);
+    if (m_chronology != nullptr) {
+        // A text with scenes is its scenes there: the first of them; an event outside the
+        // text is only there
+        bool there = m_chronology->setCurrentCard(elementId);
+        for (const PlanChronologyCard& each : chronologyCards()) {
+            if (there) {
+                break;
+            }
+            if (PlotBoard::textOf(each.id) == elementId) {
+                there = m_chronology->setCurrentCard(each.id);
+            }
+        }
+        found = found || (there && showsChronology());
+    }
     const int row = m_model->rowOf(elementId);
     if (row >= 0) {
         const int column = m_outline->currentIndex().isValid()
@@ -392,7 +571,11 @@ void PlotBoardPanel::setMarkedCard(const QString& elementId) {
 void PlotBoardPanel::setUndoState(bool canUndo, bool canRedo) {
     m_canUndo = canUndo;
     m_canRedo = canRedo;
+    if (m_chronology != nullptr) {
+        m_chronology->setUndoState(canUndo, canRedo);
+    }
     emit editStatesChanged();
+    updateCommands();
 }
 
 bool PlotBoardPanel::takesEdit(EditCommand command) const {
@@ -403,7 +586,8 @@ bool PlotBoardPanel::takesEdit(EditCommand command) const {
 
 bool PlotBoardPanel::canEditHere(EditCommand command) const {
     const QString current = currentCard();
-    const bool changing = card(current).has_value() && !m_readOnly;
+    // The chronology has its own Delete; no card moves there
+    const bool changing = card(current).has_value() && !m_readOnly && !showsChronology();
     switch (command) {
     case EditCommand::Undo:
         return m_canUndo;
@@ -448,6 +632,9 @@ QMetaObject::Connection PlotBoardPanel::followEditStates(QObject* receiver,
 }
 
 bool PlotBoardPanel::editCard(const QString& elementId) {
+    if (showsChronology()) {
+        return false;
+    }
     if (m_stack->currentWidget() == m_board) {
         return m_board->editCard(elementId, m_povs, m_places);
     }
@@ -469,6 +656,7 @@ void PlotBoardPanel::offerRenumbering(const QString& message) {
     m_infoBar->setActionText(tr("&Renumber"));
     m_infoBar->setActionToolTip(QString());
     m_infoBar->setVisible(true);
+    updateHint();
 }
 
 void PlotBoardPanel::showMessage(const QString& message, bool canUndo) {
@@ -478,6 +666,7 @@ void PlotBoardPanel::showMessage(const QString& message, bool canUndo) {
     m_infoBar->setActionText(canUndo ? tr("&Undo") : QString());
     m_infoBar->setActionToolTip(canUndo ? QStringLiteral("Ctrl+Z") : QString());
     m_infoBar->setVisible(!message.isEmpty());
+    updateHint();
 }
 
 QString PlotBoardPanel::message() const {
@@ -560,8 +749,18 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
                   [this, elementId]() { editCard(elementId); });
     addMenuAction(texts.add, QStringLiteral("Ins"), !m_readOnly,
                   [this, elementId]() { emit addRequested(elementId); });
+    //: The menu of a card: a text in the plan, without a file, after the text of the card. In
+    //: Polish: Nowy rozdział w p&lanie
+    addMenuAction(tr("New Chapter in the P&lan"), QStringLiteral("Ctrl+Shift+Ins"), !m_readOnly,
+                  [this, elementId]() { emit addPlannedRequested(PlotBoard::textOf(elementId)); });
     addMenuAction(texts.addAtEnd, QStringLiteral("Alt+Ins"), changing,
                   [this, elementId]() { emit addSceneRequested(elementId); });
+    //: The menu of a card: a scene break after the scene, or at the end of the text. In
+    //: Polish: Nowa scena w &tekście
+    addMenuAction(tr("New Scene in the &Text"), QStringLiteral("Alt+Shift+Ins"),
+                  changing && !(found->planned && !found->isScene()) &&
+                      PlotBoard::scenesVariant() != QLatin1String(PlotBoard::SCENES_PLAN),
+                  [this, elementId]() { emit newSceneRequested(elementId); });
     m_menu->addSeparator();
     //: In Polish: Wy&tnij
     addMenuAction(tr("Cu&t"), QStringLiteral("Ctrl+X"), changing,
@@ -571,8 +770,10 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
                   shown && canPasteAfter(elementId),
                   [this, elementId]() { emit pasteRequested(elementId); });
     m_menu->addSeparator();
-    addStateMenu(elementId, found);
-    addColorMenu(elementId, found);
+    //: In Polish: &Stan
+    fillStateMenu(m_menu->addMenu(tr("&State")), elementId, found);
+    //: In Polish: &Kolor karty
+    fillColorMenu(m_menu->addMenu(tr("Card &Color")), elementId, found);
     m_menu->addSeparator();
     addMenuAction(texts.remove, QStringLiteral("Del"), changing,
                   [this, elementId]() { emit deleteRequested(elementId); });
@@ -582,9 +783,10 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
     return m_menu;
 }
 
-void PlotBoardPanel::addStateMenu(const QString& elementId, const std::optional<PlotCard>& found) {
-    //: In Polish: &Stan
-    QMenu* states = m_menu->addMenu(tr("&State"));
+void PlotBoardPanel::fillStateMenu(QMenu* states, const QString& elementId,
+                                   const std::optional<PlotCard>& found) {
+    states->clear();
+    qDeleteAll(states->findChildren<QActionGroup*>(Qt::FindDirectChildrenOnly));
     // A scene in the plan gets a state once it is written
     states->setEnabled(found.has_value() && !m_readOnly && !found->planned);
     const QString current = found.has_value() ? found->status : QString();
@@ -601,9 +803,10 @@ void PlotBoardPanel::addStateMenu(const QString& elementId, const std::optional<
     }
 }
 
-void PlotBoardPanel::addColorMenu(const QString& elementId, const std::optional<PlotCard>& found) {
-    //: In Polish: &Kolor karty
-    QMenu* colors = m_menu->addMenu(tr("Card &Color"));
+void PlotBoardPanel::fillColorMenu(QMenu* colors, const QString& elementId,
+                                   const std::optional<PlotCard>& found) {
+    colors->clear();
+    qDeleteAll(colors->findChildren<QActionGroup*>(Qt::FindDirectChildrenOnly));
     colors->setEnabled(found.has_value() && !m_readOnly);
     const QString current = found.has_value() ? found->plot.color : QString();
     auto* group = new QActionGroup(colors);

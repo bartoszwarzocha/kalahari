@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The Book Plan: the board, the outline and the chronology of the book** - 2026-11-24. The
+  plot board is now the Book Plan (Book > Book Plan, Ctrl+Shift+T), the first item of the
+  Workshop in the Navigator, with three views: Board, Outline and Chronology. Over the board and
+  the outline a bar of the commands of the card chosen, the main ones with their names: New
+  Chapter (Insert), Chapter in the Plan (Ctrl+Shift+Insert), New Scene (Alt+Shift+Insert, a
+  scene break in the text), Scene in the Plan (Insert on a scene, Alt+Insert), Edit the Card
+  (F2), Open (Enter), Card Color, State, Delete, Undo and Redo, the keys in their tooltips.
+  Every card has a pencil that edits it, and the card's own color comes before the color of the
+  board. A chapter in the plan is an element of the book without a chapter file (kept in the
+  .klh file): a dashed frame and "In the plan – no file" on its card, in italics with "in the
+  plan" in the Navigator, the state "In the Plan" in the outline, no words, not in an export or
+  a print; Create on its card, Enter or Create the Chapter File (also in the Navigator) gives it
+  its file, and Ctrl+Z puts it back into the plan, the file to the Trash. A scene in the plan
+  has Write the Scene. The chronology shows the scenes of the book in the order of the story:
+  their times in columns (days of the story, dates, or the order of the story), in bands of the
+  points of view, of the places or in one band; a gap without cards is one narrow column with
+  its length (Shorten Gaps); a scene told after a scene that happens later is a flashback, with
+  a ring in the color of Settings > Timelines; the number on a card is its place in the order of
+  reading (3.2). A scene without a time of its own has its text's. Insert adds an event outside
+  the text, F2 edits a card in the window Card, Ctrl+Left and Ctrl+Right move its time a day (a
+  month, a season, a year) earlier or later, Delete takes the time away, Ctrl+Z undoes it. The
+  events outside the text, day one and the periods are kept in book-plan.ktl in the folder of the
+  book. Periods... names periods of the writer ("Expedition" is "winter 1931"), which a time of
+  the action may say ("Expedition, in the evening"). The first time the chronology shows a book
+  whose timelines in the Workshop say when its texts happen ("In the book"), it offers to copy
+  those times, points of view and places to the cards without a time, in one step of Undo; the
+  timelines stay as they are.
+- **Times of the action in words** - 2026-11-24. A time of the action may be a season ("spring
+  1931", "wiosną 1931", "zima 1930/31"), a half of a year ("first half of 1931", "w drugiej
+  połowie 1931"), a year ("1931", "rok 1931"), a season without a year (the first after day one),
+  or a day of the story in words ("day one", "the second day", "dzień pierwszy", "drugiego
+  dnia"); a season is written back as its name, months in a row as "March – May 1931".
 - **The commands of a timeline in a bar** - 2026-11-23. A timeline has a bar of its commands
   above its views: New Event and Delete the Event with their names, the window Event..., Open
   the Chapter, on the axis Earlier and Later and To the Lane Above and Below, Undo and Redo,

@@ -538,7 +538,7 @@ TEST_CASE("Settings dialog: the Plot Board page chooses the scenes of the board"
     settings.set<std::string>("plotBoard.scenes", "both");
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(dialog, QString(), QStringLiteral("Plot Board"));
+    openPage(dialog, QString(), QStringLiteral("Book Plan"));
     auto* scenes = dialog.findChild<QComboBox*>(QStringLiteral("plotBoardScenes"));
     REQUIRE(scenes != nullptr);
     CHECK(scenes->currentData().toString() == QStringLiteral("both"));
@@ -570,7 +570,7 @@ TEST_CASE("Settings dialog: the Plot Board page chooses the view, the cards and 
     settings.set<bool>("plotBoard.outline.words", true);
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(dialog, QString(), QStringLiteral("Plot Board"));
+    openPage(dialog, QString(), QStringLiteral("Book Plan"));
     QComboBox* view = choiceList(dialog, "plotBoard.startView");
     QComboBox* background = choiceList(dialog, "plotBoard.background");
     auto* timeField = dialog.findChild<QCheckBox*>(QStringLiteral("plotBoard.fields.time"));
@@ -620,7 +620,7 @@ TEST_CASE("Settings dialog: the Plot Board page shows the sections and renumbers
     settings.set<std::string>("plotBoard.renumber", "sometimes");  // unknown: offered on the bar
 
     SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
-    openPage(dialog, QString(), QStringLiteral("Plot Board"));
+    openPage(dialog, QString(), QStringLiteral("Book Plan"));
     auto* shown = dialog.findChild<QCheckBox*>(QStringLiteral("plotBoard.showSections"));
     QComboBox* renumberList = choiceList(dialog, "plotBoard.renumber");
     REQUIRE(shown != nullptr);

@@ -45,8 +45,9 @@ struct PlotCard {
     QString textId;           ///< Of a scene: its text; empty for a text
     int scene = -1;           ///< Of a scene: its place in its text, from 0; of a scene in the
                               ///< plan, its place in the plan; -1 for a text
-    bool planned = false;     ///< A scene in the plan of its text (core::PlannedScene): it has
-                              ///< no text, no words and no state yet
+    bool planned = false;     ///< A scene in the plan of its text (core::PlannedScene), or a
+                              ///< text in the plan (core::ProjectManager::isPlannedText()): it
+                              ///< has no text, no words and no state yet
     QList<PlotCard> scenes;   ///< Of a text: the scenes the board shows, in their order (those
                               ///< of a text with scene breaks, those in its plan); none: one
                               ///< scene
@@ -87,12 +88,14 @@ class PlotBoard {
 public:
     /// @name Settings of the board
     /// @{
-    /// The board or the outline, the one shown last: VIEW_BOARD or VIEW_OUTLINE
+    /// The view shown last: VIEW_BOARD, VIEW_OUTLINE or VIEW_CHRONOLOGY
     static constexpr const char* VIEW_SETTING = "plotBoard.view";
     static constexpr const char* VIEW_BOARD = "board";      ///< The board of the cards
     static constexpr const char* VIEW_OUTLINE = "outline";  ///< The outline: a table
-    /// The view a new tab opens on when no view is asked for: VIEW_BOARD, VIEW_OUTLINE or
-    /// START_LAST (the one shown last, VIEW_SETTING)
+    /// The chronology: the scenes in the order of the story (gui::PlanChronology)
+    static constexpr const char* VIEW_CHRONOLOGY = "chronology";
+    /// The view a new tab opens on when no view is asked for: VIEW_BOARD, VIEW_OUTLINE,
+    /// VIEW_CHRONOLOGY or START_LAST (the one shown last, VIEW_SETTING)
     static constexpr const char* START_VIEW_SETTING = "plotBoard.startView";
     static constexpr const char* START_LAST = "last";  ///< The view shown last
     /// The layout of the cards: LAYOUT_COLUMNS (the parts side by side) or LAYOUT_GRID (the
@@ -160,7 +163,8 @@ public:
     /// SCENES_PLAN
     [[nodiscard]] static QString scenesVariant();
 
-    /// @brief The view a new tab opens on (START_VIEW_SETTING): VIEW_BOARD or VIEW_OUTLINE
+    /// @brief The view a new tab opens on (START_VIEW_SETTING): VIEW_BOARD, VIEW_OUTLINE or
+    /// VIEW_CHRONOLOGY, the one chosen or the one shown last
     [[nodiscard]] static QString startView();
 
     /// @brief What happens to the numbers in the titles after a move (RENUMBER_SETTING):
@@ -353,8 +357,9 @@ struct PlotColors {
     /// (povsOf()): the writer's colors in turn; invalid for no point of view
     [[nodiscard]] QColor ofPov(const QString& pov, const QStringList& povs) const;
 
-    /// @brief The color of card @p card as @p colorBy (PlotBoard::COLOR_STATUS...) says;
-    /// invalid: the card has none
+    /// @brief The color of card @p card as @p colorBy (PlotBoard::COLOR_STATUS...) says; the
+    /// card's own color first, whatever @p colorBy says, unless it says COLOR_NONE (the state
+    /// stays on the card as its name); invalid: the card has none
     [[nodiscard]] QColor ofCard(const PlotCard& card, const QString& colorBy,
                                 const QStringList& povs) const;
 };

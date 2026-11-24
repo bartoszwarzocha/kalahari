@@ -169,7 +169,8 @@ TEST_CASE("Navigator: the book's dictionary at the top of the Workshop opens its
     CHECK(dictionary->text(0) == QStringLiteral("Book Dictionary"));
     CHECK(typeOf(dictionary) == QStringLiteral("book_dictionary"));
     CHECK(typeOf(dictionary->parent()) == QStringLiteral("workshop"));
-    CHECK(dictionary->parent()->indexOfChild(dictionary) == 0);
+    // After the Book Plan, the first of the Workshop
+    CHECK(dictionary->parent()->indexOfChild(dictionary) == 1);
     CHECK_FALSE(dictionary->flags().testFlag(Qt::ItemIsDragEnabled));
     CHECK_FALSE(dictionary->flags().testFlag(Qt::ItemIsDropEnabled));
 

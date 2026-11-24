@@ -57,7 +57,7 @@ struct KeyBinding {
 };
 
 /// @brief The keys of the board
-constexpr std::array<KeyBinding, 27> KEYS{{
+constexpr std::array<KeyBinding, 29> KEYS{{
     {Qt::Key_Left, Qt::NoModifier, Key::Left},
     {Qt::Key_Right, Qt::NoModifier, Key::Right},
     {Qt::Key_Up, Qt::NoModifier, Key::Up},
@@ -74,7 +74,9 @@ constexpr std::array<KeyBinding, 27> KEYS{{
     {Qt::Key_Enter, Qt::AltModifier, Key::Properties},
     {Qt::Key_F2, Qt::NoModifier, Key::Edit},
     {Qt::Key_Insert, Qt::NoModifier, Key::Add},
+    {Qt::Key_Insert, Qt::ControlModifier | Qt::ShiftModifier, Key::AddPlanned},
     {Qt::Key_Insert, Qt::AltModifier, Key::AddScene},
+    {Qt::Key_Insert, Qt::AltModifier | Qt::ShiftModifier, Key::NewScene},
     {Qt::Key_Delete, Qt::NoModifier, Key::Delete},
     {Qt::Key_X, Qt::ControlModifier, Key::Cut},
     {Qt::Key_V, Qt::ControlModifier, Key::Paste},
@@ -107,11 +109,13 @@ struct CardRequest {
 };
 
 /// @brief The keys that ask for something with the card chosen
-constexpr std::array<CardRequest, 8> CARD_REQUESTS{{
+constexpr std::array<CardRequest, 10> CARD_REQUESTS{{
     {Key::Open, Need::Card, &PlotBoardView::openRequested},
     {Key::Edit, Need::Change, &PlotBoardView::editRequested},
     {Key::Add, Need::Writable, &PlotBoardView::addRequested},
+    {Key::AddPlanned, Need::Writable, &PlotBoardView::addPlannedRequested},
     {Key::AddScene, Need::Change, &PlotBoardView::addSceneRequested},
+    {Key::NewScene, Need::Change, &PlotBoardView::newSceneRequested},
     {Key::Delete, Need::Change, &PlotBoardView::deleteRequested},
     {Key::Cut, Need::Change, &PlotBoardView::cutRequested},
     {Key::Paste, Need::Marked, &PlotBoardView::pasteRequested},
@@ -388,6 +392,17 @@ void PlotBoardView::mousePressEvent(QMouseEvent* event) {
         toggleScenes(id);
         return;
     }
+    // The pencil edits the card, the button at its bottom does what Enter does
+    if (left && pencilRectOf(*place).contains(pos)) {
+        choose(id);
+        emit editRequested(id);
+        return;
+    }
+    if (left && planButtonRectOf(*place).contains(pos)) {
+        choose(id);
+        emit openRequested(id);
+        return;
+    }
     choose(id);
     if (left) {
         m_pressed = id;
@@ -412,8 +427,11 @@ void PlotBoardView::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void PlotBoardView::mouseDoubleClickEvent(QMouseEvent* event) {
-    const CardPlace* place = cardAt(contentsPos(event->position().toPoint()));
-    if (place != nullptr && event->button() == Qt::LeftButton) {
+    const QPoint pos = contentsPos(event->position().toPoint());
+    const CardPlace* place = cardAt(pos);
+    // The second click on the pencil or the button is theirs, as the first one
+    if (place != nullptr && event->button() == Qt::LeftButton &&
+        !pencilRectOf(*place).contains(pos) && !planButtonRectOf(*place).contains(pos)) {
         // The cards are made again when the text opens
         const QString id = place->id;
         emit openRequested(id);

@@ -337,6 +337,28 @@ std::optional<StoryTime> daysSplitAt(const QString& text, qsizetype dash, Era er
     return time;
 }
 
+/// Months in a row split at the dash at @p dash: "marzec – maj 1931", "listopad 1931 – luty
+/// 1932"; the start takes its year from the end when it says none
+std::optional<StoryTime> monthsSplitAt(const QString& text, qsizetype dash, Era era) {
+    const QString startText = text.left(dash).trimmed();
+    const std::optional<DateParts> end = wholeDate(text.mid(dash + 1).trimmed(), era);
+    if (startText.isEmpty() || !end || end->day > 0 || end->month == 0) {
+        return std::nullopt;
+    }
+    std::optional<DateParts> start = wholeDate(startText, era);
+    if (!start && monthOf(startText) > 0) {
+        start = DateParts{0, monthOf(startText), end->year};
+    }
+    if (!start || start->day > 0 || start->month == 0 || !start->year) {
+        return std::nullopt;
+    }
+    const int count = (*end->year - *start->year) * MONTHS + (end->month - start->month) + 1;
+    if (count < 2) {
+        return std::nullopt;
+    }
+    return StoryTime::monthsInRow(*start->year, start->month, count);
+}
+
 std::optional<StoryTime> daysInRow(const QString& text, Era era) {
     for (qsizetype at = 0; at < text.size(); ++at) {
         const QChar character = text.at(at);
@@ -344,6 +366,9 @@ std::optional<StoryTime> daysInRow(const QString& text, Era era) {
             continue;
         }
         if (std::optional<StoryTime> time = daysSplitAt(text, at, era)) {
+            return time;
+        }
+        if (std::optional<StoryTime> time = monthsSplitAt(text, at, era)) {
             return time;
         }
     }
@@ -368,6 +393,232 @@ std::optional<StoryTime> daysOfStory(const QString& text, qint64 dayOne) {
     return time;
 }
 
+/// A season, a half of a year or a year in words, with what follows them: its year
+struct PartOfYear {
+    int firstMonth = 0;  ///< Of its run; 12 for winter, which starts in the year before
+    int count = 0;       ///< Months; 12: the year itself, which needs its year
+};
+
+/// What the start of @p text names: "wiosna", "w pierwszej polowie", "rok", "the summer of";
+/// @p rest gets what follows
+std::optional<PartOfYear> partOfYearAt(const QString& text, QString& rest) {
+    constexpr int SEASON = 3;
+    constexpr int HALF = 6;
+    static const std::array<std::pair<PartOfYear, QRegularExpression>, 7> names{{
+        {{3, SEASON},
+         QRegularExpression(QStringLiteral(
+             "^(?:na |w |in |in the |the )?(?:wiosna|wiosne|wiosny|wiosnie|spring)\\b"))},
+        {{6, SEASON},
+         QRegularExpression(QStringLiteral(
+             "^(?:w |in |in the |the )?(?:lato|latem|lecie|summer)\\b"))},
+        {{9, SEASON},
+         QRegularExpression(QStringLiteral(
+             "^(?:na |w |in |in the |the )?(?:jesien|jesienia|jesieni|autumn|fall)\\b"))},
+        {{12, SEASON},
+         QRegularExpression(QStringLiteral(
+             "^(?:na |w |in |in the |the )?(?:zima|zime|zimy|zimie|winter)\\b"))},
+        {{1, HALF},
+         QRegularExpression(QStringLiteral(
+             "^(?:(?:w )?(?:pierwsza|pierwszej|i|1\\.?) (?:polowa|polowie|polowy)|(?:in )?"
+             "(?:the )?first half)\\b"))},
+        {{7, HALF},
+         QRegularExpression(QStringLiteral(
+             "^(?:(?:w )?(?:druga|drugiej|ii|2\\.?) (?:polowa|polowie|polowy)|(?:in )?"
+             "(?:the )?second half)\\b"))},
+        {{1, MONTHS},
+         QRegularExpression(QStringLiteral("^(?:w |in |in the |the )?(?:rok|roku|year)\\b"))},
+    }};
+    for (const auto& [part, name] : names) {
+        const QRegularExpressionMatch match = name.match(text);
+        if (match.hasMatch()) {
+            rest = text.mid(match.capturedLength()).trimmed();
+            static const QRegularExpression of(QStringLiteral("^(?:roku|of|of the year)\\b"));
+            rest = rest.remove(of).trimmed();
+            return part;
+        }
+    }
+    return std::nullopt;
+}
+
+/// The run of @p part in year @p year: winter from December of the year before
+std::optional<StoryTime> runOf(const PartOfYear& part, int year) {
+    if (part.count == MONTHS) {
+        const std::optional<qint64> first = CalendarDay{year, 1, 1}.julianDay();
+        if (!first) {
+            return std::nullopt;
+        }
+        StoryTime time = StoryTime::day(*first);
+        time.precision = StoryTime::Precision::Year;
+        return time;
+    }
+    return StoryTime::monthsInRow(part.firstMonth == MONTHS ? year - 1 : year, part.firstMonth,
+                                  part.count);
+}
+
+/// A season, a half of a year or a year: "wiosna 1931", "zima 1931/32", "w pierwszej połowie
+/// 1931", "rok 1931", "summer 1931", "the first half of 1931"; a season or a half without its
+/// year is the first one that does not end before day one
+std::optional<StoryTime> partOfYear(const QString& text, qint64 dayOne) {
+    QString rest;
+    const std::optional<PartOfYear> part = partOfYearAt(text, rest);
+    if (!part) {
+        return std::nullopt;
+    }
+    if (rest.isEmpty()) {
+        if (part->count == MONTHS) {
+            return std::nullopt;  // "rok" alone says no year
+        }
+        const int year = CalendarDay::of(dayOne).year;
+        for (int candidate = year - 1; candidate <= year + 1; ++candidate) {
+            const std::optional<StoryTime> run = runOf(*part, candidate);
+            if (run && run->last >= dayOne) {
+                return run;
+            }
+        }
+        return std::nullopt;
+    }
+    // "zima 1931/32", "zima 1931/1932": December 1931 to February 1932
+    static const QRegularExpression winter(QStringLiteral("^(\\d{3,4})/(\\d{2}|\\d{4})$"));
+    if (const QRegularExpressionMatch match = winter.match(rest);
+        match.hasMatch() && part->firstMonth == MONTHS && part->count != MONTHS) {
+        const int from = match.captured(1).toInt();
+        const int to = match.captured(2).size() == 2 ? from / 100 * 100 + match.captured(2).toInt()
+                                                     : match.captured(2).toInt();
+        if (to % 100 != (from + 1) % 100) {
+            return std::nullopt;
+        }
+        return runOf(*part, from + 1);
+    }
+    const Era era = takeEra(rest);
+    const std::optional<int> year = yearOf(rest, era);
+    if (!year) {
+        return std::nullopt;
+    }
+    return runOf(*part, *year);
+}
+
+/// The number of a Polish ordinal of a day, 1-99: "pierwszy", "drugiego", "dwudziesty
+/// pierwszy"; 0 for another text
+int polishOrdinal(const QString& text) {
+    static const QStringList units{"pierwszy", "drugi",  "trzeci", "czwarty",  "piaty",
+                                   "szosty",   "siodmy", "osmy",   "dziewiaty"};
+    static const QStringList teens{"dziesiaty",     "jedenasty",   "dwunasty",
+                                   "trzynasty",     "czternasty",  "pietnasty",
+                                   "szesnasty",     "siedemnasty", "osiemnasty",
+                                   "dziewietnasty"};
+    static const QStringList tens{"dwudziesty",       "trzydziesty",    "czterdziesty",
+                                  "piecdziesiaty",    "szescdziesiaty", "siedemdziesiaty",
+                                  "osiemdziesiaty",   "dziewiecdziesiaty"};
+    constexpr int TEN = 10;
+    // "drugiego", "pierwszego": the case after "dnia"
+    const auto base = [](QString word) {
+        if (word.endsWith(QStringLiteral("ego"))) {
+            word.chop(3);
+            if (!word.endsWith(QLatin1Char('i'))) {
+                word += QLatin1Char('y');
+            }
+        }
+        return word;
+    };
+    const QStringList words = text.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (words.size() == 1) {
+        const QString word = base(words.first());
+        if (const qsizetype unit = units.indexOf(word); unit >= 0) {
+            return static_cast<int>(unit) + 1;
+        }
+        if (const qsizetype teen = teens.indexOf(word); teen >= 0) {
+            return static_cast<int>(teen) + TEN;
+        }
+        if (const qsizetype ten = tens.indexOf(word); ten >= 0) {
+            return (static_cast<int>(ten) + 2) * TEN;
+        }
+        return 0;
+    }
+    if (words.size() == 2) {
+        const qsizetype ten = tens.indexOf(base(words.first()));
+        const qsizetype unit = units.indexOf(base(words.last()));
+        if (ten >= 0 && unit >= 0) {
+            return (static_cast<int>(ten) + 2) * TEN + static_cast<int>(unit) + 1;
+        }
+    }
+    return 0;
+}
+
+/// The number of an English number or ordinal, 1-99: "one", "twenty-one", "first",
+/// "twenty-first"; 0 for another text
+int englishNumber(const QString& text, bool ordinal) {
+    static const QStringList units{"one", "two", "three", "four", "five",
+                                   "six", "seven", "eight", "nine"};
+    static const QStringList unitOrdinals{"first", "second",  "third",  "fourth", "fifth",
+                                          "sixth", "seventh", "eighth", "ninth"};
+    static const QStringList teens{"ten",     "eleven",  "twelve",    "thirteen", "fourteen",
+                                   "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"};
+    static const QStringList teenOrdinals{"tenth",       "eleventh",    "twelfth",
+                                          "thirteenth",  "fourteenth",  "fifteenth",
+                                          "sixteenth",   "seventeenth", "eighteenth",
+                                          "nineteenth"};
+    static const QStringList tens{"twenty", "thirty",  "forty",  "fifty",
+                                  "sixty",  "seventy", "eighty", "ninety"};
+    static const QStringList tenOrdinals{"twentieth", "thirtieth",  "fortieth",  "fiftieth",
+                                         "sixtieth",  "seventieth", "eightieth", "ninetieth"};
+    constexpr int TEN = 10;
+    const QStringList& unitWords = ordinal ? unitOrdinals : units;
+    const QStringList& teenWords = ordinal ? teenOrdinals : teens;
+    const QStringList words = QString(text).replace(QLatin1Char('-'), QLatin1Char(' '))
+                                  .split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (words.size() == 1) {
+        if (const qsizetype unit = unitWords.indexOf(words.first()); unit >= 0) {
+            return static_cast<int>(unit) + 1;
+        }
+        if (const qsizetype teen = teenWords.indexOf(words.first()); teen >= 0) {
+            return static_cast<int>(teen) + TEN;
+        }
+        const qsizetype ten = (ordinal ? tenOrdinals : tens).indexOf(words.first());
+        return ten >= 0 ? (static_cast<int>(ten) + 2) * TEN : 0;
+    }
+    if (words.size() == 2) {
+        const qsizetype ten = tens.indexOf(words.first());
+        const qsizetype unit = unitWords.indexOf(words.last());
+        if (ten >= 0 && unit >= 0) {
+            return (static_cast<int>(ten) + 2) * TEN + static_cast<int>(unit) + 1;
+        }
+    }
+    return 0;
+}
+
+/// A day of the story in words: "dzień pierwszy", "pierwszy dzień", "drugiego dnia", "dnia
+/// trzeciego", "day one", "the first day", "on the second day"
+std::optional<StoryTime> dayInWords(const QString& text, qint64 dayOne) {
+    static const QRegularExpression polishAfter(QStringLiteral("^(?:w )?(?:dzien|dnia) (.+)$"));
+    static const QRegularExpression polishBefore(QStringLiteral("^(?:w )?(.+) (?:dzien|dnia|dniu)$"));
+    static const QRegularExpression englishAfter(QStringLiteral("^(?:on )?day (.+)$"));
+    static const QRegularExpression englishBefore(QStringLiteral("^(?:on )?(?:the )?(.+) day$"));
+    int number = 0;
+    if (QRegularExpressionMatch match = polishAfter.match(text); match.hasMatch()) {
+        number = polishOrdinal(match.captured(1));
+    }
+    if (QRegularExpressionMatch match = polishBefore.match(text);
+        number == 0 && match.hasMatch()) {
+        // "pierwszym dniu": the case after "w"
+        QString words = match.captured(1);
+        words.replace(QRegularExpression(QStringLiteral("ym\\b")), QStringLiteral("y"));
+        words.replace(QRegularExpression(QStringLiteral("im\\b")), QStringLiteral("i"));
+        number = polishOrdinal(words);
+    }
+    if (QRegularExpressionMatch match = englishAfter.match(text);
+        number == 0 && match.hasMatch()) {
+        number = englishNumber(match.captured(1), false);
+    }
+    if (QRegularExpressionMatch match = englishBefore.match(text);
+        number == 0 && match.hasMatch()) {
+        number = englishNumber(match.captured(1), true);
+    }
+    if (number == 0) {
+        return std::nullopt;
+    }
+    return StoryTime::day(StoryTime::dayOfNumber(number, dayOne));
+}
+
 }  // namespace
 
 std::optional<StoryTime> StoryTime::parse(const QString& text, qint64 dayOne) {
@@ -378,6 +629,12 @@ std::optional<StoryTime> StoryTime::parse(const QString& text, qint64 dayOne) {
     const bool approximate = takeApproximately(rest);
     const PartOfDay part = takePartOfDay(rest);
     std::optional<StoryTime> time = daysOfStory(rest, dayOne);
+    if (!time) {
+        time = dayInWords(rest, dayOne);
+    }
+    if (!time) {
+        time = partOfYear(rest, dayOne);
+    }
     if (!time) {
         const Era era = takeEra(rest);
         time = oneDate(rest, era);

@@ -72,9 +72,9 @@ PlotFieldsBox::PlotFieldsBox(core::ProjectManager& book, QWidget* parent)
       m_povs(suggestionsOf(m_pov)),
       m_places(suggestionsOf(m_place)) {
     setObjectName(QStringLiteral("plotFieldsBox"));
-    //: The group of the Properties panel with what the plot board says of a text. In Polish:
-    //: Tablica fabuły
-    setTitle(tr("Plot Board"));
+    //: The group of the Properties panel with what the plan of the book says of a text. In
+    //: Polish: Plan książki
+    setTitle(tr("Book Plan"));
     auto* layout = new QFormLayout(this);
     layout->setSpacing(FIELD_SPACING);
     layout->setContentsMargins(GROUP_MARGIN, GROUP_MARGIN, GROUP_MARGIN, GROUP_MARGIN);

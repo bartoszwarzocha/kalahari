@@ -502,9 +502,10 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_CB("book.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Sc&ene Break"), "BOOK/Scene Break", 90, true, 0,
                callbacks.onInsertSceneBreak);
 
-    // The plot board of the book: its texts as cards, or in a table (the outline), on one tab;
-    // in the Book menu, since every letter of the names has a command of the View menu
-    REG_CMD_KEY_CB("view.plotBoard", QT_TRANSLATE_NOOP("CommandRegistrar", "Plot &Board"), "BOOK/Plot Board", 92, false, 0,
+    // The plan of the book: its texts as cards (the board), in a table (the outline) or in the
+    // order of the story (the chronology), on one tab; in the Book menu, since every letter of
+    // the names has a command of the View menu
+    REG_CMD_KEY_CB("view.plotBoard", QT_TRANSLATE_NOOP("CommandRegistrar", "&Book Plan"), "BOOK/Book Plan", 92, false, 0,
                    KeyboardShortcut(Qt::Key_T, Qt::ControlModifier | Qt::ShiftModifier),
                    callbacks.onPlotBoard);
     REG_CMD_KEY_CB("view.outline", QT_TRANSLATE_NOOP("CommandRegistrar", "O&utline"), "BOOK/Outline", 94, true, 0,

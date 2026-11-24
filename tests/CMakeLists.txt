@@ -211,6 +211,8 @@ set(TEST_SOURCES
     gui/test_card_chapters.cpp                   # The chapters and the materials of a card, what is dropped on it
     gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs
     gui/test_plot_board.cpp                      # The plot board and the outline of the book
+    gui/test_book_plan_chronology.cpp            # The chronology of the Book Plan on its tab
+    gui/test_book_plan_texts.cpp                 # The Book Plan: chapters in the plan, the bar
     gui/test_card_list.cpp                       # The lists of the cards: fields, F2, tiles, Navigator
     gui/test_cursor_card.cpp          # The card at the cursor in the Properties panel
     gui/test_paragraph_cards.cpp      # A paragraph linked with a card: the window, the signs, the commands
@@ -337,6 +339,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/project_manager_card_fields.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager_publishing.cpp
     ${CMAKE_SOURCE_DIR}/src/core/project_manager_series.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/project_manager_plan.cpp
     ${CMAKE_SOURCE_DIR}/src/core/recent_books_manager.cpp
     # OpenSpec #00041: SQLite Project Database
     ${CMAKE_SOURCE_DIR}/src/core/project_database.cpp
@@ -492,9 +495,12 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/writing_stats_model.cpp  # The statistics of writing shown
     ${CMAKE_SOURCE_DIR}/src/gui/material_list_coordinator.cpp  # The lists of the materials on tabs
     ${CMAKE_SOURCE_DIR}/src/gui/plot_board_coordinator.cpp  # The plot board on its tab
+    ${CMAKE_SOURCE_DIR}/src/gui/plot_board_coordinator_texts.cpp  # New texts, texts in the plan
     ${CMAKE_SOURCE_DIR}/src/gui/plot_board_coordinator_arrange.cpp  # Cards moved, added, cut
     ${CMAKE_SOURCE_DIR}/src/gui/plot_board_coordinator_plan.cpp  # The scenes moved, the plans
     ${CMAKE_SOURCE_DIR}/src/gui/plot_board_coordinator_scenes.cpp  # The scenes changed
+    ${CMAKE_SOURCE_DIR}/src/gui/plot_board_coordinator_chronology.cpp  # The chronology of the plan
+    ${CMAKE_SOURCE_DIR}/src/gui/plan_chronology.cpp  # The module of the chronology of the Book Plan
     ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
     ${CMAKE_SOURCE_DIR}/src/gui/paragraph_style_menu.cpp    # Format > Text Style: the text's styles
     ${CMAKE_SOURCE_DIR}/src/gui/book_styles.cpp             # The paragraph styles of the open book
@@ -669,6 +675,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/plot_outline_model.cpp               # The outline of the book
     ${CMAKE_SOURCE_DIR}/src/gui/panels/plot_board_panel.cpp          # The tab of the plot board
     ${CMAKE_SOURCE_DIR}/src/gui/panels/plot_board_panel_header.cpp   # Its switches and look
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/plot_board_panel_commands.cpp # The bar of its commands
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_board_view.cpp          # The cards of the texts
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_board_view_input.cpp    # Its keys and the mouse
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_board_view_layout.cpp   # Where the cards are
@@ -783,6 +790,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_model.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plot_board_coordinator.h  # PlotBoardCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plan_chronology.h  # PlanChronology with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plot_outline_model.h  # PlotOutlineModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
@@ -964,6 +972,7 @@ list(APPEND TEST_SOURCES
     ${KALAHARI_TIMELINE_SOURCES} ${KALAHARI_TIMELINE_GUI_SOURCES}
     mindmap/test_mind_map.cpp     # Mind maps: the tree and its changes, file, outlines, layouts
     mindmap/test_mind_map_editor.cpp  # Mind maps: Undo, the drawing, the keys, the module
+    timeline/test_plan_chronology.cpp  # The chronology of the Book Plan: columns, flashbacks
     timeline/test_story_time.cpp  # The time of the story: dates and days read and written
     timeline/test_timeline.cpp    # Timelines: events, order, file, and the axis with its gaps
     timeline/test_timeline_editor.cpp  # Timelines: Undo, the axis, the list, the book, the module
