@@ -50,9 +50,9 @@ bool facesRight(const QRectF& box, const QPointF& other) {
 
 }  // namespace
 
-const RowBox* NodeBox::row(const QString& id) const {
+const RowBox* NodeBox::row(const QString& rowId) const {
     const auto it = std::find_if(rows.cbegin(), rows.cend(),
-                                 [&id](const RowBox& each) { return each.row.id == id; });
+                                 [&rowId](const RowBox& each) { return each.row.id == rowId; });
     return it != rows.cend() ? &*it : nullptr;
 }
 

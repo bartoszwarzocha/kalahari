@@ -87,8 +87,8 @@ struct NodeBox {
     QColor branch;        ///< The color of the branches that leave it
     QString elidedTitle;  ///< Its title as it fits its header
 
-    /// @brief Row @p id; nullptr: it does not show
-    [[nodiscard]] const RowBox* row(const QString& id) const;
+    /// @brief Row @p rowId; nullptr: it does not show
+    [[nodiscard]] const RowBox* row(const QString& rowId) const;
 };
 
 /// @brief A link as it is drawn: a branch, a connection or a relation of two cards
