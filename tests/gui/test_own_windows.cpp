@@ -294,10 +294,13 @@ TEST_CASE("Own windows: About shows what the program was built from, and copies 
     CHECK(dialog.tabs()->currentIndex() == 0);
     CHECK(dialog.tabs()->tabText(0) == QStringLiteral("About"));
     CHECK(dialog.tabs()->tabText(1) == QStringLiteral("Build"));
-    CHECK_FALSE(showsText(dialog, configuration));
+    // When and how it was built, as the Build tab writes it ("Release" alone is also in
+    // "Target Release" on the About tab)
+    const QString builtAs = QStringLiteral("%1, %2").arg(
+        QLocale().toString(built.toLocalTime(), QLocale::ShortFormat), configuration);
+    CHECK_FALSE(showsText(dialog, builtAs));
     dialog.tabs()->setCurrentIndex(1);
-    CHECK(showsText(dialog, configuration));
-    CHECK(showsText(dialog, QLocale().toString(built.toLocalTime(), QLocale::ShortFormat)));
+    CHECK(showsText(dialog, builtAs));
     const QString commit = QString::fromLatin1(build::commit());
     if (!commit.isEmpty()) {
         CHECK(showsText(dialog, commit));
