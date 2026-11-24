@@ -922,7 +922,7 @@ QString PublishingCardPanel::addVersion(bool copy) {
         //: Polish: %1 – kopia
         title = tr("%1 – copy").arg(source->title);
     }
-    const QString id = m_book.addPublishingText(
+    QString id = m_book.addPublishingText(
         m_part, source != nullptr ? sourceData.templateId : m_data.templateId, title);
     if (id.isEmpty()) {
         return {};

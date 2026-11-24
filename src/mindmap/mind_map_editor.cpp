@@ -516,17 +516,16 @@ void MindMapEditor::updateBar() {
     m_zoomLabel->setText(QStringLiteral("%1%").arg(std::lround(m_view->zoom() * 100.0)));
     const bool selected = !m_document->selection().isEmpty();
     const bool one = m_document->selection().size() == 1;
-    const bool something = selected || m_view->selectedLink() || !m_view->selectedFrame().isEmpty();
+    const auto& link = m_view->selectedLink();
+    const bool something = selected || link || !m_view->selectedFrame().isEmpty();
     m_branch->setEnabled(true);
     m_below->setEnabled(true);
-    m_rename->setEnabled(
-        one || !m_view->selectedFrame().isEmpty() ||
-        (m_view->selectedLink() && m_view->selectedLink()->type == LinkLine::Type::Connection));
+    m_rename->setEnabled(one || !m_view->selectedFrame().isEmpty() ||
+                         (link && link->type == LinkLine::Type::Connection));
     m_fold->setEnabled(selected);
     m_frame->setEnabled(selected);
-    m_remove->setEnabled(something &&
-                         !(one && m_document->selected() == map.root() && !m_view->selectedLink() &&
-                           m_view->selectedFrame().isEmpty()));
+    m_remove->setEnabled(something && !(one && m_document->selected() == map.root() && !link &&
+                                        m_view->selectedFrame().isEmpty()));
     m_undo->setEnabled(m_document->canUndo());
     m_undo->setToolTip(m_document->canUndo()
                            //: The tooltip of Undo; %1 is what it undoes. In Polish: Cofnij: %1
@@ -662,13 +661,13 @@ void MindMapEditor::openElement(const QString& elementId) {
 }
 
 void MindMapEditor::syncRelationMap() {
-    if (m_synced || !m_document->map().relationMap()) {
+    const auto& relations = m_document->map().relationMap();
+    if (m_synced || !relations) {
         return;
     }
     m_synced = true;
     // The cards that have new relations come to the map when it opens
-    const QStringList missing = missingCards(m_book, m_document->map(),
-                                             *m_document->map().relationMap());
+    const QStringList missing = missingCards(m_book, m_document->map(), *relations);
     if (missing.isEmpty()) {
         return;
     }

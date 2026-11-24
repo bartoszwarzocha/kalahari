@@ -614,7 +614,7 @@ void MindMapView::connectTo() {
         if (index < 0 || index >= targets.size()) {
             return;
         }
-        const QString to = targets.at(index);
+        const QString& to = targets.at(index);
         if (m_document.joinNodes(from, to)) {
             emit told(tr("Connected “%1” with “%2”.").arg(titleOf(from), titleOf(to)), true);
         }

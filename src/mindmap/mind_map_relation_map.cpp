@@ -141,7 +141,7 @@ QString createRelationMap(core::ProjectManager& book, const QString& title,
         core::Logger::getInstance().warn("createRelationMap: the book has no mind maps");
         return QString();
     }
-    const QString id = book.addElement(kind, title, core::BookPlace::Workshop);
+    QString id = book.addElement(kind, title, core::BookPlace::Workshop);
     const core::ProjectElement* element = id.isEmpty() ? nullptr : book.findElement(id);
     if (element == nullptr) {
         return QString();

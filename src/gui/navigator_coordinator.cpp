@@ -391,8 +391,9 @@ PublishingCardPanel* NavigatorCoordinator::openPublishingCard(const QString& ele
                 onElementSelected(id, element->title);
             }
         });
-        connect(card, &PublishingCardPanel::statusMessage, this, [this](const QString& text)
-                { m_statusBar->showMessage(text, PUBLISHING_MESSAGE_MS); });
+        connect(card, &PublishingCardPanel::statusMessage, this, [this](const QString& text) {
+            m_statusBar->showMessage(text, PUBLISHING_MESSAGE_MS);
+        });
         emit publishingCardCreated(card);
     }
     texts.showPage(card);

@@ -83,6 +83,12 @@ bool sameSocket(const SocketBox& a, const SocketBox& b) {
     return a.node == b.node && a.row == b.row && a.right == b.right;
 }
 
+/// How many places from @p start, @p gap apart, are not past @p end (an integer count, so that
+/// no loop has a floating-point counter)
+int placesUpTo(double start, double end, double gap) {
+    return start > end ? 0 : static_cast<int>(std::floor((end - start) / gap)) + 1;
+}
+
 }  // namespace
 
 void MindMapView::paintEvent(QPaintEvent* /*event*/) {
@@ -125,9 +131,12 @@ void MindMapView::paintBackground(QPainter& painter) const {
         QList<QPointF> dots;
         const double startX = std::fmod(m_offset.x(), step) - step;
         const double startY = std::fmod(m_offset.y(), step) - step;
-        for (double y = startY; y <= height() + step; y += step) {
-            for (double x = startX; x <= width() + step; x += step) {
-                dots.append(QPointF(x, y));
+        const int columns = placesUpTo(startX, width() + step, step);
+        const int rows = placesUpTo(startY, height() + step, step);
+        for (int row = 0; row < rows; ++row) {
+            const double y = startY + row * step;
+            for (int column = 0; column < columns; ++column) {
+                dots.append(QPointF(startX + column * step, y));
             }
         }
         painter.drawPoints(dots.constData(), static_cast<int>(dots.size()));
@@ -136,12 +145,16 @@ void MindMapView::paintBackground(QPainter& painter) const {
     const auto lines = [&painter, this](double gap, const QColor& color) {
         painter.setPen(QPen(color, 1.0));
         QList<QLineF> drawn;
-        for (double x = std::fmod(m_offset.x(), gap) - gap; x <= width() + gap; x += gap) {
-            const double at = std::floor(x) + 0.5;
+        const double startX = std::fmod(m_offset.x(), gap) - gap;
+        const double startY = std::fmod(m_offset.y(), gap) - gap;
+        const int columns = placesUpTo(startX, width() + gap, gap);
+        const int rows = placesUpTo(startY, height() + gap, gap);
+        for (int column = 0; column < columns; ++column) {
+            const double at = std::floor(startX + column * gap) + 0.5;
             drawn.append(QLineF(at, 0.0, at, height()));
         }
-        for (double y = std::fmod(m_offset.y(), gap) - gap; y <= height() + gap; y += gap) {
-            const double at = std::floor(y) + 0.5;
+        for (int row = 0; row < rows; ++row) {
+            const double at = std::floor(startY + row * gap) + 0.5;
             drawn.append(QLineF(0.0, at, width(), at));
         }
         painter.drawLines(drawn);

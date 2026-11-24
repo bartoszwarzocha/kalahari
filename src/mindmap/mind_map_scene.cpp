@@ -192,10 +192,12 @@ NodeBox MindMapScene::measure(const MindMapNode& node) const {
         if (!row.row.socket) {
             continue;
         }
+        // Taken before the sockets grow: the row belongs to the same box
+        const SocketKind rowSocket = *row.row.socket;
         const double rowY = row.rect.center().y();
         for (const bool right : {false, true}) {
             if ((right && row.row.right) || (!right && row.row.left)) {
-                box.sockets.append(SocketBox{node.id, row.row.id, *row.row.socket, right,
+                box.sockets.append(SocketBox{node.id, row.row.id, rowSocket, right,
                                              QPointF(right ? place.x() + width : place.x(), rowY),
                                              row.row.otherKind, row.row.group,
                                              box.content.cardKind});
