@@ -155,9 +155,6 @@ constexpr int READ_ONLY_MESSAGE_MS = 5000;
 /// How long the status bar says that Paste Special pasted
 constexpr int PASTED_MESSAGE_MS = 2000;
 
-/// How long the status bar shows what Link to a Point says
-constexpr int PANEL_MESSAGE_MS = 4000;
-
 /// View > Show Status Bar: whether the book windows show their status bars
 constexpr const char* STATUS_BAR_SETTING = "window.showStatusBar";
 

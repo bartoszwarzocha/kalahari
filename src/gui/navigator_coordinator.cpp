@@ -129,6 +129,9 @@ constexpr int QUOTE_MESSAGE_MS = 2000;
 /// How long the status bar says that a file has not the page asked for
 constexpr int NO_PAGE_MESSAGE_MS = 3000;
 
+/// How long the status bar shows what the card For Publishers says (Link to a Point and others)
+constexpr int PUBLISHING_MESSAGE_MS = 4000;
+
 /// The kind of all @p kinds; none when they are of several kinds, or there are none
 core::KindRef oneKindOf(const QList<core::KindRef>& kinds) {
     if (kinds.isEmpty() || std::any_of(kinds.cbegin(), kinds.cend(), [&kinds](const auto& kind) {
@@ -388,8 +391,8 @@ PublishingCardPanel* NavigatorCoordinator::openPublishingCard(const QString& ele
                 onElementSelected(id, element->title);
             }
         });
-        connect(card, &PublishingCardPanel::statusMessage, this,
-                [this](const QString& text) { m_statusBar->showMessage(text, 4000); });
+        connect(card, &PublishingCardPanel::statusMessage, this, [this](const QString& text)
+                { m_statusBar->showMessage(text, PUBLISHING_MESSAGE_MS); });
         emit publishingCardCreated(card);
     }
     texts.showPage(card);
