@@ -4,7 +4,9 @@
 /// material with the places in groups, the note about the author, and the access keys
 
 #include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/dialog_checks.h"
 #include "kalahari_tests/gui/document_window.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/settings_manager.h"
@@ -43,7 +45,6 @@
 
 #include <cstdio>
 #include <string>
-#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using core::CoverMaterial;
@@ -164,9 +165,11 @@ void press(QWidget* widget, int key, Qt::KeyboardModifiers modifiers = Qt::NoMod
     QApplication::sendEvent(widget, &released);
 }
 
-/// The letter of the access key of @p text ("&Jacket": "j"); none: an empty string
+/// The letter of the access key of @p text ("&Jacket": "j"); none: an empty string. Read from the
+/// text itself: QKeySequence::mnemonic gives none on macOS, which has no access keys
 QString accessKey(const QString& text) {
-    return QKeySequence::mnemonic(text).toString().right(1).toLower();
+    const QChar key = test::accessKey(text);
+    return key.isNull() ? QString() : QString(key);
 }
 
 /// The access keys of the menus of the window, as they read now

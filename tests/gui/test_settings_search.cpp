@@ -23,6 +23,8 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPoint>
+#include <QRect>
 #include <QShortcut>
 #include <QThread>
 #include <QTranslator>
@@ -131,7 +133,8 @@ TEST_CASE("Settings search: the options of a page are the texts the writer reads
     hidden->hide();
     auto* group = new QGroupBox(QStringLiteral("Other options"));
     auto* inGroup = new QVBoxLayout(group);
-    inGroup->addWidget(new QCheckBox(QStringLiteral("One")));
+    auto* one = new QCheckBox(QStringLiteral("One"));
+    inGroup->addWidget(one);
     inGroup->addWidget(new QCheckBox(QStringLiteral("Two")));
     layout->addWidget(label);
     layout->addWidget(field);
@@ -154,8 +157,14 @@ TEST_CASE("Settings search: the options of a page are the texts the writer reads
     CHECK(marks.markOf(label).contains(label->geometry()));
     // A group: its title, not its options
     CHECK(optionsFound(&page, SettingsSearch(QStringLiteral("other"))) == std::vector<QWidget*>{group});
-    CHECK(marks.markOf(group).height() < group->height() / 2);
-    CHECK(marks.markOf(group).top() <= group->geometry().top());
+    // Over the top of the group, above its first option (where the title stands differs: on
+    // a Mac a little below the top of the group)
+    const QRect title = marks.markOf(group);
+    const QRect first(one->mapTo(&page, QPoint(0, 0)), one->size());
+    CHECK(title.height() < group->height() / 2);
+    CHECK(title.intersects(group->geometry()));
+    CHECK(title.top() < first.top());
+    CHECK(title.center().y() < first.center().y());
     CHECK(marks.markColor().isValid());
     marks.setOptions({});
     CHECK_FALSE(marks.isVisible());

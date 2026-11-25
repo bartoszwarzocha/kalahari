@@ -16,6 +16,7 @@
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
+#include "kalahari_tests/gui/dialog_checks.h"
 #include "kalahari_tests/test_support/window_parts.h"
 
 #include <QApplication>
@@ -84,10 +85,12 @@ QColor colorOf(const nlohmann::json& section, const char* key)
     return QColor(QString::fromStdString(section.at(key).get<std::string>()));
 }
 
-/// The letter of the access key of @p text ("&Undo": "u"); none: an empty string
+/// The letter of the access key of @p text ("&Undo": "u"); none: an empty string. Read from the
+/// text itself: QKeySequence::mnemonic gives none on macOS, which has no access keys
 QString accessKey(const QString& text)
 {
-    return QKeySequence::mnemonic(text).toString().right(1).toLower();
+    const QChar key = test::accessKey(text);
+    return key.isNull() ? QString() : QString(key);
 }
 
 /// The access keys of the menus of the window, as they read now
