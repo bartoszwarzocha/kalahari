@@ -605,7 +605,7 @@ bool FieldCoordinator::deleteOwnField(const QString& id, const QString& bookId, 
             ? qobject_cast<EditorPanel*>(DocumentWindows::of(*m_centralTabs).frontPage())
             : nullptr;
     if (m_showNotice && front != nullptr) {
-        //: In Polish: &Cofnij / Przywróć pole we wszystkich tekstach
+        //: In Polish: Cofn&ij / Przywróć pole we wszystkich tekstach
         m_showNotice(front, message, tr("&Undo"), tr("Bring the field back in every text"),
                      [this]() { undoDelete(); });
     }

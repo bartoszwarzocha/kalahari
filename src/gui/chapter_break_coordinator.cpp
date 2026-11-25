@@ -272,7 +272,7 @@ QString ChapterBreakCoordinator::breakText(editor::BookEditor* text) {
         tr("The text from the cursor went to \"%1\", right after \"%2\".").arg(title,
                                                                               element.title);
     if (EditorPanel* addedPanel = panelOf(added); m_showNotice && addedPanel != nullptr) {
-        //: In Polish: &Cofnij / Połącz teksty z powrotem
+        //: In Polish: Cofn&ij / Połącz teksty z powrotem
         m_showNotice(addedPanel, message, tr("&Undo"), tr("Join the texts again"),
                      [this]() { undo(); });
     } else {

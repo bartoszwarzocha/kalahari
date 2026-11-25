@@ -663,6 +663,13 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, [this](bool keys) {
                 m_navigatorCoordinator->openPublishingCard(QString(), keys);
             });
+    // The gear of the bar at the bottom of the text: its colors in Settings > Editor > Colors
+    connect(m_dockCoordinator->standaloneInfoBar(), &InfoBar::settingsClicked, this, [this]() {
+        if (m_settingsCoordinator != nullptr) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::NOTICE_BAR_PAGE));
+        }
+    });
     // The gear over the board: Settings > Plot Board
     connect(m_plotBoardCoordinator, &PlotBoardCoordinator::settingsRequested, this, [this]() {
         if (m_settingsCoordinator != nullptr) {

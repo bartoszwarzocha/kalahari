@@ -887,7 +887,7 @@ int BookSearchCoordinator::replaceAllInBook() {
                              : nullptr;
     if (m_showNotice) {
         // Under the text in front, else under any tab
-        //: In Polish: &Cofnij / Cofnij zamianę w książce
+        //: In Polish: Cofn&ij / Cofnij zamianę w książce
         const NoticeButton undoButton{tr("&Undo"), tr("Undo the replacement in the book"),
                                       [this]() { undo(); }};
         //: The second button of the bar after Replace All in Book, as File > Save All. In

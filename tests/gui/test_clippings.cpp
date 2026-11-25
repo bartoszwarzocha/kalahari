@@ -904,7 +904,7 @@ TEST_CASE("Insert > Clipping: Restore to the Place It Came From", "[gui][clippin
         CHECK(reopened->cursorPosition() == at(1, RAINED_FIRST));
         CHECK(clips.notices() ==
               QStringList{QStringLiteral("The exact place is no longer in the text. The cursor is "
-                                         "in the paragraph the fragment came from.|&Insert Here")});
+                                         "in the paragraph the fragment came from.|I&nsert Here")});
         CHECK(dataOf(book, clippingId).inserted.isEmpty());
         REQUIRE(clips.buttons() == 1);
         clips.pressButton();

@@ -49,6 +49,14 @@ class StandaloneInfoBar : public InfoBar {
     Q_OBJECT
 
 public:
+    /// The colors of the bar, in the theme's "editor" section (Settings > Editor > Colors, Bar
+    /// Under the Text): it stands out from the text, its button too
+    static constexpr const char* BACKGROUND_COLOR_KEY = "noticeBarBackground";
+    static constexpr const char* BORDER_COLOR_KEY = "noticeBarBorder";
+    static constexpr const char* TEXT_COLOR_KEY = "noticeBarText";
+    static constexpr const char* BUTTON_COLOR_KEY = "noticeBarButton";
+    static constexpr const char* BUTTON_TEXT_COLOR_KEY = "noticeBarButtonText";
+
     /// @brief Constructor
     /// @param parent Parent widget
     explicit StandaloneInfoBar(QWidget* parent = nullptr);

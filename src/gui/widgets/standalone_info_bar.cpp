@@ -14,6 +14,13 @@ namespace kalahari::gui {
 StandaloneInfoBar::StandaloneInfoBar(QWidget* parent)
     : InfoBar(parent)
 {
+    // Its own colors, which stand out from the text and from the other bars; the gear opens
+    // them in the Settings (settingsClicked())
+    setColorKeys(BACKGROUND_COLOR_KEY, BORDER_COLOR_KEY);
+    setEmphasisColorKeys(TEXT_COLOR_KEY, BUTTON_COLOR_KEY, BUTTON_TEXT_COLOR_KEY);
+    //: The gear of the bar at the bottom of the text, with Undo after a command. In Polish:
+    //: Kolory paska
+    showSettingsButton(tr("Colors of the Bar"));
     setMessage(tr("This file is not part of a book. Some features are not available."));
     setFilePath(QString());
     setBookOpen(true);

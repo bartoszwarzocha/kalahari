@@ -662,7 +662,7 @@ void PlotBoardPanel::offerRenumbering(const QString& message) {
 void PlotBoardPanel::showMessage(const QString& message, bool canUndo) {
     m_offersRenumbering = false;
     m_infoBar->setMessage(message);
-    //: The button of the bar under the plot board that undoes what it says. In Polish: &Cofnij
+    //: The button of the bar under the plot board that undoes what it says. In Polish: Cofn&ij
     m_infoBar->setActionText(canUndo ? tr("&Undo") : QString());
     m_infoBar->setActionToolTip(canUndo ? QStringLiteral("Ctrl+Z") : QString());
     m_infoBar->setVisible(!message.isEmpty());

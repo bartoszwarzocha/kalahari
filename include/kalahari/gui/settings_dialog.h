@@ -72,6 +72,8 @@ public:
     /// bar of notifications, of their window and of the Notifications panel)
     static constexpr const char* NOTIFICATIONS_PAGE = "notifications";
     static constexpr const char* EDITOR_COLORS_PAGE = "editor.colors";  ///< Editor > Colors
+    /// Editor > Colors, the group of the bar at the bottom of the text (its gear)
+    static constexpr const char* NOTICE_BAR_PAGE = "editor.colors.noticeBar";
     /// Editor > Writing, scrolled to its group Word Count, the cursor in its counting of the
     /// notes' words (the gear of Format > Footnote Layout...)
     static constexpr const char* WORD_COUNT_PAGE = "editor.general.wordCount";

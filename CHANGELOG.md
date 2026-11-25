@@ -493,6 +493,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The bar under the text stands out** - 2026-11-22. The bar at the bottom of the text area
+  (the answers to commands, such as Undo after a deletion, the note of a file outside a book and
+  of a book open read-only) has colors of its own in both themes: a blue background with a
+  darker border, a message easy to read and filled buttons in bold. They differ from the paper
+  and from the other bars. Settings > Editor > Colors has a new group, Bar Under the Text, with
+  its background, border, message, button and button text, kept for each theme; the gear of the
+  bar opens this group. The buttons of the bars under the text and under the plot board have
+  access keys that no menu has: Alt+C of Undo in Polish only moved the focus to the button and
+  then opened the menu Help (Pomoc), so Undo is Alt+I in Polish now, and Insert Here is Alt+N
+  in English and Alt+U in Polish.
+
 - **File > Print: a large preview and the fields in sections** - 2026-11-22. The window has no
   tabs: the preview takes its left half, with Whole Sheet and Width over it (a sheet as wide as
   the preview scrolls, with its bar, the arrows and the wheel), and the fields are in sections

@@ -192,6 +192,7 @@ set(TEST_SOURCES
     gui/test_print_book_dialog.cpp               # File > Print: the window, its sheets and the print
     gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
     gui/test_notifications.cpp                   # Notifications in the bar, a window, the system, their panel
+    gui/test_notice_bar.cpp                      # The bar under the text: its colors, its button, its gear
     gui/test_own_windows.cpp                     # Only own windows, on their common base
     gui/test_widget_wheel.cpp                    # The mouse wheel changes only the field with the focus
     gui/test_distraction_free_layout.cpp         # The window's layout for Distraction-Free writing

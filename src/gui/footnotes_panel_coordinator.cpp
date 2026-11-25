@@ -375,7 +375,7 @@ bool FootnotesPanelCoordinator::deleteNote(const FootnoteEntry& entry)
         //: The bar under the text after a note was deleted in the Footnotes panel; %1: "Footnote
         //: 3". In Polish: Usunięto: %1.
         m_showNotice(openPanel(entry.elementId), tr("Deleted: %1.").arg(title),
-                     //: In Polish: &Cofnij
+                     //: In Polish: Cofn&ij
                      tr("&Undo"),
                      //: In Polish: Przywróć przypis
                      tr("Bring the note back"), [this, text, steps, key = entry.key()]() {

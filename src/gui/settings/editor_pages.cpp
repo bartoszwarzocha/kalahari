@@ -10,6 +10,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/panels/figures_panel.h"
 #include "kalahari/gui/panels/footnotes_panel.h"
+#include "kalahari/gui/widgets/standalone_info_bar.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
 #include "kalahari/gui/utils/chapter_cursor.h"
@@ -724,6 +725,27 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
     //: In Polish: Tabele
     addThemeColor(figures, tr("Tables"), FiguresPanel::TABLE_COLOR_KEY);
     addRestoreColorsButton(figures);
+
+    // The bar at the bottom of the text, which has to stand out (its gear opens this group)
+    //: The group of Settings > Editor > Colors with the colors of the bar at the bottom of the
+    //: text. In Polish: Pasek pod tekstem
+    QFormLayout* bar = addGroup(tr("Bar Under the Text"));
+    bar->parentWidget()->setObjectName(QStringLiteral("noticeBarGroup"));  // openPage()
+    //: In Polish: Pasek na dole obszaru tekstu: odpowiedzi na polecenia, np. „Cofnij” po
+    //: usunięciu, oraz informacja o pliku spoza książki.
+    addNote(bar, tr("The bar at the bottom of the text area: the answers to commands, such as "
+                    "Undo after a deletion, and the note of a file outside a book."));
+    //: In Polish: Tło
+    addThemeColor(bar, tr("Background"), StandaloneInfoBar::BACKGROUND_COLOR_KEY);
+    //: In Polish: Obramowanie
+    addThemeColor(bar, tr("Border"), StandaloneInfoBar::BORDER_COLOR_KEY);
+    //: The color of the message of the bar. In Polish: Tekst komunikatu
+    addThemeColor(bar, tr("Message"), StandaloneInfoBar::TEXT_COLOR_KEY);
+    //: The color of the button of the bar, such as Undo. In Polish: Przycisk
+    addThemeColor(bar, tr("Button"), StandaloneInfoBar::BUTTON_COLOR_KEY);
+    //: In Polish: Napis na przycisku
+    addThemeColor(bar, tr("Button text"), StandaloneInfoBar::BUTTON_TEXT_COLOR_KEY);
+    addRestoreColorsButton(bar);
 
     pageLayout()->addStretch();
 }

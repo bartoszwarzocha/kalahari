@@ -74,10 +74,11 @@ InfoBar::InfoBar(QWidget* parent)
     });
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &InfoBar::updateIcons);
-    // The colors of the "editor" section the writer changes (setColorKeys())
+    // The colors of the "editor" section the writer changes (setColorKeys(),
+    // setEmphasisColorKeys())
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::editorColorsChanged, this,
             [this]() {
-                if (!m_backgroundKey.empty()) {
+                if (!m_backgroundKey.empty() || !m_textKey.empty()) {
                     updateStyling();
                 }
             });
@@ -158,6 +159,15 @@ void InfoBar::setColorKeys(const std::string& backgroundKey, const std::string& 
     updateStyling();
 }
 
+void InfoBar::setEmphasisColorKeys(const std::string& textKey, const std::string& actionKey,
+                                   const std::string& actionTextKey)
+{
+    m_textKey = textKey;
+    m_actionKey = actionKey;
+    m_actionTextKey = actionTextKey;
+    updateStyling();
+}
+
 void InfoBar::updateStyling()
 {
     const auto& themes = core::ThemeManager::getInstance();
@@ -178,8 +188,21 @@ void InfoBar::updateStyling()
                           "border: 1px solid %2; border-radius: 4px; }")
                       .arg(background.name(), border.name()));
 
+    const QColor text = m_textKey.empty()
+                            ? theme.palette.windowText
+                            : themes.editorColor(m_textKey, theme.palette.windowText);
     m_messageLabel->setStyleSheet(QString("QLabel { color: %1; background: transparent; }")
-                                      .arg(theme.palette.windowText.name()));
+                                      .arg(text.name()));
+    // Both buttons alike (Undo and Save All after Replace All in Book)
+    const QString buttons = actionButtonStyle();
+    m_actionButton->setStyleSheet(buttons);
+    m_secondButton->setStyleSheet(buttons);
+}
+
+QString InfoBar::actionButtonStyle() const
+{
+    const auto& themes = core::ThemeManager::getInstance();
+    const auto& theme = themes.getCurrentTheme();
 
     // Greyed out as the theme greys out every button (Theme::Palette::toQPalette): the style
     // sheet takes the place of the palette, and without its own colors a disabled button
@@ -193,20 +216,31 @@ void InfoBar::updateStyling()
             .arg(color.blue())
             .arg(color.alpha());
     };
-    const QString buttons = QString("QPushButton { background-color: %1; color: %2; "
-                                    "border: 1px solid %3; border-radius: 3px; "
-                                    "padding: 4px 12px; } "
-                                    "QPushButton:hover { background-color: %4; } "
-                                    "QPushButton:pressed { background-color: %5; } "
-                                    "QPushButton:disabled { background-color: %6; "
-                                    "color: %7; border-color: %8; }")
-                                .arg(theme.palette.button.name(), theme.palette.buttonText.name(),
-                                     theme.palette.mid.name(), theme.palette.light.name(),
-                                     theme.palette.mid.name())
-                                .arg(disabled(QPalette::Button), disabled(QPalette::ButtonText),
-                                     disabled(QPalette::Mid));
-    m_actionButton->setStyleSheet(buttons);
-    m_secondButton->setStyleSheet(buttons);
+    const QString disabledRule = QString("QPushButton:disabled { background-color: %1; "
+                                         "color: %2; border-color: %3; }")
+                                     .arg(disabled(QPalette::Button),
+                                          disabled(QPalette::ButtonText),
+                                          disabled(QPalette::Mid));
+    if (!m_actionKey.empty()) {
+        // Filled with its own color, in bold: seen at once next to the message
+        const QColor fill = themes.editorColor(m_actionKey, theme.palette.highlight);
+        const QColor label = themes.editorColor(m_actionTextKey, theme.palette.highlightedText);
+        return QString("QPushButton { background-color: %1; color: %2; border: 1px solid %3; "
+                       "border-radius: 3px; padding: 4px 14px; font-weight: bold; } "
+                       "QPushButton:hover { background-color: %4; } "
+                       "QPushButton:pressed { background-color: %3; } ")
+                   .arg(fill.name(), label.name(), fill.darker(125).name(),
+                        fill.lighter(112).name()) +
+               disabledRule;
+    }
+    return QString("QPushButton { background-color: %1; color: %2; border: 1px solid %3; "
+                   "border-radius: 3px; padding: 4px 12px; } "
+                   "QPushButton:hover { background-color: %4; } "
+                   "QPushButton:pressed { background-color: %5; } ")
+               .arg(theme.palette.button.name(), theme.palette.buttonText.name(),
+                    theme.palette.mid.name(), theme.palette.light.name(),
+                    theme.palette.mid.name()) +
+           disabledRule;
 }
 
 void InfoBar::updateIcons()

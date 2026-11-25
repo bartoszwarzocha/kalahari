@@ -44,6 +44,11 @@
   "editor": {
     "notificationBackground": "#FFF8E1",
     "notificationBorder": "#FFD54F",
+    "noticeBarBackground": "#CFE1FA",
+    "noticeBarBorder": "#3A73C9",
+    "noticeBarText": "#10294D",
+    "noticeBarButton": "#2F6BC8",
+    "noticeBarButtonText": "#FFFFFF",
     "annotationComment": "#D98E04",
     "annotationTodo": "#7B61FF",
     "annotationNote": "#1E88E5",

@@ -76,6 +76,17 @@ public:
     /// @param borderKey Key of the border
     void setColorKeys(const std::string& backgroundKey, const std::string& borderKey);
 
+    /// @brief A bar that stands out: the message and the button in colors of the theme's
+    ///        "editor" section too, the button filled with its color and in bold
+    /// @param textKey Key of the message's color
+    /// @param actionKey Key of the button's color
+    /// @param actionTextKey Key of the color of the button's text
+    void setEmphasisColorKeys(const std::string& textKey, const std::string& actionKey,
+                              const std::string& actionTextKey);
+
+    /// @brief The button (shown when it has a text)
+    [[nodiscard]] QPushButton* actionButton() const { return m_actionButton; }
+
 signals:
     /// @brief The button was clicked
     void actionClicked();
@@ -96,6 +107,10 @@ private:
     /// @brief The icons of the theme
     void updateIcons();
 
+    /// @brief The style sheet of the button: of the theme's buttons, or filled with the color
+    ///        of setEmphasisColorKeys()
+    [[nodiscard]] QString actionButtonStyle() const;
+
     QLabel* m_iconLabel = nullptr;
     QLabel* m_messageLabel = nullptr;
     QPushButton* m_actionButton = nullptr;
@@ -105,6 +120,9 @@ private:
     QString m_iconId;
     std::string m_backgroundKey;  ///< Empty: the colors of all info bars
     std::string m_borderKey;
+    std::string m_textKey;  ///< Empty: the message and the button as on all info bars
+    std::string m_actionKey;
+    std::string m_actionTextKey;
 };
 
 } // namespace kalahari::gui

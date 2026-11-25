@@ -199,6 +199,7 @@ void SettingsDialog::createNavigationTree() {
     m_pageItems[FOOTNOTES_PAGE] = m_pageItems[WORD_COUNT_PAGE];
     m_pageItems[EDITOR_COLORS_PAGE] =
         addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
+    m_pageItems[NOTICE_BAR_PAGE] = m_pageItems[EDITOR_COLORS_PAGE];
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
     m_pageItems[PAGES_PAGE] = addPage(editor, tr("Pages and Margins"), []() {
         return new EditorPagesPage(EditorPagesPage::Part::Pages);
@@ -732,15 +733,18 @@ bool SettingsDialog::openPage(const QString& page) {
             });
         }
     } else if (page == QLatin1String(MARGIN_NUMBERING_PAGE) ||
-               page == QLatin1String(WORD_COUNT_PAGE)) {
+               page == QLatin1String(WORD_COUNT_PAGE) || page == QLatin1String(NOTICE_BAR_PAGE)) {
         // The group far down the page in view, the cursor in its choice (of the numbering),
         // in the counting of the notes' words, else in its first field
         const auto built = m_builtPages.find(item->second);
         auto* scrollArea =
             built != m_builtPages.end() ? qobject_cast<QScrollArea*>(built->second) : nullptr;
-        const QString name = page == QLatin1String(WORD_COUNT_PAGE)
-                                 ? QStringLiteral("wordCountGroup")
-                                 : QStringLiteral("marginNumbersGroup");
+        QString name = QStringLiteral("marginNumbersGroup");
+        if (page == QLatin1String(WORD_COUNT_PAGE)) {
+            name = QStringLiteral("wordCountGroup");
+        } else if (page == QLatin1String(NOTICE_BAR_PAGE)) {
+            name = QStringLiteral("noticeBarGroup");
+        }
         auto* group = scrollArea != nullptr ? scrollArea->findChild<QWidget*>(name) : nullptr;
         if (group != nullptr) {
             auto* mode = group->findChild<QComboBox*>(QStringLiteral("marginNumbersMode"));

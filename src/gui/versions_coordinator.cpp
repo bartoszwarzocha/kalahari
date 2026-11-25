@@ -282,7 +282,7 @@ bool VersionsCoordinator::restoreVersion(EditorPanel* editor, const core::Chapte
     }
     if (m_showNotice) {
         m_showNotice(editor, message,
-                     //: The button of the bar after a version was restored. In Polish: &Cofnij
+                     //: The button of the bar after a version was restored. In Polish: Cofn&ij
                      tr("&Undo"),
                      //: In Polish: Cofnij przywrócenie, jak Ctrl+Z
                      tr("Undo the restoring, as Ctrl+Z does"), [this, elementId]() {

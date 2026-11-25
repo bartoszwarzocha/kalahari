@@ -230,7 +230,7 @@ int ImageFilterCoordinator::applyToBook(editor::BookEditor& text, int position)
     const QString message = tr("%n images have the filter \"%1\" now.", nullptr, changed).arg(name);
     EditorPanel* panel = panelOf(text);
     if (m_showNotice && panel != nullptr) {
-        //: In Polish: &Cofnij / Cofnij filtr obrazów
+        //: In Polish: Cofn&ij / Cofnij filtr obrazów
         m_showNotice(panel, message, tr("&Undo"), tr("Undo the filter of the images"),
                      [this]() { undo(); });
     } else {

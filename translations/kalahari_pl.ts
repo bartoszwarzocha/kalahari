@@ -5718,8 +5718,8 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>In Polish: &amp;Cofnij / Cofnij zamianę w książce</extracomment>
-        <translation>&amp;Cofnij</translation>
+        <extracomment>In Polish: Cofn&amp;ij / Cofnij zamianę w książce</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Undo the replacement in the book</source>
@@ -7795,6 +7795,41 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <extracomment>In Polish: Tabele</extracomment>
         <translation>Tabele</translation>
     </message>
+    <message>
+        <source>Bar Under the Text</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Colors with the colors of the bar at the bottom of the text. In Polish: Pasek pod tekstem</extracomment>
+        <translation>Pasek pod tekstem</translation>
+    </message>
+    <message>
+        <source>The bar at the bottom of the text area: the answers to commands, such as Undo after a deletion, and the note of a file outside a book.</source>
+        <extracomment>In Polish: Pasek na dole obszaru tekstu: odpowiedzi na polecenia, np. „Cofnij” po usunięciu, oraz informacja o pliku spoza książki.</extracomment>
+        <translation>Pasek na dole obszaru tekstu: odpowiedzi na polecenia, np. „Cofnij” po usunięciu, oraz informacja o pliku spoza książki.</translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <extracomment>In Polish: Tło</extracomment>
+        <translation>Tło</translation>
+    </message>
+    <message>
+        <source>Border</source>
+        <extracomment>In Polish: Obramowanie</extracomment>
+        <translation>Obramowanie</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>The color of the message of the bar. In Polish: Tekst komunikatu</extracomment>
+        <translation>Tekst komunikatu</translation>
+    </message>
+    <message>
+        <source>Button</source>
+        <extracomment>The color of the button of the bar, such as Undo. In Polish: Przycisk</extracomment>
+        <translation>Przycisk</translation>
+    </message>
+    <message>
+        <source>Button text</source>
+        <extracomment>In Polish: Napis na przycisku</extracomment>
+        <translation>Napis na przycisku</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorCursorPage</name>
@@ -9476,8 +9511,8 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>In Polish: &amp;Cofnij / Przywróć pole we wszystkich tekstach</extracomment>
-        <translation>&amp;Cofnij</translation>
+        <extracomment>In Polish: Cofn&amp;ij / Przywróć pole we wszystkich tekstach</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Bring the field back in every text</source>
@@ -10535,8 +10570,8 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>In Polish: &amp;Cofnij / Cofnij filtr obrazów</extracomment>
-        <translation>&amp;Cofnij</translation>
+        <extracomment>In Polish: Cofn&amp;ij / Cofnij filtr obrazów</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Undo the filter of the images</source>
@@ -12215,8 +12250,8 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>In Polish: &amp;Cofnij / Połącz teksty z powrotem</extracomment>
-        <translation>&amp;Cofnij</translation>
+        <extracomment>In Polish: Cofn&amp;ij / Połącz teksty z powrotem</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Join the texts again</source>
@@ -13371,8 +13406,8 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>The button of the bar under the plot board that undoes what it says. In Polish: &amp;Cofnij</extracomment>
-        <translation>&amp;Cofnij</translation>
+        <extracomment>The button of the bar under the plot board that undoes what it says. In Polish: Cofn&amp;ij</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>%1 · %2</source>
@@ -17806,6 +17841,11 @@ In Polish: Powiadomienia</extracomment>
 </context>
 <context>
     <name>kalahari::gui::StandaloneInfoBar</name>
+    <message>
+        <source>Colors of the Bar</source>
+        <extracomment>The gear of the bar at the bottom of the text, with Undo after a command. In Polish: Kolory paska</extracomment>
+        <translation>Kolory paska</translation>
+    </message>
     <message>
         <source>This file is not part of a book. Some features are not available.</source>
         <translation>Ten plik nie należy do książki. Część funkcji jest niedostępna.</translation>
@@ -25285,8 +25325,8 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>The button of the bar after a version was restored. In Polish: &amp;Cofnij</extracomment>
-        <translation>&amp;Cofnij</translation>
+        <extracomment>The button of the bar after a version was restored. In Polish: Cofn&amp;ij</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Undo the restoring, as Ctrl+Z does</source>
@@ -29861,7 +29901,7 @@ After the length of the book. In Polish: słów</extracomment>
     </message>
     <message>
         <source>&amp;Undo</source>
-        <translation>&amp;Cofnij</translation>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Undo %1</source>
@@ -32817,10 +32857,10 @@ No parts in the file. In Polish: – bez części –</extracomment>
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>In Polish: &amp;Cofnij / Cofnij wycięcie: fragment wraca do tekstu
+        <extracomment>In Polish: Cofn&amp;ij / Cofnij wycięcie: fragment wraca do tekstu
 ----------
-In Polish: &amp;Cofnij / Cofnij wstawienie wycinka</extracomment>
-        <translation>&amp;Cofnij</translation>
+In Polish: Cofn&amp;ij / Cofnij wstawienie wycinka</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Take the cut back: the fragment comes back to the text</source>
@@ -32886,9 +32926,9 @@ In Polish: &amp;Cofnij / Cofnij wstawienie wycinka</extracomment>
         <translation>Dokładnego miejsca nie ma już w tekście. Kursor jest w akapicie, z którego pochodzi fragment.</translation>
     </message>
     <message>
-        <source>&amp;Insert Here</source>
-        <extracomment>In Polish: &amp;Wstaw tutaj / Wstaw wycinek w miejscu kursora</extracomment>
-        <translation>&amp;Wstaw tutaj</translation>
+        <source>I&amp;nsert Here</source>
+        <extracomment>In Polish: Wstaw t&amp;utaj / Wstaw wycinek w miejscu kursora</extracomment>
+        <translation>Wstaw t&amp;utaj</translation>
     </message>
     <message>
         <source>Insert the clipping at the cursor</source>
@@ -42990,8 +43030,8 @@ In Polish: Plik %1 nie zawiera zestawów list wyeksportowanych z Kalahari.</extr
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>In Polish: &amp;Cofnij</extracomment>
-        <translation>&amp;Cofnij</translation>
+        <extracomment>In Polish: Cofn&amp;ij</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Bring the note back</source>
