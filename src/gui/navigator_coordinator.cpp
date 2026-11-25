@@ -24,6 +24,7 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/publishing_card_panel.h"
 #include "kalahari/gui/panels/publishing_text_box.h"
+#include "kalahari/gui/panels/spread_card.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/card_panel.h"
@@ -132,6 +133,8 @@ constexpr int NO_PAGE_MESSAGE_MS = 3000;
 
 /// How long the status bar shows what the card For Publishers says (Link to a Point and others)
 constexpr int PUBLISHING_MESSAGE_MS = 4000;
+/// How long a message of the card of a spread shows in the status bar
+constexpr int SPREAD_MESSAGE_MS = 4000;
 
 /// The kind of all @p kinds; none when they are of several kinds, or there are none
 core::KindRef oneKindOf(const QList<core::KindRef>& kinds) {
@@ -191,6 +194,9 @@ NavigatorCoordinator::NavigatorCoordinator(core::ProjectManager& book, CommandRe
       m_book(book),
       m_commands(commands) {
     m_pageNumbers = new BookPageNumbers(m_book, m_commands, m_centralTabs, this);
+    if (m_propertiesPanel != nullptr) {
+        m_propertiesPanel->setPageNumbers(m_pageNumbers);
+    }
 
     // The counts of the book follow the text being written, without counting at each key
     m_wordCountTimer->setSingleShot(true);
@@ -577,6 +583,11 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
 }
 
 void NavigatorCoordinator::openWindowEditor(const core::ProjectElement& element) {
+    // A spread has the card of the program
+    if (m_book.isSpread(element)) {
+        openSpreadCard(element);
+        return;
+    }
     const core::KindRef kind = m_book.kindOf(element);
     const std::shared_ptr<core::IWindowEditorProvider> provider =
         kind ? core::windowEditorProvider(kind.kind->editor) : nullptr;
@@ -606,6 +617,26 @@ void NavigatorCoordinator::openWindowEditor(const core::ProjectElement& element)
     m_centralTabs->setCurrentIndex(index);
     page->setFocus(Qt::OtherFocusReason);
     m_currentElementId = elementId;
+    m_statusBar->showMessage(tr("Opened: %1").arg(element.title), 2000);
+}
+
+void NavigatorCoordinator::openSpreadCard(const core::ProjectElement& element) {
+    auto* card = new SpreadCard(m_book, m_pageNumbers, element.id, m_centralTabs);
+    const QString iconId = NavigatorPanel::iconIdOf(m_book.bookTypes(), element, nullptr);
+    card->setProperty("tabIconId", iconId);
+    connect(card, &SpreadCard::moveRequested, this, &NavigatorCoordinator::onRequestMove);
+    connect(card, &SpreadCard::materialAdded, this, &NavigatorCoordinator::refreshNavigator);
+    connect(card, &SpreadCard::statusMessage, this, [this](const QString& text) {
+        m_statusBar->showMessage(text, SPREAD_MESSAGE_MS);
+    });
+    emit spreadCardCreated(card);
+    const int index = m_centralTabs->addTab(
+        card, core::ArtProvider::getInstance().getIcon(iconId), element.title);
+    m_centralTabs->setCurrentIndex(index);
+    if (SpreadPagesView* pages = card->view()) {
+        pages->setFocus(Qt::OtherFocusReason);
+    }
+    m_currentElementId = element.id;
     m_statusBar->showMessage(tr("Opened: %1").arg(element.title), 2000);
 }
 
@@ -1544,6 +1575,47 @@ void NavigatorCoordinator::onRequestNewChapter() {
         target.kind = pm.chapterKindFor(core::BookPlace::Main);
     }
     // A chapter by its name: the small window of its title
+    target.byName = true;
+    onRequestAdd(target);
+}
+
+void NavigatorCoordinator::onRequestNewSpread() {
+    const auto& pm = m_book;
+    const core::BookProject* project = pm.project();
+    const core::KindRef spread =
+        pm.bookTypes().findKind(QString::fromLatin1(core::ProjectManager::BASE_PACKAGE),
+                                QString::fromLatin1(core::SpreadData::KIND));
+    if (!project || !spread) {
+        core::Logger::getInstance().warn(
+            "NavigatorCoordinator: New spread requested but no project open or no kind of it");
+        return;
+    }
+
+    // Right after the element in front (a text, a spread on its card), else the one chosen in
+    // the Navigator, when its list can have a spread there; else at the end of the main part
+    AddTarget target = addTargetHere();
+    if (target.scope != AddTarget::Scope::Element && m_centralTabs != nullptr) {
+        const QWidget* front = DocumentWindows::of(*m_centralTabs).frontPage();
+        const QString inFront = front != nullptr ? front->property("elementId").toString()
+                                                 : QString();
+        const QString chosen = !inFront.isEmpty() || m_navigatorPanel == nullptr
+                                   ? inFront
+                                   : m_navigatorPanel->currentElementId();
+        const std::optional<core::ElementPlace> at =
+            chosen.isEmpty() ? std::nullopt : project->placeOf(chosen);
+        if (at && at->place != core::BookPlace::Workshop) {
+            target = AddTarget{};
+            target.scope = AddTarget::Scope::Element;
+            target.id = chosen;
+        }
+    }
+    if (target.scope != AddTarget::Scope::Element || !pm.newPlaceAfter(target.id, spread)) {
+        target = AddTarget{};
+        target.scope = AddTarget::Scope::Section;
+        target.place = core::BookPlace::Main;
+    }
+    target.kind = spread;
+    // By its name: the small window of its title
     target.byName = true;
     onRequestAdd(target);
 }

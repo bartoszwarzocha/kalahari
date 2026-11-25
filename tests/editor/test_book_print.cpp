@@ -104,9 +104,21 @@ TEST_CASE("Print: the sides of the sheets of each layout", "[print]") {
         CHECK(sheetCount(3, true) == 2);
     }
 
-    SECTION("Two pages side by side, the last one alone") {
+    SECTION("Two pages side by side as an open book: page 1 alone on the right") {
         CHECK(sheetSides({0, 1, 2, 3, 4}, SheetLayout::TwoPages) ==
-              std::vector<SheetSide>{{0, 1}, {2, 3}, {4, -1}});
+              std::vector<SheetSide>{{-1, 0}, {1, 2}, {3, 4}});
+        CHECK(sheetSides({0, 1, 2, 3}, SheetLayout::TwoPages) ==
+              std::vector<SheetSide>{{-1, 0}, {1, 2}, {3, -1}});
+        // A range: a right page without its left one on the right, a left page without its
+        // right one on the left
+        CHECK(sheetSides({2, 3, 4, 5}, SheetLayout::TwoPages) ==
+              std::vector<SheetSide>{{-1, 2}, {3, 4}, {5, -1}});
+        // Pages that are not neighbours lie alone, each on its own side
+        CHECK(sheetSides({0, 2, 4}, SheetLayout::TwoPages) ==
+              std::vector<SheetSide>{{-1, 0}, {-1, 2}, {-1, 4}});
+        CHECK(sheetSides({1, 3}, SheetLayout::TwoPages) ==
+              std::vector<SheetSide>{{1, -1}, {3, -1}});
+        CHECK(sheetSides({}, SheetLayout::TwoPages).empty());
     }
 
     SECTION("A booklet: folded in half, the stack reads in order") {

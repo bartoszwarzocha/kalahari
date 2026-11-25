@@ -222,6 +222,7 @@ void SettingsDialog::createNavigationTree() {
         return imagesPage;
     });
     m_pageItems[FIGURES_PANEL_PAGE] = m_pageItems[IMAGES_PAGE];
+    m_pageItems[SPREADS_PAGE] = m_pageItems[IMAGES_PAGE];
     //: Settings > Editor > Tables: new tables, the captions of tables. In Polish: Tabele
     m_pageItems[TABLES_PAGE] =
         addPage(editor, tr("Tables"), []() { return new EditorTablesPage(); });
@@ -711,10 +712,11 @@ bool SettingsDialog::openPage(const QString& page) {
             shortcuts->setFocus(Qt::OtherFocusReason);
         }
     } else if (page == QLatin1String(FIELDS_PAGE) || page == QLatin1String(PASTE_PAGE) ||
-               page == QLatin1String(FOOTNOTES_PAGE) || page == QLatin1String(FIGURES_PANEL_PAGE)) {
+               page == QLatin1String(FOOTNOTES_PAGE) || page == QLatin1String(FIGURES_PANEL_PAGE) ||
+               page == QLatin1String(SPREADS_PAGE)) {
         // The cursor in the gray background of the fields, in the Paste Command, in the words
         // before the numbers of the Footnotes panel, in the pictures of the panel Images and
-        // Tables, in view
+        // Tables, in where the picture of a new spread lies, in view
         const auto built = m_builtPages.find(item->second);
         auto* scrollArea =
             built != m_builtPages.end() ? qobject_cast<QScrollArea*>(built->second) : nullptr;
@@ -725,6 +727,8 @@ bool SettingsDialog::openPage(const QString& page) {
             name = QStringLiteral("footnotesPanelBefore");
         } else if (page == QLatin1String(FIGURES_PANEL_PAGE)) {
             name = QStringLiteral("figuresPanelPictures");
+        } else if (page == QLatin1String(SPREADS_PAGE)) {
+            name = QStringLiteral("spreadArea");
         }
         auto* field = scrollArea != nullptr ? scrollArea->findChild<QWidget*>(name) : nullptr;
         if (field != nullptr) {

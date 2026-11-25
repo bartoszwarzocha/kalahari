@@ -294,8 +294,9 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
     SECTION("Base: what a user project without configuration offers, in its order") {
         CHECK(places("kalahari.base") ==
               std::vector<std::string>{
-                  "title_page, copyright, dedication, motto, toc, preface, introduction",
-                  "chapter, part", "afterword, acknowledgments, glossary, about_author, toc",
+                  "title_page, copyright, dedication, motto, toc, preface, introduction, spread",
+                  "chapter, part, spread",
+                  "afterword, acknowledgments, glossary, about_author, spread, toc",
                   "mindmap, timeline, character, location, item, work_note, clipping, cover, "
                   "publishing, quote, web_page, picture, document, publication, recording, "
                   "other_file"});
@@ -305,9 +306,9 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
     SECTION("Novel") {
         CHECK(places("kalahari.novel") ==
               std::vector<std::string>{
-                  "title_page, copyright, dedication, motto, toc, preface",
-                  "prologue, part, chapter, epilogue",
-                  "afterword, acknowledgments, glossary, about_author, toc",
+                  "title_page, copyright, dedication, motto, toc, preface, spread",
+                  "prologue, part, chapter, epilogue, spread",
+                  "afterword, acknowledgments, glossary, about_author, spread, toc",
                   "mindmap, timeline, character, location, item, work_note, clipping, cover, "
                   "publishing, quote, web_page, picture, document, publication, recording, "
                   "other_file"});
@@ -318,9 +319,9 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
     SECTION("Short story collection") {
         CHECK(places("kalahari.short_stories") ==
               std::vector<std::string>{
-                  "title_page, copyright, dedication, motto, toc, introduction",
-                  "story, section",
-                  "contributors, first_publications, acknowledgments, about_author, toc",
+                  "title_page, copyright, dedication, motto, toc, introduction, spread",
+                  "story, section, spread",
+                  "contributors, first_publications, acknowledgments, about_author, spread, toc",
                   "mindmap, character, location, work_note, clipping, cover, publishing, quote, "
                   "web_page, picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.short_stories") == "story");
@@ -331,10 +332,10 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
         CHECK(places("kalahari.nonfiction") ==
               std::vector<std::string>{
                   "title_page, copyright, dedication, motto, toc, preface, introduction, "
-                  "abbreviations",
-                  "part, chapter, conclusion",
+                  "abbreviations, spread",
+                  "part, chapter, conclusion, spread",
                   "annex, endnotes, bibliography, glossary, index, illustrations, "
-                  "acknowledgments, about_author, toc",
+                  "acknowledgments, about_author, spread, toc",
                   "timeline, mindmap, work_note, clipping, cover, publishing, quote, web_page, "
                   "picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.nonfiction") == "chapter");
@@ -344,7 +345,7 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
 
     SECTION("Screenplay: no back part") {
         CHECK(places("kalahari.screenplay") ==
-              std::vector<std::string>{"title_page", "act, episode", "",
+              std::vector<std::string>{"title_page, spread", "act, episode, spread", "",
                                        "logline, synopsis, treatment, step_outline, character, "
                                        "location, work_note, clipping, quote, web_page, picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.screenplay") == "act");
@@ -354,8 +355,9 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
     SECTION("Poetry collection") {
         CHECK(places("kalahari.poetry") ==
               std::vector<std::string>{
-                  "title_page, copyright, dedication, motto, toc, introduction", "cycle, poem",
-                  "explanatory_notes, about_author, first_lines, publisher_note, toc",
+                  "title_page, copyright, dedication, motto, toc, introduction, spread",
+                  "cycle, poem, spread",
+                  "explanatory_notes, about_author, first_lines, publisher_note, spread, toc",
                   "draft, mindmap, work_note, clipping, cover, publishing, quote, web_page, "
                   "picture, document, publication, recording, other_file"});
         CHECK(primary("kalahari.poetry") == "poem");
@@ -369,9 +371,9 @@ TEST_CASE("Built-in book types: groups hold the kinds their type allows inside t
     loadBuiltIn(registry);
 
     CHECK(kindIds(registry.kindsInside(QStringLiteral("kalahari.novel"), QStringLiteral("part"))) ==
-          "prologue, chapter, epilogue, motto");
+          "prologue, chapter, epilogue, spread, motto");
     CHECK(kindIds(registry.kindsInside(QStringLiteral("kalahari.nonfiction"),
-                                       QStringLiteral("part"))) == "chapter, motto");
+                                       QStringLiteral("part"))) == "chapter, spread, motto");
     CHECK(kindIds(registry.kindsInside(QStringLiteral("kalahari.short_stories"),
                                        QStringLiteral("section"))) == "story");
     CHECK(kindIds(registry.kindsInside(QStringLiteral("kalahari.screenplay"),

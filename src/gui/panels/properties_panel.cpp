@@ -14,6 +14,7 @@
 #include "kalahari/gui/widgets/cover_plan.h"
 #include "kalahari/gui/widgets/relations_box.h"
 #include "kalahari/gui/utils/reading_time.h"
+#include "kalahari/gui/book_page_numbers.h"
 #include "kalahari/gui/panels/book_fields_box.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/clipping_origin_box.h"
@@ -31,6 +32,7 @@
 #include "kalahari/gui/version_texts.h"
 #include "kalahari/gui/widgets/flow_layout.h"
 #include "kalahari/gui/panels/card_parts.h"
+#include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/gui/widgets/sections_field.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/core/art_provider.h"
@@ -458,7 +460,59 @@ QWidget* PropertiesPanel::createChapterPage() {
     //: In Polish: Pierwsza strona:
     infoLayout->addRow(tr("First page:"), m_chapterFirstPage);
 
+    // A spread starts on a left page, always; its pages in the book (populateChapterFields())
+    m_spreadFirstPage = new QComboBox(infoGroup);
+    m_spreadFirstPage->setObjectName(QStringLiteral("spreadFirstPage"));
+    //: The page a spread starts on. In Polish: Lewa (zawsze)
+    m_spreadFirstPage->addItem(tr("Left (always)"));
+    m_spreadFirstPage->setEnabled(false);
+    infoLayout->addRow(tr("First page:"), m_spreadFirstPage);
+    //: Under the first page of a spread. In Polish: Lewa i prawa strona leżą obok siebie tylko
+    //: wtedy, gdy rozkładówka zaczyna się na lewej.
+    m_spreadFirstPageHint = new QLabel(tr("The left and the right page lie side by side only "
+                                          "when the spread starts on the left one."),
+                                       infoGroup);
+    m_spreadFirstPageHint->setWordWrap(true);
+    m_spreadFirstPageHint->setForegroundRole(QPalette::PlaceholderText);
+    infoLayout->addRow(m_spreadFirstPageHint);
+    m_chapterPagesLabel = new QLabel(infoGroup);
+    m_chapterPagesLabel->setObjectName(QStringLiteral("chapterPagesLabel"));
+    //: The pages of a spread in the book. In Polish: Strony w książce:
+    infoLayout->addRow(tr("Pages in the book:"), m_chapterPagesLabel);
+
     layout->addWidget(infoGroup);
+
+    // The settings of a spread in short; its card has them (showSpread())
+    //: The group of the Properties panel with a spread. In Polish: Rozkładówka
+    m_spreadGroup = new QGroupBox(tr("Spread"), scrollContent);
+    m_spreadGroup->setObjectName(QStringLiteral("spreadGroup"));
+    auto* spreadLayout = new QFormLayout(m_spreadGroup);
+    spreadLayout->setSpacing(6);
+    spreadLayout->setContentsMargins(11, 11, 11, 11);
+    const auto addSpreadRow = [this, spreadLayout](const QString& label) {
+        auto* value = new QLabel(m_spreadGroup);
+        value->setWordWrap(true);
+        value->setTextFormat(Qt::PlainText);
+        spreadLayout->addRow(label, value);
+        return value;
+    };
+    //: In Polish: Obraz:
+    m_spreadPicture = addSpreadRow(tr("Picture:"));
+    m_spreadPicture->setObjectName(QStringLiteral("spreadPictureLabel"));
+    //: Where the picture of a spread lies. In Polish: Zajmuje:
+    m_spreadArea = addSpreadRow(tr("Takes:"));
+    //: How the picture fits its area. In Polish: Dopasowanie:
+    m_spreadFit = addSpreadRow(tr("Fit:"));
+    //: In Polish: Zapas na grzbiet:
+    m_spreadGutter = addSpreadRow(tr("Room at the spine:"));
+    //: In Polish: Ustawienia są na karcie, obok rozkładówki.
+    auto* spreadHint = new QLabel(tr("The settings are on the card, beside the spread."),
+                                  m_spreadGroup);
+    spreadHint->setWordWrap(true);
+    spreadHint->setForegroundRole(QPalette::PlaceholderText);
+    spreadLayout->addRow(spreadHint);
+    m_spreadGroup->hide();
+    layout->addWidget(m_spreadGroup);
 
     // Where a clipping comes from (populateChapterFields())
     m_clippingOrigin = new ClippingOriginBox(m_book, scrollContent);
@@ -944,6 +998,14 @@ void PropertiesPanel::connectSignals() {
     connect(&pm, &core::ProjectManager::bookDictionaryChanged, this,
             &PropertiesPanel::updateCursorCard);
     connect(&pm, &core::ProjectManager::linksChanged, this, &PropertiesPanel::updateCursorCard);
+    // A spread changed on its card: its group here
+    connect(&pm, &core::ProjectManager::spreadChanged, this, [this](const QString& elementId) {
+        const core::ProjectElement* element = m_book.findElement(elementId);
+        if (elementId == m_currentChapterId && currentPage() == Page::Chapter &&
+            element != nullptr) {
+            showSpread(*element);
+        }
+    });
 }
 
 void PropertiesPanel::showProjectProperties() {
@@ -1829,6 +1891,57 @@ void PropertiesPanel::showChapterFirstPage(const core::ProjectElement& element) 
         std::max(0, m_chapterFirstPage->findData(core::pageStartName(element.firstPage))));
 }
 
+void PropertiesPanel::setPageNumbers(const BookPageNumbers* pages) {
+    m_pageNumbers = pages;
+    if (pages != nullptr) {
+        connect(pages, &BookPageNumbers::counted, this, [this]() {
+            if (currentPage() == Page::Chapter) {
+                showChapterPages();
+            }
+        });
+    }
+}
+
+void PropertiesPanel::showSpread(const core::ProjectElement& element) {
+    const core::SpreadData data = core::ProjectManager::spreadOf(element);
+    const core::ProjectElement* picture =
+        data.picture.isEmpty() ? nullptr : m_book.findElement(data.picture);
+    QString pictureName;
+    if (picture == nullptr) {
+        //: A spread without a picture. In Polish: brak
+        pictureName = tr("none");
+    } else {
+        pictureName = picture->title.isEmpty() ? picture->file : picture->title;
+    }
+    m_spreadPicture->setText(pictureName);
+    m_spreadArea->setText(data.toEdges()
+                              //: In Polish: do krawędzi papieru
+                              ? tr("to the edges of the paper")
+                              //: In Polish: w marginesach
+                              : tr("within the margins"));
+    m_spreadFit->setText(data.fills()
+                             //: In Polish: wypełnij
+                             ? tr("fill")
+                             //: In Polish: cały obraz
+                             : tr("the whole picture"));
+    m_spreadGutter->setText(lengthText(data.gutter, LengthUnit::Millimeters));
+}
+
+void PropertiesPanel::showChapterPages() {
+    const core::ProjectElement* element =
+        m_currentChapterId.isEmpty() ? nullptr : m_book.findElement(m_currentChapterId);
+    if (element == nullptr || !m_book.isSpread(*element)) {
+        return;
+    }
+    const std::optional<TextFirstPage> first =
+        m_pageNumbers != nullptr ? m_pageNumbers->firstPageOf(m_currentChapterId) : std::nullopt;
+    m_chapterPagesLabel->setText(
+        first ? QStringLiteral("%1–%2").arg(first->index + 1).arg(first->index + 2)
+              //: The pages of a spread before the pages of the book are counted (in the Page
+              //: Layout view or on the card of a spread). In Polish: jeszcze nie policzone
+              : tr("not counted yet"));
+}
+
 void PropertiesPanel::populateChapterFields(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::populateChapterFields() - Element: {}", elementId.toStdString());
@@ -1881,9 +1994,19 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
         pm.project() ? pm.project()->placeOf(elementId) : std::nullopt;
     const bool workshop = at && at->place == core::BookPlace::Workshop;
     const bool text = pm.formOf(*element) == core::ElementForm::Text;
-    m_chapterInfoLayout->setRowVisible(m_chapterStatusCombo, !bookFile && !workshop && text);
+    // A spread has a status, a left page always and its pages in the book, and no words
+    const bool spread = pm.isSpread(*element);
+    m_chapterInfoLayout->setRowVisible(m_chapterStatusCombo,
+                                       !bookFile && !workshop && (text || spread));
     m_chapterInfoLayout->setRowVisible(m_chapterFirstPage, !bookFile && !workshop && text);
+    m_chapterInfoLayout->setRowVisible(m_spreadFirstPage, spread);
+    m_chapterInfoLayout->setRowVisible(m_spreadFirstPageHint, spread);
+    m_chapterInfoLayout->setRowVisible(m_chapterPagesLabel, spread);
     m_chapterInfoLayout->setRowVisible(m_chapterWordCountLabel, bookFile || text);
+    m_spreadGroup->setVisible(spread);
+    if (spread) {
+        showSpread(*element);
+    }
     m_chapterNotesGroup->setVisible(!bookFile);
     // The materials about the element; a file of the book is not linked
     m_chapterMaterials->setVisible(!bookFile);
@@ -1916,6 +2039,7 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     m_chapterNotesEdit->setReadOnly(readOnly);
     m_chapterPlot->showElement(elementId);
     showVersions(elementId);
+    showChapterPages();
 
     m_isUpdating = false;
 

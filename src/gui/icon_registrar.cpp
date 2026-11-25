@@ -98,6 +98,12 @@ void registerAllIcons() {
                               "Take Out as a Book");
     iconRegistry.registerIcon("book.joinVolume", "resources/icons/twotone/layers.svg",
                               "Join Book as Volume");
+    iconRegistry.registerIcon("book.newSpread", "resources/icons/twotone/auto_stories.svg", "New Spread");
+    iconRegistry.registerIcon("book.spread", "resources/icons/twotone/auto_stories.svg", "Spread");
+    iconRegistry.registerIcon("spread.fold", "resources/icons/twotone/align_horizontal_center.svg",
+                              "Spine Band");
+    iconRegistry.registerIcon("spread.guides", "resources/icons/twotone/text_frame.svg",
+                              "Picture Area");
     iconRegistry.registerIcon("book.newScene", "resources/icons/twotone/theaters.svg", "New Scene");
     iconRegistry.registerIcon("book.newCharacter", "resources/icons/twotone/person.svg", "New Character");
     iconRegistry.registerIcon("book.newLocation", "resources/icons/twotone/place.svg", "New Location");

@@ -88,6 +88,7 @@ set(KALAHARI_CORE_SOURCES
     core/book_dictionary_file.cpp  # Its file
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
+    core/spread.cpp             # A spread: one picture over a left and a right page
     core/publishing_texts.cpp   # The texts for publishers: data, templates, lengths, the set
     core/volume_materials.cpp   # The cover and the texts for publishers of each volume
     core/card_data.cpp          # The cards of the Workshop: the values of their fields, colors
@@ -495,6 +496,7 @@ set(KALAHARI_SOURCES
     gui/panels/source_description_box.cpp  # SourceDescriptionBox - the description of a source on its card
     gui/panels/preview_panel.cpp  # PreviewPanel - what the window asks of a preview of a file
     gui/panels/image_preview_panel.cpp  # ImagePreviewPanel - the preview of a material's picture on a tab
+    gui/panels/spread_card.cpp  # SpreadCard - the card of a spread: its two pages and its settings
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
     gui/panels/material_list_panel_clippings.cpp  # MaterialListPanel - the commands of the clippings
     gui/panels/clipping_origin_box.cpp  # ClippingOriginBox - where a clipping comes from, in the Properties
@@ -578,6 +580,7 @@ set(KALAHARI_SOURCES
     editor/editor_render_pipeline.cpp         # OpenSpec #00043 Phase 12.1: Unified render pipeline
     # The pages of a book use the layout of the editor above, so they are not in kalahari_core
     editor/book_pages.cpp                     # The pages of a book as the page view shows them (PDF, printer)
+    editor/spread_look.cpp                    # How a spread lies on its two pages and how they are drawn
     editor/book_print.cpp                     # The print of a book: the pages on the sheets, their drawing
     editor/pdf_writer.cpp                     # Export of a book to a PDF document
     editor/editor_benchmark.cpp               # OpenSpec #00043 Phase 11.11: Performance benchmarks
@@ -775,6 +778,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/source_boxes.h  # The groups of the card of a source with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/preview_panel.h  # PreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spread_card.h  # SpreadCard with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/clipping_origin_box.h  # ClippingOriginBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/book_dictionary_panel.h  # BookDictionaryPanel with Q_OBJECT

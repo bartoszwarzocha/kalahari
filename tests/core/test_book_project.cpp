@@ -1332,7 +1332,8 @@ TEST_CASE("Book project: a book takes kinds of other types", "[core][bookproject
     // non-fiction is the glossary of Base, which the novel already has
     CHECK(references(project.kindsIn(registry, BookPlace::Back)) ==
           "kalahari.base:afterword, kalahari.base:acknowledgments, kalahari.base:glossary, "
-          "kalahari.base:about_author, kalahari.base:toc, kalahari.nonfiction:bibliography");
+          "kalahari.base:about_author, kalahari.base:spread, kalahari.base:toc, "
+          "kalahari.nonfiction:bibliography");
     CHECK(references(project.kindsIn(registry, BookPlace::Workshop)) ==
           "kalahari.base:mindmap, kalahari.base:timeline, kalahari.base:character, "
           "kalahari.base:location, kalahari.base:item, kalahari.base:work_note, "
@@ -1342,10 +1343,10 @@ TEST_CASE("Book project: a book takes kinds of other types", "[core][bookproject
           "kalahari.base:recording, kalahari.base:other_file, kalahari.screenplay:logline");
     CHECK(references(project.kindsIn(registry, BookPlace::Main)) ==
           "kalahari.novel:prologue, kalahari.base:part, kalahari.base:chapter, "
-          "kalahari.novel:epilogue");
+          "kalahari.novel:epilogue, kalahari.base:spread");
     CHECK(references(project.kindsInside(registry, QStringLiteral("part"))) ==
           "kalahari.novel:prologue, kalahari.base:chapter, kalahari.novel:epilogue, "
-          "kalahari.base:motto");
+          "kalahari.base:spread, kalahari.base:motto");
 
     const KindRef bibliography =
         BookProject::kindOf(registry, project.books.at(0).backElements.at(0));
@@ -1366,7 +1367,7 @@ TEST_CASE("Book project: a kind taken out of the project stays with its elements
     // No new bibliography...
     CHECK(references(project.kindsIn(registry, BookPlace::Back)) ==
           "kalahari.base:afterword, kalahari.base:acknowledgments, kalahari.base:glossary, "
-          "kalahari.base:about_author, kalahari.base:toc");
+          "kalahari.base:about_author, kalahari.base:spread, kalahari.base:toc");
 
     // ...but the one in the book keeps its kind, and the file keeps the element
     const ProjectElement& element = project.books.at(0).backElements.at(0);

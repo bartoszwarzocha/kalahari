@@ -583,10 +583,11 @@ TEST_CASE("Print: the pages chosen, the sheets and the preview", "[gui][dialogs]
 
     SECTION("Two pages side by side, and a booklet folded in half") {
         dialog.sheetButton(SheetLayout::TwoPages)->setChecked(true);
-        CHECK(dialog.sheetSides() == std::vector<SheetSide>{{0, 1}, {2, 3}, {4, -1}});
-        CHECK(dialog.previewText() == QStringLiteral("Sheet 1 of 3 · pages 1 and 2"));
+        // As an open book: page 1 alone on the right, then 2 and 3, 4 and 5
+        CHECK(dialog.sheetSides() == std::vector<SheetSide>{{-1, 0}, {1, 2}, {3, 4}});
+        CHECK(dialog.previewText() == QStringLiteral("Sheet 1 of 3 · page 1"));
         dialog.showSide(2);
-        CHECK(dialog.previewText() == QStringLiteral("Sheet 3 of 3 · page 5"));
+        CHECK(dialog.previewText() == QStringLiteral("Sheet 3 of 3 · pages 4 and 5"));
 
         dialog.sheetButton(SheetLayout::Booklet)->setChecked(true);
         CHECK(dialog.sheetSides() ==
@@ -1248,7 +1249,7 @@ TEST_CASE("Print: the sheets on a printer: the paper, its side, both sides, the 
         choice.duplex = Duplex::LongEdge;
         choice.color = false;
         const std::vector<SheetSide> sides =
-            editor::sheetSides({0, 1, 2, 3}, SheetLayout::TwoPages);
+            editor::sheetSides({1, 2, 3, 4}, SheetLayout::TwoPages);
         REQUIRE(sides.size() == 2);
         CHECK(BookExportCoordinator::printOn(printer, choice, *laidOut.pages, sides, progress,
                                              &problem));

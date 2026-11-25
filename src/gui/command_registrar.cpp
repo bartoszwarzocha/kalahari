@@ -472,6 +472,15 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
 
     REG_CMD("book.newScene", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Scene..."), "BOOK/New Scene...", 20, false, 1);
 
+    // One picture over a left and a right page, right after the element in front or chosen
+    // in the Navigator (MainWindow)
+    REG_CMD_CB("book.newSpread",
+               //: A spread: one picture over two pages of the book. In Polish (the letters of the
+               //: other items of the menu Książka are all taken, so B of the word obraz): Nowa
+               //: rozkładówka z o&brazem...
+               QT_TRANSLATE_NOOP("CommandRegistrar", "New Sp&read..."), "BOOK/New Spread...", 25,
+               false, 1, callbacks.onNewSpread);
+
     // The kinds of the Workshop: Add Element with the kind chosen, when the program has its
     // editor (MainWindow greys them out until then, saying why)
     const auto newInWorkshop = [&callbacks](const char* kindId) -> std::function<void()> {

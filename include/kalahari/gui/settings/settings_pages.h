@@ -287,8 +287,8 @@ private:
     void addMarginNumbersGroup();
 };
 
-/// @brief Editor > Images: how new images go into the text, the captions of new books, the
-///        copies of the files and the manuscript for a publisher
+/// @brief Editor > Images: how new images go into the text, the captions of new books, new
+///        spreads, the copies of the files and the manuscript for a publisher
 ///
 /// The labels of the captions are a list of the page: Add..., Rename... and Remove change it,
 /// and the label of the caption of a new image is one of them. A book has its own labels and
@@ -318,11 +318,15 @@ private:
     /// @brief The label of the caption of new images offers the labels of the list
     void fillCaptionLabels();
 
+    /// @brief The label of the caption of new spreads: none, or one of the labels of the list
+    void fillSpreadLabels();
+
     /// @brief Rename and Remove for the label selected (one label always stays)
     void updateLabelButtons();
 
     QListWidget* m_labels = nullptr;        ///< The labels of the captions of new books
     QComboBox* m_captionLabel = nullptr;    ///< The label of the caption of a new image
+    QComboBox* m_spreadLabel = nullptr;     ///< The label of the caption of a new spread
     QPushButton* m_addLabel = nullptr;
     QPushButton* m_renameLabel = nullptr;
     QPushButton* m_removeLabel = nullptr;

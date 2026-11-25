@@ -86,8 +86,8 @@
       }
     }
   },
-  "front":    ["title_page"],
-  "main":     ["act", "episode"],
+  "front":    ["title_page", "spread"],
+  "main":     ["act", "episode", "spread"],
   "back":     [],
   "workshop": ["logline", "synopsis", "treatment", "step_outline", "character", "location",
                "work_note", "clipping", "quote", "web_page", "picture", "document", "publication",

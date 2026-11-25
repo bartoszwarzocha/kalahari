@@ -153,6 +153,7 @@
 #include <kalahari/core/page_start.h>
 #include <kalahari/core/publishing_texts.h>
 #include <kalahari/core/source_description.h>
+#include <kalahari/core/spread.h>
 #include <QByteArray>
 #include <QDateTime>
 #include <QJsonObject>
@@ -309,6 +310,8 @@ struct ProjectElement {
                                      ///< empty: not said
     PublishingData publishing;       ///< Of a text for publishers: what it is, its
                                      ///< template and its state; empty: none
+    std::optional<SpreadData> spread;  ///< Of a spread: its picture and how it lies on the
+                                       ///< two pages (spread.h); std::nullopt: none
     QString bookId;                  ///< Of a material of the cover or a text for
                                      ///< publishers of a series: the id of the volume it is
                                      ///< for (VolumeMaterials); empty: the whole series

@@ -184,8 +184,11 @@ private:
     editor::ExportItem textItem(const core::ProjectElement& element,
                                 const QHash<QString, const editor::BookEditor*>& open) const;
 
+    /// @brief A spread of the book with its look, its caption numbered in the book around it
+    editor::ExportItem spreadItem(const core::ProjectElement& element) const;
+
     /// @brief Add the text in front to @p book: of the book, or a file outside it with its
-    ///        own title, language and images
+    ///        own title, language and images; or the spread in front
     void addFrontText(const QHash<QString, const editor::BookEditor*>& open,
                       editor::BookExport& book) const;
 

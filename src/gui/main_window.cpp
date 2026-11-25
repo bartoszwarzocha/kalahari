@@ -89,6 +89,7 @@
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/publishing_card_panel.h"
+#include "kalahari/gui/panels/spread_card.h"
 #include "kalahari/gui/widgets/relations_box.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/widgets/color_menu.h"
@@ -944,6 +945,24 @@ MainWindow::MainWindow(QWidget* parent)
         [this]() { return getCurrentEditor(); },
         m_captionCoordinator, m_footnoteCoordinator, this, this);
     m_bookExportCoordinator->connectCommands();
+    // The card of a spread: its print, its gear and the numbers of its caption
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::spreadCardCreated, this,
+            [this](SpreadCard* card) {
+                connect(card, &SpreadCard::printRequested, m_bookExportCoordinator,
+                        &BookExportCoordinator::printBook);
+                connect(card, &SpreadCard::settingsRequested, this, [this]() {
+                    if (m_settingsCoordinator != nullptr) {
+                        m_settingsCoordinator->openSettingsPage(
+                            QString::fromLatin1(SettingsDialog::SPREADS_PAGE));
+                    }
+                });
+                SpreadCard::Captions captions;
+                captions.context = [this](const QString& elementId) {
+                    return m_captionCoordinator->contextFor(elementId);
+                };
+                captions.labels = [this]() { return m_captionCoordinator->captions().labels; };
+                card->setCaptions(captions);
+            });
     // The card For Publishers: its export, print, gear and the Cover
     connect(m_navigatorCoordinator, &NavigatorCoordinator::publishingCardCreated, this,
             [this](PublishingCardPanel* card) {
@@ -1613,6 +1632,8 @@ void MainWindow::registerCommands() {
     callbacks.onNewChapter = [this]() {
         if (m_navigatorCoordinator) m_navigatorCoordinator->onRequestNewChapter();
     };
+    callbacks.onNewSpread =
+        callOn(m_navigatorCoordinator, &NavigatorCoordinator::onRequestNewSpread);
     // A new book of the series, or the second volume that makes a book a series
     callbacks.onNewVolume =
         callOn(m_navigatorCoordinator, &NavigatorCoordinator::onRequestNewVolume);
@@ -1977,6 +1998,22 @@ void MainWindow::registerCommands() {
                    && static_cast<bool>(projects.chapterKindFor(core::BookPlace::Main));
         };
         newText->disabledReason = whyReadOnly;
+    }
+    // New Spread... in a book whose type can have spreads in its body
+    if (auto* newSpread = registry.getCommand("book.newSpread")) {
+        newSpread->isEnabled = [this]() {
+            const auto& projects = book();
+            const core::BookProject* project = projects.project();
+            if (project == nullptr || projects.isReadOnly()) {
+                return false;
+            }
+            const QList<core::KindRef> kinds =
+                project->kindsIn(projects.bookTypes(), core::BookPlace::Main);
+            return std::any_of(kinds.cbegin(), kinds.cend(), [](const core::KindRef& kind) {
+                return kind.kind->editor == QLatin1String(core::SpreadData::EDITOR);
+            });
+        };
+        newSpread->disabledReason = whyReadOnly;
     }
     if (auto* properties = registry.getCommand("book.properties")) {
         properties->isEnabled = [this]() {
@@ -3704,6 +3741,7 @@ void MainWindow::updateBookCommands() {
     }
     registry.updateActionState("book.addElement");
     registry.updateActionState("book.newChapter");
+    registry.updateActionState("book.newSpread");
     registry.updateActionState("book.newVolume");
     registry.updateActionState("book.joinVolume");
     for (const auto& [commandId, kindId] : WORKSHOP_COMMANDS) {

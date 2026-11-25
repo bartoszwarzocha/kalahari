@@ -182,6 +182,19 @@
                 "indefinite": "a note about the author" }
       }
     },
+    "spread": {
+      "form": "window", "editor": "spread", "places": ["front", "main", "part", "back"],
+      "firstPage": "left", "icon": "book.spread",
+      "name": { "pl": "Rozkładówka", "en": "Spread" },
+      "plural": { "pl": "Rozkładówki", "en": "Spreads" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "rozkładówka", "plural": "rozkładówki",
+                "genitive": "rozkładówki", "dative": "rozkładówce", "accusative": "rozkładówkę",
+                "instrumental": "rozkładówką", "locative": "rozkładówce",
+                "genitivePlural": "rozkładówek" },
+        "en": { "singular": "spread", "plural": "spreads", "indefinite": "a spread" }
+      }
+    },
     "work_note": {
       "form": "text", "places": ["workshop"], "icon": "template.note",
       "workshopGroup": "resources",
@@ -609,9 +622,10 @@
     { "id": "keeps", "kind": "location", "other": "item", "inverse": "kept_in",
       "name": { "pl": "jest tu", "en": "is here" } }
   ],
-  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface", "introduction"],
-  "main":     ["chapter", "part"],
-  "back":     ["afterword", "acknowledgments", "glossary", "about_author", "toc"],
+  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface",
+               "introduction", "spread"],
+  "main":     ["chapter", "part", "spread"],
+  "back":     ["afterword", "acknowledgments", "glossary", "about_author", "spread", "toc"],
   "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "clipping",
                "cover", "publishing", "quote", "web_page", "picture", "document", "publication",
                "recording", "other_file"],

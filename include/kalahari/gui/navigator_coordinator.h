@@ -58,6 +58,7 @@ class PropertiesPanel;
 class BookPageNumbers;
 class CardPanel;
 class PublishingCardPanel;
+class SpreadCard;
 class EditorPanel;
 class MaterialCardPanel;
 class NotificationCoordinator;
@@ -339,6 +340,11 @@ public slots:
     /// element in front cannot have it
     void onRequestNewChapter();
 
+    /// @brief Book > New Spread...: a spread right after the element in front, else the one
+    /// chosen in the Navigator, when its list can have one there; else at the end of the main
+    /// part. The small window of its title, then its card
+    void onRequestNewSpread();
+
     /// @brief Where Book > Add... adds: right after the element of the editor's tab in front,
     /// with its kind (in the Workshop, in the group of its kind); the whole book for any other
     /// tab and for the Dashboard
@@ -520,6 +526,9 @@ signals:
     /// @brief The card For Publishers @p card is on its tab now: the window connects its
     /// export, print, settings and the Cover
     void publishingCardCreated(kalahari::gui::PublishingCardPanel* card);
+    /// @brief The card of a spread @p card is on its tab now: the window connects its print,
+    /// its gear and the numbers of its caption
+    void spreadCardCreated(kalahari::gui::SpreadCard* card);
     /// @brief Find in Book of a full card: the texts of the book searched for the name of card
     /// @p cardId, all its forms and its other names
     void findInBookRequested(const QString& cardId);
@@ -640,6 +649,8 @@ private:
     /// @brief Element @p element of a window kind on a new tab of the module that edits it
     /// (core::IWindowEditorProvider), in front; the status bar says when no module edits it
     void openWindowEditor(const core::ProjectElement& element);
+    /// @brief Spread @p element on a new tab of its card (SpreadCard), in front
+    void openSpreadCard(const core::ProjectElement& element);
     /// @brief The previews of the materials, in the book window and in windows of their own
     [[nodiscard]] QList<PreviewPanel*> previews() const;
 

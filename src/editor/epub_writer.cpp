@@ -282,6 +282,7 @@ public:
           m_title(book.title.simplified().isEmpty() ? fallbackTitle : book.title.simplified()),
           m_progress(progress) {
         m_images.setFolder(book.imagesFolder);
+        m_images.setOutsideFiles(book.pictures);
         m_textWidth = std::max(1.0, book.page.textWidthPoints());
         const double normal =
             book.styles.normal().properties.value(QStringLiteral("fontSize")).toDouble();
@@ -1198,6 +1199,8 @@ QString EpubWriter::itemDocument(size_t index) {
                 type = QStringLiteral(" epub:type=\"chapter\" role=\"doc-chapter\"");
             }
             break;
+        case ExportItemKind::Spread:
+            break;  // an e-book has it as a text (spreadsAsTexts())
     }
     QString body = QStringLiteral("<section") + type + QStringLiteral(">\n");
     if (m_withTitle[index]) {

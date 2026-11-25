@@ -107,6 +107,9 @@ void ImageStore::setFolder(const QString& folder)
 
 QString ImageStore::filePath(const QString& source) const
 {
+    if (const auto outside = m_outside.constFind(source); outside != m_outside.cend()) {
+        return *outside;
+    }
     if (m_folder.isEmpty() || !isSafeImageSource(source)) {
         return QString();
     }

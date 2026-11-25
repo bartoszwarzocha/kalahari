@@ -12,6 +12,7 @@
 #include "kalahari/gui/panels/figures_panel.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/spread.h"
 
 #include <QButtonGroup>
 #include <QCheckBox>
@@ -261,6 +262,88 @@ EditorImagesPage::EditorImagesPage(QWidget* parent)
     addNote(captions, tr("A book that already exists has its own numbering: the window \"Caption "
                          "Numbering\" (the button in the window \"Insert Caption\")."));
 
+    // How a new spread lies on its pages (Book > New Spread...); each keeps its own then
+    using core::SpreadData;
+    //: The group of Settings > Editor > Images with the settings of new spreads (a picture over
+    //: two pages of the book). In Polish: Rozkładówki
+    QFormLayout* spreads = addGroup(tr("Spreads"));
+    //: In Polish: Jak nowa rozkładówka układa się na dwóch stronach. Każda rozkładówka ma
+    //: potem własne ustawienia, na swojej karcie.
+    addNote(spreads, tr("How a new spread lies on its two pages. Each spread keeps its own "
+                        "settings, on its card."));
+    QComboBox* area = addChoice(
+        spreads,
+        //: Where the picture of a new spread lies. In Polish: Obraz zajmuje:
+        tr("The picture takes:"),
+        //: In Polish: W marginesach
+        {{tr("Within the margins"), QString::fromLatin1(SpreadData::MARGINS),
+          //: In Polish: Górny, dolny i zewnętrzne marginesy zostają; przez grzbiet obraz biegnie
+          //: bez przerwy.
+          tr("The top, bottom and outer margins stay; across the spine the picture goes on "
+             "without a break.")},
+         //: In Polish: Do krawędzi papieru
+         {tr("To the edges of the paper"), QString::fromLatin1(SpreadData::EDGE),
+          //: In Polish: Całe obie strony.
+          tr("Both pages, whole.")}},
+        std::string());
+    area->setObjectName(QStringLiteral("spreadArea"));
+    bindChoice(area, SpreadData::AREA_KEY, SpreadData::MARGINS);
+    QComboBox* fit = addChoice(
+        spreads,
+        //: How the picture of a new spread fits its area. In Polish: Dopasowanie:
+        tr("Fit:"),
+        //: In Polish: Cały obraz
+        {{tr("The whole picture"), QString::fromLatin1(SpreadData::WHOLE),
+          //: In Polish: Nic nie ginie, wolne miejsce zostaje białe.
+          tr("Nothing is lost; the room left stays white.")},
+         //: In Polish: Wypełnij
+         {tr("Fill"), QString::fromLatin1(SpreadData::FILL),
+          //: In Polish: Obraz wypełnia pole, a brzegi poza nim są przycięte.
+          tr("The picture fills the area, and its edges beyond it are cut off.")}},
+        std::string());
+    fit->setObjectName(QStringLiteral("spreadFit"));
+    bindChoice(fit, SpreadData::FIT_KEY, SpreadData::WHOLE);
+    auto* gutter = new LengthSpinBox(LengthUnit::Millimeters, 0.0, SpreadData::MAX_GUTTER);
+    gutter->setObjectName(QStringLiteral("spreadGutter"));
+    //: The room at the spine of a new spread. In Polish: Zapas na grzbiet:
+    addField(spreads, tr("Room at the spine:"), gutter, SpreadData::GUTTER_KEY);
+    //: In Polish: Połówki obrazu odsuwają się od zgięcia, a pasek przy grzbiecie jest na obu
+    //: stronach.
+    addFieldNote(spreads, tr("The halves of the picture move away from the fold, and the strip "
+                             "at the spine shows on both pages."));
+    //: In Polish: Podpis pod obrazem, na prawej stronie
+    QCheckBox* spreadCaption = addCheckBox(spreads, tr("A caption under the picture, on the "
+                                                       "right page"),
+                                           SpreadData::CAPTION_KEY);
+    spreadCaption->setObjectName(QStringLiteral("spreadCaption"));
+    m_spreadLabel = new QComboBox();
+    m_spreadLabel->setObjectName(QStringLiteral("spreadCaptionLabel"));
+    //: The label of the caption of a new spread (for screen readers). In Polish: Etykieta
+    //: podpisu nowej rozkładówki
+    m_spreadLabel->setAccessibleName(tr("Label of the caption of a new spread"));
+    m_spreadLabel->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    m_spreadLabel->setMinimumContentsLength(MIN_CHOICE_CHARACTERS);
+    auto* spreadLabelRow = new QWidget();
+    auto* spreadLabelLayout = new QHBoxLayout(spreadLabelRow);
+    spreadLabelLayout->setContentsMargins(0, 0, 0, 0);
+    spreadLabelLayout->addWidget(m_spreadLabel);
+    spreadLabelLayout->addStretch();
+    spreads->addRow(spreadLabelRow);
+    alignWithText(spreadLabelRow, spreadCaption);
+    fillSpreadLabels();
+    bind(m_spreadLabel, SpreadData::CAPTION_LABEL_KEY);
+    const auto syncSpreadLabel = [this, spreadCaption]() {
+        m_spreadLabel->setEnabled(spreadCaption->isChecked());
+    };
+    connect(spreadCaption, &QCheckBox::toggled, this, syncSpreadLabel);
+    whenLoaded(syncSpreadLabel);
+    //: In Polish: Numery stron i żywa pagina
+    addCheckBox(spreads, tr("Page numbers and running head"), SpreadData::PAGE_NUMBERS_KEY)
+        ->setObjectName(QStringLiteral("spreadPageNumbers"));
+    //: In Polish: Tytuł w spisie treści
+    addCheckBox(spreads, tr("Title in the table of contents"), SpreadData::IN_CONTENTS_KEY)
+        ->setObjectName(QStringLiteral("spreadInContents"));
+
     // The copies of the files
     //: In Polish: Pliki
     QFormLayout* files = addGroup(tr("Files"));
@@ -372,7 +455,34 @@ void EditorImagesPage::showLabels(const QStringList& labels) {
     updateLabelButtons();
 }
 
+void EditorImagesPage::fillSpreadLabels() {
+    if (m_spreadLabel == nullptr) {
+        return;
+    }
+    // A caption without a label (its text alone), or one of the labels of the list
+    const QString current = m_spreadLabel->currentData().toString();
+    const QSignalBlocker blocker(m_spreadLabel);
+    m_spreadLabel->clear();
+    //: The caption of a spread: its text alone. In Polish: bez etykiety i numeru
+    m_spreadLabel->addItem(tr("without a label and number"), QString());
+    const QStringList labels = m_labels != nullptr && m_labels->count() > 0
+                                   ? listedLabels()
+                                   : settingsCaptionLabels();
+    for (const QString& label : labels) {
+        //: The caption of a spread: a label with its number; %1: the label ("Map"). In Polish:
+        //: %1 z numerem
+        m_spreadLabel->addItem(tr("%1 with a number").arg(label), label);
+    }
+    if (const int index = m_spreadLabel->findData(current); index >= 0) {
+        m_spreadLabel->setCurrentIndex(index);
+    } else if (!current.isEmpty()) {
+        m_spreadLabel->addItem(tr("%1 with a number").arg(current), current);  // still shown
+        m_spreadLabel->setCurrentIndex(m_spreadLabel->count() - 1);
+    }
+}
+
 void EditorImagesPage::fillCaptionLabels() {
+    fillSpreadLabels();
     const QString current = m_captionLabel->currentText();
     const QSignalBlocker blocker(m_captionLabel);
     m_captionLabel->clear();

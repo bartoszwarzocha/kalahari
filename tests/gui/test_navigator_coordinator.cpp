@@ -38,6 +38,7 @@
 #include <kalahari/gui/panels/material_page.h>
 #include <kalahari/gui/panels/navigator_panel.h>
 #include <kalahari/gui/panels/properties_panel.h>
+#include <kalahari/gui/panels/spread_card.h>
 #include <kalahari/gui/paste_target.h>
 #include <kalahari/gui/utils/access_keys.h>
 #include <kalahari/gui/utils/file_location.h>
@@ -1081,6 +1082,33 @@ TEST_CASE("Navigator commands: Add and New Chapter start from the element in the
           novel.book().mainElements.last().id);
     CHECK(titles(novel.book().frontElements) == titles(novel.savedBook().frontElements));
     CHECK(titles(novel.book().mainElements) == titles(novel.savedBook().mainElements));
+}
+
+TEST_CASE("Navigator commands: New Spread goes right after the element in front, its card "
+          "open", "[gui][navigator][spread]") {
+    OpenNovel novel;
+    Navigator navigator;
+    const QString first = navigator.added(QStringLiteral("chapter"));
+    const QString last = navigator.added(QStringLiteral("chapter"));
+
+    // The chapter in the editor: the spread right after it, its card in front
+    navigator.coordinator.onElementSelected(first, QStringLiteral("Chapter 1"));
+    CHECK(answering([&navigator] { navigator.coordinator.onRequestNewSpread(); },
+                    {addAs({.title = "The Route"})}) == 1);
+    REQUIRE(novel.book().mainElements.size() == 3);
+    const core::ProjectElement& spread = novel.book().mainElements.at(1);
+    CHECK(spread.title == QStringLiteral("The Route"));
+    CHECK(spread.kind.toString() == QStringLiteral("kalahari.base:spread"));
+    auto* card = qobject_cast<gui::SpreadCard*>(navigator.tabs->currentWidget());
+    REQUIRE(card != nullptr);
+    CHECK(card->elementId() == spread.id);
+
+    // The card in front: the next spread after it
+    CHECK(answering([&navigator] { navigator.coordinator.onRequestNewSpread(); },
+                    {addAs({.title = "The Tree"})}) == 1);
+    REQUIRE(novel.book().mainElements.size() == 4);
+    CHECK(novel.book().mainElements.at(2).title == QStringLiteral("The Tree"));
+    CHECK(novel.book().mainElements.last().id == last);
 }
 
 TEST_CASE("Navigator commands: the book and the Workshop are named and the Workshop grouped, "

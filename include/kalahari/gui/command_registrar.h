@@ -140,6 +140,8 @@ struct CommandCallbacks {
                                                 ///< in front
     std::function<void()> onNewChapter;         ///< Book > New Chapter... (named after the
                                                 ///< main texts of the book: New Story...)
+    std::function<void()> onNewSpread;          ///< Book > New Spread...: one picture over
+                                                ///< a left and a right page
     std::function<void()> onNewVolume;          ///< Book > New Volume...: a new book of the
                                                 ///< series
     std::function<void()> onJoinVolume;         ///< Book > Join Book as Volume...: a book

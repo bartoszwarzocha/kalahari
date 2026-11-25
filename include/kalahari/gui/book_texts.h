@@ -29,15 +29,19 @@ struct BookTextElement {
     core::BookPlace place = core::BookPlace::Main;
     /// A chapter: of the main kind (core::ProjectManager::mainTextKind()) in the main part
     bool chapter = false;
+    /// A spread (core::SpreadData): no text of its own, its caption only
+    bool spread = false;
 };
 
 /// @brief The texts of the book open in @p book in reading order: the front part, the main part
 ///        and the back part, the texts of their groups among them; none without a book
 /// @param volume The volume of a series whose texts they are; nullptr: the current book
 ///        (core::ProjectManager::book())
+/// @param spreads The spreads among them (the captions of the book count theirs)
 /// @note The elements are the book's: valid while it stays as it is
 std::vector<BookTextElement> bookTextElements(const core::ProjectManager& book,
-                                              const core::ProjectBook* volume = nullptr);
+                                              const core::ProjectBook* volume = nullptr,
+                                              bool spreads = false);
 
 /// @brief The volume of a series whose texts element @p elementId numbers its notes and
 ///        captions with: its own book, or the current book for an element of no book

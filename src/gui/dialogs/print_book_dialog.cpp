@@ -633,6 +633,7 @@ PrintBookDialog::PrintBookDialog(const Book& book, const QList<Printer>& printer
     connect(m_previousButton, &QToolButton::clicked, this,
             [this]() { showSide(m_shownSide - 1); });
     connect(m_nextButton, &QToolButton::clicked, this, [this]() { showSide(m_shownSide + 1); });
+    connect(m_spreadButton, &QToolButton::clicked, this, &PrintBookDialog::showSpread);
     m_preview->keyPressed = [this](int key) {
         const int last = static_cast<int>(m_sides.size()) - 1;
         switch (key) {
@@ -831,6 +832,13 @@ void PrintBookDialog::addSheetSection()
     m_bookletButton = new QRadioButton(tr("Booklet to fold &in half"), page);
     sheet->addWidget(m_onePageButton, row++, 0, 1, 2);
     sheet->addWidget(m_twoPagesButton, row++, 0, 1, 2);
+    sheet->addWidget(indented(newRemark(page,
+                                        //: Under two pages side by side. In Polish: Jak otwarta
+                                        //: książka: strona 1 sama, po prawej; dalej 2–3, 4–5...
+                                        tr("As an open book: page 1 alone on the right, then "
+                                           "2–3, 4–5...")),
+                              m_twoPagesButton),
+                     row++, 0, 1, 2);
     sheet->addWidget(m_bookletButton, row++, 0, 1, 2);
     sheet->addWidget(indented(newRemark(page,
                                         //: Under the booklet. In Polish: Po złożeniu na pół
@@ -839,6 +847,8 @@ void PrintBookDialog::addSheetSection()
                                            "order.")),
                               m_bookletButton),
                      row++, 0, 1, 2);
+    m_spreadNote = addNote(sheet);  // where the halves of a spread lie (showSide())
+    row = sheet->rowCount();
 
     //: Over the size of the pages on a sheet. In Polish: Rozmiar
     sheet->addWidget(newRemark(page, tr("Size")), row++, 0, 1, 2);
@@ -1066,9 +1076,22 @@ QWidget* PrintBookDialog::newPreview()
     m_previewLabel->setTextFormat(Qt::PlainText);
     m_previewLabel->setAlignment(Qt::AlignCenter);
     m_previewLabel->setWordWrap(true);
+    // To the sheet of a spread of the book (only when it has one)
+    m_spreadButton = new QToolButton(previewBox);
+    m_spreadButton->setObjectName(QStringLiteral("printSpreadButton"));
+    //: A button under the preview: to the sheet with the spread in front (or the next one).
+    //: In Polish: Do rozkładówki
+    m_spreadButton->setText(tr("To the Spread"));
+    m_spreadButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
+    //: In Polish: Kartka z bieżącą rozkładówką, a kolejne naciśnięcia – z następnymi
+    m_spreadButton->setToolTip(tr("The sheet with the current spread; pressed again, with the "
+                                  "next ones"));
+    m_spreadButton->setAccessibleName(m_spreadButton->text());
+    m_spreadButton->setVisible(false);
     navigation->addWidget(m_previousButton);
     navigation->addWidget(m_previewLabel, 1);
     navigation->addWidget(m_nextButton);
+    navigation->addWidget(m_spreadButton);
     previewLayout->addLayout(navigation);
     return previewBox;
 }
@@ -1542,6 +1565,7 @@ void PrintBookDialog::showSide(int side)
     m_nextButton->setEnabled(m_shownSide < last);
 
     const Choice now = choice();
+    showSpreadNote(shown, now.sheet.layout);
     SheetPreview::Sheet sheet;
     sheet.pages = m_laidOut.pages;
     sheet.side = shown;
@@ -1550,6 +1574,92 @@ void PrintBookDialog::showSide(int side)
     sheet.options = now.sheet;
     sheet.gray = !now.color;
     m_preview->setSheet(std::move(sheet));
+}
+
+void PrintBookDialog::showSpreadNote(const editor::SheetSide& shown, editor::SheetLayout layout)
+{
+    const editor::BookPages* pages = m_laidOut.pages.get();
+    const std::vector<editor::PageSpread> none;
+    const std::vector<editor::PageSpread>& spreads = pages != nullptr ? pages->spreads() : none;
+    const auto has = [&shown](int page) {
+        return std::find(shown.cbegin(), shown.cend(), page) != shown.cend();
+    };
+    // The spread with a page on the side shown
+    const auto onSide =
+        std::find_if(spreads.cbegin(), spreads.cend(), [&has](const editor::PageSpread& spread) {
+            return has(spread.page) || has(spread.page + 1);
+        });
+    const bool chosen =
+        std::any_of(spreads.cbegin(), spreads.cend(), [this](const editor::PageSpread& spread) {
+            return std::find(m_chosenPages.cbegin(), m_chosenPages.cend(), spread.page) !=
+                   m_chosenPages.cend();
+        });
+    m_spreadButton->setVisible(chosen);
+    QString text;
+    QString icon;
+    if (chosen && layout == editor::SheetLayout::Booklet) {
+        //: Under the pages on a sheet, for a book with a spread. In Polish: W broszurze
+        //: połówki rozkładówki leżą na różnych kartkach; po złożeniu stykają się w grzbiecie,
+        //: tak jak w drukarni.
+        text = tr("In a booklet the halves of a spread lie on different sheets; folded, they "
+                  "meet at the spine, as at a print shop.");
+    } else if (onSide != spreads.cend() && layout == editor::SheetLayout::TwoPages) {
+        const QString title = literal(onSide->title);
+        if (has(onSide->page) && has(onSide->page + 1)) {
+            //: %1: the title of the spread. In Polish: Obie strony rozkładówki „%1” są na tej
+            //: kartce.
+            text = tr("Both pages of the spread \"%1\" are on this sheet.").arg(title);
+        } else {
+            //: %1: the title of the spread, %2 and %3: its pages. In Polish: Rozkładówka „%1”
+            //: trafia na dwie kartki: strony %2 i %3 nie leżą obok siebie.
+            text = tr("The spread \"%1\" goes onto two sheets: pages %2 and %3 do not lie side "
+                      "by side.")
+                       .arg(title, pageNumber(onSide->page), pageNumber(onSide->page + 1));
+            icon = QStringLiteral("common.warning");
+        }
+    }
+    showNote(m_spreadNote, text, icon);
+}
+
+void PrintBookDialog::showSpread()
+{
+    const editor::BookPages* pages = m_laidOut.pages.get();
+    if (pages == nullptr || m_sides.empty()) {
+        return;
+    }
+    const auto sideOf = [this](int page) {
+        for (size_t side = 0; side < m_sides.size(); ++side) {
+            const editor::SheetSide& each = m_sides[side];
+            if (std::find(each.cbegin(), each.cend(), page) != each.cend()) {
+                return static_cast<int>(side);
+            }
+        }
+        return -1;
+    };
+    // The sides of the spreads printed, in the order of the print
+    std::vector<std::pair<int, int>> sides;  // side, first page
+    for (const editor::PageSpread& spread : pages->spreads()) {
+        if (const int side = sideOf(spread.page); side >= 0) {
+            sides.emplace_back(side, spread.page);
+        }
+    }
+    if (sides.empty()) {
+        return;
+    }
+    std::sort(sides.begin(), sides.end());
+    // The spread in front first, unless the side shown has it: then the next one
+    const int shownCurrent = sideOf(m_laidOut.current);
+    const bool currentIsSpread = std::any_of(
+        sides.cbegin(), sides.cend(),
+        [this](const std::pair<int, int>& each) { return each.second == m_laidOut.current; });
+    if (currentIsSpread && shownCurrent >= 0 && shownCurrent != m_shownSide) {
+        showSide(shownCurrent);
+        return;
+    }
+    const auto next =
+        std::find_if(sides.cbegin(), sides.cend(),
+                     [this](const std::pair<int, int>& each) { return each.first > m_shownSide; });
+    showSide(next != sides.cend() ? next->first : sides.front().first);
 }
 
 void PrintBookDialog::layOutNow()
@@ -1902,6 +2012,16 @@ void PrintBookDialog::showPages()
     }
     setHint(m_status);
     m_preview->setMessage(message);
+    // The first time: the sheet of the spread in front, else the first one
+    if (m_shownSide < 0 && m_laidOut.pages != nullptr) {
+        const std::vector<editor::PageSpread>& spreads = m_laidOut.pages->spreads();
+        if (std::any_of(spreads.cbegin(), spreads.cend(),
+                        [this](const editor::PageSpread& spread) {
+                            return spread.page == m_laidOut.current;
+                        })) {
+            showSpread();
+        }
+    }
     showSide(m_shownSide < 0 ? 0 : m_shownSide);
     acceptButton()->setEnabled(printer != nullptr && !m_sides.empty() && m_printing != nullptr);
     showSummaries();

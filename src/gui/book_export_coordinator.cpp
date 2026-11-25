@@ -259,14 +259,51 @@ void addRowsOf(const core::ProjectManager& projects, const QList<core::ProjectEl
         const bool group = form == core::ElementForm::Group;
         const bool contents =
             form == core::ElementForm::Window && isContentsKind(element.kind.kindId);
-        if (text || group || contents) {
-            rows.append(ExportRow{element.id, element.title, text ? element.status : QString(),
+        const bool spread = projects.isSpread(element);
+        if (text || group || contents || spread) {
+            rows.append(ExportRow{element.id, element.title,
+                                  text || spread ? element.status : QString(),
                                   NavigatorPanel::iconIdOf(projects.bookTypes(), element),
                                   at.level, !group});
         }
         if (group) {
             pending.push_back({&element.elements, 0, at.level + 1});
         }
+    }
+}
+
+/// The spread in front of the window, from the tab @p front shows; nullptr: none
+const core::ProjectElement* frontSpread(const core::ProjectManager& projects, const QWidget* front) {
+    if (front == nullptr) {
+        return nullptr;
+    }
+    const QString elementId = front->property("elementId").toString();
+    const core::ProjectElement* element =
+        elementId.isEmpty() ? nullptr : projects.findElement(elementId);
+    return element != nullptr && projects.isSpread(*element) ? element : nullptr;
+}
+
+/// Give the spreads of @p book their pictures: the files of the materials they show, outside
+/// the folder of images (editor::BookExport::pictures), turned as the Workshop shows them
+void addSpreadPictures(const core::ProjectManager& projects, editor::BookExport& book) {
+    for (editor::ExportItem& item : book.items) {
+        if (item.kind != editor::ExportItemKind::Spread) {
+            continue;
+        }
+        const core::ProjectElement* element = projects.findElement(item.elementId);
+        const QString materialId =
+            element != nullptr ? core::ProjectManager::spreadOf(*element).picture : QString();
+        const core::ProjectElement* material =
+            materialId.isEmpty() ? nullptr : projects.findElement(materialId);
+        const QString file = material != nullptr ? projects.filePathOf(*material) : QString();
+        if (file.isEmpty()) {
+            continue;
+        }
+        // A source of its own, which no image of the texts has
+        item.spread.picture =
+            QStringLiteral("spread-%1/%2").arg(item.elementId, QFileInfo(file).fileName());
+        item.spread.rotation = material->rotation;
+        book.pictures.insert(item.spread.picture, file);
     }
 }
 
@@ -584,9 +621,14 @@ dialogs::ExportBookDialog::Book BookExportCoordinator::dialogBook(
         projectBook != nullptr ? bookOfVolume(projects, *projectBook)
                                : dialogs::ExportBookDialog::Book();
 
-    // The text in front: of the book, or a file outside it
+    // The text in front: of the book, or a file outside it; or a spread
     const EditorPanel* front = m_currentEditor ? m_currentEditor() : nullptr;
-    if (front != nullptr && front->getBookEditor() != nullptr) {
+    if (const core::ProjectElement* spread = frontSpread(
+            projects, m_centralTabs != nullptr ? DocumentWindows::of(*m_centralTabs).frontPage()
+                                               : nullptr)) {
+        book.frontId = spread->id;
+        book.frontTitle = spread->title;
+    } else if (front != nullptr && front->getBookEditor() != nullptr) {
         const QString elementId = front->property("elementId").toString();
         const core::ProjectElement* element =
             elementId.isEmpty() ? nullptr : projects.findElement(elementId);
@@ -622,6 +664,11 @@ editor::BookExport BookExportCoordinator::bookExport(
     if (choice.format == editor::ExportFormat::Epub) {
         const auto& settings = core::SettingsManager::getInstance();
         book.fontFamily = QString::fromStdString(settings.get<std::string>("editor.fontFamily"));
+    }
+    // A file that shows a page at a time gets each spread as a text: its whole picture with
+    // its caption
+    if (choice.format != editor::ExportFormat::Pdf) {
+        editor::spreadsAsTexts(book);
     }
     book.epub.bookStyles = choice.bookStyles;
     book.epub.embedFont = choice.embedFont;
@@ -678,6 +725,7 @@ editor::BookExport BookExportCoordinator::bookExport(
     const QHash<QString, const editor::BookEditor*> open = openEditors();
     if (layout.content == Content::Front) {
         addFrontText(open, book);
+        addSpreadPictures(projects, book);
         return book;
     }
     if (projectBook == nullptr) {
@@ -694,6 +742,7 @@ editor::BookExport BookExportCoordinator::bookExport(
     addItems(projectBook->frontElements, wanted, open, book.items);
     addItems(projectBook->mainElements, wanted, open, book.items);
     addItems(projectBook->backElements, wanted, open, book.items);
+    addSpreadPictures(projects, book);
 
     // The endnotes of a book that has them at its end
     book.endnotesAtBookEnd = std::any_of(book.items.cbegin(), book.items.cend(),
@@ -743,8 +792,45 @@ editor::ExportItem BookExportCoordinator::textItem(
     return item;
 }
 
+editor::ExportItem BookExportCoordinator::spreadItem(const core::ProjectElement& element) const {
+    // Its look; its picture comes with the pictures of the book (addSpreadPictures())
+    const core::SpreadData data = core::ProjectManager::spreadOf(element);
+    editor::ExportItem item;
+    item.kind = editor::ExportItemKind::Spread;
+    item.elementId = element.id;
+    item.title = element.title;
+    item.titleStyle = CHAPTER_TITLE_STYLE;
+    item.start = core::PageStart::Left;
+    item.inContents = data.inContents;
+    item.spreadCaption = data.caption;
+    item.spreadLabel = data.captionLabel;
+    item.spreadText = data.captionText;
+    if (m_captions != nullptr) {
+        item.captions = m_captions->contextFor(element.id);
+    }
+    editor::SpreadLook& look = item.spread;
+    look.toEdges = data.toEdges();
+    look.fills = data.fills();
+    look.cropX = data.cropX;
+    look.cropY = data.cropY;
+    look.zoom = data.zoom;
+    look.gutter = data.gutter;
+    look.pageNumbers = data.pageNumbers;
+    if (data.caption) {
+        look.caption = editor::spreadCaptionText(data.captionLabel, data.captionText, item.captions);
+    }
+    return item;
+}
+
 void BookExportCoordinator::addFrontText(const QHash<QString, const editor::BookEditor*>& open,
                                          editor::BookExport& book) const {
+    // A spread in front
+    if (const core::ProjectElement* spread = frontSpread(
+            m_book, m_centralTabs != nullptr ? DocumentWindows::of(*m_centralTabs).frontPage()
+                                             : nullptr)) {
+        book.items.push_back(spreadItem(*spread));
+        return;
+    }
     const EditorPanel* front = m_currentEditor ? m_currentEditor() : nullptr;
     if (front == nullptr || front->getBookEditor() == nullptr) {
         return;
@@ -801,6 +887,10 @@ void BookExportCoordinator::addItems(const QList<core::ProjectElement>& elements
         } else if (form == core::ElementForm::Text && !element.file.isEmpty()) {
             if (wanted(element)) {
                 items.push_back(textItem(element, open));
+            }
+        } else if (m_book.isSpread(element)) {
+            if (wanted(element)) {
+                items.push_back(spreadItem(element));
             }
         } else if (form == core::ElementForm::Window && isContentsKind(element.kind.kindId) &&
                    wanted(element)) {
@@ -878,6 +968,14 @@ dialogs::PrintBookDialog::LaidOut BookExportCoordinator::printedPages(
                                                          editor::BookPages::Options{false});
     printed->pages->layOut();
     laidOut.pages = std::shared_ptr<const editor::BookPages>(printed, printed->pages.get());
+
+    // The first page of a spread in front
+    if (const core::ProjectElement* spread = frontSpread(
+            m_book, m_centralTabs != nullptr ? DocumentWindows::of(*m_centralTabs).frontPage()
+                                             : nullptr)) {
+        laidOut.current = laidOut.pages->pageAt(spread->id, 0);
+        return laidOut;
+    }
 
     // The page of the cursor of the text in front: of the book, or the file outside it alone
     const EditorPanel* front = m_currentEditor ? m_currentEditor() : nullptr;

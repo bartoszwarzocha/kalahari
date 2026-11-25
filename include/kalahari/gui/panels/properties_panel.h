@@ -48,6 +48,7 @@ class BookEditor;
 namespace kalahari::gui {
 
 class BookFieldsBox;
+class BookPageNumbers;
 class CardPage;
 class ClippingOriginBox;
 class CursorCardBox;
@@ -132,6 +133,10 @@ public:
 
     /// @brief Where the clipping of the chapter page comes from (hidden for another element)
     [[nodiscard]] ClippingOriginBox* clippingOrigin() const { return m_clippingOrigin; }
+
+    /// @brief The pages of the book, for the pages of a spread on the chapter page (counted
+    ///        while pages show); nullptr: none
+    void setPageNumbers(const BookPageNumbers* pages);
 
 
 
@@ -521,6 +526,13 @@ private:
     ///        of its kind or of the settings (ProjectManager::kindPageStartOf()), or its own
     void showChapterFirstPage(const core::ProjectElement& element);
 
+    /// @brief The group of spread @p element: its picture, where it lies, how it fits and the
+    ///        room at the spine (its card has the settings)
+    void showSpread(const core::ProjectElement& element);
+
+    /// @brief The pages in the book of the element of the chapter page (a spread)
+    void showChapterPages();
+
     /// @brief The group of the versions of the text of element @p elementId: how many, the
     /// last one and its description; hidden for an element whose text has none. While
     /// versions are turned off it says so, and how many can be read in the history.
@@ -577,6 +589,15 @@ private:
     QLabel* m_chapterWordCountLabel = nullptr;
     QComboBox* m_chapterStatusCombo = nullptr;
     QComboBox* m_chapterFirstPage = nullptr;  ///< The page the text starts on (page_start.h)
+    QComboBox* m_spreadFirstPage = nullptr;   ///< Of a spread: a left page, always
+    QLabel* m_spreadFirstPageHint = nullptr;  ///< Why
+    QLabel* m_chapterPagesLabel = nullptr;    ///< Of a spread: its pages in the book
+    QGroupBox* m_spreadGroup = nullptr;       ///< Of a spread: its settings in short
+    QLabel* m_spreadPicture = nullptr;
+    QLabel* m_spreadArea = nullptr;
+    QLabel* m_spreadFit = nullptr;
+    QLabel* m_spreadGutter = nullptr;
+    const BookPageNumbers* m_pageNumbers = nullptr;
     QGroupBox* m_chapterNotesGroup = nullptr;
     QTextEdit* m_chapterNotesEdit = nullptr;
     LinkedMaterialsBox* m_chapterMaterials = nullptr;  ///< The materials of the element

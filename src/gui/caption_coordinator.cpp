@@ -12,6 +12,8 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/book_export.h"
+#include "kalahari/editor/spread_look.h"
 #include "kalahari/editor/text_captions.h"
 #include "kalahari/gui/book_texts.h"
 #include "kalahari/gui/caption_settings.h"
@@ -46,6 +48,18 @@ constexpr const char* CAPTION_COMMAND = "insert.caption";
 constexpr const char* REFERENCE_COMMAND = "insert.crossReference";
 constexpr const char* FIGURE_LIST_COMMAND = "insert.figureList";
 
+/// The caption of spread @p element as the captions of the texts are counted: one with a
+/// label, none of its text alone (editor::spreadKml())
+std::vector<editor::CaptionEntry> spreadCaptionEntries(const core::ProjectElement& element) {
+    const core::SpreadData spread = core::ProjectManager::spreadOf(element);
+    if (!spread.caption || spread.captionLabel.isEmpty()) {
+        return {};
+    }
+    return editor::captionEntriesOfKml(
+        editor::spreadKml(editor::SpreadLook{}, QString(), spread.captionLabel,
+                          spread.captionText, editor::spreadCaptionId(element.id)));
+}
+
 }  // namespace
 
 CaptionCoordinator::CaptionCoordinator(core::ProjectManager& book, CommandRegistry& commands,
@@ -72,6 +86,8 @@ CaptionCoordinator::CaptionCoordinator(core::ProjectManager& book, CommandRegist
         refreshSoon();
     });
     connect(&projects, &core::ProjectManager::bookCaptionsChanged, this, &CaptionCoordinator::refresh);
+    // A spread's caption counts with those of the texts
+    connect(&projects, &core::ProjectManager::spreadChanged, this, [this]() { refreshSoon(); });
 
     // A text opened, closed or brought to the front: the numbers, and the commands follow it
     if (m_centralTabs != nullptr) {
@@ -160,7 +176,8 @@ core::BookCaptions CaptionCoordinator::captionsOf(const core::ProjectBook* volum
 std::vector<CaptionCoordinator::BookText> CaptionCoordinator::bookTexts(
     const core::ProjectBook* volume) const {
     std::vector<BookText> texts;
-    const std::vector<BookTextElement> elements = bookTextElements(m_book, volume);
+    // The spreads among the texts: their captions are numbered with the texts' ones
+    const std::vector<BookTextElement> elements = bookTextElements(m_book, volume, true);
     if (elements.empty()) {
         return texts;
     }
@@ -174,7 +191,7 @@ std::vector<CaptionCoordinator::BookText> CaptionCoordinator::bookTexts(
     }
     int chapter = 0;
     bool inBack = false;
-    for (const auto& [element, place, isChapter] : elements) {
+    for (const auto& [element, place, isChapter, spread] : elements) {
         BookText text;
         text.elementId = element->id;
         text.title = element->title;
@@ -188,7 +205,11 @@ std::vector<CaptionCoordinator::BookText> CaptionCoordinator::bookTexts(
             inBack = true;
             text.backStart = true;
         }
-        readCaptions(text, open.value(element->id, nullptr));
+        if (spread) {
+            text.entries = spreadCaptionEntries(*element);
+        } else {
+            readCaptions(text, open.value(element->id, nullptr));
+        }
         texts.push_back(std::move(text));
     }
     return texts;

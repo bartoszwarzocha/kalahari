@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Spreads: one picture over two pages of the book** - 2026-11-25. A new kind of element,
+  Spread, in every type of book: Book > New Spread... adds it right after the text or the spread
+  in front (else at the end of the main part), and it goes into the front part, between the
+  chapters or into the back part as a chapter does. A spread always starts on a left page, with
+  mirror margins or without them; the pages of the book leave an empty page before it when
+  needed, and the text after it starts where Settings > Editor > Pages and Margins say. Its card
+  shows the left and the right page side by side, in the size of the book's page (Whole Spread
+  fits them to the card, 100% shows their size on paper), with the spine band and the picture
+  area (both shown only by the program, each with its button on the bar) and their numbers.
+  Beside them: the picture from the Workshop's pictures (or Picture from Disk..., which adds it
+  to the Materials), what it takes (within the margins, across the spine without a break, or
+  to the edges of the paper), how it fits (the whole picture, or Fill: a drag or the arrows move
+  it, Shift with them by 10 mm, Ctrl+] and Ctrl+[ zoom it, Home centers it), the room at the
+  spine, a caption under the picture on the right page (with a label numbered with the captions
+  of the book, and in the list of illustrations), the page numbers and the running head, and its
+  title in the table of contents. The quality of the picture for print in dpi, and the place of
+  the spread among the small pages of the book with Move Earlier and Move Later. Every change is
+  saved in the .klh file (a spread has no file of its own). The Properties panel shows a
+  spread's settings in short, its first page (left, always) and its pages in the book. The
+  spread comes out on its two pages in the PDF and the print (Two Pages prints as an open book;
+  the print window says when a booklet puts the halves on different sheets, and To the Spread
+  goes to it); a Word file, an e-book and Markdown have its picture and caption as a page of
+  their own. The values of a new spread are in Settings > Editor > Images, the group Spreads;
+  the colors of the spine band and of the picture area are in Settings > Editor > Colors, with
+  the theme.
 - **The jacket and the endpapers on the plan of the cover** - 2026-11-25. Above the plan of the
   cover three switches of the parts of the book, saved with it (the .klh file): Cover Flaps,
   Jacket (always with its flaps) and Endpapers. The plan has a tab for each sheet, Cover,

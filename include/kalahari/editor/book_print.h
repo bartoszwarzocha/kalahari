@@ -32,7 +32,8 @@ class BookPages;
 /// @brief How the pages of the book go on a side of a sheet
 enum class SheetLayout {
     OnePage,   ///< A page on a side
-    TwoPages,  ///< Two pages side by side, on a sheet turned sideways
+    TwoPages,  ///< Two pages side by side, on a sheet turned sideways, as an open book shows
+               ///< them: page 1 alone on the right, then 2 and 3, 4 and 5...
     Booklet,   ///< Two pages side by side, in the order of a stack folded in half
 };
 

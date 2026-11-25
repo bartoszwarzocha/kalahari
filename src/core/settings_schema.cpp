@@ -541,6 +541,18 @@ std::map<std::string, json> buildDefaults() {
         {"editor.images.downscale", false},
         {"editor.images.maxDpi", 300},
         {"editor.images.manuscript", "inline"},
+        // New spreads (Settings > Editor > Images, Spreads; core/spread.h): the picture within
+        // the margins ("margins") or to the edges of paper ("edge"), the whole picture
+        // ("whole") or filling its area ("fill"), the room at the spine in millimetres, a
+        // caption with a label and a number (empty: its text alone), the page numbers and the
+        // running head on their pages, their titles in the table of contents
+        {"editor.spread.area", "margins"},
+        {"editor.spread.fit", "whole"},
+        {"editor.spread.gutter", 0.0},
+        {"editor.spread.caption", false},
+        {"editor.spread.captionLabel", ""},
+        {"editor.spread.pageNumbers", false},
+        {"editor.spread.inContents", false},
         // New tables (Settings > Editor > Tables): the room they keep from the text above and
         // below them (points), and where Insert Caption puts the caption of a table ("above",
         // "below")

@@ -65,6 +65,8 @@ struct PaperColorKeys {
     const char* noteLine;         ///< The line above the notes
     const char* noteFrame;        ///< The frame a note's text is written in
     const char* tabGuide;         ///< The dashed lines of the tab guides
+    const char* spreadFold;       ///< The band of the spine on the card of a spread
+    const char* spreadGuide;      ///< The frame of the picture's area on the card of a spread
 };
 
 /// @brief The names of the light paper's colors
@@ -72,14 +74,14 @@ inline constexpr PaperColorKeys LIGHT_PAPER_COLOR_KEYS{
     "paperLight", "textLight", "focusDimmedLight", "formattingMarksLight", "linkLight",
     "deskLight", "tableLinesLight", "tableHeaderLight", "tableGridlinesLight",
     "imageCropMarksLight", "imageMissingLight", "fieldLight", "brokenFieldLight",
-    "noteLineLight", "noteFrameLight", "tabGuideLight"};
+    "noteLineLight", "noteFrameLight", "tabGuideLight", "spreadFoldLight", "spreadGuideLight"};
 
 /// @brief The names of the dark paper's colors
 inline constexpr PaperColorKeys DARK_PAPER_COLOR_KEYS{
     "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "linkDark", "deskDark",
     "tableLinesDark", "tableHeaderDark", "tableGridlinesDark", "imageCropMarksDark",
     "imageMissingDark", "fieldDark", "brokenFieldDark", "noteLineDark", "noteFrameDark",
-    "tabGuideDark"};
+    "tabGuideDark", "spreadFoldDark", "spreadGuideDark"};
 
 /// @brief The names of the colors drawn under the text on both papers
 inline constexpr const char* SELECTION_COLOR_KEY = "selection";
@@ -246,6 +248,25 @@ struct EditorColors {
     /// @brief The tab guides' color on the paper of a mode
     [[nodiscard]] QColor tabGuideColor(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? tabGuides.light : tabGuides.dark;
+    }
+
+    /// @brief The hints of the card of a spread, which only the program shows: the band of the
+    /// spine and the frame of the picture's area
+    struct SpreadColors {
+        QColor foldLight{217, 72, 15};     ///< The band of the spine on the light paper
+        QColor foldDark{255, 138, 80};     ///< On the dark paper
+        QColor guideLight{29, 111, 196};   ///< The frame of the area on the light paper
+        QColor guideDark{108, 182, 255};   ///< On the dark paper
+    } spreads;
+
+    /// @brief The band of the spine of a spread on the paper of a mode
+    [[nodiscard]] QColor spreadFoldColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? spreads.foldLight : spreads.foldDark;
+    }
+
+    /// @brief The frame of the area of a spread's picture on the paper of a mode
+    [[nodiscard]] QColor spreadGuideColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? spreads.guideLight : spreads.guideDark;
     }
 
     /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on

@@ -693,6 +693,12 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
         addThemeColor(form, tr("Line above the notes"), keys.noteLine);
         //: The frame a footnote's or an endnote's text is written in. In Polish: Ramka przypisu
         addThemeColor(form, tr("Frame of a note"), keys.noteFrame);
+        //: The band at the spine on the card of a spread: the part of the pages hidden in the
+        //: binding, shown only by the program. In Polish: Pas grzbietu rozkładówki
+        addThemeColor(form, tr("Spine band of a spread"), keys.spreadFold);
+        //: The dashed frame of the area of a spread's picture on its card. In Polish: Pole
+        //: obrazu rozkładówki
+        addThemeColor(form, tr("Picture area of a spread"), keys.spreadGuide);
         addThemeColor(form, tr("Around the paper"), keys.desk);
         addRestoreColorsButton(form);
     };

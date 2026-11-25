@@ -128,9 +128,19 @@ std::vector<SheetSide> sheetSides(const std::vector<int>& pages, SheetLayout lay
             }
             break;
         case SheetLayout::TwoPages:
-            for (int i = 0; i < count; i += 2) {
-                sides.push_back({pages[static_cast<size_t>(i)],
-                                 i + 1 < count ? pages[static_cast<size_t>(i) + 1] : -1});
+            // As an open book: a left page (an odd index) and the right one after it, so the
+            // halves of a spread lie on one side; page 1 alone on the right, and so is each
+            // page whose neighbour does not print
+            for (size_t i = 0; i < pages.size(); ++i) {
+                const int page = pages[i];
+                if (page % 2 == 0) {
+                    sides.push_back({-1, page});
+                } else if (i + 1 < pages.size() && pages[i + 1] == page + 1) {
+                    sides.push_back({page, page + 1});
+                    ++i;
+                } else {
+                    sides.push_back({page, -1});
+                }
             }
             break;
         case SheetLayout::Booklet: {

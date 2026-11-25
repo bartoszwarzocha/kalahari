@@ -372,6 +372,19 @@ void readView(Fields& fields, ProjectElement& element, QStringList& problems) {
     element.viewExtra = viewFields.rest();
 }
 
+/// The settings of a spread: its "spread", each value clamped to what it allows
+void readSpread(Fields& fields, ProjectElement& element) {
+    const QJsonValue spread = fields.take("spread");
+    if (spread.isUndefined()) {
+        return;
+    }
+    if (!spread.isObject()) {
+        fields.problem("spread", QStringLiteral("must be an object"));
+        return;
+    }
+    element.spread = SpreadData::fromJson(spread.toObject());
+}
+
 /// What a material of the cover is and where it goes, with the fields of "cover" this
 /// version does not know
 void readCover(Fields& fields, ProjectElement& element, QStringList& problems) {
@@ -793,6 +806,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     element.links = readLinks(fields, problems);
     readView(fields, element, problems);
     readCover(fields, element, problems);
+    readSpread(fields, element);
     readClipping(fields, element, problems);
     readCard(fields, element, problems);
     readPlot(fields, element, problems);
@@ -1554,6 +1568,11 @@ QJsonObject elementToJson(const ProjectElement& element) {
         }
         json.insert(QLatin1String("cover"), data);
     }
+    if (element.spread) {
+        json.insert(QLatin1String("spread"), element.spread->toJson());
+    } else {
+        json.remove(QLatin1String("spread"));
+    }
     writeClipping(json, element);
     if (element.plot.isEmpty()) {
         json.remove(QLatin1String("plot"));
@@ -2141,8 +2160,8 @@ bool ProjectElement::operator==(const ProjectElement& other) const {
                         element.description, element.fields, element.links, element.rotation,
                         element.cover, element.clipping, element.card, element.plot,
                         element.source, element.bookmarks, element.highlights,
-                        element.lastPage, element.quote, element.publishing, element.bookId,
-                        element.viewExtra, element.extra);
+                        element.lastPage, element.quote, element.publishing, element.spread,
+                        element.bookId, element.viewExtra, element.extra);
     };
     return fieldsOf(*this) == fieldsOf(other);
 }

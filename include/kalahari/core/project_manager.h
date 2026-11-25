@@ -800,11 +800,24 @@ public:
     /// @return The index; -1 when the project has no such element
     [[nodiscard]] qsizetype endIndexOf(const QString& elementId) const;
 
-    /// @brief Set the status of a text element ("draft", "revision" or "final")
+    /// @brief Set the status of a text element or a spread ("draft", "revision" or "final")
     ///
-    /// Saves the .klh file and writes the status to the element's chapter file. A file of the
-    /// book outside its text has no status.
+    /// Saves the .klh file and writes the status to the element's chapter file (a spread has
+    /// none). A file of the book outside its text has no status.
     bool setStatus(const QString& elementId, const QString& status);
+
+    /// @brief Whether @p element is a spread: an element of a window kind whose editor is
+    /// SpreadData::EDITOR (spread.h)
+    [[nodiscard]] bool isSpread(const ProjectElement& element) const;
+
+    /// @brief The settings of spread @p element; those of SpreadData{} when it has none
+    [[nodiscard]] static SpreadData spreadOf(const ProjectElement& element);
+
+    /// @brief Give spread @p elementId the settings @p spread (clamped to what they allow) and
+    /// save the .klh file (spreadChanged())
+    /// @return false when it is not a spread, the project is read-only or the file cannot be
+    ///         written; the spread keeps its settings then
+    bool setSpread(const QString& elementId, const SpreadData& spread);
 
     /// @brief Set the page a text element starts on in a printed book (page_start.h): with
     ///        mirror margins the inner margin of a left page is on its right
@@ -1771,6 +1784,8 @@ signals:
     void publishingSetChanged();
     /// @brief The parts of the cover of the current book changed (setCoverParts())
     void coverPartsChanged();
+    /// @brief The settings of spread @p elementId changed (setSpread())
+    void spreadChanged(const QString& elementId);
     /// @brief The text of text @p elementId for publishers changed in its editor, or its
     ///        changes not saved were dropped (setEditorText(), discardChapterContent())
     void publishingTextChanged(const QString& elementId);

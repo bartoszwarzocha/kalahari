@@ -353,9 +353,9 @@ TEST_CASE("Settings: the colors of the papers, on the Editor > Colors page",
                                      keys->tableLines, keys->tableHeader, keys->tableGridlines,
                                      keys->imageCropMarks, keys->imageMissing, keys->field,
                                      keys->brokenField, keys->noteLine, keys->noteFrame,
-                                     keys->desk};
-        REQUIRE(colors.size() == 16);
-        for (int i = 0; i < 16; ++i) {
+                                     keys->spreadFold, keys->spreadGuide, keys->desk};
+        REQUIRE(colors.size() == 18);
+        for (int i = 0; i < 18; ++i) {
             INFO(title.toStdString() << " " << names[i]);
             REQUIRE(themeColor(names[i]).isValid());
             CHECK(colors.at(i)->color() == themeColor(names[i]));

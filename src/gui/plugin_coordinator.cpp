@@ -597,6 +597,11 @@ core::PluginBook pluginBookOf(const editor::BookExport& book) {
             case editor::ExportItemKind::Contents:
                 text.kind = "contents";
                 break;
+            case editor::ExportItemKind::Spread:
+                // The book of a file has a spread as a text with its picture already
+                // (spreadsAsTexts()): only its title here
+                text.kind = "text";
+                break;
         }
         result.items.push_back(std::move(text));
     }

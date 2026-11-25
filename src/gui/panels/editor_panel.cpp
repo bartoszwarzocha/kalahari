@@ -562,6 +562,11 @@ editor::EditorColors EditorPanel::themeColors() {
     footnotes.frameDark = themes.editorColor(dark.noteFrame, defaults.footnotes.frameDark);
     result.tabGuides.light = themes.editorColor(light.tabGuide, defaults.tabGuides.light);
     result.tabGuides.dark = themes.editorColor(dark.tabGuide, defaults.tabGuides.dark);
+    auto& spreads = result.spreads;
+    spreads.foldLight = themes.editorColor(light.spreadFold, defaults.spreads.foldLight);
+    spreads.foldDark = themes.editorColor(dark.spreadFold, defaults.spreads.foldDark);
+    spreads.guideLight = themes.editorColor(light.spreadGuide, defaults.spreads.guideLight);
+    spreads.guideDark = themes.editorColor(dark.spreadGuide, defaults.spreads.guideDark);
     // Under the text on both papers: translucent, so the text stays readable
     result.selection =
         editor::underTextColor(themes.editorColor(editor::SELECTION_COLOR_KEY, defaults.selection),

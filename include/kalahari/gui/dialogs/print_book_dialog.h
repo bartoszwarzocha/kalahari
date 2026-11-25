@@ -253,6 +253,17 @@ public:
     /// @brief The line under both sides: how the print by hand goes, or how a booklet prints
     QString duplexNote() const { return sectionNote(m_duplexNote); }
 
+    /// @brief The line under the pages on a sheet: where the halves of a spread on the side
+    ///        shown lie
+    QString spreadNote() const { return sectionNote(m_spreadNote); }
+
+    /// @brief Under the preview: to the sheet of the spread in front, else of the next spread
+    [[nodiscard]] QToolButton* spreadButton() const { return m_spreadButton; }
+
+    /// @brief Show the side with the spread in front (its first page the page of the cursor),
+    ///        else the next spread after the side shown, else the first one
+    void showSpread();
+
     /// @brief The fields of the sheets
     QRadioButton* sheetButton(editor::SheetLayout layout) const;
     QRadioButton* fitButton() const { return m_fitButton; }
@@ -375,6 +386,10 @@ private:
     ///        accept button
     void showPages();
 
+    /// @brief The line under the pages on a sheet for side @p shown: where the halves of a
+    ///        spread lie; and the button to the spreads, when the pages chosen have one
+    void showSpreadNote(const editor::SheetSide& shown, editor::SheetLayout layout);
+
     /// @brief Lay the pages out when the events of the change are handled: a change of many
     ///        texts at once lays them out once
     void scheduleLayout();
@@ -432,6 +447,7 @@ private:
     QComboBox* m_duplexBox = nullptr;
     Duplex m_ownDuplex = Duplex::None;  ///< The writer's choice, which a booklet sets aside
     FieldNote m_duplexNote;
+    FieldNote m_spreadNote;
     QComboBox* m_colorBox = nullptr;
     QComboBox* m_paperBox = nullptr;
 
@@ -455,6 +471,7 @@ private:
     QLabel* m_previewLabel = nullptr;
     QToolButton* m_previousButton = nullptr;
     QToolButton* m_nextButton = nullptr;
+    QToolButton* m_spreadButton = nullptr;
 };
 
 } // namespace dialogs

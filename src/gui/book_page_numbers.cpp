@@ -97,6 +97,8 @@ BookPageNumbers::BookPageNumbers(core::ProjectManager& book, CommandRegistry& co
         m_firstPages.clear();
     });
     connect(&m_book, &core::ProjectManager::projectChanged, this, &BookPageNumbers::schedule);
+    // A spread's title in the table of contents, or not
+    connect(&m_book, &core::ProjectManager::spreadChanged, this, &BookPageNumbers::schedule);
     connect(&m_book, &core::ProjectManager::paragraphStylesChanged, this, [this]() {
         m_counted.clear();
         schedule();
@@ -113,6 +115,9 @@ BookPageNumbers::BookPageNumbers(core::ProjectManager& book, CommandRegistry& co
                         if (!firstPageOf(elementId)) {
                             schedule();  // the first text whose pages show, maybe
                         }
+                    } else if (isSpreadPage(page) &&
+                               !firstPageOf(page->property("elementId").toString())) {
+                        schedule();  // the card of a spread shows its pages
                     }
                 });
     }
@@ -143,6 +148,26 @@ std::optional<TextFirstPage> BookPageNumbers::firstPageOf(const QString& element
         return std::nullopt;
     }
     return found.value();
+}
+
+std::vector<BookPageRun> BookPageNumbers::runsOfBook(const QString& elementId) const {
+    std::vector<BookPageRun> runs;
+    const auto own = std::find_if(m_units.cbegin(), m_units.cend(),
+                                  [&elementId](const Unit& unit) { return unit.elementId == elementId; });
+    if (own == m_units.cend() || !m_firstPages.contains(elementId)) {
+        return runs;
+    }
+    for (const Unit& unit : m_units) {
+        const auto first = m_firstPages.constFind(unit.elementId);
+        if (unit.volume != own->volume || first == m_firstPages.constEnd()) {
+            continue;
+        }
+        const auto counted = m_counted.constFind(unit.elementId);
+        runs.push_back(BookPageRun{unit.elementId, unit.title, first->index,
+                                   counted != m_counted.constEnd() ? counted->pages : 1,
+                                   unit.kind == UnitKind::Spread});
+    }
+    return runs;
 }
 
 void BookPageNumbers::apply(EditorPanel& panel, const QString& elementId) const {
@@ -265,6 +290,9 @@ void BookPageNumbers::addUnits(const QList<core::ProjectElement>& elements, int 
                    element.kind.kindId == QLatin1String(CONTENTS_KIND)) {
             units.push_back(Unit{UnitKind::Contents, element.id, element.title,
                                  m_book.pageStartOf(element), volume});
+        } else if (m_book.isSpread(element)) {
+            units.push_back(Unit{UnitKind::Spread, element.id, element.title,
+                                 core::PageStart::Left, volume});
         }
     }
 }
@@ -274,11 +302,22 @@ bool BookPageNumbers::showsPages() const {
         return false;
     }
     const QList<QWidget*> pages = DocumentWindows::of(*m_centralTabs).pages();
-    return std::any_of(pages.cbegin(), pages.cend(), [](QWidget* page) {
+    return std::any_of(pages.cbegin(), pages.cend(), [this](QWidget* page) {
         const auto* panel = qobject_cast<EditorPanel*>(page);
-        return panel != nullptr &&
-               panel->getBookEditor()->viewMode() == editor::ViewMode::Page;
+        return (panel != nullptr &&
+                panel->getBookEditor()->viewMode() == editor::ViewMode::Page) ||
+               isSpreadPage(page);
     });
+}
+
+bool BookPageNumbers::isSpreadPage(const QWidget* page) const {
+    if (page == nullptr || qobject_cast<const EditorPanel*>(page) != nullptr) {
+        return false;
+    }
+    const QString elementId = page->property("elementId").toString();
+    const core::ProjectElement* element =
+        elementId.isEmpty() ? nullptr : m_book.findElement(elementId);
+    return element != nullptr && m_book.isSpread(*element);
 }
 
 EditorPanel* BookPageNumbers::openEditor(const QString& elementId) const {
@@ -299,9 +338,17 @@ QString BookPageNumbers::contentsKml(const Unit& contents) const {
     QString kml = QStringLiteral("<kml><p>") + contents.title.toHtmlEscaped() +
                   QStringLiteral("</p>");
     for (const Unit& unit : m_units) {
-        if (unit.volume == contents.volume && unit.kind != UnitKind::Contents) {
-            kml += QStringLiteral("<p>") + unit.title.toHtmlEscaped() + QStringLiteral("</p>");
+        if (unit.volume != contents.volume || unit.kind == UnitKind::Contents) {
+            continue;
         }
+        if (unit.kind == UnitKind::Spread) {
+            // Only a spread whose title goes to the table of contents
+            const core::ProjectElement* spread = m_book.findElement(unit.elementId);
+            if (spread == nullptr || !core::ProjectManager::spreadOf(*spread).inContents) {
+                continue;
+            }
+        }
+        kml += QStringLiteral("<p>") + unit.title.toHtmlEscaped() + QStringLiteral("</p>");
     }
     return kml + QStringLiteral("</kml>");
 }
@@ -310,6 +357,10 @@ bool BookPageNumbers::isCountedNow(size_t index) {
     const Unit& unit = m_units[index];
     if (unit.kind == UnitKind::Group) {
         m_counted.insert(unit.elementId, Counted{QString(), 1});  // the page of its title
+        return true;
+    }
+    if (unit.kind == UnitKind::Spread) {
+        m_counted.insert(unit.elementId, Counted{QString(), 2});  // its left and right pages
         return true;
     }
     const auto known = m_counted.constFind(unit.elementId);
@@ -404,9 +455,14 @@ void BookPageNumbers::place() {
                    (index % 2 == 1) != (unit.start == core::PageStart::Left)) {
             ++index;
         }
+        // A spread on a left page, also without mirror margins and as the first of its book
+        const bool spread = unit.kind == UnitKind::Spread;
+        if (spread && index % 2 == 0) {
+            ++index;
+        }
         m_firstPages.insert(unit.elementId,
                             TextFirstPage{index, throughBook ? index + 1 : 1,
-                                          mirrored && index % 2 == 1});
+                                          (mirrored || spread) && index % 2 == 1});
         const auto counted = m_counted.constFind(unit.elementId);
         index += counted != m_counted.constEnd() ? counted.value().pages : 1;
     }

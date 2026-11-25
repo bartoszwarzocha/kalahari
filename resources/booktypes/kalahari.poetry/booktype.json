@@ -92,9 +92,10 @@
       "title": { "pl": "Brudnopis %n", "en": "Draft %n" }
     }
   },
-  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "introduction"],
-  "main":     ["cycle", "poem"],
-  "back":     ["explanatory_notes", "about_author", "first_lines", "publisher_note", "toc"],
+  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "introduction", "spread"],
+  "main":     ["cycle", "poem", "spread"],
+  "back":     ["explanatory_notes", "about_author", "first_lines", "publisher_note", "spread",
+               "toc"],
   "workshop": ["draft", "mindmap", "work_note", "clipping", "cover", "publishing", "quote",
                "web_page", "picture", "document", "publication", "recording", "other_file"],
   "primary":  "poem",

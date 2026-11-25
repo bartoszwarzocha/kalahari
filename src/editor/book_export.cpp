@@ -71,6 +71,25 @@ QString markdownImagesFolderName(const QString& baseName, const QString& imagesW
     return baseName + QStringLiteral(" – ") + imagesWord;
 }
 
+QString spreadCaptionId(const QString& elementId) {
+    return QStringLiteral("spread-") + elementId;
+}
+
+void spreadsAsTexts(BookExport& book) {
+    for (ExportItem& item : book.items) {
+        if (item.kind != ExportItemKind::Spread) {
+            continue;
+        }
+        item.kind = ExportItemKind::Text;
+        const QString label = item.spreadCaption ? item.spreadLabel : QString();
+        const QString text = item.spreadCaption ? item.spreadText : QString();
+        item.kml = spreadKml(item.spread, item.title, label, text, spreadCaptionId(item.elementId));
+        if (!item.inContents) {
+            item.title.clear();
+        }
+    }
+}
+
 FieldContext exportFieldContext(const BookExport& book, const ExportItem& item) {
     FieldContext context;
     context.bookTitle = book.title;

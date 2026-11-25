@@ -43,13 +43,24 @@ struct TextFirstPage {
     bool operator==(const TextFirstPage&) const = default;
 };
 
+/// @brief A place of a book with its pages, as counted: a text, the title of a part, the
+///        contents, a spread
+struct BookPageRun {
+    QString elementId;
+    QString title;
+    int index = 0;        ///< Its first page in its book, from 0
+    int pages = 1;
+    bool spread = false;  ///< A spread: a left page and the right one after it
+};
+
 /// @brief Counts the pages of the texts of the book as the editor lays them out (the Page
 ///        Layout view, with the settings of Settings > Editor) and gives each editor the
 ///        first page of its text: its number and its side
 ///
 /// The texts go in reading order: the front part, the main part and the back part, each from
 /// a new page. A part (a group) has a page of its own for its title, the table of contents
-/// the pages of the titles. With mirror margins a text starts on the page its kind, the
+/// the pages of the titles, a spread a left page and the right one after it (always, a page
+/// before it left empty when needed). With mirror margins a text starts on the page its kind, the
 /// settings ("editor.page.textsStart") or its properties say (core::PageStart): a right one
 /// (an odd number) or a left one, a page before it left empty when needed, or the next one.
 /// The pages are numbered through the book ("editor.page.numbering" "book"), or from 1 in
@@ -88,6 +99,10 @@ public:
     ///        counted, or for an element that is not a text of the book
     [[nodiscard]] std::optional<TextFirstPage> firstPageOf(const QString& elementId) const;
 
+    /// @brief The places of the book of @p elementId with their pages, in reading order (the
+    ///        pages between them left empty); empty while its pages are not counted
+    [[nodiscard]] std::vector<BookPageRun> runsOfBook(const QString& elementId) const;
+
     /// @brief Give the editor of a text its first page: the one counted, else page 1 on the
     ///        side its start says
     void apply(EditorPanel& panel, const QString& elementId) const;
@@ -114,8 +129,9 @@ private slots:
     void onSettingsChanged();
 
 private:
-    /// @brief What a place of the book is: a text, the title of a part, the contents
-    enum class UnitKind { Text, Group, Contents };
+    /// @brief What a place of the book is: a text, the title of a part, the contents, a
+    ///        spread (two pages, a left one and a right one)
+    enum class UnitKind { Text, Group, Contents, Spread };
 
     /// @brief A place of the book that takes pages
     struct Unit {
@@ -147,8 +163,12 @@ private:
     /// @brief The editor of a text in the window, if it is open
     [[nodiscard]] EditorPanel* openEditor(const QString& elementId) const;
 
-    /// @brief Whether an editor of the window shows the pages (the Page Layout view)
+    /// @brief Whether an editor of the window shows the pages (the Page Layout view), or the
+    ///        card of a spread is open
     [[nodiscard]] bool showsPages() const;
+
+    /// @brief Whether @p page of the window is the card of a spread of the book
+    [[nodiscard]] bool isSpreadPage(const QWidget* page) const;
 
     /// @brief Whether the pages of a unit are known as its text is now; when not, it waits
     bool isCountedNow(size_t index);

@@ -513,6 +513,7 @@ public:
     DocxWriter(const BookExport& book, const ExportProgress& progress)
         : m_book(book), m_progress(progress) {
         m_images.setFolder(book.imagesFolder);
+        m_images.setOutsideFiles(book.pictures);
         m_textWidth = book.page.textWidthPoints();
         m_textHeight = book.page.textHeightPoints();
         mapStyles();

@@ -555,9 +555,11 @@ NewFileKind NewFileDialog::entryOf(const core::ProjectManager& pm, const core::K
                                           : kind.package->name.text(language);
 
     // The program makes the elements of a window kind of the Workshop that it has a window
-    // for (a material); in the book none yet (a table of contents)
-    const bool hasEditor =
-        workshop ? core::ProjectManager::canAdd(kind) : kind.kind->form != core::ElementForm::Window;
+    // for (a material); in the book only a spread (its card), not yet a table of contents
+    const bool hasEditor = workshop ? core::ProjectManager::canAdd(kind)
+                                    : kind.kind->form != core::ElementForm::Window ||
+                                          kind.kind->editor ==
+                                              QLatin1String(core::SpreadData::EDITOR);
     if (!hasEditor) {
         //: The tooltip of a greyed kind that opens in a window of its own, e.g. a table of
         //: contents. In Polish: Program nie ma jeszcze edytora {kind:genitive}.
@@ -580,9 +582,10 @@ NewFileKind NewFileDialog::entryOf(const core::ProjectManager& pm, const core::K
     }
 
     entry.title = pm.defaultTitle(kind);
-    if (kind.kind->form == core::ElementForm::Group) {
-        //: The file of a new group, e.g. a part: it has none. In Polish: brak – {kind} nie ma
-        //: własnego tekstu
+    if (kind.kind->form == core::ElementForm::Group ||
+        kind.kind->editor == QLatin1String(core::SpreadData::EDITOR)) {
+        //: The file of a new group, e.g. a part, or of a spread: it has none. In Polish: brak –
+        //: {kind} nie ma własnego tekstu
         entry.file = core::fillWords(tr("none: {kind:indefinite} has no text of its own"), nouns);
     } else if (kind.kind->isMaterial()) {
         //: The file of a new material: a copy of a file from the disk or of a picture from the

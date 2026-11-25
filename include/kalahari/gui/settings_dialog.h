@@ -94,6 +94,8 @@ public:
     /// Editor > Images, the cursor in the group of the panel Images and Tables (the gear of the
     /// panel)
     static constexpr const char* FIGURES_PANEL_PAGE = "editor.images.figuresPanel";
+    /// Editor > Images, the cursor in the group Spreads (the gear of the card of a spread)
+    static constexpr const char* SPREADS_PAGE = "editor.images.spreads";
     static constexpr const char* TABLES_PAGE = "editor.tables";      ///< Editor > Tables
     static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
     /// Editor > Auto-correct (the gear of File > Import: the cleanups of the text follow it)

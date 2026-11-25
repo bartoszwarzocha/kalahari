@@ -1458,6 +1458,11 @@
         <extracomment>In Polish: &amp;Harmonogram pracy...</extracomment>
         <translation>&amp;Harmonogram pracy...</translation>
     </message>
+    <message>
+        <source>New Sp&amp;read...</source>
+        <extracomment>A spread: one picture over two pages of the book. In Polish (the letters of the other items of the menu Książka are all taken, so B of the word obraz): Nowa rozkładówka z o&amp;brazem...</extracomment>
+        <translation>Nowa rozkładówka z o&amp;brazem...</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -8210,6 +8215,16 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <extracomment>In Polish: Napis na przycisku</extracomment>
         <translation>Napis na przycisku</translation>
     </message>
+    <message>
+        <source>Picture area of a spread</source>
+        <extracomment>The dashed frame of the area of a spread&apos;s picture on its card. In Polish: Pole obrazu rozkładówki</extracomment>
+        <translation>Pole obrazu rozkładówki</translation>
+    </message>
+    <message>
+        <source>Spine band of a spread</source>
+        <extracomment>The band at the spine on the card of a spread: the part of the pages hidden in the binding, shown only by the program. In Polish: Pas grzbietu rozkładówki</extracomment>
+        <translation>Pas grzbietu rozkładówki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorCursorPage</name>
@@ -9210,6 +9225,106 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <source>Lines of a caption on its ca&amp;rd:</source>
         <extracomment>In Polish: W&amp;iersze podpisu na karcie:</extracomment>
         <translation>W&amp;iersze podpisu na karcie:</translation>
+    </message>
+    <message>
+        <source>%1 with a number</source>
+        <extracomment>The caption of a spread: a label with its number; %1: the label (&quot;Map&quot;). In Polish: %1 z numerem</extracomment>
+        <translation>%1 z numerem</translation>
+    </message>
+    <message>
+        <source>A caption under the picture, on the right page</source>
+        <extracomment>In Polish: Podpis pod obrazem, na prawej stronie</extracomment>
+        <translation>Podpis pod obrazem, na prawej stronie</translation>
+    </message>
+    <message>
+        <source>Both pages, whole.</source>
+        <extracomment>In Polish: Całe obie strony.</extracomment>
+        <translation>Całe obie strony.</translation>
+    </message>
+    <message>
+        <source>Fill</source>
+        <extracomment>In Polish: Wypełnij</extracomment>
+        <translation>Wypełnij</translation>
+    </message>
+    <message>
+        <source>Fit:</source>
+        <extracomment>How the picture of a new spread fits its area. In Polish: Dopasowanie:</extracomment>
+        <translation>Dopasowanie:</translation>
+    </message>
+    <message>
+        <source>How a new spread lies on its two pages. Each spread keeps its own settings, on its card.</source>
+        <extracomment>In Polish: Jak nowa rozkładówka układa się na dwóch stronach. Każda rozkładówka ma potem własne ustawienia, na swojej karcie.</extracomment>
+        <translation>Jak nowa rozkładówka układa się na dwóch stronach. Każda rozkładówka ma potem własne ustawienia, na swojej karcie.</translation>
+    </message>
+    <message>
+        <source>Label of the caption of a new spread</source>
+        <extracomment>The label of the caption of a new spread (for screen readers). In Polish: Etykieta podpisu nowej rozkładówki</extracomment>
+        <translation>Etykieta podpisu nowej rozkładówki</translation>
+    </message>
+    <message>
+        <source>Nothing is lost; the room left stays white.</source>
+        <extracomment>In Polish: Nic nie ginie, wolne miejsce zostaje białe.</extracomment>
+        <translation>Nic nie ginie, wolne miejsce zostaje białe.</translation>
+    </message>
+    <message>
+        <source>Page numbers and running head</source>
+        <extracomment>In Polish: Numery stron i żywa pagina</extracomment>
+        <translation>Numery stron i żywa pagina</translation>
+    </message>
+    <message>
+        <source>Room at the spine:</source>
+        <extracomment>The room at the spine of a new spread. In Polish: Zapas na grzbiet:</extracomment>
+        <translation>Zapas na grzbiet:</translation>
+    </message>
+    <message>
+        <source>Spreads</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Images with the settings of new spreads (a picture over two pages of the book). In Polish: Rozkładówki</extracomment>
+        <translation>Rozkładówki</translation>
+    </message>
+    <message>
+        <source>The halves of the picture move away from the fold, and the strip at the spine shows on both pages.</source>
+        <extracomment>In Polish: Połówki obrazu odsuwają się od zgięcia, a pasek przy grzbiecie jest na obu stronach.</extracomment>
+        <translation>Połówki obrazu odsuwają się od zgięcia, a pasek przy grzbiecie jest na obu stronach.</translation>
+    </message>
+    <message>
+        <source>The picture fills the area, and its edges beyond it are cut off.</source>
+        <extracomment>In Polish: Obraz wypełnia pole, a brzegi poza nim są przycięte.</extracomment>
+        <translation>Obraz wypełnia pole, a brzegi poza nim są przycięte.</translation>
+    </message>
+    <message>
+        <source>The picture takes:</source>
+        <extracomment>Where the picture of a new spread lies. In Polish: Obraz zajmuje:</extracomment>
+        <translation>Obraz zajmuje:</translation>
+    </message>
+    <message>
+        <source>The top, bottom and outer margins stay; across the spine the picture goes on without a break.</source>
+        <extracomment>In Polish: Górny, dolny i zewnętrzne marginesy zostają; przez grzbiet obraz biegnie bez przerwy.</extracomment>
+        <translation>Górny, dolny i zewnętrzne marginesy zostają; przez grzbiet obraz biegnie bez przerwy.</translation>
+    </message>
+    <message>
+        <source>The whole picture</source>
+        <extracomment>In Polish: Cały obraz</extracomment>
+        <translation>Cały obraz</translation>
+    </message>
+    <message>
+        <source>Title in the table of contents</source>
+        <extracomment>In Polish: Tytuł w spisie treści</extracomment>
+        <translation>Tytuł w spisie treści</translation>
+    </message>
+    <message>
+        <source>To the edges of the paper</source>
+        <extracomment>In Polish: Do krawędzi papieru</extracomment>
+        <translation>Do krawędzi papieru</translation>
+    </message>
+    <message>
+        <source>Within the margins</source>
+        <extracomment>In Polish: W marginesach</extracomment>
+        <translation>W marginesach</translation>
+    </message>
+    <message>
+        <source>without a label and number</source>
+        <extracomment>The caption of a spread: its text alone. In Polish: bez etykiety i numeru</extracomment>
+        <translation>bez etykiety i numeru</translation>
     </message>
 </context>
 <context>
@@ -14896,6 +15011,81 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>%1 (same as the front one)</source>
         <extracomment>The fill of the back endpaper filled as the front one, in its Properties: %1 the fill. In Polish: %1 (tak jak przednia)</extracomment>
         <translation>%1 (tak jak przednia)</translation>
+    </message>
+    <message>
+        <source>Fit:</source>
+        <extracomment>How the picture fits its area. In Polish: Dopasowanie:</extracomment>
+        <translation>Dopasowanie:</translation>
+    </message>
+    <message>
+        <source>Left (always)</source>
+        <extracomment>The page a spread starts on. In Polish: Lewa (zawsze)</extracomment>
+        <translation>Lewa (zawsze)</translation>
+    </message>
+    <message>
+        <source>Pages in the book:</source>
+        <extracomment>The pages of a spread in the book. In Polish: Strony w książce:</extracomment>
+        <translation>Strony w książce:</translation>
+    </message>
+    <message>
+        <source>Picture:</source>
+        <extracomment>In Polish: Obraz:</extracomment>
+        <translation>Obraz:</translation>
+    </message>
+    <message>
+        <source>Room at the spine:</source>
+        <extracomment>In Polish: Zapas na grzbiet:</extracomment>
+        <translation>Zapas na grzbiet:</translation>
+    </message>
+    <message>
+        <source>Spread</source>
+        <extracomment>The group of the Properties panel with a spread. In Polish: Rozkładówka</extracomment>
+        <translation>Rozkładówka</translation>
+    </message>
+    <message>
+        <source>Takes:</source>
+        <extracomment>Where the picture of a spread lies. In Polish: Zajmuje:</extracomment>
+        <translation>Zajmuje:</translation>
+    </message>
+    <message>
+        <source>The left and the right page lie side by side only when the spread starts on the left one.</source>
+        <extracomment>Under the first page of a spread. In Polish: Lewa i prawa strona leżą obok siebie tylko wtedy, gdy rozkładówka zaczyna się na lewej.</extracomment>
+        <translation>Lewa i prawa strona leżą obok siebie tylko wtedy, gdy rozkładówka zaczyna się na lewej.</translation>
+    </message>
+    <message>
+        <source>The settings are on the card, beside the spread.</source>
+        <extracomment>In Polish: Ustawienia są na karcie, obok rozkładówki.</extracomment>
+        <translation>Ustawienia są na karcie, obok rozkładówki.</translation>
+    </message>
+    <message>
+        <source>fill</source>
+        <extracomment>In Polish: wypełnij</extracomment>
+        <translation>wypełnij</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <extracomment>A spread without a picture. In Polish: brak</extracomment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source>not counted yet</source>
+        <extracomment>The pages of a spread before the pages of the book are counted (in the Page Layout view or on the card of a spread). In Polish: jeszcze nie policzone</extracomment>
+        <translation>jeszcze nie policzone</translation>
+    </message>
+    <message>
+        <source>the whole picture</source>
+        <extracomment>In Polish: cały obraz</extracomment>
+        <translation>cały obraz</translation>
+    </message>
+    <message>
+        <source>to the edges of the paper</source>
+        <extracomment>In Polish: do krawędzi papieru</extracomment>
+        <translation>do krawędzi papieru</translation>
+    </message>
+    <message>
+        <source>within the margins</source>
+        <extracomment>In Polish: w marginesach</extracomment>
+        <translation>w marginesach</translation>
     </message>
 </context>
 <context>
@@ -36441,6 +36631,36 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
         <extracomment>Under the preview, when no text is chosen. In Polish: Nie ma czego drukować: wybierz teksty w sekcji „Co drukować”.</extracomment>
         <translation>Nie ma czego drukować: wybierz teksty w sekcji „Co drukować”.</translation>
     </message>
+    <message>
+        <source>As an open book: page 1 alone on the right, then 2–3, 4–5...</source>
+        <extracomment>Under two pages side by side. In Polish: Jak otwarta książka: strona 1 sama, po prawej; dalej 2–3, 4–5...</extracomment>
+        <translation>Jak otwarta książka: strona 1 sama, po prawej; dalej 2–3, 4–5...</translation>
+    </message>
+    <message>
+        <source>Both pages of the spread &quot;%1&quot; are on this sheet.</source>
+        <extracomment>%1: the title of the spread. In Polish: Obie strony rozkładówki „%1” są na tej kartce.</extracomment>
+        <translation>Obie strony rozkładówki „%1” są na tej kartce.</translation>
+    </message>
+    <message>
+        <source>In a booklet the halves of a spread lie on different sheets; folded, they meet at the spine, as at a print shop.</source>
+        <extracomment>Under the pages on a sheet, for a book with a spread. In Polish: W broszurze połówki rozkładówki leżą na różnych kartkach; po złożeniu stykają się w grzbiecie, tak jak w drukarni.</extracomment>
+        <translation>W broszurze połówki rozkładówki leżą na różnych kartkach; po złożeniu stykają się w grzbiecie, tak jak w drukarni.</translation>
+    </message>
+    <message>
+        <source>The sheet with the current spread; pressed again, with the next ones</source>
+        <extracomment>In Polish: Kartka z bieżącą rozkładówką, a kolejne naciśnięcia – z następnymi</extracomment>
+        <translation>Kartka z bieżącą rozkładówką, a kolejne naciśnięcia – z następnymi</translation>
+    </message>
+    <message>
+        <source>The spread &quot;%1&quot; goes onto two sheets: pages %2 and %3 do not lie side by side.</source>
+        <extracomment>%1: the title of the spread, %2 and %3: its pages. In Polish: Rozkładówka „%1” trafia na dwie kartki: strony %2 i %3 nie leżą obok siebie.</extracomment>
+        <translation>Rozkładówka „%1” trafia na dwie kartki: strony %2 i %3 nie leżą obok siebie.</translation>
+    </message>
+    <message>
+        <source>To the Spread</source>
+        <extracomment>A button under the preview: to the sheet with the spread in front (or the next one). In Polish: Do rozkładówki</extracomment>
+        <translation>Do rozkładówki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SourceLookup</name>
@@ -44180,6 +44400,399 @@ In Polish: Plik %1 nie zawiera zestawów list wyeksportowanych z Kalahari.</extr
         <source>The field needs a name.</source>
         <extracomment>In Polish: Pole musi mieć nazwę.</extracomment>
         <translation>Pole musi mieć nazwę.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpreadCard</name>
+    <message>
+        <source>%1 with a number</source>
+        <extracomment>The caption of a spread: a label with its number; %1: the label (&quot;Map&quot;). In Polish: %1 z numerem</extracomment>
+        <translation>%1 z numerem</translation>
+    </message>
+    <message>
+        <source>%1 · %2 × %3 px · %4</source>
+        <extracomment>Under the list of the picture of a spread: the file, its pixels and its list; %1: the name of the file, %2 and %3: its width and height, %4: the list (&quot;Pictures&quot;). In Polish: %1 · %2 × %3 px · %4</extracomment>
+        <translation>%1 · %2 × %3 px · %4</translation>
+    </message>
+    <message>
+        <source>%1 · spread</source>
+        <extracomment>The bar of the card of a spread before its pages are counted; %1: its title. In Polish: %1 · rozkładówka</extracomment>
+        <translation>%1 · rozkładówka</translation>
+    </message>
+    <message>
+        <source>%1 · spread · pages %2–%3</source>
+        <extracomment>The bar of the card of a spread; %1: its title, %2 and %3: its pages. In Polish: %1 · rozkładówka · strony %2–%3</extracomment>
+        <translation>%1 · rozkładówka · strony %2–%3</translation>
+    </message>
+    <message>
+        <source>&amp;Caption:</source>
+        <extracomment>The caption of a spread. In Polish: Podp&amp;is:</extracomment>
+        <translation>Podp&amp;is:</translation>
+    </message>
+    <message>
+        <source>(no picture)</source>
+        <extracomment>The list of the picture of a spread: none. In Polish: (bez obrazu)</extracomment>
+        <translation>(bez obrazu)</translation>
+    </message>
+    <message>
+        <source>100%</source>
+        <extracomment>The pages at their size on paper. In Polish: 100%</extracomment>
+        <translation>100%</translation>
+    </message>
+    <message>
+        <source>A spread always starts on a left page, and the texts where Settings &gt; Editor &gt; Pages and Margins say. The buttons work as Move Up and Move Down in the Navigator.</source>
+        <extracomment>In Polish: Rozkładówka zaczyna się zawsze na lewej stronie, a teksty – tam, gdzie mówią Ustawienia &gt; Edytor &gt; Strony i marginesy. Przyciski działają jak Przenieś w górę i Przenieś w dół w Nawigatorze.</extracomment>
+        <translation>Rozkładówka zaczyna się zawsze na lewej stronie, a teksty – tam, gdzie mówią Ustawienia &gt; Edytor &gt; Strony i marginesy. Przyciski działają jak Przenieś w górę i Przenieś w dół w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>All Files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Center the Picture</source>
+        <extracomment>Puts a picture that fills its area in the middle, at its smallest. In Polish: Wyśrodkuj obraz</extracomment>
+        <translation>Wyśrodkuj obraz</translation>
+    </message>
+    <message>
+        <source>Choose the Picture of the Spread</source>
+        <extracomment>The system window choosing the picture of a spread. In Polish: Wybierz obraz rozkładówki</extracomment>
+        <translation>Wybierz obraz rozkładówki</translation>
+    </message>
+    <message>
+        <source>Crop: drag the picture with the mouse or move it with the arrows; Ctrl+] and Ctrl+[ – zoom (%1%).</source>
+        <extracomment>Under Fill on the card of a spread; %1: the zoom in percent. In Polish: Kadr: przeciągnij obraz myszą albo przesuń go strzałkami; Ctrl+] i Ctrl+[ – powiększenie (%1%).</extracomment>
+        <translation>Kadr: przeciągnij obraz myszą albo przesuń go strzałkami; Ctrl+] i Ctrl+[ – powiększenie (%1%).</translation>
+    </message>
+    <message>
+        <source>Fill</source>
+        <extracomment>In Polish: Wypełnij</extracomment>
+        <translation>Wypełnij</translation>
+    </message>
+    <message>
+        <source>Fitti&amp;ng:</source>
+        <extracomment>How the picture of a spread fits its area. In Polish: &amp;Dopasowanie:</extracomment>
+        <translation>&amp;Dopasowanie:</translation>
+    </message>
+    <message>
+        <source>Images</source>
+        <extracomment>The pictures of the window. In Polish: Obrazy</extracomment>
+        <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>Label of the caption</source>
+        <extracomment>For screen readers. In Polish: Etykieta podpisu</extracomment>
+        <translation>Etykieta podpisu</translation>
+    </message>
+    <message>
+        <source>Move Earlier</source>
+        <extracomment>Moves the spread up its list, as Move Up in the Navigator. In Polish: Przenieś wcześniej</extracomment>
+        <translation>Przenieś wcześniej</translation>
+    </message>
+    <message>
+        <source>Move Later</source>
+        <extracomment>In Polish: Przenieś później</extracomment>
+        <translation>Przenieś później</translation>
+    </message>
+    <message>
+        <source>On the pages:</source>
+        <extracomment>What the pages of a spread show. In Polish: Na stronach:</extracomment>
+        <translation>Na stronach:</translation>
+    </message>
+    <message>
+        <source>Page numbe&amp;rs and running head</source>
+        <extracomment>In Polish: Nu&amp;mery stron i żywa pagina</extracomment>
+        <translation>Nu&amp;mery stron i żywa pagina</translation>
+    </message>
+    <message>
+        <source>Pict&amp;ure:</source>
+        <extracomment>The picture of a spread. In Polish: Ob&amp;raz:</extracomment>
+        <translation>Ob&amp;raz:</translation>
+    </message>
+    <message>
+        <source>Picture Area</source>
+        <extracomment>The frame of the area of the picture, shown or not. In Polish: Pole obrazu</extracomment>
+        <translation>Pole obrazu</translation>
+    </message>
+    <message>
+        <source>Picture Not Added</source>
+        <extracomment>In Polish: Nie dodano obrazu</extracomment>
+        <translation>Nie dodano obrazu</translation>
+    </message>
+    <message>
+        <source>Picture from &amp;disk...</source>
+        <extracomment>Takes a picture file from the disk to the Materials and the spread. In Polish: Obraz z dysk&amp;u...</extracomment>
+        <translation>Obraz z dysk&amp;u...</translation>
+    </message>
+    <message>
+        <source>Picture of the spread</source>
+        <extracomment>For screen readers. In Polish: Obraz rozkładówki</extracomment>
+        <translation>Obraz rozkładówki</translation>
+    </message>
+    <message>
+        <source>Picture...</source>
+        <extracomment>The bar of the card of a spread: the keys go to the list of its picture. In Polish: Obraz...</extracomment>
+        <translation>Obraz...</translation>
+    </message>
+    <message>
+        <source>Place in the Book</source>
+        <extracomment>The pages around a spread on its card. In Polish: Położenie w książce</extracomment>
+        <translation>Położenie w książce</translation>
+    </message>
+    <message>
+        <source>Print... (Ctrl+P)</source>
+        <extracomment>In Polish: Drukuj... (Ctrl+P)</extracomment>
+        <translation>Drukuj... (Ctrl+P)</translation>
+    </message>
+    <message>
+        <source>Quality for print: %1 dpi – %2</source>
+        <extracomment>On the card of a spread; %1: the dots per inch of its picture, %2: what they are good for. In Polish: Jakość do druku: %1 dpi – %2</extracomment>
+        <translation>Jakość do druku: %1 dpi – %2</translation>
+    </message>
+    <message>
+        <source>Room at the s&amp;pine:</source>
+        <extracomment>The room at the spine of a spread. In Polish: Zapas na &amp;grzbiet:</extracomment>
+        <translation>Zapas na &amp;grzbiet:</translation>
+    </message>
+    <message>
+        <source>Room at the spine</source>
+        <extracomment>For screen readers. In Polish: Zapas na grzbiet</extracomment>
+        <translation>Zapas na grzbiet</translation>
+    </message>
+    <message>
+        <source>Spine Band</source>
+        <extracomment>The band of the spine on the pages of a spread, shown or not. In Polish: Pas grzbietu</extracomment>
+        <translation>Pas grzbietu</translation>
+    </message>
+    <message>
+        <source>Spread</source>
+        <extracomment>The title of the settings on the card of a spread. In Polish: Rozkładówka</extracomment>
+        <translation>Rozkładówka</translation>
+    </message>
+    <message>
+        <source>Spreads Settings (Settings &gt; Editor &gt; Images)</source>
+        <extracomment>The gear of the card of a spread. In Polish: Ustawienia rozkładówek (Ustawienia &gt; Edytor &gt; Obrazy)</extracomment>
+        <translation>Ustawienia rozkładówek (Ustawienia &gt; Edytor &gt; Obrazy)</translation>
+    </message>
+    <message>
+        <source>Text of the caption</source>
+        <extracomment>For screen readers and as the placeholder. In Polish: Tekst podpisu</extracomment>
+        <translation>Tekst podpisu</translation>
+    </message>
+    <message>
+        <source>The Picture of the Spread</source>
+        <extracomment>In Polish: Obraz rozkładówki</extracomment>
+        <translation>Obraz rozkładówki</translation>
+    </message>
+    <message>
+        <source>The Real Size of the Pages</source>
+        <extracomment>In Polish: Rzeczywisty rozmiar stron</extracomment>
+        <translation>Rzeczywisty rozmiar stron</translation>
+    </message>
+    <message>
+        <source>The Whole Spread on the Card</source>
+        <extracomment>In Polish: Cała rozkładówka na karcie</extracomment>
+        <translation>Cała rozkładówka na karcie</translation>
+    </message>
+    <message>
+        <source>The file &quot;%1&quot; cannot be read.</source>
+        <extracomment>Under the list of the picture of a spread; %1: the name of the file. In Polish: Nie można odczytać pliku „%1”.</extracomment>
+        <translation>Nie można odczytać pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>The file &quot;%1&quot; is not a picture Kalahari can show.</source>
+        <extracomment>%1: the name of the file. In Polish: Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać.</extracomment>
+        <translation>Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać.</translation>
+    </message>
+    <message>
+        <source>The halves move away from the fold, and the strip at the spine shows on both pages.</source>
+        <extracomment>In Polish: Połówki odsuwają się od zgięcia, a pasek przy grzbiecie jest na obu stronach.</extracomment>
+        <translation>Połówki odsuwają się od zgięcia, a pasek przy grzbiecie jest na obu stronach.</translation>
+    </message>
+    <message>
+        <source>The pages of the book are being counted...</source>
+        <extracomment>In Polish: Strony książki są liczone...</extracomment>
+        <translation>Strony książki są liczone...</translation>
+    </message>
+    <message>
+        <source>The picture could not be copied into the materials of the book.</source>
+        <extracomment>In Polish: Nie udało się skopiować obrazu do materiałów książki.</extracomment>
+        <translation>Nie udało się skopiować obrazu do materiałów książki.</translation>
+    </message>
+    <message>
+        <source>The picture ta&amp;kes:</source>
+        <extracomment>Where the picture of a spread lies. In Polish: Obraz &amp;zajmuje:</extracomment>
+        <translation>Obraz &amp;zajmuje:</translation>
+    </message>
+    <message>
+        <source>The spread could not be saved.</source>
+        <extracomment>The status bar. In Polish: Nie udało się zapisać rozkładówki.</extracomment>
+        <translation>Nie udało się zapisać rozkładówki.</translation>
+    </message>
+    <message>
+        <source>The whole picture</source>
+        <extracomment>In Polish: Cały obraz</extracomment>
+        <translation>Cały obraz</translation>
+    </message>
+    <message>
+        <source>Title in the table of content&amp;s</source>
+        <extracomment>In Polish: T&amp;ytuł w spisie treści</extracomment>
+        <translation>T&amp;ytuł w spisie treści</translation>
+    </message>
+    <message>
+        <source>To the edges of the paper</source>
+        <extracomment>In Polish: Do krawędzi papieru</extracomment>
+        <translation>Do krawędzi papieru</translation>
+    </message>
+    <message>
+        <source>Whole Spread</source>
+        <extracomment>The pages fit the card. In Polish: Cała rozkładówka</extracomment>
+        <translation>Cała rozkładówka</translation>
+    </message>
+    <message>
+        <source>With the picture to the edges of the paper the caption lies on the picture, in a light frame.</source>
+        <extracomment>In Polish: Przy obrazie do krawędzi papieru podpis jest na obrazie, w jasnej ramce.</extracomment>
+        <translation>Przy obrazie do krawędzi papieru podpis jest na obrazie, w jasnej ramce.</translation>
+    </message>
+    <message>
+        <source>Within the margins</source>
+        <extracomment>In Polish: W marginesach</extracomment>
+        <translation>W marginesach</translation>
+    </message>
+    <message>
+        <source>across the spine without a break</source>
+        <extracomment>In Polish: przez grzbiet bez przerwy</extracomment>
+        <translation>przez grzbiet bez przerwy</translation>
+    </message>
+    <message>
+        <source>after it the empty page %1</source>
+        <extracomment>In Polish: po niej pusta strona %1</extracomment>
+        <translation>po niej pusta strona %1</translation>
+    </message>
+    <message>
+        <source>before it the empty page %1</source>
+        <extracomment>Beside the pages of a spread; %1: the number of the empty page. In Polish: przed nią pusta strona %1</extracomment>
+        <translation>przed nią pusta strona %1</translation>
+    </message>
+    <message>
+        <source>both pages, whole</source>
+        <extracomment>In Polish: całe obie strony</extracomment>
+        <translation>całe obie strony</translation>
+    </message>
+    <message>
+        <source>enough for print</source>
+        <extracomment>In Polish: wystarczy do druku</extracomment>
+        <translation>wystarczy do druku</translation>
+    </message>
+    <message>
+        <source>enough for printing at home; print shops usually want at least 300 dpi</source>
+        <extracomment>In Polish: wystarczy do wydruku w domu; drukarnie chcą zwykle co najmniej 300 dpi</extracomment>
+        <translation>wystarczy do wydruku w domu; drukarnie chcą zwykle co najmniej 300 dpi</translation>
+    </message>
+    <message>
+        <source>no empty pages beside it</source>
+        <extracomment>In Polish: bez pustych stron obok</extracomment>
+        <translation>bez pustych stron obok</translation>
+    </message>
+    <message>
+        <source>nothing is lost; the room left stays white</source>
+        <extracomment>In Polish: nic nie ginie, wolne miejsce zostaje białe</extracomment>
+        <translation>nic nie ginie, wolne miejsce zostaje białe</translation>
+    </message>
+    <message>
+        <source>pages %1–%2</source>
+        <extracomment>The place of a spread in the book; %1 and %2: its pages. In Polish: strony %1–%2</extracomment>
+        <translation>strony %1–%2</translation>
+    </message>
+    <message>
+        <source>the edges beyond the area are cut off</source>
+        <extracomment>In Polish: brzegi poza polem są przycięte</extracomment>
+        <translation>brzegi poza polem są przycięte</translation>
+    </message>
+    <message>
+        <source>too little for print – the picture will come out blurred; a picture with more pixels is needed</source>
+        <extracomment>In Polish: za mało do druku – obraz wyjdzie nieostry; potrzebny obraz o większej liczbie pikseli</extracomment>
+        <translation>za mało do druku – obraz wyjdzie nieostry; potrzebny obraz o większej liczbie pikseli</translation>
+    </message>
+    <message>
+        <source>under the picture, on the right page</source>
+        <extracomment>In Polish: pod obrazem, na prawej stronie</extracomment>
+        <translation>pod obrazem, na prawej stronie</translation>
+    </message>
+    <message>
+        <source>without a label and number</source>
+        <extracomment>The caption of a spread: its text alone. In Polish: bez etykiety i numeru</extracomment>
+        <translation>bez etykiety i numeru</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpreadPagesView</name>
+    <message>
+        <source>; the arrows move the picture in its area, Ctrl+] and Ctrl+[ make it larger and smaller, Home puts it in the middle</source>
+        <extracomment>After the name of the pages of a spread, for screen readers. In Polish: ; strzałki przesuwają obraz w kadrze, Ctrl+] i Ctrl+[ go powiększają i pomniejszają, Home go wyśrodkowuje</extracomment>
+        <translation>; strzałki przesuwają obraz w kadrze, Ctrl+] i Ctrl+[ go powiększają i pomniejszają, Home go wyśrodkowuje</translation>
+    </message>
+    <message>
+        <source>Choose a picture in the list &quot;Picture:&quot; or &quot;Picture from disk...&quot;</source>
+        <extracomment>Under it. In Polish: Wybierz obraz na liście „Obraz:” albo „Obraz z dysku...”</extracomment>
+        <translation>Wybierz obraz na liście „Obraz:” albo „Obraz z dysku...”</translation>
+    </message>
+    <message>
+        <source>Pages of the spread</source>
+        <extracomment>In Polish: Strony rozkładówki</extracomment>
+        <translation>Strony rozkładówki</translation>
+    </message>
+    <message>
+        <source>Pages of the spread %1 and %2</source>
+        <extracomment>The two pages of a spread on its card, for screen readers; %1 and %2: their numbers. In Polish: Strony rozkładówki %1 i %2</extracomment>
+        <translation>Strony rozkładówki %1 i %2</translation>
+    </message>
+    <message>
+        <source>Spread without a picture</source>
+        <extracomment>Drawn over the empty pages of a spread on its card. In Polish: Rozkładówka bez obrazu</extracomment>
+        <translation>Rozkładówka bez obrazu</translation>
+    </message>
+    <message>
+        <source>left page</source>
+        <extracomment>Under the left page of a spread while the pages are counted. In Polish: lewa strona</extracomment>
+        <translation>lewa strona</translation>
+    </message>
+    <message>
+        <source>page %1 · left</source>
+        <extracomment>Under the left page of a spread; %1: its number. In Polish: strona %1 · lewa</extracomment>
+        <translation>strona %1 · lewa</translation>
+    </message>
+    <message>
+        <source>page %1 · right</source>
+        <extracomment>Under the right page. In Polish: strona %1 · prawa</extracomment>
+        <translation>strona %1 · prawa</translation>
+    </message>
+    <message>
+        <source>right page</source>
+        <extracomment>In Polish: prawa strona</extracomment>
+        <translation>prawa strona</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpreadStrip</name>
+    <message>
+        <source>%1 – empty</source>
+        <extracomment>An empty page; %1: its number. In Polish: %1 – pusta</extracomment>
+        <translation>%1 – pusta</translation>
+    </message>
+    <message>
+        <source>%1 – this spread</source>
+        <extracomment>A page of the spread itself, for screen readers; %1: its number. In Polish: %1 – ta rozkładówka</extracomment>
+        <translation>%1 – ta rozkładówka</translation>
+    </message>
+    <message>
+        <source>Pages beside the spread</source>
+        <extracomment>The small pages beside a spread on its card, for screen readers. In Polish: Strony obok rozkładówki</extracomment>
+        <translation>Strony obok rozkładówki</translation>
+    </message>
+    <message>
+        <source>empty</source>
+        <extracomment>An empty page among the small pages beside a spread. In Polish: pusta</extracomment>
+        <translation>pusta</translation>
     </message>
 </context>
 </TS>

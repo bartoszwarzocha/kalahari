@@ -1517,7 +1517,10 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     const std::shared_ptr<IWindowEditorProvider> windowEditor =
         kind.kind->form == ElementForm::Window ? windowEditorProvider(kind.kind->editor)
                                                : nullptr;
-    if (kind.kind->form == ElementForm::Window && !windowEditor) {
+    // A spread is the program's own (spread.h): it needs no module
+    const bool spread = kind.kind->form == ElementForm::Window &&
+                        kind.kind->editor == QLatin1String(SpreadData::EDITOR);
+    if (kind.kind->form == ElementForm::Window && !windowEditor && !spread) {
         logger.error("addElement: Elements of {} open in a window that the program does not "
                      "have yet",
                      kind.reference().toStdString());
@@ -1569,6 +1572,11 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
             m_elementStates.remove(element.id);
             return QString();
         }
+    } else if (spread) {
+        // A spread has no file: its settings are in the .klh file, the new ones as the
+        // Settings say
+        element.spread = SpreadData::ofSettings();
+        element.status = status.isEmpty() ? QStringLiteral("draft") : status;
     } else if (windowEditor) {
         element.file =
             newMaterialFile(kind.kind->id + QLatin1Char('.') + windowEditor->fileSuffix());
@@ -1629,6 +1637,7 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
 bool ProjectManager::canAdd(const KindRef& kind) {
     return kind && !kind.kind->retired &&
            (kind.kind->form != ElementForm::Window || kind.kind->isMaterial() ||
+            kind.kind->editor == QLatin1String(SpreadData::EDITOR) ||
             windowEditorProvider(kind.kind->editor) != nullptr);
 }
 
@@ -2475,7 +2484,9 @@ bool ProjectManager::setStatus(const QString& elementId, const QString& status) 
         return false;
     }
     ProjectElement* element = findElement(elementId);
-    if (!element || !stateOf(elementId) || !textStatuses().contains(status) ||
+    // A spread has a status too, kept in the .klh file only
+    const bool spread = element != nullptr && isSpread(*element);
+    if (!element || (!stateOf(elementId) && !spread) || !textStatuses().contains(status) ||
         isBookFile(elementId)) {
         Logger::getInstance().warn("setStatus: Cannot set the status {} of {}",
                                    status.toStdString(), elementId.toStdString());
@@ -2488,11 +2499,47 @@ bool ProjectManager::setStatus(const QString& elementId, const QString& status) 
         return false;
     }
     // The .klh file has the status; the chapter file keeps a copy
-    if (!writeChapterFile(*element, std::nullopt)) {
+    if (!spread && !writeChapterFile(*element, std::nullopt)) {
         Logger::getInstance().warn("setStatus: The status of {} is not in its chapter file",
                                    elementId.toStdString());
     }
     return true;
+}
+
+bool ProjectManager::isSpread(const ProjectElement& element) const {
+    const KindRef kind = kindOf(element);
+    return kind && kind.kind->form == ElementForm::Window &&
+           kind.kind->editor == QLatin1String(SpreadData::EDITOR);
+}
+
+bool ProjectManager::setSpread(const QString& elementId, const SpreadData& spread) {
+    if (refusesChange("setSpread")) {
+        return false;
+    }
+    ProjectElement* element = findElement(elementId);
+    if (element == nullptr || !isSpread(*element)) {
+        Logger::getInstance().warn("setSpread: Not a spread: {}", elementId.toStdString());
+        return false;
+    }
+    SpreadData data = spread.normalized();
+    if (element->spread) {
+        data.extra = element->spread->extra;  // the fields of later versions stay
+    }
+    if (element->spread == data) {
+        return true;
+    }
+    const std::optional<SpreadData> previous = element->spread;
+    element->spread = data;
+    if (!saveManifest()) {
+        element->spread = previous;
+        return false;
+    }
+    emit spreadChanged(elementId);
+    return true;
+}
+
+SpreadData ProjectManager::spreadOf(const ProjectElement& element) {
+    return element.spread.value_or(SpreadData{});
 }
 
 bool ProjectManager::setFirstPage(const QString& elementId, PageStart start) {

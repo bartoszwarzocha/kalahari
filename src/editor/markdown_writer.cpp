@@ -169,6 +169,7 @@ public:
         const QFileInfo file(path);
         m_folder = file.absolutePath();
         m_images.setFolder(book.imagesFolder);
+        m_images.setOutsideFiles(book.pictures);
         m_textWidth = book.page.textWidthPoints();
     }
 

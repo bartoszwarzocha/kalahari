@@ -39,6 +39,7 @@ set(TEST_SOURCES
     core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
     core/test_publishing_texts.cpp    # The texts for publishers: their data, templates, lengths and the set
+    core/test_spread.cpp              # A spread: its settings in the book file, a new one, its changes
     core/test_series.cpp              # A series: several books of one project with one Workshop
     core/test_volume_materials.cpp    # A series: the cover and the publishing texts of each volume
     core/test_series_join.cpp         # A series: a volume taken out, a book joined as a volume
@@ -129,6 +130,7 @@ set(TEST_SOURCES
     editor/test_book_import.cpp                  # Import of DOCX, Markdown and plain text into a book
     editor/test_pdf_export.cpp                   # Export of a book to PDF: its pages and the file
     editor/test_book_print.cpp                   # The print of a book: the pages on the sheets
+    editor/test_spread_look.cpp                  # A spread on its two pages, its caption, its place in the pages
     editor/test_epub_export.cpp                  # Export of a book to EPUB 3
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
@@ -235,6 +237,7 @@ set(TEST_SOURCES
     gui/test_series_join.cpp                     # A series: a volume taken out, a book joined
     gui/test_publishing_add.cpp                  # Add Element of a text for publishers
     gui/test_publishing_card.cpp                 # The card For Publishers
+    gui/test_spread_card.cpp                     # The card of a spread and its Properties
     gui/test_publishing_text_box.cpp             # A text for publishers in the Properties panel
     gui/test_publishing_settings.cpp             # The names of the texts for publishers and their settings
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
@@ -336,6 +339,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book_dictionary_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/material_kinds.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cover_material.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/spread.cpp
     ${CMAKE_SOURCE_DIR}/src/core/publishing_texts.cpp
     ${CMAKE_SOURCE_DIR}/src/core/volume_materials.cpp
     ${CMAKE_SOURCE_DIR}/src/core/volume_copies.cpp
@@ -703,6 +707,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/source_description_box.cpp    # The description of a source
     ${CMAKE_SOURCE_DIR}/src/gui/panels/preview_panel.cpp             # A preview of a file
     ${CMAKE_SOURCE_DIR}/src/gui/panels/image_preview_panel.cpp       # The preview of a material's picture
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/spread_card.cpp               # The card of a spread
     ${CMAKE_SOURCE_DIR}/src/gui/material_list.cpp                    # The lists of the materials
     ${CMAKE_SOURCE_DIR}/src/gui/material_list_clippings.cpp          # The columns of the clippings
     ${CMAKE_SOURCE_DIR}/src/gui/clipping_texts.cpp                   # What the program says of a clipping
@@ -766,6 +771,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/markdown_reader.cpp      # Import of Markdown
     ${CMAKE_SOURCE_DIR}/src/editor/text_reader.cpp          # Import of plain text: encodings, paragraphs, titles
     ${CMAKE_SOURCE_DIR}/src/editor/book_pages.cpp           # The pages of a book as the page view shows them (PDF, printer)
+    ${CMAKE_SOURCE_DIR}/src/editor/spread_look.cpp          # How a spread lies on its two pages and how they are drawn
     ${CMAKE_SOURCE_DIR}/src/editor/book_print.cpp           # The print of a book: the pages on the sheets
     ${CMAKE_SOURCE_DIR}/src/editor/pdf_writer.cpp           # Export of a book to a PDF document
     ${CMAKE_SOURCE_DIR}/src/editor/epub_writer.cpp          # Export of a book to an EPUB 3 e-book
@@ -942,6 +948,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/source_boxes.h   # The groups of the card of a source with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/preview_panel.h  # PreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spread_card.h  # SpreadCard with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/clipping_origin_box.h  # ClippingOriginBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_board_panel.h  # PlotBoardPanel with Q_OBJECT
