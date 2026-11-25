@@ -557,10 +557,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   GPL 3.0. Every dependency was checked against the GPL 3.0 (Qt 6.9 modules: LGPL-3.0-only OR
   GPL-2.0-only OR GPL-3.0-only; the ports of vcpkg; the dictionaries, the icons, the libraries of
   the Linux packages): all are compatible. The copyright line of `NOTICE.md` names the business
-  in full ("BW Digital Systems & Publishing – Bartosz Warzocha"). The About tab shows the full
-  logo of BW Digital Systems & Publishing above the attribution: its black letters on a light
-  theme, its white ones on a dark one, and it changes with the theme
-  (`resources/images/bwdsp_logo_black.png` and `bwdsp_logo_white.png`, embedded in the program);
+  in full ("BW Digital Systems & Publishing – Bartosz Warzocha"). Help > About Kalahari in a new
+  layout (mockup of 25.11, layout A): the heading has the logo of Kalahari, the name and the
+  version and, at its right end behind a line, the full logo of BW Digital Systems &
+  Publishing (its black letters on a light theme, its white ones on a dark one, changed with
+  the theme; a click opens the company's page; `resources/images/bwdsp_logo_black.png` and
+  `bwdsp_logo_white.png`, embedded in the program); the About tab has parts apart with room
+  between them: what Kalahari is, Authors ("Idea and overall architecture: Bartosz W.
+  Warzocha"; "Kalahari – created by BW Digital Systems & Publishing", in Polish "Realizacja
+  programu Kalahari"), Thanks and Project (the technologies), and under a line the copyright
+  and the licence; the team, the vision, the address of e-mail and the dates of the project
+  are gone;
   the second additional term (7 e) also covers the name and the logo of the company. README
   shows the logo, for the light and the dark mode of GitHub.
 

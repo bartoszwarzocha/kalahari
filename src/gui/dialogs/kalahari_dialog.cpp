@@ -201,6 +201,17 @@ QToolButton* KalahariDialog::addSettingsButton(const QString& page, const QStrin
     return m_settingsButton;
 }
 
+void KalahariDialog::addHeadingWidget(QWidget* widget, bool beforeTitle)
+{
+    widget->setParent(m_heading);
+    if (beforeTitle) {
+        // After the icon, which a heading with a widget of its own before the title has not
+        m_headingLayout->insertWidget(1, widget, 0, Qt::AlignVCenter);
+    } else {
+        m_headingLayout->addWidget(widget, 0, Qt::AlignVCenter);
+    }
+}
+
 QPushButton* KalahariDialog::addSideButton(const QString& text)
 {
     auto* button = new QPushButton(text, this);

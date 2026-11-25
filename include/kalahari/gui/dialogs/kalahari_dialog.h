@@ -146,6 +146,13 @@ protected:
     /// @return The button; nullptr without an opener
     QToolButton* addSettingsButton(const QString& page, const QString& toolTip);
 
+    /// @brief Add a widget to the heading, in the middle of its height: at its right end, after
+    ///        the texts (e.g. the logo of the authors in About), or before the title in place of
+    ///        the icon (@p beforeTitle, e.g. the logo of the program)
+    /// @param widget The widget; the heading becomes its parent
+    /// @param beforeTitle true: before the title; false: at the right end
+    void addHeadingWidget(QWidget* widget, bool beforeTitle = false);
+
     /// @brief Add a button at the left end of the row, apart from the ones that close the
     ///        dialog, on every system (e.g. Copy of a message)
     /// @param text Button text, with a mnemonic

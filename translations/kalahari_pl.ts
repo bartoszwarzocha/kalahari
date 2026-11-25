@@ -19039,50 +19039,6 @@ In Polish: Powiadomienia</extracomment>
         <translation>Wersja %1, Qt %2</translation>
     </message>
     <message>
-        <source>Kalahari is a modern writing environment designed for book authors.
-Built with C++20 and Qt 6.
-
-A comprehensive writing toolkit with project management,
-statistics tracking, and powerful export capabilities.</source>
-        <translation>Kalahari to nowoczesne środowisko pracy dla autorów książek.
-Napisane w C++20 i Qt 6.
-
-Kompletny zestaw narzędzi pisarza: zarządzanie projektem,
-statystyki i rozbudowany eksport.</translation>
-    </message>
-    <message>
-        <source>Kalahari Writer&apos;s IDE - Development Team
-
-Project Vision &amp; Architecture:
-  Bartosz Warzocha (bartosz.warzocha@gmail.com)
-Technology Stack:
-  C++20, Qt6 6.9+, CMake, vcpkg
-
-Special Thanks:
-  - Anthropic for Claude AI assistance
-  - Qt team for excellent cross-platform GUI framework
-  - Open source community for exceptional libraries
-
-Project Timeline:
-  Start: 2025-11
-  Target Release: February 2027 (Kalahari 1.0)</source>
-        <translation>Kalahari Writer&apos;s IDE – zespół
-
-Wizja i architektura projektu:
-  Bartosz Warzocha (bartosz.warzocha@gmail.com)
-Technologie:
-  C++20, Qt6 6.9+, CMake, vcpkg
-
-Podziękowania:
-  – Anthropic za pomoc Claude AI
-  – zespołowi Qt za świetną wieloplatformową bibliotekę interfejsu
-  – społeczności open source za znakomite biblioteki
-
-Harmonogram projektu:
-  Początek: 2025-11
-  Planowane wydanie: luty 2027 (Kalahari 1.0)</translation>
-    </message>
-    <message>
         <source>Qt 6 (www.qt.io)
 </source>
         <translation>Qt 6 (www.qt.io)
@@ -19165,8 +19121,8 @@ Harmonogram projektu:
     </message>
     <message>
         <source>Kalahari – created by BW Digital Systems &amp; Publishing, %1</source>
-        <extracomment>The authors of the program on the About tab and the License tab. Every copy of Kalahari must keep it (NOTICE.md, additional term 1): keep the name of the company and the address. %1: https://bwdsp.com.pl/. In Polish: Autor programu Kalahari: BW Digital Systems &amp; Publishing, %1</extracomment>
-        <translation>Autor programu Kalahari: BW Digital Systems &amp; Publishing, %1</translation>
+        <extracomment>The authors of the program on the About tab and the License tab. Every copy of Kalahari must keep it (NOTICE.md, additional term 1): keep the name of the company and the address. %1: https://bwdsp.com.pl/. In Polish: Realizacja programu Kalahari: BW Digital Systems &amp; Publishing, %1</extracomment>
+        <translation>Realizacja programu Kalahari: BW Digital Systems &amp; Publishing, %1</translation>
     </message>
     <message>
         <source>Kalahari is free software under the GNU General Public License version 3, with no warranty. Its text and the additional terms are on the License tab.</source>
@@ -19182,6 +19138,61 @@ Harmonogram projektu:
         <source>Copied to the clipboard.</source>
         <extracomment>After Copy Build Information in About. In Polish: Skopiowano do schowka.</extracomment>
         <translation>Skopiowano do schowka.</translation>
+    </message>
+    <message>
+        <source>Kalahari Writer&apos;s IDE</source>
+        <extracomment>The name of the program in the heading of About, beside its logo. In Polish: Kalahari Writer&apos;s IDE</extracomment>
+        <translation>Kalahari Writer&apos;s IDE</translation>
+    </message>
+    <message>
+        <source>Kalahari is a modern writing environment for book authors: project management, statistics and powerful export.</source>
+        <extracomment>Under the first line of the About tab. In Polish: Kalahari to nowoczesne środowisko pracy dla autorów książek: zarządzanie projektem, statystyki i rozbudowany eksport.</extracomment>
+        <translation>Kalahari to nowoczesne środowisko pracy dla autorów książek: zarządzanie projektem, statystyki i rozbudowany eksport.</translation>
+    </message>
+    <message>
+        <source>Authors</source>
+        <extracomment>The heading of a part of the About tab. In Polish: Twórcy</extracomment>
+        <translation>Twórcy</translation>
+    </message>
+    <message>
+        <source>Idea and overall architecture</source>
+        <extracomment>In Authors on the About tab. In Polish: Pomysł i architektura całości</extracomment>
+        <translation>Pomysł i architektura całości</translation>
+    </message>
+    <message>
+        <source>Kalahari – created by</source>
+        <extracomment>In Authors on the About tab, before the name of the company and its address: the row reads as the attribution every copy keeps (NOTICE.md, additional term 1), so it says what the beginning of &quot;Kalahari – created by BW Digital Systems &amp; Publishing, %1&quot; says. In Polish: Realizacja programu Kalahari</extracomment>
+        <translation>Realizacja programu Kalahari</translation>
+    </message>
+    <message>
+        <source>Thanks</source>
+        <extracomment>The heading of a part of the About tab. In Polish: Podziękowania</extracomment>
+        <translation>Podziękowania</translation>
+    </message>
+    <message>
+        <source>Anthropic – for the help of Claude AI</source>
+        <extracomment>In Thanks on the About tab. In Polish: Anthropic – za pomoc Claude AI</extracomment>
+        <translation>Anthropic – za pomoc Claude AI</translation>
+    </message>
+    <message>
+        <source>the Qt team – for the cross-platform GUI framework</source>
+        <extracomment>In Thanks on the About tab. In Polish: zespołowi Qt – za wieloplatformową bibliotekę interfejsu</extracomment>
+        <translation>zespołowi Qt – za wieloplatformową bibliotekę interfejsu</translation>
+    </message>
+    <message>
+        <source>the open source community – for exceptional libraries</source>
+        <extracomment>In Thanks on the About tab. In Polish: społeczności open source – za znakomite biblioteki</extracomment>
+        <translation>społeczności open source – za znakomite biblioteki</translation>
+    </message>
+    <message>
+        <source>Project</source>
+        <extracomment>The heading of a part of the About tab. In Polish: Projekt</extracomment>
+        <translation>Projekt</translation>
+    </message>
+    <message>
+        <source>Technologies</source>
+        <extracomment>In Project on the About tab. In Polish: Technologie</extracomment>
+        <translation>Technologie</translation>
     </message>
 </context>
 <context>

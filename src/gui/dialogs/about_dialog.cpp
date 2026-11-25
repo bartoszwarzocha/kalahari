@@ -6,6 +6,9 @@
 /// @brief Implementation of AboutDialog
 
 #include "kalahari/gui/dialogs/about_dialog.h"
+#include "kalahari/core/resource_paths.h"
+#include "kalahari/core/theme.h"
+#include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
 #include "kalahari/build_info.h"
@@ -13,9 +16,13 @@
 #include <QClipboard>
 #include <QDate>
 #include <QDateTime>
+#include <QDesktopServices>
 #include <QEvent>
 #include <QFile>
+#include <QFont>
 #include <QFormLayout>
+#include <QFrame>
+#include <QGridLayout>
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -28,6 +35,7 @@
 #include <QSysInfo>
 #include <QTabWidget>
 #include <QTextEdit>
+#include <QUrl>
 #include <QVBoxLayout>
 
 using namespace kalahari::gui::dialogs;
@@ -45,9 +53,59 @@ constexpr const char* COMPANY_NAME = "BW Digital Systems & Publishing";
 constexpr const char* COMPANY_LOGO_BLACK = ":/images/bwdsp_logo_black.png";
 constexpr const char* COMPANY_LOGO_WHITE = ":/images/bwdsp_logo_white.png";
 
-/// @brief How wide the logo is on the About tab, in logical pixels; its height keeps the
-/// proportions of the image
-constexpr int COMPANY_LOGO_WIDTH = 240;
+/// @brief The name of the person who had the idea of the program and made its architecture
+constexpr const char* AUTHOR_NAME = "Bartosz W. Warzocha";
+
+/// @brief How wide the logo of the authors is in the heading, in logical pixels; its height
+/// keeps the proportions of the image
+constexpr int COMPANY_LOGO_WIDTH = 150;
+
+/// @brief The logo of Kalahari before the name in the heading, in logical pixels
+constexpr int PROGRAM_LOGO_SIZE = 52;
+
+/// @brief The line between the name of the program and the logo of the authors
+constexpr int HEADING_LINE_HEIGHT = 44;
+
+/// @brief The About tab: its margins, the room between its parts, within a part, and between
+/// the columns of its rows
+constexpr int TAB_MARGIN = 16;
+constexpr int PART_SPACING = 18;
+constexpr int PART_INNER_SPACING = 8;
+constexpr int ROW_SPACING = 5;
+constexpr int COLUMN_SPACING = 16;
+
+/// @brief Sizes of the texts of the About tab against the dialog's font: what Kalahari is, the
+/// headings of the parts and the legal notices
+constexpr qreal TAGLINE_SCALE = 1.15;
+constexpr qreal PART_HEADING_SCALE = 0.88;
+constexpr qreal LEGAL_SCALE = 0.92;
+
+/// @brief The headings of the parts, in capitals, a little spaced (percent of the normal)
+constexpr qreal PART_HEADING_LETTER_SPACING = 106.0;
+
+/// @brief The size About opens at where the screen has room for it
+constexpr int DIALOG_WIDTH = 600;
+constexpr int DIALOG_HEIGHT = 640;
+
+/// @brief How much of the color of text the line in the heading has, on the background of
+/// text fields: seen on a light and on a dark theme
+constexpr double HEADING_LINE_SHARE = 0.2;
+
+/// @brief @p font scaled by @p scale
+QFont scaledFont(QFont font, qreal scale, QFont::Weight weight = QFont::Normal) {
+    font.setPointSizeF(font.pointSizeF() * scale);
+    font.setWeight(weight);
+    return font;
+}
+
+/// @brief A horizontal line in the color of the dialog's lines
+QFrame* horizontalLine(QWidget* parent) {
+    auto* line = new QFrame(parent);
+    line->setFixedHeight(1);
+    line->setAutoFillBackground(true);
+    line->setBackgroundRole(QPalette::Mid);
+    return line;
+}
 
 /// @brief A background darker than this lightness (0–255) is dark
 constexpr int DARK_LIGHTNESS = 128;
@@ -146,13 +204,17 @@ QList<QPair<QString, QString>> shortBuildRows() {
 AboutDialog::AboutDialog(QWidget* parent)
     : KalahariDialog(parent)
 {
-    setHeading(tr("About Kalahari Writer's IDE"),
+    //: The name of the program in the heading of About, beside its logo. In Polish: Kalahari
+    //: Writer's IDE
+    setHeading(tr("Kalahari Writer's IDE"),
                //: The heading of the About window. %1: the version of the program, %2: the
                //: version of Qt it runs with. In Polish: Wersja %1, Qt %2
                tr("Version %1, Qt %2")
                    .arg(QString::fromLatin1(kalahari::VERSION_STRING),
                         QString::fromLatin1(qVersion())));
-    setHeadingIcon(QStringLiteral("help.about"));
+    // The window keeps its title; the heading names the program beside its logo
+    setWindowTitle(tr("About Kalahari Writer's IDE"));
+    addHeadingLogos();
 
     // Tab widget
     m_tabs = new QTabWidget(this);
@@ -167,8 +229,10 @@ AboutDialog::AboutDialog(QWidget* parent)
     setAcceptText(tr("Close"));
     cancelButton()->hide();
 
+    updateMutedColors();
+
     // Lower where the screen is, e.g. 1366x768 at 150%: the tabs scroll
-    kalahari::gui::utils::resizeWithinScreen(this, QSize(600, 600));
+    kalahari::gui::utils::resizeWithinScreen(this, QSize(DIALOG_WIDTH, DIALOG_HEIGHT));
 }
 
 // ============================================================================
@@ -204,7 +268,7 @@ QString AboutDialog::authorAddress() {
 QString AboutDialog::attribution() {
     //: The authors of the program on the About tab and the License tab. Every copy of Kalahari
     //: must keep it (NOTICE.md, additional term 1): keep the name of the company and the
-    //: address. %1: https://bwdsp.com.pl/. In Polish: Autor programu Kalahari: BW Digital
+    //: address. %1: https://bwdsp.com.pl/. In Polish: Realizacja programu Kalahari: BW Digital
     //: Systems & Publishing, %1
     return tr("Kalahari – created by BW Digital Systems & Publishing, %1").arg(authorAddress());
 }
@@ -213,13 +277,78 @@ QString AboutDialog::companyLogo(bool darkBackground) {
     return QString::fromLatin1(darkBackground ? COMPANY_LOGO_WHITE : COMPANY_LOGO_BLACK);
 }
 
+void AboutDialog::addHeadingLogos() {
+    // Kalahari: the lion with the book and the quill, drawn from the whole image so that it
+    // is sharp at any scaling; without it (an incomplete installation) the icon of About
+    m_programLogo = new QLabel(this);
+    m_programLogo->setObjectName(QStringLiteral("aboutProgramLogo"));
+    m_programLogo->setFixedSize(PROGRAM_LOGO_SIZE, PROGRAM_LOGO_SIZE);
+    m_programLogo->setScaledContents(true);
+    const QPixmap lion(kalahari::core::ResourcePaths::getInstance().getResourcesDir() +
+                       QStringLiteral("/images/app_logo.png"));
+    m_programLogo->setPixmap(lion);
+    addHeadingWidget(m_programLogo, true);
+    if (lion.isNull()) {
+        m_programLogo->hide();
+        setHeadingIcon(QStringLiteral("help.about"));
+    }
+
+    // The authors at the right end, apart from the name of the program
+    m_headingLine = new QFrame(this);
+    m_headingLine->setFixedSize(1, HEADING_LINE_HEIGHT);
+    m_headingLine->setAutoFillBackground(true);
+    addHeadingWidget(m_headingLine);
+
+    m_companyLogo = new QLabel(this);
+    m_companyLogo->setObjectName(QStringLiteral("aboutCompanyLogo"));
+    m_companyLogo->setAccessibleName(QString::fromLatin1(COMPANY_NAME));
+    m_companyLogo->setToolTip(QStringLiteral("%1 – %2").arg(QString::fromLatin1(COMPANY_NAME),
+                                                           authorAddress()));
+    m_companyLogo->setScaledContents(true);
+    m_companyLogo->setCursor(Qt::PointingHandCursor);
+    m_companyLogo->installEventFilter(this);
+    addHeadingWidget(m_companyLogo);
+    updateCompanyLogo();
+}
+
+bool AboutDialog::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == m_companyLogo && event->type() == QEvent::MouseButtonRelease) {
+        QDesktopServices::openUrl(QUrl(authorAddress()));
+        return true;
+    }
+    return KalahariDialog::eventFilter(watched, event);
+}
+
+QLabel* AboutDialog::mutedLabel(const QString& text, QWidget* parent) {
+    auto* label = new QLabel(text, parent);
+    m_mutedLabels.append(label);
+    return label;
+}
+
+void AboutDialog::updateMutedColors() {
+    // The color of the notes of the program, readable on the window
+    const QColor muted = SettingsPage::noteColorOn(palette().color(QPalette::Window));
+    for (QLabel* label : m_mutedLabels) {
+        QPalette colors = label->palette();
+        colors.setColor(QPalette::WindowText, muted);
+        label->setPalette(colors);
+    }
+}
+
 void AboutDialog::updateCompanyLogo() {
     if (m_companyLogo == nullptr) {
         return;
     }
-    // The background of the window: the window has the palette of a new theme before its
-    // tabs do, when it hears of the change
-    const QColor background = palette().color(QPalette::Window);
+    // The background of the heading, the one of text fields: the window has the palette of a
+    // new theme before its heading does, when it hears of the change
+    const QColor background = palette().color(QPalette::Base);
+    if (m_headingLine != nullptr) {
+        QPalette colors = m_headingLine->palette();
+        colors.setColor(m_headingLine->backgroundRole(),
+                        kalahari::core::mixedColor(background, palette().color(QPalette::Text),
+                                                   HEADING_LINE_SHARE));
+        m_headingLine->setPalette(colors);
+    }
     const QPixmap logo(companyLogo(background.lightness() < DARK_LIGHTNESS));
     if (logo.isNull()) {
         m_companyLogo->hide();
@@ -236,6 +365,7 @@ void AboutDialog::changeEvent(QEvent* event) {
     KalahariDialog::changeEvent(event);
     if (event->type() == QEvent::PaletteChange) {
         updateCompanyLogo();
+        updateMutedColors();
     }
 }
 
@@ -278,90 +408,147 @@ QWidget* AboutDialog::createBuildTab() {
 }
 
 QWidget* AboutDialog::createAboutTab() {
-    // The name, the version and the version of Qt are in the heading
-    QWidget* widget = new QWidget();
-    QVBoxLayout* layout = new QVBoxLayout(widget);
+    // Parts apart, each with its heading over a line: what Kalahari is, Authors, Thanks and
+    // Project; under a line at the bottom the copyright and the licence. The name, the version
+    // and the logos are in the heading
+    auto* widget = new QWidget();
+    auto* layout = new QVBoxLayout(widget);
+    layout->setContentsMargins(TAB_MARGIN, TAB_MARGIN, TAB_MARGIN, TAB_MARGIN);
+    layout->setSpacing(PART_SPACING);
 
-    // Platform info
-    QLabel* platform = new QLabel(
-        tr("Cross-platform Writer's IDE for Windows, macOS, and Linux"), widget);
-    platform->setAlignment(Qt::AlignCenter);
-    platform->setWordWrap(true);
-    layout->addWidget(platform);
-    layout->addSpacing(10);
+    // What Kalahari is
+    auto* intro = new QVBoxLayout();
+    intro->setSpacing(PART_INNER_SPACING - 2);
+    //: The first line of the About tab. In Polish: Środowisko pracy pisarza dla systemów
+    //: Windows, macOS i Linux
+    auto* tagline =
+        new QLabel(tr("Cross-platform Writer's IDE for Windows, macOS, and Linux"), widget);
+    tagline->setFont(scaledFont(font(), TAGLINE_SCALE, QFont::DemiBold));
+    tagline->setWordWrap(true);
+    intro->addWidget(tagline);
+    //: Under the first line of the About tab. In Polish: Kalahari to nowoczesne środowisko
+    //: pracy dla autorów książek: zarządzanie projektem, statystyki i rozbudowany eksport.
+    auto* description = new QLabel(
+        tr("Kalahari is a modern writing environment for book authors: project management, "
+           "statistics and powerful export."),
+        widget);
+    description->setWordWrap(true);
+    intro->addWidget(description);
+    layout->addLayout(intro);
 
-    // Description
-    QLabel* desc = new QLabel(
-        tr("Kalahari is a modern writing environment designed for book authors.\n"
-           "Built with C++20 and Qt 6.\n\n"
-           "A comprehensive writing toolkit with project management,\n"
-           "statistics tracking, and powerful export capabilities."), widget);
-    desc->setWordWrap(true);
-    desc->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-    layout->addWidget(desc);
-    layout->addSpacing(10);
+    // A part: its heading in capitals over a line, then its rows
+    const auto addPart = [this, widget, layout](const QString& heading) {
+        auto* part = new QVBoxLayout();
+        part->setSpacing(PART_INNER_SPACING);
+        auto* title = mutedLabel(heading, widget);
+        QFont titleFont = scaledFont(font(), PART_HEADING_SCALE, QFont::DemiBold);
+        titleFont.setCapitalization(QFont::AllUppercase);
+        titleFont.setLetterSpacing(QFont::PercentageSpacing, PART_HEADING_LETTER_SPACING);
+        title->setFont(titleFont);
+        auto* heads = new QVBoxLayout();
+        heads->setSpacing(PART_INNER_SPACING - 3);
+        heads->addWidget(title);
+        heads->addWidget(horizontalLine(widget));
+        part->addLayout(heads);
+        layout->addLayout(part);
+        return part;
+    };
+    // Rows of a label in the muted color and its value
+    const auto addRows = [](QVBoxLayout* part) {
+        auto* rows = new QGridLayout();
+        rows->setHorizontalSpacing(COLUMN_SPACING);
+        rows->setVerticalSpacing(ROW_SPACING);
+        rows->setColumnStretch(1, 1);
+        part->addLayout(rows);
+        return rows;
+    };
+    const auto addRow = [this, widget](QGridLayout* rows, const QString& label, QLabel* value) {
+        const int row = rows->rowCount();
+        rows->addWidget(mutedLabel(label, widget), row, 0, Qt::AlignTop);
+        value->setWordWrap(true);
+        rows->addWidget(value, row, 1, Qt::AlignTop);
+    };
 
-    // Credits section
-    QLabel* credits = new QLabel(
-        tr("Kalahari Writer's IDE - Development Team\n\n"
-           "Project Vision & Architecture:\n"
-           "  Bartosz Warzocha (bartosz.warzocha@gmail.com)\n"
-           "Technology Stack:\n"
-           "  C++20, Qt6 6.9+, CMake, vcpkg\n\n"
-           "Special Thanks:\n"
-           "  - Anthropic for Claude AI assistance\n"
-           "  - Qt team for excellent cross-platform GUI framework\n"
-           "  - Open source community for exceptional libraries\n\n"
-           "Project Timeline:\n"
-           "  Start: 2025-11\n"
-           "  Target Release: February 2027 (Kalahari 1.0)"), widget);
-    credits->setWordWrap(true);
-    layout->addWidget(credits);
-    layout->addStretch(1);
-
-    // The logo of the authors, for the background of the theme, light or dark
-    layout->addSpacing(12);
-    m_companyLogo = new QLabel(widget);
-    m_companyLogo->setObjectName(QStringLiteral("aboutCompanyLogo"));
-    m_companyLogo->setAccessibleName(QString::fromLatin1(COMPANY_NAME));
-    m_companyLogo->setToolTip(QString::fromLatin1(COMPANY_NAME));
-    m_companyLogo->setScaledContents(true);
-    updateCompanyLogo();
-    layout->addWidget(m_companyLogo, 0, Qt::AlignHCenter);
-    layout->addSpacing(6);
-
-    // The authors, as the licence requires every copy to show them (NOTICE.md, additional term
-    // 1); the address is a link to their page
+    // Authors: the idea and the overall architecture, and the company that created the
+    // program, as the licence requires every copy to show (NOTICE.md, additional term 1); the
+    // address is a link to its page
+    //: The heading of a part of the About tab. In Polish: Twórcy
+    QGridLayout* authors = addRows(addPart(tr("Authors")));
+    auto* author = new QLabel(widget);
+    author->setTextFormat(Qt::RichText);
+    author->setText(QStringLiteral("<b>%1</b>").arg(QString::fromLatin1(AUTHOR_NAME)));
+    //: In Authors on the About tab. In Polish: Pomysł i architektura całości
+    addRow(authors, tr("Idea and overall architecture"), author);
     const QString address = authorAddress();
-    auto* attributionLabel = new QLabel(widget);
-    attributionLabel->setObjectName(QStringLiteral("aboutAttribution"));
-    attributionLabel->setTextFormat(Qt::RichText);
-    attributionLabel->setText(attribution().toHtmlEscaped().replace(
-        address, QStringLiteral("<a href=\"%1\">%1</a>").arg(address)));
-    attributionLabel->setOpenExternalLinks(true);
-    attributionLabel->setAlignment(Qt::AlignCenter);
-    attributionLabel->setWordWrap(true);
-    layout->addWidget(attributionLabel);
+    auto* company = new QLabel(widget);
+    company->setObjectName(QStringLiteral("aboutAttribution"));
+    company->setTextFormat(Qt::RichText);
+    company->setText(QStringLiteral("<b>%1</b>, <a href=\"%2\">%2</a>")
+                         .arg(QString::fromLatin1(COMPANY_NAME).toHtmlEscaped(), address));
+    company->setOpenExternalLinks(true);
+    //: In Authors on the About tab, before the name of the company and its address: the row
+    //: reads as the attribution every copy keeps (NOTICE.md, additional term 1), so it says
+    //: what the beginning of "Kalahari – created by BW Digital Systems & Publishing, %1"
+    //: says. In Polish: Realizacja programu Kalahari
+    addRow(authors, tr("Kalahari – created by"), company);
 
-    // Copyright, the years up to this one
-    auto* copyrightLabel = new QLabel(copyright(), widget);
+    // Thanks, a line for each
+    //: The heading of a part of the About tab. In Polish: Podziękowania
+    QGridLayout* thanks = addRows(addPart(tr("Thanks")));
+    thanks->setHorizontalSpacing(PART_INNER_SPACING);
+    thanks->setVerticalSpacing(ROW_SPACING - 2);
+    const QStringList thanked = {
+        //: In Thanks on the About tab. In Polish: Anthropic – za pomoc Claude AI
+        tr("Anthropic – for the help of Claude AI"),
+        //: In Thanks on the About tab. In Polish: zespołowi Qt – za wieloplatformową
+        //: bibliotekę interfejsu
+        tr("the Qt team – for the cross-platform GUI framework"),
+        //: In Thanks on the About tab. In Polish: społeczności open source – za znakomite
+        //: biblioteki
+        tr("the open source community – for exceptional libraries"),
+    };
+    for (const QString& line : thanked) {
+        const int row = thanks->rowCount();
+        thanks->addWidget(mutedLabel(QStringLiteral("–"), widget), row, 0, Qt::AlignTop);
+        auto* text = new QLabel(line, widget);
+        text->setWordWrap(true);
+        thanks->addWidget(text, row, 1, Qt::AlignTop);
+    }
+
+    // Project
+    //: The heading of a part of the About tab. In Polish: Projekt
+    QGridLayout* project = addRows(addPart(tr("Project")));
+    //: In Project on the About tab. In Polish: Technologie
+    addRow(project, tr("Technologies"),
+           new QLabel(QStringLiteral("C++20, Qt 6, CMake, vcpkg"), widget));
+
+    // Under a line at the bottom: the copyright, the years up to this one, and that Kalahari is
+    // free software without warranty, the legal notices the GNU GPL asks of a program with a
+    // user interface (its sections 0 and 5 d)
+    layout->addStretch(1);
+    auto* legal = new QVBoxLayout();
+    legal->setSpacing(3);
+    legal->addWidget(horizontalLine(widget));
+    legal->addSpacing(PART_INNER_SPACING + 2);
+    const QFont legalFont = scaledFont(font(), LEGAL_SCALE);
+    auto* copyrightLabel = mutedLabel(copyright(), widget);
     copyrightLabel->setObjectName(QStringLiteral("aboutCopyright"));
+    copyrightLabel->setFont(legalFont);
     copyrightLabel->setAlignment(Qt::AlignCenter);
-    layout->addWidget(copyrightLabel);
-
-    // Free software without warranty, and where the licence is: the legal notices the GNU GPL
-    // asks of a program with a user interface (its sections 0 and 5 d)
+    legal->addWidget(copyrightLabel);
     //: Under the copyright on the About tab. In Polish: Kalahari to wolne oprogramowanie na
     //: licencji GNU General Public License w wersji 3, bez żadnej gwarancji. Jej tekst i warunki
     //: dodatkowe są na karcie Licencja.
-    auto* noticeLabel = new QLabel(
+    auto* noticeLabel = mutedLabel(
         tr("Kalahari is free software under the GNU General Public License version 3, with no "
            "warranty. Its text and the additional terms are on the License tab."),
         widget);
     noticeLabel->setObjectName(QStringLiteral("aboutLicenseNotice"));
+    noticeLabel->setFont(legalFont);
     noticeLabel->setAlignment(Qt::AlignCenter);
     noticeLabel->setWordWrap(true);
-    layout->addWidget(noticeLabel);
+    legal->addWidget(noticeLabel);
+    layout->addLayout(legal);
 
     // The texts scroll in a low window, e.g. on 1366x768 at 150%
     auto* area = new kalahari::gui::FittingScrollArea(widget);

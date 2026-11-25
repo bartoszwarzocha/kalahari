@@ -299,8 +299,7 @@ TEST_CASE("Own windows: About shows what the program was built from, and copies 
     CHECK(dialog.tabs()->currentIndex() == 0);
     CHECK(dialog.tabs()->tabText(0) == QStringLiteral("About"));
     CHECK(dialog.tabs()->tabText(1) == QStringLiteral("Build"));
-    // When and how it was built, as the Build tab writes it ("Release" alone is also in
-    // "Target Release" on the About tab)
+    // When and how it was built, as the Build tab writes it, not on the About tab
     const QString builtAs = QStringLiteral("%1, %2").arg(
         QLocale().toString(built.toLocalTime(), QLocale::ShortFormat), configuration);
     CHECK_FALSE(showsText(dialog, builtAs));
@@ -471,28 +470,76 @@ TEST_CASE("Own windows: About shows the full logo of the authors for a light and
     CHECK(logo->objectName() == QStringLiteral("aboutCompanyLogo"));
     CHECK(logo->isVisibleTo(&dialog));
     CHECK(logo->accessibleName() == QStringLiteral("BW Digital Systems & Publishing"));
-    // The whole logo, in its proportions, above the authors
-    CHECK(logo->width() == 240);
-    CHECK(logo->height() == 240 * 631 / 2358);
+    CHECK(logo->toolTip().contains(QStringLiteral("https://bwdsp.com.pl/")));
+    // The whole logo, in its proportions, at the right end of the heading, after the logo of
+    // Kalahari and the name (layout A of the mockup of 25.11)
+    CHECK(logo->width() == 150);
+    CHECK(logo->height() == 150 * 631 / 2358);
     CHECK(logo->hasScaledContents());
-    const auto* authors = dialog.findChild<QLabel*>(QStringLiteral("aboutAttribution"));
-    REQUIRE(authors != nullptr);
-    REQUIRE(logo->parentWidget() == authors->parentWidget());
-    const QLayout* layout = logo->parentWidget()->layout();
+    QWidget* heading = logo->parentWidget();
+    REQUIRE(heading != nullptr);
+    CHECK(heading->objectName() == QStringLiteral("kalahariDialogHeading"));
+    const QLayout* layout = heading->layout();
     REQUIRE(layout != nullptr);
-    CHECK(layout->indexOf(logo) < layout->indexOf(authors));
+    REQUIRE(dialog.programLogoLabel() != nullptr);
+    CHECK(dialog.programLogoLabel()->parentWidget() == heading);
+    CHECK(layout->indexOf(dialog.programLogoLabel()) < layout->indexOf(logo));
+    CHECK(layout->indexOf(logo) == layout->count() - 1);
 
-    // A light theme: the black letters; a dark one: the white ones; and back, as the theme
-    // changes while the window is open
-    const auto shownOn = [&dialog, logo](const char* window) {
+    // The heading has the background of text fields: on a light one the black letters, on a
+    // dark one the white ones; and back, as the theme changes while the window is open
+    const auto shownOn = [&dialog, logo](const char* base) {
         QPalette palette = dialog.palette();
-        palette.setColor(QPalette::Window, QColor(QString::fromLatin1(window)));
+        palette.setColor(QPalette::Base, QColor(QString::fromLatin1(base)));
         dialog.setPalette(palette);
         return logo->pixmap().toImage();
     };
-    CHECK(shownOn("#f0f0f0") == black.toImage());
-    CHECK(shownOn("#2b2b2b") == white.toImage());
     CHECK(shownOn("#ffffff") == black.toImage());
+    CHECK(shownOn("#3c3c3c") == white.toImage());
+    CHECK(shownOn("#f5f5f5") == black.toImage());
+}
+
+TEST_CASE("Own windows: the About tab has its parts apart, and the authors of 25.11",
+          "[gui][dialogs][license]") {
+    AboutDialog dialog;
+    // The heading names the program beside its logo; the window keeps its title
+    CHECK(dialog.windowTitle() == QStringLiteral("About Kalahari Writer's IDE"));
+    CHECK(showsText(dialog, QStringLiteral("Kalahari Writer's IDE")));
+
+    // The parts, each with its heading
+    for (const char* part : {"Authors", "Thanks", "Project"}) {
+        INFO(part);
+        CHECK(showsText(dialog, QString::fromLatin1(part)));
+    }
+    // Authors: the idea and the overall architecture, and the company that created Kalahari
+    // (test of 25.11: "that I had the idea and made the architecture of the whole, and that
+    // BW Digital Systems & Publishing made it")
+    CHECK(showsText(dialog, QStringLiteral("Idea and overall architecture")));
+    CHECK(showsText(dialog, QStringLiteral("<b>Bartosz W. Warzocha</b>")));
+    CHECK(showsText(dialog, QStringLiteral("Kalahari – created by")));
+    const auto* company = dialog.findChild<QLabel*>(QStringLiteral("aboutAttribution"));
+    REQUIRE(company != nullptr);
+    CHECK(company->text() ==
+          QStringLiteral("<b>BW Digital Systems &amp; Publishing</b>, "
+                         "<a href=\"https://bwdsp.com.pl/\">https://bwdsp.com.pl/</a>"));
+    // Gone: the team, the vision, the address of e-mail; and in Project only the technologies,
+    // no dates (test of 25.11: "they make no sense at all, remove them")
+    CHECK_FALSE(showsText(dialog, QStringLiteral("Development Team")));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("Vision")));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("@gmail.com")));
+    CHECK(showsText(dialog, QStringLiteral("Technologies")));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("Work began")));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("Release")));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("2027")));
+
+    // The legal notices at the bottom, under the parts
+    const auto* copyrightLabel = dialog.findChild<QLabel*>(QStringLiteral("aboutCopyright"));
+    REQUIRE(copyrightLabel != nullptr);
+    CHECK(company->parentWidget() == copyrightLabel->parentWidget());
+    dialog.show();
+    QApplication::processEvents();
+    CHECK(company->mapTo(&dialog, QPoint()).y() < copyrightLabel->mapTo(&dialog, QPoint()).y());
+    dialog.close();
 }
 
 TEST_CASE("Own windows: in Polish About keeps the name and the address of the authors",
@@ -504,12 +551,18 @@ TEST_CASE("Own windows: in Polish About keeps the name and the address of the au
     // company and its address unchanged (NOTICE.md, additional term 1)
     const QString attribution = AboutDialog::attribution();
     CHECK(attribution == QStringLiteral(
-                             "Autor programu Kalahari: BW Digital Systems & Publishing, "
+                             "Realizacja programu Kalahari: BW Digital Systems & Publishing, "
                              "https://bwdsp.com.pl/"));
     CHECK(AboutDialog::copyright().endsWith(QStringLiteral("Bartosz W. Warzocha")));
     {
         AboutDialog dialog;
         CHECK(dialog.tabs()->tabText(3) == QStringLiteral("Licencja"));
+        // The About tab: the authors in the words of 25.11, the row of the company as the
+        // attribution reads
+        CHECK(showsText(dialog, QStringLiteral("Twórcy")));
+        CHECK(showsText(dialog, QStringLiteral("Pomysł i architektura całości")));
+        CHECK(showsText(dialog, QStringLiteral("Realizacja programu Kalahari")));
+        CHECK(attribution.startsWith(QStringLiteral("Realizacja programu Kalahari")));
         const auto* license = dialog.findChild<QTextEdit*>(QStringLiteral("aboutLicenseText"));
         REQUIRE(license != nullptr);
         const QString shown = license->toPlainText();
