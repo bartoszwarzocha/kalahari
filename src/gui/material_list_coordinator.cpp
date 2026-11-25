@@ -23,6 +23,7 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/source_names.h"
 #include "kalahari/gui/utils/file_location.h"
+#include "kalahari/gui/widgets/cover_plan.h"
 
 #include <QDir>
 #include <QPointer>
@@ -277,6 +278,18 @@ void MaterialListCoordinator::connectList(MaterialListPanel* panel) {
             m_showProperties(false);
         }
     });
+    connect(panel, &MaterialListPanel::endpaperChosen, this, [this](const QString& side) {
+        m_navigator->onRequestEndpaperProperties(side);
+        if (m_showProperties) {
+            m_showProperties(false);
+        }
+    });
+    connect(panel, &MaterialListPanel::requestEndpaperPicture, this,
+            [this, panel = QPointer<MaterialListPanel>(panel)](const QString& side) {
+                if (panel != nullptr) {
+                    addEndpaperPicture(panel, side);
+                }
+            });
     connect(panel, &MaterialListPanel::requestProperties, this, [this](const QString& elementId) {
         m_navigator->onRequestProperties(elementId);
         if (m_showProperties) {
@@ -395,11 +408,11 @@ void MaterialListCoordinator::link(const QString& elementId) {
     m_navigator->onMaterialChanged(elementId);
 }
 
-void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
+QString MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
                                   const QString& coverPart) {
     auto& pm = m_book;
     if (!pm.isProjectOpen() || pm.isReadOnly()) {
-        return;
+        return {};
     }
     // The small window of the kind of the list, or the Add Element window with the kinds of
     // all of them; the list of the sources has those that can be a source, a publication
@@ -417,7 +430,7 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
         }
     }
     if (target.kinds.isEmpty()) {
-        return;
+        return {};
     }
     if (!list.isEmpty()) {
         target.kind = target.kinds.constFirst();
@@ -438,7 +451,7 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
         }
     }
     if (added.isEmpty()) {
-        return;
+        return {};
     }
     // A material added to the sources is one: its kind and its title in its description
     if (const core::ProjectElement* element = pm.findElement(added);
@@ -459,6 +472,29 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
     panel->selectMaterial(added);
     if (m_centralTabs->currentWidget() == panel) {
         panel->focusList();
+    }
+    return added;
+}
+
+void MaterialListCoordinator::addEndpaperPicture(MaterialListPanel* panel, const QString& side) {
+    // The picture goes to the materials of the cover as a reference picture, without a place
+    const QString added =
+        add(panel, panel->list(), QString::fromLatin1(core::CoverMaterial::REFERENCE));
+    if (added.isEmpty()) {
+        return;
+    }
+    core::CoverParts parts = m_book.coverParts();
+    core::Endpaper& endpaper =
+        side == QLatin1String(CoverPlan::BACK_ENDPAPER) ? parts.back : parts.front;
+    endpaper.picture = added;
+    if (endpaper.fill != QLatin1String(core::Endpaper::PICTURE) &&
+        endpaper.fill != QLatin1String(core::Endpaper::TILE)) {
+        endpaper.fill = QString::fromLatin1(core::Endpaper::PICTURE);
+    }
+    if (!m_book.setCoverParts(parts)) {
+        //: In Polish: Nie zapisano wyklejki
+        dialogs::MessageDialog::warning(window(), MaterialList::tr("Endpaper Not Saved"),
+                                        MaterialList::tr("Failed to save changes."));
     }
 }
 

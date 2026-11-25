@@ -146,7 +146,9 @@ TEST_CASE("Cover materials: the words of their parts, places, states and lengths
     CHECK(CoverNames::groupName(QStringLiteral("opinion")) ==
           QStringLiteral("Opinions and recommendations"));
     CHECK(CoverNames::groupName(QStringLiteral("nothing")) == QStringLiteral("Other"));
-    CHECK(CoverNames::placeName(QStringLiteral("frontFlap")) == QStringLiteral("Front flap"));
+    CHECK(CoverNames::placeName(QStringLiteral("frontFlap")) == QStringLiteral("Cover – front flap"));
+    CHECK(CoverNames::shortPlaceName(QStringLiteral("frontFlap")) == QStringLiteral("Front flap"));
+    CHECK(CoverNames::placeName(QStringLiteral("jacketBackFlap")) == QStringLiteral("Jacket – back flap"));
     CHECK(CoverNames::placeName(QString()) == QStringLiteral("Not set"));
     CHECK(CoverNames::stateName(QString()) == QStringLiteral("draft"));
     // Values a later version adds are shown as they are written, not as none
@@ -381,7 +383,7 @@ TEST_CASE("Cover materials: the text, its counts and target, and the data on the
     CHECK(card.targetLabel()->font().bold());
 
     // The kinds among the texts; a description has a place and a state
-    CHECK(card.coverPartBox()->count() == 4);
+    CHECK(card.coverPartBox()->count() == 5);
     CHECK(card.coverPlaceBox()->currentData().toString() == QStringLiteral("back"));
     CHECK(card.coverStateBox()->currentData().toString().isEmpty());
     CHECK_FALSE(card.coverAuthorEdit()->isVisibleTo(&card));

@@ -366,6 +366,10 @@ struct PublishingTexts {
     static QStringList setState(BookProject& project, const QString& elementId,
                                 const QString& state);
 
+    /// @brief The note about the author (ABOUT_AUTHOR_KIND) of the back part of @p book, the
+    /// first one; nullptr: none
+    static const ProjectElement* aboutAuthorOf(const ProjectBook& book);
+
     /// @brief The versions that can be the part @p part of a set (setParts()): the texts of the
     /// part, or the materials of the cover of a description or a tagline, in the order of the
     /// Workshop; the note about the author has none

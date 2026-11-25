@@ -6180,6 +6180,201 @@ The status bar, after a material is chosen for the cover: the one chosen before 
         <extracomment>An opinion with its author: %1 the opinion in quotes, %2 the author and who the author is. In Polish: %1 – %2</extracomment>
         <translation>%1 – %2</translation>
     </message>
+    <message>
+        <source>Author bio</source>
+        <extracomment>What a material of the cover is: a short text about the author for a flap or the back, apart from the note About the Author at the end of the book. In Polish: Notka biograficzna</extracomment>
+        <translation>Notka biograficzna</translation>
+    </message>
+    <message>
+        <source>Author photo</source>
+        <extracomment>What a material of the cover is: a portrait of the author for a flap. In Polish: Zdjęcie autora</extracomment>
+        <translation>Zdjęcie autora</translation>
+    </message>
+    <message>
+        <source>Author bios</source>
+        <extracomment>A group of the list of the cover. In Polish: Notki biograficzne</extracomment>
+        <translation>Notki biograficzne</translation>
+    </message>
+    <message>
+        <source>Author photos</source>
+        <extracomment>A group of the list of the cover. In Polish: Zdjęcia autora</extracomment>
+        <translation>Zdjęcia autora</translation>
+    </message>
+    <message>
+        <source>Bio %1</source>
+        <extracomment>The title of a new author bio; %1 its number. In Polish: Notka %1</extracomment>
+        <translation>Notka %1</translation>
+    </message>
+    <message>
+        <source>Author photo %1</source>
+        <extracomment>The title of a new photo of the author; %1 its number. In Polish: Zdjęcie autora %1</extracomment>
+        <translation>Zdjęcie autora %1</translation>
+    </message>
+    <message>
+        <source>Cover – front</source>
+        <extracomment>A place on the cover, in a list and a menu. In Polish: Okładka – przód</extracomment>
+        <translation>Okładka – przód</translation>
+    </message>
+    <message>
+        <source>Cover – spine</source>
+        <extracomment>A place on the cover, in a list and a menu. In Polish: Okładka – grzbiet</extracomment>
+        <translation>Okładka – grzbiet</translation>
+    </message>
+    <message>
+        <source>Cover – back</source>
+        <extracomment>A place on the cover, in a list and a menu. In Polish: Okładka – tył</extracomment>
+        <translation>Okładka – tył</translation>
+    </message>
+    <message>
+        <source>Cover – front flap</source>
+        <extracomment>A place on the cover, in a list and a menu. In Polish: Okładka – skrzydełko przednie</extracomment>
+        <translation>Okładka – skrzydełko przednie</translation>
+    </message>
+    <message>
+        <source>Cover – back flap</source>
+        <extracomment>A place on the cover, in a list and a menu. In Polish: Okładka – skrzydełko tylne</extracomment>
+        <translation>Okładka – skrzydełko tylne</translation>
+    </message>
+    <message>
+        <source>Cover – whole cover</source>
+        <extracomment>The place of a design: the whole cover, in a list and a menu. In Polish: Okładka – cała okładka</extracomment>
+        <translation>Okładka – cała okładka</translation>
+    </message>
+    <message>
+        <source>Jacket – front</source>
+        <extracomment>A place on the jacket, in a list and a menu. In Polish: Obwoluta – przód</extracomment>
+        <translation>Obwoluta – przód</translation>
+    </message>
+    <message>
+        <source>Jacket – spine</source>
+        <extracomment>A place on the jacket, in a list and a menu. In Polish: Obwoluta – grzbiet</extracomment>
+        <translation>Obwoluta – grzbiet</translation>
+    </message>
+    <message>
+        <source>Jacket – back</source>
+        <extracomment>A place on the jacket, in a list and a menu. In Polish: Obwoluta – tył</extracomment>
+        <translation>Obwoluta – tył</translation>
+    </message>
+    <message>
+        <source>Jacket – front flap</source>
+        <extracomment>A place on the jacket, in a list and a menu. In Polish: Obwoluta – skrzydełko przednie</extracomment>
+        <translation>Obwoluta – skrzydełko przednie</translation>
+    </message>
+    <message>
+        <source>Jacket – back flap</source>
+        <extracomment>A place on the jacket, in a list and a menu. In Polish: Obwoluta – skrzydełko tylne</extracomment>
+        <translation>Obwoluta – skrzydełko tylne</translation>
+    </message>
+    <message>
+        <source>Jacket – whole jacket</source>
+        <extracomment>The place of a design: the whole jacket, in a list and a menu. In Polish: Obwoluta – cała obwoluta</extracomment>
+        <translation>Obwoluta – cała obwoluta</translation>
+    </message>
+    <message>
+        <source>Whole jacket</source>
+        <extracomment>The place of a design: the whole jacket. In Polish: Cała obwoluta</extracomment>
+        <translation>Cała obwoluta</translation>
+    </message>
+    <message>
+        <source>Jacket</source>
+        <extracomment>The part of the cover a place is on: the jacket of a hardback. In Polish: Obwoluta</extracomment>
+        <translation>Obwoluta</translation>
+    </message>
+    <message>
+        <source>Cover</source>
+        <extracomment>The part of the cover a place is on: the cover itself. In Polish: Okładka</extracomment>
+        <translation>Okładka</translation>
+    </message>
+    <message>
+        <source>jacket turned off</source>
+        <extracomment>After the place of a material on the jacket, while the book has no jacket. In Polish: obwoluta wyłączona</extracomment>
+        <translation>obwoluta wyłączona</translation>
+    </message>
+    <message>
+        <source>flaps turned off</source>
+        <extracomment>After the place of a material on a flap of the cover, while the cover has no flaps. In Polish: skrzydełka wyłączone</extracomment>
+        <translation>skrzydełka wyłączone</translation>
+    </message>
+    <message>
+        <source>Picture across both pages</source>
+        <extracomment>How an endpaper is filled: one picture over both of its pages. In Polish: Obraz na obie strony</extracomment>
+        <translation>Obraz na obie strony</translation>
+    </message>
+    <message>
+        <source>Repeated picture</source>
+        <extracomment>How an endpaper is filled: a small picture repeated like a wallpaper. In Polish: Obraz powtarzany</extracomment>
+        <translation>Obraz powtarzany</translation>
+    </message>
+    <message>
+        <source>Ready-made pattern</source>
+        <extracomment>How an endpaper is filled: a pattern of the program in two colors. In Polish: Gotowy wzór</extracomment>
+        <translation>Gotowy wzór</translation>
+    </message>
+    <message>
+        <source>One color</source>
+        <extracomment>How an endpaper is filled: one color. In Polish: Jeden kolor</extracomment>
+        <translation>Jeden kolor</translation>
+    </message>
+    <message>
+        <source>No fill</source>
+        <extracomment>An endpaper of white paper. In Polish: Bez wypełnienia</extracomment>
+        <translation>Bez wypełnienia</translation>
+    </message>
+    <message>
+        <source>stripes</source>
+        <extracomment>A pattern of an endpaper. In Polish: paski</extracomment>
+        <translation>paski</translation>
+    </message>
+    <message>
+        <source>grid</source>
+        <extracomment>A pattern of an endpaper. In Polish: kratka</extracomment>
+        <translation>kratka</translation>
+    </message>
+    <message>
+        <source>diagonal lines</source>
+        <extracomment>A pattern of an endpaper. In Polish: ukośne linie</extracomment>
+        <translation>ukośne linie</translation>
+    </message>
+    <message>
+        <source>checkerboard</source>
+        <extracomment>A pattern of an endpaper. In Polish: szachownica</extracomment>
+        <translation>szachownica</translation>
+    </message>
+    <message>
+        <source>waves</source>
+        <extracomment>A pattern of an endpaper. In Polish: fale</extracomment>
+        <translation>fale</translation>
+    </message>
+    <message>
+        <source>dots</source>
+        <extracomment>A pattern of an endpaper. In Polish: kropki</extracomment>
+        <translation>kropki</translation>
+    </message>
+    <message>
+        <source>picture: %1</source>
+        <extracomment>How an endpaper is filled, in short: %1 the title of its picture. In Polish: obraz: %1</extracomment>
+        <translation>obraz: %1</translation>
+    </message>
+    <message>
+        <source>repeated picture: %1, %2%</source>
+        <extracomment>How an endpaper is filled, in short: %1 the title of its picture, %2 its width in percent of a page. In Polish: obraz powtarzany: %1, %2%</extracomment>
+        <translation>obraz powtarzany: %1, %2%</translation>
+    </message>
+    <message>
+        <source>pattern: %1</source>
+        <extracomment>How an endpaper is filled, in short: %1 the name of its pattern. In Polish: wzór: %1</extracomment>
+        <translation>wzór: %1</translation>
+    </message>
+    <message>
+        <source>one color</source>
+        <extracomment>How an endpaper is filled, in short. In Polish: jeden kolor</extracomment>
+        <translation>jeden kolor</translation>
+    </message>
+    <message>
+        <source>no fill</source>
+        <extracomment>How an endpaper is filled, in short: white paper. In Polish: bez wypełnienia</extracomment>
+        <translation>bez wypełnienia</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::CoverPlan</name>
@@ -6194,19 +6389,9 @@ The status bar, after a material is chosen for the cover: the one chosen before 
         <translation>%1 – %2</translation>
     </message>
     <message>
-        <source>Flaps</source>
-        <extracomment>Shows the flaps of the cover on its plan. In Polish: Skrzydełka</extracomment>
-        <translation>Skrzydełka</translation>
-    </message>
-    <message>
         <source>Show rejected</source>
         <extracomment>Shows the materials rejected on the plan of the cover. In Polish: Pokaż odrzucone</extracomment>
         <translation>Pokaż odrzucone</translation>
-    </message>
-    <message>
-        <source>Designs:</source>
-        <extracomment>The designs of the cover above its plan, one of them behind it. In Polish: Projekty:</extracomment>
-        <translation>Projekty:</translation>
     </message>
     <message>
         <source>The field &quot;Place on the cover&quot; in the Properties or on the card of a material changes the place. Reference pictures and notes do not go on the cover, so the plan does not show them.</source>
@@ -6222,6 +6407,196 @@ The status bar, after a material is chosen for the cover: the one chosen before 
         <source>Without a place on the cover · %1</source>
         <extracomment>The materials of the cover without a place, under its plan: %1 their number. In Polish: Bez miejsca na okładce · %1</extracomment>
         <translation>Bez miejsca na okładce · %1</translation>
+    </message>
+    <message>
+        <source>(%1)</source>
+        <extracomment>Why a material of the cover waits under the plan: %1 the part turned off. In Polish: (%1)</extracomment>
+        <translation>(%1)</translation>
+    </message>
+    <message>
+        <source>No picture</source>
+        <extracomment>On the spread of an endpaper filled with a picture that is not chosen or cannot be read. In Polish: Brak obrazu</extracomment>
+        <translation>Brak obrazu</translation>
+    </message>
+    <message>
+        <source>Parts:</source>
+        <extracomment>Before the boxes of the parts of the cover above its plan. In Polish: Części:</extracomment>
+        <translation>Części:</translation>
+    </message>
+    <message>
+        <source>Cover flap&amp;s</source>
+        <extracomment>A part of the cover of the book: the flaps of a paperback. Its access key differs from those of the menus. In Polish: Sk&amp;rzydełka okładki</extracomment>
+        <translation>Sk&amp;rzydełka okładki</translation>
+    </message>
+    <message>
+        <source>&amp;Jacket</source>
+        <extracomment>A part of the cover of the book: the jacket of a hardback, always with its flaps. Its access key differs from those of the menus. In Polish: Obwol&amp;uta</extracomment>
+        <translation>Obwol&amp;uta</translation>
+    </message>
+    <message>
+        <source>End&amp;papers</source>
+        <extracomment>A part of the cover of the book: the endpapers, at the front and at the back. Its access key differs from those of the menus. In Polish: Wykle&amp;jki</extracomment>
+        <translation>Wykle&amp;jki</translation>
+    </message>
+    <message>
+        <source>Sheets of the plan</source>
+        <extracomment>The tabs of the sheets of the plan of the cover. In Polish: Arkusze planu</extracomment>
+        <translation>Arkusze planu</translation>
+    </message>
+    <message>
+        <source>no design</source>
+        <extracomment>Above the plan of the cover or of the jacket, without a design. In Polish: brak projektu</extracomment>
+        <translation>brak projektu</translation>
+    </message>
+    <message>
+        <source>Front endpaper</source>
+        <extracomment>The endpaper between the cover and the first page. In Polish: Wyklejka przednia
+----------
+The heading of the window of a color of the front endpaper. In Polish: Wyklejka przednia</extracomment>
+        <translation>Wyklejka przednia</translation>
+    </message>
+    <message>
+        <source>Back endpaper</source>
+        <translation>Wyklejka tylna</translation>
+    </message>
+    <message>
+        <source>between the cover and the first page</source>
+        <extracomment>Where the front endpaper is. In Polish: między okładką a pierwszą stroną</extracomment>
+        <translation>między okładką a pierwszą stroną</translation>
+    </message>
+    <message>
+        <source>between the last page and the cover</source>
+        <translation>między ostatnią stroną a okładką</translation>
+    </message>
+    <message>
+        <source>pasted to the cover</source>
+        <extracomment>The page of an endpaper glued to the inside of the cover. In Polish: przyklejona do okładki</extracomment>
+        <translation>przyklejona do okładki</translation>
+    </message>
+    <message>
+        <source>free leaf</source>
+        <extracomment>The page of an endpaper that turns as a leaf. In Polish: wolna karta</extracomment>
+        <translation>wolna karta</translation>
+    </message>
+    <message>
+        <source>Same as the front one</source>
+        <extracomment>The back endpaper is filled as the front one. In Polish: Tak jak przednia</extracomment>
+        <translation>Tak jak przednia</translation>
+    </message>
+    <message>
+        <source>Fill:</source>
+        <extracomment>How an endpaper is filled. In Polish: Wypełnienie:</extracomment>
+        <translation>Wypełnienie:</translation>
+    </message>
+    <message>
+        <source>Picture from Disk...</source>
+        <extracomment>Adds a picture from the disk to the materials of the cover and puts it on the endpaper. In Polish: Obraz z dysku...</extracomment>
+        <translation>Obraz z dysku...</translation>
+    </message>
+    <message>
+        <source>Picture:</source>
+        <extracomment>The picture an endpaper is filled with. In Polish: Obraz:</extracomment>
+        <translation>Obraz:</translation>
+    </message>
+    <message>
+        <source>% of the page width</source>
+        <extracomment>After the size of a picture repeated on an endpaper. In Polish: % szerokości strony</extracomment>
+        <translation>% szerokości strony</translation>
+    </message>
+    <message>
+        <source>Size:</source>
+        <extracomment>The size of a picture repeated on an endpaper. In Polish: Wielkość:</extracomment>
+        <translation>Wielkość:</translation>
+    </message>
+    <message>
+        <source>Pattern:</source>
+        <extracomment>The pattern of an endpaper. In Polish: Wzór:</extracomment>
+        <translation>Wzór:</translation>
+    </message>
+    <message>
+        <source>pattern</source>
+        <extracomment>The color of the pattern of an endpaper, on its button. In Polish: wzór</extracomment>
+        <translation>wzór</translation>
+    </message>
+    <message>
+        <source>background</source>
+        <extracomment>The color under the pattern of an endpaper, on its button. In Polish: tło</extracomment>
+        <translation>tło</translation>
+    </message>
+    <message>
+        <source>Colors:</source>
+        <extracomment>The colors of the pattern of an endpaper. In Polish: Kolory:</extracomment>
+        <translation>Kolory:</translation>
+    </message>
+    <message>
+        <source>Color:</source>
+        <extracomment>The one color of an endpaper. In Polish: Kolor:</extracomment>
+        <translation>Kolor:</translation>
+    </message>
+    <message>
+        <source>Endpapers on: the sheet &quot;Endpapers&quot;</source>
+        <extracomment>The status bar after the endpapers are turned on above the plan of the cover. In Polish: Wyklejki włączone: arkusz „Wyklejki”</extracomment>
+        <translation>Wyklejki włączone: arkusz „Wyklejki”</translation>
+    </message>
+    <message>
+        <source>Endpapers off; their fills are kept.</source>
+        <translation>Wyklejki wyłączone; ich wypełnienie zostaje zapisane.</translation>
+    </message>
+    <message>
+        <source>The part is on; its materials are back in their places.</source>
+        <extracomment>The status bar after a part of the cover is turned on above its plan. In Polish: Część włączona; jej materiały wróciły na swoje miejsca.</extracomment>
+        <translation>Część włączona; jej materiały wróciły na swoje miejsca.</translation>
+    </message>
+    <message>
+        <source>The part is off; its materials wait under the plan.</source>
+        <translation>Część wyłączona; jej materiały czekają pod planem.</translation>
+    </message>
+    <message>
+        <source>Cover</source>
+        <extracomment>The tab of the sheet of the cover itself on its plan. In Polish: Okładka</extracomment>
+        <translation>Okładka</translation>
+    </message>
+    <message>
+        <source>Jacket</source>
+        <extracomment>The tab of the sheet of the jacket on the plan of the cover. In Polish: Obwoluta</extracomment>
+        <translation>Obwoluta</translation>
+    </message>
+    <message>
+        <source>Endpapers</source>
+        <extracomment>The tab of the sheet of the endpapers on the plan of the cover. In Polish: Wyklejki</extracomment>
+        <translation>Wyklejki</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <extracomment>A tab of the plan of the cover: %1 its sheet, %2 the materials on it (of the endpapers: the two of them). In Polish: %1 · %2</extracomment>
+        <translation>%1 · %2</translation>
+    </message>
+    <message>
+        <source>Jacket designs:</source>
+        <extracomment>Before the designs of the jacket above its sheet. In Polish: Projekty obwoluty:</extracomment>
+        <translation>Projekty obwoluty:</translation>
+    </message>
+    <message>
+        <source>Cover designs:</source>
+        <translation>Projekty okładki:</translation>
+    </message>
+    <message>
+        <source>A place for the author bio</source>
+        <extracomment>On the back flap of the jacket without a note about the author. In Polish: Miejsce na notkę biograficzną</extracomment>
+        <translation>Miejsce na notkę biograficzną</translation>
+    </message>
+    <message>
+        <source>Choose a picture</source>
+        <translation>Wybierz obraz</translation>
+    </message>
+    <message>
+        <source>Picture removed from the materials</source>
+        <translation>Obraz usunięty z materiałów</translation>
+    </message>
+    <message>
+        <source>Color of the endpaper</source>
+        <extracomment>The accessible name of the button of the one color of an endpaper. In Polish: Kolor wyklejki</extracomment>
+        <translation>Kolor wyklejki</translation>
     </message>
 </context>
 <context>
@@ -11779,6 +12154,31 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
         <extracomment>In Polish: Książka zmienia swój zestaw w widoku zestawu; jego kolejność i części zapisują się w książce.</extracomment>
         <translation>Książka zmienia swój zestaw w widoku zestawu; jego kolejność i części zapisują się w książce.</translation>
     </message>
+    <message>
+        <source>Endpapers</source>
+        <extracomment>The group of Settings &gt; Navigator of the colors of the endpapers of the plan of the cover. In Polish: Wyklejki</extracomment>
+        <translation>Wyklejki</translation>
+    </message>
+    <message>
+        <source>The colors of a new pattern on an endpaper; each book keeps the colors of its patterns.</source>
+        <extracomment>In Polish: Kolory nowego wzoru na wyklejce; każda książka zachowuje kolory swoich wzorów.</extracomment>
+        <translation>Kolory nowego wzoru na wyklejce; każda książka zachowuje kolory swoich wzorów.</translation>
+    </message>
+    <message>
+        <source>Pattern</source>
+        <extracomment>In Polish: Wzór</extracomment>
+        <translation>Wzór</translation>
+    </message>
+    <message>
+        <source>Pattern background and one color</source>
+        <extracomment>The color under a pattern, and the one color of an endpaper at first. In Polish: Tło wzoru i jeden kolor</extracomment>
+        <translation>Tło wzoru i jeden kolor</translation>
+    </message>
+    <message>
+        <source>Paper without a fill</source>
+        <extracomment>The paper of an endpaper without a fill. In Polish: Papier bez wypełnienia</extracomment>
+        <translation>Papier bez wypełnienia</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>
@@ -14458,6 +14858,44 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>Automatic (right)</source>
         <extracomment>In Polish: Automatycznie (prawa)</extracomment>
         <translation>Automatycznie (prawa)</translation>
+    </message>
+    <message>
+        <source>Fill</source>
+        <extracomment>The group of the Properties of an endpaper chosen on the plan of the cover. In Polish: Wypełnienie</extracomment>
+        <translation>Wypełnienie</translation>
+    </message>
+    <message>
+        <source>Set:</source>
+        <extracomment>How an endpaper is filled, in its Properties. In Polish: Ustawione:</extracomment>
+        <translation>Ustawione:</translation>
+    </message>
+    <message>
+        <source>The settings are on the plan, beside the spread.</source>
+        <extracomment>Under the fill of an endpaper in its Properties. In Polish: Ustawienia są na planie, obok rozkładówki.</extracomment>
+        <translation>Ustawienia są na planie, obok rozkładówki.</translation>
+    </message>
+    <message>
+        <source>Front endpaper</source>
+        <extracomment>The endpaper between the cover and the first page, in its Properties. In Polish: Wyklejka przednia</extracomment>
+        <translation>Wyklejka przednia</translation>
+    </message>
+    <message>
+        <source>Back endpaper</source>
+        <translation>Wyklejka tylna</translation>
+    </message>
+    <message>
+        <source>spread: pasted to the cover and the free leaf</source>
+        <extracomment>What the front endpaper is, under its name in its Properties. In Polish: rozkładówka: przyklejona do okładki i wolna karta</extracomment>
+        <translation>rozkładówka: przyklejona do okładki i wolna karta</translation>
+    </message>
+    <message>
+        <source>spread: the free leaf and pasted to the cover</source>
+        <translation>rozkładówka: wolna karta i przyklejona do okładki</translation>
+    </message>
+    <message>
+        <source>%1 (same as the front one)</source>
+        <extracomment>The fill of the back endpaper filled as the front one, in its Properties: %1 the fill. In Polish: %1 (tak jak przednia)</extracomment>
+        <translation>%1 (tak jak przednia)</translation>
     </message>
 </context>
 <context>
@@ -25834,6 +26272,42 @@ Notatka: %2</translation>
         <extracomment>In Polish: Nie zapisano tomu</extracomment>
         <translation>Nie zapisano tomu</translation>
     </message>
+    <message>
+        <source>Take the Text of About the Author</source>
+        <extracomment>Copies the text of the note About the Author of the back part of the book into a note about the author of the cover. In Polish: Weź tekst z noty o autorze</extracomment>
+        <translation>Weź tekst z noty o autorze</translation>
+    </message>
+    <message>
+        <source>Copies the text of &quot;About the Author&quot; of the back part; from then on the two texts are changed apart.</source>
+        <extracomment>Under the button that takes the text of the note About the Author. In Polish: Kopiuje treść „Noty o autorze” z części końcowej; dalej oba teksty zmienia się osobno.</extracomment>
+        <translation>Kopiuje treść „Noty o autorze” z części końcowej; dalej oba teksty zmienia się osobno.</translation>
+    </message>
+    <message>
+        <source>&amp;Photographer:</source>
+        <extracomment>Who took the photo of the author. In Polish: &amp;Fotograf:</extracomment>
+        <translation>&amp;Fotograf:</translation>
+    </message>
+    <message>
+        <source>The book has no &quot;About the Author&quot; in its back part.</source>
+        <translation>Książka nie ma „Noty o autorze” w części końcowej.</translation>
+    </message>
+    <message>
+        <source>%1 (turned off)</source>
+        <comment>the jacket</comment>
+        <extracomment>The heading of the places of the jacket in the box of the place, while the book has no jacket: %1 the name of the jacket. In Polish: %1 (wyłączona)</extracomment>
+        <translation>%1 (wyłączona)</translation>
+    </message>
+    <message>
+        <source>%1 (turned off)</source>
+        <comment>a place</comment>
+        <extracomment>A place on a part of the cover turned off, in the box of the place: %1 the place. In Polish: %1 (wyłączone)</extracomment>
+        <translation>%1 (wyłączone)</translation>
+    </message>
+    <message>
+        <source>The text of &quot;About the Author&quot; of the back part was copied.</source>
+        <extracomment>The status bar after the text of the note About the Author is taken for a note about the author of the cover. In Polish: Skopiowano treść „Noty o autorze” z części końcowej.</extracomment>
+        <translation>Skopiowano treść „Noty o autorze” z części końcowej.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NameFormsTable</name>
@@ -26480,6 +26954,20 @@ Where a quote comes from: a source and its page. In Polish: Źródło</extracomm
         <source>Expand All Vol&amp;umes</source>
         <extracomment>In Polish: Rozwiń wszystkie t&amp;omy</extracomment>
         <translation>Rozwiń wszystkie t&amp;omy</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>Endpaper Not Saved</source>
+        <extracomment>In Polish: Nie zapisano wyklejki</extracomment>
+        <translation>Nie zapisano wyklejki</translation>
+    </message>
+    <message>
+        <source>The parts of the cover were not saved.</source>
+        <extracomment>The status bar when the parts of the cover of a book open read-only or not written cannot be saved. In Polish: Nie zapisano części okładki</extracomment>
+        <translation>Nie zapisano części okładki.</translation>
     </message>
 </context>
 <context>

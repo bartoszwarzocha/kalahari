@@ -505,6 +505,15 @@ void registerAllIcons() {
                               "Cover Design or Sketch");
     iconRegistry.registerIcon("material.coverNote", "resources/icons/twotone/edit_note.svg",
                               "Cover Note");
+    iconRegistry.registerIcon("material.coverBio", "resources/icons/twotone/person.svg",
+                              "Author Bio");
+    iconRegistry.registerIcon("material.coverAuthorPhoto",
+                              "resources/icons/twotone/photo_library.svg", "Author Photo");
+    // The sheets of the plan of the cover: the cover and the jacket, the endpapers
+    iconRegistry.registerIcon("cover.sheet", "resources/icons/twotone/book_cover.svg",
+                              "Sheet of the Cover Plan");
+    iconRegistry.registerIcon("cover.endpapers", "resources/icons/twotone/menu_book.svg",
+                              "Endpapers");
     // Chosen for the cover, rejected
     iconRegistry.registerIcon("cover.choose", "resources/icons/twotone/star.svg",
                               "Choose for the Cover");

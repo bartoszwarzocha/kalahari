@@ -89,7 +89,8 @@ public:
         Editor = 5,     ///< Editor statistics view (selection/document stats)
         Material = 6,   ///< The short card of a material of the Workshop
         Card = 7,       ///< The short card of a character, a location or an item
-        Series = 8      ///< The name and the volumes of a series (SeriesPage)
+        Series = 8,     ///< The name and the volumes of a series (SeriesPage)
+        Endpaper = 9    ///< An endpaper chosen on the plan of the cover: how it is filled
     };
 
     /// @brief Constructor
@@ -162,6 +163,10 @@ public slots:
     /// @brief Show the name and the volumes of the series; the book's properties in a project
     /// with one book
     void showSeriesProperties();
+
+    /// @brief Show how the endpaper of @p side of the book is filled (CoverPlan::FRONT_ENDPAPER,
+    /// BACK_ENDPAPER), chosen on the plan of the cover; its settings are on the plan
+    void showEndpaperProperties(const QString& side);
 
     /// @brief Give the keys to the first field of the page shown, scrolled to it (Alt+Enter in
     /// the Navigator): the title of the book, of an element or of a material; the materials of
@@ -429,6 +434,13 @@ private:
     /// @return Created widget
     QWidget* createCardPage();
 
+    /// @brief Setup the page of an endpaper of the plan of the cover
+    /// @return Created widget
+    QWidget* createEndpaperPage();
+
+    /// @brief Fill the page of the endpaper shown with how the book has it
+    void populateEndpaper();
+
     /// @brief Show the short card again as the book has it, or the book's page when the card
     /// was deleted
     void refreshCard();
@@ -604,6 +616,10 @@ private:
     MaterialPage* m_materialPage = nullptr;
     CardPage* m_cardPage = nullptr;  ///< The short card of a character, a location or an item
     SeriesPage* m_seriesPage = nullptr;  ///< The name and the volumes of a series
+    // The page of an endpaper
+    QString m_endpaperSide;                  ///< CoverPlan::FRONT_ENDPAPER, BACK_ENDPAPER
+    QLabel* m_endpaperTitle = nullptr;       ///< Its name and what its pages are
+    QLabel* m_endpaperFill = nullptr;        ///< How it is filled
     QLabel* m_projectVolumeLabel = nullptr;  ///< "2 of 3": the number of the volume of a series
     CursorCardBox* m_cursorCard = nullptr;  ///< The card at the cursor (placeTextGroups())
     ParagraphCardsBox* m_paragraphCards = nullptr;  ///< The paragraph's cards (placeTextGroups())

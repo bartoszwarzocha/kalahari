@@ -1908,7 +1908,7 @@ TEST_CASE("Add Element: a material of the cover with its kind, source, title and
     REQUIRE(dialog.kind());
     CHECK(dialog.kind().kind->id == QStringLiteral("cover"));
     CHECK(dialog.coverGroup()->isVisibleTo(&dialog));
-    CHECK(dialog.coverButtons()->buttons().size() == 6);
+    CHECK(dialog.coverButtons()->buttons().size() == 8);
     CHECK(dialog.coverPart() == QStringLiteral("blurb"));
     CHECK(dialog.materialOrigin() == NewFileDialog::MaterialOrigin::None);
     CHECK(dialog.titleEdit()->text() == QStringLiteral("Description 1"));

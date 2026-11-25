@@ -154,6 +154,9 @@ public:
         /// The title of a new material of the cover of a part, from the book
         /// (CoverNames::newTitle()); none: no title
         std::function<QString(const QString& part)> coverTitle;
+        /// The parts of the cover of the book, for the place of a new material of the cover
+        /// (core::CoverMaterial::defaultPlaceOf())
+        core::CoverParts coverParts;
         /// A text for publishers: the part chosen at the start (core::PublishingTexts::PITCH...;
         /// TAGLINE and BLURB go to the cover); empty: the one chosen last
         QString publishingPart;

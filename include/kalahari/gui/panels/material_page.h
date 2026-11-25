@@ -181,6 +181,9 @@ public:
     [[nodiscard]] QLineEdit* coverDateEdit() const { return m_coverDateEdit; }
     [[nodiscard]] QLineEdit* coverLicenseEdit() const { return m_coverLicenseEdit; }
     [[nodiscard]] QLineEdit* coverAboutEdit() const { return m_coverAboutEdit; }
+    /// @brief Of a note about the author: takes the text of the note About the Author of the
+    /// back part of the book
+    [[nodiscard]] QPushButton* bioButton() const { return m_bioButton; }
 
     /// @brief The bibliographic description; nullptr on the short card
     [[nodiscard]] SourceDescriptionBox* sourceBox() const { return m_sourceBox; }
@@ -301,6 +304,17 @@ private:
     /// @brief Save the state chosen in its box (core::ProjectManager::setCoverState())
     void saveState();
 
+    /// @brief Fill the box of the place with the places of the parts of the cover the book has
+    /// for a material of @p part at @p place: the places of a part turned off greyed out, but
+    /// the one it has
+    void fillPlaces(const QString& part, const QString& place);
+
+    /// @brief Put the text of the note About the Author of the back part of the book into the
+    /// text of a note about the author of the cover
+    void takeAboutAuthor();
+    /// @brief Whether the book has a note About the Author to take, on the button of a bio
+    void updateBioButton();
+
     /// @brief The volume of material @p element in its box, shown in a series
     void showVolume(const core::ProjectElement& element);
 
@@ -362,6 +376,8 @@ private:
     QSpinBox* m_targetSpin = nullptr;
     QLabel* m_targetUnit = nullptr;
     QLabel* m_printedLabel = nullptr;
+    QWidget* m_bioRow = nullptr;        ///< Of a note about the author: the text of the book's
+    QPushButton* m_bioButton = nullptr; ///< note About the Author, taken once
     QGroupBox* m_coverGroup = nullptr;
     QFormLayout* m_coverForm = nullptr;
     QComboBox* m_coverVolumeBox = nullptr;

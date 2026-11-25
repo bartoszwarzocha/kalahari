@@ -214,7 +214,8 @@ QString detailsOf(const MaterialRow& row, const QString& kindId) {
 /// What a material of the cover shows in the columns of its list: its text or title, its part,
 /// author, place and state, and the length of its text; the size of a picture is set with the
 /// file
-void setCoverTexts(MaterialRow& row, const core::ProjectElement& element) {
+void setCoverTexts(MaterialRow& row, const core::ProjectElement& element,
+                   const core::CoverParts& parts) {
     using core::CoverMaterial;
     const core::CoverData& cover = element.cover;
     const auto set = [&row](const char* id, const QString& text) {
@@ -238,7 +239,14 @@ void setCoverTexts(MaterialRow& row, const core::ProjectElement& element) {
     set(MaterialList::COVER_PART, CoverNames::partName(cover.part));
     set(MaterialList::COVER_AUTHOR, cover.author);
     if (CoverMaterial::goesOnCover(cover.part) || !cover.place.isEmpty()) {
-        set(MaterialList::COVER_PLACE, CoverNames::placeName(cover.place));
+        // A place on a part of the cover turned off says so: the material waits for it
+        const QString off = CoverNames::partOffText(cover.place, parts);
+        set(MaterialList::COVER_PLACE,
+            off.isEmpty()
+                ? CoverNames::placeName(cover.place)
+                //: The place of a material of the cover on a part turned off, in its list: %1
+                //: the place, %2 the part turned off. In Polish: %1 (%2)
+                : MaterialList::tr("%1 (%2)").arg(CoverNames::placeName(cover.place), off));
         row.order.insert(QString::fromLatin1(MaterialList::COVER_PLACE),
                          CoverMaterial::places().contains(cover.place)
                              ? CoverMaterial::places().indexOf(cover.place)
@@ -400,7 +408,7 @@ MaterialRow rowOf(const core::ProjectManager& book, const core::ProjectElement& 
             }
         }
         if (kindId == QLatin1String(core::MaterialKinds::COVER)) {
-            setCoverTexts(row, element);
+            setCoverTexts(row, element, book.coverParts());
         }
         if (kindId == QLatin1String(core::MaterialKinds::PICTURE)) {
             if (element.url.isEmpty()) {

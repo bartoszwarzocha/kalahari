@@ -122,7 +122,11 @@ private:
     void rename(const QString& elementId);
     void link(const QString& elementId);
     /// @param coverPart A material of the cover: the part chosen at the start
-    void add(MaterialListPanel* panel, const QString& list, const QString& coverPart = {});
+    /// @return The material added; empty: none
+    QString add(MaterialListPanel* panel, const QString& list, const QString& coverPart = {});
+    /// @brief Add a picture from the disk to the materials of the cover of @p panel and fill
+    /// the endpaper of @p side with it
+    void addEndpaperPicture(MaterialListPanel* panel, const QString& side);
     /// @brief Give material @p elementId of the cover the state @p state
     void setCoverState(const QString& elementId, const QString& state);
     void showInFolder(const QString& elementId);

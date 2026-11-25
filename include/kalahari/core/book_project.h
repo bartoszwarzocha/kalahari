@@ -476,6 +476,9 @@ struct ProjectBook {
     /// Its set of texts for publishers: which texts, in which order and which version of
     /// each; none: the Settings' set for new books (PublishingSet::defaults())
     std::optional<PublishingSet> publishingSet;
+    /// The parts of its cover besides the cover itself (its flaps, a jacket, endpapers) and
+    /// how its endpapers are filled; none: the flaps of the cover only
+    std::optional<CoverParts> coverParts;
     QString isbn;       ///< The ISBN of its e-book (File > Export > EPUB); empty: none
     QString publisher;  ///< Its publisher; empty: none
     QList<BookCustomField> customFields;  ///< The writer's own fields of the book

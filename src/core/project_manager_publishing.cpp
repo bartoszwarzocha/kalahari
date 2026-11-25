@@ -249,6 +249,33 @@ bool ProjectManager::setPublishingSetOf(ProjectBook& book, const PublishingSet& 
     return true;
 }
 
+CoverParts ProjectManager::coverParts() const {
+    const ProjectBook* current = book();
+    return current != nullptr && current->coverParts ? *current->coverParts : CoverParts{};
+}
+
+bool ProjectManager::setCoverParts(const CoverParts& parts) {
+    ProjectBook* current = book();
+    if (current == nullptr) {
+        Logger::getInstance().warn("setCoverParts: No project is open");
+        return false;
+    }
+    if (refusesChange("setCoverParts")) {
+        return false;
+    }
+    if (current->coverParts.value_or(CoverParts{}) == parts) {
+        return true;
+    }
+    const std::optional<CoverParts> previous = current->coverParts;
+    current->coverParts = parts;
+    if (!saveManifest()) {
+        current->coverParts = previous;
+        return false;
+    }
+    emit coverPartsChanged();
+    return true;
+}
+
 bool ProjectManager::pickForPublishingSet(const QString& elementId) {
     const ProjectElement* element = findElement(elementId);
     const ProjectBook* owner = setBookOf(elementId);

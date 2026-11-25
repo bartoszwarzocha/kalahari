@@ -266,6 +266,14 @@ signals:
     /// @brief Bring the Properties panel to the front with the keys in it (Alt+Enter)
     void requestProperties(const QString& elementId);
 
+    /// @brief The writer chose the spread of the endpaper of @p side on the plan of the cover
+    /// (CoverPlan::FRONT_ENDPAPER, BACK_ENDPAPER)
+    void endpaperChosen(const QString& side);
+
+    /// @brief Add a picture from the disk to the materials of the cover and fill the endpaper
+    /// of @p side with it
+    void requestEndpaperPicture(const QString& side);
+
     /// @brief Something to say on the status bar
     void message(const QString& text);
 
@@ -418,6 +426,8 @@ private:
     QAbstractItemDelegate* m_rowDelegate = nullptr;  ///< Paints the rows of the materials
     CardCellDelegate* m_cardDelegate = nullptr;      ///< Edits the cells of the cards (F2)
     bool m_cards = false;    ///< The list is one of the cards (CardList::isCardList())
+    bool m_coverFlaps = true;     ///< The rows were made for a cover with its flaps
+    bool m_coverJacket = false;   ///< The rows were made for a book with a jacket
     bool m_loading = false;  ///< The list is being filled: no material is chosen by the writer
     int m_settingsListener = 0;    ///< core::SettingsManager::subscribe() id: the portraits
     core::ProjectManager& m_book;  ///< The book of its window

@@ -1131,6 +1131,17 @@ public:
     ///         the book keeps its set then
     bool setPublishingSet(const PublishingSet& set);
 
+    /// @brief The parts of the cover of the current book besides the cover itself (its flaps,
+    /// a jacket, endpapers) and how its endpapers are filled: its own, else the flaps of the
+    /// cover only (CoverParts{}); that also without a project
+    [[nodiscard]] CoverParts coverParts() const;
+
+    /// @brief Give the current book the parts of the cover @p parts and save the .klh file
+    /// (coverPartsChanged()); the materials of a part turned off keep their places
+    /// @return false when no project is open, it is read-only or the file cannot be written;
+    ///         the book keeps its parts then
+    bool setCoverParts(const CoverParts& parts);
+
     /// @brief The parts of the set of book @p volume of the project (nullptr: of the current
     /// book), each with the element of its text (PublishingTexts::resolveSet()); none without
     /// a project
@@ -1757,6 +1768,8 @@ signals:
     void bookFootnotesChanged();
     /// @brief The book's set of texts for publishers changed (setPublishingSet())
     void publishingSetChanged();
+    /// @brief The parts of the cover of the current book changed (setCoverParts())
+    void coverPartsChanged();
     /// @brief The text of text @p elementId for publishers changed in its editor, or its
     ///        changes not saved were dropped (setEditorText(), discardChapterContent())
     void publishingTextChanged(const QString& elementId);

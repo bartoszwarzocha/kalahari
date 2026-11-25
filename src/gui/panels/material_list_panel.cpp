@@ -12,6 +12,7 @@
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/kind_words.h"
+#include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/card_list.h"
@@ -22,6 +23,7 @@
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/shortcut_rules.h"
+#include "kalahari/gui/source_names.h"
 #include "kalahari/gui/widgets/card_cell_delegate.h"
 #include "kalahari/gui/widgets/cover_plan.h"
 #include "kalahari/gui/widgets/flow_layout.h"
@@ -1307,6 +1309,32 @@ void MaterialListPanel::createLayout() {
     // Another volume of a series: its cover
     connect(&m_book, &core::ProjectManager::currentBookChanged, this,
             &MaterialListPanel::updatePlan);
+    // The parts of the cover are the book's: a part turned on or off moves the materials of
+    // its places on the plan and in the column of the place
+    connect(m_plan, &CoverPlan::partsChanged, this, [this](const core::CoverParts& parts) {
+        if (!m_book.setCoverParts(parts)) {
+            m_plan->setParts(m_book.coverParts());
+            //: The status bar when the parts of the cover of a book open read-only or not
+            //: written cannot be saved. In Polish: Nie zapisano części okładki
+            emit message(MaterialList::tr("The parts of the cover were not saved."));
+        }
+    });
+    connect(&m_book, &core::ProjectManager::coverPartsChanged, this, [this]() {
+        if (!MaterialList::isCover(m_list)) {
+            return;
+        }
+        // The places change only with the flaps and the jacket, not with the endpapers
+        const core::CoverParts parts = m_book.coverParts();
+        if (parts.flaps != m_coverFlaps || parts.jacket != m_coverJacket) {
+            refresh();
+        } else if (!(m_plan->parts() == parts)) {
+            m_plan->setParts(parts);
+        }
+    });
+    connect(m_plan, &CoverPlan::message, this, &MaterialListPanel::message);
+    connect(m_plan, &CoverPlan::endpaperChosen, this, &MaterialListPanel::endpaperChosen);
+    connect(m_plan, &CoverPlan::endpaperPictureRequested, this,
+            &MaterialListPanel::requestEndpaperPicture);
     layout->addWidget(m_stack, 1);
 
     // How many are shown, and how they are sorted
@@ -2161,6 +2189,10 @@ void MaterialListPanel::load() {
     const bool cover = MaterialList::isCover(m_list);
     const bool groups = MaterialList::hasGroups(m_list);
     m_cards = CardList::isCardList(m_list);
+    // The column of the place says which parts of the cover are off (coverPartsChanged)
+    const core::CoverParts coverParts = m_book.coverParts();
+    m_coverFlaps = coverParts.flaps;
+    m_coverJacket = coverParts.jacket;
     m_model->setContents(m_columns, MaterialList::rowsOf(m_book, m_list), !pictures, groups);
     applyRowSizes(pictures);
     // The cells of the cards are edited in the table
@@ -2656,6 +2688,34 @@ void MaterialListPanel::updatePlan() {
         item.iconId = row->iconId;
         items << item;
     }
+    // The pictures of the book an endpaper can be filled with: of the cover first, then of
+    // the pictures
+    QList<CoverPlanPicture> covers;
+    QList<CoverPlanPicture> pictures;
+    for (const MaterialRow& row : MaterialList::rowsOf(m_book, QString::fromLatin1(MaterialList::ALL))) {
+        const core::ProjectElement* element = m_book.findElement(row.id);
+        if (element == nullptr || row.picture.isEmpty()) {
+            continue;
+        }
+        const bool cover = CoverNames::isCoverMaterial(m_book, *element);
+        if (!cover && SourceNames::baseKindOf(m_book, *element) !=
+                          QLatin1String(core::MaterialKinds::PICTURE)) {
+            continue;
+        }
+        CoverPlanPicture picture;
+        picture.id = row.id;
+        picture.title = row.texts.value(QString::fromLatin1(MaterialList::TITLE));
+        picture.group = MaterialList::nameOf(row.kind);
+        picture.picture = row.picture;
+        picture.rotation = row.rotation;
+        (cover ? covers : pictures) << picture;
+    }
+    const core::CoverParts parts = m_book.coverParts();
+    if (!(m_plan->parts() == parts)) {
+        m_plan->setParts(parts);
+    }
+    m_plan->setEditable(!m_book.isReadOnly());
+    m_plan->setPictures(covers + pictures);
     m_plan->setItems(items);
     m_plan->setCurrent(currentMaterial());
 }

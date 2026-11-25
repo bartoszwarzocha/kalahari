@@ -625,6 +625,7 @@ NewFileDialog::Book NewFileDialog::openBook(const core::ProjectManager& pm,
 {
     Book book;
     book.coverTitle = [&pm](const QString& part) { return CoverNames::newTitle(pm, part); };
+    book.coverParts = pm.coverParts();
     book.untitled = untitled;
     const core::BookProject* project = pm.project();
     const core::ProjectBook* projectBook = pm.book();
@@ -712,6 +713,7 @@ NewFileDialog::Book NewFileDialog::forAdding(const core::ProjectManager& pm,
     }
     Book book;
     book.coverTitle = [&pm](const QString& part) { return CoverNames::newTitle(pm, part); };
+    book.coverParts = pm.coverParts();
     setPublishing(book, pm, target);
     book.adding = true;
     book.chooser = chooser;
@@ -848,6 +850,7 @@ NewFileDialog::Book NewFileDialog::forPlace(const core::ProjectManager& pm,
 {
     Book book;
     book.coverTitle = [&pm](const QString& part) { return CoverNames::newTitle(pm, part); };
+    book.coverParts = pm.coverParts();
     setPublishing(book, pm, target);
     book.adding = true;
     book.coverPart = target.coverPart;
@@ -1688,9 +1691,12 @@ QString NewFileDialog::placeNoteOf(const NewFileKind& entry) const
         //: Where a new material of the cover goes on the cover, after where it goes in the
         //: Workshop; %1 the place: back, front... In Polish: Na okładce: %1 – zmienisz to na
         //: karcie.
+        // A place of the cover by its name on the cover, one of the jacket with the jacket
+        const QString place = core::CoverMaterial::defaultPlaceOf(m_coverPart, m_book.coverParts);
         note += QLatin1Char(' ') +
                 tr("On the cover: %1 – you change it on the card.")
-                    .arg(CoverNames::placeName(core::CoverMaterial::defaultPlaceOf(m_coverPart))
+                    .arg((core::CoverMaterial::isJacketPlace(place) ? CoverNames::placeName(place)
+                                                                    : CoverNames::shortPlaceName(place))
                              .toLower());
     }
     return note;

@@ -227,6 +227,7 @@ set(TEST_SOURCES
     gui/test_cursor_card.cpp          # The card at the cursor in the Properties panel
     gui/test_paragraph_cards.cpp      # A paragraph linked with a card: the window, the signs, the commands
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
+    gui/test_cover_parts.cpp                     # The flaps, the jacket and the endpapers of the cover
     gui/test_publishing_set.cpp                  # The set for a publisher, the second view of the list
     gui/test_publishing_template_editor.cpp      # A template changed beside a text for publishers
     gui/test_series_window.cpp                   # A series in the window: Navigator, New Volume, Properties

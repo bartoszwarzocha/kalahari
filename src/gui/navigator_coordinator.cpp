@@ -1253,6 +1253,12 @@ void NavigatorCoordinator::onRequestProperties(const QString& elementId) {
     }
 }
 
+void NavigatorCoordinator::onRequestEndpaperProperties(const QString& side) {
+    if (m_book.isProjectOpen()) {
+        m_propertiesPanel->showEndpaperProperties(side);
+    }
+}
+
 void NavigatorCoordinator::onRequestSectionProperties(const QString& sectionType) {
     auto& logger = core::Logger::getInstance();
     auto& pm = m_book;
@@ -1449,7 +1455,7 @@ bool NavigatorCoordinator::addWithWindow(
         // A material of the cover: its part, at the place of its part on the cover
         if (const QString part = dialog.coverPart(); !part.isEmpty()) {
             newMaterial.cover.part = part;
-            newMaterial.cover.place = core::CoverMaterial::defaultPlaceOf(part);
+            newMaterial.cover.place = core::CoverMaterial::defaultPlaceOf(part, pm.coverParts());
         }
         elementId = pm.addMaterial(newMaterial, kind);
     } else if (const QString part = dialog.publishingPart(); !part.isEmpty()) {

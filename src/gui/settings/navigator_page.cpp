@@ -39,6 +39,7 @@
 #include "kalahari/editor/text_points.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/cover_names.h"
+#include "kalahari/gui/widgets/cover_plan.h"
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -386,7 +387,7 @@ void NavigatorPage::createCover()
         grid->setVerticalSpacing(4);
         int row = 0;
         for (const char* part : {core::CoverMaterial::BLURB, core::CoverMaterial::TAGLINE,
-                                 core::CoverMaterial::OPINION}) {
+                                 core::CoverMaterial::OPINION, core::CoverMaterial::BIO}) {
             const QString partName = CoverNames::partName(QString::fromLatin1(part));
             auto* label = new QLabel(partName);
             auto* spin = new QSpinBox();
@@ -424,6 +425,24 @@ void NavigatorPage::createCover()
     };
     connect(m_coverUnit, &QComboBox::currentIndexChanged, this, showUnit);
     whenLoaded(showUnit);
+
+    // The colors a new pattern of an endpaper takes, and the paper of an endpaper without a
+    // fill (each book keeps the colors of its patterns)
+    //: The group of Settings > Navigator of the colors of the endpapers of the plan of the
+    //: cover. In Polish: Wyklejki
+    QFormLayout* endpapers = addGroup(tr("Endpapers"));
+    endpapers->parentWidget()->setObjectName(QStringLiteral("navigatorEndpapersGroup"));
+    //: In Polish: Kolory nowego wzoru na wyklejce; każda książka zachowuje kolory swoich wzorów.
+    addNote(endpapers, tr("The colors of a new pattern on an endpaper; each book keeps the "
+                          "colors of its patterns."));
+    //: In Polish: Wzór
+    addThemeColor(endpapers, tr("Pattern"), CoverPlan::PATTERN_COLOR_KEY);
+    //: The color under a pattern, and the one color of an endpaper at first. In Polish: Tło
+    //: wzoru i jeden kolor
+    addThemeColor(endpapers, tr("Pattern background and one color"), CoverPlan::PAPER_COLOR_KEY);
+    //: The paper of an endpaper without a fill. In Polish: Papier bez wypełnienia
+    addThemeColor(endpapers, tr("Paper without a fill"), CoverPlan::BLANK_COLOR_KEY);
+    addRestoreColorsButton(endpapers);
 }
 
 void NavigatorPage::createPublishing()

@@ -8,6 +8,9 @@
 /// OpenSpec #00042 Task 7.4: PropertiesPanel Integration with BookEditor.
 
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/core/cover_material.h"
+#include "kalahari/gui/cover_names.h"
+#include "kalahari/gui/widgets/cover_plan.h"
 #include "kalahari/gui/widgets/relations_box.h"
 #include "kalahari/gui/utils/reading_time.h"
 #include "kalahari/gui/panels/book_fields_box.h"
@@ -194,6 +197,7 @@ void PropertiesPanel::setupUI() {
     m_stackedWidget->addWidget(createCardPage());        // Page::Card = 7
     m_seriesPage = new SeriesPage(m_book);
     m_stackedWidget->addWidget(m_seriesPage);            // Page::Series = 8
+    m_stackedWidget->addWidget(createEndpaperPage());    // Page::Endpaper = 9
     // The name and the order of the volumes show in the Navigator, as the title of the book
     connect(m_seriesPage, &SeriesPage::seriesChanged, this, &PropertiesPanel::bookChanged);
     connect(m_seriesPage, &SeriesPage::requestNewVolume, this,
@@ -1020,6 +1024,82 @@ void PropertiesPanel::showSeriesProperties() {
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Series));
 }
 
+void PropertiesPanel::showEndpaperProperties(const QString& side) {
+    m_currentChapterId.clear();
+    m_currentSectionType.clear();
+    m_currentPartId.clear();
+    m_endpaperSide = side;
+    populateEndpaper();
+    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Endpaper));
+}
+
+QWidget* PropertiesPanel::createEndpaperPage() {
+    auto* page = new QWidget();
+    page->setObjectName(QStringLiteral("propertiesEndpaperPage"));
+    auto* layout = new QVBoxLayout(page);
+    layout->setContentsMargins(11, 11, 11, 11);
+    layout->setSpacing(11);
+    m_endpaperTitle = new QLabel(page);
+    m_endpaperTitle->setObjectName(QStringLiteral("propertiesEndpaperTitle"));
+    m_endpaperTitle->setWordWrap(true);
+    layout->addWidget(m_endpaperTitle);
+    //: The group of the Properties of an endpaper chosen on the plan of the cover. In Polish:
+    //: Wypełnienie
+    auto* group = new QGroupBox(tr("Fill"), page);
+    auto* form = new QFormLayout(group);
+    m_endpaperFill = new QLabel(group);
+    m_endpaperFill->setObjectName(QStringLiteral("propertiesEndpaperFill"));
+    m_endpaperFill->setWordWrap(true);
+    m_endpaperFill->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    //: How an endpaper is filled, in its Properties. In Polish: Ustawione:
+    form->addRow(tr("Set:"), m_endpaperFill);
+    //: Under the fill of an endpaper in its Properties. In Polish: Ustawienia są na planie,
+    //: obok rozkładówki.
+    auto* hint = new QLabel(tr("The settings are on the plan, beside the spread."), group);
+    hint->setWordWrap(true);
+    hint->setForegroundRole(QPalette::PlaceholderText);
+    form->addRow(hint);
+    layout->addWidget(group);
+    layout->addStretch();
+    // A change on the plan shows here at once
+    connect(&m_book, &core::ProjectManager::coverPartsChanged, this, [this]() {
+        if (currentPage() == Page::Endpaper) {
+            populateEndpaper();
+        }
+    });
+    return page;
+}
+
+void PropertiesPanel::populateEndpaper() {
+    const bool front = m_endpaperSide == QLatin1String(CoverPlan::FRONT_ENDPAPER);
+    const core::CoverParts parts = m_book.coverParts();
+    const core::Endpaper& shown = front ? parts.front : parts.backShown();
+    const QString name = front
+                             //: The endpaper between the cover and the first page, in its
+                             //: Properties. In Polish: Wyklejka przednia
+                             ? tr("Front endpaper")
+                             //: In Polish: Wyklejka tylna
+                             : tr("Back endpaper");
+    const QString pages = front
+                              //: What the front endpaper is, under its name in its Properties.
+                              //: In Polish: rozkładówka: przyklejona do okładki i wolna karta
+                              ? tr("spread: pasted to the cover and the free leaf")
+                              //: In Polish: rozkładówka: wolna karta i przyklejona do okładki
+                              : tr("spread: the free leaf and pasted to the cover");
+    m_endpaperTitle->setText(QStringLiteral("<b>%1</b><br><small>%2</small>")
+                                 .arg(name.toHtmlEscaped(), pages.toHtmlEscaped()));
+    const core::ProjectElement* picture =
+        shown.picture.isEmpty() ? nullptr : m_book.findElement(shown.picture);
+    QString fill = CoverNames::fillSummary(shown, picture != nullptr ? picture->title
+                                                                     : QString());
+    if (!front && parts.back.sameAsFront) {
+        //: The fill of the back endpaper filled as the front one, in its Properties: %1 the
+        //: fill. In Polish: %1 (tak jak przednia)
+        fill = tr("%1 (same as the front one)").arg(fill);
+    }
+    m_endpaperFill->setText(fill);
+}
+
 void PropertiesPanel::focusFirstField() {
     switch (currentPage()) {
         case Page::Project:
@@ -1245,6 +1325,9 @@ void PropertiesPanel::refresh() {
             break;
         case Page::Series:
             showSeriesProperties();  // the book's, after the last volume but one went
+            break;
+        case Page::Endpaper:
+            populateEndpaper();
             break;
         default:
             break;  // No project: nothing to refresh

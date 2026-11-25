@@ -1094,6 +1094,12 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
     }
     book.bibliographyStyle = fields.string("bibliographyStyle");
     book.publishingSet = readPublishingSet(fields, problems);
+    if (const QJsonValue parts = fields.take("coverParts"); parts.isObject()) {
+        book.coverParts =
+            CoverParts::fromJson(parts.toObject(), fields.path("coverParts"), problems);
+    } else if (!parts.isUndefined()) {
+        fields.problem("coverParts", QStringLiteral("must be an object"));
+    }
     book.isbn = fields.string("isbn");
     book.publisher = fields.string("publisher");
     QHash<QString, QString> fieldIds;
@@ -1671,6 +1677,11 @@ QJsonObject bookToJson(const ProjectBook& book) {
         json.insert(QLatin1String("publishingSet"), book.publishingSet->toJson());
     } else {
         json.remove(QLatin1String("publishingSet"));
+    }
+    if (book.coverParts) {
+        json.insert(QLatin1String("coverParts"), book.coverParts->toJson());
+    } else {
+        json.remove(QLatin1String("coverParts"));
     }
     setOrRemove(json, "isbn", book.isbn);
     setOrRemove(json, "publisher", book.publisher);

@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The jacket and the endpapers on the plan of the cover** - 2026-11-25. Above the plan of the
+  cover three switches of the parts of the book, saved with it (the .klh file): Cover Flaps,
+  Jacket (always with its flaps) and Endpapers. The plan has a tab for each sheet, Cover,
+  Jacket and Endpapers, with the number of the materials on it (Ctrl+Page Down and Ctrl+Page
+  Up go between them); a part turned on shows its sheet. The jacket has its own columns and
+  designs, the cover under it is drawn as cloth, and its back flap keeps a place for the author
+  bio. A material on a part turned off is not lost: it waits under the plan, and its place says
+  "(jacket turned off)" or "(flaps turned off)" on the plan and in the list. The sheet of the
+  endpapers shows the front and the back one as spreads (pasted to the cover, the free leaf),
+  each with its fill beside it: a picture across both pages, a repeated picture with its size,
+  a ready-made pattern (dots, stripes, grid, diagonal lines, checkerboard, waves) in two colors,
+  one color, or none; Picture from Disk... adds a picture to the materials of the cover, and
+  the back endpaper may be the same as the front one. A click on a spread shows it in the
+  Properties. The colors of a new pattern and of the paper are in Settings > Navigator >
+  Endpapers, with the theme (each book keeps the colors of its patterns). Two new kinds of the
+  materials of the cover: Author bio (it takes the text of About the Author from the back part
+  on request) and Author photo (with its photographer and the consent). The places read with
+  their part ("Cover – back", "Jacket – front flap") and are grouped by it on the card.
 - **The Book Plan: the board, the outline and the chronology of the book** - 2026-11-24. The
   plot board is now the Book Plan (Book > Book Plan, Ctrl+Shift+T), the first item of the
   Workshop in the Navigator, with three views: Board, Outline and Chronology. Over the board and

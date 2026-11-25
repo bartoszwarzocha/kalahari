@@ -223,7 +223,8 @@ std::map<std::string, json> buildDefaults() {
         {"materials.linkParagraphs", true},
         // The materials of the cover (Settings > Navigator > Cover): their lengths in
         // characters with spaces ("characters") or in "words", and the default target length
-        // of a description, a tagline and an opinion in each unit (core::CoverMaterial)
+        // of a description, a tagline, an opinion and a note about the author in each unit
+        // (core::CoverMaterial)
         {"materials.cover.lengthUnit", "characters"},
         {"materials.cover.targets.blurb.characters", 600},
         {"materials.cover.targets.blurb.words", 100},
@@ -231,6 +232,8 @@ std::map<std::string, json> buildDefaults() {
         {"materials.cover.targets.tagline.words", 10},
         {"materials.cover.targets.opinion.characters", 200},
         {"materials.cover.targets.opinion.words", 35},
+        {"materials.cover.targets.bio.characters", 500},
+        {"materials.cover.targets.bio.words", 80},
         // The texts for publishers (Settings > Navigator > Texts for Publishers): the default
         // target length of a sentence about the book and of a synopsis without a template in
         // each unit (that of the cover), whether a synopsis gives its length in standard pages

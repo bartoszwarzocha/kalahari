@@ -432,7 +432,7 @@ const ProjectElement* chosenForCover(const BookProject& project, const ProjectBo
 }
 
 /// The first note about the author in the back part of @p book
-const ProjectElement* aboutAuthorOf(const ProjectBook& book) {
+const ProjectElement* firstAboutAuthorOf(const ProjectBook& book) {
     QList<const ProjectElement*> notes;
     collect(book.backElements,
             [](const ProjectElement& element) {
@@ -452,7 +452,7 @@ const ProjectElement* chosenVersion(const BookProject& project, const ProjectBoo
         return chosenForCover(project, book, part, CoverMaterial::BACK);
     }
     if (part == QLatin1String(PublishingTexts::ABOUT_AUTHOR)) {
-        return aboutAuthorOf(book);
+        return firstAboutAuthorOf(book);
     }
     return chosenText(project, book, part);
 }
@@ -975,6 +975,10 @@ QList<const ProjectElement*> PublishingTexts::versionsOf(const BookProject& proj
         });
     }
     return versions;
+}
+
+const ProjectElement* PublishingTexts::aboutAuthorOf(const ProjectBook& book) {
+    return firstAboutAuthorOf(book);
 }
 
 QList<PublishingSetPart> PublishingTexts::resolveSet(const BookProject& project,

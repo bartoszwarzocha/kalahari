@@ -286,6 +286,10 @@ public slots:
     /// @param elementId Element ID (empty for document properties)
     void onRequestProperties(const QString& elementId);
 
+    /// @brief Show in the Properties how the endpaper of @p side is filled, chosen on the plan
+    /// of the cover (CoverPlan::FRONT_ENDPAPER, BACK_ENDPAPER)
+    void onRequestEndpaperProperties(const QString& side);
+
     /// @brief Handle section properties request from navigator
     /// @param sectionType Section type ("section_frontmatter", "section_body", "section_backmatter")
     void onRequestSectionProperties(const QString& sectionType);
