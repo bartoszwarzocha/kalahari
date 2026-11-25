@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file caption_dialogs.h
 /// @brief The windows of the numbered captions: Insert Caption, Caption Numbering and Insert
@@ -29,7 +30,7 @@ class QRadioButton;
 
 namespace kalahari::gui::dialogs {
 
-/// @brief Insert > Caption... (Ctrl+Shift+G): the caption of an image
+/// @brief Insert > Caption... (Ctrl+Shift+G): the caption of an image or a table
 ///
 /// The caption is a paragraph in the style Caption next to the image: its label and the number
 /// the program gives ("Figure 3."), then the text the writer types. Each label has a numbering
@@ -56,6 +57,7 @@ public:
         /// book, which the Settings number
         std::function<bool(const QString& label, QWidget* parent)> editNumbering;
         bool newImage = false;  ///< The caption of an image Insert > Image... puts in
+        bool table = false;     ///< The caption of a table (its position: above or below it)
     };
 
     explicit InsertCaptionDialog(Data shown, QWidget* parent = nullptr);

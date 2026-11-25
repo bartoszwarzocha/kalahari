@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file writing_goals_tab.h
 /// @brief The tab Writing Goals and Deadlines in the middle of the window: the daily and weekly
@@ -131,6 +132,8 @@ private:
     QLabel* m_daysNote = nullptr;
     QCheckBox* m_fromDeadline = nullptr;
     QLabel* m_fromDeadlineNote = nullptr;
+    QCheckBox* m_fromPlan = nullptr;
+    QLabel* m_fromPlanNote = nullptr;
 
     QGroupBox* m_weeklyGroup = nullptr;
     QRadioButton* m_weeklySum = nullptr;

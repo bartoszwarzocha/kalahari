@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file kalahari_text_document_layout_floats.cpp
 /// @brief KalahariTextDocumentLayout: the images the text flows around - beside the text (on
@@ -25,9 +26,6 @@
 namespace kalahari::editor {
 
 namespace {
-
-/// The room between an image beside the text and the text, in centimeters
-constexpr qreal FLOAT_GAP_CENTIMETERS = 0.3;
 
 /// The narrowest room beside an image a line takes, in centimeters: with less, the line goes
 /// on below the image
@@ -73,6 +71,7 @@ void KalahariTextDocumentLayout::addFloat(FlowEntry& entry, const QTextBlock& bl
     entry.flags |= FLOW_FLOAT;
     entry.floatWrap = image->wrap;
     entry.floatSize = imageSize(block, *image);
+    entry.floatGap = std::round(image->spaceBeside * packagePixels());
     m_hasFloats = true;
 }
 
@@ -185,7 +184,7 @@ bool KalahariTextDocumentLayout::placeFloat(const FloatRun& run, const QTextBloc
         m_blockFlowHeights[k] = 0.0;
     }
     m_floats.push_back(FloatPlace{run.first, run.image, run.last, wrap,
-                                  QRectF(x, top, width, height)});
+                                  QRectF(x, top, width, height), entry.floatGap});
     if (square) {
         m_activeFloats.push_back(m_floats.size() - 1);
     } else {
@@ -353,7 +352,6 @@ void KalahariTextDocumentLayout::shiftLines(const QTextBlock& block, qreal dx, q
 KalahariTextDocumentLayout::LineRoom KalahariTextDocumentLayout::roomBeside(
     qreal top, qreal height, const LineFrame& frame, qreal indent) const {
     const qreal pixels = packagePixels();
-    const qreal gap = FLOAT_GAP_CENTIMETERS * FLOAT_POINTS_PER_CENTIMETER * pixels;
     const qreal narrowest = NARROWEST_BESIDE_CENTIMETERS * FLOAT_POINTS_PER_CENTIMETER * pixels;
     qreal y = top;
     for (size_t round = 0; round <= m_activeFloats.size(); ++round) {
@@ -367,9 +365,9 @@ KalahariTextDocumentLayout::LineRoom KalahariTextDocumentLayout::roomBeside(
                 continue;
             }
             if (place.wrap == ImageWrap::SquareLeft) {
-                left = std::max(left, place.rect.right() + gap);
+                left = std::max(left, place.rect.right() + place.gap);
             } else {
-                right = std::min(right, place.rect.left() - gap);
+                right = std::min(right, place.rect.left() - place.gap);
             }
             below = std::max(below, place.rect.bottom());
         }

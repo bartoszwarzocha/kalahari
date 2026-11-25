@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file settings_page.h
 /// @brief Base class of the Settings dialog pages: controls bound to setting keys
@@ -80,6 +81,8 @@ public:
     /// @brief The button that shows the advanced settings of addAdvancedGroup() (none: the page
     ///        has none)
     [[nodiscard]] QToolButton* advancedSettingsButton() const { return m_advancedToggle; }
+    /// @brief The groups the button shows (none: the page has none)
+    [[nodiscard]] QWidget* advancedSettings() const { return m_advanced; }
 
     /// @brief The color of the notes: the theme's muted one, darker or lighter as far as
     ///        the window needs to read it (WCAG AA, as normal text)

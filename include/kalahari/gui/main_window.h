@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file main_window.h
 /// @brief Main application window (Qt6 QMainWindow subclass)
@@ -47,12 +48,14 @@ namespace core {
 
 namespace editor {
 class BookEditor;
+struct TabGuideOutcome;
 } // namespace editor
 
 namespace gui {
 
 enum class TableCommand;  // The commands of the Table menu (command_registrar.h)
 enum class ImageCommand;  // The commands of the Image menu (command_registrar.h)
+enum class TabGuideCommand;  // The commands of the tab guides (command_registrar.h)
 
 // Forward declarations for panels
 class DashboardPanel;
@@ -97,7 +100,9 @@ class CardsInTextCoordinator;
 class RepetitionsCoordinator;
 class DocumentWindows;
 class WritingStatsCoordinator;
+class NotificationCoordinator;
 class ColorMenu;
+class ListSetsMenu;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
 } // namespace utils
@@ -220,6 +225,12 @@ public:
 
     /// @brief The commands and panels of the plugins in the window
     [[nodiscard]] PluginCoordinator* pluginCoordinator() const { return m_pluginCoordinator; }
+
+    /// @brief The notifications of this window (Settings > Notifications)
+    [[nodiscard]] NotificationCoordinator* notifications() const
+    {
+        return m_notificationCoordinator;
+    }
 
     /// @brief Window > New Window: a new book window with the Dashboard, its panels and bars
     /// as in this one, a little lower and to the right; it closes and is deleted on its own
@@ -424,6 +435,14 @@ private slots:
     /// the zoom of the preview of a material in front
     void updatePageStatus();
 
+    /// @brief A command of the tab guides in the text in front (Format > Align Text), what
+    ///        it did in the status bar
+    void onTabGuide(TabGuideCommand command);
+
+    /// @brief What a command of the tab guides did, as the status bar says it; empty when it
+    ///        changed nothing in a text only read (the text says so itself)
+    [[nodiscard]] static QString tabGuideMessage(const editor::TabGuideOutcome& outcome);
+
     /// @brief Show "Read-only" with a lock in the status bar while the open book is
     /// read-only, its tooltip saying why
     void updateReadOnlyStatus();
@@ -576,6 +595,8 @@ private:
     MaterialListCoordinator* m_materialListCoordinator{nullptr};
     /// @brief The plot board of the book and its outline on their tab
     PlotBoardCoordinator* m_plotBoardCoordinator{nullptr};
+    /// @brief What the program tells the writer on its own, where the settings say
+    NotificationCoordinator* m_notificationCoordinator{nullptr};
     /// @brief The statistics bar and the goals of writing
     WritingStatsCoordinator* m_writingStatsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
@@ -604,6 +625,7 @@ private:
     /// @brief The submenus of Format > Font Color and Highlight Color
     ColorMenu* m_fontColorMenu{nullptr};
     ColorMenu* m_highlightColorMenu{nullptr};
+    ListSetsMenu* m_listSetsMenu{nullptr};  ///< Format > Pick List Set
 
     /// @brief Save Version and Version History of the texts of the book
     VersionsCoordinator* m_versionsCoordinator{nullptr};

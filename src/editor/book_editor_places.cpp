@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_editor_places.cpp
 /// @brief BookEditor: Edit > Go To..., the pages, the headings, the notes, the images, the
@@ -223,9 +224,13 @@ GoToOutcome BookEditor::goToPlace(PlaceKind kind, const QString& number)
 GoToOutcome BookEditor::goToPageNumber(const PlaceNumber& wanted)
 {
     if (!wanted.valid && totalPages() > 0) {
-        return outcomeOf(GoToResult::Invalid, totalPages());
+        GoToOutcome outcome = outcomeOf(GoToResult::Invalid, totalPages());
+        outcome.firstNumber = firstPageNumber();
+        return outcome;
     }
-    return goToPageAt(wanted.relative ? currentPage() + wanted.value : wanted.value,
+    // A number of its own is the one the page shows: its page in the whole book
+    return goToPageAt(wanted.relative ? currentPage() + wanted.value
+                                      : wanted.value - firstPageNumber() + 1,
                       GoToResult::NoNumber);
 }
 
@@ -235,11 +240,13 @@ GoToOutcome BookEditor::goToPageAt(int page, GoToResult beyond)
     if (pages == 0) {
         return outcomeOf(GoToResult::NoPlaces, pages);
     }
+    GoToOutcome outcome = outcomeOf(GoToResult::Done, pages);
+    outcome.firstNumber = firstPageNumber();
     if (page < 1 || page > pages) {
-        return outcomeOf(beyond, pages);
+        outcome.result = beyond;
+        return outcome;
     }
     goToPage(page);
-    GoToOutcome outcome = outcomeOf(GoToResult::Done, pages);
     outcome.ordinal = page;
     return outcome;
 }

@@ -12,6 +12,7 @@
   "kinds": {
     "title_page": {
       "form": "text", "places": ["front"], "limit": 1, "first": true,
+      "firstPage": "right",
       "icon": "template.chapter",
       "template": "templates/title_page.kchapter",
       "name": { "pl": "Strona tytułowa", "en": "Title page" },
@@ -26,6 +27,7 @@
     },
     "copyright": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "firstPage": "left",
       "name": { "pl": "Strona redakcyjna", "en": "Copyright page" },
       "plural": { "pl": "Strony redakcyjne", "en": "Copyright pages" },
       "words": {
@@ -40,6 +42,7 @@
     },
     "dedication": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "firstPage": "right",
       "name": { "pl": "Dedykacja", "en": "Dedication" },
       "plural": { "pl": "Dedykacje", "en": "Dedications" },
       "words": {
@@ -52,6 +55,7 @@
     },
     "motto": {
       "form": "text", "places": ["front", "part"], "icon": "format.style.quote",
+      "firstPage": "right",
       "name": { "pl": "Motto", "en": "Epigraph" },
       "plural": { "pl": "Motta", "en": "Epigraphs" },
       "words": {
@@ -63,6 +67,7 @@
     },
     "toc": {
       "form": "window", "editor": "toc", "generated": true,
+      "firstPage": "right",
       "places": ["front", "back"], "limit": 1, "icon": "format.numbering",
       "name": { "pl": "Spis treści", "en": "Table of contents" },
       "plural": { "pl": "Spisy treści", "en": "Tables of contents" },
@@ -77,6 +82,7 @@
     },
     "preface": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "firstPage": "right",
       "name": { "pl": "Przedmowa", "en": "Preface" },
       "plural": { "pl": "Przedmowy", "en": "Prefaces" },
       "words": {
@@ -89,6 +95,7 @@
     },
     "introduction": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "firstPage": "right",
       "name": { "pl": "Wstęp", "en": "Introduction" },
       "plural": { "pl": "Wstępy", "en": "Introductions" },
       "words": {
@@ -114,6 +121,7 @@
     },
     "part": {
       "form": "group", "places": ["main"], "icon": "structure.part",
+      "firstPage": "right",
       "name": { "pl": "Część", "en": "Part" },
       "plural": { "pl": "Części", "en": "Parts" },
       "words": {
@@ -172,6 +180,19 @@
                 "locative": "nocie o autorze", "genitivePlural": "not o autorze" },
         "en": { "singular": "note about the author", "plural": "notes about the author",
                 "indefinite": "a note about the author" }
+      }
+    },
+    "spread": {
+      "form": "window", "editor": "spread", "places": ["front", "main", "part", "back"],
+      "firstPage": "left", "icon": "book.spread",
+      "name": { "pl": "Rozkładówka", "en": "Spread" },
+      "plural": { "pl": "Rozkładówki", "en": "Spreads" },
+      "words": {
+        "pl": { "gender": "feminine", "singular": "rozkładówka", "plural": "rozkładówki",
+                "genitive": "rozkładówki", "dative": "rozkładówce", "accusative": "rozkładówkę",
+                "instrumental": "rozkładówką", "locative": "rozkładówce",
+                "genitivePlural": "rozkładówek" },
+        "en": { "singular": "spread", "plural": "spreads", "indefinite": "a spread" }
       }
     },
     "work_note": {
@@ -601,9 +622,10 @@
     { "id": "keeps", "kind": "location", "other": "item", "inverse": "kept_in",
       "name": { "pl": "jest tu", "en": "is here" } }
   ],
-  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface", "introduction"],
-  "main":     ["chapter", "part"],
-  "back":     ["afterword", "acknowledgments", "glossary", "about_author", "toc"],
+  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface",
+               "introduction", "spread"],
+  "main":     ["chapter", "part", "spread"],
+  "back":     ["afterword", "acknowledgments", "glossary", "about_author", "spread", "toc"],
   "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "clipping",
                "cover", "publishing", "quote", "web_page", "picture", "document", "publication",
                "recording", "other_file"],

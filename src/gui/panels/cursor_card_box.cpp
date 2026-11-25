@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file cursor_card_box.cpp
 /// @brief The card at the cursor in the Properties panel: the card whose name the cursor of a
@@ -89,6 +90,7 @@ CursorCardBox::CursorCardBox(core::ProjectManager& book, QWidget* parent)
     connect(m_relations, &RelationsBox::requestShowCard, this,
             &CursorCardBox::requestSelectCard);
     connect(m_relations, &RelationsBox::cardAdded, this, &CursorCardBox::cardAdded);
+    connect(m_relations, &RelationsBox::relationAdded, this, &CursorCardBox::relationAdded);
 
     //: The button of the card at the cursor in the Properties panel, which opens its full
     //: card. In Polish: Otwórz kartę

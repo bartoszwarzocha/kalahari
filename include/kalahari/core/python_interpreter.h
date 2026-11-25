@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file python_interpreter.h
 /// @brief Python 3.11 embedded interpreter for plugin system
@@ -71,6 +72,14 @@ public:
     /// @brief Get PYTHONHOME path
     /// @return Path to bundled Python runtime
     std::filesystem::path getPythonHome() const;
+
+    /// @brief The folder of the compiled modules of Python (sys.pycache_prefix)
+    /// @return kalahari/python in the cache folder of the user, or an empty path when the
+    ///         system has none (Python then writes them next to the modules)
+    /// @note Not next to the modules: the program does not write into its installation (the
+    ///       uninstaller removes only the files it installed, macOS checks the signature of
+    ///       Kalahari.app), nor into the Python of the system
+    static std::filesystem::path compiledModulesFolder();
 
     /// @brief Execute test Python code to verify integration
     /// Tests: basic execution, imports, variable access

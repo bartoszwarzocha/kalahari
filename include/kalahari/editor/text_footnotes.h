@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file text_footnotes.h
 /// @brief Footnotes and endnotes: a number in the text with the text of its note inside it
@@ -282,6 +283,23 @@ Footnote readNoteElement(QXmlStreamReader& reader);
 /// @brief The notes of a text's KML, in text order, as the editor reads them (a note without
 ///        an id, or with the id of one before it, gets an id of its own)
 std::vector<Footnote> notesOfKml(const QString& kml);
+
+/// @brief A note with the words of its paragraph just before its number (the Footnotes panel)
+struct NoteInText {
+    Footnote note;
+    QString before;  ///< At most the words asked for, "…" first when the paragraph has more
+
+    bool operator==(const NoteInText&) const = default;
+};
+
+/// @brief The notes of a text's KML as notesOfKml() reads them, each with at most @p words
+///        words of its paragraph before its number (the text of the other notes and of the
+///        fields left out)
+std::vector<NoteInText> notesInKml(const QString& kml, int words);
+
+/// @brief At most the last @p words words of @p text, "…" first when it has more; the
+///        objects of the text (U+FFFC: notes, images, fields) left out
+QString lastWords(const QString& text, int words);
 
 }  // namespace kalahari::editor
 

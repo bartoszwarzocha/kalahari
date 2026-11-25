@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file statistics_collector.h
 /// @brief Real-time document statistics collection and session tracking (OpenSpec #00042 Phase 6)
@@ -202,8 +203,8 @@ private slots:
     /// @brief Handle flush timer timeout
     void onFlushTimer();
 
-    /// @brief Handle debounced statistics recalculation
-    void debouncedRecalculate();
+    /// @brief Tell the counts (statisticsChanged()) once the editing stops for a moment
+    void announceStatistics();
 
     /// @brief Count from the counts of now, with no words written or deleted
     void rebase();
@@ -215,13 +216,17 @@ private slots:
     /// words typed into the level of undo of a paste, written or deleted)
     void onPastingFinished(int level, bool undoOrRedo);
 
-    /// @brief The words typed and not counted yet are counted now: a change that is not
-    /// typed follows (a paste, or text moved to or from another text)
-    void countPendingChange();
+    /// @brief A paste or text moved to or from another text follows: it is counted when it is
+    /// made (onPastingFinished(), rebase()), not as the change it makes
+    void startAnnouncedChange();
 
 private:
     /// @brief Called when editor content changes
     void onContentChanged();
+
+    /// @brief Count the change just made: its words are written or deleted when it is the
+    /// writer's own @p writing (BookEditor::isWriting())
+    void countChange(bool writing);
 
     /// @brief Recalculate all statistics from document
     void recalculateStats();
@@ -248,7 +253,7 @@ private:
     // Session tracking
     bool m_sessionActive{false};
     QDateTime m_sessionStart;
-    int m_previousWordCount{0};  ///< For delta calculation
+    bool m_announcedChange{false};  ///< startAnnouncedChange() until the change is made
     /// The words each paste brought, by its level of undo (BookEditor::pastingFinished()),
     /// for each editor: an editor keeps its undo while another one is followed
     QHash<const QObject*, QHash<int, int>> m_pastedAtLevel;
@@ -256,12 +261,12 @@ private:
     // Auto-flush timer
     QTimer* m_flushTimer{nullptr};
 
-    // Debounce timer for statistics (performance optimization)
+    // statisticsChanged() once the editing stops for a moment
     QTimer* m_debounceTimer{nullptr};
 
     // Constants
     static constexpr int FLUSH_INTERVAL_MS = 60 * 1000;  ///< The record is saved every minute
-    static constexpr int STATS_DEBOUNCE_MS = 250;        ///< Debounce delay for stats
+    static constexpr int STATS_DEBOUNCE_MS = 250;        ///< announceStatistics() after it
 };
 
 }  // namespace kalahari::editor

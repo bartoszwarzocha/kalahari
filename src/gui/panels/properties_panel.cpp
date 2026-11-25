@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file properties_panel.cpp
 /// @brief Contextual properties panel implementation
@@ -8,7 +9,13 @@
 /// OpenSpec #00042 Task 7.4: PropertiesPanel Integration with BookEditor.
 
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/core/cover_material.h"
+#include "kalahari/gui/cover_names.h"
+#include "kalahari/gui/widgets/cover_plan.h"
+#include "kalahari/gui/widgets/relations_box.h"
 #include "kalahari/gui/utils/reading_time.h"
+#include "kalahari/gui/book_page_numbers.h"
+#include "kalahari/gui/panels/book_fields_box.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/clipping_origin_box.h"
 #include "kalahari/gui/panels/cursor_card_box.h"
@@ -16,9 +23,7 @@
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/panels/paragraph_cards_box.h"
 #include "kalahari/gui/panels/plot_fields_box.h"
-#include "kalahari/gui/panels/publishing_set_page.h"
 #include "kalahari/gui/panels/series_page.h"
-#include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -27,6 +32,7 @@
 #include "kalahari/gui/version_texts.h"
 #include "kalahari/gui/widgets/flow_layout.h"
 #include "kalahari/gui/panels/card_parts.h"
+#include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/gui/widgets/sections_field.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/core/art_provider.h"
@@ -34,6 +40,7 @@
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/package_card.h"
+#include "kalahari/core/page_start.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/database_types.h"
@@ -136,8 +143,6 @@ PropertiesPanel::PropertiesPanel(core::ProjectManager& book, QWidget* parent)
             this, &PropertiesPanel::updateEditorStatistics);
     connect(m_cursorDebounceTimer, &QTimer::timeout, this, &PropertiesPanel::updateCursorCard);
     // The length of a text for publishers follows its editor, as the counts do
-    connect(m_cursorDebounceTimer, &QTimer::timeout, m_publishingBox,
-            &PublishingTextBox::updateLength);
 
     // The words of the book follow new rules of counting at once, wherever they are chosen,
     // and the group of the versions the versions turned on or off; the listener runs on the
@@ -193,10 +198,9 @@ void PropertiesPanel::setupUI() {
     m_stackedWidget->addWidget(createEditorPage());      // Page::Editor = 5
     m_stackedWidget->addWidget(createMaterialPage());    // Page::Material = 6
     m_stackedWidget->addWidget(createCardPage());        // Page::Card = 7
-    m_publishingSetPage = new PublishingSetPage(m_book);
-    m_stackedWidget->addWidget(m_publishingSetPage);     // Page::PublishingSet = 8
     m_seriesPage = new SeriesPage(m_book);
-    m_stackedWidget->addWidget(m_seriesPage);            // Page::Series = 9
+    m_stackedWidget->addWidget(m_seriesPage);            // Page::Series = 8
+    m_stackedWidget->addWidget(createEndpaperPage());    // Page::Endpaper = 9
     // The name and the order of the volumes show in the Navigator, as the title of the book
     connect(m_seriesPage, &SeriesPage::seriesChanged, this, &PropertiesPanel::bookChanged);
     connect(m_seriesPage, &SeriesPage::requestNewVolume, this,
@@ -329,6 +333,16 @@ QWidget* PropertiesPanel::createProjectPage() {
 
     layout->addWidget(infoGroup);
 
+    // The writer's own fields of the book, under its information
+    m_bookFieldsBox = new BookFieldsBox(m_book, scrollContent);
+    connect(m_bookFieldsBox, &BookFieldsBox::requestNewField, this,
+            &PropertiesPanel::requestNewOwnField);
+    connect(m_bookFieldsBox, &BookFieldsBox::requestInsertField, this,
+            &PropertiesPanel::requestInsertOwnField);
+    connect(m_bookFieldsBox, &BookFieldsBox::requestSettings, this,
+            &PropertiesPanel::requestFieldSettings);
+    layout->addWidget(m_bookFieldsBox);
+
     // Statistics group
     QGroupBox* statsGroup = new QGroupBox(tr("Statistics"), scrollContent);
     QFormLayout* statsLayout = new QFormLayout(statsGroup);
@@ -431,18 +445,74 @@ QWidget* PropertiesPanel::createChapterPage() {
     m_chapterStatusCombo->addItem(tr("Final"), "final");
     infoLayout->addRow(tr("Status:"), m_chapterStatusCombo);
 
-    // Its first page: a right one, unless the writer says it is a left one (mirror margins)
-    m_chapterFirstPageLeft = new QCheckBox(tr("Starts on a left page"), infoGroup);
-    m_chapterFirstPageLeft->setObjectName(QStringLiteral("chapterFirstPageLeft"));
-    infoLayout->addRow(m_chapterFirstPageLeft);
+    // Its first page in a printed book (mirror margins): as its kind says, or the writer's
+    // choice; the text of Auto names the kind's page (populateChapterFields())
+    m_chapterFirstPage = new QComboBox(infoGroup);
+    m_chapterFirstPage->setObjectName(QStringLiteral("chapterFirstPage"));
+    m_chapterFirstPage->addItem(QString(), core::pageStartName(core::PageStart::Auto));
+    //: The page a text starts on in a printed book. In Polish: Prawa
+    m_chapterFirstPage->addItem(tr("Right"), core::pageStartName(core::PageStart::Right));
+    //: In Polish: Lewa
+    m_chapterFirstPage->addItem(tr("Left"), core::pageStartName(core::PageStart::Left));
+    //: In Polish: Następna (lewa albo prawa)
+    m_chapterFirstPage->addItem(tr("Next (left or right)"),
+                                core::pageStartName(core::PageStart::Next));
+    //: In Polish: Pierwsza strona:
+    infoLayout->addRow(tr("First page:"), m_chapterFirstPage);
+
+    // A spread starts on a left page, always; its pages in the book (populateChapterFields())
+    m_spreadFirstPage = new QComboBox(infoGroup);
+    m_spreadFirstPage->setObjectName(QStringLiteral("spreadFirstPage"));
+    //: The page a spread starts on. In Polish: Lewa (zawsze)
+    m_spreadFirstPage->addItem(tr("Left (always)"));
+    m_spreadFirstPage->setEnabled(false);
+    infoLayout->addRow(tr("First page:"), m_spreadFirstPage);
+    //: Under the first page of a spread. In Polish: Lewa i prawa strona leżą obok siebie tylko
+    //: wtedy, gdy rozkładówka zaczyna się na lewej.
+    m_spreadFirstPageHint = new QLabel(tr("The left and the right page lie side by side only "
+                                          "when the spread starts on the left one."),
+                                       infoGroup);
+    m_spreadFirstPageHint->setWordWrap(true);
+    m_spreadFirstPageHint->setForegroundRole(QPalette::PlaceholderText);
+    infoLayout->addRow(m_spreadFirstPageHint);
+    m_chapterPagesLabel = new QLabel(infoGroup);
+    m_chapterPagesLabel->setObjectName(QStringLiteral("chapterPagesLabel"));
+    //: The pages of a spread in the book. In Polish: Strony w książce:
+    infoLayout->addRow(tr("Pages in the book:"), m_chapterPagesLabel);
 
     layout->addWidget(infoGroup);
 
-    // A text for publishers (placeTextGroups(), populateChapterFields())
-    m_publishingBox = new PublishingTextBox(m_book, scrollContent);
-    connect(m_publishingBox, &PublishingTextBox::publishingChanged, this,
-            &PropertiesPanel::materialChanged);
-    layout->addWidget(m_publishingBox);
+    // The settings of a spread in short; its card has them (showSpread())
+    //: The group of the Properties panel with a spread. In Polish: Rozkładówka
+    m_spreadGroup = new QGroupBox(tr("Spread"), scrollContent);
+    m_spreadGroup->setObjectName(QStringLiteral("spreadGroup"));
+    auto* spreadLayout = new QFormLayout(m_spreadGroup);
+    spreadLayout->setSpacing(6);
+    spreadLayout->setContentsMargins(11, 11, 11, 11);
+    const auto addSpreadRow = [this, spreadLayout](const QString& label) {
+        auto* value = new QLabel(m_spreadGroup);
+        value->setWordWrap(true);
+        value->setTextFormat(Qt::PlainText);
+        spreadLayout->addRow(label, value);
+        return value;
+    };
+    //: In Polish: Obraz:
+    m_spreadPicture = addSpreadRow(tr("Picture:"));
+    m_spreadPicture->setObjectName(QStringLiteral("spreadPictureLabel"));
+    //: Where the picture of a spread lies. In Polish: Zajmuje:
+    m_spreadArea = addSpreadRow(tr("Takes:"));
+    //: How the picture fits its area. In Polish: Dopasowanie:
+    m_spreadFit = addSpreadRow(tr("Fit:"));
+    //: In Polish: Zapas na grzbiet:
+    m_spreadGutter = addSpreadRow(tr("Room at the spine:"));
+    //: In Polish: Ustawienia są na karcie, obok rozkładówki.
+    auto* spreadHint = new QLabel(tr("The settings are on the card, beside the spread."),
+                                  m_spreadGroup);
+    spreadHint->setWordWrap(true);
+    spreadHint->setForegroundRole(QPalette::PlaceholderText);
+    spreadLayout->addRow(spreadHint);
+    m_spreadGroup->hide();
+    layout->addWidget(m_spreadGroup);
 
     // Where a clipping comes from (populateChapterFields())
     m_clippingOrigin = new ClippingOriginBox(m_book, scrollContent);
@@ -761,6 +831,7 @@ QWidget* PropertiesPanel::createEditorPage() {
     connect(m_cursorCard, &CursorCardBox::requestSelectCard, this,
             &PropertiesPanel::requestSelectCard);
     connect(m_cursorCard, &CursorCardBox::cardAdded, this, &PropertiesPanel::cardAdded);
+    connect(m_cursorCard, &CursorCardBox::relationAdded, this, &PropertiesPanel::relationAdded);
     // Then the cards linked with the paragraph at the cursor of a chapter
     m_paragraphCards = new ParagraphCardsBox(m_book, scrollContent);
     layout->addWidget(m_paragraphCards);
@@ -840,6 +911,7 @@ QWidget* PropertiesPanel::createCardPage() {
     connect(m_cardPage, &CardPage::materialAdded, this, &PropertiesPanel::cardMaterialAdded);
     connect(m_cardPage, &CardPage::requestSelectCard, this, &PropertiesPanel::requestSelectCard);
     connect(m_cardPage, &CardPage::cardAdded, this, &PropertiesPanel::cardAdded);
+    connect(m_cardPage, &CardPage::relationAdded, this, &PropertiesPanel::relationAdded);
     connect(m_cardPage, &CardPage::requestAddMaterials, this,
             &PropertiesPanel::requestAddCardMaterials);
     // The Navigator and the tab of the full card show the new name
@@ -907,7 +979,7 @@ void PropertiesPanel::connectSignals() {
             this, &PropertiesPanel::onChapterTitleChanged);
     connect(m_chapterStatusCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &PropertiesPanel::onChapterStatusChanged);
-    connect(m_chapterFirstPageLeft, &QCheckBox::toggled,
+    connect(m_chapterFirstPage, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &PropertiesPanel::onChapterFirstPageChanged);
 
     // Notes are saved on focus lost via eventFilter (not on every keystroke)
@@ -926,6 +998,14 @@ void PropertiesPanel::connectSignals() {
     connect(&pm, &core::ProjectManager::bookDictionaryChanged, this,
             &PropertiesPanel::updateCursorCard);
     connect(&pm, &core::ProjectManager::linksChanged, this, &PropertiesPanel::updateCursorCard);
+    // A spread changed on its card: its group here
+    connect(&pm, &core::ProjectManager::spreadChanged, this, [this](const QString& elementId) {
+        const core::ProjectElement* element = m_book.findElement(elementId);
+        if (elementId == m_currentChapterId && currentPage() == Page::Chapter &&
+            element != nullptr) {
+            showSpread(*element);
+        }
+    });
 }
 
 void PropertiesPanel::showProjectProperties() {
@@ -1007,12 +1087,80 @@ void PropertiesPanel::showSeriesProperties() {
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Series));
 }
 
-void PropertiesPanel::showPublishingSetProperties(const QString& part) {
+void PropertiesPanel::showEndpaperProperties(const QString& side) {
     m_currentChapterId.clear();
     m_currentSectionType.clear();
     m_currentPartId.clear();
-    m_publishingSetPage->showSet(part);
-    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::PublishingSet));
+    m_endpaperSide = side;
+    populateEndpaper();
+    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Endpaper));
+}
+
+QWidget* PropertiesPanel::createEndpaperPage() {
+    auto* page = new QWidget();
+    page->setObjectName(QStringLiteral("propertiesEndpaperPage"));
+    auto* layout = new QVBoxLayout(page);
+    layout->setContentsMargins(11, 11, 11, 11);
+    layout->setSpacing(11);
+    m_endpaperTitle = new QLabel(page);
+    m_endpaperTitle->setObjectName(QStringLiteral("propertiesEndpaperTitle"));
+    m_endpaperTitle->setWordWrap(true);
+    layout->addWidget(m_endpaperTitle);
+    //: The group of the Properties of an endpaper chosen on the plan of the cover. In Polish:
+    //: Wypełnienie
+    auto* group = new QGroupBox(tr("Fill"), page);
+    auto* form = new QFormLayout(group);
+    m_endpaperFill = new QLabel(group);
+    m_endpaperFill->setObjectName(QStringLiteral("propertiesEndpaperFill"));
+    m_endpaperFill->setWordWrap(true);
+    m_endpaperFill->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    //: How an endpaper is filled, in its Properties. In Polish: Ustawione:
+    form->addRow(tr("Set:"), m_endpaperFill);
+    //: Under the fill of an endpaper in its Properties. In Polish: Ustawienia są na planie,
+    //: obok rozkładówki.
+    auto* hint = new QLabel(tr("The settings are on the plan, beside the spread."), group);
+    hint->setWordWrap(true);
+    hint->setForegroundRole(QPalette::PlaceholderText);
+    form->addRow(hint);
+    layout->addWidget(group);
+    layout->addStretch();
+    // A change on the plan shows here at once
+    connect(&m_book, &core::ProjectManager::coverPartsChanged, this, [this]() {
+        if (currentPage() == Page::Endpaper) {
+            populateEndpaper();
+        }
+    });
+    return page;
+}
+
+void PropertiesPanel::populateEndpaper() {
+    const bool front = m_endpaperSide == QLatin1String(CoverPlan::FRONT_ENDPAPER);
+    const core::CoverParts parts = m_book.coverParts();
+    const core::Endpaper& shown = front ? parts.front : parts.backShown();
+    const QString name = front
+                             //: The endpaper between the cover and the first page, in its
+                             //: Properties. In Polish: Wyklejka przednia
+                             ? tr("Front endpaper")
+                             //: In Polish: Wyklejka tylna
+                             : tr("Back endpaper");
+    const QString pages = front
+                              //: What the front endpaper is, under its name in its Properties.
+                              //: In Polish: rozkładówka: przyklejona do okładki i wolna karta
+                              ? tr("spread: pasted to the cover and the free leaf")
+                              //: In Polish: rozkładówka: wolna karta i przyklejona do okładki
+                              : tr("spread: the free leaf and pasted to the cover");
+    m_endpaperTitle->setText(QStringLiteral("<b>%1</b><br><small>%2</small>")
+                                 .arg(name.toHtmlEscaped(), pages.toHtmlEscaped()));
+    const core::ProjectElement* picture =
+        shown.picture.isEmpty() ? nullptr : m_book.findElement(shown.picture);
+    QString fill = CoverNames::fillSummary(shown, picture != nullptr ? picture->title
+                                                                     : QString());
+    if (!front && parts.back.sameAsFront) {
+        //: The fill of the back endpaper filled as the front one, in its Properties: %1 the
+        //: fill. In Polish: %1 (tak jak przednia)
+        fill = tr("%1 (same as the front one)").arg(fill);
+    }
+    m_endpaperFill->setText(fill);
 }
 
 void PropertiesPanel::focusFirstField() {
@@ -1029,9 +1177,6 @@ void PropertiesPanel::focusFirstField() {
         case Page::Card:
             focusTitle(m_cardPage->nameEdit());
             break;
-        case Page::PublishingSet:
-            m_publishingSetPage->focusContents();
-            break;
         case Page::Series:
             m_seriesPage->focusName();
             break;
@@ -1047,24 +1192,6 @@ void PropertiesPanel::focusFirstField() {
             // no book: no field
             break;
     }
-}
-
-bool PropertiesPanel::focusTemplatePoints() {
-    const PublishingTextBox* box = frontPublishingBox();
-    if (box == nullptr || box->points().isEmpty()) {
-        return false;
-    }
-    focusInPage(box->points().constFirst());
-    return true;
-}
-
-PublishingTextBox* PropertiesPanel::frontPublishingBox() {
-    // The page of the text in front, unless its own page is shown
-    const Page page = currentPage();
-    if (describedTextId().isEmpty() || (page != Page::Chapter && page != Page::Editor)) {
-        showEditorProperties();
-    }
-    return m_publishingBox->elementId().isEmpty() ? nullptr : m_publishingBox;
 }
 
 void PropertiesPanel::showNoProject() {
@@ -1117,9 +1244,6 @@ void PropertiesPanel::showEditorProperties() {
                                ? m_activeEditorPanel->property("elementId").toString()
                                : QString();
     showVersions(textId);
-    m_publishingBox->showText(textId, m_activeEditorPanel != nullptr
-                                          ? m_activeEditorPanel->getBookEditor()
-                                          : nullptr);
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Editor));
 }
 
@@ -1137,12 +1261,7 @@ void PropertiesPanel::placeTextGroups(QVBoxLayout* layout) {
                 other->removeWidget(group);
             }
         }
-        if (other != nullptr) {
-            other->removeWidget(m_publishingBox);
-        }
     }
-    // A text for publishers under the information of its element, or under its counts
-    layout->insertWidget(layout == m_editorPageLayout ? 2 : 1, m_publishingBox);
     // In this order, over the stretch at the bottom of the page
     int at = layout->count() - 1;
     for (QWidget* group : groups) {
@@ -1157,6 +1276,8 @@ void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
     disconnectFromEditor();
 
     m_activeEditorPanel = editorPanel;
+    // An own field goes in a text of the book in front
+    m_bookFieldsBox->setCanInsert(editorPanel != nullptr && editorPanel->isBookText());
 
     if (!editorPanel) {
         logger.debug("PropertiesPanel::setActiveEditor() - Disconnected from editor");
@@ -1265,11 +1386,11 @@ void PropertiesPanel::refresh() {
         case Page::Card:
             refreshCard();
             break;
-        case Page::PublishingSet:
-            m_publishingSetPage->refresh();
-            break;
         case Page::Series:
             showSeriesProperties();  // the book's, after the last volume but one went
+            break;
+        case Page::Endpaper:
+            populateEndpaper();
             break;
         default:
             break;  // No project: nothing to refresh
@@ -1540,15 +1661,22 @@ void PropertiesPanel::onChapterStatusChanged(int index) {
     emit chapterStatusChanged(m_currentChapterId);
 }
 
-void PropertiesPanel::onChapterFirstPageChanged(bool left) {
-    if (m_isUpdating) return;
-    if (m_currentChapterId.isEmpty()) return;
+void PropertiesPanel::onChapterFirstPageChanged(int index) {
+    if (m_isUpdating || m_currentChapterId.isEmpty() || index < 0) {
+        return;
+    }
 
     // ProjectManager saves the project at once
-    if (!m_book.setFirstPageLeft(m_currentChapterId, left)) {
+    const core::PageStart start =
+        core::pageStartFromName(m_chapterFirstPage->itemData(index).toString())
+            .value_or(core::PageStart::Auto);
+    const core::ProjectElement* element = m_book.findElement(m_currentChapterId);
+    const core::PageStart before = element != nullptr ? element->firstPage : core::PageStart::Auto;
+    if (!m_book.setFirstPage(m_currentChapterId, start)) {
         const bool wasUpdating = m_isUpdating;
         m_isUpdating = true;
-        m_chapterFirstPageLeft->setChecked(!left);
+        m_chapterFirstPage->setCurrentIndex(
+            m_chapterFirstPage->findData(core::pageStartName(before)));
         m_isUpdating = wasUpdating;
         dialogs::MessageDialog::warning(this, tr("Change Failed"), tr("Failed to save changes."));
         return;
@@ -1638,6 +1766,7 @@ void PropertiesPanel::populateProjectFields() {
     }
 
     m_projectGenreEdit->setText(book->genre);
+    m_bookFieldsBox->refresh();
     populateBookSections(*book);
     populateBibliographyStyle();
 
@@ -1739,6 +1868,80 @@ void PropertiesPanel::showSectionNamesRow() {
         m_projectSectionsCombo->choice() == QLatin1String(core::ProjectBook::CUSTOM_SECTIONS));
 }
 
+void PropertiesPanel::showChapterFirstPage(const core::ProjectElement& element) {
+    // Auto names the page of its kind, or of the settings
+    QString automatic;
+    switch (m_book.kindPageStartOf(element)) {
+        case core::PageStart::Left:
+            //: The page a text starts on, as its kind says: a left one. In Polish:
+            //: Automatycznie (lewa)
+            automatic = tr("Automatic (left)");
+            break;
+        case core::PageStart::Next:
+            //: In Polish: Automatycznie (następna)
+            automatic = tr("Automatic (next)");
+            break;
+        default:
+            //: In Polish: Automatycznie (prawa)
+            automatic = tr("Automatic (right)");
+            break;
+    }
+    m_chapterFirstPage->setItemText(0, automatic);
+    m_chapterFirstPage->setCurrentIndex(
+        std::max(0, m_chapterFirstPage->findData(core::pageStartName(element.firstPage))));
+}
+
+void PropertiesPanel::setPageNumbers(const BookPageNumbers* pages) {
+    m_pageNumbers = pages;
+    if (pages != nullptr) {
+        connect(pages, &BookPageNumbers::counted, this, [this]() {
+            if (currentPage() == Page::Chapter) {
+                showChapterPages();
+            }
+        });
+    }
+}
+
+void PropertiesPanel::showSpread(const core::ProjectElement& element) {
+    const core::SpreadData spread = core::ProjectManager::spreadOf(element);
+    const core::ProjectElement* picture =
+        spread.picture.isEmpty() ? nullptr : m_book.findElement(spread.picture);
+    QString pictureName;
+    if (picture == nullptr) {
+        //: A spread without a picture. In Polish: brak
+        pictureName = tr("none");
+    } else {
+        pictureName = picture->title.isEmpty() ? picture->file : picture->title;
+    }
+    m_spreadPicture->setText(pictureName);
+    m_spreadArea->setText(spread.toEdges()
+                              //: In Polish: do krawędzi papieru
+                              ? tr("to the edges of the paper")
+                              //: In Polish: w marginesach
+                              : tr("within the margins"));
+    m_spreadFit->setText(spread.fills()
+                             //: In Polish: wypełnij
+                             ? tr("fill")
+                             //: In Polish: cały obraz
+                             : tr("the whole picture"));
+    m_spreadGutter->setText(lengthText(spread.gutter, LengthUnit::Millimeters));
+}
+
+void PropertiesPanel::showChapterPages() {
+    const core::ProjectElement* element =
+        m_currentChapterId.isEmpty() ? nullptr : m_book.findElement(m_currentChapterId);
+    if (element == nullptr || !m_book.isSpread(*element)) {
+        return;
+    }
+    const std::optional<TextFirstPage> first =
+        m_pageNumbers != nullptr ? m_pageNumbers->firstPageOf(m_currentChapterId) : std::nullopt;
+    m_chapterPagesLabel->setText(
+        first ? QStringLiteral("%1–%2").arg(first->index + 1).arg(first->index + 2)
+              //: The pages of a spread before the pages of the book are counted (in the Page
+              //: Layout view or on the card of a spread). In Polish: jeszcze nie policzone
+              : tr("not counted yet"));
+}
+
 void PropertiesPanel::populateChapterFields(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::populateChapterFields() - Element: {}", elementId.toStdString());
@@ -1770,13 +1973,14 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
         core::fillWords(tr("Word count of {kind:s=this|p=these} {kind}"), nouns));
     //: In Polish: Stan ukończenia {kind:genitive}
     m_chapterStatusCombo->setToolTip(core::fillWords(tr("{Kind} completion status"), nouns));
-    //: In Polish: Przy marginesach lustrzanych (Ustawienia > Edytor > Strony i marginesy)
-    //: pierwsza strona {kind:genitive} jest lewa: margines wewnętrzny ma po prawej. Bez
-    //: zaznaczenia jest prawa.
-    m_chapterFirstPageLeft->setToolTip(core::fillWords(
-        tr("With mirror margins (Settings > Editor > Pages and Margins) the first page of "
-           "{kind:s=this|p=these} {kind} is a left page: its inner margin is on the right. "
-           "Unchecked: a right page."),
+    //: In Polish: Strona, na której {kind:m=zaczyna się|f=zaczyna się|n=zaczyna się|p=zaczynają
+    //: się} {kind} w wydrukowanej książce, przy marginesach lustrzanych (Ustawienia > Edytor >
+    //: Strony i marginesy). Przed prawą albo lewą stroną program zostawia w razie potrzeby
+    //: pustą stronę.
+    m_chapterFirstPage->setToolTip(core::fillWords(
+        tr("The page {kind:s=this|p=these} {kind} {kind:s=starts|p=start} on in a printed "
+           "book, with mirror margins (Settings > Editor > Pages and Margins). Before a right "
+           "or a left page the program leaves a page empty when needed."),
         nouns));
     //: In Polish: Notatki i uwagi do {kind:genitive}
     m_chapterNotesEdit->setToolTip(
@@ -1790,9 +1994,19 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
         pm.project() ? pm.project()->placeOf(elementId) : std::nullopt;
     const bool workshop = at && at->place == core::BookPlace::Workshop;
     const bool text = pm.formOf(*element) == core::ElementForm::Text;
-    m_chapterInfoLayout->setRowVisible(m_chapterStatusCombo, !bookFile && !workshop && text);
-    m_chapterInfoLayout->setRowVisible(m_chapterFirstPageLeft, !bookFile && !workshop && text);
+    // A spread has a status, a left page always and its pages in the book, and no words
+    const bool spread = pm.isSpread(*element);
+    m_chapterInfoLayout->setRowVisible(m_chapterStatusCombo,
+                                       !bookFile && !workshop && (text || spread));
+    m_chapterInfoLayout->setRowVisible(m_chapterFirstPage, !bookFile && !workshop && text);
+    m_chapterInfoLayout->setRowVisible(m_spreadFirstPage, spread);
+    m_chapterInfoLayout->setRowVisible(m_spreadFirstPageHint, spread);
+    m_chapterInfoLayout->setRowVisible(m_chapterPagesLabel, spread);
     m_chapterInfoLayout->setRowVisible(m_chapterWordCountLabel, bookFile || text);
+    m_spreadGroup->setVisible(spread);
+    if (spread) {
+        showSpread(*element);
+    }
     m_chapterNotesGroup->setVisible(!bookFile);
     // The materials about the element; a file of the book is not linked
     m_chapterMaterials->setVisible(!bookFile);
@@ -1813,21 +2027,19 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     m_chapterTitleEdit->setText(element->title);
     m_chapterWordCountLabel->setText(numberText(pm.wordCount(elementId)));
     selectChapterStatus(core::ProjectManager::statusOf(*element));
-    m_chapterFirstPageLeft->setChecked(element->firstPageLeft);
+    showChapterFirstPage(*element);
     m_chapterNotesEdit->setPlainText(pm.notes(elementId));
     m_clippingOrigin->showClipping(elementId);
-    m_publishingBox->showText(elementId, describedTextId() == elementId
-                                             ? m_activeEditorPanel->getBookEditor()
-                                             : nullptr);
 
     // An element of a book open read-only is read only, here too
     const bool readOnly = pm.isReadOnly();
     m_chapterTitleEdit->setReadOnly(readOnly);
     m_chapterStatusCombo->setEnabled(!readOnly);
-    m_chapterFirstPageLeft->setEnabled(!readOnly);
+    m_chapterFirstPage->setEnabled(!readOnly);
     m_chapterNotesEdit->setReadOnly(readOnly);
     m_chapterPlot->showElement(elementId);
     showVersions(elementId);
+    showChapterPages();
 
     m_isUpdating = false;
 

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_clippings.cpp
 /// @brief Clippings: Edit > Cut to Clippings takes the fragment to a new clipping of the
@@ -26,6 +27,7 @@
 #include "kalahari/gui/material_list_coordinator.h"
 #include "kalahari/gui/panels/clipping_origin_box.h"
 #include "kalahari/gui/panels/material_list_panel.h"
+#include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/read_only_book.h"
@@ -212,8 +214,8 @@ void useDefaultSettings() {
     choose(Clippings::NO_SELECTION_SETTING, Clippings::NO_SELECTION_PARAGRAPH);
     choose(Clippings::INSERT_SETTING, Clippings::INSERT_WINDOW);
     choose(Clippings::AFTER_INSERT_SETTING, Clippings::AFTER_INSERT_KEEP);
-    core::SettingsManager::getInstance().set<bool>(Clippings::KEEP_WORDS_SETTING, false);
-    core::SettingsManager::getInstance().set<bool>(Clippings::MARKS_SETTING, false);
+    core::SettingsManager::getInstance().set<bool>(Clippings::KEEP_WORDS_SETTING, true);
+    core::SettingsManager::getInstance().set<bool>(Clippings::MARKS_SETTING, true);
 }
 
 /// Run @p command; the first window of the program it shows goes to @p answer, which closes it
@@ -903,7 +905,7 @@ TEST_CASE("Insert > Clipping: Restore to the Place It Came From", "[gui][clippin
         CHECK(reopened->cursorPosition() == at(1, RAINED_FIRST));
         CHECK(clips.notices() ==
               QStringList{QStringLiteral("The exact place is no longer in the text. The cursor is "
-                                         "in the paragraph the fragment came from.|&Insert Here")});
+                                         "in the paragraph the fragment came from.|I&nsert Here")});
         CHECK(dataOf(book, clippingId).inserted.isEmpty());
         REQUIRE(clips.buttons() == 1);
         clips.pressButton();
@@ -1233,13 +1235,14 @@ TEST_CASE("Clippings: the commands and their settings", "[gui][clippings]") {
     Window window;
     BookEditor* text = open(window, clipped.storm());
 
-    // The defaults: at once, the paragraph, the window, kept as inserted, the words lowered
+    // The defaults: at once, the paragraph, the window, kept as inserted, the words of the day
+    // as they were
     core::SettingsManager::getInstance().resetToDefaults();
     CHECK(chosen(Clippings::CUT_SETTING) == Clippings::CUT_AT_ONCE);
     CHECK(chosen(Clippings::NO_SELECTION_SETTING) == Clippings::NO_SELECTION_PARAGRAPH);
     CHECK(chosen(Clippings::INSERT_SETTING) == Clippings::INSERT_WINDOW);
     CHECK(chosen(Clippings::AFTER_INSERT_SETTING) == Clippings::AFTER_INSERT_KEEP);
-    CHECK_FALSE(core::SettingsManager::getInstance().get<bool>(Clippings::KEEP_WORDS_SETTING));
+    CHECK(core::SettingsManager::getInstance().get<bool>(Clippings::KEEP_WORDS_SETTING));
 
     // The commands of a registry of their own run on the text with the keys
     gui::CommandRegistry commands;
@@ -1337,15 +1340,16 @@ TEST_CASE("Settings > Editor > Clippings: the choices, written only when changed
     CHECK(shownIn(other, "clippingsCut") == Clippings::CUT_AT_ONCE);
     choose(Clippings::CUT_SETTING, Clippings::CUT_AT_ONCE);
 
-    // The scissors beside the paragraphs: off by default, written when turned on
+    // The scissors beside the paragraphs: on by default (test of 22.11), written when
+    // turned off
     auto* marks = page.findChild<QCheckBox*>(QStringLiteral("clippingsMarks"));
     REQUIRE(marks != nullptr);
     CHECK(marks->text() == QStringLiteral("&Draw scissors where a fragment was cut"));
     page.load();
-    CHECK_FALSE(marks->isChecked());
-    marks->setChecked(true);
+    CHECK(marks->isChecked());
+    marks->setChecked(false);
     CHECK(page.apply() == std::vector<std::string>{Clippings::MARKS_SETTING});
-    CHECK(core::SettingsManager::getInstance().get<bool>(Clippings::MARKS_SETTING, false));
+    CHECK_FALSE(core::SettingsManager::getInstance().get<bool>(Clippings::MARKS_SETTING, true));
     useDefaultSettings();
 
     // The Settings dialog opens at the page (the gears of the windows)
@@ -1683,6 +1687,24 @@ TEST_CASE("Properties: the origin of a clipping, Go to Its Place and Restore to 
     CHECK(origin->clippingId().isEmpty());
 }
 
+TEST_CASE("Properties: Show Clipping has no System Program, a clipping is a file of the program",
+          "[gui][clippings]") {
+    ClippingBook clipped;
+    ClippingLists window;
+    BookEditor* storm = open(window.window, clipped.storm());
+    storm->setSelection(rained());
+    const QString clippingId = window.clips.coordinator().cut(storm);
+    REQUIRE_FALSE(clippingId.isEmpty());
+
+    // Show Clipping at the scissors shows it as a material: without the system program
+    gui::PropertiesPanel* properties = window.window.properties;
+    properties->showMaterialProperties(clippingId);
+    const gui::MaterialPage* page = properties->materialPage();
+    REQUIRE(page != nullptr);
+    CHECK(page->elementId() == clippingId);
+    CHECK(page->systemButton()->isHidden());
+}
+
 namespace {
 
 /// The scissors beside the paragraphs of @p text
@@ -1705,8 +1727,8 @@ void settle() {
 
 }  // namespace
 
-TEST_CASE("Clippings: the scissors beside the paragraph a clipping was cut from, when the "
-          "settings say so",
+TEST_CASE("Clippings: the scissors beside the paragraph a clipping was cut from, unless the "
+          "settings say otherwise",
           "[gui][clippings][marks]") {
     ClippingBook clipped;
     OpenNovel& book = clipped.book();
@@ -1722,7 +1744,10 @@ TEST_CASE("Clippings: the scissors beside the paragraph a clipping was cut from,
     REQUIRE_FALSE(rainedId.isEmpty());
     settle();
 
-    // Off by default: none
+    // On by default (test of 22.11); turned off: none
+    CHECK_FALSE(scissorsOf(*storm).isEmpty());
+    core::SettingsManager::getInstance().set<bool>(Clippings::MARKS_SETTING, false);
+    settle();
     CHECK(scissorsOf(*storm).isEmpty());
     CHECK(gui::ParagraphMarksCoordinator::clippingMarksOf(book.pm, clipped.storm(), *storm)
               .isEmpty());

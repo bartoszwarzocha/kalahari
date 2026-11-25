@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plot_board_coordinator_arrange.cpp
 /// @brief What the plot board asks for to arrange its cards: texts and scenes moved, dropped,
@@ -10,7 +11,6 @@
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
-#include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/panels/editor_panel.h"
@@ -26,39 +26,6 @@
 #include <utility>
 
 namespace kalahari::gui {
-
-namespace {
-
-/// @brief Where a text added after a card goes, of what kind
-struct NewText {
-    core::KindRef kind;        ///< Of the card after which it goes, else the main one
-    core::ElementPlace place;  ///< Right after the card, else at the end (index -1)
-    QString afterTitle;        ///< The title of the card; empty: at the end of the book
-};
-
-/// @brief Where a text added after card @p afterId of @p book goes: a text of the kind of the
-/// card right after it; without a card, a text of the main kind of the book at the end of its
-/// main section
-NewText newTextAfter(const core::ProjectManager& book, const QString& afterId) {
-    NewText text;
-    const core::ProjectElement* after = book.findElement(afterId);
-    const std::optional<core::ElementPlace> afterPlace =
-        after != nullptr && book.project() != nullptr ? book.project()->placeOf(afterId)
-                                                      : std::nullopt;
-    if (after == nullptr || !afterPlace || afterPlace->place != core::BookPlace::Main) {
-        text.kind = book.mainTextKind();
-        text.place.index = -1;
-        return text;
-    }
-    // The element is no more where it was once the book has another one: its title is kept
-    text.afterTitle = after->title;
-    text.kind = book.kindOf(*after);
-    text.place = *afterPlace;
-    ++text.place.index;
-    return text;
-}
-
-}  // namespace
 
 void PlotBoardCoordinator::move(const QString& elementId, int steps) {
     if (m_book.isReadOnly() || steps == 0) {
@@ -153,41 +120,11 @@ void PlotBoardCoordinator::dropInPart(const QString& elementId, const QString& p
 }
 
 void PlotBoardCoordinator::add(const QString& afterId) {
-    if (m_book.project() == nullptr || m_book.isReadOnly()) {
-        return;
-    }
     if (PlotBoard::textOf(afterId) != afterId) {
         addAfterScene(afterId);
         return;
     }
-    const NewText text = newTextAfter(m_book, afterId);
-    if (!text.kind || !core::ProjectManager::canAdd(text.kind)) {
-        return;
-    }
-    const QString title = m_book.defaultTitle(text.kind);
-    // The places the board remembers move: what can be undone is forgotten (onProjectChanged)
-    const QString added =
-        m_book.addElement(text.kind, title, text.place.place, text.place.groupId, text.place.index);
-    if (added.isEmpty()) {
-        core::Logger::getInstance().error("PlotBoardCoordinator: Failed to add '{}'",
-                                          title.toStdString());
-        notSaved();
-        return;
-    }
-    m_navigator->refreshNavigator();
-    refreshNow();
-    if (m_panel == nullptr) {
-        return;
-    }
-    m_panel->setCurrentCard(added);
-    m_panel->editCard(added);
-    say(!text.afterTitle.isEmpty()
-            //: Under the plot board after Insert; %1 the title of the new text, %2 the card it
-            //: is after. In Polish: Dodano „%1” za „%2”.
-            ? tr(R"(Added "%1" after "%2".)").arg(title, text.afterTitle)
-            //: Under the plot board after Insert with no card; %1 the title of the new text.
-            //: In Polish: Dodano „%1” na końcu książki.
-            : tr("Added \"%1\" at the end of the book.").arg(title));
+    addText(afterId, false);
 }
 
 void PlotBoardCoordinator::addAfterScene(const QString& cardId) {
@@ -247,6 +184,11 @@ void PlotBoardCoordinator::remove(const QString& elementId) {
         return;
     }
     if (m_book.findElement(elementId) == nullptr) {
+        return;
+    }
+    // A text in the plan has nothing but its card
+    if (m_book.isPlannedText(elementId)) {
+        removePlannedText(elementId);
         return;
     }
     // The Navigator asks first and says where the files go

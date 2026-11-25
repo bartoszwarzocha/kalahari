@@ -1,10 +1,11 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_writing_awards_tab.cpp
 /// @brief The badges and challenges in the window: what the tracker wins and says, the tab
 /// Challenges and Badges, Add Challenge, the view Achievements of the Statistics panel, the
-/// messages at the bottom, the status bar and the summary of the session
+/// notifications (at the bottom by default), the status bar and the summary of the session
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -17,6 +18,7 @@
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/dialogs/session_summary_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
+#include "kalahari/gui/notifications.h"
 #include "kalahari/gui/panels/writing_awards_tab.h"
 #include "kalahari/gui/panels/writing_stats_panel.h"
 #include "kalahari/gui/widgets/badge_painter.h"
@@ -635,9 +637,11 @@ TEST_CASE("Writing awards: the commands, the tab and the messages at the bottom"
     docks->createDocks();
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
+    gui::NotificationCoordinator notifications(docks, [](const QString&) {});
     gui::WritingStatsCoordinator coordinator(
         kalahari::test::book(), kalahari::test::commands(), docks, nullptr, [](const QString&) {},
         nullptr, dir.filePath(QStringLiteral("journal.db")));
+    coordinator.setNotifications(&notifications);
     coordinator.connectCommands();
     window.show();
 
@@ -667,8 +671,9 @@ TEST_CASE("Writing awards: the commands, the tab and the messages at the bottom"
     CHECK(tabs->currentWidget() == tab);
     CHECK(child<QListWidget>(*tab, "challenges")->count() == 1);
 
-    // The messages of one moment together at the bottom, with Copy
-    gui::InfoBar* bar = coordinator.messageBar();
+    // The messages of one moment together at the bottom, with Copy: the notifications of the
+    // window, in their place by default
+    gui::InfoBar* bar = notifications.bar();
     REQUIRE(bar != nullptr);
     CHECK(bar->isHidden());
     // The daily goal reached opens the Statistics panel on the day
@@ -687,7 +692,9 @@ TEST_CASE("Writing awards: the commands, the tab and the messages at the bottom"
                        "Challenge done: %3 words (until 30 November).")
             .arg(number(1000), number(5000), number(20000));
     CHECK(bar->message() == expected);
-    const QList<QPushButton*> buttons = bar->findChildren<QPushButton*>();
+    // The second button of the bar is not there
+    QList<QPushButton*> buttons = bar->findChildren<QPushButton*>();
+    buttons.removeIf([](const QPushButton* button) { return button->isHidden(); });
     REQUIRE(buttons.size() == 1);
     CHECK(buttons.first()->text() == QStringLiteral("Copy"));
     buttons.first()->click();

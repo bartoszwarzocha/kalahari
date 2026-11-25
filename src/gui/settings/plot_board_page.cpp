@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plot_board_page.cpp
 /// @brief Settings page: Plot Board
@@ -156,13 +157,16 @@ void PlotBoardPage::addViewGroup() {
                 {tr("the board"), QLatin1String(PlotBoard::VIEW_BOARD), {}},
                 //: In Polish: konspekcie
                 {tr("the outline"), QLatin1String(PlotBoard::VIEW_OUTLINE), {}},
+                //: The view of the scenes in the order of the story. In Polish: chronologii
+                {tr("the chronology"), QLatin1String(PlotBoard::VIEW_CHRONOLOGY), {}},
                 //: In Polish: ostatnio używanym
                 {tr("the view used last"), QLatin1String(PlotBoard::START_LAST), {}}});
-    //: The note under the view a tab opens on. In Polish: Książka > Tablica fabuły i Książka >
-    //: Konspekt otwierają swój widok; tak otwiera się karta z polecenia „Pokaż na tablicy
-    //: fabuły” w Nawigatorze.
-    addFieldNote(view, tr("Book > Plot Board and Book > Outline open their own views; this is "
-                          "how the tab opens from Show on the Plot Board in the Navigator."));
+    //: The note under the view a tab opens on. In Polish: Książka > Plan książki otwiera
+    //: tablicę, a Książka > Konspekt konspekt; tak otwiera się karta z Planu książki w
+    //: Warsztacie i z polecenia „Pokaż w planie książki” w Nawigatorze.
+    addFieldNote(view, tr("Book > Book Plan opens the board and Book > Outline the outline; this "
+                          "is how the tab opens from Book Plan in the Workshop and from Show in "
+                          "the Book Plan in the Navigator."));
     //: In Polish: Układ tablicy:
     addChoices(view, tr("Layout of the board:"), PlotBoard::LAYOUT_SETTING,
                {//: The parts side by side. In Polish: kolumny
@@ -295,6 +299,11 @@ void PlotBoardPage::addColorsGroup() {
     //: The writer's own background of the board. In Polish: Własne tło
     addThemeColor(colors, tr("Own Background"), PlotColors::BACKGROUND_KEY);
     addRestoreColorsButton(colors);
+    //: In Polish: Karty chronologii mają kolory kart tablicy; obwódkę retrospekcji, pasma i
+    //: zapis czasu ustawia się w Ustawieniach > Osie czasu.
+    addNote(colors, tr("The cards of the chronology have the colors of the cards of the board; "
+                       "the ring of a flashback, the bands and how times are written are in "
+                       "Settings > Timelines."));
 }
 
 void PlotBoardPage::addOutlineGroup() {

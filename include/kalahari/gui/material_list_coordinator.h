@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file material_list_coordinator.h
 /// @brief The lists of the kinds of materials on their tabs in the middle of the window
@@ -74,6 +75,9 @@ public:
     /// @brief The list on the tab in front; none when another tab is in front
     [[nodiscard]] MaterialListPanel* currentList() const;
 
+    /// @brief Show material @p elementId in the list of its kind, the cover
+    void showInCover(const QString& elementId);
+
 public slots:
     /// @brief Fill the lists again from the open book: the one in front at once, the others
     /// when they come to the front
@@ -99,10 +103,6 @@ signals:
     /// @brief A list of cards asked for the settings of the cards (Settings > Cards)
     void cardSettingsRequested();
 
-    /// @brief The set for a publisher asked for the window of the export with the set
-    /// (Export Set...)
-    void exportSetRequested();
-
 private slots:
     /// @brief What the Materials of the Navigator show changed (NavigatorPanel::
     /// MATERIALS_TREE_SETTING): the Navigator is built again
@@ -114,8 +114,6 @@ private slots:
 
 private:
     void refreshNow();
-    /// @brief The set for a publisher in the Properties panel does what it asks
-    void connectSetPage();
     void connectList(MaterialListPanel* panel);
     void updateTab(MaterialListPanel* panel);
     /// @brief The list in front is filled again if it missed a change
@@ -124,21 +122,14 @@ private:
     void open(const QString& elementId);
     void rename(const QString& elementId);
     void link(const QString& elementId);
-    /// @param coverPart A material of the cover, a text for publishers: the part chosen at the
-    /// start
-    void add(MaterialListPanel* panel, const QString& list, const QString& coverPart = {});
+    /// @param coverPart A material of the cover: the part chosen at the start
+    /// @return The material added; empty: none
+    QString add(MaterialListPanel* panel, const QString& list, const QString& coverPart = {});
+    /// @brief Add a picture from the disk to the materials of the cover of @p panel and fill
+    /// the endpaper of @p side with it
+    void addEndpaperPicture(MaterialListPanel* panel, const QString& side);
     /// @brief Give material @p elementId of the cover the state @p state
     void setCoverState(const QString& elementId, const QString& state);
-    /// @brief Give text @p elementId for publishers the state @p state
-    void setPublishingState(const QString& elementId, const QString& state);
-    /// @brief Make description or tagline @p elementId of the cover the version of its part
-    /// in the set for publishers
-    void pickForSet(const QString& elementId);
-    /// @brief Show the set for a publisher with part @p part chosen in the Properties panel,
-    /// brought to the front as for a material chosen
-    void showSetProperties(const QString& part);
-    /// @brief Show material @p elementId in the list of its kind, the cover
-    void showInCover(const QString& elementId);
     void showInFolder(const QString& elementId);
     [[nodiscard]] QWidget* window() const;
 

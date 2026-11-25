@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file command_registry.h
 /// @brief Central command registration and management system
@@ -65,6 +66,10 @@ enum class CommandExecutionResult {
 /// @param commandId Command ID that failed
 /// @param errorMessage Error description
 using CommandErrorHandler = std::function<void(const std::string& commandId, const std::string& errorMessage)>;
+
+/// @brief Why a command that runs is greyed out, for one whose own disabledReason says nothing:
+/// empty when there is nothing to say
+using FallbackReason = std::function<QString(const Command& command)>;
 
 // ============================================================================
 // CommandRegistry - Central Command Management (one per book window)
@@ -209,6 +214,11 @@ public:
     /// @return Current error handler or nullptr if not set
     CommandErrorHandler getErrorHandler() const;
 
+    /// @brief Who says why a greyed out command that runs is greyed out when the command does
+    /// not say it itself (Command::disabledReason): the menus and toolbars show it in the
+    /// tooltip and the status bar (EditCoordinator: "No text is in front."); nullptr: none
+    void setFallbackReason(FallbackReason reason);
+
     // ========================================================================
     // Utility
     // ========================================================================
@@ -343,6 +353,9 @@ private:
 
     /// @brief Custom error handler (nullptr if not set)
     CommandErrorHandler m_errorHandler = nullptr;
+
+    /// @brief setFallbackReason()
+    FallbackReason m_fallbackReason = nullptr;
 
     /// @brief Mutex for thread-safe access to m_commands, m_actions, and m_errorHandler
     mutable std::mutex m_mutex;

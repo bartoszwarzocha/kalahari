@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_theme_manager_apply.cpp
 /// @brief ThemeManager::reloadTheme applies a theme with the user's stored colors
@@ -276,6 +277,14 @@ TEST_CASE("Both themes give the colors of both papers as the editor had them",
     CHECK(own.selection == QColor(66, 133, 244, 80));
     CHECK(own.searchMatch == QColor(255, 214, 0, 96));
     CHECK(own.currentSearchMatch == QColor(255, 140, 0, 140));
+}
+
+TEST_CASE("The light theme gives the icons grey and light grey by default",
+          "[core][theme][colors]") {
+    // The colors the writer chose in the test of 23.11: Main and Secondary of the icons
+    const Theme light = ThemeManager::getInstance().loadTheme(QStringLiteral("Light"));
+    CHECK(light.colors.primary == QColor("#8f8f8f"));
+    CHECK(light.colors.secondary == QColor("#ebebeb"));
 }
 
 TEST_CASE("The colors of the papers kept outside the themes move into each theme",

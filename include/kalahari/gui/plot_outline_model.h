@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plot_outline_model.h
 /// @brief The outline: the texts of the book in a table, with their description, point of
@@ -16,6 +17,8 @@
 #include <QStringList>
 #include <QStyledItemDelegate>
 #include <QVariant>
+
+class QPainter;
 
 namespace kalahari::gui {
 
@@ -45,6 +48,11 @@ public:
 
     static constexpr int ID_ROLE = Qt::UserRole + 1;    ///< The id of the text or the part
     static constexpr int PART_ROLE = Qt::UserRole + 2;  ///< Whether the row is a part's
+    /// What the button beside the state of a row in the plan says ("Create the File", "Write
+    /// the Scene"); empty: none (PlotBoardView::planButtonText())
+    static constexpr int BUTTON_ROLE = Qt::UserRole + 3;
+    /// The color of the card of the row (setColoring()), in every cell; none: no color
+    static constexpr int COLOR_ROLE = Qt::UserRole + 4;
 
     /// @brief An outline without rows
     explicit PlotOutlineModel(QObject* parent = nullptr);
@@ -52,11 +60,18 @@ public:
     /// @brief Show @p bands
     void setBands(const QList<PlotBand>& bands);
 
-    /// @brief Whether the book is open read-only: no cell can be edited
+    /// @brief Whether the book is open read-only: no cell can be edited, and the rows in the
+    /// plan have no buttons
     void setReadOnly(bool readOnly);
 
     /// @brief Show the rows of the scenes of the texts under the rows of the texts, or not
     void setShowScenes(bool show);
+
+    /// @brief Show the colors of the cards as the board does: @p colorBy (PlotBoard::
+    /// COLOR_STATUS...) in @p colors, the left edge of the row of each text and scene
+    /// (COLOR_ROLE, drawn by PlotOutlineDelegate); with @p tint (PlotBoard::COLOR_TINT) the
+    /// background of its row too
+    void setColoring(const QString& colorBy, const PlotColors& colors, bool tint);
 
     /// @brief The name of @p column in its setting (PlotBoard::outlineSetting()): "number",
     /// "description", "pov", "place", "time", "words", "status"; nullptr for the title, which
@@ -94,7 +109,10 @@ private:
         int partWords = 0;   ///< Of a part: the words of its texts
         QString partId;
         PlotCard card;       ///< Of a text or a scene
+        bool textPlanned = false;  ///< Of a scene: its text is in the plan, without a file
     };
+    /// @brief What the button beside the state of @p row says; empty: none
+    [[nodiscard]] QString buttonOf(const Row& row) const;
     /// @brief The rows of the bands shown
     [[nodiscard]] QList<Row> rowsOf() const;
     void fill();
@@ -102,21 +120,46 @@ private:
     [[nodiscard]] static QVariant partData(const Row& row, int column, int role);
     /// @brief What cell @p column of the row of @p card shows in @p role
     [[nodiscard]] static QVariant cardData(const PlotCard& card, int column, int role);
+    /// @brief The color of the row of @p card: COLOR_ROLE (its left edge) and
+    /// Qt::BackgroundRole (with the tint)
+    [[nodiscard]] QVariant colorData(const PlotCard& card, int role) const;
 
     QList<PlotBand> m_bands;
     QList<Row> m_rows;
     bool m_readOnly = false;
     bool m_showScenes = true;
+    QString m_colorBy;      ///< PlotBoard::COLOR_STATUS...; empty: no colors
+    PlotColors m_colors;    ///< The colors of the cards
+    bool m_tint = false;    ///< Whether the background of the rows has their color
+    QStringList m_povs;     ///< The points of view of the cards, for COLOR_POV (povsOf())
 };
 
 /// @brief The editors of the cells of the outline: a list of the states, and the points of
-/// view and places of the Workshop suggested
+/// view and places of the Workshop suggested; the button beside the state of a row in the plan
+/// (PlotOutlineModel::BUTTON_ROLE), which a click presses (buttonClicked()); the color of a card
+/// (PlotOutlineModel::COLOR_ROLE) as a thick left edge of its row
 class PlotOutlineDelegate : public QStyledItemDelegate {
     Q_OBJECT
 
 public:
+    /// The width of the colored left edge of the row of a card, in pixels
+    static constexpr int EDGE_WIDTH = 5;
+
     /// @brief The editors without suggestions
     explicit PlotOutlineDelegate(QObject* parent = nullptr);
+
+    /// @brief Where the button of cell @p rect is, for button text @p text in font @p font
+    [[nodiscard]] static QRect buttonRect(const QRect& rect, const QString& text,
+                                          const QFont& font);
+
+    /// @brief The cell with the button of a row in the plan beside its state, and in the first
+    /// column shown the color of the card at its left edge
+    void paint(QPainter* painter, const QStyleOptionViewItem& option,
+               const QModelIndex& index) const override;
+    bool editorEvent(QEvent* event, QAbstractItemModel* model,
+                     const QStyleOptionViewItem& option, const QModelIndex& index) override;
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& index) const override;
 
     /// @brief The points of view and the places suggested
     void setSuggestions(const QStringList& povs, const QStringList& places);
@@ -127,7 +170,14 @@ public:
     void setModelData(QWidget* editor, QAbstractItemModel* model,
                       const QModelIndex& index) const override;
 
+signals:
+    /// @brief The button beside the state of the row of @p cardId was pressed
+    void buttonClicked(const QString& cardId);
+
 private:
+    /// @brief The cell of @p index in @p option, with the button of a row in the plan
+    void paintCell(QPainter* painter, const QStyleOptionViewItem& option,
+                   const QModelIndex& index) const;
     /// @brief The points of view or the places suggested in @p column; empty: none
     [[nodiscard]] QStringList suggestionsFor(int column) const;
 

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_kml_document_model.cpp
 /// @brief Unit tests for KmlDocumentModel, the KML reader
@@ -399,6 +400,19 @@ TEST_CASE("KmlDocumentModel - Edge Cases", "[editor][KmlDocumentModel]") {
 // =============================================================================
 // Performance Tests (Basic)
 // =============================================================================
+
+TEST_CASE("KmlDocumentModel: a heading of an old skeleton of a text for publishers is a plain "
+          "paragraph",
+          "[editor][KmlDocumentModel]") {
+    KmlDocumentModel model;
+    REQUIRE(model.loadKml(QStringLiteral(
+        "<kml><p style=\"template_point\" point=\"hero\" hint=\"Who is the hero?\">Hero</p>"
+        "<p style=\"motto\">Sand.</p></kml>")));
+    REQUIRE(model.paragraphCount() == 2);
+    CHECK(model.paragraphText(0) == QStringLiteral("Hero"));
+    CHECK(model.paragraphStyle(0).isEmpty());
+    CHECK(model.paragraphStyle(1) == QStringLiteral("motto"));
+}
 
 TEST_CASE("KmlDocumentModel - Performance: Load 1000 paragraphs", "[editor][KmlDocumentModel][!benchmark]") {
     SECTION("Load 1000 paragraphs in < 100ms") {

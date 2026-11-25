@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file message_dialog.h
 /// @brief The program's own windows for messages, questions and a typed text
@@ -141,6 +142,13 @@ public:
 protected:
     /// @brief Tell screen readers about the message when it appears
     void showEvent(QShowEvent* event) override;
+
+    /// @brief Show another message in the dialog: its kind's icon, its title and its text
+    ///        (e.g. a window of messages that takes in the next ones)
+    /// @param kind What the message is about
+    /// @param title Title of the dialog, also its window title
+    /// @param text The message, plain text
+    void setMessage(Kind kind, const QString& title, const QString& text);
 
 private:
     /// @brief Put the text of clipboardText() on the clipboard and say so on Copy

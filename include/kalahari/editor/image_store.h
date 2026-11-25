@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file image_store.h
 /// @brief The image files of a book: where they are, their sizes and their pictures
@@ -45,8 +46,13 @@ public:
     [[nodiscard]] bool hasFolder() const { return !m_folder.isEmpty(); }
 
     /// @brief The file of a source, a path on the disk; empty when the store has no folder
-    ///        or the source is not one of the book's folder (isSafeImageSource())
+    ///        or the source is not one of the book's folder (isSafeImageSource()) nor one of
+    ///        the pictures outside it (setOutsideFiles())
     [[nodiscard]] QString filePath(const QString& source) const;
+
+    /// @brief The pictures outside the book's folder an export shows (of the spreads, in the
+    ///        Workshop): their sources, and their files (BookExport::pictures)
+    void setOutsideFiles(const QHash<QString, QString>& files) { m_outside = files; }
 
     /// @brief The size of the image of a source in its pixels (an SVG: its own size);
     ///        std::nullopt: the file is missing or is not an image the editor reads
@@ -105,6 +111,7 @@ private:
     QString storeData(const QByteArray& data, const QString& name);
 
     QString m_folder;  ///< The book's main folder, without a slash at its end
+    QHash<QString, QString> m_outside;  ///< Pictures outside it: source -> file
     mutable QHash<QString, std::optional<QSize>> m_sizes;  ///< By path
     mutable QCache<QString, QImage> m_pictures;            ///< By path and pixels
 };

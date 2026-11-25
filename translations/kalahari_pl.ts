@@ -370,6 +370,15 @@
 <context>
     <name>CommandRegistrar</name>
     <message>
+        <source>&amp;For Publishers</source>
+        <translation>Dla w&amp;ydawnictwa</translation>
+    </message>
+    <message>
+        <source>Link to a Template Point</source>
+        <extracomment>In Polish: Powiąż z punktem szablonu</extracomment>
+        <translation>Powiąż z punktem szablonu</translation>
+    </message>
+    <message>
         <source>not available yet</source>
         <comment>Kalahari Help</comment>
         <translation>jeszcze niedostępna</translation>
@@ -783,10 +792,6 @@
         <translation>Konsp&amp;ekt</translation>
     </message>
     <message>
-        <source>Plot &amp;Board</source>
-        <translation>Tablica &amp;fabuły</translation>
-    </message>
-    <message>
         <source>&amp;Navigator</source>
         <translation>&amp;Nawigator</translation>
     </message>
@@ -1003,6 +1008,10 @@
         <translation>S&amp;tatystyki</translation>
     </message>
     <message>
+        <source>Not&amp;ifications</source>
+        <translation>P&amp;owiadomienia</translation>
+    </message>
+    <message>
         <source>&amp;Non-breaking Space</source>
         <translation>&amp;Spacja nierozdzielająca</translation>
     </message>
@@ -1108,7 +1117,7 @@
     </message>
     <message>
         <source>Paste Fo&amp;rmatting</source>
-        <translation>&amp;Wklej formatowanie</translation>
+        <translation>Wkle&amp;j formatowanie</translation>
     </message>
     <message>
         <source>Insert &amp;Table...</source>
@@ -1335,6 +1344,10 @@
         <translation>&amp;Wycinek z Warsztatu...</translation>
     </message>
     <message>
+        <source>Page Si&amp;ze and Margins...</source>
+        <translation>Strona i mar&amp;ginesy...</translation>
+    </message>
+    <message>
         <source>Foo&amp;tnote Layout...</source>
         <translation>Ustaw&amp;ienia przypisów...</translation>
     </message>
@@ -1395,26 +1408,6 @@
         <translation>Tekst &amp;nad i pod obrazem</translation>
     </message>
     <message>
-        <source>Template &amp;Points</source>
-        <extracomment>In Polish: &amp;Punkty szablonu</extracomment>
-        <translation>&amp;Punkty szablonu</translation>
-    </message>
-    <message>
-        <source>Insert &amp;Skeleton</source>
-        <extracomment>In Polish: &amp;Wstaw szkielet</extracomment>
-        <translation>&amp;Wstaw szkielet</translation>
-    </message>
-    <message>
-        <source>&amp;Remove Headings and Hints</source>
-        <extracomment>In Polish: &amp;Usuń nagłówki i podpowiedzi</extracomment>
-        <translation>&amp;Usuń nagłówki i podpowiedzi</translation>
-    </message>
-    <message>
-        <source>&amp;Templates...</source>
-        <extracomment>In Polish: &amp;Szablony...</extracomment>
-        <translation>&amp;Szablony...</translation>
-    </message>
-    <message>
         <source>New &amp;Volume...</source>
         <translation>Nowy &amp;tom...</translation>
     </message>
@@ -1422,6 +1415,53 @@
         <source>&amp;Join Book as Volume...</source>
         <extracomment>In Polish: Dołącz książkę &amp;jako tom...</extracomment>
         <translation>Dołącz książkę &amp;jako tom...</translation>
+    </message>
+    <message>
+        <source>&amp;Book Plan</source>
+        <translation>P&amp;lan książki</translation>
+    </message>
+    <message>
+        <source>Pic&amp;k List Set</source>
+        <translation>Zesta&amp;wy list</translation>
+    </message>
+    <message>
+        <source>&amp;Footnotes</source>
+        <translation>Pr&amp;zypisy</translation>
+    </message>
+    <message>
+        <source>Insert Captio&amp;n...</source>
+        <extracomment>Table &gt; Insert Caption...: the numbered caption of the table (&quot;Table 2. ...&quot;). In Polish: Wstaw po&amp;dpis...</extracomment>
+        <translation>Wstaw po&amp;dpis...</translation>
+    </message>
+    <message>
+        <source>Set or Remove Tab &amp;Guide</source>
+        <translation>Ustaw lub usuń linię &amp;tabulatora</translation>
+    </message>
+    <message>
+        <source>Move Tab Guide Le&amp;ft</source>
+        <translation>Przesuń linię tabulatora w l&amp;ewo</translation>
+    </message>
+    <message>
+        <source>Move Tab Guide Righ&amp;t</source>
+        <translation>Przesuń linię tabulatora w p&amp;rawo</translation>
+    </message>
+    <message>
+        <source>Remove All Tab Guide&amp;s</source>
+        <translation>Usuń &amp;wszystkie linie tabulatorów</translation>
+    </message>
+    <message>
+        <source>I&amp;mages and Tables</source>
+        <translation>O&amp;brazy i tabele</translation>
+    </message>
+    <message>
+        <source>Writing Sc&amp;hedule...</source>
+        <extracomment>In Polish: &amp;Harmonogram pracy...</extracomment>
+        <translation>&amp;Harmonogram pracy...</translation>
+    </message>
+    <message>
+        <source>New Sp&amp;read...</source>
+        <extracomment>A spread: one picture over two pages of the book. In Polish (the letters of the other items of the menu Książka are all taken, so B of the word obraz): Nowa rozkładówka z o&amp;brazem...</extracomment>
+        <translation>Nowa rozkładówka z o&amp;brazem...</translation>
     </message>
 </context>
 <context>
@@ -1941,6 +1981,149 @@
     <message>
         <source>Chinese</source>
         <translation>chiński</translation>
+    </message>
+</context>
+<context>
+    <name>MindMapContent</name>
+    <message>
+        <source>Main topic</source>
+        <extracomment>The kind of a node of a mind map. In Polish: Temat główny</extracomment>
+        <translation>Temat główny</translation>
+    </message>
+    <message>
+        <source>Question</source>
+        <extracomment>The kind of a node of a mind map. In Polish: Pytanie</extracomment>
+        <translation>Pytanie</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>The kind of a node of a mind map. In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>Idea</source>
+        <extracomment>The kind of a node of a mind map. In Polish: Pomysł</extracomment>
+        <translation>Pomysł</translation>
+    </message>
+    <message>
+        <source>Final</source>
+        <extracomment>The status of a text on a node of a mind map. In Polish: Gotowy</extracomment>
+        <translation>Gotowy</translation>
+    </message>
+    <message>
+        <source>Revision</source>
+        <extracomment>The status of a text on a node of a mind map. In Polish: Poprawki</extracomment>
+        <translation>Poprawki</translation>
+    </message>
+    <message>
+        <source>Draft</source>
+        <extracomment>The status of a text on a node of a mind map. In Polish: Szkic</extracomment>
+        <translation>Szkic</translation>
+    </message>
+    <message>
+        <source>Planned scene %1</source>
+        <extracomment>The title of a node of a mind map: a scene in the plan of a text, without a title of its own. %1: its number. In Polish: Scena w planie %1</extracomment>
+        <translation>Scena w planie %1</translation>
+    </message>
+    <message>
+        <source>Scene %1</source>
+        <extracomment>The title of a node of a mind map: a scene of a text without a title of its own. %1: its number. In Polish: Scena %1</extracomment>
+        <translation>Scena %1</translation>
+    </message>
+    <message>
+        <source>(deleted element)</source>
+        <extracomment>The title of a node of a mind map whose element is not in the book any more. In Polish: (usunięty element)</extracomment>
+        <translation>(usunięty element)</translation>
+    </message>
+    <message>
+        <source>(deleted thread)</source>
+        <extracomment>The title of a node of a mind map whose thread is not in the timeline any more. In Polish: (usunięty wątek)</extracomment>
+        <translation>(usunięty wątek)</translation>
+    </message>
+    <message>
+        <source>Family</source>
+        <extracomment>A row of a node of a card on a mind map: its family, with its socket. In Polish: Rodzina</extracomment>
+        <translation>Rodzina</translation>
+    </message>
+    <message>
+        <source>Relations</source>
+        <extracomment>A row of a node of a card on a mind map: its other relations with cards of its kind. In Polish: Relacje</extracomment>
+        <translation>Relacje</translation>
+    </message>
+    <message>
+        <source>In short</source>
+        <extracomment>A row of a node of a mind map: the short description of its element. In Polish: W skrócie</extracomment>
+        <translation>W skrócie</translation>
+    </message>
+    <message>
+        <source>Status</source>
+        <extracomment>A row of a node of a mind map. In Polish: Stan</extracomment>
+        <translation>Stan</translation>
+    </message>
+    <message>
+        <source>Words</source>
+        <extracomment>A row of a node of a mind map. In Polish: Słowa</extracomment>
+        <translation>Słowa</translation>
+    </message>
+    <message>
+        <source>Point of view</source>
+        <extracomment>A row of a node of a mind map: the point of view. In Polish: Punkt widzenia</extracomment>
+        <translation>Punkt widzenia</translation>
+    </message>
+    <message>
+        <source>Place of the action</source>
+        <extracomment>A row of a node of a mind map: the place of the action. In Polish: Miejsce akcji</extracomment>
+        <translation>Miejsce akcji</translation>
+    </message>
+    <message>
+        <source>Time of the action</source>
+        <extracomment>A row of a node of a mind map: the time of the action. In Polish: Czas akcji</extracomment>
+        <translation>Czas akcji</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <extracomment>A row of a node of a scene on a mind map. In Polish: Opis</extracomment>
+        <translation>Opis</translation>
+    </message>
+    <message>
+        <source>Events</source>
+        <extracomment>A row of a node of a thread of a timeline on a mind map: how many events it has. In Polish: Wydarzenia</extracomment>
+        <translation>Wydarzenia</translation>
+    </message>
+    <message>
+        <source>In the plan</source>
+        <extracomment>The status of a scene in the plan on a node of a mind map. In Polish: W planie</extracomment>
+        <translation>W planie</translation>
+    </message>
+    <message>
+        <source>Element</source>
+        <extracomment>A row of a node of a mind map: the element of the book it is about. In Polish: Element</extracomment>
+        <translation>Element</translation>
+    </message>
+    <message>
+        <source>Scene</source>
+        <extracomment>The kind of a node of a mind map: a scene of a text. In Polish: Scena</extracomment>
+        <translation>Scena</translation>
+    </message>
+    <message>
+        <source>Thread</source>
+        <extracomment>The kind of a node of a mind map: a thread of a timeline. In Polish: Wątek</extracomment>
+        <translation>Wątek</translation>
+    </message>
+    <message>
+        <source>Texts</source>
+        <extracomment>A group of the menu Add Node of a mind map. In Polish: Teksty</extracomment>
+        <translation>Teksty</translation>
+    </message>
+    <message>
+        <source>Scenes</source>
+        <extracomment>A group of the menu Add Node of a mind map. In Polish: Sceny</extracomment>
+        <translation>Sceny</translation>
+    </message>
+    <message>
+        <source>Threads</source>
+        <extracomment>A group of the menu Add Node of a mind map: the threads of the timelines. In Polish: Wątki</extracomment>
+        <translation>Wątki</translation>
     </message>
 </context>
 <context>
@@ -2806,11 +2989,6 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>Te&amp;xt Effects</source>
         <translation>&amp;Efekty tekstu</translation>
-    </message>
-    <message>
-        <source>Texts &amp;for Publishers</source>
-        <extracomment>The submenu of Tools for the texts for publishers. In Polish: Teksty d&amp;la wydawnictwa</extracomment>
-        <translation>Teksty d&amp;la wydawnictwa</translation>
     </message>
 </context>
 <context>
@@ -3751,6 +3929,11 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <extracomment>A field: today&apos;s date or time. In Polish: Data</extracomment>
         <translation>Data</translation>
     </message>
+    <message>
+        <source>Own Field</source>
+        <extracomment>A field: one the writer gave the book. In Polish: Własne pole</extracomment>
+        <translation>Własne pole</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::core::CmdLineParser</name>
@@ -4292,14 +4475,49 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <translation>&amp;Podpowiedzi</translation>
     </message>
     <message>
-        <source>Looking for suggestions...</source>
-        <extracomment>In the submenu of the suggestions while the dictionary looks for them. In Polish: Szukam podpowiedzi…</extracomment>
-        <translation>Szukam podpowiedzi…</translation>
+        <source>Loading...</source>
+        <extracomment>In the submenu of the suggestions while the dictionary looks for them. In Polish: Wczytywanie…</extracomment>
+        <translation>Wczytywanie…</translation>
     </message>
     <message>
         <source>&amp;Wrap Text</source>
         <extracomment>The context menu of an image, as the Image menu&apos;s submenus. In Polish: Opływanie t&amp;ekstem</extracomment>
         <translation>Opływanie t&amp;ekstem</translation>
+    </message>
+    <message>
+        <source>The book has no such field any more: change the field or convert it to text.</source>
+        <extracomment>The tooltip of an own field the book does not have any more</extracomment>
+        <translation>Książka nie ma już tego pola: zmień pole albo zamień je na tekst.</translation>
+    </message>
+    <message>
+        <source>It changes with the value of the field (Insert &gt; Field..., the Properties panel).</source>
+        <extracomment>The tooltip of an own field of the book</extracomment>
+        <translation>Zmienia się razem z wartością pola (Wstaw &gt; Pole..., panel „Właściwości”).</translation>
+    </message>
+    <message>
+        <source>Paste &amp;Special</source>
+        <extracomment>The submenu of the text's context menu under Paste. In Polish: Wklej &amp;specjalnie</extracomment>
+        <translation>Wklej &amp;specjalnie</translation>
+    </message>
+    <message>
+        <source>The item already has the number %1</source>
+        <extracomment>Why Restart at 1 of the context menu of a list item is greyed out: %1 the first number (1, a, i). In Polish: Ten element listy ma już numer %1</extracomment>
+        <translation>Ten element listy ma już numer %1</translation>
+    </message>
+    <message>
+        <source>Only the first item of a list continues the numbering of a list above it</source>
+        <extracomment>Why Continue Numbering of the context menu of a list item is greyed out. In Polish: Numerowanie listy powyżej kontynuuje tylko pierwszy element listy</extracomment>
+        <translation>Numerowanie listy powyżej kontynuuje tylko pierwszy element listy</translation>
+    </message>
+    <message>
+        <source>The item is at the deepest level of the list</source>
+        <extracomment>Why Increase Indent of the context menu of a list item is greyed out. In Polish: Element jest już na najgłębszym poziomie listy</extracomment>
+        <translation>Element jest już na najgłębszym poziomie listy</translation>
+    </message>
+    <message>
+        <source>The item is at the first level of the list</source>
+        <extracomment>Why Decrease Indent of the context menu of a list item is greyed out. In Polish: Element jest już na pierwszym poziomie listy</extracomment>
+        <translation>Element jest już na pierwszym poziomie listy</translation>
     </message>
 </context>
 <context>
@@ -4544,9 +4762,9 @@ Niewłaściwa konfiguracja może wpłynąć na stabilność programu.</translati
         <translation>Liczba komunikatów, które panel przechowuje w pamięci. Gdy się zapełni, najstarsze znikają; plik dziennika zachowuje wszystkie.</translation>
     </message>
     <message>
-        <source>The file kalahari.log in the folder of the program keeps the messages of the current session. The buttons of the log panel open its folder, copy the log to the clipboard and clear the panel.</source>
-        <extracomment>In Polish: Plik kalahari.log w folderze programu zapisuje komunikaty bieżącej sesji. Przyciski panelu dziennika otwierają jego folder, kopiują dziennik do schowka i czyszczą panel.</extracomment>
-        <translation>Plik kalahari.log w folderze programu zapisuje komunikaty bieżącej sesji. Przyciski panelu dziennika otwierają jego folder, kopiują dziennik do schowka i czyszczą panel.</translation>
+        <source>The file kalahari.log keeps the messages of the current session: in the folder of the program, or, where the program may not write there (an installation for all users, the packages of Linux, macOS), in the folder of its settings. The buttons of the log panel open its folder, copy the log to the clipboard and clear the panel.</source>
+        <extracomment>In Polish: Plik kalahari.log zapisuje komunikaty bieżącej sesji: w folderze programu, a gdy program nie może tam zapisywać (instalacja dla wszystkich użytkowników, pakiety dla Linuksa, macOS) – w folderze jego ustawień. Przyciski panelu dziennika otwierają jego folder, kopiują dziennik do schowka i czyszczą panel.</extracomment>
+        <translation>Plik kalahari.log zapisuje komunikaty bieżącej sesji: w folderze programu, a gdy program nie może tam zapisywać (instalacja dla wszystkich użytkowników, pakiety dla Linuksa, macOS) – w folderze jego ustawień. Przyciski panelu dziennika otwierają jego folder, kopiują dziennik do schowka i czyszczą panel.</translation>
     </message>
 </context>
 <context>
@@ -4860,6 +5078,11 @@ Niewłaściwa konfiguracja może wpłynąć na stabilność programu.</translati
         <source>Look of the Cards</source>
         <extracomment>The group of Settings &gt; Annotations &gt; Cards Under Paragraphs. In Polish: Wygląd kart</extracomment>
         <translation>Wygląd kart</translation>
+    </message>
+    <message>
+        <source>Margin on both sides:</source>
+        <extracomment>The room between a card and the left and right edges of the text. In Polish: Margines z boków:</extracomment>
+        <translation>Margines z boków:</translation>
     </message>
 </context>
 <context>
@@ -5505,8 +5728,8 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>In Polish: &amp;Cofnij / Cofnij zamianę w książce</extracomment>
-        <translation>&amp;Cofnij</translation>
+        <extracomment>In Polish: Cofn&amp;ij / Cofnij zamianę w książce</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Undo the replacement in the book</source>
@@ -5547,6 +5770,20 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
         <extracomment>A text among the matches of the whole series, with the number of its volume. In Polish: %1, tom %2</extracomment>
         <translation>%1, tom %2</translation>
     </message>
+    <message>
+        <source>The changed texts are not saved yet – they have a "*" in the Navigator.</source>
+        <extracomment>After "%n matches replaced in the book." In Polish: Zmienione teksty nie są jeszcze zapisane – mają „*” w Nawigatorze.</extracomment>
+        <translation>Zmienione teksty nie są jeszcze zapisane – mają „*” w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>&amp;Save All</source>
+        <extracomment>The second button of the bar after Replace All in Book, as File &gt; Save All. In Polish: &amp;Zapisz wszystko / Zapisz wszystkie zmienione teksty i dane książki</extracomment>
+        <translation>&amp;Zapisz wszystko</translation>
+    </message>
+    <message>
+        <source>Save all the changed texts and data of the book</source>
+        <translation>Zapisz wszystkie zmienione teksty i dane książki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::CaptionCoordinator</name>
@@ -5575,12 +5812,8 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
     </message>
     <message>
         <source>Insert Caption</source>
-        <extracomment>Insert &gt; Caption... without an image at the cursor. In Polish: Wstaw podpis / Zaznacz obraz albo ustaw kursor tuż za nim – podpis dodaje się do obrazu.</extracomment>
+        <extracomment>Insert &gt; Caption... without an image or a table at the cursor. In Polish: Wstaw podpis / Zaznacz obraz albo ustaw kursor tuż za nim lub w tabeli – podpis dodaje się do obrazu albo tabeli.</extracomment>
         <translation>Wstaw podpis</translation>
-    </message>
-    <message>
-        <source>Select an image, or put the cursor just after it: a caption goes with an image.</source>
-        <translation>Zaznacz obraz albo ustaw kursor tuż za nim – podpis dodaje się do obrazu.</translation>
     </message>
     <message>
         <source>Insert Cross-Reference</source>
@@ -5595,6 +5828,10 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
         <source>List of Figures</source>
         <extracomment>The heading of a new list of figures in the text. In Polish: Spis ilustracji</extracomment>
         <translation>Spis ilustracji</translation>
+    </message>
+    <message>
+        <source>Select an image, or put the cursor just after it or in a table: a caption goes with an image or a table.</source>
+        <translation>Zaznacz obraz albo ustaw kursor tuż za nim lub w tabeli – podpis dodaje się do obrazu albo tabeli.</translation>
     </message>
 </context>
 <context>
@@ -5948,6 +6185,201 @@ The status bar, after a material is chosen for the cover: the one chosen before 
         <extracomment>An opinion with its author: %1 the opinion in quotes, %2 the author and who the author is. In Polish: %1 – %2</extracomment>
         <translation>%1 – %2</translation>
     </message>
+    <message>
+        <source>Author bio</source>
+        <extracomment>What a material of the cover is: a short text about the author for a flap or the back, apart from the note About the Author at the end of the book. In Polish: Notka biograficzna</extracomment>
+        <translation>Notka biograficzna</translation>
+    </message>
+    <message>
+        <source>Author photo</source>
+        <extracomment>What a material of the cover is: a portrait of the author for a flap. In Polish: Zdjęcie autora</extracomment>
+        <translation>Zdjęcie autora</translation>
+    </message>
+    <message>
+        <source>Author bios</source>
+        <extracomment>A group of the list of the cover. In Polish: Notki biograficzne</extracomment>
+        <translation>Notki biograficzne</translation>
+    </message>
+    <message>
+        <source>Author photos</source>
+        <extracomment>A group of the list of the cover. In Polish: Zdjęcia autora</extracomment>
+        <translation>Zdjęcia autora</translation>
+    </message>
+    <message>
+        <source>Bio %1</source>
+        <extracomment>The title of a new author bio; %1 its number. In Polish: Notka %1</extracomment>
+        <translation>Notka %1</translation>
+    </message>
+    <message>
+        <source>Author photo %1</source>
+        <extracomment>The title of a new photo of the author; %1 its number. In Polish: Zdjęcie autora %1</extracomment>
+        <translation>Zdjęcie autora %1</translation>
+    </message>
+    <message>
+        <source>Cover – front</source>
+        <extracomment>A place on the cover, in a list and a menu. In Polish: Okładka – przód</extracomment>
+        <translation>Okładka – przód</translation>
+    </message>
+    <message>
+        <source>Cover – spine</source>
+        <extracomment>A place on the cover, in a list and a menu. In Polish: Okładka – grzbiet</extracomment>
+        <translation>Okładka – grzbiet</translation>
+    </message>
+    <message>
+        <source>Cover – back</source>
+        <extracomment>A place on the cover, in a list and a menu. In Polish: Okładka – tył</extracomment>
+        <translation>Okładka – tył</translation>
+    </message>
+    <message>
+        <source>Cover – front flap</source>
+        <extracomment>A place on the cover, in a list and a menu. In Polish: Okładka – skrzydełko przednie</extracomment>
+        <translation>Okładka – skrzydełko przednie</translation>
+    </message>
+    <message>
+        <source>Cover – back flap</source>
+        <extracomment>A place on the cover, in a list and a menu. In Polish: Okładka – skrzydełko tylne</extracomment>
+        <translation>Okładka – skrzydełko tylne</translation>
+    </message>
+    <message>
+        <source>Cover – whole cover</source>
+        <extracomment>The place of a design: the whole cover, in a list and a menu. In Polish: Okładka – cała okładka</extracomment>
+        <translation>Okładka – cała okładka</translation>
+    </message>
+    <message>
+        <source>Jacket – front</source>
+        <extracomment>A place on the jacket, in a list and a menu. In Polish: Obwoluta – przód</extracomment>
+        <translation>Obwoluta – przód</translation>
+    </message>
+    <message>
+        <source>Jacket – spine</source>
+        <extracomment>A place on the jacket, in a list and a menu. In Polish: Obwoluta – grzbiet</extracomment>
+        <translation>Obwoluta – grzbiet</translation>
+    </message>
+    <message>
+        <source>Jacket – back</source>
+        <extracomment>A place on the jacket, in a list and a menu. In Polish: Obwoluta – tył</extracomment>
+        <translation>Obwoluta – tył</translation>
+    </message>
+    <message>
+        <source>Jacket – front flap</source>
+        <extracomment>A place on the jacket, in a list and a menu. In Polish: Obwoluta – skrzydełko przednie</extracomment>
+        <translation>Obwoluta – skrzydełko przednie</translation>
+    </message>
+    <message>
+        <source>Jacket – back flap</source>
+        <extracomment>A place on the jacket, in a list and a menu. In Polish: Obwoluta – skrzydełko tylne</extracomment>
+        <translation>Obwoluta – skrzydełko tylne</translation>
+    </message>
+    <message>
+        <source>Jacket – whole jacket</source>
+        <extracomment>The place of a design: the whole jacket, in a list and a menu. In Polish: Obwoluta – cała obwoluta</extracomment>
+        <translation>Obwoluta – cała obwoluta</translation>
+    </message>
+    <message>
+        <source>Whole jacket</source>
+        <extracomment>The place of a design: the whole jacket. In Polish: Cała obwoluta</extracomment>
+        <translation>Cała obwoluta</translation>
+    </message>
+    <message>
+        <source>Jacket</source>
+        <extracomment>The part of the cover a place is on: the jacket of a hardback. In Polish: Obwoluta</extracomment>
+        <translation>Obwoluta</translation>
+    </message>
+    <message>
+        <source>Cover</source>
+        <extracomment>The part of the cover a place is on: the cover itself. In Polish: Okładka</extracomment>
+        <translation>Okładka</translation>
+    </message>
+    <message>
+        <source>jacket turned off</source>
+        <extracomment>After the place of a material on the jacket, while the book has no jacket. In Polish: obwoluta wyłączona</extracomment>
+        <translation>obwoluta wyłączona</translation>
+    </message>
+    <message>
+        <source>flaps turned off</source>
+        <extracomment>After the place of a material on a flap of the cover, while the cover has no flaps. In Polish: skrzydełka wyłączone</extracomment>
+        <translation>skrzydełka wyłączone</translation>
+    </message>
+    <message>
+        <source>Picture across both pages</source>
+        <extracomment>How an endpaper is filled: one picture over both of its pages. In Polish: Obraz na obie strony</extracomment>
+        <translation>Obraz na obie strony</translation>
+    </message>
+    <message>
+        <source>Repeated picture</source>
+        <extracomment>How an endpaper is filled: a small picture repeated like a wallpaper. In Polish: Obraz powtarzany</extracomment>
+        <translation>Obraz powtarzany</translation>
+    </message>
+    <message>
+        <source>Ready-made pattern</source>
+        <extracomment>How an endpaper is filled: a pattern of the program in two colors. In Polish: Gotowy wzór</extracomment>
+        <translation>Gotowy wzór</translation>
+    </message>
+    <message>
+        <source>One color</source>
+        <extracomment>How an endpaper is filled: one color. In Polish: Jeden kolor</extracomment>
+        <translation>Jeden kolor</translation>
+    </message>
+    <message>
+        <source>No fill</source>
+        <extracomment>An endpaper of white paper. In Polish: Bez wypełnienia</extracomment>
+        <translation>Bez wypełnienia</translation>
+    </message>
+    <message>
+        <source>stripes</source>
+        <extracomment>A pattern of an endpaper. In Polish: paski</extracomment>
+        <translation>paski</translation>
+    </message>
+    <message>
+        <source>grid</source>
+        <extracomment>A pattern of an endpaper. In Polish: kratka</extracomment>
+        <translation>kratka</translation>
+    </message>
+    <message>
+        <source>diagonal lines</source>
+        <extracomment>A pattern of an endpaper. In Polish: ukośne linie</extracomment>
+        <translation>ukośne linie</translation>
+    </message>
+    <message>
+        <source>checkerboard</source>
+        <extracomment>A pattern of an endpaper. In Polish: szachownica</extracomment>
+        <translation>szachownica</translation>
+    </message>
+    <message>
+        <source>waves</source>
+        <extracomment>A pattern of an endpaper. In Polish: fale</extracomment>
+        <translation>fale</translation>
+    </message>
+    <message>
+        <source>dots</source>
+        <extracomment>A pattern of an endpaper. In Polish: kropki</extracomment>
+        <translation>kropki</translation>
+    </message>
+    <message>
+        <source>picture: %1</source>
+        <extracomment>How an endpaper is filled, in short: %1 the title of its picture. In Polish: obraz: %1</extracomment>
+        <translation>obraz: %1</translation>
+    </message>
+    <message>
+        <source>repeated picture: %1, %2%</source>
+        <extracomment>How an endpaper is filled, in short: %1 the title of its picture, %2 its width in percent of a page. In Polish: obraz powtarzany: %1, %2%</extracomment>
+        <translation>obraz powtarzany: %1, %2%</translation>
+    </message>
+    <message>
+        <source>pattern: %1</source>
+        <extracomment>How an endpaper is filled, in short: %1 the name of its pattern. In Polish: wzór: %1</extracomment>
+        <translation>wzór: %1</translation>
+    </message>
+    <message>
+        <source>one color</source>
+        <extracomment>How an endpaper is filled, in short. In Polish: jeden kolor</extracomment>
+        <translation>jeden kolor</translation>
+    </message>
+    <message>
+        <source>no fill</source>
+        <extracomment>How an endpaper is filled, in short: white paper. In Polish: bez wypełnienia</extracomment>
+        <translation>bez wypełnienia</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::CoverPlan</name>
@@ -5962,19 +6394,9 @@ The status bar, after a material is chosen for the cover: the one chosen before 
         <translation>%1 – %2</translation>
     </message>
     <message>
-        <source>Flaps</source>
-        <extracomment>Shows the flaps of the cover on its plan. In Polish: Skrzydełka</extracomment>
-        <translation>Skrzydełka</translation>
-    </message>
-    <message>
         <source>Show rejected</source>
         <extracomment>Shows the materials rejected on the plan of the cover. In Polish: Pokaż odrzucone</extracomment>
         <translation>Pokaż odrzucone</translation>
-    </message>
-    <message>
-        <source>Designs:</source>
-        <extracomment>The designs of the cover above its plan, one of them behind it. In Polish: Projekty:</extracomment>
-        <translation>Projekty:</translation>
     </message>
     <message>
         <source>The field &quot;Place on the cover&quot; in the Properties or on the card of a material changes the place. Reference pictures and notes do not go on the cover, so the plan does not show them.</source>
@@ -5990,6 +6412,196 @@ The status bar, after a material is chosen for the cover: the one chosen before 
         <source>Without a place on the cover · %1</source>
         <extracomment>The materials of the cover without a place, under its plan: %1 their number. In Polish: Bez miejsca na okładce · %1</extracomment>
         <translation>Bez miejsca na okładce · %1</translation>
+    </message>
+    <message>
+        <source>(%1)</source>
+        <extracomment>Why a material of the cover waits under the plan: %1 the part turned off. In Polish: (%1)</extracomment>
+        <translation>(%1)</translation>
+    </message>
+    <message>
+        <source>No picture</source>
+        <extracomment>On the spread of an endpaper filled with a picture that is not chosen or cannot be read. In Polish: Brak obrazu</extracomment>
+        <translation>Brak obrazu</translation>
+    </message>
+    <message>
+        <source>Parts:</source>
+        <extracomment>Before the boxes of the parts of the cover above its plan. In Polish: Części:</extracomment>
+        <translation>Części:</translation>
+    </message>
+    <message>
+        <source>Cover flap&amp;s</source>
+        <extracomment>A part of the cover of the book: the flaps of a paperback. Its access key differs from those of the menus. In Polish: Sk&amp;rzydełka okładki</extracomment>
+        <translation>Sk&amp;rzydełka okładki</translation>
+    </message>
+    <message>
+        <source>&amp;Jacket</source>
+        <extracomment>A part of the cover of the book: the jacket of a hardback, always with its flaps. Its access key differs from those of the menus. In Polish: Obwol&amp;uta</extracomment>
+        <translation>Obwol&amp;uta</translation>
+    </message>
+    <message>
+        <source>End&amp;papers</source>
+        <extracomment>A part of the cover of the book: the endpapers, at the front and at the back. Its access key differs from those of the menus. In Polish: Wykle&amp;jki</extracomment>
+        <translation>Wykle&amp;jki</translation>
+    </message>
+    <message>
+        <source>Sheets of the plan</source>
+        <extracomment>The tabs of the sheets of the plan of the cover. In Polish: Arkusze planu</extracomment>
+        <translation>Arkusze planu</translation>
+    </message>
+    <message>
+        <source>no design</source>
+        <extracomment>Above the plan of the cover or of the jacket, without a design. In Polish: brak projektu</extracomment>
+        <translation>brak projektu</translation>
+    </message>
+    <message>
+        <source>Front endpaper</source>
+        <extracomment>The endpaper between the cover and the first page. In Polish: Wyklejka przednia
+----------
+The heading of the window of a color of the front endpaper. In Polish: Wyklejka przednia</extracomment>
+        <translation>Wyklejka przednia</translation>
+    </message>
+    <message>
+        <source>Back endpaper</source>
+        <translation>Wyklejka tylna</translation>
+    </message>
+    <message>
+        <source>between the cover and the first page</source>
+        <extracomment>Where the front endpaper is. In Polish: między okładką a pierwszą stroną</extracomment>
+        <translation>między okładką a pierwszą stroną</translation>
+    </message>
+    <message>
+        <source>between the last page and the cover</source>
+        <translation>między ostatnią stroną a okładką</translation>
+    </message>
+    <message>
+        <source>pasted to the cover</source>
+        <extracomment>The page of an endpaper glued to the inside of the cover. In Polish: przyklejona do okładki</extracomment>
+        <translation>przyklejona do okładki</translation>
+    </message>
+    <message>
+        <source>free leaf</source>
+        <extracomment>The page of an endpaper that turns as a leaf. In Polish: wolna karta</extracomment>
+        <translation>wolna karta</translation>
+    </message>
+    <message>
+        <source>Same as the front one</source>
+        <extracomment>The back endpaper is filled as the front one. In Polish: Tak jak przednia</extracomment>
+        <translation>Tak jak przednia</translation>
+    </message>
+    <message>
+        <source>Fill:</source>
+        <extracomment>How an endpaper is filled. In Polish: Wypełnienie:</extracomment>
+        <translation>Wypełnienie:</translation>
+    </message>
+    <message>
+        <source>Picture from Disk...</source>
+        <extracomment>Adds a picture from the disk to the materials of the cover and puts it on the endpaper. In Polish: Obraz z dysku...</extracomment>
+        <translation>Obraz z dysku...</translation>
+    </message>
+    <message>
+        <source>Picture:</source>
+        <extracomment>The picture an endpaper is filled with. In Polish: Obraz:</extracomment>
+        <translation>Obraz:</translation>
+    </message>
+    <message>
+        <source>% of the page width</source>
+        <extracomment>After the size of a picture repeated on an endpaper. In Polish: % szerokości strony</extracomment>
+        <translation>% szerokości strony</translation>
+    </message>
+    <message>
+        <source>Size:</source>
+        <extracomment>The size of a picture repeated on an endpaper. In Polish: Wielkość:</extracomment>
+        <translation>Wielkość:</translation>
+    </message>
+    <message>
+        <source>Pattern:</source>
+        <extracomment>The pattern of an endpaper. In Polish: Wzór:</extracomment>
+        <translation>Wzór:</translation>
+    </message>
+    <message>
+        <source>pattern</source>
+        <extracomment>The color of the pattern of an endpaper, on its button. In Polish: wzór</extracomment>
+        <translation>wzór</translation>
+    </message>
+    <message>
+        <source>background</source>
+        <extracomment>The color under the pattern of an endpaper, on its button. In Polish: tło</extracomment>
+        <translation>tło</translation>
+    </message>
+    <message>
+        <source>Colors:</source>
+        <extracomment>The colors of the pattern of an endpaper. In Polish: Kolory:</extracomment>
+        <translation>Kolory:</translation>
+    </message>
+    <message>
+        <source>Color:</source>
+        <extracomment>The one color of an endpaper. In Polish: Kolor:</extracomment>
+        <translation>Kolor:</translation>
+    </message>
+    <message>
+        <source>Endpapers on: the sheet &quot;Endpapers&quot;</source>
+        <extracomment>The status bar after the endpapers are turned on above the plan of the cover. In Polish: Wyklejki włączone: arkusz „Wyklejki”</extracomment>
+        <translation>Wyklejki włączone: arkusz „Wyklejki”</translation>
+    </message>
+    <message>
+        <source>Endpapers off; their fills are kept.</source>
+        <translation>Wyklejki wyłączone; ich wypełnienie zostaje zapisane.</translation>
+    </message>
+    <message>
+        <source>The part is on; its materials are back in their places.</source>
+        <extracomment>The status bar after a part of the cover is turned on above its plan. In Polish: Część włączona; jej materiały wróciły na swoje miejsca.</extracomment>
+        <translation>Część włączona; jej materiały wróciły na swoje miejsca.</translation>
+    </message>
+    <message>
+        <source>The part is off; its materials wait under the plan.</source>
+        <translation>Część wyłączona; jej materiały czekają pod planem.</translation>
+    </message>
+    <message>
+        <source>Cover</source>
+        <extracomment>The tab of the sheet of the cover itself on its plan. In Polish: Okładka</extracomment>
+        <translation>Okładka</translation>
+    </message>
+    <message>
+        <source>Jacket</source>
+        <extracomment>The tab of the sheet of the jacket on the plan of the cover. In Polish: Obwoluta</extracomment>
+        <translation>Obwoluta</translation>
+    </message>
+    <message>
+        <source>Endpapers</source>
+        <extracomment>The tab of the sheet of the endpapers on the plan of the cover. In Polish: Wyklejki</extracomment>
+        <translation>Wyklejki</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <extracomment>A tab of the plan of the cover: %1 its sheet, %2 the materials on it (of the endpapers: the two of them). In Polish: %1 · %2</extracomment>
+        <translation>%1 · %2</translation>
+    </message>
+    <message>
+        <source>Jacket designs:</source>
+        <extracomment>Before the designs of the jacket above its sheet. In Polish: Projekty obwoluty:</extracomment>
+        <translation>Projekty obwoluty:</translation>
+    </message>
+    <message>
+        <source>Cover designs:</source>
+        <translation>Projekty okładki:</translation>
+    </message>
+    <message>
+        <source>A place for the author bio</source>
+        <extracomment>On the back flap of the jacket without a note about the author. In Polish: Miejsce na notkę biograficzną</extracomment>
+        <translation>Miejsce na notkę biograficzną</translation>
+    </message>
+    <message>
+        <source>Choose a picture</source>
+        <translation>Wybierz obraz</translation>
+    </message>
+    <message>
+        <source>Picture removed from the materials</source>
+        <translation>Obraz usunięty z materiałów</translation>
+    </message>
+    <message>
+        <source>Color of the endpaper</source>
+        <extracomment>The accessible name of the button of the one color of an endpaper. In Polish: Kolor wyklejki</extracomment>
+        <translation>Kolor wyklejki</translation>
     </message>
 </context>
 <context>
@@ -6106,11 +6718,6 @@ The status bar, after a material is chosen for the cover: the one chosen before 
         <source>Window Settings</source>
         <extracomment>The gear at the end of the tabs of a window of its own: Settings &gt; General, the options of the windows. In Polish: Ustawienia okien</extracomment>
         <translation>Ustawienia okien</translation>
-    </message>
-    <message>
-        <source>Page %1 of %2</source>
-        <extracomment>The status bar of a window of its own, as that of the book window. In Polish: Strona %1 z %2</extracomment>
-        <translation>Strona %1 z %2</translation>
     </message>
     <message>
         <source>%1%</source>
@@ -6430,17 +7037,35 @@ Szczegóły zapisano w panelu Dziennik.</translation>
         <extracomment>Tools &gt; Texts for Publishers &gt; Template Points, when the text in front has none. In Polish: Tekst na wierzchu nie ma punktów szablonu.</extracomment>
         <translation>Tekst na wierzchu nie ma punktów szablonu.</translation>
     </message>
-    <message numerus="yes">
-        <source>Removed %n heading(s) of the points with their hints.</source>
-        <translation>
-            <numerusform>Usunięto %n nagłówek punktu z podpowiedzią.</numerusform>
-            <numerusform>Usunięto %n nagłówki punktów z podpowiedziami.</numerusform>
-            <numerusform>Usunięto %n nagłówków punktów z podpowiedziami.</numerusform>
-        </translation>
+    <message>
+        <source>Footnotes</source>
+        <extracomment>The title of the Footnotes panel. In Polish: Przypisy</extracomment>
+        <translation>Przypisy</translation>
     </message>
     <message>
-        <source>The text in front has no headings of template points.</source>
-        <translation>Tekst na wierzchu nie ma nagłówków punktów szablonu.</translation>
+        <source>Footnote Settings</source>
+        <extracomment>The tooltip of the gear of the Footnotes panel. In Polish: Ustawienia przypisów</extracomment>
+        <translation>Ustawienia przypisów</translation>
+    </message>
+    <message>
+        <source>Notification Settings</source>
+        <extracomment>The gear of the Notifications panel. In Polish: Ustawienia powiadomień</extracomment>
+        <translation>Ustawienia powiadomień</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <extracomment>The panel of the notifications of the session. In Polish: Powiadomienia</extracomment>
+        <translation>Powiadomienia</translation>
+    </message>
+    <message>
+        <source>Images and Tables</source>
+        <extracomment>The title of the panel of the images and the tables of a text or the book. In Polish: Obrazy i tabele</extracomment>
+        <translation>Obrazy i tabele</translation>
+    </message>
+    <message>
+        <source>Image Settings</source>
+        <extracomment>The tooltip of the gear of the panel Images and Tables. In Polish: Ustawienia obrazów</extracomment>
+        <translation>Ustawienia obrazów</translation>
     </message>
 </context>
 <context>
@@ -6991,6 +7616,99 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <extracomment>Window menu: the list of all the tabs of the window in front, to choose one (as the button with an arrow down after the tabs). In Polish: &amp;Lista kart</extracomment>
         <translation>&amp;Lista kart</translation>
     </message>
+    <message>
+        <source>No tab is open</source>
+        <extracomment>Why Window &gt; Move Tab to New Window is greyed out. In Polish: Żadna karta nie jest otwarta</extracomment>
+        <translation>Żadna karta nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>Only the tab of a text moves to a window of its own</source>
+        <extracomment>Why Window &gt; Move Tab to New Window is greyed out over the Dashboard. In Polish: Do osobnego okna można przenieść tylko kartę tekstu</extracomment>
+        <translation>Do osobnego okna można przenieść tylko kartę tekstu</translation>
+    </message>
+    <message>
+        <source>The tab is alone in a window of its own</source>
+        <extracomment>Why Window &gt; Move Tab to New Window is greyed out. In Polish: Karta jest jedyna w swoim oknie</extracomment>
+        <translation>Karta jest jedyna w swoim oknie</translation>
+    </message>
+    <message>
+        <source>The tab in front is in the book window</source>
+        <extracomment>Why Window &gt; Return Tab to Book Window is greyed out. In Polish: Karta na wierzchu jest w oknie książki</extracomment>
+        <translation>Karta na wierzchu jest w oknie książki</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditCoordinator</name>
+    <message>
+        <source>There is nothing to undo</source>
+        <extracomment>Why Edit &gt; Undo is greyed out. In Polish: Nie ma czego cofnąć</extracomment>
+        <translation>Nie ma czego cofnąć</translation>
+    </message>
+    <message>
+        <source>There is nothing to redo</source>
+        <extracomment>Why Edit &gt; Redo is greyed out. In Polish: Nie ma czego ponowić</extracomment>
+        <translation>Nie ma czego ponowić</translation>
+    </message>
+    <message>
+        <source>Nothing is selected</source>
+        <extracomment>Why Edit &gt; Cut, Copy and Delete are greyed out. In Polish: Nic nie jest zaznaczone</extracomment>
+        <translation>Nic nie jest zaznaczone</translation>
+    </message>
+    <message>
+        <source>The clipboard holds nothing to paste here</source>
+        <extracomment>Why Edit &gt; Paste is greyed out. In Polish: W schowku nie ma niczego, co można tu wkleić</extracomment>
+        <translation>W schowku nie ma niczego, co można tu wkleić</translation>
+    </message>
+    <message>
+        <source>There is nothing to select</source>
+        <extracomment>Why Edit &gt; Select All is greyed out in an empty field. In Polish: Nie ma czego zaznaczyć</extracomment>
+        <translation>Nie ma czego zaznaczyć</translation>
+    </message>
+    <message>
+        <source>This text cannot be changed</source>
+        <extracomment>Why Undo, Redo, Cut, Paste, Delete and the commands that change the text are greyed out in a text or a field that only shows. In Polish: Tego tekstu nie można zmieniać</extracomment>
+        <translation>Tego tekstu nie można zmieniać</translation>
+    </message>
+    <message>
+        <source>No text is in front</source>
+        <extracomment>Why the commands of the text are greyed out with no text in front (the Dashboard, no tab). In Polish: Na wierzchu nie ma tekstu</extracomment>
+        <translation>Na wierzchu nie ma tekstu</translation>
+    </message>
+    <message>
+        <source>The cursor is not in a text of the book</source>
+        <extracomment>Why the commands of the book's text are greyed out with the keys in a field or a panel. In Polish: Kursor nie jest w tekście książki</extracomment>
+        <translation>Kursor nie jest w tekście książki</translation>
+    </message>
+    <message>
+        <source>A password is not copied</source>
+        <extracomment>Why Cut and Copy are greyed out in a field of a password. In Polish: Hasła się nie kopiuje</extracomment>
+        <translation>Hasła się nie kopiuje</translation>
+    </message>
+    <message>
+        <source>No item of the list is chosen</source>
+        <extracomment>Why Edit &gt; Copy is greyed out in a list. In Polish: Żaden element listy nie jest wybrany</extracomment>
+        <translation>Żaden element listy nie jest wybrany</translation>
+    </message>
+    <message>
+        <source>This list chooses one item at a time</source>
+        <extracomment>Why Edit &gt; Select All is greyed out in a list. In Polish: Na tej liście wybiera się jeden element naraz</extracomment>
+        <translation>Na tej liście wybiera się jeden element naraz</translation>
+    </message>
+    <message>
+        <source>The list is empty</source>
+        <extracomment>Why Edit &gt; Select All is greyed out in an empty list. In Polish: Lista jest pusta</extracomment>
+        <translation>Lista jest pusta</translation>
+    </message>
+    <message>
+        <source>This is not possible in a list</source>
+        <extracomment>Why Undo, Redo, Cut, Paste and Delete are greyed out in a list. In Polish: Na liście nie można tego zrobić</extracomment>
+        <translation>Na liście nie można tego zrobić</translation>
+    </message>
+    <message>
+        <source>The cursor is not in a text or a field</source>
+        <extracomment>Why the Edit commands are greyed out with the keys outside a text and a field (on a button, in the Dashboard). In Polish: Kursor nie jest w tekście ani w polu</extracomment>
+        <translation>Kursor nie jest w tekście ani w polu</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorAutoCorrectPage</name>
@@ -7427,6 +8145,86 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <extracomment>The background of a cross-reference whose caption was deleted. In Polish: Odsyłacze do usuniętych podpisów</extracomment>
         <translation>Odsyłacze do usuniętych podpisów</translation>
     </message>
+    <message>
+        <source>Footnotes Panel</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Colors with the colors of the Footnotes panel. In Polish: Panel „Przypisy”</extracomment>
+        <translation>Panel „Przypisy”</translation>
+    </message>
+    <message>
+        <source>Footnotes</source>
+        <extracomment>In Polish: Przypisy dolne</extracomment>
+        <translation>Przypisy dolne</translation>
+    </message>
+    <message>
+        <source>Endnotes</source>
+        <extracomment>In Polish: Przypisy końcowe</extracomment>
+        <translation>Przypisy końcowe</translation>
+    </message>
+    <message>
+        <source>Tab guides</source>
+        <extracomment>The dashed vertical lines a Tab aligns the text to (Format &gt; Align Text). In Polish: Linie tabulatorów</extracomment>
+        <translation>Linie tabulatorów</translation>
+    </message>
+    <message>
+        <source>Images and Tables Panel</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Colors with the colors of the panel Images and Tables. In Polish: Panel „Obrazy i tabele”</extracomment>
+        <translation>Panel „Obrazy i tabele”</translation>
+    </message>
+    <message>
+        <source>Images</source>
+        <extracomment>In Polish: Obrazy</extracomment>
+        <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>Tables</source>
+        <extracomment>In Polish: Tabele</extracomment>
+        <translation>Tabele</translation>
+    </message>
+    <message>
+        <source>Bar Under the Text</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Colors with the colors of the bar at the bottom of the text. In Polish: Pasek pod tekstem</extracomment>
+        <translation>Pasek pod tekstem</translation>
+    </message>
+    <message>
+        <source>The bar at the bottom of the text area: the answers to commands, such as Undo after a deletion, and the note of a file outside a book.</source>
+        <extracomment>In Polish: Pasek na dole obszaru tekstu: odpowiedzi na polecenia, np. „Cofnij” po usunięciu, oraz informacja o pliku spoza książki.</extracomment>
+        <translation>Pasek na dole obszaru tekstu: odpowiedzi na polecenia, np. „Cofnij” po usunięciu, oraz informacja o pliku spoza książki.</translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <extracomment>In Polish: Tło</extracomment>
+        <translation>Tło</translation>
+    </message>
+    <message>
+        <source>Border</source>
+        <extracomment>In Polish: Obramowanie</extracomment>
+        <translation>Obramowanie</translation>
+    </message>
+    <message>
+        <source>Message</source>
+        <extracomment>The color of the message of the bar. In Polish: Tekst komunikatu</extracomment>
+        <translation>Tekst komunikatu</translation>
+    </message>
+    <message>
+        <source>Button</source>
+        <extracomment>The color of the button of the bar, such as Undo. In Polish: Przycisk</extracomment>
+        <translation>Przycisk</translation>
+    </message>
+    <message>
+        <source>Button text</source>
+        <extracomment>In Polish: Napis na przycisku</extracomment>
+        <translation>Napis na przycisku</translation>
+    </message>
+    <message>
+        <source>Picture area of a spread</source>
+        <extracomment>The dashed frame of the area of a spread&apos;s picture on its card. In Polish: Pole obrazu rozkładówki</extracomment>
+        <translation>Pole obrazu rozkładówki</translation>
+    </message>
+    <message>
+        <source>Spine band of a spread</source>
+        <extracomment>The band at the spine on the card of a spread: the part of the pages hidden in the binding, shown only by the program. In Polish: Pas grzbietu rozkładówki</extracomment>
+        <translation>Pas grzbietu rozkładówki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorCursorPage</name>
@@ -7720,6 +8518,31 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <source>Scene Breaks</source>
         <extracomment>The group of Settings &gt; Editor &gt; General with the look of the scene breaks. In Polish: Podziały scen</extracomment>
         <translation>Podziały scen</translation>
+    </message>
+    <message>
+        <source>Footnotes and Endnotes</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Writing with the cards of the Footnotes panel. In Polish: Przypisy</extracomment>
+        <translation>Przypisy</translation>
+    </message>
+    <message>
+        <source>Show the words before the number</source>
+        <extracomment>In Polish: Pokazuj słowa przed numerem</extracomment>
+        <translation>Pokazuj słowa przed numerem</translation>
+    </message>
+    <message>
+        <source>On the cards of the Footnotes panel (View &gt; Panels &gt; Footnotes): the last words of the text before the note&apos;s number, to tell what the note is about.</source>
+        <extracomment>In Polish: Na kartach panelu „Przypisy” (Widok &gt; Panele &gt; Przypisy): ostatnie słowa tekstu przed numerem przypisu, by było wiadomo, czego przypis dotyczy.</extracomment>
+        <translation>Na kartach panelu „Przypisy” (Widok &gt; Panele &gt; Przypisy): ostatnie słowa tekstu przed numerem przypisu, by było wiadomo, czego przypis dotyczy.</translation>
+    </message>
+    <message>
+        <source>Lines of a note&apos;s text on its card:</source>
+        <extracomment>In Polish: Wiersze treści przypisu na karcie:</extracomment>
+        <translation>Wiersze treści przypisu na karcie:</translation>
+    </message>
+    <message>
+        <source>Format &gt; Footnote Layout... sets the numbering of the notes of the book and the place of the endnotes.</source>
+        <extracomment>In Polish: Format &gt; Ustawienia przypisów... ustala numerację przypisów tej książki i miejsce przypisów końcowych.</extracomment>
+        <translation>Format &gt; Ustawienia przypisów... ustala numerację przypisów tej książki i miejsce przypisów końcowych.</translation>
     </message>
 </context>
 <context>
@@ -8368,6 +9191,141 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <extracomment>In Polish: Wstaw &gt; Obraz... pyta o podpis nowego obrazu (albo o jego brak), zanim obraz wejdzie do tekstu</extracomment>
         <translation>Wstaw &gt; Obraz... pyta o podpis nowego obrazu (albo o jego brak), zanim obraz wejdzie do tekstu</translation>
     </message>
+    <message>
+        <source>Space abov&amp;e:</source>
+        <extracomment>The room between a new image (or its caption above it) and the text above it. In Polish: Odstęp &amp;górny:</extracomment>
+        <translation>Odstęp &amp;górny:</translation>
+    </message>
+    <message>
+        <source>S&amp;pace below:</source>
+        <extracomment>In Polish: Odstęp do&amp;lny:</extracomment>
+        <translation>Odstęp do&amp;lny:</translation>
+    </message>
+    <message>
+        <source>Space beside the &amp;text:</source>
+        <extracomment>The room between an image the text runs beside and that text. In Polish: Odstęp &amp;boczny:</extracomment>
+        <translation>Odstęp &amp;boczny:</translation>
+    </message>
+    <message>
+        <source>Images and Tables Panel</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Images with the cards of the panel Images and Tables. In Polish: Panel „Obrazy i tabele”</extracomment>
+        <translation>Panel „Obrazy i tabele”</translation>
+    </message>
+    <message>
+        <source>On the cards of the panel Images and Tables (View &gt; Panels &gt; Images and Tables): a small picture of the image, and a drawing of the rows and columns of a table.</source>
+        <extracomment>In Polish: Na kartach panelu „Obrazy i tabele” (Widok &gt; Panele &gt; Obrazy i tabele): mały obraz, a przy tabeli rysunek jej wierszy i kolumn.</extracomment>
+        <translation>Na kartach panelu „Obrazy i tabele” (Widok &gt; Panele &gt; Obrazy i tabele): mały obraz, a przy tabeli rysunek jej wierszy i kolumn.</translation>
+    </message>
+    <message>
+        <source>Show the pict&amp;ures on the cards</source>
+        <extracomment>In Polish: Pokazuj obraz&amp;y na kartach</extracomment>
+        <translation>Pokazuj obraz&amp;y na kartach</translation>
+    </message>
+    <message>
+        <source>Lines of a caption on its ca&amp;rd:</source>
+        <extracomment>In Polish: W&amp;iersze podpisu na karcie:</extracomment>
+        <translation>W&amp;iersze podpisu na karcie:</translation>
+    </message>
+    <message>
+        <source>%1 with a number</source>
+        <extracomment>The caption of a spread: a label with its number; %1: the label (&quot;Map&quot;). In Polish: %1 z numerem</extracomment>
+        <translation>%1 z numerem</translation>
+    </message>
+    <message>
+        <source>A caption under the picture, on the right page</source>
+        <extracomment>In Polish: Podpis pod obrazem, na prawej stronie</extracomment>
+        <translation>Podpis pod obrazem, na prawej stronie</translation>
+    </message>
+    <message>
+        <source>Both pages, whole.</source>
+        <extracomment>In Polish: Całe obie strony.</extracomment>
+        <translation>Całe obie strony.</translation>
+    </message>
+    <message>
+        <source>Fill</source>
+        <extracomment>In Polish: Wypełnij</extracomment>
+        <translation>Wypełnij</translation>
+    </message>
+    <message>
+        <source>Fit:</source>
+        <extracomment>How the picture of a new spread fits its area. In Polish: Dopasowanie:</extracomment>
+        <translation>Dopasowanie:</translation>
+    </message>
+    <message>
+        <source>How a new spread lies on its two pages. Each spread keeps its own settings, on its card.</source>
+        <extracomment>In Polish: Jak nowa rozkładówka układa się na dwóch stronach. Każda rozkładówka ma potem własne ustawienia, na swojej karcie.</extracomment>
+        <translation>Jak nowa rozkładówka układa się na dwóch stronach. Każda rozkładówka ma potem własne ustawienia, na swojej karcie.</translation>
+    </message>
+    <message>
+        <source>Label of the caption of a new spread</source>
+        <extracomment>The label of the caption of a new spread (for screen readers). In Polish: Etykieta podpisu nowej rozkładówki</extracomment>
+        <translation>Etykieta podpisu nowej rozkładówki</translation>
+    </message>
+    <message>
+        <source>Nothing is lost; the room left stays white.</source>
+        <extracomment>In Polish: Nic nie ginie, wolne miejsce zostaje białe.</extracomment>
+        <translation>Nic nie ginie, wolne miejsce zostaje białe.</translation>
+    </message>
+    <message>
+        <source>Page numbers and running head</source>
+        <extracomment>In Polish: Numery stron i żywa pagina</extracomment>
+        <translation>Numery stron i żywa pagina</translation>
+    </message>
+    <message>
+        <source>Room at the spine:</source>
+        <extracomment>The room at the spine of a new spread. In Polish: Zapas na grzbiet:</extracomment>
+        <translation>Zapas na grzbiet:</translation>
+    </message>
+    <message>
+        <source>Spreads</source>
+        <extracomment>The group of Settings &gt; Editor &gt; Images with the settings of new spreads (a picture over two pages of the book). In Polish: Rozkładówki</extracomment>
+        <translation>Rozkładówki</translation>
+    </message>
+    <message>
+        <source>The halves of the picture move away from the fold, and the strip at the spine shows on both pages.</source>
+        <extracomment>In Polish: Połówki obrazu odsuwają się od zgięcia, a pasek przy grzbiecie jest na obu stronach.</extracomment>
+        <translation>Połówki obrazu odsuwają się od zgięcia, a pasek przy grzbiecie jest na obu stronach.</translation>
+    </message>
+    <message>
+        <source>The picture fills the area, and its edges beyond it are cut off.</source>
+        <extracomment>In Polish: Obraz wypełnia pole, a brzegi poza nim są przycięte.</extracomment>
+        <translation>Obraz wypełnia pole, a brzegi poza nim są przycięte.</translation>
+    </message>
+    <message>
+        <source>The picture takes:</source>
+        <extracomment>Where the picture of a new spread lies. In Polish: Obraz zajmuje:</extracomment>
+        <translation>Obraz zajmuje:</translation>
+    </message>
+    <message>
+        <source>The top, bottom and outer margins stay; across the spine the picture goes on without a break.</source>
+        <extracomment>In Polish: Górny, dolny i zewnętrzne marginesy zostają; przez grzbiet obraz biegnie bez przerwy.</extracomment>
+        <translation>Górny, dolny i zewnętrzne marginesy zostają; przez grzbiet obraz biegnie bez przerwy.</translation>
+    </message>
+    <message>
+        <source>The whole picture</source>
+        <extracomment>In Polish: Cały obraz</extracomment>
+        <translation>Cały obraz</translation>
+    </message>
+    <message>
+        <source>Title in the table of contents</source>
+        <extracomment>In Polish: Tytuł w spisie treści</extracomment>
+        <translation>Tytuł w spisie treści</translation>
+    </message>
+    <message>
+        <source>To the edges of the paper</source>
+        <extracomment>In Polish: Do krawędzi papieru</extracomment>
+        <translation>Do krawędzi papieru</translation>
+    </message>
+    <message>
+        <source>Within the margins</source>
+        <extracomment>In Polish: W marginesach</extracomment>
+        <translation>W marginesach</translation>
+    </message>
+    <message>
+        <source>without a label and number</source>
+        <extracomment>The caption of a spread: its text alone. In Polish: bez etykiety i numeru</extracomment>
+        <translation>bez etykiety i numeru</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorPagesPage</name>
@@ -8518,10 +9476,6 @@ Pomaga zobaczyć granice marginesów.</translation>
         <translation>Podgląd stron 2 i 3</translation>
     </message>
     <message>
-        <source>Pages 2 and 3 of a chapter. Page 1 is a right page, so its inner margin is on the left. A chapter can start on a left page: &quot;Starts on a left page&quot; in the Properties panel.</source>
-        <translation>Strony 2 i 3 rozdziału. Strona 1 jest prawa, więc margines wewnętrzny ma po lewej. Rozdział może zaczynać się na lewej stronie: „Zaczyna się na lewej stronie” w panelu Właściwości.</translation>
-    </message>
-    <message>
         <source>Preview:</source>
         <translation>Podgląd:</translation>
     </message>
@@ -8631,6 +9585,64 @@ Pomaga zobaczyć granice marginesów.</translation>
         <extracomment>The group of Settings &gt; Editor &gt; Margin Numbering. In Polish: Wygląd numerów</extracomment>
         <translation>Wygląd numerów</translation>
     </message>
+    <message>
+        <source>Page numbers:</source>
+        <translation>Numeracja stron:</translation>
+    </message>
+    <message>
+        <source>Through the whole book</source>
+        <extracomment>How the pages of a text are numbered in the editor. In Polish: W całej książce</extracomment>
+        <translation>Ciągła w całej książce</translation>
+    </message>
+    <message>
+        <source>The pages are numbered through the whole book, in reading order: the first page of a text has the number after the last page of the text before it. The status bar gives the page of the book and the page of the text.</source>
+        <extracomment>In Polish: Strony są numerowane w całej książce, w kolejności czytania: pierwsza strona tekstu ma numer po ostatniej stronie tekstu przed nim. Pasek stanu podaje stronę książki i stronę tekstu.</extracomment>
+        <translation>Strony są numerowane w całej książce, w kolejności czytania: pierwsza strona tekstu ma numer następny po ostatniej stronie tekstu przed nim. Pasek stanu podaje stronę książki i stronę tekstu.</translation>
+    </message>
+    <message>
+        <source>Each text from 1</source>
+        <extracomment>How the pages of a text are numbered in the editor. In Polish: Każdy tekst od 1</extracomment>
+        <translation>Każdy tekst od 1</translation>
+    </message>
+    <message>
+        <source>Each text has its own page numbers, from 1.</source>
+        <extracomment>In Polish: Każdy tekst ma swoje numery stron, od 1.</extracomment>
+        <translation>Każdy tekst ma własną numerację stron, od 1.</translation>
+    </message>
+    <message>
+        <source>Texts start on:</source>
+        <translation>Teksty zaczynają się na:</translation>
+    </message>
+    <message>
+        <source>A right page</source>
+        <extracomment>Where a chapter starts in the printed book. In Polish: Prawej stronie</extracomment>
+        <translation>Prawej stronie</translation>
+    </message>
+    <message>
+        <source>A text that would start on a left page has an empty left page before it, as in a printed book.</source>
+        <extracomment>In Polish: Przed tekstem, który zaczynałby się na lewej stronie, zostaje pusta lewa strona, jak w drukowanej książce.</extracomment>
+        <translation>Tekst, który zacząłby się na lewej stronie, ma przed sobą pustą lewą stronę – jak w drukowanej książce.</translation>
+    </message>
+    <message>
+        <source>The next page, left or right</source>
+        <extracomment>Where a chapter starts in the printed book. In Polish: Następnej stronie, lewej lub prawej</extracomment>
+        <translation>Następnej stronie, lewej albo prawej</translation>
+    </message>
+    <message>
+        <source>No empty pages between the texts.</source>
+        <extracomment>In Polish: Bez pustych stron między tekstami.</extracomment>
+        <translation>Bez pustych stron między tekstami.</translation>
+    </message>
+    <message>
+        <source>For the chapters and the other texts whose kind has no page of its own; the title page, the dedication or the title of a part start where the book type says. A text can have a page of its own in the Properties panel (&quot;First page&quot;).</source>
+        <extracomment>In Polish: Dotyczy rozdziałów i innych tekstów, których rodzaj nie ma swojej strony; strona tytułowa, dedykacja czy tytuł części zaczynają się tam, gdzie mówi typ książki. Tekst może mieć własną stronę we Właściwościach („Pierwsza strona”).</extracomment>
+        <translation>Dotyczy rozdziałów i innych tekstów, których rodzaj nie ma swojej strony; strona tytułowa, dedykacja czy tytuł części zaczynają się tam, gdzie mówi typ książki. Tekst może mieć własną stronę w panelu Właściwości („Pierwsza strona”).</translation>
+    </message>
+    <message>
+        <source>Pages 2 and 3 of a chapter. Page 1 is a right page, so its inner margin is on the left. A chapter can start on a left page: &quot;First page&quot; in the Properties panel.</source>
+        <extracomment>In Polish: Strony 2 i 3 rozdziału. Strona 1 jest prawa, więc jej wewnętrzny margines jest po lewej. Rozdział może zaczynać się na lewej stronie: „Pierwsza strona” we Właściwościach.</extracomment>
+        <translation>Strony 2 i 3 rozdziału. Strona 1 jest prawa, więc margines wewnętrzny ma po lewej. Rozdział może zaczynać się na lewej stronie: „Pierwsza strona” w panelu Właściwości.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorPanel</name>
@@ -8734,6 +9746,16 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <source>The image could not be saved as &quot;%1&quot;.</source>
         <extracomment>In Polish: Nie udało się zapisać obrazu w pliku „%1”.</extracomment>
         <translation>Nie udało się zapisać obrazu w pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>Page %1 (%2 of %3)</source>
+        <extracomment>The status bar, the pages numbered through the book: the number the page shows, then its page in the text. In Polish: Strona %1 (%2 z %3)</extracomment>
+        <translation>Strona %1 (%2 z %3)</translation>
+    </message>
+    <message>
+        <source>Page %1 of %2</source>
+        <extracomment>The status bar. In Polish: Strona %1 z %2</extracomment>
+        <translation>Strona %1 z %2</translation>
     </message>
 </context>
 <context>
@@ -8971,6 +9993,309 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <source>A plain text file keeps no fields</source>
         <extracomment>Why Insert &gt; Field... is greyed out in a .txt file. In Polish: Plik zwykłego tekstu nie przechowuje pól</extracomment>
         <translation>Plik zwykłego tekstu nie przechowuje pól</translation>
+    </message>
+    <message>
+        <source>The book already has a field of this name.</source>
+        <extracomment>In Polish: Książka ma już pole o tej nazwie.</extracomment>
+        <translation>Książka ma już pole o tej nazwie.</translation>
+    </message>
+    <message>
+        <source>The field “%1” was deleted.</source>
+        <extracomment>In Polish: Usunięto pole „%1”.</extracomment>
+        <translation>Usunięto pole „%1”.</translation>
+    </message>
+    <message>
+        <source>&amp;Undo</source>
+        <extracomment>In Polish: Cofn&amp;ij / Przywróć pole we wszystkich tekstach</extracomment>
+        <translation>Cofn&amp;ij</translation>
+    </message>
+    <message>
+        <source>Bring the field back in every text</source>
+        <translation>Przywróć pole we wszystkich tekstach</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FileAssociations</name>
+    <message>
+        <source>Kalahari book</source>
+        <extracomment>The type of the .klh files in Windows Explorer. In Polish: Książka programu Kalahari</extracomment>
+        <translation>Książka programu Kalahari</translation>
+    </message>
+    <message>
+        <source>Kalahari document</source>
+        <extracomment>The type of the .kchapter files in Windows Explorer. In Polish: Dokument programu Kalahari</extracomment>
+        <translation>Dokument programu Kalahari</translation>
+    </message>
+    <message>
+        <source>Windows did not let the program write its registration (%1).</source>
+        <extracomment>%1 is a key of the registry. In Polish: System Windows nie pozwolił programowi zapisać rejestracji (%1).</extracomment>
+        <translation>System Windows nie pozwolił programowi zapisać rejestracji (%1).</translation>
+    </message>
+    <message>
+        <source>The program needs xdg-utils (the command xdg-mime), which the system does not have.</source>
+        <extracomment>In Polish: Program potrzebuje xdg-utils (polecenia xdg-mime), których system nie ma.</extracomment>
+        <translation>Program potrzebuje xdg-utils (polecenia xdg-mime), których system nie ma.</translation>
+    </message>
+    <message>
+        <source>The program does not have the description of its files (%1).</source>
+        <extracomment>In Polish: Program nie ma opisu swoich plików (%1).</extracomment>
+        <translation>Program nie ma opisu swoich plików (%1).</translation>
+    </message>
+    <message>
+        <source>Write, plan and publish books</source>
+        <extracomment>The description of Kalahari in Windows Settings &gt; Apps &gt; Default apps. In Polish: Pisanie, planowanie i wydawanie książek</extracomment>
+        <translation>Pisanie, planowanie i wydawanie książek</translation>
+    </message>
+    <message>
+        <source>The program needs macOS 12 or later.</source>
+        <extracomment>In Polish: Program potrzebuje systemu macOS 12 lub nowszego.</extracomment>
+        <translation>Program potrzebuje systemu macOS 12 lub nowszego.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FileAssociationsPage</name>
+    <message>
+        <source>Kalahari opens them</source>
+        <extracomment>Which program opens the files of a row. In Polish: Otwiera je Kalahari</extracomment>
+        <translation>Otwiera je Kalahari</translation>
+    </message>
+    <message>
+        <source>%1 opens them</source>
+        <extracomment>%1 is the name of another program. In Polish: Otwiera je %1</extracomment>
+        <translation>Otwiera je %1</translation>
+    </message>
+    <message>
+        <source>No program opens them: the system asks which one to use</source>
+        <extracomment>In Polish: Nie otwiera ich żaden program: system pyta, którego użyć</extracomment>
+        <translation>Nie otwiera ich żaden program: system pyta, którego użyć</translation>
+    </message>
+    <message>
+        <source>The system does not tell</source>
+        <extracomment>In Polish: System tego nie podaje</extracomment>
+        <translation>System tego nie podaje</translation>
+    </message>
+    <message>
+        <source>The system does not tell: %1</source>
+        <extracomment>%1 is why. In Polish: System tego nie podaje: %1</extracomment>
+        <translation>System tego nie podaje: %1</translation>
+    </message>
+    <message>
+        <source>Files of Kalahari</source>
+        <extracomment>The group of Settings &gt; Files &gt; File Associations. In Polish: Pliki programu Kalahari</extracomment>
+        <translation>Pliki programu Kalahari</translation>
+    </message>
+    <message>
+        <source>The system opens these files with the program it gives them. The installer gives them Kalahari; here you can see whether it still does.</source>
+        <extracomment>In Polish: System otwiera te pliki w programie, który im przypisano. Instalator przypisuje im program Kalahari; tutaj widać, czy tak jest nadal.</extracomment>
+        <translation>System otwiera te pliki w programie, który im przypisano. Instalator przypisuje im program Kalahari; tutaj widać, czy tak jest nadal.</translation>
+    </message>
+    <message>
+        <source>Books (.klh):</source>
+        <extracomment>In Polish: Książki (.klh):</extracomment>
+        <translation>Książki (.klh):</translation>
+    </message>
+    <message>
+        <source>Documents (.kchapter):</source>
+        <extracomment>In Polish: Dokumenty (.kchapter):</extracomment>
+        <translation>Dokumenty (.kchapter):</translation>
+    </message>
+    <message>
+        <source>&amp;Associate with Kalahari</source>
+        <extracomment>In Polish: &amp;Powiąż z programem Kalahari</extracomment>
+        <translation>&amp;Powiąż z programem Kalahari</translation>
+    </message>
+    <message>
+        <source>&amp;Default Apps in Windows Settings…</source>
+        <extracomment>Opens Settings &gt; Apps &gt; Default apps of Windows. In Polish (short: the button fits the narrowest window): &amp;Aplikacje domyślne w Ustawieniach systemu…</extracomment>
+        <translation>&amp;Aplikacje domyślne w Ustawieniach systemu…</translation>
+    </message>
+    <message>
+        <source>Windows Settings did not open.</source>
+        <extracomment>In Polish: Ustawienia systemu Windows się nie otworzyły.</extracomment>
+        <translation>Ustawienia systemu Windows się nie otworzyły.</translation>
+    </message>
+    <message>
+        <source>Windows lets only you choose the default program of a kind of files. The button registers Kalahari as a program that opens them; when another program still opens them, choose Kalahari on the Default Apps page of Windows Settings.</source>
+        <extracomment>In Polish: W systemie Windows domyślny program danego rodzaju plików możesz wybrać tylko Ty. Przycisk rejestruje Kalahari jako program, który je otwiera; jeśli nadal otwiera je inny program, wybierz Kalahari na stronie Aplikacje domyślne w Ustawieniach systemu Windows.</extracomment>
+        <translation>W systemie Windows domyślny program danego rodzaju plików możesz wybrać tylko Ty. Przycisk rejestruje Kalahari jako program, który je otwiera; jeśli nadal otwiera je inny program, wybierz Kalahari na stronie Aplikacje domyślne w Ustawieniach systemu Windows.</translation>
+    </message>
+    <message>
+        <source>macOS may ask you to confirm the change.</source>
+        <extracomment>In Polish: System macOS może poprosić o potwierdzenie zmiany.</extracomment>
+        <translation>System macOS może poprosić o potwierdzenie zmiany.</translation>
+    </message>
+    <message>
+        <source>The button makes Kalahari the default program of these files with xdg-utils; the AppImage first adds the kinds of its files and its menu entry for you.</source>
+        <extracomment>In Polish: Przycisk ustawia Kalahari jako domyślny program tych plików za pomocą xdg-utils; program w pliku AppImage najpierw dodaje dla Ciebie rodzaje swoich plików i swój skrót w menu.</extracomment>
+        <translation>Przycisk ustawia Kalahari jako domyślny program tych plików za pomocą xdg-utils; program w pliku AppImage najpierw dodaje dla Ciebie rodzaje swoich plików i swój skrót w menu.</translation>
+    </message>
+    <message>
+        <source>Kalahari could not become the program of its files: %1</source>
+        <extracomment>%1 is what went wrong. In Polish: Nie udało się powiązać plików z programem Kalahari: %1</extracomment>
+        <translation>Nie udało się powiązać plików z programem Kalahari: %1</translation>
+    </message>
+    <message>
+        <source>Kalahari opens its books and documents now.</source>
+        <extracomment>In Polish: Kalahari otwiera teraz swoje książki i dokumenty.</extracomment>
+        <translation>Kalahari otwiera teraz swoje książki i dokumenty.</translation>
+    </message>
+    <message>
+        <source>Kalahari is registered, yet Windows still opens some of the files with another program: choose Kalahari on the Default Apps page of Windows Settings.</source>
+        <extracomment>In Polish: Program Kalahari jest zarejestrowany, ale Windows nadal otwiera część tych plików innym programem: wybierz Kalahari na stronie Aplikacje domyślne w Ustawieniach systemu Windows.</extracomment>
+        <translation>Program Kalahari jest zarejestrowany, ale Windows nadal otwiera część tych plików innym programem: wybierz Kalahari na stronie Aplikacje domyślne w Ustawieniach systemu Windows.</translation>
+    </message>
+    <message>
+        <source>The system still opens some of the files with another program.</source>
+        <extracomment>In Polish: System nadal otwiera część tych plików innym programem.</extracomment>
+        <translation>System nadal otwiera część tych plików innym programem.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FiguresPanel</name>
+    <message numerus="yes">
+        <source>%n row(s)</source>
+        <extracomment>The size of a table without a caption on its card in the panel Images and Tables. In Polish: %n wiersz / %n wiersze / %n wierszy</extracomment>
+        <translation>
+            <numerusform>%n wiersz</numerusform>
+            <numerusform>%n wiersze</numerusform>
+            <numerusform>%n wierszy</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n column(s)</source>
+        <extracomment>In Polish: %n kolumna / %n kolumny / %n kolumn</extracomment>
+        <translation>
+            <numerusform>%n kolumna</numerusform>
+            <numerusform>%n kolumny</numerusform>
+            <numerusform>%n kolumn</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1, %2</source>
+        <extracomment>The rows and the columns of a table: &quot;3 rows, 4 columns&quot;. In Polish: %1, %2</extracomment>
+        <translation>%1, %2</translation>
+    </message>
+    <message>
+        <source>Image</source>
+        <extracomment>The title of a card of an image without a numbered caption. In Polish: Obraz</extracomment>
+        <translation>Obraz</translation>
+    </message>
+    <message>
+        <source>Table</source>
+        <extracomment>The title of a card of a table without a numbered caption. In Polish: Tabela</extracomment>
+        <translation>Tabela</translation>
+    </message>
+    <message>
+        <source>No caption · %1</source>
+        <extracomment>A card of the panel Images and Tables without a caption: &quot;No caption · bridge.png&quot;. In Polish: Bez podpisu · %1</extracomment>
+        <translation>Bez podpisu · %1</translation>
+    </message>
+    <message>
+        <source>Search in the captions and names...</source>
+        <extracomment>The search of the panel Images and Tables. In Polish: Szukaj w podpisach i nazwach...</extracomment>
+        <translation>Szukaj w podpisach i nazwach...</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <extracomment>The scope of the panel Images and Tables: the figures of every text of the book. In Polish: Książka</extracomment>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>Images and Tables</source>
+        <extracomment>The list of the panel Images and Tables. In Polish: Obrazy i tabele</extracomment>
+        <translation>Obrazy i tabele</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <extracomment>The scope of the panel Images and Tables: the figures of the text in front. In Polish: Tekst</extracomment>
+        <translation>Tekst</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <extracomment>The button of the panel Images and Tables that shows every figure. In Polish: Wszystkie</extracomment>
+        <translation>Wszystkie</translation>
+    </message>
+    <message>
+        <source>Images</source>
+        <extracomment>The button of the panel Images and Tables that shows the images. In Polish: Obrazy</extracomment>
+        <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>Tables</source>
+        <extracomment>The button of the panel Images and Tables that shows the tables. In Polish: Tabele</extracomment>
+        <translation>Tabele</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>A button of the kinds of the panel Images and Tables with its count: &quot;Images (4)&quot;</extracomment>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>No text is open. Open a text, or choose Book to see the images and tables of the whole book.</source>
+        <extracomment>In Polish: Żaden tekst nie jest otwarty. Otwórz tekst albo wybierz „Książka”, aby zobaczyć obrazy i tabele całej książki.</extracomment>
+        <translation>Żaden tekst nie jest otwarty. Otwórz tekst albo wybierz „Książka”, aby zobaczyć obrazy i tabele całej książki.</translation>
+    </message>
+    <message>
+        <source>No text is open.</source>
+        <translation>Żaden tekst nie jest otwarty.</translation>
+    </message>
+    <message>
+        <source>The book has no images or tables yet.</source>
+        <translation>Książka nie ma jeszcze obrazów ani tabel.</translation>
+    </message>
+    <message>
+        <source>This text has no images or tables yet: Insert &gt; Image... and Insert &gt; Table... add them.</source>
+        <translation>Ten tekst nie ma jeszcze obrazów ani tabel. Można je dodać poleceniami Wstaw &gt; Obraz... i Wstaw &gt; Tabela...</translation>
+    </message>
+    <message>
+        <source>No caption or name contains “%1”.</source>
+        <extracomment>In Polish: Żaden podpis ani nazwa nie zawiera „%1”.</extracomment>
+        <translation>Żaden podpis ani nazwa nie zawiera „%1”.</translation>
+    </message>
+    <message>
+        <source>No images.</source>
+        <extracomment>In Polish: Brak obrazów.</extracomment>
+        <translation>Brak obrazów.</translation>
+    </message>
+    <message>
+        <source>No tables.</source>
+        <extracomment>In Polish: Brak tabel.</extracomment>
+        <translation>Brak tabel.</translation>
+    </message>
+    <message>
+        <source>&amp;Go to Image</source>
+        <extracomment>The menu of an image in the panel Images and Tables. In Polish: &amp;Przejdź do obrazu</extracomment>
+        <translation>&amp;Przejdź do obrazu</translation>
+    </message>
+    <message>
+        <source>Image &amp;Properties...</source>
+        <extracomment>In Polish: &amp;Właściwości obrazu...</extracomment>
+        <translation>&amp;Właściwości obrazu...</translation>
+    </message>
+    <message>
+        <source>&amp;Go to Table</source>
+        <extracomment>The menu of a table in the panel Images and Tables. In Polish: &amp;Przejdź do tabeli</extracomment>
+        <translation>&amp;Przejdź do tabeli</translation>
+    </message>
+    <message>
+        <source>Table &amp;Properties...</source>
+        <extracomment>In Polish: &amp;Właściwości tabeli...</extracomment>
+        <translation>&amp;Właściwości tabeli...</translation>
+    </message>
+    <message>
+        <source>Edit &amp;Caption...</source>
+        <extracomment>The window of the caption of a figure that has one. In Polish: Zmień po&amp;dpis...</extracomment>
+        <translation>Zmień po&amp;dpis...</translation>
+    </message>
+    <message>
+        <source>Insert &amp;Caption...</source>
+        <extracomment>In Polish: Wstaw po&amp;dpis...</extracomment>
+        <translation>Wstaw po&amp;dpis...</translation>
+    </message>
+    <message>
+        <source>Cop&amp;y Caption</source>
+        <extracomment>Copies the whole caption of a figure: &quot;Figure 3. The bridge&quot;. In Polish: &amp;Kopiuj podpis</extracomment>
+        <translation>&amp;Kopiuj podpis</translation>
     </message>
 </context>
 <context>
@@ -9561,6 +10886,7 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     </message>
     <message>
         <source>Grammar</source>
+        <extracomment>The title of the notification that grammar checking is ready. In Polish: Gramatyka</extracomment>
         <translation>Gramatyka</translation>
     </message>
     <message>
@@ -9739,8 +11065,8 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>In Polish: &amp;Cofnij / Cofnij filtr obrazów</extracomment>
-        <translation>&amp;Cofnij</translation>
+        <extracomment>In Polish: Cofn&amp;ij / Cofnij filtr obrazów</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Undo the filter of the images</source>
@@ -9955,10 +11281,6 @@ Czy zapisać go przed zamknięciem?</translation>
         <translation>Czy zapisać zmiany w %1?</translation>
     </message>
     <message>
-        <source>Page %1 of %2</source>
-        <translation>Strona %1 z %2</translation>
-    </message>
-    <message>
         <source>%1%</source>
         <translation>%1%</translation>
     </message>
@@ -10088,9 +11410,54 @@ Czy zapisać go przed zamknięciem?</translation>
         <extracomment>The title bar of the window with a volume of a series: %1 the title of the volume, %2 its number, %3 the name of the series (&quot;Dunes (volume 2) - Sands - Kalahari&quot;), with the hyphens of the title bar. In Polish: %1 (tom %2) - %3</extracomment>
         <translation>%1 (tom %2) - %3</translation>
     </message>
+    <message>
+        <source>The clipboard holds nothing to paste here</source>
+        <extracomment>Why the pastes of the Edit menu are greyed out in the text. In Polish: W schowku nie ma niczego, co można tu wkleić</extracomment>
+        <translation>W schowku nie ma niczego, co można tu wkleić</translation>
+    </message>
+    <message>
+        <source>Tab guide at %1 mm: Tab aligns the text to it</source>
+        <extracomment>In Polish: Linia tabulatora na %1 mm: Tab wyrównuje do niej tekst</extracomment>
+        <translation>Linia tabulatora na %1 mm: Tab wyrównuje do niej tekst</translation>
+    </message>
+    <message>
+        <source>Tab guide at %1 mm removed</source>
+        <extracomment>In Polish: Usunięto linię tabulatora z %1 mm</extracomment>
+        <translation>Usunięto linię tabulatora z %1 mm</translation>
+    </message>
+    <message>
+        <source>Tab guide at %1 mm</source>
+        <translation>Linia tabulatora na %1 mm</translation>
+    </message>
+    <message>
+        <source>All tab guides removed</source>
+        <translation>Usunięto wszystkie linie tabulatorów</translation>
+    </message>
+    <message>
+        <source>The text has no tab guides: Format &gt; Align Text &gt; Set or Remove Tab Guide sets one at the cursor</source>
+        <extracomment>The menus as the Polish program names them: Format &gt; Wyrównanie &gt; Ustaw lub usuń linię tabulatora</extracomment>
+        <translation>Tekst nie ma linii tabulatorów: Format &gt; Wyrównanie &gt; Ustaw lub usuń linię tabulatora ustawia ją przy kursorze</translation>
+    </message>
+    <message>
+        <source>A tab guide goes inside the text: move the cursor away from its edge</source>
+        <translation>Linia tabulatora musi leżeć wewnątrz tekstu: odsuń kursor od jego krawędzi</translation>
+    </message>
+    <message>
+        <source>The text has %1 tab guides, the most it can have</source>
+        <translation>Tekst ma już %1 linii tabulatorów – więcej mieć nie może</translation>
+    </message>
+    <message>
+        <source>The tab guide at %1 mm goes no further: another guide or the edge of the text is there</source>
+        <translation>Linia tabulatora na %1 mm nie przesunie się dalej: jest tam inna linia albo krawędź tekstu</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
+    <message>
+        <source>For Publishers</source>
+        <extracomment>The tab of the card For Publishers. In Polish: Dla wydawnictwa</extracomment>
+        <translation>Dla wydawnictwa</translation>
+    </message>
     <message>
         <source>Opened: %1</source>
         <translation>Otwarto: %1</translation>
@@ -10467,7 +11834,9 @@ Szczegóły są w dzienniku programu.</translation>
     </message>
     <message>
         <source>Materials</source>
-        <extracomment>The node of the Navigator with the materials of several kinds added at once. In Polish: Materiały</extracomment>
+        <extracomment>The title of the notifications of the downloads of the materials. In Polish: Materiały
+----------
+The node of the Navigator with the materials of several kinds added at once. In Polish: Materiały</extracomment>
         <translation>Materiały</translation>
     </message>
     <message>
@@ -10602,6 +11971,31 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
 </context>
 <context>
     <name>kalahari::gui::NavigatorPage</name>
+    <message>
+        <source>Points of a Synopsis in the Text</source>
+        <extracomment>The group of Settings &gt; Navigator &gt; Texts for Publishers. In Polish: Punkty streszczenia w tekście</extracomment>
+        <translation>Punkty streszczenia w tekście</translation>
+    </message>
+    <message>
+        <source>A mark on the margin</source>
+        <extracomment>In Polish: Znacznik na marginesie</extracomment>
+        <translation>Znacznik na marginesie</translation>
+    </message>
+    <message>
+        <source>Warn of points with no fragment</source>
+        <extracomment>In Polish: Ostrzeżenie o punktach bez fragmentu</extracomment>
+        <translation>Ostrzeżenie o punktach bez fragmentu</translation>
+    </message>
+    <message>
+        <source>Select a fragment of a synopsis and press Ctrl+Shift+D to link it to a point of its template. The mark is a bar on the left margin beside the fragment. The warning comes when the set is copied or exported and a point has no fragment in the text. Each point has its color: of the mark and of the fill of its fragments (Show in the Text over the points). Each theme has its own colors: these are the colors of the current theme.</source>
+        <extracomment>In Polish: Zaznacz fragment streszczenia i naciśnij Ctrl+Shift+D, aby powiązać go z punktem szablonu. Znacznik to kreska na lewym marginesie obok fragmentu. Ostrzeżenie pojawia się przy kopiowaniu i eksporcie zestawu, gdy punkt nie ma fragmentu w tekście. Każdy punkt ma swój kolor: znacznika i podświetlenia fragmentów (Pokaż w tekście nad punktami). Każdy motyw ma własne kolory: to są kolory bieżącego motywu.</extracomment>
+        <translation>Zaznacz fragment streszczenia i naciśnij Ctrl+Shift+D, aby powiązać go z punktem szablonu. Znacznik to kreska na lewym marginesie obok fragmentu. Ostrzeżenie pojawia się przy kopiowaniu i eksporcie zestawu, gdy punkt nie ma fragmentu w tekście. Każdy punkt ma swój kolor: znacznika i podświetlenia fragmentów (Pokaż w tekście nad punktami). Każdy motyw ma własne kolory: to są kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Point %1</source>
+        <extracomment>A color of the points of a synopsis. In Polish: Punkt %1</extracomment>
+        <translation>Punkt %1</translation>
+    </message>
     <message>
         <source>Node Menus</source>
         <translation>Menu węzłów</translation>
@@ -10876,48 +12270,38 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
         <translation>Książka zmienia swój zestaw w widoku zestawu; jego kolejność i części zapisują się w książce.</translation>
     </message>
     <message>
-        <source>Templates</source>
-        <extracomment>The group of Settings &gt; Navigator &gt; Texts for Publishers. In Polish: Szablony</extracomment>
-        <translation>Szablony</translation>
+        <source>Endpapers</source>
+        <extracomment>The group of Settings &gt; Navigator of the colors of the endpapers of the plan of the cover. In Polish: Wyklejki</extracomment>
+        <translation>Wyklejki</translation>
     </message>
     <message>
-        <source>Te&amp;mplates...</source>
-        <extracomment>Opens the window of the templates of the texts for publishers. In Polish: Sza&amp;blony...</extracomment>
-        <translation>Sza&amp;blony...</translation>
+        <source>The colors of a new pattern on an endpaper; each book keeps the colors of its patterns.</source>
+        <extracomment>In Polish: Kolory nowego wzoru na wyklejce; każda książka zachowuje kolory swoich wzorów.</extracomment>
+        <translation>Kolory nowego wzoru na wyklejce; każda książka zachowuje kolory swoich wzorów.</translation>
     </message>
     <message>
-        <source>The templates of the book types and your own, in a window of their own. Your templates are kept at once and work in all your books.</source>
-        <extracomment>In Polish: Szablony typów książek i Twoje własne, w osobnym oknie. Twoje szablony zapisują się od razu i działają we wszystkich Twoich książkach.</extracomment>
-        <translation>Szablony typów książek i Twoje własne, w osobnym oknie. Twoje szablony zapisują się od razu i działają we wszystkich Twoich książkach.</translation>
+        <source>Pattern</source>
+        <extracomment>In Polish: Wzór</extracomment>
+        <translation>Wzór</translation>
     </message>
     <message>
-        <source>&amp;Points of a synopsis:</source>
-        <extracomment>The choice of the group Templates. In Polish: &amp;Punkty streszczenia:</extracomment>
-        <translation>&amp;Punkty streszczenia:</translation>
+        <source>Pattern background and one color</source>
+        <extracomment>The color under a pattern, and the one color of an endpaper at first. In Polish: Tło wzoru i jeden kolor</extracomment>
+        <translation>Tło wzoru i jeden kolor</translation>
     </message>
     <message>
-        <source>Beside the text</source>
-        <extracomment>In Polish: Obok tekstu</extracomment>
-        <translation>Obok tekstu</translation>
-    </message>
-    <message>
-        <source>The points of the template are a list in the Properties panel. Tools &gt; Texts for Publishers &gt; Insert Skeleton puts them in the text when you want.</source>
-        <extracomment>In Polish: Punkty szablonu są listą w panelu Właściwości. Narzędzia &gt; Teksty dla wydawnictwa &gt; Wstaw szkielet wstawia je do tekstu, gdy chcesz.</extracomment>
-        <translation>Punkty szablonu są listą w panelu Właściwości. Narzędzia &gt; Teksty dla wydawnictwa &gt; Wstaw szkielet wstawia je do tekstu, gdy chcesz.</translation>
-    </message>
-    <message>
-        <source>In the text, as headings</source>
-        <extracomment>In Polish: W tekście, jako nagłówki</extracomment>
-        <translation>W tekście, jako nagłówki</translation>
-    </message>
-    <message>
-        <source>A new synopsis starts with the headings of the points, each with a gray hint that goes when you type. The length and the set leave the headings out.</source>
-        <extracomment>In Polish: Nowe streszczenie zaczyna się od nagłówków punktów, każdy z szarą podpowiedzią, która znika, gdy piszesz. Długość i zestaw pomijają nagłówki.</extracomment>
-        <translation>Nowe streszczenie zaczyna się od nagłówków punktów, każdy z szarą podpowiedzią, która znika, gdy piszesz. Długość i zestaw pomijają nagłówki.</translation>
+        <source>Paper without a fill</source>
+        <extracomment>The paper of an endpaper without a fill. In Polish: Papier bez wypełnienia</extracomment>
+        <translation>Papier bez wypełnienia</translation>
     </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>
+    <message>
+        <source>For Publishers</source>
+        <extracomment>The node at the top of the Workshop in the Navigator, after Plot Board, that shows the card of the texts for publishers and the set on a tab. In Polish: Dla wydawnictwa</extracomment>
+        <translation>Dla wydawnictwa</translation>
+    </message>
     <message>
         <source>All</source>
         <translation>Wszystko</translation>
@@ -11231,11 +12615,6 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
         <translation>&amp;Ustawienia źródeł...</translation>
     </message>
     <message>
-        <source>Show on the Plot &amp;Board</source>
-        <extracomment>The command of the book, a part and a text of the main section in the Navigator: the plot board with its card chosen. In Polish: Pokaż na &amp;tablicy fabuły</extracomment>
-        <translation>Pokaż na &amp;tablicy fabuły</translation>
-    </message>
-    <message>
         <source>Series Structure</source>
         <extracomment>The header of the Navigator with the open series of books. In Polish: Struktura serii</extracomment>
         <translation>Struktura serii</translation>
@@ -11257,7 +12636,7 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
     </message>
     <message>
         <source>New &amp;Volume...</source>
-        <extracomment>The command of the series and of its volumes in the Navigator, as Book &gt; New Volume... In Polish: N&amp;owy tom...</extracomment>
+        <extracomment>The command of the project&apos;s node in the Navigator (a book or a series), as Book &gt; New Volume... In Polish: N&amp;owy tom...</extracomment>
         <translation>N&amp;owy tom...</translation>
     </message>
     <message>
@@ -11284,6 +12663,36 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
         <source>Take &amp;Out as a Book...</source>
         <extracomment>The command of a volume in the Navigator: the volume copied out as a book of its own. In Polish: Wydziel jako osobną &amp;książkę...</extracomment>
         <translation>Wydziel jako osobną &amp;książkę...</translation>
+    </message>
+    <message>
+        <source>in the plan</source>
+        <extracomment>At the right of a text in the plan, without a file, in the Navigator. In Polish: w planie</extracomment>
+        <translation>w planie</translation>
+    </message>
+    <message>
+        <source>A chapter in the plan, without a file. Menu: Create the Chapter File</source>
+        <extracomment>The tooltip of a text in the plan in the Navigator. In Polish: Rozdział w planie, bez pliku. Menu: Utwórz plik rozdziału</extracomment>
+        <translation>Rozdział w planie, bez pliku. Menu: Utwórz plik rozdziału</translation>
+    </message>
+    <message>
+        <source>&amp;Create the Chapter File</source>
+        <extracomment>The menu of a text in the plan, without a file, in the Navigator. In Polish: Utwó&amp;rz plik rozdziału</extracomment>
+        <translation>Utwó&amp;rz plik rozdziału</translation>
+    </message>
+    <message>
+        <source>Show in the &amp;Book Plan</source>
+        <extracomment>The command of the book, a part and a text of the main section in the Navigator: the plan of the book with its card chosen. In Polish: Pokaż w p&amp;lanie książki</extracomment>
+        <translation>Pokaż w p&amp;lanie książki</translation>
+    </message>
+    <message>
+        <source>Book Plan</source>
+        <extracomment>The first node of the Workshop in the Navigator: the board, the outline and the chronology of the book on their tab. In Polish: Plan książki</extracomment>
+        <translation>Plan książki</translation>
+    </message>
+    <message>
+        <source>The board, the outline and the chronology of the book</source>
+        <extracomment>In Polish: Tablica, konspekt i chronologia książki</extracomment>
+        <translation>Tablica, konspekt i chronologia książki</translation>
     </message>
 </context>
 <context>
@@ -11361,8 +12770,8 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>In Polish: &amp;Cofnij / Połącz teksty z powrotem</extracomment>
-        <translation>&amp;Cofnij</translation>
+        <extracomment>In Polish: Cofn&amp;ij / Połącz teksty z powrotem</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Join the texts again</source>
@@ -11395,6 +12804,168 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
         <source>%1 – keep · Esc – cancel</source>
         <extracomment>%1 is the keys that keep the text: &quot;Ctrl+Enter&quot; (on macOS their symbols). In Polish: %1 – zachowaj · Esc – anuluj</extracomment>
         <translation>%1 – zachowaj · Esc – anuluj</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::NotificationCoordinator</name>
+    <message>
+        <source>%1: %2</source>
+        <translation>%1: %2</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <extracomment>The title of notifications of several titles. In Polish: Powiadomienia
+----------
+The title of the sample notification of Settings &gt; Notifications. In Polish: Powiadomienia</extracomment>
+        <translation>Powiadomienia</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <extracomment>The button of a notification at the bottom of the window. In Polish: Kopiuj</extracomment>
+        <translation>Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copy this message</source>
+        <extracomment>In Polish: Kopiuj tę wiadomość</extracomment>
+        <translation>Kopiuj tę wiadomość</translation>
+    </message>
+    <message>
+        <source>Notification Settings</source>
+        <extracomment>The gear of the bar of notifications. In Polish: Ustawienia powiadomień</extracomment>
+        <translation>Ustawienia powiadomień</translation>
+    </message>
+    <message>
+        <source>This is how the program&apos;s notifications look.</source>
+        <extracomment>The sample notification of Settings &gt; Notifications. In Polish: Tak wyglądają powiadomienia programu.</extracomment>
+        <translation>Tak wyglądają powiadomienia programu.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::NotificationsPage</name>
+    <message>
+        <source>Notifications are what the program says on its own: goals reached, new badges, deadlines coming, messages of plugins, grammar checking ready, a material that could not be downloaded. The answers to commands (e.g. a bar with Undo after a command) stay where they are.</source>
+        <extracomment>In Polish: Powiadomienia to to, co program mówi sam z siebie: osiągnięte cele, nowe odznaki, zbliżające się terminy, wiadomości dodatków, gotowe sprawdzanie gramatyki, materiał, którego nie udało się pobrać. Odpowiedzi na polecenia (np. pasek z przyciskiem „Cofnij” po poleceniu) zostają tam, gdzie są.</extracomment>
+        <translation>Powiadomienia to to, co program mówi sam z siebie: osiągnięte cele, nowe odznaki, zbliżające się terminy, wiadomości dodatków, gotowe sprawdzanie gramatyki, materiał, którego nie udało się pobrać. Odpowiedzi na polecenia (np. pasek z przyciskiem „Cofnij” po poleceniu) zostają tam, gdzie są.</translation>
+    </message>
+    <message>
+        <source>Where They Show</source>
+        <extracomment>In Polish: Gdzie pokazywać</extracomment>
+        <translation>Gdzie pokazywać</translation>
+    </message>
+    <message>
+        <source>Show notifications:</source>
+        <translation>Pokazuj powiadomienia:</translation>
+    </message>
+    <message>
+        <source>In the bar at the bottom of the window</source>
+        <extracomment>In Polish: Na pasku na dole okna</extracomment>
+        <translation>Na pasku na dole okna</translation>
+    </message>
+    <message>
+        <source>Under the text, with Copy. It does not stop the writing; it stays until it is closed or the next notification comes.</source>
+        <extracomment>In Polish: Pod tekstem, z przyciskiem „Kopiuj”. Nie przerywa pisania; zostaje, dopóki nie zostanie zamknięty albo nie przyjdzie następne powiadomienie.</extracomment>
+        <translation>Pod tekstem, z przyciskiem „Kopiuj”. Nie przerywa pisania; zostaje, dopóki nie zostanie zamknięty albo nie przyjdzie następne powiadomienie.</translation>
+    </message>
+    <message>
+        <source>In the program&apos;s window</source>
+        <extracomment>In Polish: W oknie programu</extracomment>
+        <translation>W oknie programu</translation>
+    </message>
+    <message>
+        <source>A window over the book window, with Copy. It does not take the keys from the text; the next notifications are added to it while it is open.</source>
+        <extracomment>In Polish: Okno nad oknem książki, z przyciskiem „Kopiuj”. Nie zabiera klawiszy tekstowi; kolejne powiadomienia dochodzą do niego, dopóki jest otwarte.</extracomment>
+        <translation>Okno nad oknem książki, z przyciskiem „Kopiuj”. Nie zabiera klawiszy tekstowi; kolejne powiadomienia dochodzą do niego, dopóki jest otwarte.</translation>
+    </message>
+    <message>
+        <source>As notifications of the system</source>
+        <extracomment>In Polish: Jako powiadomienia systemu</extracomment>
+        <translation>Jako powiadomienia systemu</translation>
+    </message>
+    <message>
+        <source>In the corner of the screen, as the notifications of other programs, with the program&apos;s icon in the system tray.</source>
+        <extracomment>In Polish: W rogu ekranu, jak powiadomienia innych programów, z ikoną programu w zasobniku systemowym.</extracomment>
+        <translation>W rogu ekranu, jak powiadomienia innych programów, z ikoną programu w zasobniku systemowym.</translation>
+    </message>
+    <message>
+        <source>This system shows no notifications of programs here: the bar at the bottom of the window shows them.</source>
+        <translation>Ten system nie pokazuje tu powiadomień programów: pokaże je pasek na dole okna.</translation>
+    </message>
+    <message>
+        <source>In the Notifications panel</source>
+        <extracomment>In Polish: W panelu „Powiadomienia”</extracomment>
+        <translation>W panelu „Powiadomienia”</translation>
+    </message>
+    <message>
+        <source>The panel on the right opens with them (View &gt; Panels &gt; Notifications).</source>
+        <extracomment>In Polish: Panel po prawej otwiera się z nimi (Widok &gt; Panele &gt; Powiadomienia).</extracomment>
+        <translation>Panel po prawej otwiera się z nimi (Widok &gt; Panele &gt; Powiadomienia).</translation>
+    </message>
+    <message>
+        <source>Show a &amp;Sample</source>
+        <extracomment>In Polish: Pokaż &amp;przykład</extracomment>
+        <translation>Pokaż &amp;przykład</translation>
+    </message>
+    <message>
+        <source>Show a sample notification in the place chosen</source>
+        <extracomment>In Polish: Pokaż przykładowe powiadomienie w wybranym miejscu</extracomment>
+        <translation>Pokaż przykładowe powiadomienie w wybranym miejscu</translation>
+    </message>
+    <message>
+        <source>Whatever the choice, the Notifications panel keeps the notifications of this session with their time, and copies them. Which messages of the statistics show is chosen on the page Statistics and Goals &gt; Notifications.</source>
+        <extracomment>In Polish: Niezależnie od wyboru panel „Powiadomienia” przechowuje powiadomienia tej sesji z godziną i pozwala je skopiować. Które wiadomości statystyk się pokazują – wybiera się na stronie Statystyki i cele &gt; Powiadomienia.</extracomment>
+        <translation>Niezależnie od wyboru panel „Powiadomienia” przechowuje powiadomienia tej sesji z godziną i pozwala je skopiować. Które wiadomości statystyk się pokazują – wybiera się na stronie Statystyki i cele &gt; Powiadomienia.</translation>
+    </message>
+    <message>
+        <source>Colors</source>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>The colors of the bar of notifications at the bottom of the window and of the notifications in the Notifications panel. Each theme has its own colors: these are the colors of the current theme.</source>
+        <extracomment>In Polish: Kolory paska powiadomień na dole okna i powiadomień w panelu „Powiadomienia”. Każdy motyw ma własne kolory: to kolory bieżącego motywu.</extracomment>
+        <translation>Kolory paska powiadomień na dole okna i powiadomień w panelu „Powiadomienia”. Każdy motyw ma własne kolory: to kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <extracomment>In Polish: Tło</extracomment>
+        <translation>Tło</translation>
+    </message>
+    <message>
+        <source>Border</source>
+        <extracomment>In Polish: Obramowanie</extracomment>
+        <translation>Obramowanie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::NotificationsPanel</name>
+    <message>
+        <source>The program&apos;s notifications of this session show here: goals reached, deadlines coming, messages of plugins and more. Settings &gt; Notifications chooses where they show first.</source>
+        <extracomment>The Notifications panel without notifications. In Polish: Tu pojawiają się powiadomienia programu z tej sesji: osiągnięte cele, zbliżające się terminy, wiadomości dodatków i inne. Gdzie pokazują się najpierw – wybiera się w Ustawieniach &gt; Powiadomienia.</extracomment>
+        <translation>Tu pojawiają się powiadomienia programu z tej sesji: osiągnięte cele, zbliżające się terminy, wiadomości dodatków i inne. Gdzie pokazują się najpierw – wybiera się w Ustawieniach &gt; Powiadomienia.</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <extracomment>In Polish: Powiadomienia</extracomment>
+        <translation>Powiadomienia</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <extracomment>Copies the chosen notification of the Notifications panel. In Polish: Kopiuj</extracomment>
+        <translation>Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copy the chosen notification, or the latest without a choice</source>
+        <extracomment>In Polish: Kopiuj wybrane powiadomienie, a bez wyboru – ostatnie</extracomment>
+        <translation>Kopiuj wybrane powiadomienie, a bez wyboru – ostatnie</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <extracomment>Takes all the notifications away from the Notifications panel. In Polish: Wyczyść</extracomment>
+        <translation>Wyczyść</translation>
+    </message>
+    <message>
+        <source>Take all the notifications away from the panel</source>
+        <extracomment>In Polish: Usuń wszystkie powiadomienia z panelu</extracomment>
+        <translation>Usuń wszystkie powiadomienia z panelu</translation>
     </message>
 </context>
 <context>
@@ -11577,16 +13148,6 @@ Mimo to wydzielić tom? Nowa książka dostanie tekst zapisany wcześniej.</tran
 </context>
 <context>
     <name>kalahari::gui::PlotBoardCoordinator</name>
-    <message>
-        <source>The plot board shows the texts of an open book.</source>
-        <extracomment>The status bar after Book &gt; Plot Board without a book. In Polish: Tablica fabuły pokazuje teksty otwartej książki.</extracomment>
-        <translation>Tablica fabuły pokazuje teksty otwartej książki.</translation>
-    </message>
-    <message>
-        <source>Plot Board</source>
-        <extracomment>The tab of the cards of the texts of the book. In Polish: Tablica fabuły</extracomment>
-        <translation>Tablica fabuły</translation>
-    </message>
     <message>
         <source>The card &quot;%1&quot; changed.</source>
         <extracomment>Under the plot board after a card was edited; %1 the title. In Polish: Zmieniono kartę „%1”.</extracomment>
@@ -11868,6 +13429,103 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
         <extracomment>Under the plot board: the only scene of a text was to move to another text; %1 the scene. In Polish: „%1” to jedyna scena tekstu.</extracomment>
         <translation>„%1” to jedyna scena tekstu.</translation>
     </message>
+    <message>
+        <source>The book plan shows the texts of an open book.</source>
+        <extracomment>The status bar after Book &gt; Book Plan without a book. In Polish: Plan książki pokazuje teksty otwartej książki.</extracomment>
+        <translation>Plan książki pokazuje teksty otwartej książki.</translation>
+    </message>
+    <message>
+        <source>Book Plan</source>
+        <extracomment>The tab of the plan of the book: the board, the outline and the chronology. In Polish: Plan książki</extracomment>
+        <translation>Plan książki</translation>
+    </message>
+    <message>
+        <source>adding &quot;%1&quot; to the plan</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title of a text in the plan. In Polish: dodanie „%1” do planu</extracomment>
+        <translation>dodanie „%1” do planu</translation>
+    </message>
+    <message>
+        <source>adding &quot;%1&quot;</source>
+        <translation>dodanie „%1”</translation>
+    </message>
+    <message>
+        <source>Added &quot;%1&quot; to the plan after &quot;%2&quot;, without a file yet.</source>
+        <extracomment>Under the plot board after Ctrl+Shift+Insert; %1 the title of the new text in the plan, %2 the card it is after. In Polish: Dodano „%1” do planu za „%2”, jeszcze bez pliku.</extracomment>
+        <translation>Dodano „%1” do planu za „%2”, jeszcze bez pliku.</translation>
+    </message>
+    <message>
+        <source>Added &quot;%1&quot; to the plan at the end of the book, without a file yet.</source>
+        <extracomment>Under the plot board after Ctrl+Shift+Insert with no card; %1 the title of the new text in the plan. In Polish: Dodano „%1” do planu na końcu książki, jeszcze bez pliku.</extracomment>
+        <translation>Dodano „%1” do planu na końcu książki, jeszcze bez pliku.</translation>
+    </message>
+    <message>
+        <source>creating the file of &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title of the text. In Polish: utworzenie pliku „%1”</extracomment>
+        <translation>utworzenie pliku „%1”</translation>
+    </message>
+    <message>
+        <source>Created the chapter file of &quot;%1&quot; and opened it in the editor. The scenes of the plan wait for Write the Scene.</source>
+        <extracomment>Under the plot board after &quot;Create the Chapter File&quot;; %1 the title of the text. In Polish: Utworzono plik rozdziału „%1” i otwarto go w edytorze. Sceny z planu czekają na „Napisz scenę”.</extracomment>
+        <translation>Utworzono plik rozdziału „%1” i otwarto go w edytorze. Sceny z planu czekają na „Napisz scenę”.</translation>
+    </message>
+    <message>
+        <source>deleting &quot;%1&quot; from the plan</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title of a text in the plan. In Polish: usunięcie „%1” z planu</extracomment>
+        <translation>usunięcie „%1” z planu</translation>
+    </message>
+    <message>
+        <source>Added scene %1 to &quot;%2&quot;: the text has a new scene break.</source>
+        <extracomment>Under the plot board after &quot;New Scene&quot;; %1 its number in the text, %2 the title of the text. In Polish: Dodano scenę %1 do „%2”: w tekście jest nowy podział sceny.</extracomment>
+        <translation>Dodano scenę %1 do „%2”: w tekście jest nowy podział sceny.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; has changes not saved: save or discard them first.</source>
+        <extracomment>Under the plot board after Ctrl+Z on a new text with changes not saved in its tab; %1 its title. In Polish: „%1” ma niezapisane zmiany: najpierw trzeba je zapisać albo porzucić.</extracomment>
+        <translation>„%1” ma niezapisane zmiany: najpierw trzeba je zapisać albo porzucić.</translation>
+    </message>
+    <message>
+        <source>Times from the Timelines</source>
+        <extracomment>The title of the question of the chronology of the Book Plan. In Polish: Czasy z osi czasu</extracomment>
+        <translation>Czasy z osi czasu</translation>
+    </message>
+    <message numerus="yes">
+        <source>The timelines of the Workshop (%1) say when %n text(s) of the book happen (“In the book”). Copy their times, points of view and places to the cards without a time of the action? The timelines stay as they are, and Ctrl+Z takes it back.</source>
+        <extracomment>%n how many texts, %1 the titles of the timelines (&quot;Wyprawa, Rodzina&quot;). In Polish: Osie czasu w Warsztacie (%1) mówią, kiedy dzieje się %n tekst(ów) książki („W książce”). Przenieść ich czas, punkt widzenia i miejsce na karty bez czasu akcji? Osie zostaną bez zmian, a Ctrl+Z cofnie przeniesienie.</extracomment>
+        <translation>
+            <numerusform>Osie czasu w Warsztacie (%1) mówią, kiedy dzieje się %n tekst książki („W książce”). Przenieść czas, punkt widzenia i miejsce na karty bez czasu akcji? Osie zostaną bez zmian, a Ctrl+Z cofnie przeniesienie.</numerusform>
+            <numerusform>Osie czasu w Warsztacie (%1) mówią, kiedy dzieją się %n teksty książki („W książce”). Przenieść czas, punkt widzenia i miejsce na karty bez czasu akcji? Osie zostaną bez zmian, a Ctrl+Z cofnie przeniesienie.</numerusform>
+            <numerusform>Osie czasu w Warsztacie (%1) mówią, kiedy dzieje się %n tekstów książki („W książce”). Przenieść czas, punkt widzenia i miejsce na karty bez czasu akcji? Osie zostaną bez zmian, a Ctrl+Z cofnie przeniesienie.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>&amp;Copy the Times</source>
+        <extracomment>In Polish: &amp;Przenieś czasy</extracomment>
+        <translation>&amp;Przenieś czasy</translation>
+    </message>
+    <message>
+        <source>&amp;Don&apos;t Copy</source>
+        <extracomment>In Polish: &amp;Nie przenoś</extracomment>
+        <translation>&amp;Nie przenoś</translation>
+    </message>
+    <message>
+        <source>the times from the timelines</source>
+        <extracomment>What Undo undoes in the Book Plan, after &quot;Undone:&quot;. In Polish: przeniesienie czasów z osi czasu</extracomment>
+        <translation>przeniesienie czasów z osi czasu</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n card(s) got the time of the action from the timelines; the timelines stay as they were.</source>
+        <extracomment>Under the chronology of the Book Plan. In Polish: Przeniesiono czas akcji na %n kart(y) z osi czasu; osie zostały bez zmian.</extracomment>
+        <translation>
+            <numerusform>Przeniesiono czas akcji z osi czasu na %n kartę; osie zostały bez zmian.</numerusform>
+            <numerusform>Przeniesiono czas akcji z osi czasu na %n karty; osie zostały bez zmian.</numerusform>
+            <numerusform>Przeniesiono czas akcji z osi czasu na %n kart; osie zostały bez zmian.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>"Colors:" – own colors of the cards now.</source>
+        <extracomment>Under the plot board, after "The card ... is now: Blue."; the choice "Colors:" over the board. In Polish: „Kolory:” – teraz własne kolory kart.</extracomment>
+        <translation>„Kolory:” – teraz własne kolory kart.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotBoardPage</name>
@@ -11920,11 +13578,6 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
         <source>the view used last</source>
         <extracomment>In Polish: ostatnio używanym</extracomment>
         <translation>ostatnio używanym</translation>
-    </message>
-    <message>
-        <source>Book &gt; Plot Board and Book &gt; Outline open their own views; this is how the tab opens from Show on the Plot Board in the Navigator.</source>
-        <extracomment>The note under the view a tab opens on. In Polish: Książka &gt; Tablica fabuły i Książka &gt; Konspekt otwierają swój widok; tak otwiera się karta z polecenia „Pokaż na tablicy fabuły” w Nawigatorze.</extracomment>
-        <translation>Książka &gt; Tablica fabuły i Książka &gt; Konspekt otwierają swój widok; tak otwiera się karta z polecenia „Pokaż na tablicy fabuły” w Nawigatorze.</translation>
     </message>
     <message>
         <source>Layout of the board:</source>
@@ -12171,6 +13824,21 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
         <extracomment>In Polish: Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma swoje kolory: to są kolory bieżącego motywu.</extracomment>
         <translation>Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma swoje kolory: to są kolory bieżącego motywu.</translation>
     </message>
+    <message>
+        <source>Book &gt; Book Plan opens the board and Book &gt; Outline the outline; this is how the tab opens from Book Plan in the Workshop and from Show in the Book Plan in the Navigator.</source>
+        <extracomment>The note under the view a tab opens on. In Polish: Książka &gt; Plan książki otwiera tablicę, a Książka &gt; Konspekt konspekt; tak otwiera się karta z Planu książki w Warsztacie i z polecenia „Pokaż w planie książki” w Nawigatorze.</extracomment>
+        <translation>Książka &gt; Plan książki otwiera tablicę, a Książka &gt; Konspekt konspekt; tak otwiera się karta z Planu książki w Warsztacie i z polecenia „Pokaż w planie książki” w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>the chronology</source>
+        <extracomment>The view of the scenes in the order of the story. In Polish: chronologii</extracomment>
+        <translation>chronologii</translation>
+    </message>
+    <message>
+        <source>The cards of the chronology have the colors of the cards of the board; the ring of a flashback, the bands and how times are written are in Settings &gt; Timelines.</source>
+        <extracomment>In Polish: Karty chronologii mają kolory kart tablicy; obwódkę retrospekcji, pasma i zapis czasu ustawia się w Ustawieniach &gt; Osie czasu.</extracomment>
+        <translation>Karty chronologii mają kolory kart tablicy; obwódkę retrospekcji, pasma i zapis czasu ustawia się w Ustawieniach &gt; Osie czasu.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotBoardPanel</name>
@@ -12258,13 +13926,8 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>The button of the bar under the plot board that undoes what it says. In Polish: &amp;Cofnij</extracomment>
-        <translation>&amp;Cofnij</translation>
-    </message>
-    <message>
-        <source>Plot Board Settings</source>
-        <extracomment>The gear over the plot board and the outline: Settings &gt; Plot Board. In Polish: Ustawienia tablicy fabuły</extracomment>
-        <translation>Ustawienia tablicy fabuły</translation>
+        <extracomment>The button of the bar under the plot board that undoes what it says. In Polish: Cofn&amp;ij</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>%1 · %2</source>
@@ -12371,6 +14034,161 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <extracomment>The list over the plot board: the volume of the series whose texts it shows. In Polish: To&amp;m:</extracomment>
         <translation>To&amp;m:</translation>
     </message>
+    <message>
+        <source>&amp;Create the Chapter File</source>
+        <extracomment>The menu of the card of a text in the plan, without a file. In Polish: Utwó&amp;rz plik rozdziału</extracomment>
+        <translation>Utwó&amp;rz plik rozdziału</translation>
+    </message>
+    <message>
+        <source>New Chapter in the P&amp;lan</source>
+        <extracomment>The menu of a card: a text in the plan, without a file, after the text of the card. In Polish: Nowy rozdział w p&amp;lanie</extracomment>
+        <translation>Nowy rozdział w p&amp;lanie</translation>
+    </message>
+    <message>
+        <source>New Scene in the &amp;Text</source>
+        <extracomment>The menu of a card: a scene break after the scene, or at the end of the text. In Polish: Nowa scena w &amp;tekście</extracomment>
+        <translation>Nowa s&amp;cena w tekście</translation>
+    </message>
+    <message>
+        <source>Chronology</source>
+        <extracomment>The switch: the scenes in the order of the story. In Polish: Chronologia</extracomment>
+        <translation>Chronologia</translation>
+    </message>
+    <message>
+        <source>Book Plan Settings</source>
+        <extracomment>The gear over the plan of the book: Settings &gt; Book Plan. In Polish: Ustawienia planu książki</extracomment>
+        <translation>Ustawienia planu książki</translation>
+    </message>
+    <message>
+        <source>New Chapter</source>
+        <extracomment>A command of the bar over the plan of the book: a text after the text of the card. In Polish: Nowy rozdział</extracomment>
+        <translation>Nowy rozdział</translation>
+    </message>
+    <message>
+        <source>Chapter in the Plan</source>
+        <extracomment>A text in the plan, without a file. In Polish: Rozdział w planie</extracomment>
+        <translation>Rozdział w planie</translation>
+    </message>
+    <message>
+        <source>New Scene</source>
+        <extracomment>A scene written: a scene break in the text. In Polish: Nowa scena</extracomment>
+        <translation>Nowa scena</translation>
+    </message>
+    <message>
+        <source>Scene in the Plan</source>
+        <extracomment>A scene in the plan of the text. In Polish: Scena w planie</extracomment>
+        <translation>Scena w planie</translation>
+    </message>
+    <message>
+        <source>Edit the Card</source>
+        <extracomment>In Polish: Edytuj kartę</extracomment>
+        <translation>Edytuj kartę</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <extracomment>Open the text of the card. In Polish: Otwórz</extracomment>
+        <translation>Otwórz</translation>
+    </message>
+    <message>
+        <source>Card Color</source>
+        <extracomment>The own color of the card, in a menu. In Polish: Kolor karty</extracomment>
+        <translation>Kolor karty</translation>
+    </message>
+    <message>
+        <source>State</source>
+        <extracomment>The state of the text, in a menu. In Polish: Stan</extracomment>
+        <translation>Stan</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Undo</source>
+        <extracomment>The command of the bar over the plan of the book. In Polish: Cofnij</extracomment>
+        <translation>Cofnij</translation>
+    </message>
+    <message>
+        <source>Redo</source>
+        <extracomment>The command of the bar over the plan of the book. In Polish: Ponów</extracomment>
+        <translation>Ponów</translation>
+    </message>
+    <message>
+        <source>Create the Chapter File</source>
+        <extracomment>The command of the bar on a text in the plan, without a file. In Polish: Utwórz plik rozdziału</extracomment>
+        <translation>Utwórz plik rozdziału</translation>
+    </message>
+    <message>
+        <source>Write the Scene</source>
+        <extracomment>The command of the bar on a scene in the plan. In Polish: Napisz scenę</extracomment>
+        <translation>Napisz scenę</translation>
+    </message>
+    <message>
+        <source>Delete from the Plan</source>
+        <extracomment>The command of the bar on a card in the plan. In Polish: Usuń z planu</extracomment>
+        <translation>Usuń z planu</translation>
+    </message>
+    <message>
+        <source>Delete the Scene…</source>
+        <extracomment>The command of the bar on the card of a scene. In Polish: Usuń scenę…</extracomment>
+        <translation>Usuń scenę…</translation>
+    </message>
+    <message>
+        <source>Delete from the Book…</source>
+        <extracomment>The command of the bar on the card of a text. In Polish: Usuń z książki…</extracomment>
+        <translation>Usuń z książki…</translation>
+    </message>
+    <message>
+        <source>The arrows choose a card, Insert adds one, F2 or the pencil edits it, Enter opens it.</source>
+        <extracomment>The line under the plan of the book without a card chosen. In Polish: Strzałki wybierają kartę, Insert dodaje, F2 albo ołówek edytuje, Enter otwiera.</extracomment>
+        <translation>Strzałki wybierają kartę, Insert dodaje, F2 albo ołówek edytuje, Enter otwiera.</translation>
+    </message>
+    <message>
+        <source>%1: in the plan, without a file yet. Create the Chapter File makes it in the folder of the book.</source>
+        <extracomment>The line under the plan of the book on a text in the plan; %1 its title. In Polish: %1: w planie, jeszcze bez pliku. „Utwórz plik rozdziału” utworzy go w folderze książki.</extracomment>
+        <translation>%1: w planie, jeszcze bez pliku. „Utwórz plik rozdziału” utworzy go w folderze książki.</translation>
+    </message>
+    <message>
+        <source>%1: one scene, as the text has no scene breaks. New Scene adds the first break.</source>
+        <extracomment>The line under the plan of the book on a text without scene breaks; %1 its title. In Polish: %1: jedna scena, bo tekst nie ma podziałów sceny. „Nowa scena” doda pierwszy podział.</extracomment>
+        <translation>%1: jedna scena, bo tekst nie ma podziałów sceny. „Nowa scena” doda pierwszy podział.</translation>
+    </message>
+    <message>
+        <source>%1: %2.</source>
+        <extracomment>The line under the plan of the book on a text with scenes; %1 its title, %2 &quot;3 scenes&quot;. In Polish: %1: %2.</extracomment>
+        <translation>%1: %2.</translation>
+    </message>
+    <message>
+        <source>%1: %2, %3 of them in the plan.</source>
+        <extracomment>The line under the plan of the book on a text with scenes; %1 its title, %2 &quot;3 scenes&quot;, %3 how many of them are in the plan. In Polish: %1: %2, w tym %3 w planie.</extracomment>
+        <translation>%1: %2, w tym %3 w planie.</translation>
+    </message>
+    <message>
+        <source>A scene in the plan, without text yet. The chapter file comes first: Create the Chapter File on the card of the text.</source>
+        <extracomment>The line under the plan of the book on a scene in the plan of a text in the plan. In Polish: Scena w planie, jeszcze bez tekstu. Najpierw trzeba utworzyć plik rozdziału: „Utwórz plik rozdziału” na karcie tekstu.</extracomment>
+        <translation>Scena w planie, jeszcze bez tekstu. Najpierw trzeba utworzyć plik rozdziału: „Utwórz plik rozdziału” na karcie tekstu.</translation>
+    </message>
+    <message>
+        <source>A scene in the plan, without text yet. Write the Scene puts a scene break with its title and description in the text.</source>
+        <extracomment>The line under the plan of the book on a scene in the plan. In Polish: Scena w planie, jeszcze bez tekstu. „Napisz scenę” wstawi do tekstu podział sceny z jej tytułem i opisem.</extracomment>
+        <translation>Scena w planie, jeszcze bez tekstu. „Napisz scenę” wstawi do tekstu podział sceny z jej tytułem i opisem.</translation>
+    </message>
+    <message>
+        <source>A scene in the plan of &quot;%1&quot;.</source>
+        <extracomment>The line under the plan of the book on a scene in the plan; %1 the title of its text. In Polish: Scena w planie tekstu „%1”.</extracomment>
+        <translation>Scena w planie tekstu „%1”.</translation>
+    </message>
+    <message>
+        <source>Scene 1 of &quot;%1&quot;: the text from its start to the first scene break.</source>
+        <extracomment>The line under the plan of the book on the first scene of a text; %1 the title of the text. In Polish: Scena 1 tekstu „%1”: tekst od początku do pierwszego podziału sceny.</extracomment>
+        <translation>Scena 1 tekstu „%1”: tekst od początku do pierwszego podziału sceny.</translation>
+    </message>
+    <message>
+        <source>Scene %1 of &quot;%2&quot;: the text from scene break %3 to the next one (Insert &gt; Scene Break).</source>
+        <extracomment>The line under the plan of the book on a scene of a text; %1 its number, %2 the title of the text, %3 the number of the scene break it starts at. In Polish: Scena %1 tekstu „%2”: tekst od %3. podziału sceny do następnego (Wstaw &gt; Podział sceny).</extracomment>
+        <translation>Scena %1 tekstu „%2”: tekst od %3. podziału sceny do następnego (Wstaw &gt; Podział sceny).</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotBoardView</name>
@@ -12434,6 +14252,49 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <extracomment>Read by the screen reader on a card of a scene in the plan beside the scenes of its text, after &quot;In the Plan: The Storm&quot;. In Polish: Enter wpisuje ją do tekstu</extracomment>
         <translation>Enter wpisuje ją do tekstu</translation>
     </message>
+    <message>
+        <source>In the plan, without a file – Enter creates the chapter file</source>
+        <extracomment>Read by the screen reader on the card of a text in the plan, without a file, after &quot;Chapter: The Storm&quot;. In Polish: W planie, bez pliku – Enter tworzy plik rozdziału</extracomment>
+        <translation>W planie, bez pliku – Enter tworzy plik rozdziału</translation>
+    </message>
+    <message>
+        <source>Edit the Card (F2)</source>
+        <extracomment>The tooltip of the pencil on a card of the plot board. In Polish: Edytuj kartę (F2)</extracomment>
+        <translation>Edytuj kartę (F2)</translation>
+    </message>
+    <message>
+        <source>Write the scene: a scene break with its title and description in the text (Enter)</source>
+        <extracomment>The tooltip of the button on the card of a scene in the plan. In Polish: Napisz scenę: podział sceny z jej tytułem i opisem w tekście (Enter)</extracomment>
+        <translation>Napisz scenę: podział sceny z jej tytułem i opisem w tekście (Enter)</translation>
+    </message>
+    <message>
+        <source>Create the Chapter File (Enter)</source>
+        <translation>Utwórz plik rozdziału (Enter)</translation>
+    </message>
+    <message>
+        <source>No scenes in the plan.</source>
+        <extracomment>Under the card of a text without scenes in the plan, on the plot board. In Polish: Bez scen w planie.</extracomment>
+        <translation>Bez scen w planie.</translation>
+    </message>
+    <message>
+        <source>One scene: the text has no scene breaks (Insert &gt; Scene Break).</source>
+        <extracomment>Under the card of a text without scene breaks, on the plot board. In Polish: Jedna scena: tekst nie ma podziałów sceny (Wstaw &gt; Podział sceny).</extracomment>
+        <translation>Jedna scena: tekst nie ma podziałów sceny (Wstaw &gt; Podział sceny).</translation>
+    </message>
+    <message>
+        <source>Write the Scene</source>
+        <extracomment>The button on the card of a scene in the plan: a scene break with what it says in the text. In Polish: Napisz scenę</extracomment>
+        <translation>Napisz scenę</translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <translation>Utwórz</translation>
+    </message>
+    <message>
+        <source>In the plan – no file</source>
+        <extracomment>The head of the card of a text in the plan, after its kind (&quot;Chapter · In the plan – no file&quot;). In Polish: W planie – bez pliku</extracomment>
+        <translation>W planie – bez pliku</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotCardEditor</name>
@@ -12486,11 +14347,6 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
 <context>
     <name>kalahari::gui::PlotFieldsBox</name>
     <message>
-        <source>Plot Board</source>
-        <extracomment>The group of the Properties panel with what the plot board says of a text. In Polish: Tablica fabuły</extracomment>
-        <translation>Tablica fabuły</translation>
-    </message>
-    <message>
         <source>Description:</source>
         <extracomment>The short description of a text on its card of the plot board. In Polish: Opis:</extracomment>
         <translation>Opis:</translation>
@@ -12529,6 +14385,11 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>No Color</source>
         <extracomment>A card without an own color. In Polish: Bez koloru</extracomment>
         <translation>Bez koloru</translation>
+    </message>
+    <message>
+        <source>Book Plan</source>
+        <extracomment>The group of the Properties panel with what the plan of the book says of a text. In Polish: Plan książki</extracomment>
+        <translation>Plan książki</translation>
     </message>
 </context>
 <context>
@@ -12572,6 +14433,44 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>State</source>
         <extracomment>In Polish: Stan</extracomment>
         <translation>Stan</translation>
+    </message>
+    <message>
+        <source>Write the Scene</source>
+        <extracomment>The button beside the state of a scene in the plan in the outline. In Polish: Napisz scenę</extracomment>
+        <translation>Napisz scenę</translation>
+    </message>
+    <message>
+        <source>Create the File</source>
+        <extracomment>The button beside the state of a text in the plan, without a file, in the outline. In Polish: Utwórz plik</extracomment>
+        <translation>Utwórz plik</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PluginCoordinator</name>
+    <message>
+        <source>Open the book this command works on</source>
+        <extracomment>The tooltip of a command of a plugin while no book is open. In Polish: Otwórz książkę, nad którą działa to polecenie</extracomment>
+        <translation>Otwórz książkę, nad którą działa to polecenie</translation>
+    </message>
+    <message>
+        <source>Show or hide the panel %1</source>
+        <extracomment>The tooltip of the command of a plugin&apos;s panel in View &gt; Panels. In Polish: Pokaż albo ukryj panel %1</extracomment>
+        <translation>Pokaż albo ukryj panel %1</translation>
+    </message>
+    <message>
+        <source>The plugin did not give the content of the panel: %1</source>
+        <extracomment>The page of a plugin&apos;s panel when the plugin failed to give it. %1: what the plugin said. In Polish: Wtyczka nie podała zawartości panelu: %1</extracomment>
+        <translation>Wtyczka nie podała zawartości panelu: %1</translation>
+    </message>
+    <message>
+        <source>Plugin Error</source>
+        <extracomment>The title of the window of an error of a plugin. In Polish: Błąd wtyczki</extracomment>
+        <translation>Błąd wtyczki</translation>
+    </message>
+    <message>
+        <source>The plugin “%1” did not do what it was asked.</source>
+        <extracomment>%1: the name of the plugin. In Polish: Wtyczka „%1” nie wykonała polecenia.</extracomment>
+        <translation>Wtyczka „%1” nie wykonała polecenia.</translation>
     </message>
 </context>
 <context>
@@ -12997,17 +14896,8 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <translation>Brak powiązanych materiałów.</translation>
     </message>
     <message>
-        <source>Starts on a left page</source>
-        <translation>Zaczyna się na lewej stronie</translation>
-    </message>
-    <message>
         <source>Change Failed</source>
         <translation>Nie udało się wprowadzić zmiany</translation>
-    </message>
-    <message>
-        <source>With mirror margins (Settings &gt; Editor &gt; Pages and Margins) the first page of {kind:s=this|p=these} {kind} is a left page: its inner margin is on the right. Unchecked: a right page.</source>
-        <extracomment>In Polish: Przy marginesach lustrzanych (Ustawienia &gt; Edytor &gt; Strony i marginesy) pierwsza strona {kind:genitive} jest lewa: margines wewnętrzny ma po prawej. Bez zaznaczenia jest prawa.</extracomment>
-        <translation>Przy marginesach lustrzanych (Ustawienia &gt; Edytor &gt; Strony i marginesy) pierwsza strona {kind:genitive} jest lewa: margines wewnętrzny ma po prawej. Bez zaznaczenia jest prawa.</translation>
     </message>
     <message>
         <source>The style of the bibliography and of the references of this book</source>
@@ -13043,6 +14933,504 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>%1 of %2</source>
         <extracomment>The number of a volume of a series: %1 its number, %2 the volumes. In Polish: %1 z %2</extracomment>
         <translation>%1 z %2</translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <extracomment>The page a text starts on in a printed book. In Polish: Prawa</extracomment>
+        <translation>Prawa</translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <extracomment>In Polish: Lewa</extracomment>
+        <translation>Lewa</translation>
+    </message>
+    <message>
+        <source>Next (left or right)</source>
+        <extracomment>In Polish: Następna (lewa albo prawa)</extracomment>
+        <translation>Następna (lewa albo prawa)</translation>
+    </message>
+    <message>
+        <source>First page:</source>
+        <extracomment>In Polish: Pierwsza strona:</extracomment>
+        <translation>Pierwsza strona:</translation>
+    </message>
+    <message>
+        <source>The page {kind:s=this|p=these} {kind} {kind:s=starts|p=start} on in a printed book, with mirror margins (Settings &gt; Editor &gt; Pages and Margins). Before a right or a left page the program leaves a page empty when needed.</source>
+        <extracomment>In Polish: Strona, na której {kind:m=zaczyna się|f=zaczyna się|n=zaczyna się|p=zaczynają się} {kind} w wydrukowanej książce, przy marginesach lustrzanych (Ustawienia &gt; Edytor &gt; Strony i marginesy). Przed prawą albo lewą stroną program zostawia w razie potrzeby pustą stronę.</extracomment>
+        <translation>Strona, na której {kind:s=zaczyna się|p=zaczynają się} {kind:m=ten|f=ta|n=to|p=te} {kind} w wydrukowanej książce, przy marginesach lustrzanych (Ustawienia &gt; Edytor &gt; Strony i marginesy). Przed prawą albo lewą stroną program zostawia w razie potrzeby pustą stronę.</translation>
+    </message>
+    <message>
+        <source>Automatic (left)</source>
+        <extracomment>The page a text starts on, as its kind says: a left one. In Polish: Automatycznie (lewa)</extracomment>
+        <translation>Automatycznie (lewa)</translation>
+    </message>
+    <message>
+        <source>Automatic (next)</source>
+        <extracomment>In Polish: Automatycznie (następna)</extracomment>
+        <translation>Automatycznie (następna)</translation>
+    </message>
+    <message>
+        <source>Automatic (right)</source>
+        <extracomment>In Polish: Automatycznie (prawa)</extracomment>
+        <translation>Automatycznie (prawa)</translation>
+    </message>
+    <message>
+        <source>Fill</source>
+        <extracomment>The group of the Properties of an endpaper chosen on the plan of the cover. In Polish: Wypełnienie</extracomment>
+        <translation>Wypełnienie</translation>
+    </message>
+    <message>
+        <source>Set:</source>
+        <extracomment>How an endpaper is filled, in its Properties. In Polish: Ustawione:</extracomment>
+        <translation>Ustawione:</translation>
+    </message>
+    <message>
+        <source>The settings are on the plan, beside the spread.</source>
+        <extracomment>Under the fill of an endpaper in its Properties. In Polish: Ustawienia są na planie, obok rozkładówki.</extracomment>
+        <translation>Ustawienia są na planie, obok rozkładówki.</translation>
+    </message>
+    <message>
+        <source>Front endpaper</source>
+        <extracomment>The endpaper between the cover and the first page, in its Properties. In Polish: Wyklejka przednia</extracomment>
+        <translation>Wyklejka przednia</translation>
+    </message>
+    <message>
+        <source>Back endpaper</source>
+        <translation>Wyklejka tylna</translation>
+    </message>
+    <message>
+        <source>spread: pasted to the cover and the free leaf</source>
+        <extracomment>What the front endpaper is, under its name in its Properties. In Polish: rozkładówka: przyklejona do okładki i wolna karta</extracomment>
+        <translation>rozkładówka: przyklejona do okładki i wolna karta</translation>
+    </message>
+    <message>
+        <source>spread: the free leaf and pasted to the cover</source>
+        <translation>rozkładówka: wolna karta i przyklejona do okładki</translation>
+    </message>
+    <message>
+        <source>%1 (same as the front one)</source>
+        <extracomment>The fill of the back endpaper filled as the front one, in its Properties: %1 the fill. In Polish: %1 (tak jak przednia)</extracomment>
+        <translation>%1 (tak jak przednia)</translation>
+    </message>
+    <message>
+        <source>Fit:</source>
+        <extracomment>How the picture fits its area. In Polish: Dopasowanie:</extracomment>
+        <translation>Dopasowanie:</translation>
+    </message>
+    <message>
+        <source>Left (always)</source>
+        <extracomment>The page a spread starts on. In Polish: Lewa (zawsze)</extracomment>
+        <translation>Lewa (zawsze)</translation>
+    </message>
+    <message>
+        <source>Pages in the book:</source>
+        <extracomment>The pages of a spread in the book. In Polish: Strony w książce:</extracomment>
+        <translation>Strony w książce:</translation>
+    </message>
+    <message>
+        <source>Picture:</source>
+        <extracomment>In Polish: Obraz:</extracomment>
+        <translation>Obraz:</translation>
+    </message>
+    <message>
+        <source>Room at the spine:</source>
+        <extracomment>In Polish: Zapas na grzbiet:</extracomment>
+        <translation>Zapas na grzbiet:</translation>
+    </message>
+    <message>
+        <source>Spread</source>
+        <extracomment>The group of the Properties panel with a spread. In Polish: Rozkładówka</extracomment>
+        <translation>Rozkładówka</translation>
+    </message>
+    <message>
+        <source>Takes:</source>
+        <extracomment>Where the picture of a spread lies. In Polish: Zajmuje:</extracomment>
+        <translation>Zajmuje:</translation>
+    </message>
+    <message>
+        <source>The left and the right page lie side by side only when the spread starts on the left one.</source>
+        <extracomment>Under the first page of a spread. In Polish: Lewa i prawa strona leżą obok siebie tylko wtedy, gdy rozkładówka zaczyna się na lewej.</extracomment>
+        <translation>Lewa i prawa strona leżą obok siebie tylko wtedy, gdy rozkładówka zaczyna się na lewej.</translation>
+    </message>
+    <message>
+        <source>The settings are on the card, beside the spread.</source>
+        <extracomment>In Polish: Ustawienia są na karcie, obok rozkładówki.</extracomment>
+        <translation>Ustawienia są na karcie, obok rozkładówki.</translation>
+    </message>
+    <message>
+        <source>fill</source>
+        <extracomment>In Polish: wypełnij</extracomment>
+        <translation>wypełnij</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <extracomment>A spread without a picture. In Polish: brak</extracomment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source>not counted yet</source>
+        <extracomment>The pages of a spread before the pages of the book are counted (in the Page Layout view or on the card of a spread). In Polish: jeszcze nie policzone</extracomment>
+        <translation>jeszcze nie policzone</translation>
+    </message>
+    <message>
+        <source>the whole picture</source>
+        <extracomment>In Polish: cały obraz</extracomment>
+        <translation>cały obraz</translation>
+    </message>
+    <message>
+        <source>to the edges of the paper</source>
+        <extracomment>In Polish: do krawędzi papieru</extracomment>
+        <translation>do krawędzi papieru</translation>
+    </message>
+    <message>
+        <source>within the margins</source>
+        <extracomment>In Polish: w marginesach</extracomment>
+        <translation>w marginesach</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PublishingCardPanel</name>
+    <message>
+        <source>For Publishers</source>
+        <extracomment>The title of the card of the texts for publishers and the set for a publisher. In Polish: Dla wydawnictwa</extracomment>
+        <translation>Dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Set for the Publisher</source>
+        <extracomment>The tiles of the parts of the set for a publisher, for screen readers. In Polish: Zestaw dla wydawnictwa</extracomment>
+        <translation>Zestaw dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Versions</source>
+        <extracomment>The versions of the part of the set chosen on the card For Publishers, for screen readers. In Polish: Wersje</extracomment>
+        <translation>Wersje</translation>
+    </message>
+    <message>
+        <source>Text of the version</source>
+        <extracomment>The editor of a text for publishers on its card, for screen readers. In Polish: Tekst wersji</extracomment>
+        <translation>Tekst wersji</translation>
+    </message>
+    <message>
+        <source>New Version (Insert)</source>
+        <extracomment>The command bar of the card For Publishers. In Polish: Nowa wersja (Insert)</extracomment>
+        <translation>Nowa wersja (Insert)</translation>
+    </message>
+    <message>
+        <source>Copy of the Version</source>
+        <extracomment>In Polish: Kopia wersji</extracomment>
+        <translation>Kopia wersji</translation>
+    </message>
+    <message>
+        <source>Choose for the Set (Space)</source>
+        <extracomment>In Polish: Wybierz do zestawu (Spacja)</extracomment>
+        <translation>Wybierz do zestawu (Spacja)</translation>
+    </message>
+    <message>
+        <source>Reject</source>
+        <extracomment>In Polish: Odrzuć</extracomment>
+        <translation>Odrzuć</translation>
+    </message>
+    <message>
+        <source>Copy the Text</source>
+        <extracomment>In Polish: Kopiuj tekst</extracomment>
+        <translation>Kopiuj tekst</translation>
+    </message>
+    <message>
+        <source>Earlier in the Set (Alt+Left)</source>
+        <extracomment>In Polish: Wcześniej w zestawie (Alt+←)</extracomment>
+        <translation>Wcześniej w zestawie (Alt+←)</translation>
+    </message>
+    <message>
+        <source>Later in the Set (Alt+Right)</source>
+        <extracomment>In Polish: Później w zestawie (Alt+→)</extracomment>
+        <translation>Później w zestawie (Alt+→)</translation>
+    </message>
+    <message>
+        <source>Copy All</source>
+        <extracomment>In Polish: Kopiuj wszystko</extracomment>
+        <translation>Kopiuj wszystko</translation>
+    </message>
+    <message>
+        <source>Export Set...</source>
+        <extracomment>In Polish: Eksportuj zestaw...</extracomment>
+        <translation>Eksportuj zestaw...</translation>
+    </message>
+    <message>
+        <source>Print Set...</source>
+        <extracomment>In Polish: Drukuj zestaw...</extracomment>
+        <translation>Drukuj zestaw...</translation>
+    </message>
+    <message>
+        <source>Preview of the Set</source>
+        <extracomment>In Polish: Podgląd zestawu</extracomment>
+        <translation>Podgląd zestawu</translation>
+    </message>
+    <message>
+        <source>Undo (Ctrl+Z)</source>
+        <extracomment>In Polish: Cofnij (Ctrl+Z)</extracomment>
+        <translation>Cofnij (Ctrl+Z)</translation>
+    </message>
+    <message>
+        <source>Redo (Ctrl+Y)</source>
+        <extracomment>In Polish: Ponów (Ctrl+Y)</extracomment>
+        <translation>Ponów (Ctrl+Y)</translation>
+    </message>
+    <message>
+        <source>Texts for Publishers Settings</source>
+        <extracomment>The gear of the card For Publishers: Settings &gt; Navigator &gt; Texts for Publishers. In Polish: Ustawienia tekstów dla wydawnictwa</extracomment>
+        <translation>Ustawienia tekstów dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>The sentence was changed by hand – the fields of the pattern no longer change it.</source>
+        <extracomment>A sentence about the book changed by hand. In Polish: Zdanie poprawione ręcznie – pola wzoru już go nie zmieniają.</extracomment>
+        <translation>Zdanie poprawione ręcznie – pola wzoru już go nie zmieniają.</translation>
+    </message>
+    <message>
+        <source>Compose from the &amp;Fields</source>
+        <extracomment>Composes the sentence about the book of the fields of its pattern again. In Polish: Złóż zdanie z &amp;pól</extracomment>
+        <translation>Złóż zdanie z &amp;pól</translation>
+    </message>
+    <message>
+        <source>No version</source>
+        <extracomment>A tile of a part of the set without a version. In Polish: Brak wersji</extracomment>
+        <translation>Brak wersji</translation>
+    </message>
+    <message>
+        <source>chosen part</source>
+        <extracomment>A tile of the set chosen, for screen readers. In Polish: wybrana część</extracomment>
+        <translation>wybrana część</translation>
+    </message>
+    <message>
+        <source>%1 ★</source>
+        <extracomment>A version in the set on the card For Publishers: %1 its title. In Polish: %1 ★</extracomment>
+        <translation>%1 ★</translation>
+    </message>
+    <message>
+        <source>in the set</source>
+        <extracomment>For screen readers. In Polish: w zestawie</extracomment>
+        <translation>w zestawie</translation>
+    </message>
+    <message>
+        <source>rejected</source>
+        <extracomment>For screen readers. In Polish: odrzucona</extracomment>
+        <translation>odrzucona</translation>
+    </message>
+    <message>
+        <source>It comes from the Cover – it is changed there.</source>
+        <extracomment>Over a tagline or a description on the card For Publishers. In Polish: Pochodzi z Okładki – tam się go zmienia.</extracomment>
+        <translation>Pochodzi z Okładki – tam się go zmienia.</translation>
+    </message>
+    <message>
+        <source>Show in the &amp;Cover</source>
+        <extracomment>In Polish: Pokaż w &amp;Okładce</extracomment>
+        <translation>Pokaż w &amp;Okładce</translation>
+    </message>
+    <message>
+        <source>It comes from the back part of the book – it is changed there.</source>
+        <extracomment>Over the note about the author on the card For Publishers. In Polish: Pochodzi z sekcji końcowej książki – tam się ją zmienia.</extracomment>
+        <translation>Pochodzi z sekcji końcowej książki – tam się ją zmienia.</translation>
+    </message>
+    <message>
+        <source>&amp;Open</source>
+        <extracomment>In Polish: &amp;Otwórz</extracomment>
+        <translation>&amp;Otwórz</translation>
+    </message>
+    <message>
+        <source>This part has no version yet. Insert or New Version adds the first.</source>
+        <translation>Ta część nie ma jeszcze wersji. Insert albo Nowa wersja dodaje pierwszą.</translation>
+    </message>
+    <message>
+        <source>This part has no text yet.</source>
+        <translation>Ta część nie ma jeszcze tekstu.</translation>
+    </message>
+    <message>
+        <source>A tagline and a description are written in the Cover.</source>
+        <extracomment>Insert on a tagline or a description on the card For Publishers. In Polish: Hasło i opis pisze się w Okładce.</extracomment>
+        <translation>Hasło i opis pisze się w Okładce.</translation>
+    </message>
+    <message>
+        <source>%1 – copy</source>
+        <extracomment>The title of a copy of a version on the card For Publishers: %1 its title. In Polish: %1 – kopia</extracomment>
+        <translation>%1 – kopia</translation>
+    </message>
+    <message>
+        <source>The text is copied to the clipboard</source>
+        <extracomment>The status bar after Copy the Text on the card For Publishers. In Polish: Tekst skopiowany do schowka</extracomment>
+        <translation>Tekst skopiowany do schowka</translation>
+    </message>
+    <message>
+        <source>Choose for the &amp;Set</source>
+        <extracomment>The menu of a version on the card For Publishers. In Polish: Wybierz do &amp;zestawu</extracomment>
+        <translation>Wybierz do &amp;zestawu</translation>
+    </message>
+    <message>
+        <source>Restore as a &amp;Draft</source>
+        <extracomment>In Polish: Przywróć jako &amp;roboczą</extracomment>
+        <translation>Przywróć jako &amp;roboczą</translation>
+    </message>
+    <message>
+        <source>&amp;Reject</source>
+        <translation>Od&amp;rzuć</translation>
+    </message>
+    <message>
+        <source>Re&amp;name (F2)</source>
+        <extracomment>In Polish: Zmień &amp;nazwę (F2)</extracomment>
+        <translation>Zmień &amp;nazwę (F2)</translation>
+    </message>
+    <message>
+        <source>Cop&amp;y of the Version</source>
+        <extracomment>In Polish: &amp;Kopia wersji</extracomment>
+        <translation>&amp;Kopia wersji</translation>
+    </message>
+    <message>
+        <source>Copy the &amp;Text</source>
+        <extracomment>In Polish: Kopiuj &amp;tekst</extracomment>
+        <translation>Kopiuj &amp;tekst</translation>
+    </message>
+    <message>
+        <source>&amp;Delete (Delete)</source>
+        <extracomment>In Polish: &amp;Usuń (Delete)</extracomment>
+        <translation>&amp;Usuń (Delete)</translation>
+    </message>
+    <message>
+        <source>Without a template – you write the sentence in the field below.</source>
+        <extracomment>The card For Publishers, a sentence about the book without a template. In Polish: Bez szablonu – zdanie piszesz od razu w polu niżej.</extracomment>
+        <translation>Bez szablonu – zdanie piszesz od razu w polu niżej.</translation>
+    </message>
+    <message>
+        <source>Type the fields – the sentence below is composed at once. Tab goes through the fields.</source>
+        <extracomment>Under the fields of the pattern of a sentence about the book. In Polish: Wpisz pola – zdanie niżej składa się od razu. Pola przechodzi się klawiszem Tab.</extracomment>
+        <translation>Wpisz pola – zdanie niżej składa się od razu. Pola przechodzi się klawiszem Tab.</translation>
+    </message>
+    <message>
+        <source>The text of the version cannot be saved.</source>
+        <extracomment>The status bar when the text on the card For Publishers cannot be saved. In Polish: Nie można zapisać tekstu wersji.</extracomment>
+        <translation>Nie można zapisać tekstu wersji.</translation>
+    </message>
+    <message>
+        <source>The book is open read-only.</source>
+        <extracomment>The footer of the card For Publishers in a book open read-only. In Polish: Książka jest otwarta tylko do odczytu.</extracomment>
+        <translation>Książka jest otwarta tylko do odczytu.</translation>
+    </message>
+    <message>
+        <source>Everything in this card is saved at once.</source>
+        <translation>Wszystko w tej karcie zapisuje się od razu.</translation>
+    </message>
+    <message>
+        <source>Everything in this card is saved at once · saved at %1</source>
+        <translation>Wszystko w tej karcie zapisuje się od razu · zapisano o %1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PublishingTemplateEditor</name>
+    <message>
+        <source>N&amp;ame:</source>
+        <extracomment>The name of a template changed beside a text for publishers. In Polish: N&amp;azwa:</extracomment>
+        <translation>N&amp;azwa:</translation>
+    </message>
+    <message>
+        <source>Target &amp;length:</source>
+        <extracomment>The target length of a template changed beside a text for publishers. In Polish: Docelowa &amp;długość:</extracomment>
+        <translation>Docelowa &amp;długość:</translation>
+    </message>
+    <message>
+        <source>&amp;Points:</source>
+        <extracomment>Over the points of a template changed beside a synopsis. In Polish: P&amp;unkty:</extracomment>
+        <translation>P&amp;unkty:</translation>
+    </message>
+    <message>
+        <source>Point</source>
+        <extracomment>The columns of the points of a template. In Polish: Punkt, Podpowiedź</extracomment>
+        <translation>Punkt</translation>
+    </message>
+    <message>
+        <source>Hint</source>
+        <translation>Podpowiedź</translation>
+    </message>
+    <message>
+        <source>Add Point (Insert)</source>
+        <extracomment>The buttons of the points of a template. In Polish: Dodaj punkt (Insert), Usuń punkt (Delete), W górę (Alt+↑), W dół (Alt+↓)</extracomment>
+        <translation>Dodaj punkt (Insert)</translation>
+    </message>
+    <message>
+        <source>Remove Point (Delete)</source>
+        <translation>Usuń punkt (Delete)</translation>
+    </message>
+    <message>
+        <source>Up (Alt+Up)</source>
+        <translation>W górę (Alt+↑)</translation>
+    </message>
+    <message>
+        <source>Down (Alt+Down)</source>
+        <translation>W dół (Alt+↓)</translation>
+    </message>
+    <message>
+        <source>When {event}, {hero} must {goal} before {stakes}.</source>
+        <extracomment>The pattern of a sentence about the book: the fields in braces. In Polish: Gdy {event}, {hero} musi {goal}, zanim {stakes}.</extracomment>
+        <translation>Gdy {event}, {hero} musi {goal}, zanim {stakes}.</translation>
+    </message>
+    <message>
+        <source>Patte&amp;rn:</source>
+        <extracomment>The pattern of a template of a sentence changed beside it. In Polish: Wzó&amp;r:</extracomment>
+        <translation>Wzó&amp;r:</translation>
+    </message>
+    <message>
+        <source>Field</source>
+        <extracomment>The columns of the fields of a pattern. In Polish: Pole, Co wpisać, Podpowiedź</extracomment>
+        <translation>Pole</translation>
+    </message>
+    <message>
+        <source>What to Type</source>
+        <translation>Co wpisać</translation>
+    </message>
+    <message>
+        <source>Fiel&amp;ds:</source>
+        <extracomment>The fields of the pattern of a sentence. In Polish: Po&amp;la:</extracomment>
+        <translation>Po&amp;la:</translation>
+    </message>
+    <message>
+        <source>Keep (Ctrl+Enter)</source>
+        <extracomment>Keeps the changes of a template. In Polish: Zachowaj (Ctrl+Enter)</extracomment>
+        <translation>Zachowaj (Ctrl+Enter)</translation>
+    </message>
+    <message>
+        <source>Drop (Esc)</source>
+        <extracomment>Drops the changes of a template. In Polish: Porzuć (Esc)</extracomment>
+        <translation>Porzuć (Esc)</translation>
+    </message>
+    <message>
+        <source>Your template – the changes are for all books.</source>
+        <extracomment>Over a template of the writer changed beside a text. In Polish: Twój szablon – zmiany obowiązują we wszystkich książkach.</extracomment>
+        <translation>Twój szablon – zmiany obowiązują we wszystkich książkach.</translation>
+    </message>
+    <message>
+        <source>A built-in template stays as it is – the changes are kept as your template, for all books.</source>
+        <extracomment>Over a template of a book type changed beside a text. In Polish: Szablon wbudowany zostaje bez zmian – zmiany zapiszą się jako Twój szablon, dostępny we wszystkich książkach.</extracomment>
+        <translation>Szablon wbudowany zostaje bez zmian – zmiany zapiszą się jako Twój szablon, dostępny we wszystkich książkach.</translation>
+    </message>
+    <message>
+        <source>words</source>
+        <extracomment>The unit of the target length of a template. In Polish: słów / znaków ze spacjami</extracomment>
+        <translation>słów</translation>
+    </message>
+    <message>
+        <source>characters with spaces</source>
+        <translation>znaków ze spacjami</translation>
+    </message>
+    <message>
+        <source>%1 – mine</source>
+        <extracomment>The name of the writer's template made of a built-in one. In Polish: %1 – mój</extracomment>
+        <translation>%1 – mój</translation>
+    </message>
+    <message>
+        <source>New template</source>
+        <extracomment>The name of a new template of the writer. In Polish: Nowy szablon</extracomment>
+        <translation>Nowy szablon</translation>
+    </message>
+    <message>
+        <source>Point %1</source>
+        <extracomment>The name of a new point of a template. In Polish: Punkt %1</extracomment>
+        <translation>Punkt %1</translation>
     </message>
 </context>
 <context>
@@ -13420,6 +15808,11 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <translation>Import</translation>
     </message>
     <message>
+        <source>File Associations</source>
+        <extracomment>The page of the program the system opens the books and the documents with. In Polish: Powiązania plików</extracomment>
+        <translation>Powiązania plików</translation>
+    </message>
+    <message>
         <source>Planned features:
 - Automatic backup frequency
 - Restore from backup
@@ -13468,7 +15861,9 @@ The page of the downloads for the materials with a web address. In Polish: Mater
     </message>
     <message>
         <source>Notifications</source>
-        <extracomment>In Polish: Powiadomienia</extracomment>
+        <extracomment>Settings &gt; Notifications: where the program&apos;s notifications show. In Polish: Powiadomienia
+----------
+In Polish: Powiadomienia</extracomment>
         <translation>Powiadomienia</translation>
     </message>
     <message>
@@ -13485,11 +15880,6 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <source>Images</source>
         <extracomment>Settings &gt; Editor &gt; Images: new images, the captions of new books. In Polish: Obrazy</extracomment>
         <translation>Obrazy</translation>
-    </message>
-    <message>
-        <source>Plot Board</source>
-        <extracomment>Settings &gt; Plot Board: the scenes on the board, the colors of the cards. In Polish: Tablica fabuły</extracomment>
-        <translation>Tablica fabuły</translation>
     </message>
     <message>
         <source>Clippings</source>
@@ -13540,6 +15930,36 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <source>Texts for Publishers</source>
         <extracomment>Settings &gt; Navigator &gt; Texts for Publishers: the lengths, the template of a synopsis and the set. Short: the list of the pages is as wide as its longest name. In Polish: Dla wydawnictwa</extracomment>
         <translation>Dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Book Plan</source>
+        <extracomment>Settings &gt; Book Plan: the scenes on the board, the colors of the cards, the chronology. In Polish: Plan książki</extracomment>
+        <translation>Plan książki</translation>
+    </message>
+    <message>
+        <source>Lists</source>
+        <extracomment>Settings &gt; Editor &gt; Lists: the sets of list formats. In Polish: Listy</extracomment>
+        <translation>Listy</translation>
+    </message>
+    <message>
+        <source>Tables</source>
+        <extracomment>Settings &gt; Editor &gt; Tables: new tables, the captions of tables. In Polish: Tabele</extracomment>
+        <translation>Tabele</translation>
+    </message>
+    <message>
+        <source>Search the settings (%1)</source>
+        <extracomment>The search of the Settings dialog, over the tree of its pages; %1: its key, Ctrl+F. In Polish: Szukaj w ustawieniach (%1)</extracomment>
+        <translation>Szukaj w ustawieniach (%1)</translation>
+    </message>
+    <message>
+        <source>Search the settings</source>
+        <extracomment>In Polish: Szukaj w ustawieniach</extracomment>
+        <translation>Szukaj w ustawieniach</translation>
+    </message>
+    <message>
+        <source>No option or page contains “%1”.</source>
+        <extracomment>Under the search of the Settings dialog when nothing has its words. In Polish: Żadna opcja ani strona nie zawiera „%1”.</extracomment>
+        <translation>Żadna opcja ani strona nie zawiera „%1”.</translation>
     </message>
 </context>
 <context>
@@ -16055,6 +18475,11 @@ The page of the downloads for the materials with a web address. In Polish: Mater
 <context>
     <name>kalahari::gui::StandaloneInfoBar</name>
     <message>
+        <source>Colors of the Bar</source>
+        <extracomment>The gear of the bar at the bottom of the text, with Undo after a command. In Polish: Kolory paska</extracomment>
+        <translation>Kolory paska</translation>
+    </message>
+    <message>
         <source>This file is not part of a book. Some features are not available.</source>
         <translation>Ten plik nie należy do książki. Część funkcji jest niedostępna.</translation>
     </message>
@@ -16553,10 +18978,6 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <translation>Środowisko pracy pisarza dla systemów Windows, macOS i Linux</translation>
     </message>
     <message>
-        <source>Copyright (c) 2025 Kalahari Project</source>
-        <translation>Copyright (c) 2025 Kalahari Project</translation>
-    </message>
-    <message>
         <source>Kalahari uses the following third-party components:
 
 </source>
@@ -16571,10 +18992,11 @@ The page of the downloads for the materials with a web address. In Polish: Mater
 </translation>
     </message>
     <message>
-        <source>  License: LGPL v3 / Commercial
+        <source>  License: LGPL v3
 
 </source>
-        <translation>  Licencja: LGPL v3 / komercyjna
+        <extracomment>The licence of Qt in Kalahari. In Polish: Licencja: LGPL v3</extracomment>
+        <translation>  Licencja: LGPL v3
 
 </translation>
     </message>
@@ -16701,120 +19123,44 @@ The page of the downloads for the materials with a web address. In Polish: Mater
 </translation>
     </message>
     <message>
-        <source>MIT License
-
-</source>
-        <translation>Licencja MIT (oryginalny tekst)
-
-</translation>
+        <source>Kalahari is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation, with the additional terms below, which its section 7 permits.</source>
+        <extracomment>The notice of the GNU GPL on the License tab of About. In Polish: Kalahari jest wolnym oprogramowaniem: można je rozpowszechniać i zmieniać na warunkach Powszechnej Licencji Publicznej GNU (GNU General Public License) w wersji 3, opublikowanej przez Free Software Foundation, z poniższymi warunkami dodatkowymi, na które pozwala jej sekcja 7.</extracomment>
+        <translation>Kalahari jest wolnym oprogramowaniem: można je rozpowszechniać i zmieniać na warunkach Powszechnej Licencji Publicznej GNU (GNU General Public License) w wersji 3, opublikowanej przez Free Software Foundation, z poniższymi warunkami dodatkowymi, na które pozwala jej sekcja 7.</translation>
     </message>
     <message>
-        <source>Copyright (c) 2025 Kalahari Project
-
-</source>
-        <translation>Copyright (c) 2025 Kalahari Project
-
-</translation>
+        <source>Kalahari is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License below for more details.</source>
+        <extracomment>In Polish: Program Kalahari jest rozpowszechniany w nadziei, że będzie użyteczny, ale BEZ JAKIEJKOLWIEK GWARANCJI, nawet domyślnej gwarancji PRZYDATNOŚCI HANDLOWEJ albo PRZYDATNOŚCI DO OKREŚLONYCH ZASTOSOWAŃ. Szczegóły podaje tekst licencji GNU General Public License poniżej.</extracomment>
+        <translation>Program Kalahari jest rozpowszechniany w nadziei, że będzie użyteczny, ale BEZ JAKIEJKOLWIEK GWARANCJI, nawet domyślnej gwarancji PRZYDATNOŚCI HANDLOWEJ albo PRZYDATNOŚCI DO OKREŚLONYCH ZASTOSOWAŃ. Szczegóły podaje tekst licencji GNU General Public License poniżej.</translation>
     </message>
     <message>
-        <source>Permission is hereby granted, free of charge, to any person obtaining a copy
-</source>
-        <translation>Permission is hereby granted, free of charge, to any person obtaining a copy
-</translation>
+        <source>Additional terms (section 7 of the GNU GPL)</source>
+        <extracomment>A heading on the License tab of About. In Polish: Warunki dodatkowe (sekcja 7 licencji GNU GPL)</extracomment>
+        <translation>Warunki dodatkowe (sekcja 7 licencji GNU GPL)</translation>
     </message>
     <message>
-        <source>of this software and associated documentation files (the &quot;Software&quot;), to deal
-</source>
-        <translation>of this software and associated documentation files (the &quot;Software&quot;), to deal
-</translation>
+        <source>1. Author attribution (section 7 b): every copy of Kalahari, and every work based on it, that is distributed keeps the attribution &quot;%1&quot; in its About window, unchanged and clearly visible; it may be in the language of the user interface.</source>
+        <extracomment>The first additional term of the licence (NOTICE.md). %1: the authors, as attribution() writes them. In Polish: 1. Autorstwo (sekcja 7 b): każda rozpowszechniana kopia programu Kalahari i każde dzieło na nim oparte zachowuje w swoim oknie „O programie” informację „%1”, bez zmian i wyraźnie widoczną; może ona być w języku interfejsu.</extracomment>
+        <translation>1. Autorstwo (sekcja 7 b): każda rozpowszechniana kopia programu Kalahari i każde dzieło na nim oparte zachowuje w swoim oknie „O programie” informację „%1”, bez zmian i wyraźnie widoczną; może ona być w języku interfejsu.</translation>
     </message>
     <message>
-        <source>in the Software without restriction, including without limitation the rights
-</source>
-        <translation>in the Software without restriction, including without limitation the rights
-</translation>
+        <source>2. The names and the logos (section 7 e): the licence grants no rights under trademark law to the name &quot;Kalahari&quot; or to its logo, nor to the name or the logo of BW Digital Systems &amp; Publishing. A modified version is distributed under a name of its own.</source>
+        <extracomment>The second additional term of the licence (NOTICE.md). In Polish: 2. Nazwy i logo (sekcja 7 e): licencja nie daje praw z zakresu znaków towarowych do nazwy „Kalahari” ani do jej logo, ani do nazwy i logo BW Digital Systems &amp; Publishing. Zmienioną wersję rozpowszechnia się pod własną nazwą.</extracomment>
+        <translation>2. Nazwy i logo (sekcja 7 e): licencja nie daje praw z zakresu znaków towarowych do nazwy „Kalahari” ani do jej logo, ani do nazwy i logo BW Digital Systems &amp; Publishing. Zmienioną wersję rozpowszechnia się pod własną nazwą.</translation>
     </message>
     <message>
-        <source>to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-</source>
-        <translation>to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-</translation>
+        <source>The full text of the terms is in the file NOTICE.md, which comes with the program.</source>
+        <extracomment>In Polish: Pełna treść warunków jest w pliku NOTICE.md, dołączonym do programu.</extracomment>
+        <translation>Pełna treść warunków jest w pliku NOTICE.md, dołączonym do programu.</translation>
     </message>
     <message>
-        <source>copies of the Software, and to permit persons to whom the Software is
-</source>
-        <translation>copies of the Software, and to permit persons to whom the Software is
-</translation>
+        <source>The text of the GNU General Public License version 3: %1</source>
+        <extracomment>When the program carries no text of the licence. %1: its address. In Polish: Tekst licencji GNU General Public License w wersji 3: %1</extracomment>
+        <translation>Tekst licencji GNU General Public License w wersji 3: %1</translation>
     </message>
     <message>
-        <source>furnished to do so, subject to the following conditions:
-
-</source>
-        <translation>furnished to do so, subject to the following conditions:
-
-</translation>
-    </message>
-    <message>
-        <source>The above copyright notice and this permission notice shall be included in all
-</source>
-        <translation>The above copyright notice and this permission notice shall be included in all
-</translation>
-    </message>
-    <message>
-        <source>copies or substantial portions of the Software.
-
-</source>
-        <translation>copies or substantial portions of the Software.
-
-</translation>
-    </message>
-    <message>
-        <source>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-</source>
-        <translation>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-</translation>
-    </message>
-    <message>
-        <source>IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-</source>
-        <translation>IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-</translation>
-    </message>
-    <message>
-        <source>FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-</source>
-        <translation>FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-</translation>
-    </message>
-    <message>
-        <source>AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-</source>
-        <translation>AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-</translation>
-    </message>
-    <message>
-        <source>LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-</source>
-        <translation>LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-</translation>
-    </message>
-    <message>
-        <source>OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-</source>
-        <translation>OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-</translation>
-    </message>
-    <message>
-        <source>SOFTWARE.
-
-</source>
-        <translation>SOFTWARE.
-
-</translation>
-    </message>
-    <message>
-        <source>Note: The &quot;Kalahari&quot; name and branding are trademarked.</source>
-        <translation>Uwaga: nazwa i znak „Kalahari” są znakami towarowymi.</translation>
+        <source>The GNU General Public License version 3 – the original English text, the only one that is legally binding:</source>
+        <extracomment>Before the English text of the GNU GPL. In Polish: Licencja GNU General Public License w wersji 3 – oryginalny tekst angielski, jedyny wiążący prawnie:</extracomment>
+        <translation>Licencja GNU General Public License w wersji 3 – oryginalny tekst angielski, jedyny wiążący prawnie:</translation>
     </message>
     <message>
         <source>Hunspell (hunspell.github.io)
@@ -16829,10 +19175,11 @@ The page of the downloads for the materials with a web address. In Polish: Mater
 </translation>
     </message>
     <message>
-        <source>  License: MPL 1.1 / GPL 2.0 / LGPL 2.1
+        <source>  License: LGPL 2.1 or later (of MPL 1.1 / GPL 2.0+ / LGPL 2.1+)
 
 </source>
-        <translation>  Licencja: MPL 1.1 / GPL 2.0 / LGPL 2.1
+        <extracomment>Hunspell offers three licences; Kalahari uses it under the LGPL. In Polish: Licencja: LGPL 2.1 lub nowsza (wybrana spośród MPL 1.1 / GPL 2.0+ / LGPL 2.1+)</extracomment>
+        <translation>  Licencja: LGPL 2.1 lub nowsza (wybrana spośród MPL 1.1 / GPL 2.0+ / LGPL 2.1+)
 
 </translation>
     </message>
@@ -16882,54 +19229,160 @@ The page of the downloads for the materials with a web address. In Polish: Mater
         <translation>Wersja %1, Qt %2</translation>
     </message>
     <message>
-        <source>Kalahari is a modern writing environment designed for book authors.
-Built with C++20 and Qt 6.
-
-A comprehensive writing toolkit with project management,
-statistics tracking, and powerful export capabilities.</source>
-        <translation>Kalahari to nowoczesne środowisko pracy dla autorów książek.
-Napisane w C++20 i Qt 6.
-
-Kompletny zestaw narzędzi pisarza: zarządzanie projektem,
-statystyki i rozbudowany eksport.</translation>
-    </message>
-    <message>
-        <source>Kalahari Writer&apos;s IDE - Development Team
-
-Project Vision &amp; Architecture:
-  Bartosz Warzocha (bartosz.warzocha@gmail.com)
-Technology Stack:
-  C++20, Qt6 6.9+, CMake, vcpkg
-
-Special Thanks:
-  - Anthropic for Claude AI assistance
-  - Qt team for excellent cross-platform GUI framework
-  - Open source community for exceptional libraries
-
-Project Timeline:
-  Start: 2025-11
-  Target Release: February 2027 (Kalahari 1.0)</source>
-        <translation>Kalahari Writer&apos;s IDE – zespół
-
-Wizja i architektura projektu:
-  Bartosz Warzocha (bartosz.warzocha@gmail.com)
-Technologie:
-  C++20, Qt6 6.9+, CMake, vcpkg
-
-Podziękowania:
-  – Anthropic za pomoc Claude AI
-  – zespołowi Qt za świetną wieloplatformową bibliotekę interfejsu
-  – społeczności open source za znakomite biblioteki
-
-Harmonogram projektu:
-  Początek: 2025-11
-  Planowane wydanie: luty 2027 (Kalahari 1.0)</translation>
-    </message>
-    <message>
         <source>Qt 6 (www.qt.io)
 </source>
         <translation>Qt 6 (www.qt.io)
 </translation>
+    </message>
+    <message>
+        <source>%1 (with changes not committed)</source>
+        <extracomment>After the hash of the commit in About: the program was built with changes of the code not yet committed. In Polish: %1 (z niezatwierdzonymi zmianami)</extracomment>
+        <translation>%1 (z niezatwierdzonymi zmianami)</translation>
+    </message>
+    <message>
+        <source>%1 (built with %2)</source>
+        <extracomment>The version of Qt in About: %1 the one the program runs with, %2 the one it was built with. In Polish: %1 (kompilacja z %2)</extracomment>
+        <translation>%1 (kompilacja z %2)</translation>
+    </message>
+    <message>
+        <source>Version:</source>
+        <extracomment>In Polish: Wersja:</extracomment>
+        <translation>Wersja:</translation>
+    </message>
+    <message>
+        <source>Commit:</source>
+        <extracomment>The commit of git the program was built from. In Polish: Commit:</extracomment>
+        <translation>Commit:</translation>
+    </message>
+    <message>
+        <source>Branch:</source>
+        <extracomment>The branch of git of that commit. In Polish: Gałąź:</extracomment>
+        <translation>Gałąź:</translation>
+    </message>
+    <message>
+        <source>Built:</source>
+        <extracomment>The date and the time of the build. In Polish: Skompilowano:</extracomment>
+        <translation>Skompilowano:</translation>
+    </message>
+    <message>
+        <source>Configuration:</source>
+        <extracomment>Debug or Release. In Polish: Konfiguracja:</extracomment>
+        <translation>Konfiguracja:</translation>
+    </message>
+    <message>
+        <source>Qt:</source>
+        <extracomment>The version of Qt. In Polish: Qt:</extracomment>
+        <translation>Qt:</translation>
+    </message>
+    <message>
+        <source>System:</source>
+        <extracomment>The operating system and its processor. In Polish: System:</extracomment>
+        <translation>System:</translation>
+    </message>
+    <message>
+        <source>Compiler:</source>
+        <extracomment>In Polish: Kompilator:</extracomment>
+        <translation>Kompilator:</translation>
+    </message>
+    <message>
+        <source>%1, branch %2</source>
+        <extracomment>The commit and its branch on the Build tab of About. In Polish: %1, gałąź %2</extracomment>
+        <translation>%1, gałąź %2</translation>
+    </message>
+    <message>
+        <source>%1, %2</source>
+        <extracomment>When and how (Debug or Release) on the Build tab of About. In Polish: %1, %2</extracomment>
+        <translation>%1, %2</translation>
+    </message>
+    <message>
+        <source>%1 (%2), %3</source>
+        <extracomment>The system, its processor and the compiler on the Build tab of About. In Polish: %1 (%2), %3</extracomment>
+        <translation>%1 (%2), %3</translation>
+    </message>
+    <message>
+        <source>Build</source>
+        <extracomment>The tab of About with what the program was built from. In Polish: Kompilacja</extracomment>
+        <translation>Kompilacja</translation>
+    </message>
+    <message>
+        <source>Copyright © %1 Bartosz W. Warzocha</source>
+        <extracomment>The copyright of About and of its License tab. %1: the years, &quot;2025–2026&quot;. In Polish: Copyright © %1 Bartosz W. Warzocha</extracomment>
+        <translation>Copyright © %1 Bartosz W. Warzocha</translation>
+    </message>
+    <message>
+        <source>Kalahari – created by BW Digital Systems &amp; Publishing, %1</source>
+        <extracomment>The authors of the program on the About tab and the License tab. Every copy of Kalahari must keep it (NOTICE.md, additional term 1): keep the name of the company and the address. %1: https://bwdsp.com.pl/. In Polish: Realizacja programu Kalahari: BW Digital Systems &amp; Publishing, %1</extracomment>
+        <translation>Realizacja programu Kalahari: BW Digital Systems &amp; Publishing, %1</translation>
+    </message>
+    <message>
+        <source>Kalahari is free software under the GNU General Public License version 3, with no warranty. Its text and the additional terms are on the License tab.</source>
+        <extracomment>Under the copyright on the About tab. In Polish: Kalahari to wolne oprogramowanie na licencji GNU General Public License w wersji 3, bez żadnej gwarancji. Jej tekst i warunki dodatkowe są na karcie Licencja.</extracomment>
+        <translation>Kalahari to wolne oprogramowanie na licencji GNU General Public License w wersji 3, bez żadnej gwarancji. Jej tekst i warunki dodatkowe są na karcie Licencja.</translation>
+    </message>
+    <message>
+        <source>&amp;Copy Build Information</source>
+        <extracomment>Puts what the program was built from on the clipboard, for a report of a fault. In Polish: &amp;Kopiuj informacje o kompilacji</extracomment>
+        <translation>&amp;Kopiuj informacje o kompilacji</translation>
+    </message>
+    <message>
+        <source>Copied to the clipboard.</source>
+        <extracomment>After Copy Build Information in About. In Polish: Skopiowano do schowka.</extracomment>
+        <translation>Skopiowano do schowka.</translation>
+    </message>
+    <message>
+        <source>Kalahari Writer&apos;s IDE</source>
+        <extracomment>The name of the program in the heading of About, beside its logo. In Polish: Kalahari Writer&apos;s IDE</extracomment>
+        <translation>Kalahari Writer&apos;s IDE</translation>
+    </message>
+    <message>
+        <source>Kalahari is a modern writing environment for book authors: project management, statistics and powerful export.</source>
+        <extracomment>Under the first line of the About tab. In Polish: Kalahari to nowoczesne środowisko pracy dla autorów książek: zarządzanie projektem, statystyki i rozbudowany eksport.</extracomment>
+        <translation>Kalahari to nowoczesne środowisko pracy dla autorów książek: zarządzanie projektem, statystyki i rozbudowany eksport.</translation>
+    </message>
+    <message>
+        <source>Authors</source>
+        <extracomment>The heading of a part of the About tab. In Polish: Twórcy</extracomment>
+        <translation>Twórcy</translation>
+    </message>
+    <message>
+        <source>Idea and overall architecture</source>
+        <extracomment>In Authors on the About tab. In Polish: Pomysł i architektura całości</extracomment>
+        <translation>Pomysł i architektura całości</translation>
+    </message>
+    <message>
+        <source>Kalahari – created by</source>
+        <extracomment>In Authors on the About tab, before the name of the company and its address: the row reads as the attribution every copy keeps (NOTICE.md, additional term 1), so it says what the beginning of &quot;Kalahari – created by BW Digital Systems &amp; Publishing, %1&quot; says. In Polish: Realizacja programu Kalahari</extracomment>
+        <translation>Realizacja programu Kalahari</translation>
+    </message>
+    <message>
+        <source>Thanks</source>
+        <extracomment>The heading of a part of the About tab. In Polish: Podziękowania</extracomment>
+        <translation>Podziękowania</translation>
+    </message>
+    <message>
+        <source>Anthropic – for the help of Claude AI</source>
+        <extracomment>In Thanks on the About tab. In Polish: Anthropic – za pomoc Claude AI</extracomment>
+        <translation>Anthropic – za pomoc Claude AI</translation>
+    </message>
+    <message>
+        <source>the Qt team – for the cross-platform GUI framework</source>
+        <extracomment>In Thanks on the About tab. In Polish: zespołowi Qt – za wieloplatformową bibliotekę interfejsu</extracomment>
+        <translation>zespołowi Qt – za wieloplatformową bibliotekę interfejsu</translation>
+    </message>
+    <message>
+        <source>the open source community – for exceptional libraries</source>
+        <extracomment>In Thanks on the About tab. In Polish: społeczności open source – za znakomite biblioteki</extracomment>
+        <translation>społeczności open source – za znakomite biblioteki</translation>
+    </message>
+    <message>
+        <source>Project</source>
+        <extracomment>The heading of a part of the About tab. In Polish: Projekt</extracomment>
+        <translation>Projekt</translation>
+    </message>
+    <message>
+        <source>Technologies</source>
+        <extracomment>In Project on the About tab. In Polish: Technologie</extracomment>
+        <translation>Technologie</translation>
     </message>
 </context>
 <context>
@@ -17122,6 +19575,7 @@ Harmonogram projektu:
     </message>
     <message>
         <source>Bullets and Numbering</source>
+        <extracomment>In Polish: Nie udało się zapisać zestawu w książce.</extracomment>
         <translation>Punktory i numeracja</translation>
     </message>
     <message>
@@ -17203,6 +19657,93 @@ Harmonogram projektu:
     <message>
         <source>The bullet: %1</source>
         <translation>Punktor: %1</translation>
+    </message>
+    <message>
+        <source>List Settings</source>
+        <extracomment>The tooltip of the gear of Format &gt; Bullets and Numbering. In Polish: Ustawienia list</extracomment>
+        <translation>Ustawienia list</translation>
+    </message>
+    <message>
+        <source>S&amp;ets</source>
+        <extracomment>The tab of the sets of all the levels of a list. In Polish: Z&amp;estawy</extracomment>
+        <translation>Z&amp;estawy</translation>
+    </message>
+    <message>
+        <source>Sa&amp;ve as Set...</source>
+        <extracomment>Keeps the formats of the window as a set of the writer. In Polish: Zapi&amp;sz jako zestaw...</extracomment>
+        <translation>Zapi&amp;sz jako zestaw...</translation>
+    </message>
+    <message>
+        <source>A click or the arrows choose a set for the whole list; its context menu renames it, deletes it or makes it the default.</source>
+        <extracomment>Under the preview of the tab Sets. In Polish: Kliknięcie albo strzałki wybierają zestaw dla całej listy, a menu podręczne zmienia jego nazwę, usuwa go albo ustawia jako domyślny.</extracomment>
+        <translation>Kliknięcie albo strzałki wybierają zestaw dla całej listy; menu podręczne zestawu zmienia jego nazwę, usuwa go albo ustawia jako domyślny.</translation>
+    </message>
+    <message>
+        <source>The set could not be saved in the book.</source>
+        <translation>Nie udało się zapisać zestawu w książce.</translation>
+    </message>
+    <message>
+        <source>Delete Set</source>
+        <extracomment>In Polish: Usunąć zestaw „%1”? Listy w tekstach zostaną takie, jakie są.</extracomment>
+        <translation>Usuń zestaw</translation>
+    </message>
+    <message>
+        <source>Delete the set &quot;%1&quot;? The lists in the texts stay as they are.</source>
+        <translation>Usunąć zestaw „%1”? Listy w tekstach zostaną takie, jakie są.</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Re&amp;name...</source>
+        <extracomment>In Polish: Zmień &amp;nazwę...</extracomment>
+        <translation>Zmień &amp;nazwę...</translation>
+    </message>
+    <message>
+        <source>Set as &amp;Default for %1</source>
+        <extracomment>%1: the keys of Numbering or Bullets. In Polish: Ustaw jako &amp;domyślny dla %1</extracomment>
+        <translation>Ustaw jako &amp;domyślny dla %1</translation>
+    </message>
+    <message>
+        <source>e.g. &quot;(&quot;, &quot;§ &quot;, &quot;Step &quot;</source>
+        <extracomment>In Polish: np. „(”, „§ ”, „Krok ”</extracomment>
+        <translation>np. „(”, „§ ”, „Krok ”</translation>
+    </message>
+    <message>
+        <source>Te&amp;xt before number</source>
+        <extracomment>In Polish: Te&amp;kst przed numerem</extracomment>
+        <translation>Te&amp;kst przed numerem</translation>
+    </message>
+    <message>
+        <source>e.g. &quot;.&quot;, &quot;)&quot;, &quot;:&quot; or nothing</source>
+        <extracomment>In Polish: np. „.”, „)”, „:”, „ –” albo nic</extracomment>
+        <translation>np. „.”, „)”, „:” albo nic</translation>
+    </message>
+    <message>
+        <source>Text after nu&amp;mber</source>
+        <extracomment>In Polish: Tekst po nu&amp;merze</extracomment>
+        <translation>Tekst po nu&amp;merze</translation>
+    </message>
+    <message>
+        <source>Numbers of &amp;higher levels</source>
+        <extracomment>In Polish: Numer&amp;y wyższych poziomów</extracomment>
+        <translation>Numer&amp;y wyższych poziomów</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <extracomment>The numbers of no level above go before the number. In Polish: Brak</extracomment>
+        <translation>Brak</translation>
+    </message>
+    <message>
+        <source>Level %1</source>
+        <extracomment>The number of the level right above goes before the number (1.1.). In Polish: Poziom %1</extracomment>
+        <translation>Poziom %1</translation>
+    </message>
+    <message>
+        <source>Levels %1–%2</source>
+        <translation>Poziomy %1–%2</translation>
     </message>
 </context>
 <context>
@@ -17347,11 +19888,6 @@ Harmonogram projektu:
         <source>Annotation n&amp;umber</source>
         <extracomment>In Polish: Nu&amp;mer uwagi</extracomment>
         <translation>Nu&amp;mer uwagi</translation>
-    </message>
-    <message>
-        <source>“3”: the third page of the text, “+2”: two pages on, “-1”: a page back. Next and Previous go to the page after or before.</source>
-        <extracomment>In Polish: „3” – trzecia strona tekstu, „+2” – dwie strony dalej, „-1” – stronę wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej strony.</extracomment>
-        <translation>„3” – trzecia strona tekstu, „+2” – dwie strony dalej, „-1” – jedna strona wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej strony.</translation>
     </message>
     <message>
         <source>“3”: the third heading of the text, “+2”: two headings on, “-1”: a heading back. Next and Previous go to the heading after or before.</source>
@@ -17603,6 +20139,21 @@ Harmonogram projektu:
             <numerusform>Tekst ma %n uwagi.</numerusform>
             <numerusform>Tekst ma %n uwag.</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>“3”: the page with the number 3, “+2”: two pages on, “-1”: a page back. Next and Previous go to the page after or before.</source>
+        <extracomment>In Polish: „3” – strona o numerze 3, „+2” – dwie strony dalej, „-1” – stronę wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej strony.</extracomment>
+        <translation>„3” – strona o numerze 3, „+2” – dwie strony dalej, „-1” – jedna strona wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej strony.</translation>
+    </message>
+    <message>
+        <source>Page %1 (%2 of %3)</source>
+        <extracomment>Where Go To went, the pages numbered through the book: the number the page shows, then its page in the text. In Polish: Strona %1 (%2 z %3)</extracomment>
+        <translation>Strona %1 (%2 z %3)</translation>
+    </message>
+    <message>
+        <source>The text has the pages %1 to %2.</source>
+        <extracomment>The pages numbered through the book. In Polish: Tekst ma strony od %1 do %2.</extracomment>
+        <translation>Tekst ma strony od %1 do %2.</translation>
     </message>
 </context>
 <context>
@@ -18368,6 +20919,73 @@ Harmonogram projektu:
         <extracomment>In Polish: Szare tło pól można wyłączyć w Ustawieniach.</extracomment>
         <translation>Szare tło pól można wyłączyć w Ustawieniach.</translation>
     </message>
+    <message>
+        <source>O&amp;wn</source>
+        <extracomment>A tab of Insert &gt; Field...: the writer&apos;s own fields. In Polish: &amp;Własne</extracomment>
+        <translation>&amp;Własne</translation>
+    </message>
+    <message>
+        <source>Own Fields</source>
+        <extracomment>The list of the own fields of Insert &gt; Field.... In Polish: Własne pola</extracomment>
+        <translation>Własne pola</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>Columns of the own fields: their name, value and where they are saved. In Polish: Nazwa / Wartość / Zapisane w</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Wartość</translation>
+    </message>
+    <message>
+        <source>Saved in</source>
+        <translation>Zapisane w</translation>
+    </message>
+    <message>
+        <source>&amp;New Field...</source>
+        <extracomment>In Polish: &amp;Nowe pole...</extracomment>
+        <translation>&amp;Nowe pole...</translation>
+    </message>
+    <message>
+        <source>C&amp;hange...</source>
+        <extracomment>In Polish: &amp;Zmień...</extracomment>
+        <translation>&amp;Zmień...</translation>
+    </message>
+    <message>
+        <source>De&amp;lete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>no value – in the text %1</source>
+        <extracomment>An own field without a value; %1: what the text shows. In Polish: bez wartości – w tekście %1</extracomment>
+        <translation>bez wartości – w tekście %1</translation>
+    </message>
+    <message>
+        <source>series</source>
+        <extracomment>Where an own field is saved: in the book alone, or in its series (all the volumes). In Polish: książce / serii</extracomment>
+        <translation>serii</translation>
+    </message>
+    <message>
+        <source>book</source>
+        <translation>książce</translation>
+    </message>
+    <message>
+        <source>A text outside a book has no own fields.</source>
+        <extracomment>In Polish: Tekst spoza książki nie ma własnych pól.</extracomment>
+        <translation>Tekst spoza książki nie ma własnych pól.</translation>
+    </message>
+    <message>
+        <source>The book has no own fields yet. New Field... adds one, such as the name of the narrator or of the publisher.</source>
+        <extracomment>In Polish: Książka nie ma jeszcze własnych pól. „Nowe pole...” dodaje pole, np. imię narratora albo nazwę wydawnictwa.</extracomment>
+        <translation>Książka nie ma jeszcze własnych pól. „Nowe pole...” dodaje pole, np. imię narratora albo nazwę wydawnictwa.</translation>
+    </message>
+    <message>
+        <source>A new value changes the field in the whole book, in export and printing too.</source>
+        <extracomment>In Polish: Nowa wartość zmienia to pole w całej książce, także w eksporcie i wydruku.</extracomment>
+        <translation>Nowa wartość zmienia to pole w całej książce, także w eksporcie i wydruku.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::FilePreviewDialog</name>
@@ -18487,8 +21105,8 @@ Harmonogram projektu:
     </message>
     <message>
         <source>&amp;Border</source>
-        <extracomment>In Polish: Obramo&amp;wanie</extracomment>
-        <translation>Obramo&amp;wanie</translation>
+        <extracomment>In Polish: Obra&amp;mowanie</extracomment>
+        <translation>Obra&amp;mowanie</translation>
     </message>
     <message>
         <source>C&amp;olors</source>
@@ -18507,8 +21125,8 @@ Harmonogram projektu:
     </message>
     <message>
         <source>C&amp;hange Image...</source>
-        <extracomment>In Polish: Z&amp;mień obraz...</extracomment>
-        <translation>Z&amp;mień obraz...</translation>
+        <extracomment>In Polish: Zmień o&amp;braz...</extracomment>
+        <translation>Zmień o&amp;braz...</translation>
     </message>
     <message>
         <source>Sa&amp;ve as Image...</source>
@@ -18567,8 +21185,8 @@ Harmonogram projektu:
     </message>
     <message>
         <source>&amp;Width</source>
-        <extracomment>In Polish: &amp;Szerokość</extracomment>
-        <translation>&amp;Szerokość</translation>
+        <extracomment>In Polish: S&amp;zerokość</extracomment>
+        <translation>S&amp;zerokość</translation>
     </message>
     <message>
         <source>&amp;Width</source>
@@ -18578,8 +21196,8 @@ Harmonogram projektu:
     </message>
     <message>
         <source>&amp;Height</source>
-        <extracomment>In Polish: W&amp;ysokość</extracomment>
-        <translation>W&amp;ysokość</translation>
+        <extracomment>In Polish: Wy&amp;sokość</extracomment>
+        <translation>Wy&amp;sokość</translation>
     </message>
     <message>
         <source>&amp;Keep proportions</source>
@@ -18739,8 +21357,8 @@ Harmonogram projektu:
     </message>
     <message>
         <source>Origin&amp;al</source>
-        <extracomment>The filters of an image. In Polish: Or&amp;yginał</extracomment>
-        <translation>Or&amp;yginał</translation>
+        <extracomment>The filters of an image. In Polish (no access key, its letters are taken): Oryginał</extracomment>
+        <translation>Oryginał</translation>
     </message>
     <message>
         <source>&amp;Grayscale</source>
@@ -18861,11 +21479,6 @@ Harmonogram projektu:
         <translation>Automatyczna</translation>
     </message>
     <message>
-        <source>The look of the selected image: its file, size, crop, border, colors, description and caption.</source>
-        <extracomment>In Polish: Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, obramowanie, kolory, opis i podpis.</extracomment>
-        <translation>Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, obramowanie, kolory, opis i podpis.</translation>
-    </message>
-    <message>
         <source>Image Settings</source>
         <extracomment>The tooltip of the gear of the windows of images. In Polish: Ustawienia obrazów</extracomment>
         <translation>Ustawienia obrazów</translation>
@@ -18950,14 +21563,84 @@ Harmonogram projektu:
         <translation>numer nadaje program: %1</translation>
     </message>
     <message>
-        <source>&amp;Wrap text:</source>
-        <extracomment>How the text flows around the image. In Polish: Opływanie t&amp;ekstem:</extracomment>
-        <translation>Opływanie t&amp;ekstem:</translation>
+        <source>The look of the selected image: its file, size, crop, text flow, space around, border, colors, description and caption.</source>
+        <extracomment>In Polish: Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, opływanie, odstępy, obramowanie, kolory, opis i podpis.</extracomment>
+        <translation>Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, opływanie, odstępy, obramowanie, kolory, opis i podpis.</translation>
     </message>
     <message>
-        <source>The text flows only around an image alone in its paragraph, outside a table</source>
-        <extracomment>Why the wrap of an image is greyed out. In Polish: Tekst opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą</extracomment>
-        <translation>Tekst opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą</translation>
+        <source>Text &amp;Flow</source>
+        <extracomment>How the text flows around the image. In Polish: Opły&amp;wanie</extracomment>
+        <translation>Opły&amp;wanie</translation>
+    </message>
+    <message>
+        <source>Space Aro&amp;und</source>
+        <extracomment>The room the image keeps from the text around it. In Polish: Odstęp&amp;y</extracomment>
+        <translation>Odstęp&amp;y</translation>
+    </message>
+    <message>
+        <source>Preview of the space around the image</source>
+        <extracomment>In Polish: Podgląd odstępów obrazu</extracomment>
+        <translation>Podgląd odstępów obrazu</translation>
+    </message>
+    <message>
+        <source>&amp;Above:</source>
+        <extracomment>The room between the image (or its caption above it) and the text above it. In Polish: Odstęp &amp;górny:</extracomment>
+        <translation>Odstęp &amp;górny:</translation>
+    </message>
+    <message>
+        <source>B&amp;elow:</source>
+        <extracomment>In Polish: Odstęp do&amp;lny:</extracomment>
+        <translation>Odstęp do&amp;lny:</translation>
+    </message>
+    <message>
+        <source>Beside the &amp;text:</source>
+        <extracomment>The room between an image the text runs beside and that text. In Polish: Odstęp &amp;boczny:</extracomment>
+        <translation>Odstęp &amp;boczny:</translation>
+    </message>
+    <message>
+        <source>As in the Settin&amp;gs</source>
+        <extracomment>The room of new images (Settings &gt; Editor &gt; Images). In Polish: Jak w &amp;Ustawieniach</extracomment>
+        <translation>Jak w &amp;Ustawieniach</translation>
+    </message>
+    <message>
+        <source>The space around new images, from Settings &gt; Editor &gt; Images</source>
+        <extracomment>In Polish: Odstępy nowych obrazów z Ustawień &gt; Edytor &gt; Obrazy</extracomment>
+        <translation>Odstępy nowych obrazów z Ustawień &gt; Edytor &gt; Obrazy</translation>
+    </message>
+    <message>
+        <source>The text flows only around an image alone in its paragraph, outside a table. This image is a part of a line of the text.</source>
+        <extracomment>Why the ways of the text flowing around an image are greyed out. In Polish: Tekst opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą. Ten obraz jest częścią wiersza tekstu.</extracomment>
+        <translation>Tekst opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą. Ten obraz jest częścią wiersza tekstu.</translation>
+    </message>
+    <message>
+        <source>The image is in a paragraph of its own, as a line of the text: when it does not fit on its page, it goes on to the next one and the rest of the page stays empty.</source>
+        <extracomment>In Polish: Obraz jest we własnym akapicie, jak wiersz tekstu: gdy nie mieści się na stronie, przechodzi na następną, a reszta strony zostaje pusta.</extracomment>
+        <translation>Obraz jest we własnym akapicie, jak wiersz tekstu: gdy nie mieści się na stronie, przechodzi na następną, a reszta strony zostaje pusta.</translation>
+    </message>
+    <message>
+        <source>The next paragraphs run beside the image and below it across the whole width again; with too little room beside it a line goes on below the image.</source>
+        <extracomment>In Polish: Kolejne akapity biegną obok obrazu, a pod nim znów na całą szerokość; gdy obok zostaje za mało miejsca, wiersz przechodzi pod obraz.</extracomment>
+        <translation>Kolejne akapity biegną obok obrazu, a pod nim znów na całą szerokość; gdy obok zostaje za mało miejsca, wiersz przechodzi pod obraz.</translation>
+    </message>
+    <message>
+        <source>The text is above and below the image. In the page view an image that does not fit on its page goes on to the next one with its caption, and the text after it fills the rest of the page.</source>
+        <extracomment>In Polish: Tekst jest nad obrazem i pod nim. W widoku stron obraz, który nie mieści się na stronie, przechodzi z podpisem na następną, a tekst za nim wypełnia resztę bieżącej strony.</extracomment>
+        <translation>Tekst jest nad obrazem i pod nim. W widoku stron obraz, który nie mieści się na stronie, przechodzi z podpisem na następną, a tekst za nim wypełnia resztę bieżącej strony.</translation>
+    </message>
+    <message>
+        <source>Only an image alone in its paragraph, outside a table, keeps room around it. This image is a part of a line of the text.</source>
+        <extracomment>Why the room around an image is greyed out. In Polish: Odstępy ma tylko obraz, który jest sam w swoim akapicie, poza tabelą. Ten obraz jest częścią wiersza tekstu.</extracomment>
+        <translation>Odstępy ma tylko obraz, który jest sam w swoim akapicie, poza tabelą. Ten obraz jest częścią wiersza tekstu.</translation>
+    </message>
+    <message>
+        <source>The space above is above the image or its caption above it, the space below below the image or its caption, and the space beside between the image and the text beside it.</source>
+        <extracomment>In Polish: Odstęp górny jest nad obrazem albo nad jego podpisem nad obrazem, dolny – pod obrazem albo pod podpisem, a boczny – między obrazem a tekstem obok niego.</extracomment>
+        <translation>Odstęp górny jest nad obrazem albo nad jego podpisem nad obrazem, dolny – pod obrazem albo pod podpisem, a boczny – między obrazem a tekstem obok niego.</translation>
+    </message>
+    <message>
+        <source>The space above is above the image or its caption above it, and the space below below the image or its caption. The space beside is of an image the text runs beside (the page Text Flow).</source>
+        <extracomment>In Polish: Odstęp górny jest nad obrazem albo nad jego podpisem nad obrazem, a dolny – pod obrazem albo pod podpisem. Odstęp boczny ma obraz, obok którego biegnie tekst (karta „Opływanie”).</extracomment>
+        <translation>Odstęp górny jest nad obrazem albo nad jego podpisem nad obrazem, a dolny – pod obrazem albo pod podpisem. Odstęp boczny ma obraz, obok którego biegnie tekst (karta „Opływanie”).</translation>
     </message>
 </context>
 <context>
@@ -19306,6 +21989,31 @@ Harmonogram projektu:
         <source>Insert With&amp;out Caption</source>
         <extracomment>In Polish: Wstaw be&amp;z podpisu</extracomment>
         <translation>Wstaw be&amp;z podpisu</translation>
+    </message>
+    <message>
+        <source>The caption of the table, with a number the program gives.</source>
+        <extracomment>The caption of a table. In Polish: Podpis tabeli z numerem nadawanym przez program.</extracomment>
+        <translation>Podpis tabeli z numerem nadawanym przez program.</translation>
+    </message>
+    <message>
+        <source>Table Settings</source>
+        <extracomment>The tooltip of the gear of the window of the caption of a table. In Polish: Ustawienia tabel</extracomment>
+        <translation>Ustawienia tabel</translation>
+    </message>
+    <message>
+        <source>Below the table</source>
+        <extracomment>In Polish: Pod tabelą</extracomment>
+        <translation>Pod tabelą</translation>
+    </message>
+    <message>
+        <source>Above the table</source>
+        <extracomment>In Polish: Nad tabelą</extracomment>
+        <translation>Nad tabelą</translation>
+    </message>
+    <message>
+        <source>Each label has its own numbering (&quot;Table 1&quot;, &quot;Table 2&quot; next to &quot;Figure 1&quot;, &quot;Figure 2&quot;). The caption is a paragraph in the style Caption.</source>
+        <extracomment>The caption of a table. In Polish: Każda etykieta ma własną numerację („Tabela 1”, „Tabela 2” obok „Rysunek 1”, „Rysunek 2”). Podpis jest akapitem stylu „Podpis”.</extracomment>
+        <translation>Każda etykieta ma własną numerację („Tabela 1”, „Tabela 2” obok „Rysunek 1”, „Rysunek 2”). Podpis jest akapitem stylu „Podpis”.</translation>
     </message>
 </context>
 <context>
@@ -20499,6 +23207,21 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <extracomment>Where a new material of the cover goes on the cover, after where it goes in the Workshop; %1 the place: back, front... In Polish: Na okładce: %1 – zmienisz to na karcie.</extracomment>
         <translation>Na okładce: %1 – zmienisz to na karcie.</translation>
     </message>
+    <message>
+        <source>Choose the part of the text, its template and its title.</source>
+        <extracomment>The heading of the small window of a text for publishers. In Polish: Wybierz część tekstu, jego szablon i tytuł.</extracomment>
+        <translation>Wybierz część tekstu, jego szablon i tytuł.</translation>
+    </message>
+    <message>
+        <source>Type the title of the {kind}.</source>
+        <extracomment>The heading of the small window of an element of a kind chosen by its name, e.g. Add Mind Map. In Polish: Wpisz tytuł {kind:genitive}.</extracomment>
+        <translation>Wpisz tytuł {kind:genitive}.</translation>
+    </message>
+    <message>
+        <source>Add {Kind}</source>
+        <extracomment>The small window of an element of a kind chosen by its name, e.g. Add Mind Map... in the Navigator. In Polish: Dodaj {kind:accusative}</extracomment>
+        <translation>Dodaj {kind:accusative}</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::NewItemDialog</name>
@@ -21058,6 +23781,32 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <source>files of pictures</source>
         <extracomment>In Polish: pliki obrazów</extracomment>
         <translation>pliki obrazów</translation>
+    </message>
+    <message>
+        <source>&amp;Kalahari Format (with annotations)</source>
+        <extracomment>An item of the submenu Paste Special of the text's context menu. In Polish: Format &amp;Kalahari (z uwagami)</extracomment>
+        <translation>Format &amp;Kalahari (z uwagami)</translation>
+    </message>
+    <message>
+        <source>Keep &amp;Source Formatting</source>
+        <extracomment>In Polish: &amp;Zachowaj formatowanie źródła</extracomment>
+        <translation>&amp;Zachowaj formatowanie źródła</translation>
+    </message>
+    <message>
+        <source>&amp;Merge Formatting</source>
+        <extracomment>In Polish: &amp;Scal formatowanie</extracomment>
+        <translation>&amp;Scal formatowanie</translation>
+    </message>
+    <message>
+        <source>&amp;Text Only</source>
+        <extracomment>In Polish: &amp;Tylko tekst</extracomment>
+        <translation>&amp;Tylko tekst</translation>
+    </message>
+    <message>
+        <source>&amp;Image</source>
+        <comment>paste form</comment>
+        <extracomment>In Polish: &amp;Obraz</extracomment>
+        <translation>&amp;Obraz</translation>
     </message>
 </context>
 <context>
@@ -21867,6 +24616,41 @@ In Polish: Dodaj</extracomment>
         <source>Automatic</source>
         <translation>Automatyczny</translation>
     </message>
+    <message>
+        <source>Space Around</source>
+        <extracomment>Table Properties, the Table tab. In Polish: Odstępy</extracomment>
+        <translation>Odstępy</translation>
+    </message>
+    <message>
+        <source>&amp;Space above</source>
+        <extracomment>The room between the table (or its caption above it) and the text above it. In Polish: Odstęp &amp;górny</extracomment>
+        <translation>Odstęp &amp;górny</translation>
+    </message>
+    <message>
+        <source>Between the text above and the table, or its caption above it</source>
+        <extracomment>In Polish: Między tekstem nad tabelą a tabelą albo jej podpisem nad nią</extracomment>
+        <translation>Między tekstem nad tabelą a tabelą albo jej podpisem nad nią</translation>
+    </message>
+    <message>
+        <source>Space bel&amp;ow</source>
+        <extracomment>In Polish: Odstęp &amp;dolny</extracomment>
+        <translation>Odstęp &amp;dolny</translation>
+    </message>
+    <message>
+        <source>Between the table, or its caption below it, and the text below</source>
+        <extracomment>In Polish: Między tabelą albo jej podpisem pod nią a tekstem pod nią</extracomment>
+        <translation>Między tabelą albo jej podpisem pod nią a tekstem pod nią</translation>
+    </message>
+    <message>
+        <source>As in the Settin&amp;gs</source>
+        <extracomment>The room of new tables. In Polish: Jak w Ustawi&amp;eniach</extracomment>
+        <translation>Jak w Ustawi&amp;eniach</translation>
+    </message>
+    <message>
+        <source>The space a new table gets (Settings &gt; Editor &gt; Tables)</source>
+        <extracomment>In Polish: Odstępy, które dostaje nowa tabela (Ustawienia &gt; Edytor &gt; Tabele)</extracomment>
+        <translation>Odstępy, które dostaje nowa tabela (Ustawienia &gt; Edytor &gt; Tabele)</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::TableToTextDialog</name>
@@ -22294,6 +25078,222 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     </message>
 </context>
 <context>
+    <name>kalahari::mindmap::MindMapNodeDialog</name>
+    <message>
+        <source>Node Properties</source>
+        <extracomment>The window of a node of a mind map. %1: its name. In Polish: Właściwości węzła / Węzeł „%1”: nazwa, notatka, wiersze z książki, własne atrybuty i obraz.</extracomment>
+        <translation>Właściwości węzła</translation>
+    </message>
+    <message>
+        <source>“%1”: its name, its note, the rows of the book, its own attributes and its picture.</source>
+        <translation>„%1”: nazwa, notatka, wiersze z książki, własne atrybuty i obraz.</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Kind</source>
+        <extracomment>In Polish: Rodzaj</extracomment>
+        <translation>Rodzaj</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>Rows of the node</source>
+        <extracomment>The accessible name of the list of the rows of a node. In Polish: Wiersze węzła</extracomment>
+        <translation>Wiersze węzła</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <extracomment>In Polish: W górę</extracomment>
+        <translation>W górę</translation>
+    </message>
+    <message>
+        <source>Down</source>
+        <extracomment>In Polish: W dół</extracomment>
+        <translation>W dół</translation>
+    </message>
+    <message>
+        <source>As at First</source>
+        <extracomment>The rows a node shows at first. In Polish: Jak na początku</extracomment>
+        <translation>Jak na początku</translation>
+    </message>
+    <message>
+        <source>Rows</source>
+        <extracomment>The rows of the book a node shows. In Polish: Wiersze</extracomment>
+        <translation>Wiersze</translation>
+    </message>
+    <message>
+        <source>Add Attribute</source>
+        <extracomment>In Polish: Dodaj atrybut</extracomment>
+        <translation>Dodaj atrybut</translation>
+    </message>
+    <message>
+        <source>Attributes</source>
+        <extracomment>The writer&apos;s own attributes of a node: a name and a value. In Polish: Atrybuty</extracomment>
+        <translation>Atrybuty</translation>
+    </message>
+    <message>
+        <source>as the settings say</source>
+        <extracomment>The picture of a node: as Settings &gt; Mind Maps say (the portraits of the cards). In Polish: jak w ustawieniach</extracomment>
+        <translation>jak w ustawieniach</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <extracomment>In Polish: bez obrazu</extracomment>
+        <translation>bez obrazu</translation>
+    </message>
+    <message>
+        <source>the main portrait of the card</source>
+        <extracomment>In Polish: główny portret karty</extracomment>
+        <translation>główny portret karty</translation>
+    </message>
+    <message>
+        <source>Picture</source>
+        <extracomment>In Polish: Obraz</extracomment>
+        <translation>Obraz</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <extracomment>In Polish: Zapisz</extracomment>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>Name, e.g. Motive</source>
+        <extracomment>The name of an attribute of a node. In Polish: Nazwa, np. Motyw</extracomment>
+        <translation>Nazwa, np. Motyw</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <extracomment>In Polish: Wartość</extracomment>
+        <translation>Wartość</translation>
+    </message>
+    <message>
+        <source>Delete the Attribute</source>
+        <extracomment>In Polish: Usuń atrybut</extracomment>
+        <translation>Usuń atrybut</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::mindmap::MindMapPicker</name>
+    <message>
+        <source>Search…</source>
+        <extracomment>The search of the small window that adds a node to a mind map or connects nodes. In Polish: Szukaj…</extracomment>
+        <translation>Szukaj…</translation>
+    </message>
+    <message>
+        <source>Nothing matches</source>
+        <extracomment>The small window that adds a node to a mind map, when nothing matches the search. In Polish: Nic nie pasuje</extracomment>
+        <translation>Nic nie pasuje</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::mindmap::RelationMapDialog</name>
+    <message>
+        <source>New Relation Map</source>
+        <extracomment>The window that makes a map of the relations of the cards. In Polish: Nowa mapa relacji</extracomment>
+        <translation>Nowa mapa relacji</translation>
+    </message>
+    <message>
+        <source>The cards of the Workshop on a mind map, with the relations they have.</source>
+        <extracomment>In Polish: Karty Warsztatu na mapie myśli, z relacjami, które mają.</extracomment>
+        <translation>Karty Warsztatu na mapie myśli, z relacjami, które mają.</translation>
+    </message>
+    <message>
+        <source>Relations of the characters</source>
+        <extracomment>The name of a new map of relations. In Polish: Relacje postaci</extracomment>
+        <translation>Relacje postaci</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Cards</source>
+        <extracomment>In Polish: Karty</extracomment>
+        <translation>Karty</translation>
+    </message>
+    <message>
+        <source>Family</source>
+        <extracomment>The relations a map of relations shows. In Polish: Rodzina</extracomment>
+        <translation>Rodzina</translation>
+    </message>
+    <message>
+        <source>Other relations</source>
+        <extracomment>In Polish: Inne relacje</extracomment>
+        <translation>Inne relacje</translation>
+    </message>
+    <message>
+        <source>Places and items of the characters</source>
+        <extracomment>In Polish: Miejsca i przedmioty postaci</extracomment>
+        <translation>Miejsca i przedmioty postaci</translation>
+    </message>
+    <message>
+        <source>Relations</source>
+        <extracomment>In Polish: Relacje</extracomment>
+        <translation>Relacje</translation>
+    </message>
+    <message>
+        <source>the family in generations</source>
+        <extracomment>The layout of a new map of relations. In Polish: rodzina w pokoleniach</extracomment>
+        <translation>rodzina w pokoleniach</translation>
+    </message>
+    <message>
+        <source>free</source>
+        <extracomment>In Polish: swobodny</extracomment>
+        <translation>swobodny</translation>
+    </message>
+    <message>
+        <source>Layout</source>
+        <extracomment>In Polish: Układ</extracomment>
+        <translation>Układ</translation>
+    </message>
+    <message>
+        <source>The map takes the relations the cards have now; new ones come to it when it opens.</source>
+        <extracomment>In Polish: Mapa bierze relacje, które karty mają teraz; nowe relacje dochodzą do niej przy otwarciu.</extracomment>
+        <translation>Mapa bierze relacje, które karty mają teraz; nowe relacje dochodzą do niej przy otwarciu.</translation>
+    </message>
+    <message>
+        <source>Create</source>
+        <extracomment>In Polish: Utwórz</extracomment>
+        <translation>Utwórz</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::mindmap::RelationMapOffer</name>
+    <message>
+        <source>Create Relation Map</source>
+        <extracomment>The button of the offer of a map of relations. In Polish: Utwórz mapę relacji</extracomment>
+        <translation>Utwórz mapę relacji</translation>
+    </message>
+    <message>
+        <source>Not Now</source>
+        <extracomment>In Polish: Nie teraz</extracomment>
+        <translation>Nie teraz</translation>
+    </message>
+    <message>
+        <source>Do Not Ask Again</source>
+        <extracomment>In Polish: Nie pytaj więcej</extracomment>
+        <translation>Nie pytaj więcej</translation>
+    </message>
+    <message>
+        <source>Relation map</source>
+        <extracomment>The accessible name of the offer of a map of relations. In Polish: Mapa relacji</extracomment>
+        <translation>Mapa relacji</translation>
+    </message>
+    <message>
+        <source>%1 has the first relation: “%2” – %3. Create a relation map of the {kind:plural}? You will see the relations of the cards on one map.</source>
+        <extracomment>The offer after the first relation of a card: %1 the card, %2 the relation, %3 the other card, {kind:plural} its kind (&quot;characters&quot;). In Polish: %1 ma pierwszą relację: „%2” – %3. Utworzyć mapę relacji {kind:genitivePlural}? Relacje kart zobaczysz na jednej mapie.</extracomment>
+        <translation>%1 ma pierwszą relację: „%2” – %3. Utworzyć mapę relacji {kind:genitivePlural}? Relacje kart zobaczysz na jednej mapie.</translation>
+    </message>
+</context>
+<context>
     <name>main</name>
     <message>
         <source>Writer&apos;s IDE for book authors</source>
@@ -22314,6 +25314,11 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     <message>
         <source>Run performance benchmark and exit</source>
         <translation>Wykonaj test wydajności i zakończ</translation>
+    </message>
+    <message>
+        <source>Check the installation of the program (resources, Qt plugins, Python) and exit</source>
+        <extracomment>In Polish: Sprawdź instalację programu (zasoby, wtyczki Qt, Python) i zakończ</extracomment>
+        <translation>Sprawdź instalację programu (zasoby, wtyczki Qt, Python) i zakończ</translation>
     </message>
     <message>
         <source>Open project from path (for --benchmark)</source>
@@ -22347,6 +25352,54 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
         <source>A book (.klh file) or another file to open; when the program runs already, its window opens it</source>
         <extracomment>The argument of the command line without a name. In Polish: Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</extracomment>
         <translation>Książka (plik .klh) albo inny plik do otwarcia; gdy program już działa, otwiera go jego okno</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorTablesPage</name>
+    <message>
+        <source>New Table</source>
+        <extracomment>Settings &gt; Editor &gt; Tables. In Polish: Nowa tabela</extracomment>
+        <translation>Nowa tabela</translation>
+    </message>
+    <message>
+        <source>Space abov&amp;e:</source>
+        <extracomment>The room between a new table (or its caption above it) and the text above it. In Polish: Odstęp &amp;górny:</extracomment>
+        <translation>Odstęp &amp;górny:</translation>
+    </message>
+    <message>
+        <source>S&amp;pace below:</source>
+        <extracomment>In Polish: Odstęp do&amp;lny:</extracomment>
+        <translation>Odstęp do&amp;lny:</translation>
+    </message>
+    <message>
+        <source>The text above and below a table keeps this room from it, so no empty paragraph is needed there. A table already in the text has its own room: Table &gt; Table Properties..., the Table tab.</source>
+        <extracomment>In Polish: Tekst nad tabelą i pod nią zachowuje ten odstęp, więc nie trzeba tam pustych akapitów. Tabela, która już jest w tekście, ma własne odstępy: Tabela &gt; Właściwości tabeli..., karta „Tabela”.</extracomment>
+        <translation>Tekst nad tabelą i pod nią zachowuje ten odstęp, więc nie trzeba tam pustych akapitów. Tabela, która już jest w tekście, ma własne odstępy: Tabela &gt; Właściwości tabeli..., karta „Tabela”.</translation>
+    </message>
+    <message>
+        <source>Caption of a Table</source>
+        <extracomment>In Polish: Podpis tabeli</extracomment>
+        <translation>Podpis tabeli</translation>
+    </message>
+    <message>
+        <source>Above the table</source>
+        <extracomment>In Polish: Nad tabelą</extracomment>
+        <translation>Nad tabelą</translation>
+    </message>
+    <message>
+        <source>Below the table</source>
+        <extracomment>In Polish: Pod tabelą</extracomment>
+        <translation>Pod tabelą</translation>
+    </message>
+    <message>
+        <source>P&amp;osition:</source>
+        <extracomment>In Polish: &amp;Położenie:</extracomment>
+        <translation>&amp;Położenie:</translation>
+    </message>
+    <message>
+        <source>Table &gt; Insert Caption... and Insert &gt; Caption... with the cursor in a table give it a numbered caption with the label &quot;%1&quot;, as images have; the window of the caption can put it on the other side.</source>
+        <extracomment>%1: the label of the captions of tables. In Polish: Tabela &gt; Wstaw podpis... oraz Wstaw &gt; Podpis... z kursorem w tabeli dodają do niej numerowany podpis z etykietą „%1”, tak jak do obrazów; w oknie podpisu można go przenieść na drugą stronę tabeli.</extracomment>
+        <translation>Tabela &gt; Wstaw podpis... oraz Wstaw &gt; Podpis... z kursorem w tabeli dodają do niej numerowany podpis z etykietą „%1”, tak jak do obrazów; w oknie podpisu można go przenieść na drugą stronę tabeli.</translation>
     </message>
 </context>
 <context>
@@ -22860,8 +25913,8 @@ Paski utworzone przez użytkownika zostaną usunięte, a wbudowane wrócą do us
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>The button of the bar after a version was restored. In Polish: &amp;Cofnij</extracomment>
-        <translation>&amp;Cofnij</translation>
+        <extracomment>The button of the bar after a version was restored. In Polish: Cofn&amp;ij</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Undo the restoring, as Ctrl+Z does</source>
@@ -23363,6 +26416,42 @@ Notatka: %2</translation>
         <source>Volume Not Saved</source>
         <extracomment>In Polish: Nie zapisano tomu</extracomment>
         <translation>Nie zapisano tomu</translation>
+    </message>
+    <message>
+        <source>Take the Text of About the Author</source>
+        <extracomment>Copies the text of the note About the Author of the back part of the book into a note about the author of the cover. In Polish: Weź tekst z noty o autorze</extracomment>
+        <translation>Weź tekst z noty o autorze</translation>
+    </message>
+    <message>
+        <source>Copies the text of &quot;About the Author&quot; of the back part; from then on the two texts are changed apart.</source>
+        <extracomment>Under the button that takes the text of the note About the Author. In Polish: Kopiuje treść „Noty o autorze” z części końcowej; dalej oba teksty zmienia się osobno.</extracomment>
+        <translation>Kopiuje treść „Noty o autorze” z części końcowej; dalej oba teksty zmienia się osobno.</translation>
+    </message>
+    <message>
+        <source>&amp;Photographer:</source>
+        <extracomment>Who took the photo of the author. In Polish: &amp;Fotograf:</extracomment>
+        <translation>&amp;Fotograf:</translation>
+    </message>
+    <message>
+        <source>The book has no &quot;About the Author&quot; in its back part.</source>
+        <translation>Książka nie ma „Noty o autorze” w części końcowej.</translation>
+    </message>
+    <message>
+        <source>%1 (turned off)</source>
+        <comment>the jacket</comment>
+        <extracomment>The heading of the places of the jacket in the box of the place, while the book has no jacket: %1 the name of the jacket. In Polish: %1 (wyłączona)</extracomment>
+        <translation>%1 (wyłączona)</translation>
+    </message>
+    <message>
+        <source>%1 (turned off)</source>
+        <comment>a place</comment>
+        <extracomment>A place on a part of the cover turned off, in the box of the place: %1 the place. In Polish: %1 (wyłączone)</extracomment>
+        <translation>%1 (wyłączone)</translation>
+    </message>
+    <message>
+        <source>The text of &quot;About the Author&quot; of the back part was copied.</source>
+        <extracomment>The status bar after the text of the note About the Author is taken for a note about the author of the cover. In Polish: Skopiowano treść „Noty o autorze” z części końcowej.</extracomment>
+        <translation>Skopiowano treść „Noty o autorze” z części końcowej.</translation>
     </message>
 </context>
 <context>
@@ -23972,89 +27061,58 @@ Where a quote comes from: a source and its page. In Polish: Źródło</extracomm
         <translation>Kopiuje zapisy w bibliografii wszystkich źródeł widocznych na liście, w jej kolejności</translation>
     </message>
     <message>
-        <source>Template</source>
-        <extracomment>The template of a text for publishers. In Polish: Szablon</extracomment>
-        <translation>Szablon</translation>
-    </message>
-    <message>
-        <source>Set Not Saved</source>
-        <extracomment>In Polish: Nie zapisano zestawu</extracomment>
-        <translation>Nie zapisano zestawu</translation>
-    </message>
-    <message>
-        <source>&quot;%1&quot; is now in the set for publishers.</source>
-        <extracomment>The status bar after a description or a tagline of the cover became the version of its part in the set for publishers; %1: its title. In Polish: „%1” jest teraz w zestawie dla wydawnictwa.</extracomment>
-        <translation>„%1” jest teraz w zestawie dla wydawnictwa.</translation>
-    </message>
-    <message>
-        <source>Copy &amp;Text</source>
-        <extracomment>Copies the words of a text for publishers, of a description or of a tagline. In Polish: Kopiuj &amp;tekst</extracomment>
-        <translation>Kopiuj &amp;tekst</translation>
-    </message>
-    <message>
-        <source>From the Cover</source>
-        <extracomment>Shows or hides the descriptions and the taglines of the cover in the list of the texts for publishers. In Polish: Z Okładki</extracomment>
-        <translation>Z Okładki</translation>
-    </message>
-    <message>
-        <source>Show or hide the descriptions and the taglines of the cover</source>
-        <extracomment>In Polish: Pokaż albo schowaj opisy i hasła z Okładki</extracomment>
-        <translation>Pokaż albo schowaj opisy i hasła z Okładki</translation>
-    </message>
-    <message>
-        <source>Texts for Publishers Settings</source>
-        <extracomment>The gear of the list of the texts for publishers: Settings &gt; Navigator &gt; Texts for Publishers. In Polish: Ustawienia tekstów dla wydawnictwa</extracomment>
-        <translation>Ustawienia tekstów dla wydawnictwa</translation>
-    </message>
-    <message>
-        <source>%1... (to the Cover)</source>
-        <extracomment>An item of Add of the list of the texts for publishers that adds a material of the cover; %1: what it is. In Polish: %1... (do Okładki)</extracomment>
-        <translation>%1... (do Okładki)</translation>
-    </message>
-    <message>
-        <source>In the Set</source>
-        <extracomment>In the menu of a text for publishers that the set has. In Polish: Jest w zestawie</extracomment>
-        <translation>Jest w zestawie</translation>
-    </message>
-    <message>
-        <source>C&amp;hoose for the Set</source>
-        <extracomment>Makes a text for publishers, a description or a tagline the version of its part in the set for publishers. In Polish: &amp;Wybierz do zestawu</extracomment>
-        <translation>&amp;Wybierz do zestawu</translation>
-    </message>
-    <message>
-        <source>Show in the &amp;Cover</source>
-        <extracomment>Shows a description or a tagline in the list of the cover. In Polish: Pokaż w &amp;Okładce</extracomment>
-        <translation>Pokaż w &amp;Okładce</translation>
-    </message>
-    <message>
-        <source>Set for the Publisher</source>
-        <extracomment>Shows the set for a publisher, the second view of the list of the texts for publishers. In Polish: Zestaw dla wydawnictwa</extracomment>
-        <translation>Zestaw dla wydawnictwa</translation>
-    </message>
-    <message>
-        <source>Copy All</source>
-        <extracomment>Copies the whole set for a publisher. In Polish: Kopiuj wszystko</extracomment>
-        <translation>Kopiuj wszystko</translation>
-    </message>
-    <message>
-        <source>Export Set...</source>
-        <extracomment>Opens the window of the export with the set for a publisher. In Polish: Eksportuj zestaw...</extracomment>
-        <translation>Eksportuj zestaw...</translation>
-    </message>
-    <message>
-        <source>The arrows choose a part, Enter opens its text, Space includes it or leaves it out</source>
-        <extracomment>The footer of the set for a publisher: what its keys do. In Polish: Strzałki wybierają część, Enter otwiera jej tekst, Spacja włącza ją albo wyłącza</extracomment>
-        <translation>Strzałki wybierają część, Enter otwiera jej tekst, Spacja włącza ją albo wyłącza</translation>
-    </message>
-    <message>
-        <source>&amp;In the Set</source>
-        <extracomment>Includes a part in the set for a publisher, or leaves it out. In Polish: &amp;W zestawie</extracomment>
-        <translation>&amp;W zestawie</translation>
-    </message>
-    <message>
         <source>Volume</source>
-        <extracomment>The volume of a series a material of the cover or a text for publishers is for, or the whole series. In Polish: Tom</extracomment>
+        <extracomment>The volume of a series a material of the cover is for, or the whole series. In Polish: Tom</extracomment>
         <translation>Tom</translation>
+    </message>
+    <message>
+        <source>%1, collapsed</source>
+        <extracomment>The row of a volume of a series in a list of materials, for a screen reader: %1 its name and number of materials. In Polish: %1, zwinięty</extracomment>
+        <translation>%1, zwinięty</translation>
+    </message>
+    <message>
+        <source>%1, expanded</source>
+        <extracomment>In Polish: %1, rozwinięty</extracomment>
+        <translation>%1, rozwinięty</translation>
+    </message>
+    <message>
+        <source>%1&lt;br&gt;A click, Space or the arrows Left and Right collapse and expand the volume</source>
+        <extracomment>The tooltip of the row of a volume of a series in a list of materials: %1 its name and number of materials. In Polish: %1&lt;br&gt;Kliknięcie, spacja albo strzałki w lewo i w prawo zwijają i rozwijają tom</extracomment>
+        <translation>%1&lt;br&gt;Kliknięcie, spacja albo strzałki w lewo i w prawo zwijają i rozwijają tom</translation>
+    </message>
+    <message>
+        <source>&amp;Expand Volume</source>
+        <extracomment>The menu of the row of a volume of a series in a list of materials. In Polish: &amp;Rozwiń tom</extracomment>
+        <translation>&amp;Rozwiń tom</translation>
+    </message>
+    <message>
+        <source>&amp;Collapse Volume</source>
+        <extracomment>In Polish: &amp;Zwiń tom</extracomment>
+        <translation>&amp;Zwiń tom</translation>
+    </message>
+    <message>
+        <source>Collapse &amp;All Volumes</source>
+        <extracomment>In Polish: Zwiń &amp;wszystkie tomy</extracomment>
+        <translation>Zwiń &amp;wszystkie tomy</translation>
+    </message>
+    <message>
+        <source>Expand All Vol&amp;umes</source>
+        <extracomment>In Polish: Rozwiń wszystkie t&amp;omy</extracomment>
+        <translation>Rozwiń wszystkie t&amp;omy</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>Endpaper Not Saved</source>
+        <extracomment>In Polish: Nie zapisano wyklejki</extracomment>
+        <translation>Nie zapisano wyklejki</translation>
+    </message>
+    <message>
+        <source>The parts of the cover were not saved.</source>
+        <extracomment>The status bar when the parts of the cover of a book open read-only or not written cannot be saved. In Polish: Nie zapisano części okładki</extracomment>
+        <translation>Nie zapisano części okładki.</translation>
     </message>
 </context>
 <context>
@@ -25027,6 +28085,11 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         <extracomment>In Polish: Tekst nad i pod obrazem</extracomment>
         <translation>Tekst nad i pod obrazem</translation>
     </message>
+    <message>
+        <source>Table</source>
+        <extracomment>A label of captions, of the captions of tables. In Polish: Tabela</extracomment>
+        <translation>Tabela</translation>
+    </message>
 </context>
 <context>
     <name>SessionSummary</name>
@@ -25482,6 +28545,26 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         <extracomment>In Polish: Kiedy piszesz: najwięcej słów</extracomment>
         <translation>Kiedy piszesz: najwięcej słów</translation>
     </message>
+    <message>
+        <source>Schedule: bar of writing</source>
+        <extracomment>In Polish: Harmonogram: pasek pisania</extracomment>
+        <translation>Harmonogram: pasek pisania</translation>
+    </message>
+    <message>
+        <source>Schedule: bar of revisions</source>
+        <extracomment>In Polish: Harmonogram: pasek poprawek</extracomment>
+        <translation>Harmonogram: pasek poprawek</translation>
+    </message>
+    <message>
+        <source>Schedule: today</source>
+        <extracomment>In Polish: Harmonogram: dziś</extracomment>
+        <translation>Harmonogram: dziś</translation>
+    </message>
+    <message>
+        <source>Schedule: late</source>
+        <extracomment>In Polish: Harmonogram: po terminie</extracomment>
+        <translation>Harmonogram: po terminie</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::StatsCountingPage</name>
@@ -25643,11 +28726,6 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
 <context>
     <name>kalahari::gui::StatsNotificationsPage</name>
     <message>
-        <source>The messages show in the bar at the bottom of the window, with a button that copies them.</source>
-        <extracomment>In Polish: Wiadomości pokazują się na pasku na dole okna, z przyciskiem kopiowania.</extracomment>
-        <translation>Wiadomości pokazują się na pasku na dole okna, z przyciskiem kopiowania.</translation>
-    </message>
-    <message>
         <source>Messages</source>
         <translation>Wiadomości</translation>
     </message>
@@ -25718,6 +28796,11 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         <source>When the daily goal is reached, the panel opens on the view Today.</source>
         <extracomment>In Polish: Gdy cel dzienny zostanie osiągnięty, panel otwiera się na widoku „Dzisiaj”.</extracomment>
         <translation>Gdy cel dzienny zostanie osiągnięty, panel otwiera się na widoku „Dzisiaj”.</translation>
+    </message>
+    <message>
+        <source>The messages show where the program&apos;s notifications do: by default in the bar at the bottom of the window (Settings &gt; Notifications).</source>
+        <extracomment>In Polish: Wiadomości pokazują się tam, gdzie powiadomienia programu: domyślnie na pasku na dole okna (Ustawienia &gt; Powiadomienia).</extracomment>
+        <translation>Wiadomości pokazują się tam, gdzie powiadomienia programu: domyślnie na pasku na dole okna (Ustawienia &gt; Powiadomienia).</translation>
     </message>
 </context>
 <context>
@@ -26172,6 +29255,238 @@ After the length of the book. In Polish: słów</extracomment>
         <extracomment>%1: the name of the deadline. In Polish: Usunąć termin „%1”?</extracomment>
         <translation>Usunąć termin „%1”?</translation>
     </message>
+    <message>
+        <source>Set the daily goal from the s&amp;chedule</source>
+        <extracomment>The plan of the texts on Tools &gt; Writing Schedule. In Polish: Ustal cel dzienny z &amp;harmonogramu</extracomment>
+        <translation>Ustal cel dzienny z &amp;harmonogramu</translation>
+    </message>
+    <message>
+        <source>(needs a plan of the texts in the schedule)</source>
+        <extracomment>The schedule plans no text yet. In Polish: (potrzebuje planu tekstów w harmonogramie)</extracomment>
+        <translation>(potrzebuje planu tekstów w harmonogramie)</translation>
+    </message>
+    <message>
+        <source>(today is a day off)</source>
+        <extracomment>In Polish: (dziś dzień wolny)</extracomment>
+        <translation>(dziś dzień wolny)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::WritingScheduleTab</name>
+    <message>
+        <source>Schedule</source>
+        <extracomment>The tab of the schedule of the book. In Polish: Harmonogram</extracomment>
+        <translation>Harmonogram</translation>
+    </message>
+    <message>
+        <source>Writing Schedule</source>
+        <extracomment>The heading of the tab. In Polish: Harmonogram pracy</extracomment>
+        <translation>Harmonogram pracy</translation>
+    </message>
+    <message>
+        <source>Day&amp;s</source>
+        <extracomment>The scale of the chart: a day is wide. In Polish: Dn&amp;i</extracomment>
+        <translation>Dn&amp;i</translation>
+    </message>
+    <message>
+        <source>Wee&amp;ks</source>
+        <extracomment>In Polish: T&amp;ygodnie</extracomment>
+        <translation>T&amp;ygodnie</translation>
+    </message>
+    <message>
+        <source>Mo&amp;nths</source>
+        <extracomment>In Polish: &amp;Miesiące</extracomment>
+        <translation>&amp;Miesiące</translation>
+    </message>
+    <message>
+        <source>Toda&amp;y</source>
+        <extracomment>Scrolls the chart to today. In Polish: D&amp;ziś</extracomment>
+        <translation>D&amp;ziś</translation>
+    </message>
+    <message>
+        <source>Ma&amp;rk days off</source>
+        <extracomment>Shades the days the writer does not write on. In Polish: Zaznacz dni wo&amp;lne</extracomment>
+        <translation>Zaznacz dni wo&amp;lne</translation>
+    </message>
+    <message>
+        <source>Goals and Deadlines...</source>
+        <extracomment>Opens the tab Writing Goals and Deadlines. In Polish: Cele i te&amp;rminy...</extracomment>
+        <translation>Cele i te&amp;rminy...</translation>
+    </message>
+    <message>
+        <source>Colors of the Schedule</source>
+        <extracomment>In Polish: Kolory harmonogramu</extracomment>
+        <translation>Kolory harmonogramu</translation>
+    </message>
+    <message>
+        <source>Open a book to plan the work on its texts.</source>
+        <extracomment>In Polish: Otwórz książkę, aby zaplanować pracę nad jej tekstami.</extracomment>
+        <translation>Otwórz książkę, aby zaplanować pracę nad jej tekstami.</translation>
+    </message>
+    <message>
+        <source>The book is open read-only: its plan does not change.</source>
+        <extracomment>In Polish: Książka jest otwarta tylko do odczytu: jej plan się nie zmienia.</extracomment>
+        <translation>Książka jest otwarta tylko do odczytu: jej plan się nie zmienia.</translation>
+    </message>
+    <message>
+        <source>Dragging a bar moves it, dragging its right edge changes its last day; dragging in an empty row plans the text. Keys: Up and Down choose a text, Alt+Left and Alt+Right move its plan by a day, Alt+Shift+Left and Alt+Shift+Right change the last day of writing, Enter opens the plan of the text, Delete removes it.</source>
+        <extracomment>In Polish: Przeciągnięcie paska przesuwa go, a przeciągnięcie jego prawej krawędzi zmienia ostatni dzień; przeciągnięcie w pustym wierszu planuje tekst. Klawisze: strzałki w górę i w dół wybierają tekst, Alt+strzałka w lewo i Alt+strzałka w prawo przesuwają jego plan o dzień, Alt+Shift+strzałka w lewo i Alt+Shift+strzałka w prawo zmieniają ostatni dzień pisania, Enter otwiera plan tekstu, Delete go usuwa.</extracomment>
+        <translation>Przeciągnięcie paska przesuwa go, a przeciągnięcie jego prawej krawędzi zmienia ostatni dzień; przeciągnięcie w pustym wierszu planuje tekst. Klawisze: strzałki w górę i w dół wybierają tekst, Alt+strzałka w lewo i Alt+strzałka w prawo przesuwają jego plan o dzień, Alt+Shift+strzałka w lewo i Alt+Shift+strzałka w prawo zmieniają ostatni dzień pisania, Enter otwiera plan tekstu, Delete go usuwa.</translation>
+    </message>
+    <message>
+        <source>&amp;Plan Texts...</source>
+        <extracomment>Opens the window that plans the writing of many texts at once. In Polish: Rozplan&amp;uj...</extracomment>
+        <translation>Rozplan&amp;uj...</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ScheduleView</name>
+    <message>
+        <source>Schedule: the texts of the book on a time axis</source>
+        <extracomment>In Polish: Harmonogram: teksty książki na osi czasu</extracomment>
+        <translation>Harmonogram: teksty książki na osi czasu</translation>
+    </message>
+    <message>
+        <source>%1 of %2</source>
+        <extracomment>%1: words written, %2: the words planned. In Polish: %1 z %2</extracomment>
+        <translation>%1 z %2</translation>
+    </message>
+    <message>
+        <source>deadline %1</source>
+        <extracomment>In Polish: termin %1</extracomment>
+        <translation>termin %1</translation>
+    </message>
+    <message>
+        <source>at the present pace done about %1</source>
+        <extracomment>In Polish: w obecnym tempie koniec około %1</extracomment>
+        <translation>w obecnym tempie koniec około %1</translation>
+    </message>
+    <message>
+        <source>planned %1</source>
+        <extracomment>In Polish: plan %1</extracomment>
+        <translation>plan %1</translation>
+    </message>
+    <message>
+        <source>no plan</source>
+        <extracomment>In Polish: bez planu</extracomment>
+        <translation>bez planu</translation>
+    </message>
+    <message>
+        <source>no plan; Enter or a drag in its row plans it</source>
+        <extracomment>In Polish: bez planu; Enter albo przeciągnięcie w wierszu tworzy plan</extracomment>
+        <translation>bez planu; Enter albo przeciągnięcie w wierszu tworzy plan</translation>
+    </message>
+    <message numerus="yes">
+        <source>writing %1 (%n writing days)</source>
+        <extracomment>%1: the days. In Polish: pisanie %1 (%n dzień pisania / dni pisania)</extracomment>
+        <translation>
+            <numerusform>pisanie %1 (%n dzień pisania)</numerusform>
+            <numerusform>pisanie %1 (%n dni pisania)</numerusform>
+            <numerusform>pisanie %1 (%n dni pisania)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>final</source>
+        <extracomment>The state of a text. In Polish: gotowy</extracomment>
+        <translation>gotowy</translation>
+    </message>
+    <message>
+        <source>late, %1 missing</source>
+        <extracomment>In Polish: po terminie, brakuje %1</extracomment>
+        <translation>po terminie, brakuje %1</translation>
+    </message>
+    <message>
+        <source>late</source>
+        <extracomment>In Polish: po terminie</extracomment>
+        <translation>po terminie</translation>
+    </message>
+    <message numerus="yes">
+        <source>starts in %n days</source>
+        <extracomment>In Polish: zaczyna się za %n dzień / dni</extracomment>
+        <translation>
+            <numerusform>zaczyna się za %n dzień</numerusform>
+            <numerusform>zaczyna się za %n dni</numerusform>
+            <numerusform>zaczyna się za %n dni</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1 left, %2 a writing day</source>
+        <extracomment>%1: the words left, %2: the words of a writing day. In Polish: zostało %1, %2 na dzień pisania</extracomment>
+        <translation>zostało %1, %2 na dzień pisania</translation>
+    </message>
+    <message numerus="yes">
+        <source>revisions %1 (%n writing days)</source>
+        <extracomment>%1: the days. In Polish: poprawki %1 (%n dzień pisania / dni pisania)</extracomment>
+        <translation>
+            <numerusform>poprawki %1 (%n dzień pisania)</numerusform>
+            <numerusform>poprawki %1 (%n dni pisania)</numerusform>
+            <numerusform>poprawki %1 (%n dni pisania)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1, late</source>
+        <extracomment>In Polish: %1, po terminie</extracomment>
+        <translation>%1, po terminie</translation>
+    </message>
+    <message numerus="yes">
+        <source>written on %n days</source>
+        <extracomment>In Polish: pisany %n dzień / dni</extracomment>
+        <translation>
+            <numerusform>pisany %n dzień</numerusform>
+            <numerusform>pisany %n dni</numerusform>
+            <numerusform>pisany %n dni</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>deadline “%1” %2</source>
+        <extracomment>%1: the name of a deadline, %2: its day. In Polish: termin „%1” %2</extracomment>
+        <translation>termin „%1” %2</translation>
+    </message>
+    <message>
+        <source>%1: %2.</source>
+        <extracomment>%1: the title of a text, a part or the book, %2: what the schedule has of it. In Polish: %1: %2.</extracomment>
+        <translation>%1: %2.</translation>
+    </message>
+    <message>
+        <source>no plan – drag in the row or press Enter</source>
+        <extracomment>In Polish: bez planu – przeciągnij w wierszu albo naciśnij Enter</extracomment>
+        <translation>bez planu – przeciągnij w wierszu albo naciśnij Enter</translation>
+    </message>
+    <message>
+        <source>forecast</source>
+        <extracomment>Over the line of the forecast of the end of the book. In Polish: prognoza</extracomment>
+        <translation>prognoza</translation>
+    </message>
+    <message>
+        <source>deadline</source>
+        <extracomment>Over the line of the deadline of the book. In Polish: termin</extracomment>
+        <translation>termin</translation>
+    </message>
+    <message>
+        <source>today</source>
+        <extracomment>Over the line of today. In Polish: dziś</extracomment>
+        <translation>dziś</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <extracomment>The column of the texts of the schedule. In Polish: Tekst</extracomment>
+        <translation>Tekst</translation>
+    </message>
+    <message>
+        <source>State</source>
+        <extracomment>In Polish: Stan</extracomment>
+        <translation>Stan</translation>
+    </message>
+    <message>
+        <source>Words</source>
+        <extracomment>In Polish: Słowa</extracomment>
+        <translation>Słowa</translation>
+    </message>
+    <message>
+        <source>Plan</source>
+        <extracomment>In Polish: Plan</extracomment>
+        <translation>Plan</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::WritingStatsBar</name>
@@ -26317,16 +29632,6 @@ After the length of the book. In Polish: słów</extracomment>
 <context>
     <name>kalahari::gui::WritingStatsCoordinator</name>
     <message>
-        <source>Copy</source>
-        <extracomment>The button of a message at the bottom of the window. In Polish: Kopiuj</extracomment>
-        <translation>Kopiuj</translation>
-    </message>
-    <message>
-        <source>Copy this message</source>
-        <extracomment>In Polish: Kopiuj tę wiadomość</extracomment>
-        <translation>Kopiuj tę wiadomość</translation>
-    </message>
-    <message>
         <source>Daily goal reached: %1 of %2 words.</source>
         <extracomment>%1 and %2: numbers. In Polish: Cel dzienny osiągnięty: %1 z %2 słów.</extracomment>
         <translation>Cel dzienny osiągnięty: %1 z %2 słów.</translation>
@@ -26396,6 +29701,11 @@ After the length of the book. In Polish: słów</extracomment>
         <source>Challenge done: %1 (%2).</source>
         <extracomment>In Polish: Wyzwanie ukończone: %1 (%2).</extracomment>
         <translation>Wyzwanie ukończone: %1 (%2).</translation>
+    </message>
+    <message>
+        <source>Statistics and Goals</source>
+        <extracomment>The title of the notifications of the goals, the deadlines, the badges and the challenges. In Polish: Statystyki i cele</extracomment>
+        <translation>Statystyki i cele</translation>
     </message>
 </context>
 <context>
@@ -26915,6 +30225,36 @@ After the length of the book. In Polish: słów</extracomment>
         <extracomment>A detail of the view Book of the statistics, in a series of books. In Polish: Słowa w całej serii</extracomment>
         <translation>Słowa w całej serii</translation>
     </message>
+    <message>
+        <source>Daily goal from</source>
+        <extracomment>The daily goal of today comes from... In Polish: Cel dzienny z</extracomment>
+        <translation>Cel dzienny z</translation>
+    </message>
+    <message>
+        <source>the deadline of the book</source>
+        <extracomment>After "Daily goal from". In Polish: terminu książki</extracomment>
+        <translation>terminu książki</translation>
+    </message>
+    <message>
+        <source>the schedule – today is a day off</source>
+        <extracomment>In Polish: harmonogramu – dziś dzień wolny</extracomment>
+        <translation>harmonogramu – dziś dzień wolny</translation>
+    </message>
+    <message>
+        <source>the schedule – nothing planned for today</source>
+        <extracomment>In Polish: harmonogramu – nic na dziś</extracomment>
+        <translation>harmonogramu – nic na dziś</translation>
+    </message>
+    <message>
+        <source>the schedule: %1</source>
+        <extracomment>%1: the texts planned for today. In Polish: harmonogramu: %1</extracomment>
+        <translation>harmonogramu: %1</translation>
+    </message>
+    <message>
+        <source>The words the texts planned for today lack, over the writing days left in their plan</source>
+        <extracomment>In Polish: Słowa, których brakuje tekstom zaplanowanym na dziś, przez dni pisania, które zostały w ich planie</extracomment>
+        <translation>Słowa, których brakuje tekstom zaplanowanym na dziś, przez dni pisania, które zostały w ich planie</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::ChallengeDialog</name>
@@ -27088,6 +30428,217 @@ After the length of the book. In Polish: słów</extracomment>
     <message>
         <source>&amp;Change</source>
         <translation>&amp;Zmień</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::TextPlanDialog</name>
+    <message>
+        <source>Plan of the Text</source>
+        <extracomment>In Polish: Plan tekstu</extracomment>
+        <translation>Plan tekstu</translation>
+    </message>
+    <message>
+        <source>%1: when it is written and when it is revised.</source>
+        <extracomment>%1: the title of the text. In Polish: %1: kiedy powstaje i kiedy jest poprawiany.</extracomment>
+        <translation>%1: kiedy powstaje i kiedy jest poprawiany.</translation>
+    </message>
+    <message>
+        <source>from</source>
+        <extracomment>The first day of a stage of the plan. In Polish: od</extracomment>
+        <translation>od</translation>
+    </message>
+    <message>
+        <source>to</source>
+        <extracomment>The last day of a stage of the plan. In Polish: do</extracomment>
+        <translation>do</translation>
+    </message>
+    <message>
+        <source>&amp;Writing</source>
+        <extracomment>In Polish: &amp;Pisanie</extracomment>
+        <translation>&amp;Pisanie</translation>
+    </message>
+    <message>
+        <source>Writing: the first day</source>
+        <extracomment>In Polish: Pisanie: pierwszy dzień</extracomment>
+        <translation>Pisanie: pierwszy dzień</translation>
+    </message>
+    <message>
+        <source>Writing: the last day</source>
+        <extracomment>In Polish: Pisanie: ostatni dzień</extracomment>
+        <translation>Pisanie: ostatni dzień</translation>
+    </message>
+    <message>
+        <source>&amp;Revisions</source>
+        <extracomment>In Polish: P&amp;oprawki</extracomment>
+        <translation>P&amp;oprawki</translation>
+    </message>
+    <message>
+        <source>Revisions: the first day</source>
+        <extracomment>In Polish: Poprawki: pierwszy dzień</extracomment>
+        <translation>Poprawki: pierwszy dzień</translation>
+    </message>
+    <message>
+        <source>Revisions: the last day</source>
+        <extracomment>In Polish: Poprawki: ostatni dzień</extracomment>
+        <translation>Poprawki: ostatni dzień</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <extracomment>The length of a text: none. In Polish: brak</extracomment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source> words</source>
+        <extracomment>In Polish: " słów"</extracomment>
+        <translation> słów</translation>
+    </message>
+    <message>
+        <source>&amp;Length: the words of the written text</source>
+        <extracomment>In Polish: &amp;Długość: słowa gotowego tekstu</extracomment>
+        <translation>&amp;Długość: słowa gotowego tekstu</translation>
+    </message>
+    <message>
+        <source>&amp;Save</source>
+        <extracomment>In Polish: &amp;Zapisz</extracomment>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>Re&amp;move Plan</source>
+        <extracomment>In Polish: &amp;Usuń plan</extracomment>
+        <translation>&amp;Usuń plan</translation>
+    </message>
+    <message numerus="yes">
+        <source>Writing: %n writing days.</source>
+        <extracomment>In Polish: Pisanie: %n dzień pisania / dni pisania.</extracomment>
+        <translation>
+            <numerusform>Pisanie: %n dzień pisania.</numerusform>
+            <numerusform>Pisanie: %n dni pisania.</numerusform>
+            <numerusform>Pisanie: %n dni pisania.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The text has %1, %2 are left, that is %3 a writing day.</source>
+        <extracomment>%1: the words of the text now, %2: the words left, %3: the words of a writing day. In Polish: Tekst ma %1, zostało %2, czyli %3 na dzień pisania.</extracomment>
+        <translation>Tekst ma %1, zostało %2, czyli %3 na dzień pisania.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Revisions: %n writing days.</source>
+        <extracomment>In Polish: Poprawki: %n dzień pisania / dni pisania.</extracomment>
+        <translation>
+            <numerusform>Poprawki: %n dzień pisania.</numerusform>
+            <numerusform>Poprawki: %n dni pisania.</numerusform>
+            <numerusform>Poprawki: %n dni pisania.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The revisions start before the writing ends.</source>
+        <extracomment>In Polish: Poprawki zaczynają się, zanim skończy się pisanie.</extracomment>
+        <translation>Poprawki zaczynają się, zanim skończy się pisanie.</translation>
+    </message>
+    <message>
+        <source>Without writing and revisions the text has no plan.</source>
+        <extracomment>In Polish: Bez pisania i poprawek tekst nie ma planu.</extracomment>
+        <translation>Bez pisania i poprawek tekst nie ma planu.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::SpreadPlanDialog</name>
+    <message>
+        <source>Plan the Texts</source>
+        <extracomment>The window that plans the writing of many texts at once. In Polish: Rozplanuj teksty</extracomment>
+        <translation>Rozplanuj teksty</translation>
+    </message>
+    <message>
+        <source>Lays the writing of the texts one after another, in the order of the book, on the writing days, each by the words it still needs. The revisions planned stay.</source>
+        <extracomment>In Polish: Rozkłada pisanie tekstów jeden po drugim, w kolejności książki, na dni pisania – każdy według słów, których mu brakuje. Zaplanowane poprawki zostają.</extracomment>
+        <translation>Rozkłada pisanie tekstów jeden po drugim, w kolejności książki, na dni pisania – każdy według słów, których mu brakuje. Zaplanowane poprawki zostają.</translation>
+    </message>
+    <message>
+        <source>Texts &amp;without a plan</source>
+        <extracomment>In Polish: Teksty &amp;bez planu</extracomment>
+        <translation>Teksty &amp;bez planu</translation>
+    </message>
+    <message>
+        <source>&amp;All the texts in Draft</source>
+        <extracomment>Draft is the state of a text, as in the Navigator. In Polish: &amp;Wszystkie teksty w stanie „Szkic”</extracomment>
+        <translation>&amp;Wszystkie teksty w stanie „Szkic”</translation>
+    </message>
+    <message>
+        <source>&amp;From:</source>
+        <extracomment>The first day of the writing planned. In Polish: &amp;Od:</extracomment>
+        <translation>&amp;Od:</translation>
+    </message>
+    <message>
+        <source>&amp;To:</source>
+        <extracomment>The last day of the writing planned. In Polish: &amp;Do:</extracomment>
+        <translation>&amp;Do:</translation>
+    </message>
+    <message>
+        <source>The book has no deadline (Writing Goals and Deadlines): the last day is yours to choose.</source>
+        <extracomment>In Polish: Książka nie ma terminu (Cele i terminy pisania): ostatni dzień do wyboru.</extracomment>
+        <translation>Książka nie ma terminu (Cele i terminy pisania): ostatni dzień do wyboru.</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <extracomment>The length of a text: none. In Polish: brak</extracomment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source> words</source>
+        <extracomment>In Polish: " słów"</extracomment>
+        <translation> słów</translation>
+    </message>
+    <message>
+        <source>&amp;Length of a text without its own:</source>
+        <extracomment>The length a text without its own takes, and keeps in its plan. In Polish: Dłu&amp;gość tekstu bez własnej:</extracomment>
+        <translation>Dłu&amp;gość tekstu bez własnej:</translation>
+    </message>
+    <message>
+        <source>&amp;Plan</source>
+        <extracomment>In Polish: &amp;Rozplanuj</extracomment>
+        <translation>&amp;Rozplanuj</translation>
+    </message>
+    <message>
+        <source>There is no text to plan.</source>
+        <extracomment>In Polish: Nie ma tekstów do rozplanowania.</extracomment>
+        <translation>Nie ma tekstów do rozplanowania.</translation>
+    </message>
+    <message>
+        <source>There is no writing day between these days.</source>
+        <extracomment>In Polish: Między tymi dniami nie ma dnia pisania.</extracomment>
+        <translation>Między tymi dniami nie ma dnia pisania.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n texts</source>
+        <extracomment>In Polish: %n tekst / %n teksty / %n tekstów</extracomment>
+        <translation>
+            <numerusform>%n tekst</numerusform>
+            <numerusform>%n teksty</numerusform>
+            <numerusform>%n tekstów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n writing days</source>
+        <extracomment>In Polish: %n dzień pisania / %n dni pisania</extracomment>
+        <translation>
+            <numerusform>%n dzień pisania</numerusform>
+            <numerusform>%n dni pisania</numerusform>
+            <numerusform>%n dni pisania</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1 lack %2, on %3: about %4 a writing day.</source>
+        <extracomment>%1: the texts, %2: the words they still need, %3: the writing days, %4: the words of a writing day. In Polish: %1, brakuje im %2; %3 – około %4 na dzień pisania.</extracomment>
+        <translation>%1, brakuje im %2; %3 – około %4 na dzień pisania.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The writing of %n texts is planned anew.</source>
+        <extracomment>In Polish: Pisanie %n tekstu / tekstów zostanie zaplanowane od nowa.</extracomment>
+        <translation>
+            <numerusform>Pisanie %n tekstu zostanie zaplanowane od nowa.</numerusform>
+            <numerusform>Pisanie %n tekstów zostanie zaplanowane od nowa.</numerusform>
+            <numerusform>Pisanie %n tekstów zostanie zaplanowane od nowa.</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -27481,7 +31032,7 @@ After the length of the book. In Polish: słów</extracomment>
     </message>
     <message>
         <source>&amp;Undo</source>
-        <translation>&amp;Cofnij</translation>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Undo %1</source>
@@ -28152,6 +31703,11 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
         <source>Type # and the first letters of a name at the start of a word to insert its text. The names of the book dictionary and of the cards are those of the book open; they need no list here.</source>
         <translation>Wpisz # i pierwsze litery nazwy na początku słowa, żeby wstawić jej tekst. Imiona i nazwy ze słownika książki i z kart pochodzą z otwartej książki; nie trzeba ich tu dopisywać.</translation>
     </message>
+    <message>
+        <source>Own fields of the book (inserted as fields)</source>
+        <extracomment>In Polish: Własne pola książki (wstawiane jako pola)</extracomment>
+        <translation>Własne pola książki (wstawiane jako pola)</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorRepetitionsPage</name>
@@ -28277,6 +31833,7 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
     </message>
     <message>
         <source>Marked with:</source>
+        <extracomment>In Polish: Sposób zaznaczenia:</extracomment>
         <translation>Sposób zaznaczenia:</translation>
     </message>
     <message>
@@ -28285,9 +31842,9 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
         <translation>Kolor zaznaczenia</translation>
     </message>
     <message>
-        <source>The words are marked while the Repetitions panel is shown; the words of the card chosen are framed. View &gt; Repetitions in Text turns it on and off too.</source>
-        <extracomment>In Polish: Sposób zaznaczenia: In Polish: Słowa są zaznaczone, gdy panel „Powtórzenia” jest widoczny; słowa wybranej karty mają obwódkę. Widok &gt; Powtórzenia w tekście też to włącza i wyłącza.</extracomment>
-        <translation>Słowa są zaznaczone, gdy panel „Powtórzenia” jest widoczny; słowa wybranej karty mają obwódkę. Widok &gt; Powtórzenia w tekście też to włącza i wyłącza.</translation>
+        <source>The repeated words are marked in the text in front, with the Repetitions panel closed too; the words of the card chosen in the panel are framed. View &gt; Repetitions in Text turns it on and off too.</source>
+        <extracomment>In Polish: Powtórzone słowa są zaznaczone w tekście na wierzchu, także przy zamkniętym panelu „Powtórzenia”; słowa karty wybranej w panelu mają obwódkę. Widok &gt; Powtórzenia w tekście też to włącza i wyłącza.</extracomment>
+        <translation>Powtórzone słowa są zaznaczone w tekście na wierzchu, także przy zamkniętym panelu „Powtórzenia”; słowa karty wybranej w panelu mają obwódkę. Widok &gt; Powtórzenia w tekście też to włącza i wyłącza.</translation>
     </message>
     <message>
         <source>Colors</source>
@@ -28357,6 +31914,16 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
     <message>
         <source>copyright sign</source>
         <translation>znak praw autorskich</translation>
+    </message>
+    <message>
+        <source>no value</source>
+        <extracomment>Quick insert: beside an own field without a value. In Polish: bez wartości</extracomment>
+        <translation>bez wartości</translation>
+    </message>
+    <message>
+        <source>Own Fields</source>
+        <extracomment>Quick insert: the heading of the own fields of the book in the list. In Polish: Własne pola</extracomment>
+        <translation>Własne pola</translation>
     </message>
 </context>
 <context>
@@ -28705,11 +32272,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>Numery &amp;stron na dole strony</translation>
     </message>
     <message>
-        <source>With mirror margins a text starts on a right page, unless its properties say a left one.</source>
-        <extracomment>Under each text from a new page. In Polish: Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że ustawiono lewą.</extracomment>
-        <translation>Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że ustawiono lewą.</translation>
-    </message>
-    <message>
         <source>%1 (editor font)</source>
         <extracomment>The first font of the export: the font of the editor; %1: its name. In Polish: %1 (czcionka edytora)</extracomment>
         <translation>%1 (czcionka edytora)</translation>
@@ -28798,11 +32360,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <extracomment>The tip of the running head. In Polish: U góry stron, bez stron tytułowych i pierwszych stron rozdziałów.</extracomment>
         <translation>U góry stron, bez stron tytułowych i pierwszych stron rozdziałów.</translation>
     </message>
-    <message>
-        <source>The size and the margins: Settings › Editor › Pages and Margins.</source>
-        <extracomment>Under the page of the print. In Polish: Rozmiar i marginesy: Ustawienia › Edytor › Strony i marginesy.</extracomment>
-        <translation>Rozmiar i marginesy: Ustawienia › Edytor › Strony i marginesy.</translation>
-    </message>
     <message numerus="yes">
         <source>Set for the &amp;publisher (%n parts)</source>
         <extracomment>%n: the parts of the set for a publisher that have a text. In Polish: Zes&amp;taw dla wydawnictwa (%n część / części / części)</extracomment>
@@ -28816,6 +32373,40 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>&amp;Volume:</source>
         <extracomment>The list of the volumes of a series in the windows of the export and of the print. In Polish: To&amp;m:</extracomment>
         <translation>To&amp;m:</translation>
+    </message>
+    <message>
+        <source>Choose Te&amp;xts...</source>
+        <extracomment>Beside the chosen texts in the window of the print: opens their list. In Polish: W&amp;ybierz teksty...</extracomment>
+        <translation>W&amp;ybierz teksty...</translation>
+    </message>
+    <message>
+        <source>Choose</source>
+        <extracomment>The button of the small window of the texts to print. In Polish: Wybierz</extracomment>
+        <translation>Wybierz</translation>
+    </message>
+    <message>
+        <source>Choose Texts</source>
+        <extracomment>The title of the small window of the texts to print. In Polish: Wybierz teksty</extracomment>
+        <translation>Wybierz teksty</translation>
+    </message>
+    <message>
+        <source>Check the texts of the book &quot;%1&quot; to print.</source>
+        <extracomment>Under the title of the small window of the texts to print; %1: the title of the book or of the volume. In Polish: Zaznacz teksty książki „%1” do wydruku.</extracomment>
+        <translation>Zaznacz teksty książki „%1” do wydruku.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 of %n</source>
+        <extracomment>Beside Choose Texts... of the window of the print; %1: how many texts are checked, %n: how many there are. In Polish: %1 z %n</extracomment>
+        <translation>
+            <numerusform>%1 z %n</numerusform>
+            <numerusform>%1 z %n</numerusform>
+            <numerusform>%1 z %n</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>With mirror margins a text starts on the page the book type, the Settings and its properties say: a right one, a left one or the next one.</source>
+        <extracomment>Under each text from a new page. In Polish: Przy marginesach lustrzanych tekst zaczyna się na stronie, którą podają typ książki, Ustawienia i jego Właściwości: prawej, lewej lub następnej.</extracomment>
+        <translation>Przy marginesach lustrzanych tekst zaczyna się na stronie, którą wskazują typ książki, Ustawienia i jego właściwości: prawej, lewej albo następnej.</translation>
     </message>
 </context>
 <context>
@@ -29349,26 +32940,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Kalahari could not add every text to the book, so it took out those it had added. A kind of text the book cannot have there, or a file that cannot be written, stops the import.</source>
         <extracomment>In Polish: Nie udało się dodać do książki wszystkich tekstów, więc to, co import dodał, zostało usunięte. Import przerywa rodzaj tekstu, którego książka nie może mieć w tym miejscu, albo plik, którego nie można zapisać.</extracomment>
         <translation>Nie udało się dodać do książki wszystkich tekstów, więc to, co import dodał, zostało usunięte. Import przerywa rodzaj tekstu, którego książka nie może mieć w tym miejscu, albo plik, którego nie można zapisać.</translation>
-    </message>
-    <message>
-        <source>Word documents</source>
-        <extracomment>The files of the system window of File &gt; Import &gt; DOCX. In Polish: Dokumenty Worda</extracomment>
-        <translation>Dokumenty Worda</translation>
-    </message>
-    <message>
-        <source>Markdown files</source>
-        <extracomment>The files of the system window of File &gt; Import &gt; Markdown. In Polish: Pliki Markdown</extracomment>
-        <translation>Pliki Markdown</translation>
-    </message>
-    <message>
-        <source>Plain text files</source>
-        <extracomment>The files of the system window of File &gt; Import &gt; Plain Text. In Polish: Pliki zwykłego tekstu</extracomment>
-        <translation>Pliki zwykłego tekstu</translation>
-    </message>
-    <message>
-        <source>Files to Import</source>
-        <extracomment>The title of the system window that chooses the files of the import. In Polish: Pliki do importu</extracomment>
-        <translation>Pliki do importu</translation>
     </message>
     <message>
         <source>Book</source>
@@ -30045,8 +33616,9 @@ No parts in the file. In Polish: – bez części –</extracomment>
         <translation>Z właściwości pliku: tytuł „%1”.</translation>
     </message>
     <message>
-        <source>No files.</source>
-        <translation>Brak plików.</translation>
+        <source>No files: choose them with Add...</source>
+        <extracomment>Under the empty list of the files. In Polish: Brak plików – wybierz je przyciskiem Dodaj…</extracomment>
+        <translation>Brak plików – wybierz je przyciskiem Dodaj…</translation>
     </message>
     <message>
         <source>Files to Import</source>
@@ -30416,10 +33988,10 @@ No parts in the file. In Polish: – bez części –</extracomment>
     </message>
     <message>
         <source>&amp;Undo</source>
-        <extracomment>In Polish: &amp;Cofnij / Cofnij wycięcie: fragment wraca do tekstu
+        <extracomment>In Polish: Cofn&amp;ij / Cofnij wycięcie: fragment wraca do tekstu
 ----------
-In Polish: &amp;Cofnij / Cofnij wstawienie wycinka</extracomment>
-        <translation>&amp;Cofnij</translation>
+In Polish: Cofn&amp;ij / Cofnij wstawienie wycinka</extracomment>
+        <translation>Cofn&amp;ij</translation>
     </message>
     <message>
         <source>Take the cut back: the fragment comes back to the text</source>
@@ -30485,9 +34057,9 @@ In Polish: &amp;Cofnij / Cofnij wstawienie wycinka</extracomment>
         <translation>Dokładnego miejsca nie ma już w tekście. Kursor jest w akapicie, z którego pochodzi fragment.</translation>
     </message>
     <message>
-        <source>&amp;Insert Here</source>
-        <extracomment>In Polish: &amp;Wstaw tutaj / Wstaw wycinek w miejscu kursora</extracomment>
-        <translation>&amp;Wstaw tutaj</translation>
+        <source>I&amp;nsert Here</source>
+        <extracomment>In Polish: Wstaw t&amp;utaj / Wstaw wycinek w miejscu kursora</extracomment>
+        <translation>Wstaw t&amp;utaj</translation>
     </message>
     <message>
         <source>Insert the clipping at the cursor</source>
@@ -32329,7 +35901,7 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
     </message>
     <message>
         <source>Pri&amp;nter</source>
-        <extracomment>A tab of the window of the print. In Polish: &amp;Drukarka</extracomment>
+        <extracomment>A section of the window of the print. In Polish: &amp;Drukarka</extracomment>
         <translation>&amp;Drukarka</translation>
     </message>
     <message>
@@ -32338,19 +35910,14 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <translation>%1 (domyślna)</translation>
     </message>
     <message>
-        <source>Prin&amp;ter:</source>
-        <extracomment>In Polish: D&amp;rukarka:</extracomment>
-        <translation>D&amp;rukarka:</translation>
-    </message>
-    <message>
         <source>C&amp;ollate</source>
         <extracomment>Each copy whole before the next. In Polish: &amp;Sortuj kopie</extracomment>
         <translation>&amp;Sortuj kopie</translation>
     </message>
     <message>
         <source>&amp;Copies:</source>
-        <extracomment>In Polish: K&amp;opie:</extracomment>
-        <translation>K&amp;opie:</translation>
+        <extracomment>In Polish: Kopi&amp;e:</extracomment>
+        <translation>Kopi&amp;e:</translation>
     </message>
     <message>
         <source>&amp;All</source>
@@ -32373,11 +35940,6 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <translation>Zakres stron</translation>
     </message>
     <message>
-        <source>Pages:</source>
-        <extracomment>In Polish: Strony:</extracomment>
-        <translation>Strony:</translation>
-    </message>
-    <message>
         <source>All pages</source>
         <extracomment>Which of the pages print. In Polish: Wszystkie strony</extracomment>
         <translation>Wszystkie strony</translation>
@@ -32393,28 +35955,9 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <translation>Tylko parzyste</translation>
     </message>
     <message>
-        <source>Pr&amp;int:</source>
-        <extracomment>In Polish: Dr&amp;ukuj:</extracomment>
-        <translation>Dr&amp;ukuj:</translation>
-    </message>
-    <message>
-        <source>T&amp;wo-sided:</source>
-        <extracomment>Printing on both sides of the sheets. In Polish: Dwustronn&amp;ie:</extracomment>
-        <translation>Dwustronn&amp;ie:</translation>
-    </message>
-    <message>
         <source>&amp;Paper:</source>
         <extracomment>In Polish: P&amp;apier:</extracomment>
         <translation>P&amp;apier:</translation>
-    </message>
-    <message>
-        <source>Co&amp;lor:</source>
-        <extracomment>In Polish: Ko&amp;lor:</extracomment>
-        <translation>Ko&amp;lor:</translation>
-    </message>
-    <message>
-        <source>Text&amp;s</source>
-        <translation>T&amp;eksty</translation>
     </message>
     <message>
         <source>The text prints also with its unsaved changes.</source>
@@ -32425,17 +35968,8 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <translation>Za pierwszym razem okno wybiera tekst na wierzchu, a potem pamięta ostatni wybór.</translation>
     </message>
     <message>
-        <source>La&amp;yout</source>
-        <translation>U&amp;kład</translation>
-    </message>
-    <message>
-        <source>On the Sh&amp;eet</source>
-        <extracomment>A tab of the window of the print: how the pages go on the sheets. In Polish: &amp;Na kartce</extracomment>
-        <translation>&amp;Na kartce</translation>
-    </message>
-    <message>
         <source>Pages of the book on a sheet</source>
-        <extracomment>A group of the tab of the sheets. In Polish: Strony książki na kartce</extracomment>
+        <extracomment>Over the pages on a sheet. In Polish: Strony książki na kartce</extracomment>
         <translation>Strony książki na kartce</translation>
     </message>
     <message>
@@ -32444,23 +35978,13 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <translation>&amp;Jedna strona</translation>
     </message>
     <message>
-        <source>T&amp;wo pages side by side</source>
-        <extracomment>In Polish: Dwie strony o&amp;bok siebie</extracomment>
-        <translation>Dwie strony o&amp;bok siebie</translation>
-    </message>
-    <message>
-        <source>&amp;Booklet to fold in half</source>
-        <extracomment>In Polish: Broszur&amp;a do złożenia na pół</extracomment>
-        <translation>Broszur&amp;a do złożenia na pół</translation>
-    </message>
-    <message>
         <source>Folded in half, the stack of the sheets reads in order.</source>
         <extracomment>Under the booklet. In Polish: Po złożeniu na pół stos kartek czyta się po kolei.</extracomment>
         <translation>Po złożeniu na pół stos kartek czyta się po kolei.</translation>
     </message>
     <message>
         <source>Size</source>
-        <extracomment>A group of the tab of the sheets: the size of the pages on them. In Polish: Rozmiar</extracomment>
+        <extracomment>Over the size of the pages on a sheet. In Polish: Rozmiar</extracomment>
         <translation>Rozmiar</translation>
     </message>
     <message>
@@ -32472,11 +35996,6 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <source>&amp;Actual size (%1)</source>
         <extracomment>The page of its own size in the middle of the sheet; %1: its size (A5). In Polish: R&amp;zeczywisty rozmiar (%1)</extracomment>
         <translation>R&amp;zeczywisty rozmiar (%1)</translation>
-    </message>
-    <message>
-        <source>&amp;Crop marks</source>
-        <extracomment>The marks of the corners of a page, where the sheet is cut. In Polish: Znaczniki &amp;cięcia</extracomment>
-        <translation>Znaczniki &amp;cięcia</translation>
     </message>
     <message>
         <source>Preview</source>
@@ -32673,11 +36192,6 @@ The question of the print by hand, after the fronts; %n: the sheets. In Polish: 
         <translation>Nie wybrano żadnego tekstu.</translation>
     </message>
     <message>
-        <source>Nothing to print: choose the texts on the tab &quot;Texts&quot;.</source>
-        <extracomment>Under the tabs, when no text is chosen. In Polish: Nie ma czego drukować: wybierz teksty na zakładce „Teksty”.</extracomment>
-        <translation>Nie ma czego drukować: wybierz teksty na zakładce „Teksty”.</translation>
-    </message>
-    <message>
         <source>Type the pages of the range.</source>
         <extracomment>In the preview, while the field of the range is empty. In Polish: Wpisz strony zakresu.</extracomment>
         <translation>Wpisz strony zakresu.</translation>
@@ -32783,6 +36297,369 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
         <source>Print the &amp;Backs</source>
         <extracomment>The button of the question of the print by hand. In Polish: Drukuj &amp;tyły</extracomment>
         <translation>Drukuj &amp;tyły</translation>
+    </message>
+    <message>
+        <source>Re&amp;verse order</source>
+        <extracomment>Beside the odd and the even pages: the last sheet first, for a printer that lays the sheets face up. In Polish: W odwrotne&amp;j kolejności</extracomment>
+        <translation>W odwrotne&amp;j kolejności</translation>
+    </message>
+    <message>
+        <source>%1 dpi</source>
+        <extracomment>A quality of a printer; %1: its dots per inch. In Polish: %1 dpi</extracomment>
+        <translation>%1 dpi</translation>
+    </message>
+    <message>
+        <source>%1 x %2 dpi</source>
+        <extracomment>A quality of a printer; %1 and %2: its dots per inch across and down. In Polish: %1 × %2 dpi</extracomment>
+        <translation>%1 × %2 dpi</translation>
+    </message>
+    <message>
+        <source>&amp;What to Print</source>
+        <extracomment>A section of the window of the print: the texts that print. In Polish: C&amp;o drukować</extracomment>
+        <translation>C&amp;o drukować</translation>
+    </message>
+    <message>
+        <source>&amp;Look of the Text</source>
+        <extracomment>A section of the window of the print: the layout of the texts, as in the export. In Polish: Wyg&amp;ląd tekstu</extracomment>
+        <translation>Wyg&amp;ląd tekstu</translation>
+    </message>
+    <message>
+        <source>Printer P&amp;roperties...</source>
+        <extracomment>Opens the window of the driver of the printer. In Polish: Właściwości dr&amp;ukarki...</extracomment>
+        <translation>Właściwości dr&amp;ukarki...</translation>
+    </message>
+    <message>
+        <source>Printer:</source>
+        <extracomment>The label of the list of the printers, without an access key: the section has it. In Polish: Drukarka:</extracomment>
+        <translation>Drukarka:</translation>
+    </message>
+    <message>
+        <source>Paper so&amp;urce:</source>
+        <extracomment>The tray the paper comes from. In Polish: &amp;Podajnik:</extracomment>
+        <translation>&amp;Podajnik:</translation>
+    </message>
+    <message>
+        <source>&amp;Quality:</source>
+        <extracomment>The resolution of the print. In Polish: J&amp;akość:</extracomment>
+        <translation>J&amp;akość:</translation>
+    </message>
+    <message>
+        <source>Pa&amp;ges</source>
+        <extracomment>A section of the window of the print: which pages print. In Polish: Stro&amp;ny</extracomment>
+        <translation>Stro&amp;ny</translation>
+    </message>
+    <message>
+        <source>Odd and even pages</source>
+        <extracomment>The name of the list of the odd and the even pages for screen readers. In Polish: Strony nieparzyste i parzyste</extracomment>
+        <translation>Strony nieparzyste i parzyste</translation>
+    </message>
+    <message>
+        <source>&amp;Sheet</source>
+        <extracomment>A section of the window of the print: the sheet of the printer. In Polish: &amp;Kartka</extracomment>
+        <translation>&amp;Kartka</translation>
+    </message>
+    <message>
+        <source>&amp;Color:</source>
+        <extracomment>In Polish: Kolo&amp;r:</extracomment>
+        <translation>Kolo&amp;r:</translation>
+    </message>
+    <message>
+        <source>Two-si&amp;ded:</source>
+        <extracomment>Printing on both sides of the sheets. In Polish: D&amp;wustronnie:</extracomment>
+        <translation>D&amp;wustronnie:</translation>
+    </message>
+    <message>
+        <source>Two pages side &amp;by side</source>
+        <extracomment>In Polish: Dwie strony o&amp;bok siebie</extracomment>
+        <translation>Dwie strony o&amp;bok siebie</translation>
+    </message>
+    <message>
+        <source>Booklet to fold &amp;in half</source>
+        <extracomment>In Polish: Bro&amp;szura do złożenia na pół</extracomment>
+        <translation>Bro&amp;szura do złożenia na pół</translation>
+    </message>
+    <message>
+        <source>C&amp;rop marks</source>
+        <extracomment>The marks of the corners of a page, where the sheet is cut. In Polish: Znaczniki &amp;cięcia</extracomment>
+        <translation>Znaczniki &amp;cięcia</translation>
+    </message>
+    <message>
+        <source>Boo&amp;k Page</source>
+        <extracomment>A section of the window of the print: the size and the margins of the pages. In Polish: Strona ks&amp;iążki</extracomment>
+        <translation>Strona ks&amp;iążki</translation>
+    </message>
+    <message>
+        <source>A4 (210 x 297 mm)</source>
+        <extracomment>A size of the page of the book. In Polish: A4 (210 × 297 mm)</extracomment>
+        <translation>A4 (210 × 297 mm)</translation>
+    </message>
+    <message>
+        <source>A5 (148 x 210 mm)</source>
+        <extracomment>A size of the page of the book. In Polish: A5 (148 × 210 mm)</extracomment>
+        <translation>A5 (148 × 210 mm)</translation>
+    </message>
+    <message>
+        <source>B5 (176 x 250 mm)</source>
+        <extracomment>A size of the page of the book. In Polish: B5 (176 × 250 mm)</extracomment>
+        <translation>B5 (176 × 250 mm)</translation>
+    </message>
+    <message>
+        <source>6 x 9 in (152 x 229 mm)</source>
+        <extracomment>A size of the page of the book. In Polish: 6 × 9 cali (152 × 229 mm)</extracomment>
+        <translation>6 × 9 cali (152 × 229 mm)</translation>
+    </message>
+    <message>
+        <source>Letter (8.5 x 11 in)</source>
+        <extracomment>A size of the page of the book. In Polish: Letter (8,5 × 11 cali)</extracomment>
+        <translation>Letter (8,5 × 11 cali)</translation>
+    </message>
+    <message>
+        <source>Legal (8.5 x 14 in)</source>
+        <extracomment>A size of the page of the book. In Polish: Legal (8,5 × 14 cali)</extracomment>
+        <translation>Legal (8,5 × 14 cali)</translation>
+    </message>
+    <message>
+        <source>Custom</source>
+        <extracomment>A size of the page of the book of its own. In Polish: Własny</extracomment>
+        <translation>Własny</translation>
+    </message>
+    <message>
+        <source>Si&amp;ze:</source>
+        <extracomment>In Polish: Ro&amp;zmiar:</extracomment>
+        <translation>Ro&amp;zmiar:</translation>
+    </message>
+    <message>
+        <source>Wi&amp;dth:</source>
+        <extracomment>The width of a page of its own size. In Polish: Sz&amp;erokość:</extracomment>
+        <translation>Sz&amp;erokość:</translation>
+    </message>
+    <message>
+        <source>&amp;Height:</source>
+        <extracomment>The height of a page of its own size. In Polish: Wy&amp;sokość:</extracomment>
+        <translation>Wy&amp;sokość:</translation>
+    </message>
+    <message>
+        <source>&amp;Top</source>
+        <extracomment>A margin of the page. In Polish: &amp;Górny</extracomment>
+        <translation>&amp;Górny</translation>
+    </message>
+    <message>
+        <source>B&amp;ottom</source>
+        <extracomment>A margin of the page. In Polish: Doln&amp;y</extracomment>
+        <translation>Doln&amp;y</translation>
+    </message>
+    <message>
+        <source>Le&amp;ft</source>
+        <extracomment>A margin of the page. In Polish: Le&amp;wy</extracomment>
+        <translation>Le&amp;wy</translation>
+    </message>
+    <message>
+        <source>&amp;Right</source>
+        <extracomment>A margin of the page. In Polish: &amp;Prawy</extracomment>
+        <translation>&amp;Prawy</translation>
+    </message>
+    <message>
+        <source>&amp;Inner</source>
+        <extracomment>A margin of the page at the binding. In Polish: Wewnę&amp;trzny</extracomment>
+        <translation>Wewnę&amp;trzny</translation>
+    </message>
+    <message>
+        <source>O&amp;uter</source>
+        <extracomment>A margin of the page at the edge. In Polish: Zewnęt&amp;rzny</extracomment>
+        <translation>Zewnęt&amp;rzny</translation>
+    </message>
+    <message>
+        <source>Margins</source>
+        <extracomment>Over the margins of the page. In Polish: Marginesy</extracomment>
+        <translation>Marginesy</translation>
+    </message>
+    <message>
+        <source>&amp;Mirror margins (left and right pages)</source>
+        <extracomment>Mirror margins of the page. In Polish: L&amp;ustrzane marginesy (lewe i prawe strony)</extracomment>
+        <translation>L&amp;ustrzane marginesy (lewe i prawe strony)</translation>
+    </message>
+    <message>
+        <source>The same settings as Settings › Editor › Pages and Margins: a change changes also the view of the pages and the export to PDF.</source>
+        <extracomment>Under the page of the book in the window of the print. In Polish: Te same ustawienia co Ustawienia › Edytor › Strony i marginesy: zmiana dotyczy też widoku stron i eksportu do PDF.</extracomment>
+        <translation>Te same ustawienia co Ustawienia › Edytor › Strony i marginesy: zmiana dotyczy też widoku stron i eksportu do PDF.</translation>
+    </message>
+    <message>
+        <source>Whole Sheet</source>
+        <extracomment>The zoom of the preview: the whole sheet. In Polish: Cała kartka</extracomment>
+        <translation>Cała kartka</translation>
+    </message>
+    <message>
+        <source>Width</source>
+        <extracomment>The zoom of the preview: the sheet as wide as the preview. In Polish: Szerokość</extracomment>
+        <translation>Szerokość</translation>
+    </message>
+    <message>
+        <source>The whole sheet in the preview</source>
+        <extracomment>The tooltip of the zoom of the preview. In Polish: Cała kartka w podglądzie</extracomment>
+        <translation>Cała kartka w podglądzie</translation>
+    </message>
+    <message>
+        <source>The sheet as wide as the preview</source>
+        <extracomment>The tooltip of the zoom of the preview. In Polish: Kartka na szerokość podglądu</extracomment>
+        <translation>Kartka na szerokość podglądu</translation>
+    </message>
+    <message>
+        <source>As the printer sets it</source>
+        <extracomment>The quality of the print as the printer sets it. In Polish: Ustawienie drukarki</extracomment>
+        <translation>Ustawienie drukarki</translation>
+    </message>
+    <message>
+        <source>No printer</source>
+        <extracomment>The summary of the section of the printer without one. In Polish: Brak drukarki</extracomment>
+        <translation>Brak drukarki</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 · %n copies</source>
+        <extracomment>The summary of the section of the printer; %1: the printer, %n: the copies, more than one. In Polish: %1 · %n kopie / kopii</extracomment>
+        <translation>
+            <numerusform>%1 · %n kopia</numerusform>
+            <numerusform>%1 · %n kopie</numerusform>
+            <numerusform>%1 · %n kopii</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Text in front</source>
+        <extracomment>The summary of what prints. In Polish: Tekst na wierzchu</extracomment>
+        <translation>Tekst na wierzchu</translation>
+    </message>
+    <message>
+        <source>Whole book</source>
+        <extracomment>The summary of what prints. In Polish: Cała książka</extracomment>
+        <translation>Cała książka</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n chosen texts</source>
+        <extracomment>The summary of what prints. In Polish: %n wybrany tekst / wybrane teksty / wybranych tekstów</extracomment>
+        <translation>
+            <numerusform>%n wybrany tekst</numerusform>
+            <numerusform>%n wybrane teksty</numerusform>
+            <numerusform>%n wybranych tekstów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Set for the publisher</source>
+        <extracomment>The summary of what prints. In Polish: Zestaw dla wydawnictwa</extracomment>
+        <translation>Zestaw dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <extracomment>The summary of the pages: all of them. In Polish: Wszystkie</extracomment>
+        <translation>Wszystkie</translation>
+    </message>
+    <message>
+        <source>Range: %1</source>
+        <extracomment>The summary of the pages: a range; %1: as typed. In Polish: Zakres: %1</extracomment>
+        <translation>Zakres: %1</translation>
+    </message>
+    <message>
+        <source>odd only</source>
+        <extracomment>The summary of the pages: the odd ones. In Polish: tylko nieparzyste</extracomment>
+        <translation>tylko nieparzyste</translation>
+    </message>
+    <message>
+        <source>even only</source>
+        <extracomment>The summary of the pages: the even ones. In Polish: tylko parzyste</extracomment>
+        <translation>tylko parzyste</translation>
+    </message>
+    <message>
+        <source>from the end</source>
+        <extracomment>The summary of the pages: in the reverse order. In Polish: od końca</extracomment>
+        <translation>od końca</translation>
+    </message>
+    <message>
+        <source>one page</source>
+        <extracomment>The summary of the sheet. In Polish: jedna strona</extracomment>
+        <translation>jedna strona</translation>
+    </message>
+    <message>
+        <source>fitted</source>
+        <extracomment>The summary of the sheet: the page fitted to it. In Polish: dopasowana</extracomment>
+        <translation>dopasowana</translation>
+    </message>
+    <message>
+        <source>actual size</source>
+        <extracomment>The summary of the sheet: the page of its own size. In Polish: rzeczywisty rozmiar</extracomment>
+        <translation>rzeczywisty rozmiar</translation>
+    </message>
+    <message>
+        <source>two pages side by side</source>
+        <extracomment>The summary of the sheet. In Polish: dwie strony obok siebie</extracomment>
+        <translation>dwie strony obok siebie</translation>
+    </message>
+    <message>
+        <source>booklet</source>
+        <extracomment>The summary of the sheet. In Polish: broszura</extracomment>
+        <translation>broszura</translation>
+    </message>
+    <message>
+        <source>two-sided</source>
+        <extracomment>The summary of the sheet: printed on both sides. In Polish: dwustronnie</extracomment>
+        <translation>dwustronnie</translation>
+    </message>
+    <message>
+        <source>margins %1</source>
+        <extracomment>The summary of the page of the book: its margins; %1: one length, or the top, the bottom, the left and the right one. In Polish: marginesy %1</extracomment>
+        <translation>marginesy %1</translation>
+    </message>
+    <message>
+        <source>no running head</source>
+        <extracomment>The summary of the look of the text. In Polish: bez żywej paginy</extracomment>
+        <translation>bez żywej paginy</translation>
+    </message>
+    <message>
+        <source>running head</source>
+        <extracomment>The summary of the look of the text. In Polish: żywa pagina</extracomment>
+        <translation>żywa pagina</translation>
+    </message>
+    <message>
+        <source>The window of the printer&apos;s driver: its own settings, as the type of paper and saving the toner</source>
+        <extracomment>The tooltip of Printer Properties... In Polish: Okno sterownika drukarki: jego własne ustawienia, np. rodzaj papieru i oszczędzanie tonera</extracomment>
+        <translation>Okno sterownika drukarki: jego własne ustawienia, np. rodzaj papieru i oszczędzanie tonera</translation>
+    </message>
+    <message>
+        <source>The window of the printer&apos;s driver is there only on Windows.</source>
+        <extracomment>The tooltip of Printer Properties... without such a window. In Polish: Okno sterownika drukarki jest dostępne tylko w Windows.</extracomment>
+        <translation>Okno sterownika drukarki jest dostępne tylko w Windows.</translation>
+    </message>
+    <message>
+        <source>Nothing to print: choose the texts in &quot;What to Print&quot;.</source>
+        <extracomment>Under the preview, when no text is chosen. In Polish: Nie ma czego drukować: wybierz teksty w sekcji „Co drukować”.</extracomment>
+        <translation>Nie ma czego drukować: wybierz teksty w sekcji „Co drukować”.</translation>
+    </message>
+    <message>
+        <source>As an open book: page 1 alone on the right, then 2–3, 4–5...</source>
+        <extracomment>Under two pages side by side. In Polish: Jak otwarta książka: strona 1 sama, po prawej; dalej 2–3, 4–5...</extracomment>
+        <translation>Jak otwarta książka: strona 1 sama, po prawej; dalej 2–3, 4–5...</translation>
+    </message>
+    <message>
+        <source>Both pages of the spread &quot;%1&quot; are on this sheet.</source>
+        <extracomment>%1: the title of the spread. In Polish: Obie strony rozkładówki „%1” są na tej kartce.</extracomment>
+        <translation>Obie strony rozkładówki „%1” są na tej kartce.</translation>
+    </message>
+    <message>
+        <source>In a booklet the halves of a spread lie on different sheets; folded, they meet at the spine, as at a print shop.</source>
+        <extracomment>Under the pages on a sheet, for a book with a spread. In Polish: W broszurze połówki rozkładówki leżą na różnych kartkach; po złożeniu stykają się w grzbiecie, tak jak w drukarni.</extracomment>
+        <translation>W broszurze połówki rozkładówki leżą na różnych kartkach; po złożeniu stykają się w grzbiecie, tak jak w drukarni.</translation>
+    </message>
+    <message>
+        <source>The sheet with the current spread; pressed again, with the next ones</source>
+        <extracomment>In Polish: Kartka z bieżącą rozkładówką, a kolejne naciśnięcia – z następnymi</extracomment>
+        <translation>Kartka z bieżącą rozkładówką, a kolejne naciśnięcia – z następnymi</translation>
+    </message>
+    <message>
+        <source>The spread &quot;%1&quot; goes onto two sheets: pages %2 and %3 do not lie side by side.</source>
+        <extracomment>%1: the title of the spread, %2 and %3: its pages. In Polish: Rozkładówka „%1” trafia na dwie kartki: strony %2 i %3 nie leżą obok siebie.</extracomment>
+        <translation>Rozkładówka „%1” trafia na dwie kartki: strony %2 i %3 nie leżą obok siebie.</translation>
+    </message>
+    <message>
+        <source>To the Spread</source>
+        <extracomment>A button under the preview: to the sheet with the spread in front (or the next one). In Polish: Do rozkładówki</extracomment>
+        <translation>Do rozkładówki</translation>
     </message>
 </context>
 <context>
@@ -33145,6 +37022,11 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
         <source>&amp;Save Portrait as a Picture in the Materials</source>
         <extracomment>Saves the portrait put together from parts as a PNG picture among the materials of the book. In Polish: Zapisz portret jako o&amp;braz w materiałach</extracomment>
         <translation>Zapisz portret jako o&amp;braz w materiałach</translation>
+    </message>
+    <message>
+        <source>Show all the cards (Alt+Down)</source>
+        <extracomment>The arrow at the end of a field of a card that names another card. In Polish: Pokaż wszystkie karty (Alt+↓)</extracomment>
+        <translation>Pokaż wszystkie karty (Alt+↓)</translation>
     </message>
 </context>
 <context>
@@ -34641,11 +38523,6 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>Nowe wydarzenie</translation>
     </message>
     <message>
-        <source>“14 April 1931, in the morning”, “March 1931”, “16–17 April 1931”, “Day 3, night”, “Days 5–7”, “about 1931”</source>
-        <extracomment>Times the program reads; keep the quotes. In Polish: „14 kwietnia 1931, rano”, „marzec 1931”, „16–17 kwietnia 1931”, „Dzień 3, noc”, „Dni 5–7”, „ok. 1931”</extracomment>
-        <translation>„14 kwietnia 1931, rano”, „marzec 1931”, „16–17 kwietnia 1931”, „Dzień 3, noc”, „Dni 5–7”, „ok. 1931”</translation>
-    </message>
-    <message>
         <source>Not on the axis</source>
         <extracomment>The tray of the events of a timeline without a time. In Polish: Bez miejsca na osi</extracomment>
         <translation>Bez miejsca na osi</translation>
@@ -34719,6 +38596,11 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>One lane</source>
         <extracomment>The lanes of a timeline: one for all. In Polish: Jedno pasmo</extracomment>
         <translation>Jedno pasmo</translation>
+    </message>
+    <message>
+        <source>“14 April 1931, in the morning”, “March 1931”, “spring 1931”, “first half of 1931”, “16–17 April 1931”, “Day 3, night”, “day one”, “Days 5–7”, “about 1931”</source>
+        <extracomment>Times the program reads; keep the quotes. In Polish: „14 kwietnia 1931, rano”, „marzec 1931”, „wiosna 1931”, „pierwsza połowa 1931”, „16–17 kwietnia 1931”, „Dzień 3, noc”, „dzień pierwszy”, „Dni 5–7”, „ok. 1931”</extracomment>
+        <translation>„14 kwietnia 1931, rano”, „marzec 1931”, „wiosna 1931”, „pierwsza połowa 1931”, „16–17 kwietnia 1931”, „Dzień 3, noc”, „dzień pierwszy”, „Dni 5–7”, „ok. 1931”</translation>
     </message>
 </context>
 <context>
@@ -34844,14 +38726,33 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <extracomment>What Undo undoes in a mind map. In Polish: wklejenie</extracomment>
         <translation>wklejenie</translation>
     </message>
+    <message>
+        <source>unfolding a node</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: rozwinięcie węzła</extracomment>
+        <translation>rozwinięcie węzła</translation>
+    </message>
+    <message>
+        <source>folding a node</source>
+        <translation>zwinięcie węzła</translation>
+    </message>
+    <message>
+        <source>adding a frame</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: dodanie ramki</extracomment>
+        <translation>dodanie ramki</translation>
+    </message>
+    <message>
+        <source>changing a frame</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana ramki</extracomment>
+        <translation>zmiana ramki</translation>
+    </message>
+    <message>
+        <source>deleting a frame</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: usunięcie ramki</extracomment>
+        <translation>usunięcie ramki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::mindmap::MindMapEditor</name>
-    <message>
-        <source>(a deleted element)</source>
-        <extracomment>A node about an element of the book that was deleted. In Polish: (element usunięty)</extracomment>
-        <translation>(element usunięty)</translation>
-    </message>
     <message>
         <source>Undone: %1.</source>
         <translation>Cofnięto: %1.</translation>
@@ -34877,34 +38778,9 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>Widok:</translation>
     </message>
     <message>
-        <source>Both sides</source>
-        <extracomment>A layout of a mind map. In Polish: Na obie strony</extracomment>
-        <translation>Na obie strony</translation>
-    </message>
-    <message>
-        <source>To the right</source>
-        <extracomment>A layout of a mind map. In Polish: W prawo</extracomment>
-        <translation>W prawo</translation>
-    </message>
-    <message>
         <source>Down</source>
         <extracomment>A layout of a mind map: a tree going down. In Polish: W dół</extracomment>
         <translation>W dół</translation>
-    </message>
-    <message>
-        <source>Free</source>
-        <extracomment>A layout of a mind map: where the writer puts the nodes. In Polish: Swobodny</extracomment>
-        <translation>Swobodny</translation>
-    </message>
-    <message>
-        <source>Layout:</source>
-        <extracomment>In the bar of a mind map. In Polish: Układ:</extracomment>
-        <translation>Układ:</translation>
-    </message>
-    <message>
-        <source>The layout of the map: %1.</source>
-        <extracomment>In Polish: Układ mapy: %1.</extracomment>
-        <translation>Układ mapy: %1.</translation>
     </message>
     <message>
         <source>nothing</source>
@@ -34952,34 +38828,14 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>Wyróżnij:</translation>
     </message>
     <message>
-        <source>Zoom Out (Ctrl+-)</source>
-        <extracomment>In Polish: Pomniejsz (Ctrl+−)</extracomment>
-        <translation>Pomniejsz (Ctrl+−)</translation>
-    </message>
-    <message>
         <source>Zoom Out</source>
         <extracomment>In Polish: Pomniejsz</extracomment>
         <translation>Pomniejsz</translation>
     </message>
     <message>
-        <source>Zoom In (Ctrl++)</source>
-        <extracomment>In Polish: Powiększ (Ctrl++)</extracomment>
-        <translation>Powiększ (Ctrl++)</translation>
-    </message>
-    <message>
         <source>Zoom In</source>
         <extracomment>In Polish: Powiększ</extracomment>
         <translation>Powiększ</translation>
-    </message>
-    <message>
-        <source>100%</source>
-        <extracomment>In Polish: 100%</extracomment>
-        <translation>100%</translation>
-    </message>
-    <message>
-        <source>Zoom 100% (Ctrl+0)</source>
-        <extracomment>In Polish: Powiększenie 100% (Ctrl+0)</extracomment>
-        <translation>Powiększenie 100% (Ctrl+0)</translation>
     </message>
     <message>
         <source>Mind Map Settings</source>
@@ -34995,38 +38851,10 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
             <numerusform>%n węzłów</numerusform>
         </translation>
     </message>
-    <message numerus="yes">
-        <source>%n connection(s)</source>
-        <extracomment>In Polish: %n połączenie / połączenia / połączeń</extracomment>
-        <translation>
-            <numerusform>%n połączenie</numerusform>
-            <numerusform>%n połączenia</numerusform>
-            <numerusform>%n połączeń</numerusform>
-        </translation>
-    </message>
     <message>
         <source>Undo</source>
         <extracomment>The button of the bar under a mind map. In Polish: Cofnij</extracomment>
         <translation>Cofnij</translation>
-    </message>
-    <message>
-        <source>Note of the Node</source>
-        <extracomment>The window of the note of a node of a mind map. %1: the text of the node. In Polish: Notatka węzła / Notatka do „%1”. Widać ją w podpowiedzi i na liście.</extracomment>
-        <translation>Notatka węzła</translation>
-    </message>
-    <message>
-        <source>The note of “%1”. It shows in the tooltip and in the list.</source>
-        <translation>Notatka do „%1”. Widać ją w podpowiedzi i na liście.</translation>
-    </message>
-    <message>
-        <source>Note</source>
-        <extracomment>In Polish: Notatka</extracomment>
-        <translation>Notatka</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <extracomment>In Polish: Zapisz</extracomment>
-        <translation>Zapisz</translation>
     </message>
     <message>
         <source>Element of the Book</source>
@@ -35042,6 +38870,182 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>This element is not in the book any more.</source>
         <extracomment>In Polish: Tego elementu nie ma już w książce.</extracomment>
         <translation>Tego elementu nie ma już w książce.</translation>
+    </message>
+    <message>
+        <source>The cards could not be changed: %1.</source>
+        <extracomment>In the bar under a mind map, when Undo or Redo cannot change the cards back. In Polish: Nie udało się zmienić kart: %1.</extracomment>
+        <translation>Nie udało się zmienić kart: %1.</translation>
+    </message>
+    <message>
+        <source>Add Node…</source>
+        <extracomment>A command over a mind map. In Polish: Dodaj węzeł…</extracomment>
+        <translation>Dodaj węzeł…</translation>
+    </message>
+    <message>
+        <source>Add Branch</source>
+        <extracomment>In Polish: Dodaj gałąź</extracomment>
+        <translation>Dodaj gałąź</translation>
+    </message>
+    <message>
+        <source>Add Below</source>
+        <extracomment>In Polish: Dodaj poniżej</extracomment>
+        <translation>Dodaj poniżej</translation>
+    </message>
+    <message>
+        <source>Enter; above: Shift+Enter</source>
+        <extracomment>The keys of Add Below, Add Above. In Polish: Enter; powyżej: Shift+Enter</extracomment>
+        <translation>Enter; powyżej: Shift+Enter</translation>
+    </message>
+    <message>
+        <source>Edit Name</source>
+        <extracomment>In Polish: Edytuj nazwę</extracomment>
+        <translation>Edytuj nazwę</translation>
+    </message>
+    <message>
+        <source>Fold / Unfold</source>
+        <extracomment>In Polish: Zwiń / rozwiń</extracomment>
+        <translation>Zwiń / rozwiń</translation>
+    </message>
+    <message>
+        <source>Frame</source>
+        <extracomment>In Polish: Ramka</extracomment>
+        <translation>Ramka</translation>
+    </message>
+    <message>
+        <source>Arrange</source>
+        <extracomment>In Polish: Uporządkuj</extracomment>
+        <translation>Uporządkuj</translation>
+    </message>
+    <message>
+        <source>On Both Sides</source>
+        <extracomment>A layout of a mind map. In Polish: Na obie strony</extracomment>
+        <translation>Na obie strony</translation>
+    </message>
+    <message>
+        <source>To the Right</source>
+        <extracomment>In Polish: W prawo</extracomment>
+        <translation>W prawo</translation>
+    </message>
+    <message>
+        <source>Family in Generations</source>
+        <extracomment>In Polish: Rodzina w pokoleniach</extracomment>
+        <translation>Rodzina w pokoleniach</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Redo</source>
+        <extracomment>In Polish: Ponów</extracomment>
+        <translation>Ponów</translation>
+    </message>
+    <message>
+        <source>Redone: %1.</source>
+        <extracomment>In Polish: Ponowiono: %1.</extracomment>
+        <translation>Ponowiono: %1.</translation>
+    </message>
+    <message>
+        <source>Zoom (Ctrl+0: 100%)</source>
+        <extracomment>The zoom of a mind map, in the bar. In Polish: Powiększenie (Ctrl+0: 100%)</extracomment>
+        <translation>Powiększenie (Ctrl+0: 100%)</translation>
+    </message>
+    <message>
+        <source>Whole Map</source>
+        <extracomment>In Polish: Cała mapa</extracomment>
+        <translation>Cała mapa</translation>
+    </message>
+    <message>
+        <source>grid</source>
+        <extracomment>The background of the mind maps. In Polish: kratka</extracomment>
+        <translation>kratka</translation>
+    </message>
+    <message>
+        <source>dots</source>
+        <extracomment>In Polish: kropki</extracomment>
+        <translation>kropki</translation>
+    </message>
+    <message>
+        <source>plain</source>
+        <extracomment>In Polish: gładkie</extracomment>
+        <translation>gładkie</translation>
+    </message>
+    <message>
+        <source>own color</source>
+        <extracomment>In Polish: własny kolor</extracomment>
+        <translation>własny kolor</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <extracomment>In the bar of a mind map. In Polish: Tło:</extracomment>
+        <translation>Tło:</translation>
+    </message>
+    <message>
+        <source>curved</source>
+        <extracomment>The lines of the mind maps: their branches and other links. In Polish: krzywe</extracomment>
+        <translation>krzywe</translation>
+    </message>
+    <message>
+        <source>straight</source>
+        <extracomment>In Polish: proste</extracomment>
+        <translation>proste</translation>
+    </message>
+    <message>
+        <source>elbow</source>
+        <extracomment>In Polish: łamane</extracomment>
+        <translation>łamane</translation>
+    </message>
+    <message>
+        <source>Lines:</source>
+        <extracomment>In the bar of a mind map. In Polish: Linie:</extracomment>
+        <translation>Linie:</translation>
+    </message>
+    <message>
+        <source>Undo: %1 (Ctrl+Z)</source>
+        <translation>Cofnij: %1 (Ctrl+Z)</translation>
+    </message>
+    <message>
+        <source>Redo: %1 (Ctrl+Y)</source>
+        <translation>Ponów: %1 (Ctrl+Y)</translation>
+    </message>
+    <message>
+        <source>Relation map of the Workshop cards</source>
+        <extracomment>What a map is, in its bar. In Polish: Mapa relacji z kart Warsztatu</extracomment>
+        <translation>Mapa relacji z kart Warsztatu</translation>
+    </message>
+    <message>
+        <source>Mind map</source>
+        <translation>Mapa myśli</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n link(s)</source>
+        <extracomment>In Polish: %n połączenie / połączenia / połączeń</extracomment>
+        <translation>
+            <numerusform>%n połączenie</numerusform>
+            <numerusform>%n połączenia</numerusform>
+            <numerusform>%n połączeń</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Enter adds a node below, Tab puts a node a level down, Shift+Tab a level up, Ctrl+arrows among its siblings.</source>
+        <extracomment>The line under the list of a mind map. In Polish: Enter dodaje węzeł poniżej, Tab przenosi węzeł poziom niżej, Shift+Tab – poziom wyżej, Ctrl+strzałki – wśród rodzeństwa.</extracomment>
+        <translation>Enter dodaje węzeł poniżej, Tab przenosi węzeł poziom niżej, Shift+Tab – poziom wyżej, a Ctrl+strzałki – między sąsiednimi węzłami.</translation>
+    </message>
+    <message>
+        <source>changing a node</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana węzła</extracomment>
+        <translation>zmiana węzła</translation>
+    </message>
+    <message>
+        <source>The node “%1” is changed.</source>
+        <extracomment>In the bar under a mind map. In Polish: Zmieniono węzeł „%1”.</extracomment>
+        <translation>Zmieniono węzeł „%1”.</translation>
+    </message>
+    <message>
+        <source>Cards with new relations came to the map: %1.</source>
+        <extracomment>In the bar under a map of relations, when it opens. In Polish: Doszły karty z nowymi relacjami: %1.</extracomment>
+        <translation>Na mapę doszły karty z nowymi relacjami: %1.</translation>
     </message>
 </context>
 <context>
@@ -35149,6 +39153,11 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <extracomment>The page of Settings of the mind maps. In Polish: Mapy myśli</extracomment>
         <translation>Mapy myśli</translation>
     </message>
+    <message>
+        <source>New &amp;Relation Map...</source>
+        <extracomment>The command of the Book menu and of the Navigator that makes a map of the relations of the cards. In Polish: Nowa mapa &amp;relacji...</extracomment>
+        <translation>Nowa mapa &amp;relacji...</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::mindmap::MindMapSettingsPage</name>
@@ -35173,10 +39182,6 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
     <message>
         <source>Down</source>
         <translation>W dół</translation>
-    </message>
-    <message>
-        <source>Free</source>
-        <translation>Swobodny</translation>
     </message>
     <message>
         <source>A map opens on:</source>
@@ -35219,16 +39224,6 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>prostokąty</translation>
     </message>
     <message>
-        <source>ovals</source>
-        <extracomment>In Polish: owale</extracomment>
-        <translation>owale</translation>
-    </message>
-    <message>
-        <source>text over a line</source>
-        <extracomment>In Polish: tekst nad linią</extracomment>
-        <translation>tekst nad linią</translation>
-    </message>
-    <message>
         <source>Lines:</source>
         <extracomment>In Polish: Linie:</extracomment>
         <translation>Linie:</translation>
@@ -35247,11 +39242,6 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>with right angles</source>
         <extracomment>In Polish: łamane pod kątem prostym</extracomment>
         <translation>łamane pod kątem prostym</translation>
-    </message>
-    <message>
-        <source>Thinner lines deeper in the branches</source>
-        <extracomment>In Polish: Linie cieńsze w głębi gałęzi</extracomment>
-        <translation>Linie cieńsze w głębi gałęzi</translation>
     </message>
     <message>
         <source>Colors of the branches:</source>
@@ -35359,24 +39349,9 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>Tło</translation>
     </message>
     <message>
-        <source>Dots and grid</source>
-        <extracomment>In Polish: Kropki i kratka</extracomment>
-        <translation>Kropki i kratka</translation>
-    </message>
-    <message>
         <source>Own background</source>
         <extracomment>In Polish: Własny kolor tła</extracomment>
         <translation>Własny kolor tła</translation>
-    </message>
-    <message>
-        <source>Main topic</source>
-        <extracomment>In Polish: Temat główny</extracomment>
-        <translation>Temat główny</translation>
-    </message>
-    <message>
-        <source>Text of the main topic</source>
-        <extracomment>In Polish: Tekst tematu głównego</extracomment>
-        <translation>Tekst tematu głównego</translation>
     </message>
     <message>
         <source>Nodes</source>
@@ -35387,16 +39362,6 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>Connections</source>
         <extracomment>In Polish: Połączenia</extracomment>
         <translation>Połączenia</translation>
-    </message>
-    <message>
-        <source>Lines without colors</source>
-        <extracomment>In Polish: Linie bez kolorów</extracomment>
-        <translation>Linie bez kolorów</translation>
-    </message>
-    <message>
-        <source>Where a dragged node goes</source>
-        <extracomment>In Polish: Miejsce upuszczenia węzła</extracomment>
-        <translation>Miejsce upuszczenia węzła</translation>
     </message>
     <message>
         <source>Signs in the markers</source>
@@ -35428,6 +39393,146 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <extracomment>In Polish: Znacznik: do sprawdzenia</extracomment>
         <translation>Znacznik: do sprawdzenia</translation>
     </message>
+    <message>
+        <source>The nodes of the cards show the main portraits of the cards</source>
+        <extracomment>In Polish: Węzły kart pokazują główne portrety kart</extracomment>
+        <translation>Węzły kart pokazują główne portrety kart</translation>
+    </message>
+    <message>
+        <source>A new node shows only its header (H unfolds it)</source>
+        <extracomment>In Polish: Nowy węzeł pokazuje tylko nagłówek (rozwija go H)</extracomment>
+        <translation>Nowy węzeł pokazuje tylko nagłówek (rozwija go H)</translation>
+    </message>
+    <message>
+        <source>The first relation of a card offers a relation map</source>
+        <extracomment>In Polish: Pierwsza relacja karty proponuje mapę relacji</extracomment>
+        <translation>Po pierwszej relacji karty program proponuje mapę relacji</translation>
+    </message>
+    <message>
+        <source>A relation map shows the cards of the Workshop with the relations they have. Book &gt; New Relation Map… makes a new one.</source>
+        <extracomment>In Polish: Mapa relacji pokazuje karty Warsztatu z relacjami, które mają. Nową tworzy Książka &gt; Nowa mapa relacji…</extracomment>
+        <translation>Mapa relacji pokazuje karty Warsztatu z relacjami, które mają. Nową tworzy Książka &gt; Nowa mapa relacji…</translation>
+    </message>
+    <message>
+        <source>Dots</source>
+        <extracomment>In Polish: Kropki</extracomment>
+        <translation>Kropki</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <extracomment>In Polish: Kratka</extracomment>
+        <translation>Kratka</translation>
+    </message>
+    <message>
+        <source>Every fifth line of the grid</source>
+        <extracomment>In Polish: Co piąta linia kratki</extracomment>
+        <translation>Co piąta linia kratki</translation>
+    </message>
+    <message>
+        <source>Edge of a node</source>
+        <extracomment>In Polish: Krawędź węzła</extracomment>
+        <translation>Krawędź węzła</translation>
+    </message>
+    <message>
+        <source>Text of the header</source>
+        <extracomment>In Polish: Tekst nagłówka</extracomment>
+        <translation>Tekst nagłówka</translation>
+    </message>
+    <message>
+        <source>Frames</source>
+        <extracomment>In Polish: Ramki</extracomment>
+        <translation>Ramki</translation>
+    </message>
+    <message>
+        <source>Edge of a frame</source>
+        <extracomment>In Polish: Krawędź ramki</extracomment>
+        <translation>Krawędź ramki</translation>
+    </message>
+    <message>
+        <source>Where a dragged card goes</source>
+        <extracomment>In Polish: Miejsce upuszczenia karty</extracomment>
+        <translation>Miejsce upuszczenia karty</translation>
+    </message>
+    <message>
+        <source>Header: main topic</source>
+        <extracomment>The color of the header of a kind of nodes. In Polish: Nagłówek: temat główny</extracomment>
+        <translation>Nagłówek: temat główny</translation>
+    </message>
+    <message>
+        <source>Header: idea</source>
+        <extracomment>In Polish: Nagłówek: pomysł</extracomment>
+        <translation>Nagłówek: pomysł</translation>
+    </message>
+    <message>
+        <source>Header: question</source>
+        <extracomment>In Polish: Nagłówek: pytanie</extracomment>
+        <translation>Nagłówek: pytanie</translation>
+    </message>
+    <message>
+        <source>Header: note</source>
+        <extracomment>In Polish: Nagłówek: notatka</extracomment>
+        <translation>Nagłówek: notatka</translation>
+    </message>
+    <message>
+        <source>Header: character</source>
+        <extracomment>In Polish: Nagłówek: postać</extracomment>
+        <translation>Nagłówek: postać</translation>
+    </message>
+    <message>
+        <source>Header: place</source>
+        <extracomment>In Polish: Nagłówek: miejsce</extracomment>
+        <translation>Nagłówek: miejsce</translation>
+    </message>
+    <message>
+        <source>Header: item</source>
+        <extracomment>In Polish: Nagłówek: przedmiot</extracomment>
+        <translation>Nagłówek: przedmiot</translation>
+    </message>
+    <message>
+        <source>Header: text</source>
+        <extracomment>In Polish: Nagłówek: tekst</extracomment>
+        <translation>Nagłówek: tekst</translation>
+    </message>
+    <message>
+        <source>Header: scene</source>
+        <extracomment>In Polish: Nagłówek: scena</extracomment>
+        <translation>Nagłówek: scena</translation>
+    </message>
+    <message>
+        <source>Header: thread</source>
+        <extracomment>In Polish: Nagłówek: wątek</extracomment>
+        <translation>Nagłówek: wątek</translation>
+    </message>
+    <message>
+        <source>Header: another element</source>
+        <extracomment>In Polish: Nagłówek: inny element</extracomment>
+        <translation>Nagłówek: inny element</translation>
+    </message>
+    <message>
+        <source>Sockets: branch</source>
+        <extracomment>The color of the sockets and links of a kind. In Polish: Gniazda: gałąź</extracomment>
+        <translation>Gniazda: gałąź</translation>
+    </message>
+    <message>
+        <source>Sockets: family</source>
+        <extracomment>In Polish: Gniazda: rodzina</extracomment>
+        <translation>Gniazda: rodzina</translation>
+    </message>
+    <message>
+        <source>Sockets: relations</source>
+        <extracomment>In Polish: Gniazda: relacje</extracomment>
+        <translation>Gniazda: relacje</translation>
+    </message>
+    <message>
+        <source>Sockets: places</source>
+        <extracomment>In Polish: Gniazda: miejsca</extracomment>
+        <translation>Gniazda: miejsca</translation>
+    </message>
+    <message>
+        <source>Sockets: items</source>
+        <extracomment>In Polish: Gniazda: przedmioty</extracomment>
+        <translation>Gniazda: przedmioty</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::mindmap::MindMapView</name>
@@ -35437,67 +39542,9 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>Mapa myśli</translation>
     </message>
     <message>
-        <source>Text of the node</source>
-        <extracomment>The accessible name of the field of the text of a node. In Polish: Tekst węzła</extracomment>
-        <translation>Tekst węzła</translation>
-    </message>
-    <message>
         <source>Label of the connection</source>
         <extracomment>The accessible name of the field of the label of a connection. In Polish: Podpis połączenia</extracomment>
         <translation>Podpis połączenia</translation>
-    </message>
-    <message>
-        <source>“%1” has no nodes inside it, so there is nothing to collapse.</source>
-        <extracomment>In Polish: „%1” nie ma węzłów podrzędnych, więc nie ma czego zwinąć.</extracomment>
-        <translation>„%1” nie ma węzłów podrzędnych, więc nie ma czego zwinąć.</translation>
-    </message>
-    <message>
-        <source>It is the first node of this branch already.</source>
-        <translation>To już pierwszy węzeł tej gałęzi.</translation>
-    </message>
-    <message>
-        <source>It is the last node of this branch already.</source>
-        <translation>To już ostatni węzeł tej gałęzi.</translation>
-    </message>
-    <message>
-        <source>“%1” is a main branch already.</source>
-        <extracomment>In Polish: „%1” to już gałąź główna.</extracomment>
-        <translation>„%1” to już gałąź główna.</translation>
-    </message>
-    <message>
-        <source>There is no node before “%1” that it could go into.</source>
-        <extracomment>In Polish: Przed „%1” nie ma węzła, do którego mógłby wejść.</extracomment>
-        <translation>Przed „%1” nie ma węzła, do którego mógłby wejść.</translation>
-    </message>
-    <message>
-        <source>This node is not about an element of the book. Choose one with “Element of the book…” in the menu of the node.</source>
-        <extracomment>In Polish: Ten węzeł nie jest o żadnym elemencie książki. Wskaż go poleceniem „Element książki…” z menu węzła.</extracomment>
-        <translation>Ten węzeł nie jest o żadnym elemencie książki. Wskaż go poleceniem „Element książki…” z menu węzła.</translation>
-    </message>
-    <message>
-        <source>Choose the node to connect “%1” with: click it, or go to it with the arrows and press Enter. Esc cancels.</source>
-        <extracomment>In Polish: Wskaż węzeł, z którym połączyć „%1” – kliknięciem albo strzałkami i Enter. Esc odwołuje.</extracomment>
-        <translation>Wskaż węzeł, z którym połączyć „%1” – kliknięciem albo strzałkami i Enter. Esc odwołuje.</translation>
-    </message>
-    <message>
-        <source>The connection is cancelled.</source>
-        <extracomment>In Polish: Połączenie odwołane.</extracomment>
-        <translation>Połączenie odwołane.</translation>
-    </message>
-    <message>
-        <source>These nodes are connected already.</source>
-        <extracomment>In Polish: Te węzły są już połączone.</extracomment>
-        <translation>Te węzły są już połączone.</translation>
-    </message>
-    <message>
-        <source>Connected “%1” with “%2”. Type a label and press Enter.</source>
-        <extracomment>In Polish: Połączono „%1” z „%2”. Wpisz podpis i naciśnij Enter.</extracomment>
-        <translation>Połączono „%1” z „%2”. Wpisz podpis i naciśnij Enter.</translation>
-    </message>
-    <message>
-        <source>Done again: %1.</source>
-        <extracomment>In Polish: Ponowiono: %1.</extracomment>
-        <translation>Ponowiono: %1.</translation>
     </message>
     <message>
         <source>Undone: %1.</source>
@@ -35508,44 +39555,6 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>The connection is deleted.</source>
         <extracomment>In Polish: Usunięto połączenie.</extracomment>
         <translation>Usunięto połączenie.</translation>
-    </message>
-    <message>
-        <source>“%1” is inside “%2” already.</source>
-        <extracomment>In Polish: „%1” już jest w „%2”.</extracomment>
-        <translation>„%1” już jest w „%2”.</translation>
-    </message>
-    <message>
-        <source>moving a node</source>
-        <extracomment>What Undo undoes in a mind map. In Polish: przeniesienie węzła</extracomment>
-        <translation>przeniesienie węzła</translation>
-    </message>
-    <message>
-        <source>Moved “%1” into “%2”.</source>
-        <extracomment>In Polish: Przeniesiono „%1” do „%2”.</extracomment>
-        <translation>Przeniesiono „%1” do „%2”.</translation>
-    </message>
-    <message>
-        <source>“%1” is now before “%2”.</source>
-        <translation>„%1” jest teraz przed „%2”.</translation>
-    </message>
-    <message>
-        <source>“%1” is now after “%2”.</source>
-        <translation>„%1” jest teraz za „%2”.</translation>
-    </message>
-    <message>
-        <source>“%1” is a loose node now. Drag it onto a node to bring it back into a branch.</source>
-        <extracomment>In Polish: „%1” jest teraz luźnym węzłem. Przeciągnij go na węzeł, żeby wrócił do gałęzi.</extracomment>
-        <translation>„%1” jest teraz luźnym węzłem. Przeciągnij go na węzeł, żeby wrócił do gałęzi.</translation>
-    </message>
-    <message>
-        <source>A node cannot be dropped here.</source>
-        <extracomment>In Polish: Tu nie można upuścić węzła.</extracomment>
-        <translation>Tu nie można upuścić węzła.</translation>
-    </message>
-    <message>
-        <source>New loose node here</source>
-        <extracomment>In the menu of an empty place of a mind map. In Polish: Nowy luźny węzeł tutaj</extracomment>
-        <translation>Nowy luźny węzeł tutaj</translation>
     </message>
     <message>
         <source>Paste</source>
@@ -35562,72 +39571,14 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <translation>Podpis…</translation>
     </message>
     <message>
-        <source>Reverse the arrow</source>
-        <extracomment>In Polish: Odwróć strzałkę</extracomment>
-        <translation>Odwróć strzałkę</translation>
-    </message>
-    <message>
         <source>Delete the connection</source>
         <extracomment>In Polish: Usuń połączenie</extracomment>
         <translation>Usuń połączenie</translation>
     </message>
     <message>
-        <source>New node inside</source>
-        <extracomment>In the menu of a node of a mind map. In Polish: Nowy węzeł w środku</extracomment>
-        <translation>Nowy węzeł w środku</translation>
-    </message>
-    <message>
-        <source>New node after it</source>
-        <extracomment>In Polish: Nowy węzeł za nim</extracomment>
-        <translation>Nowy węzeł za nim</translation>
-    </message>
-    <message>
-        <source>New node before it</source>
-        <extracomment>In Polish: Nowy węzeł przed nim</extracomment>
-        <translation>Nowy węzeł przed nim</translation>
-    </message>
-    <message>
-        <source>Change the text</source>
-        <extracomment>In Polish: Zmień tekst</extracomment>
-        <translation>Zmień tekst</translation>
-    </message>
-    <message>
-        <source>Note…</source>
-        <extracomment>In Polish: Notatka…</extracomment>
-        <translation>Notatka…</translation>
-    </message>
-    <message>
         <source>Element of the book…</source>
         <extracomment>In Polish: Element książki…</extracomment>
         <translation>Element książki…</translation>
-    </message>
-    <message>
-        <source>Open the element</source>
-        <extracomment>In Polish: Otwórz element</extracomment>
-        <translation>Otwórz element</translation>
-    </message>
-    <message>
-        <source>Unlink the element</source>
-        <extracomment>In Polish: Odłącz element</extracomment>
-        <translation>Odłącz element</translation>
-    </message>
-    <message>
-        <source>Connect to…</source>
-        <extracomment>In Polish: Połącz z…</extracomment>
-        <translation>Połącz z…</translation>
-    </message>
-    <message>
-        <source>Expand the branch</source>
-        <translation>Rozwiń gałąź</translation>
-    </message>
-    <message>
-        <source>Collapse the branch</source>
-        <translation>Zwiń gałąź</translation>
-    </message>
-    <message>
-        <source>Detach from the branch</source>
-        <extracomment>In Polish: Odłącz od gałęzi</extracomment>
-        <translation>Odłącz od gałęzi</translation>
     </message>
     <message>
         <source>Copy as text</source>
@@ -35638,6 +39589,926 @@ Why Book &gt; Open Card at Cursor is greyed out. In Polish: Żadna książka nie
         <source>Delete</source>
         <extracomment>In Polish: Usuń</extracomment>
         <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>The map is arranged.</source>
+        <extracomment>In the bar under a mind map. In Polish: Uporządkowano mapę.</extracomment>
+        <translation>Uporządkowano mapę.</translation>
+    </message>
+    <message>
+        <source>Name of the node</source>
+        <extracomment>The accessible name of the field of the title of a node. In Polish: Nazwa węzła</extracomment>
+        <translation>Nazwa węzła</translation>
+    </message>
+    <message>
+        <source>Title of the frame</source>
+        <extracomment>The accessible name of the field of the title of a frame. In Polish: Tytuł ramki</extracomment>
+        <translation>Tytuł ramki</translation>
+    </message>
+    <message>
+        <source>branch</source>
+        <extracomment>The sockets of a node of a mind map, in a message. In Polish: gałąź</extracomment>
+        <translation>gałąź</translation>
+    </message>
+    <message>
+        <source>family</source>
+        <extracomment>In Polish: rodzina</extracomment>
+        <translation>rodzina</translation>
+    </message>
+    <message>
+        <source>relations</source>
+        <extracomment>In Polish: relacje</extracomment>
+        <translation>relacje</translation>
+    </message>
+    <message>
+        <source>places</source>
+        <extracomment>In Polish: miejsca</extracomment>
+        <translation>miejsca</translation>
+    </message>
+    <message>
+        <source>items</source>
+        <extracomment>In Polish: przedmioty</extracomment>
+        <translation>przedmioty</translation>
+    </message>
+    <message>
+        <source>These sockets do not join: %1 and %2. Sockets of the same color join.</source>
+        <extracomment>In the bar under a mind map, when a link is dropped on a socket of another color. In Polish: Te gniazda się nie łączą: %1 i %2. Łączą się gniazda tego samego koloru.</extracomment>
+        <translation>Te gniazda się nie łączą: %1 i %2. Łączą się gniazda tego samego koloru.</translation>
+    </message>
+    <message>
+        <source>This node has no socket that joins with this link.</source>
+        <extracomment>In the bar under a mind map. In Polish: Ten węzeł nie ma gniazda, które łączy się z tym połączeniem.</extracomment>
+        <translation>Ten węzeł nie ma gniazda, które łączy się z tym połączeniem.</translation>
+    </message>
+    <message>
+        <source>Drop the link on a socket of the same color. From the socket of a branch on the right to an empty place, you add a joined node.</source>
+        <extracomment>In the bar under a mind map, when a link is dropped on an empty place. In Polish: Upuść połączenie na gnieździe tego samego koloru. Z prawego gniazda gałęzi w puste miejsce dodasz połączony węzeł.</extracomment>
+        <translation>Upuść połączenie na gnieździe tego samego koloru. Z prawego gniazda gałęzi w puste miejsce dodasz połączony węzeł.</translation>
+    </message>
+    <message>
+        <source>A branch. Delete detaches it; the node stays on the map.</source>
+        <extracomment>In the line under a mind map, when a branch is selected. In Polish: Gałąź. Delete ją odłącza; węzeł zostaje na mapie.</extracomment>
+        <translation>Gałąź. Delete ją odłącza; węzeł zostaje na mapie.</translation>
+    </message>
+    <message>
+        <source>a connection</source>
+        <extracomment>In Polish: połączenie</extracomment>
+        <translation>połączenie</translation>
+    </message>
+    <message>
+        <source>Link: %1. Delete removes it.</source>
+        <extracomment>In the line under a mind map; %1: &quot;relacje&quot;, &quot;rodzina&quot;, &quot;połączenie&quot;. In Polish: Połączenie: %1. Delete je usuwa.</extracomment>
+        <translation>Połączenie: %1. Delete je usuwa.</translation>
+    </message>
+    <message>
+        <source>Link: %1, “%2”. Delete removes it.</source>
+        <extracomment>%2: its label. In Polish: Połączenie: %1, „%2”. Delete je usuwa.</extracomment>
+        <translation>Połączenie: %1, „%2”. Delete je usuwa.</translation>
+    </message>
+    <message>
+        <source>A frame. Its title drags it with its nodes; Delete removes the frame, the nodes stay.</source>
+        <extracomment>In the line under a mind map, when a frame is selected. In Polish: Ramka. Jej tytuł przeciąga ją razem z węzłami; Delete usuwa ramkę, węzły zostają.</extracomment>
+        <translation>Ramka. Przeciągnięcie tytułu przesuwa ją razem z węzłami; Delete usuwa ramkę, a węzły zostają.</translation>
+    </message>
+    <message>
+        <source>%1: a node of a Workshop card (%2). Sockets in the colors of the kinds join with the sockets of the same color.</source>
+        <extracomment>In the line under a mind map; %1: the name of a card, %2: its kind (&quot;postać&quot;). In Polish: %1: węzeł karty Warsztatu (%2). Gniazda w kolorach rodzajów łączą się z gniazdami tego samego koloru.</extracomment>
+        <translation>%1: węzeł karty Warsztatu (%2). Gniazda w kolorach rodzajów łączą się z gniazdami tego samego koloru.</translation>
+    </message>
+    <message>
+        <source>%1: the main topic. Tab adds a branch on the right, Shift+A – a node of any kind.</source>
+        <extracomment>In Polish: %1: główny temat. Tab dodaje gałąź po prawej, Shift+A – węzeł dowolnego rodzaju.</extracomment>
+        <translation>%1: temat główny. Tab dodaje gałąź po prawej, Shift+A – węzeł dowolnego rodzaju.</translation>
+    </message>
+    <message>
+        <source>%1: %2. Tab adds a branch on the right, Enter – a node below.</source>
+        <extracomment>%2: its kind (&quot;pomysł&quot;). In Polish: %1: %2. Tab dodaje gałąź po prawej, Enter – węzeł poniżej.</extracomment>
+        <translation>%1: %2. Tab dodaje gałąź po prawej, Enter – węzeł poniżej.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Selected nodes: %n. Dragging moves them together; Ctrl+J puts a frame around them.</source>
+        <extracomment>In the line under a mind map. In Polish: Wybrane węzły: %n. Przeciągnięcie przesuwa je razem; Ctrl+J otacza je ramką.</extracomment>
+        <translation>
+            <numerusform>Wybrane węzły: %n. Przeciągnięcie przesuwa je razem; Ctrl+J otacza je ramką.</numerusform>
+            <numerusform>Wybrane węzły: %n. Przeciągnięcie przesuwa je razem; Ctrl+J otacza je ramką.</numerusform>
+            <numerusform>Wybrane węzły: %n. Przeciągnięcie przesuwa je razem; Ctrl+J otacza je ramką.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Drag from socket to socket to connect. The mouse wheel zooms, dragging the background moves the map.</source>
+        <extracomment>In the line under a mind map, when nothing is selected. In Polish: Przeciągnij od gniazda do gniazda, aby połączyć. Kółko myszy powiększa, przeciągnięcie tła przesuwa mapę.</extracomment>
+        <translation>Przeciągnij od gniazda do gniazda, aby połączyć. Kółko myszy powiększa, przeciągnięcie tła przesuwa mapę.</translation>
+    </message>
+    <message>
+        <source>Family</source>
+        <extracomment>The heading of the relations of a family in the list over a mind map. In Polish: Rodzina</extracomment>
+        <translation>Rodzina</translation>
+    </message>
+    <message>
+        <source>Places</source>
+        <extracomment>In Polish: Miejsca</extracomment>
+        <translation>Miejsca</translation>
+    </message>
+    <message>
+        <source>Items</source>
+        <extracomment>In Polish: Przedmioty</extracomment>
+        <translation>Przedmioty</translation>
+    </message>
+    <message>
+        <source>Relations</source>
+        <extracomment>In Polish: Relacje</extracomment>
+        <translation>Relacje</translation>
+    </message>
+    <message>
+        <source>New idea</source>
+        <extracomment>The title of a new node of a mind map, which the writer changes at once. In Polish: Nowy pomysł</extracomment>
+        <translation>Nowy pomysł</translation>
+    </message>
+    <message>
+        <source>Added a node.</source>
+        <extracomment>In the bar under a mind map. In Polish: Dodano węzeł.</extracomment>
+        <translation>Dodano węzeł.</translation>
+    </message>
+    <message>
+        <source>Added a branch: a new node on the right, joined with the one selected.</source>
+        <translation>Dodano gałąź: nowy węzeł po prawej, połączony z wybranym.</translation>
+    </message>
+    <message>
+        <source>Added a node above, of the same branch.</source>
+        <extracomment>In the bar under a mind map. In Polish: Dodano węzeł powyżej, z tej samej gałęzi.</extracomment>
+        <translation>Dodano węzeł powyżej, z tej samej gałęzi.</translation>
+    </message>
+    <message>
+        <source>Added a node above.</source>
+        <translation>Dodano węzeł powyżej.</translation>
+    </message>
+    <message>
+        <source>Added a node below, of the same branch.</source>
+        <extracomment>In Polish: Dodano węzeł poniżej, z tej samej gałęzi.</extracomment>
+        <translation>Dodano węzeł poniżej, z tej samej gałęzi.</translation>
+    </message>
+    <message>
+        <source>Added a node below.</source>
+        <translation>Dodano węzeł poniżej.</translation>
+    </message>
+    <message>
+        <source>New</source>
+        <extracomment>The heading of the kinds of the new nodes in Add Node over a mind map. In Polish: Nowy</extracomment>
+        <translation>Nowy</translation>
+    </message>
+    <message>
+        <source>Add Node</source>
+        <extracomment>The small window over a mind map that adds a node. In Polish: Dodaj węzeł</extracomment>
+        <translation>Dodaj węzeł</translation>
+    </message>
+    <message>
+        <source>Added a node joined with “%1”.</source>
+        <extracomment>In Polish: Dodano węzeł połączony z „%1”.</extracomment>
+        <translation>Dodano węzeł połączony z „%1”.</translation>
+    </message>
+    <message>
+        <source>“%1” is already on the map.</source>
+        <extracomment>In the bar under a mind map. In Polish: „%1” już jest na mapie.</extracomment>
+        <translation>„%1” już jest na mapie.</translation>
+    </message>
+    <message>
+        <source>Added “%1” with its relations to the cards on the map: %2.</source>
+        <extracomment>In the bar under a mind map. In Polish: Dodano „%1” z relacjami do kart na mapie: %2.</extracomment>
+        <translation>Dodano „%1” z relacjami do kart na mapie: %2.</translation>
+    </message>
+    <message>
+        <source>Added “%1”.</source>
+        <extracomment>In Polish: Dodano „%1”.</extracomment>
+        <translation>Dodano „%1”.</translation>
+    </message>
+    <message>
+        <source>Added elements: %1.</source>
+        <extracomment>In the bar under a mind map, after cards dragged from the Navigator. In Polish: Dodano elementy: %1.</extracomment>
+        <translation>Dodano elementy: %1.</translation>
+    </message>
+    <message>
+        <source>Connected “%1” with “%2”.</source>
+        <extracomment>In the bar under a mind map. In Polish: Połączono „%1” z „%2”.</extracomment>
+        <translation>Połączono „%1” z „%2”.</translation>
+    </message>
+    <message>
+        <source>Other relation…</source>
+        <extracomment>The last item of the relations over a mind map, which opens the window Relation. In Polish: Inna relacja…</extracomment>
+        <translation>Inna relacja…</translation>
+    </message>
+    <message>
+        <source>Relation</source>
+        <extracomment>The small window over a mind map that picks the relation of two cards. In Polish: Relacja</extracomment>
+        <translation>Relacja</translation>
+    </message>
+    <message>
+        <source>adding a relation</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: dodanie relacji</extracomment>
+        <translation>dodanie relacji</translation>
+    </message>
+    <message>
+        <source>The relation could not be saved.</source>
+        <extracomment>In the bar under a mind map. In Polish: Nie udało się zapisać relacji.</extracomment>
+        <translation>Nie udało się zapisać relacji.</translation>
+    </message>
+    <message>
+        <source>The relation is saved on the cards: %1 and %2.</source>
+        <extracomment>In the bar under a mind map. In Polish: Relacja zapisana na kartach: %1 i %2.</extracomment>
+        <translation>Relacja zapisana na kartach: %1 i %2.</translation>
+    </message>
+    <message>
+        <source>The relation is saved on both cards.</source>
+        <extracomment>In the bar under a mind map. In Polish: Relacja zapisana na obu kartach.</extracomment>
+        <translation>Relacja zapisana na obu kartach.</translation>
+    </message>
+    <message>
+        <source>changing a relation</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana relacji</extracomment>
+        <translation>zmiana relacji</translation>
+    </message>
+    <message>
+        <source>The relation is changed on both cards.</source>
+        <extracomment>In the bar under a mind map. In Polish: Zmieniono relację na obu kartach.</extracomment>
+        <translation>Zmieniono relację na obu kartach.</translation>
+    </message>
+    <message>
+        <source>deleting a relation</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: usunięcie relacji</extracomment>
+        <translation>usunięcie relacji</translation>
+    </message>
+    <message>
+        <source>The relation is deleted from both cards.</source>
+        <extracomment>In the bar under a mind map. In Polish: Usunięto relację z obu kart.</extracomment>
+        <translation>Usunięto relację z obu kart.</translation>
+    </message>
+    <message>
+        <source>Connect To</source>
+        <extracomment>The small window over a mind map that connects the node selected with another. In Polish: Połącz z</extracomment>
+        <translation>Połącz z</translation>
+    </message>
+    <message>
+        <source>Select the nodes to put in a frame.</source>
+        <extracomment>In the bar under a mind map. In Polish: Wybierz węzły, które ma objąć ramka.</extracomment>
+        <translation>Wybierz węzły, które ma objąć ramka.</translation>
+    </message>
+    <message>
+        <source>New frame</source>
+        <extracomment>The title of a new frame of a mind map. In Polish: Nowa ramka</extracomment>
+        <translation>Nowa ramka</translation>
+    </message>
+    <message>
+        <source>Added a frame. Drag its title to move it with its nodes.</source>
+        <extracomment>In the bar under a mind map. In Polish: Dodano ramkę. Przeciągnij jej tytuł, aby przesunąć ją razem z węzłami.</extracomment>
+        <translation>Dodano ramkę. Przeciągnij jej tytuł, aby przesunąć ją razem z węzłami.</translation>
+    </message>
+    <message>
+        <source>The branch is detached; “%1” stays on the map.</source>
+        <extracomment>In the bar under a mind map. In Polish: Odłączono gałąź; „%1” zostaje na mapie.</extracomment>
+        <translation>Odłączono gałąź; „%1” zostaje na mapie.</translation>
+    </message>
+    <message>
+        <source>The frame is deleted; its nodes stay.</source>
+        <extracomment>In the bar under a mind map. In Polish: Usunięto ramkę; węzły zostają.</extracomment>
+        <translation>Usunięto ramkę; węzły zostają.</translation>
+    </message>
+    <message>
+        <source>The main topic stays: it is the title of the map. Delete its branches, or the whole map in the Navigator.</source>
+        <extracomment>In Polish: Temat główny zostaje: to tytuł mapy. Usuń jego gałęzie albo całą mapę w Nawigatorze.</extracomment>
+        <translation>Temat główny zostaje: to tytuł mapy. Usuń jego gałęzie albo całą mapę w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>Deleted nodes from the map: %1.</source>
+        <extracomment>In the bar under a mind map. In Polish: Usunięto węzły z mapy: %1.</extracomment>
+        <translation>Usunięto węzły z mapy: %1.</translation>
+    </message>
+    <message>
+        <source>Deleted “%1” from the map; the card stays in the Workshop.</source>
+        <extracomment>In Polish: Usunięto „%1” z mapy; karta zostaje w Warsztacie.</extracomment>
+        <translation>Usunięto „%1” z mapy; karta zostaje w Warsztacie.</translation>
+    </message>
+    <message>
+        <source>Deleted “%1” from the map.</source>
+        <extracomment>In Polish: Usunięto „%1” z mapy.</extracomment>
+        <translation>Usunięto „%1” z mapy.</translation>
+    </message>
+    <message>
+        <source>The nodes of its branches stay.</source>
+        <extracomment>Added to the message of a deleted node. In Polish: Węzły jego gałęzi zostają.</extracomment>
+        <translation>Węzły jego gałęzi zostają.</translation>
+    </message>
+    <message>
+        <source>This node is not about an element of the book.</source>
+        <extracomment>In Polish: Ten węzeł nie jest o żadnym elemencie książki.</extracomment>
+        <translation>Ten węzeł nie jest związany z żadnym elementem książki.</translation>
+    </message>
+    <message>
+        <source>Redone: %1.</source>
+        <extracomment>In the bar under a mind map; %1 is what was done again: &quot;dodanie węzła&quot;. In Polish: Ponowiono: %1.</extracomment>
+        <translation>Ponowiono: %1.</translation>
+    </message>
+    <message>
+        <source>arranging the map</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: uporządkowanie mapy</extracomment>
+        <translation>uporządkowanie mapy</translation>
+    </message>
+    <message>
+        <source>Reverse the direction</source>
+        <extracomment>In Polish: Odwróć kierunek</extracomment>
+        <translation>Odwróć kierunek</translation>
+    </message>
+    <message>
+        <source>Change the relation…</source>
+        <extracomment>In the menu of a relation of two cards on a mind map. In Polish: Zmień relację…</extracomment>
+        <translation>Zmień relację…</translation>
+    </message>
+    <message>
+        <source>Delete the relation from the cards</source>
+        <extracomment>In Polish: Usuń relację z kart</extracomment>
+        <translation>Usuń relację z kart</translation>
+    </message>
+    <message>
+        <source>Detach the branch</source>
+        <extracomment>In the menu of a branch of a mind map. In Polish: Odłącz gałąź</extracomment>
+        <translation>Odłącz gałąź</translation>
+    </message>
+    <message>
+        <source>Change the title</source>
+        <extracomment>In the menu of a frame of a mind map. In Polish: Zmień tytuł</extracomment>
+        <translation>Zmień tytuł</translation>
+    </message>
+    <message>
+        <source>Color</source>
+        <extracomment>In the menu of a frame of a mind map. In Polish: Kolor</extracomment>
+        <translation>Kolor</translation>
+    </message>
+    <message>
+        <source>Plain</source>
+        <extracomment>The color of a frame: that of the frames of the theme. In Polish: Zwykły</extracomment>
+        <translation>Zwykły</translation>
+    </message>
+    <message>
+        <source>Color %1</source>
+        <extracomment>A color of the palette of a frame; %1 is its number. In Polish: Kolor %1</extracomment>
+        <translation>Kolor %1</translation>
+    </message>
+    <message>
+        <source>Delete the frame</source>
+        <extracomment>In Polish: Usuń ramkę</extracomment>
+        <translation>Usuń ramkę</translation>
+    </message>
+    <message>
+        <source>Add Branch</source>
+        <extracomment>In the menu of a node of a mind map. In Polish: Dodaj gałąź</extracomment>
+        <translation>Dodaj gałąź</translation>
+    </message>
+    <message>
+        <source>Add Below</source>
+        <extracomment>In Polish: Dodaj poniżej</extracomment>
+        <translation>Dodaj poniżej</translation>
+    </message>
+    <message>
+        <source>Add Above</source>
+        <extracomment>In Polish: Dodaj powyżej</extracomment>
+        <translation>Dodaj powyżej</translation>
+    </message>
+    <message>
+        <source>Add Node…</source>
+        <extracomment>In Polish: Dodaj węzeł…</extracomment>
+        <translation>Dodaj węzeł…</translation>
+    </message>
+    <message>
+        <source>Edit Name</source>
+        <extracomment>In Polish: Edytuj nazwę</extracomment>
+        <translation>Edytuj nazwę</translation>
+    </message>
+    <message>
+        <source>Node Properties…</source>
+        <extracomment>The window of a node: its note, its rows, its attributes, its picture. In Polish: Właściwości węzła…</extracomment>
+        <translation>Właściwości węzła…</translation>
+    </message>
+    <message>
+        <source>Connect To…</source>
+        <extracomment>In Polish: Połącz z…</extracomment>
+        <translation>Połącz z…</translation>
+    </message>
+    <message>
+        <source>Open the Element</source>
+        <extracomment>In Polish: Otwórz element</extracomment>
+        <translation>Otwórz element</translation>
+    </message>
+    <message>
+        <source>Unfold</source>
+        <extracomment>In Polish: Rozwiń</extracomment>
+        <translation>Rozwiń</translation>
+    </message>
+    <message>
+        <source>Fold</source>
+        <translation>Zwiń</translation>
+    </message>
+    <message>
+        <source>Frame</source>
+        <extracomment>In Polish: Ramka</extracomment>
+        <translation>Ramka</translation>
+    </message>
+    <message>
+        <source>Arrange</source>
+        <extracomment>The menu of the layouts of a mind map. In Polish: Uporządkuj</extracomment>
+        <translation>Uporządkuj</translation>
+    </message>
+    <message>
+        <source>On Both Sides</source>
+        <extracomment>A layout of a mind map. In Polish: Na obie strony</extracomment>
+        <translation>Na obie strony</translation>
+    </message>
+    <message>
+        <source>To the Right</source>
+        <extracomment>In Polish: W prawo</extracomment>
+        <translation>W prawo</translation>
+    </message>
+    <message>
+        <source>Down</source>
+        <extracomment>In Polish: W dół</extracomment>
+        <translation>W dół</translation>
+    </message>
+    <message>
+        <source>Family in Generations</source>
+        <extracomment>In Polish: Rodzina w pokoleniach</extracomment>
+        <translation>Rodzina w pokoleniach</translation>
+    </message>
+    <message>
+        <source>Whole Map</source>
+        <extracomment>In Polish: Cała mapa</extracomment>
+        <translation>Cała mapa</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::PlanCardDialog</name>
+    <message>
+        <source>No time – the card waits under the chronology, in “Without a time of the action”.</source>
+        <extracomment>The note under &quot;When&quot; of a card of the chronology without a time. In Polish: Bez czasu – karta czeka pod chronologią, w „Bez czasu akcji”.</extracomment>
+        <translation>Bez czasu – karta czeka pod chronologią, w „Bez czasu akcji”.</translation>
+    </message>
+    <message>
+        <source>Not recognized – the card waits in “Without a time of the action”. Examples: %1. Names of your own: Periods….</source>
+        <extracomment>In Polish: Nie rozpoznano – karta czeka w „Bez czasu akcji”. Przykłady: %1. Własne nazwy okresów: „Okresy…”.</extracomment>
+        <translation>Nie rozpoznano – karta czeka w „Bez czasu akcji”. Przykłady: %1. Własne nazwy okresów: „Okresy…”.</translation>
+    </message>
+    <message>
+        <source>Recognized: %1.</source>
+        <extracomment>The note under &quot;When&quot;; %1 the time. In Polish: Rozpoznano: %1.</extracomment>
+        <translation>Rozpoznano: %1.</translation>
+    </message>
+    <message>
+        <source>Recognized: %1 – %2.</source>
+        <extracomment>The note under &quot;When&quot;; %1 the time in dates, %2 in days of the story. In Polish: Rozpoznano: %1 – %2.</extracomment>
+        <translation>Rozpoznano: %1 – %2.</translation>
+    </message>
+    <message>
+        <source>Event Outside the Text</source>
+        <extracomment>The window of an event of the chronology outside the text. In Polish: Wydarzenie poza tekstem / Dzieje się w opowieści, ale książka go nie opowiada.</extracomment>
+        <translation>Wydarzenie poza tekstem</translation>
+    </message>
+    <message>
+        <source>It happens in the story, but the book does not tell it.</source>
+        <translation>Dzieje się w opowieści, ale książka go nie opowiada.</translation>
+    </message>
+    <message>
+        <source>Card</source>
+        <extracomment>The window of a card of the chronology. In Polish: Karta / Tytuł, czas akcji, punkt widzenia, miejsce i opis, jak na tablicy.</extracomment>
+        <translation>Karta</translation>
+    </message>
+    <message>
+        <source>The title, the time of the action, the point of view, the place and the description, as on the board.</source>
+        <translation>Tytuł, czas akcji, punkt widzenia, miejsce i opis, jak na tablicy.</translation>
+    </message>
+    <message>
+        <source>Timeline Settings</source>
+        <extracomment>The gear of the window. In Polish: Ustawienia osi czasu</extracomment>
+        <translation>Ustawienia osi czasu</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <extracomment>In Polish: Tytuł</extracomment>
+        <translation>Tytuł</translation>
+    </message>
+    <message>
+        <source>e.g. Day 3, night / spring 1931</source>
+        <extracomment>Examples of a time of the action. In Polish: np. Dzień 3, noc / wiosna 1931</extracomment>
+        <translation>np. Dzień 3, noc / wiosna 1931</translation>
+    </message>
+    <message>
+        <source>Time of the action</source>
+        <extracomment>In Polish: Czas akcji</extracomment>
+        <translation>Czas akcji</translation>
+    </message>
+    <message>
+        <source>Point of view</source>
+        <extracomment>In Polish: Punkt widzenia</extracomment>
+        <translation>Punkt widzenia</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <extracomment>In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <extracomment>In Polish: Opis</extracomment>
+        <translation>Opis</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <extracomment>In Polish: Zapisz</extracomment>
+        <translation>Zapisz</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::PlanChronologyGrid</name>
+    <message>
+        <source>Chronology</source>
+        <extracomment>The cards of the chronology of the Book Plan, for the screen reader. In Polish: Chronologia</extracomment>
+        <translation>Chronologia</translation>
+    </message>
+    <message>
+        <source>no time</source>
+        <translation>bez czasu</translation>
+    </message>
+    <message>
+        <source>Outside the text</source>
+        <extracomment>The foot of an event of the chronology that the book does not tell. In Polish: Poza tekstem</extracomment>
+        <translation>Poza tekstem</translation>
+    </message>
+    <message>
+        <source>Flashback</source>
+        <extracomment>The foot of a card told later than it happens. In Polish: Retrospekcja</extracomment>
+        <translation>Retrospekcja</translation>
+    </message>
+    <message>
+        <source>In the plan</source>
+        <extracomment>The foot of a card in the plan. In Polish: W planie</extracomment>
+        <translation>W planie</translation>
+    </message>
+    <message>
+        <source>Time not recognized</source>
+        <extracomment>The foot of a card whose time the program does not read. In Polish: Czas nierozpoznany</extracomment>
+        <translation>Czas nierozpoznany</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::PlanChronologyView</name>
+    <message>
+        <source>Without a time of the action:</source>
+        <extracomment>The line of the cards of the chronology without a time. In Polish: Bez czasu akcji:</extracomment>
+        <translation>Bez czasu akcji:</translation>
+    </message>
+    <message>
+        <source>The number on a card is its place in the order of reading: 3.2 – text 3, scene 2. A ring marks a flashback: a scene told after a scene that happens later. A dashed frame – a card in the plan or an event outside the text.</source>
+        <extracomment>The note under the chronology. In Polish: Numer na karcie to jej miejsce w kolejności czytania: 3.2 – tekst 3, scena 2. Obwódka oznacza retrospekcję: scenę opowiedzianą po scenie, która dzieje się później. Przerywana ramka – karta w planie albo wydarzenie poza tekstem.</extracomment>
+        <translation>Numer na karcie to jej miejsce w kolejności czytania: 3.2 – tekst 3, scena 2. Obwódka oznacza retrospekcję: scenę opowiedzianą po scenie, która dzieje się później. Przerywana ramka – karta w planie albo wydarzenie poza tekstem.</translation>
+    </message>
+    <message>
+        <source>S&amp;cale:</source>
+        <extracomment>The scale of the chronology. In Polish: S&amp;kala:</extracomment>
+        <translation>S&amp;kala:</translation>
+    </message>
+    <message>
+        <source>Days of the story</source>
+        <extracomment>In Polish: Dni opowieści</extracomment>
+        <translation>Dni opowieści</translation>
+    </message>
+    <message>
+        <source>Dates</source>
+        <extracomment>In Polish: Daty</extracomment>
+        <translation>Daty</translation>
+    </message>
+    <message>
+        <source>Order</source>
+        <extracomment>The order of the story, without lengths of time. In Polish: Kolejność</extracomment>
+        <translation>Kolejność</translation>
+    </message>
+    <message>
+        <source>&amp;Bands:</source>
+        <extracomment>The bands of the chronology. In Polish: &amp;Pasma:</extracomment>
+        <translation>&amp;Pasma:</translation>
+    </message>
+    <message>
+        <source>Point of view</source>
+        <extracomment>In Polish: Punkt widzenia</extracomment>
+        <translation>Punkt widzenia</translation>
+    </message>
+    <message>
+        <source>Places</source>
+        <extracomment>In Polish: Miejsca</extracomment>
+        <translation>Miejsca</translation>
+    </message>
+    <message>
+        <source>One band</source>
+        <extracomment>In Polish: Jedno pasmo</extracomment>
+        <translation>Jedno pasmo</translation>
+    </message>
+    <message>
+        <source>Shorten Gaps</source>
+        <extracomment>The switch of the chronology: a gap without cards is one narrow column. In Polish: Skracaj przerwy</extracomment>
+        <translation>Skracaj przerwy</translation>
+    </message>
+    <message>
+        <source>A gap without cards is one narrow column with its length; without it the days of a gap of up to a month are empty columns.</source>
+        <extracomment>In Polish: Przerwa bez kart to jedna wąska kolumna z jej długością; bez tego dni przerwy do miesiąca są pustymi kolumnami.</extracomment>
+        <translation>Przerwa bez kart to jedna wąska kolumna z jej długością; bez tego dni przerwy do miesiąca są pustymi kolumnami.</translation>
+    </message>
+    <message>
+        <source>&amp;Periods…</source>
+        <extracomment>Day one and the periods of the chronology. In Polish: &amp;Okresy…</extracomment>
+        <translation>&amp;Okresy…</translation>
+    </message>
+    <message>
+        <source>Day one of the story and names of your own for periods (“Expedition” is “winter 1931”)</source>
+        <extracomment>In Polish: Dzień pierwszy opowieści i własne nazwy okresów („Wyprawa” to „zima 1931”)</extracomment>
+        <translation>Dzień pierwszy opowieści i własne nazwy okresów („Wyprawa” to „zima 1931”)</translation>
+    </message>
+    <message>
+        <source>New Event Outside the Text</source>
+        <extracomment>A command of the bar of the chronology. In Polish: Nowe wydarzenie poza tekstem</extracomment>
+        <translation>Nowe wydarzenie poza tekstem</translation>
+    </message>
+    <message>
+        <source>Edit the Card</source>
+        <extracomment>In Polish: Edytuj kartę</extracomment>
+        <translation>Edytuj kartę</translation>
+    </message>
+    <message>
+        <source>Open the Text</source>
+        <extracomment>In Polish: Otwórz tekst</extracomment>
+        <translation>Otwórz tekst</translation>
+    </message>
+    <message>
+        <source>A Day Earlier</source>
+        <extracomment>The time of the card a day (a month, a season...) earlier. In Polish: Dzień wcześniej</extracomment>
+        <translation>Dzień wcześniej</translation>
+    </message>
+    <message>
+        <source>A Day Later</source>
+        <extracomment>In Polish: Dzień później</extracomment>
+        <translation>Dzień później</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Undo</source>
+        <extracomment>In Polish: Cofnij</extracomment>
+        <translation>Cofnij</translation>
+    </message>
+    <message>
+        <source>Redo</source>
+        <extracomment>In Polish: Ponów</extracomment>
+        <translation>Ponów</translation>
+    </message>
+    <message>
+        <source>Without a place</source>
+        <extracomment>The band of the cards without a point of view; of a place. In Polish: Bez punktu widzenia / Bez miejsca</extracomment>
+        <translation>Bez miejsca</translation>
+    </message>
+    <message>
+        <source>Without a point of view</source>
+        <translation>Bez punktu widzenia</translation>
+    </message>
+    <message>
+        <source>All cards</source>
+        <extracomment>The one band of the chronology. In Polish: Wszystkie karty</extracomment>
+        <translation>Wszystkie karty</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <extracomment>The cards of the chronology; %1 &quot;12 cards&quot;, %2 &quot;2 events outside the text&quot;. In Polish: %1 · %2</extracomment>
+        <translation>%1 · %2</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n card(s) of the book</source>
+        <translation>
+            <numerusform>%n karta książki</numerusform>
+            <numerusform>%n karty książki</numerusform>
+            <numerusform>%n kart książki</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n event(s) outside the text</source>
+        <translation>
+            <numerusform>%n wydarzenie poza tekstem</numerusform>
+            <numerusform>%n wydarzenia poza tekstem</numerusform>
+            <numerusform>%n wydarzeń poza tekstem</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Earlier</source>
+        <extracomment>The time of the card a step earlier: a month, a season, a year. In Polish: Wcześniej</extracomment>
+        <translation>Wcześniej</translation>
+    </message>
+    <message>
+        <source>Later</source>
+        <extracomment>In Polish: Później</extracomment>
+        <translation>Później</translation>
+    </message>
+    <message>
+        <source>Delete the Time of the Action</source>
+        <extracomment>The command of the chronology on a card of the book. In Polish: Usuń czas akcji</extracomment>
+        <translation>Usuń czas akcji</translation>
+    </message>
+    <message>
+        <source>Delete the Event</source>
+        <extracomment>In Polish: Usuń wydarzenie</extracomment>
+        <translation>Usuń wydarzenie</translation>
+    </message>
+    <message>
+        <source>The arrows choose a card, Insert adds an event outside the text, F2 edits a card, Ctrl+Left and Ctrl+Right change its time.</source>
+        <extracomment>The line under the chronology without a card chosen. In Polish: Strzałki wybierają kartę, Insert dodaje wydarzenie poza tekstem, F2 edytuje kartę, Ctrl+← i Ctrl+→ zmieniają jej czas.</extracomment>
+        <translation>Strzałki wybierają kartę, Insert dodaje wydarzenie poza tekstem, F2 edytuje kartę, Ctrl+← i Ctrl+→ zmieniają jej czas.</translation>
+    </message>
+    <message>
+        <source>“%1”: an event outside the text – it happens, but the book does not tell it.</source>
+        <extracomment>The line under the chronology on an event outside the text; %1 its title. In Polish: „%1”: wydarzenie poza tekstem – dzieje się, ale książka go nie opowiada.</extracomment>
+        <translation>„%1”: wydarzenie poza tekstem – dzieje się, ale książka go nie opowiada.</translation>
+    </message>
+    <message>
+        <source>%1: no time of the action. F2 gives it one, e.g. %2.</source>
+        <extracomment>%1 &quot;3.2 Burza&quot;. In Polish: %1: bez czasu akcji. F2 nada go, np. %2.</extracomment>
+        <translation>%1: bez czasu akcji. F2 nada go, np. %2.</translation>
+    </message>
+    <message>
+        <source>%1: the program does not read the time “%2”. F2 changes it; names of your own: Periods….</source>
+        <extracomment>%1 &quot;3.2 Burza&quot;, %2 what the writer typed. In Polish: %1: program nie czyta czasu „%2”. F2 go zmieni; własne nazwy okresów: „Okresy…”.</extracomment>
+        <translation>%1: program nie czyta czasu „%2”. F2 go zmieni; własne nazwy okresów: „Okresy…”.</translation>
+    </message>
+    <message>
+        <source>%1: %2 – a flashback: the book tells it after a scene that happens later.</source>
+        <extracomment>%1 &quot;3.2 Burza&quot;, %2 its time. In Polish: %1: %2 – retrospekcja: książka opowiada ją po scenie, która dzieje się później.</extracomment>
+        <translation>%1: %2 – retrospekcja: książka opowiada ją po scenie, która dzieje się później.</translation>
+    </message>
+    <message>
+        <source>%1: %2 – the time of the text “%3”. F2 or Ctrl+Left and Ctrl+Right give the scene its own.</source>
+        <extracomment>A scene without a time of its own; %1 &quot;3.2 Burza&quot;, %2 the time of its text, %3 the title of the text. In Polish: %1: %2 – czas tekstu „%3”. F2 albo Ctrl+← i Ctrl+→ dadzą scenie własny.</extracomment>
+        <translation>%1: %2 – czas tekstu „%3”. F2 albo Ctrl+← i Ctrl+→ dadzą scenie własny.</translation>
+    </message>
+    <message>
+        <source>%1: %2, in the plan – no text yet.</source>
+        <extracomment>In Polish: %1: %2, w planie – jeszcze bez tekstu.</extracomment>
+        <translation>%1: %2, w planie – jeszcze bez tekstu.</translation>
+    </message>
+    <message>
+        <source>%1: %2.</source>
+        <extracomment>In Polish: %1: %2.</extracomment>
+        <translation>%1: %2.</translation>
+    </message>
+    <message>
+        <source>“%1” is in the plan: Create the Chapter File or Write the Scene on the board gives it its text.</source>
+        <extracomment>Under the chronology after Enter on a card in the plan. In Polish: „%1” jest w planie: tekst daje „Utwórz plik rozdziału” albo „Napisz scenę” na tablicy.</extracomment>
+        <translation>„%1” jest w planie: tekst daje „Utwórz plik rozdziału” albo „Napisz scenę” na tablicy.</translation>
+    </message>
+    <message>
+        <source>change of the event “%1”</source>
+        <extracomment>What Undo undoes in the chronology, after &quot;Undone:&quot;; %1 the title of the event. In Polish: zmiana wydarzenia „%1”</extracomment>
+        <translation>zmiana wydarzenia „%1”</translation>
+    </message>
+    <message>
+        <source>The event “%1” changed.</source>
+        <extracomment>Under the chronology. In Polish: Zmieniono wydarzenie „%1”.</extracomment>
+        <translation>Zmieniono wydarzenie „%1”.</translation>
+    </message>
+    <message>
+        <source>New event</source>
+        <extracomment>The title of a new event outside the text. In Polish: Nowe wydarzenie</extracomment>
+        <translation>Nowe wydarzenie</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>adding the event “%1”</source>
+        <extracomment>What Undo undoes, after &quot;Undone:&quot;. In Polish: dodanie wydarzenia „%1”</extracomment>
+        <translation>dodanie wydarzenia „%1”</translation>
+    </message>
+    <message>
+        <source>Added the event outside the text “%1”.</source>
+        <extracomment>Under the chronology. In Polish: Dodano wydarzenie poza tekstem „%1”.</extracomment>
+        <translation>Dodano wydarzenie poza tekstem „%1”.</translation>
+    </message>
+    <message>
+        <source>moving the event “%1”</source>
+        <extracomment>What Undo undoes, after &quot;Undone:&quot;. In Polish: przesunięcie wydarzenia „%1”</extracomment>
+        <translation>przesunięcie wydarzenia „%1”</translation>
+    </message>
+    <message>
+        <source>“%1”: now %2.</source>
+        <extracomment>Under the chronology; %1 the event, %2 its new time. In Polish: „%1”: teraz %2.</extracomment>
+        <translation>„%1”: teraz %2.</translation>
+    </message>
+    <message>
+        <source>deleting the event “%1”</source>
+        <extracomment>What Undo undoes, after &quot;Undone:&quot;. In Polish: usunięcie wydarzenia „%1”</extracomment>
+        <translation>usunięcie wydarzenia „%1”</translation>
+    </message>
+    <message>
+        <source>Deleted the event “%1”.</source>
+        <extracomment>Under the chronology. In Polish: Usunięto wydarzenie „%1”.</extracomment>
+        <translation>Usunięto wydarzenie „%1”.</translation>
+    </message>
+    <message>
+        <source>change of the periods</source>
+        <extracomment>What Undo undoes, after &quot;Undone:&quot;. In Polish: zmiana okresów</extracomment>
+        <translation>zmiana okresów</translation>
+    </message>
+    <message>
+        <source>Day one and the periods changed.</source>
+        <extracomment>Under the chronology. In Polish: Zmieniono dzień pierwszy i okresy.</extracomment>
+        <translation>Zmieniono dzień pierwszy i okresy.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::PlanPeriodsDialog</name>
+    <message>
+        <source>Day One and Periods</source>
+        <extracomment>The window of day one and the periods of the chronology. In Polish: Dzień pierwszy i okresy / Od dnia pierwszego liczą się dni opowieści („Dzień 3”, „dzień drugi”); okres to własna nazwa czasu, którą może podać czas akcji.</extracomment>
+        <translation>Dzień pierwszy i okresy</translation>
+    </message>
+    <message>
+        <source>The days of the story count from day one (“Day 3”, “day two”); a period is a name of your own for a time, which a time of the action may say.</source>
+        <translation>Od dnia pierwszego liczą się dni opowieści („Dzień 3”, „dzień drugi”); okres to własna nazwa czasu, którą może podać czas akcji.</translation>
+    </message>
+    <message>
+        <source>Timeline Settings</source>
+        <translation>Ustawienia osi czasu</translation>
+    </message>
+    <message>
+        <source>e.g. 14 April 1931</source>
+        <extracomment>In Polish: np. 14 kwietnia 1931</extracomment>
+        <translation>np. 14 kwietnia 1931</translation>
+    </message>
+    <message>
+        <source>Day one of the story</source>
+        <extracomment>In Polish: Dzień pierwszy opowieści</extracomment>
+        <translation>Dzień pierwszy opowieści</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The columns of the periods. In Polish: Nazwa / Czas</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Time</source>
+        <translation>Czas</translation>
+    </message>
+    <message>
+        <source>Periods</source>
+        <extracomment>In Polish: Okresy</extracomment>
+        <translation>Okresy</translation>
+    </message>
+    <message>
+        <source>&amp;Add Period</source>
+        <extracomment>In Polish: &amp;Dodaj okres</extracomment>
+        <translation>&amp;Dodaj okres</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Period</source>
+        <extracomment>In Polish: &amp;Usuń okres</extracomment>
+        <translation>&amp;Usuń okres</translation>
+    </message>
+    <message>
+        <source>New period</source>
+        <extracomment>A new period. In Polish: Nowy okres / lato 1931</extracomment>
+        <translation>Nowy okres</translation>
+    </message>
+    <message>
+        <source>summer 1931</source>
+        <translation>lato 1931</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <extracomment>In Polish: Zapisz</extracomment>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>Recognized: %1.</source>
+        <extracomment>The note under day one. In Polish: Rozpoznano: %1.</extracomment>
+        <translation>Rozpoznano: %1.</translation>
+    </message>
+    <message>
+        <source>Day one is one day of the calendar, e.g. 14 April 1931.</source>
+        <extracomment>In Polish: Dzień pierwszy to jeden dzień kalendarza, np. 14 kwietnia 1931.</extracomment>
+        <translation>Dzień pierwszy to jeden dzień kalendarza, np. 14 kwietnia 1931.</translation>
+    </message>
+    <message>
+        <source>The time of a period is any time the program reads: “winter 1931”, “first half of 1932”, “Days 1–30”, “1931”. A card whose time of the action is “Expedition” or “Expedition, in the evening” stands at its time.</source>
+        <extracomment>The note under the periods. In Polish: Czas okresu to dowolny czas, który program czyta: „zima 1931”, „pierwsza połowa 1932”, „Dni 1–30”, „1931”. Karta z czasem akcji „Wyprawa” albo „Wyprawa, wieczorem” stanie w jego czasie.</extracomment>
+        <translation>Czas okresu to dowolny czas, który program czyta: „zima 1931”, „pierwsza połowa 1932”, „Dni 1–30”, „1931”. Karta z czasem akcji „Wyprawa” albo „Wyprawa, wieczorem” stanie w jego czasie.</translation>
+    </message>
+    <message>
+        <source>The program does not read the time of the periods: %1. They will not be kept.</source>
+        <extracomment>%1 the names of the periods. In Polish: Program nie czyta czasu okresów: %1. Te okresy nie zostaną zapisane.</extracomment>
+        <translation>Program nie czyta czasu okresów: %1. Te okresy nie zostaną zapisane.</translation>
     </message>
 </context>
 <context>
@@ -35806,6 +40677,11 @@ In Polish: pasmo „%1”</extracomment>
         <source>Delete the Event</source>
         <extracomment>In Polish: Usuń wydarzenie</extracomment>
         <translation>Usuń wydarzenie</translation>
+    </message>
+    <message>
+        <source>This timeline has no events yet. Add the first one with New Event in the bar above it, with Insert or with a double click on the axis.</source>
+        <extracomment>On a timeline without events. In Polish: Na tej osi nie ma jeszcze wydarzeń. Dodaj pierwsze przyciskiem „Nowe wydarzenie” na pasku nad osią, klawiszem Insert albo dwukrotnym kliknięciem osi.</extracomment>
+        <translation>Na tej osi nie ma jeszcze wydarzeń. Dodaj pierwsze przyciskiem „Nowe wydarzenie” na pasku nad osią, klawiszem Insert albo dwukrotnym kliknięciem osi.</translation>
     </message>
 </context>
 <context>
@@ -35994,7 +40870,9 @@ In Polish: pasmo „%1”</extracomment>
     </message>
     <message>
         <source>Undo</source>
-        <extracomment>The button of the bar under a timeline. In Polish: Cofnij</extracomment>
+        <extracomment>The command of the bar of a timeline. In Polish: Cofnij
+----------
+The button of the bar under a timeline. In Polish: Cofnij</extracomment>
         <translation>Cofnij</translation>
     </message>
     <message>
@@ -36031,6 +40909,66 @@ In Polish: pasmo „%1”</extracomment>
         <source>The event is also in: %1.</source>
         <extracomment>In Polish: Wydarzenie jest też w: %1.</extracomment>
         <translation>Wydarzenie jest też w: %1.</translation>
+    </message>
+    <message>
+        <source>New Event</source>
+        <extracomment>A command of the bar of a timeline. In Polish: Nowe wydarzenie</extracomment>
+        <translation>Nowe wydarzenie</translation>
+    </message>
+    <message>
+        <source>Event…</source>
+        <extracomment>The command of the bar of a timeline that opens the window &quot;Event&quot; of the event selected. In Polish: Okno „Wydarzenie”…</extracomment>
+        <translation>Okno „Wydarzenie”…</translation>
+    </message>
+    <message>
+        <source>Open the Chapter</source>
+        <extracomment>In Polish: Otwórz rozdział</extracomment>
+        <translation>Otwórz rozdział</translation>
+    </message>
+    <message>
+        <source>Earlier</source>
+        <extracomment>The event a step earlier on the axis. In Polish: Wcześniej</extracomment>
+        <translation>Wcześniej</translation>
+    </message>
+    <message>
+        <source>Later</source>
+        <extracomment>The event a step later on the axis. In Polish: Później</extracomment>
+        <translation>Później</translation>
+    </message>
+    <message>
+        <source>To the Lane Above</source>
+        <extracomment>In Polish: Do pasma wyżej</extracomment>
+        <translation>Do pasma wyżej</translation>
+    </message>
+    <message>
+        <source>To the Lane Below</source>
+        <extracomment>In Polish: Do pasma niżej</extracomment>
+        <translation>Do pasma niżej</translation>
+    </message>
+    <message>
+        <source>Delete the Event</source>
+        <extracomment>In Polish: Usuń wydarzenie</extracomment>
+        <translation>Usuń wydarzenie</translation>
+    </message>
+    <message>
+        <source>Redo</source>
+        <extracomment>The command of the bar of a timeline. In Polish: Ponów</extracomment>
+        <translation>Ponów</translation>
+    </message>
+    <message>
+        <source>Earlier in the Order</source>
+        <extracomment>The command of the bar of a timeline in the order of the story. In Polish: Wcześniej w kolejności / Wcześniej</extracomment>
+        <translation>Wcześniej w kolejności</translation>
+    </message>
+    <message>
+        <source>Later in the Order</source>
+        <extracomment>In Polish: Później w kolejności / Później</extracomment>
+        <translation>Później w kolejności</translation>
+    </message>
+    <message>
+        <source>Redone: %1.</source>
+        <extracomment>In Polish: Ponowiono: %1.</extracomment>
+        <translation>Ponowiono: %1.</translation>
     </message>
 </context>
 <context>
@@ -36254,6 +41192,11 @@ In Polish: pasmo „%1”</extracomment>
         <source>Delete the Event</source>
         <extracomment>In Polish: Usuń wydarzenie</extracomment>
         <translation>Usuń wydarzenie</translation>
+    </message>
+    <message>
+        <source>This timeline has no events yet. Add the first one with New Event in the bar above the list or with Insert.</source>
+        <extracomment>In the list of a timeline without events. In Polish: Na tej osi nie ma jeszcze wydarzeń. Dodaj pierwsze przyciskiem „Nowe wydarzenie” na pasku nad listą albo klawiszem Insert.</extracomment>
+        <translation>Na tej osi nie ma jeszcze wydarzeń. Dodaj pierwsze przyciskiem „Nowe wydarzenie” na pasku nad listą albo klawiszem Insert.</translation>
     </message>
 </context>
 <context>
@@ -38015,83 +42958,6 @@ In Polish: pasmo „%1”</extracomment>
     </message>
 </context>
 <context>
-    <name>kalahari::gui::PitchPanel</name>
-    <message>
-        <source>Title</source>
-        <extracomment>The title of a sentence about the book on its card. In Polish: Tytuł</extracomment>
-        <translation>Tytuł</translation>
-    </message>
-    <message>
-        <source>%1 · Texts for Publishers</source>
-        <extracomment>Under the title of a sentence about the book on its card; %1 what it is. In Polish: %1 · Teksty dla wydawnictwa</extracomment>
-        <translation>%1 · Teksty dla wydawnictwa</translation>
-    </message>
-    <message>
-        <source>Sentence about the book</source>
-        <extracomment>The editor of a sentence about the book, for screen readers. In Polish: Zdanie o książce</extracomment>
-        <translation>Zdanie o książce</translation>
-    </message>
-    <message>
-        <source>Pattern</source>
-        <extracomment>The section of the card of a sentence with the fields of its pattern. In Polish: Wzór</extracomment>
-        <translation>Wzór</translation>
-    </message>
-    <message>
-        <source>Te&amp;mplate:</source>
-        <extracomment>The template of a sentence about the book on its card. In Polish: Sza&amp;blon:</extracomment>
-        <translation>Sza&amp;blon:</translation>
-    </message>
-    <message>
-        <source>Sentence</source>
-        <extracomment>The section of the card of a sentence about the book with the sentence. In Polish: Zdanie</extracomment>
-        <translation>Zdanie</translation>
-    </message>
-    <message>
-        <source>The sentence was changed by hand – the fields of the pattern no longer change it.</source>
-        <extracomment>A sentence about the book changed by hand. In Polish: Zdanie poprawione ręcznie – pola wzoru już go nie zmieniają.</extracomment>
-        <translation>Zdanie poprawione ręcznie – pola wzoru już go nie zmieniają.</translation>
-    </message>
-    <message>
-        <source>Compose from the &amp;Fields</source>
-        <extracomment>Composes the sentence about the book of the fields of its pattern again. In Polish: Złóż zdanie z &amp;pól</extracomment>
-        <translation>Złóż zdanie z &amp;pól</translation>
-    </message>
-    <message>
-        <source>Target le&amp;ngth:</source>
-        <extracomment>The own target length of a sentence about the book. In Polish: Docelowa dłu&amp;gość:</extracomment>
-        <translation>Docelowa dłu&amp;gość:</translation>
-    </message>
-    <message>
-        <source>–</source>
-        <extracomment>The own target length of a text when it has none, which takes that of its template or of the Settings. In Polish: –</extracomment>
-        <translation>–</translation>
-    </message>
-    <message>
-        <source>&amp;State:</source>
-        <extracomment>The state of a text for publishers on its card. In Polish: &amp;Stan:</extracomment>
-        <translation>&amp;Stan:</translation>
-    </message>
-    <message>
-        <source>Without a template – you write the sentence in the field below.</source>
-        <extracomment>The card of a sentence about the book without a template. In Polish: Bez szablonu – zdanie piszesz od razu w polu niżej.</extracomment>
-        <translation>Bez szablonu – zdanie piszesz od razu w polu niżej.</translation>
-    </message>
-    <message>
-        <source>Type the fields – the sentence below is composed at once. Tab goes through the fields.</source>
-        <extracomment>Under the fields of the pattern of a sentence about the book. In Polish: Wpisz pola – zdanie niżej składa się od razu. Pola przechodzi się klawiszem Tab.</extracomment>
-        <translation>Wpisz pola – zdanie niżej składa się od razu. Pola przechodzi się klawiszem Tab.</translation>
-    </message>
-    <message>
-        <source>In the set: yes – this version</source>
-        <extracomment>Whether a text for publishers is in the set. In Polish: W zestawie: tak – ta wersja / W zestawie: nie</extracomment>
-        <translation>W zestawie: tak – ta wersja</translation>
-    </message>
-    <message>
-        <source>In the set: no</source>
-        <translation>W zestawie: nie</translation>
-    </message>
-</context>
-<context>
     <name>kalahari::gui::PublishingNames</name>
     <message>
         <source>Sentence about the book</source>
@@ -38124,26 +42990,6 @@ In Polish: pasmo „%1”</extracomment>
         <translation>roboczy</translation>
     </message>
     <message>
-        <source>★ in the set</source>
-        <extracomment>The state of a text for publishers in a list. In Polish: ★ w zestawie</extracomment>
-        <translation>★ w zestawie</translation>
-    </message>
-    <message>
-        <source>Sentences about the book</source>
-        <extracomment>A group of the list of the texts for publishers. In Polish: Zdania o książce</extracomment>
-        <translation>Zdania o książce</translation>
-    </message>
-    <message>
-        <source>Synopses</source>
-        <extracomment>A group of the list of the texts for publishers. In Polish: Streszczenia</extracomment>
-        <translation>Streszczenia</translation>
-    </message>
-    <message>
-        <source>%1 · from the Cover</source>
-        <extracomment>A group of the list of the texts for publishers: the descriptions or the taglines of the Cover; %1 the group of the cover. In Polish: %1 · z Okładki</extracomment>
-        <translation>%1 · z Okładki</translation>
-    </message>
-    <message>
         <source>%1 – version %2</source>
         <extracomment>The title of a new text for publishers: %1 its part, %2 its number. In Polish: %1 – wersja %2</extracomment>
         <translation>%1 – wersja %2</translation>
@@ -38162,16 +43008,6 @@ In Polish: pasmo „%1”</extracomment>
         <source>%1 / %2 ch.</source>
         <extracomment>The length of a text for publishers in a list with its target: %1 its characters with spaces, %2 the target. In Polish: %1 / %2 zn.</extracomment>
         <translation>%1 / %2 zn.</translation>
-    </message>
-    <message>
-        <source>Chosen for the set: “%1”</source>
-        <extracomment>The status bar: a text is chosen for the set for publishers; %1 its title. In Polish: Wybrano do zestawu: „%1”</extracomment>
-        <translation>Wybrano do zestawu: „%1”</translation>
-    </message>
-    <message>
-        <source>“%1” is a draft again</source>
-        <extracomment>The status bar, after a text is chosen for the set: the one chosen before for its part is a draft again; %1 its title. In Polish: „%1” wraca do roboczych</extracomment>
-        <translation>„%1” wraca do roboczych</translation>
     </message>
     <message>
         <source>about %1 of a standard page</source>
@@ -38202,6 +43038,114 @@ In Polish: pasmo „%1”</extracomment>
 <context>
     <name>kalahari::gui::PublishingTextBox</name>
     <message>
+        <source>Change Template</source>
+        <extracomment>The pencil beside the template of a text for publishers: its name, length and points in place of the points. In Polish: Zmień szablon</extracomment>
+        <translation>Zmień szablon</translation>
+    </message>
+    <message>
+        <source>New Template...</source>
+        <extracomment>The last item of the list of the templates of a text for publishers: a template of the writer from scratch. In Polish: Nowy szablon...</extracomment>
+        <translation>Nowy szablon...</translation>
+    </message>
+    <message>
+        <source>The fields of its pattern are over the sentence.</source>
+        <extracomment>Beside a sentence about the book on the card For Publishers. In Polish: Pola wzoru są nad zdaniem.</extracomment>
+        <translation>Pola wzoru są nad zdaniem.</translation>
+    </message>
+    <message>
+        <source>Select a fragment of the text and press Ctrl+Shift+D to link it to a point. You tick off the points yourself (Space). In a point Enter selects its next fragment, Insert links the selection to it, Delete takes its links away, and Esc takes the keys back to the text.</source>
+        <extracomment>Under the points of the template of a synopsis on the card For Publishers. In Polish: Zaznacz fragment tekstu i naciśnij Ctrl+Shift+D, aby powiązać go z punktem. Punkty odhaczasz sam (Spacja). W punkcie Enter wybiera jego następny fragment, Insert wiąże z nim zaznaczenie, Delete usuwa jego powiązania, a Esc wraca do tekstu.</extracomment>
+        <translation>Zaznacz fragment tekstu i naciśnij Ctrl+Shift+D, aby powiązać go z punktem. Punkty odhaczasz sam (Spacja). W punkcie Enter wybiera jego następny fragment, Insert wiąże z nim zaznaczenie, Delete usuwa jego powiązania, a Esc wraca do tekstu.</translation>
+    </message>
+    <message>
+        <source>Template "%1" saved – it is available in all books.</source>
+        <extracomment>The status bar after a template was changed beside a text. In Polish: Zapisano szablon „%1” – jest dostępny we wszystkich książkach.</extracomment>
+        <translation>Zapisano szablon „%1” – jest dostępny we wszystkich książkach.</translation>
+    </message>
+    <message>
+        <source>Show in the Text</source>
+        <extracomment>The button over the points of a synopsis that fills the fragments of all of them in the text while it is on. In Polish: Pokaż w tekście</extracomment>
+        <translation>Pokaż w tekście</translation>
+    </message>
+    <message>
+        <source>Settings of Texts for Publishers</source>
+        <extracomment>The gear over the points of a synopsis. In Polish: Ustawienia tekstów dla wydawnictwa</extracomment>
+        <translation>Ustawienia tekstów dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Link the selected fragment of the text to this point (Insert)</source>
+        <extracomment>The button of a point of a synopsis. In Polish: Powiąż zaznaczony fragment tekstu z tym punktem (Insert)</extracomment>
+        <translation>Powiąż zaznaczony fragment tekstu z tym punktem (Insert)</translation>
+    </message>
+    <message>
+        <source>Take the links of the fragments of the text to this point away; the text stays (Delete)</source>
+        <extracomment>The button of a point of a synopsis. In Polish: Usuń powiązania fragmentów tekstu z tym punktem; tekst zostaje (Delete)</extracomment>
+        <translation>Usuń powiązania fragmentów tekstu z tym punktem; tekst zostaje (Delete)</translation>
+    </message>
+    <message>
+        <source>Ticked off, but the text has no fragment of it</source>
+        <extracomment>Under a point of a synopsis ticked off without a fragment linked to it. In Polish: Odhaczony, a w tekście nie ma jego fragmentu</extracomment>
+        <translation>Odhaczony, a w tekście nie ma jego fragmentu</translation>
+    </message>
+    <message>
+        <source>In the text: %1, %2</source>
+        <extracomment>Under a point of a synopsis: its fragments in the text and their length. In Polish: W tekście: %1, %2 (2 fragmenty, 140 znaków)</extracomment>
+        <translation>W tekście: %1, %2</translation>
+    </message>
+    <message>
+        <source>1 fragment</source>
+        <extracomment>In Polish: 1 fragment</extracomment>
+        <translation>1 fragment</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n fragments</source>
+        <extracomment>In Polish: %n fragment / fragmenty / fragmentów</extracomment>
+        <translation>
+            <numerusform>%n fragment</numerusform>
+            <numerusform>%n fragmenty</numerusform>
+            <numerusform>%n fragmentów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 character</source>
+        <extracomment>In Polish: 1 znak</extracomment>
+        <translation>1 znak</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n characters</source>
+        <extracomment>In Polish: %n znak / znaki / znaków</extracomment>
+        <translation>
+            <numerusform>%n znak</numerusform>
+            <numerusform>%n znaki</numerusform>
+            <numerusform>%n znaków</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>In the text</source>
+        <extracomment>Under a point of a synopsis with a fragment linked to it. In Polish: W tekście</extracomment>
+        <translation>W tekście</translation>
+    </message>
+    <message>
+        <source>Not in the text</source>
+        <extracomment>Under a point of a synopsis without a fragment linked to it. In Polish: Brak w tekście</extracomment>
+        <translation>Brak w tekście</translation>
+    </message>
+    <message>
+        <source>In the text: %1 of %3 · Done: %2 of %3</source>
+        <extracomment>Over the points of a synopsis. In Polish: W tekście: %1 z %3 · Gotowe: %2 z %3</extracomment>
+        <translation>W tekście: %1 z %3 · Gotowe: %2 z %3</translation>
+    </message>
+    <message>
+        <source>Select the fragment of the text you want to link to a point.</source>
+        <extracomment>Link to a Point without a selection. In Polish: Zaznacz fragment tekstu, który chcesz powiązać z punktem.</extracomment>
+        <translation>Zaznacz fragment tekstu, który chcesz powiązać z punktem.</translation>
+    </message>
+    <message>
+        <source>The text has no fragment of this point yet.</source>
+        <extracomment>Enter in a point of a synopsis without a fragment. In Polish: Tekst nie ma jeszcze fragmentu tego punktu.</extracomment>
+        <translation>Tekst nie ma jeszcze fragmentu tego punktu.</translation>
+    </message>
+    <message>
         <source>Te&amp;mplate:</source>
         <extracomment>The template of a text for publishers in the Properties panel. In Polish: Sza&amp;blon:</extracomment>
         <translation>Sza&amp;blon:</translation>
@@ -38231,24 +43175,9 @@ In Polish: pasmo „%1”</extracomment>
         <translation>W zestawie: nie</translation>
     </message>
     <message>
-        <source>The fields of its pattern are on the card of the sentence – Enter in the list or the Navigator opens it.</source>
-        <extracomment>The Properties panel of a sentence about the book. In Polish: Pola wzoru są na karcie zdania – otwiera ją Enter na liście albo w Nawigatorze.</extracomment>
-        <translation>Pola wzoru są na karcie zdania – otwiera ją Enter na liście albo w Nawigatorze.</translation>
-    </message>
-    <message>
         <source>A text without a template. Choose a template and its points show here.</source>
         <extracomment>The Properties panel of a synopsis without a template. In Polish: Tekst bez szablonu. Wybierz szablon, a jego punkty pokażą się tutaj.</extracomment>
         <translation>Tekst bez szablonu. Wybierz szablon, a jego punkty pokażą się tutaj.</translation>
-    </message>
-    <message>
-        <source>You tick off the points yourself (Space). Tools &gt; Texts for Publishers &gt; Template Points brings the keys here, and Esc takes them back to the text.</source>
-        <extracomment>Under the points of the template of a synopsis in the Properties panel. In Polish: Punkty odhaczasz sam (Spacja). Narzędzia &gt; Teksty dla wydawnictwa &gt; Punkty szablonu przenosi tu klawiaturę, a Esc wraca do tekstu.</extracomment>
-        <translation>Punkty odhaczasz sam (Spacja). Narzędzia &gt; Teksty dla wydawnictwa &gt; Punkty szablonu przenosi tu klawiaturę, a Esc wraca do tekstu.</translation>
-    </message>
-    <message>
-        <source>Templates of Texts for Publishers...</source>
-        <extracomment>The button beside the template that opens the window of the templates. In Polish: Szablony tekstów dla wydawnictwa...</extracomment>
-        <translation>Szablony tekstów dla wydawnictwa...</translation>
     </message>
     <message>
         <source>&amp;Volume:</source>
@@ -38317,6 +43246,39 @@ In Polish: pasmo „%1”</extracomment>
 <context>
     <name>kalahari::gui::PublishingSetContents</name>
     <message>
+        <source>Points with No Fragment in the Text</source>
+        <extracomment>The title of the window before the set for a publisher is copied or exported while its synopsis has points without a fragment. In Polish: Punkty bez fragmentu w tekście</extracomment>
+        <translation>Punkty bez fragmentu w tekście</translation>
+    </message>
+    <message>
+        <source>The synopsis of the set has no fragments linked to these points of its template:
+
+%1
+
+You can write them and link them (Ctrl+Shift+D) or send the set as it is.</source>
+        <extracomment>In Polish: Streszczenie w zestawie nie ma fragmentów powiązanych z tymi punktami szablonu:\n\n%1\n\nMożna je dopisać i powiązać (Ctrl+Shift+D) albo wysłać zestaw tak, jak jest.</extracomment>
+        <translation>Streszczenie w zestawie nie ma fragmentów powiązanych z tymi punktami szablonu:
+
+%1
+
+Można je dopisać i powiązać (Ctrl+Shift+D) albo wysłać zestaw tak, jak jest.</translation>
+    </message>
+    <message>
+        <source>Export &amp;Anyway</source>
+        <extracomment>In Polish: Eksportuj &amp;mimo to</extracomment>
+        <translation>Eksportuj &amp;mimo to</translation>
+    </message>
+    <message>
+        <source>Copy &amp;Anyway</source>
+        <extracomment>In Polish: Kopiuj &amp;mimo to</extracomment>
+        <translation>Kopiuj &amp;mimo to</translation>
+    </message>
+    <message>
+        <source>&amp;Back to the Synopsis</source>
+        <extracomment>In Polish: &amp;Wróć do streszczenia</extracomment>
+        <translation>&amp;Wróć do streszczenia</translation>
+    </message>
+    <message>
         <source>%1 ★</source>
         <extracomment>A version of a part of the set for a publisher chosen for the set: %1 its title. In Polish: %1 ★</extracomment>
         <translation>%1 ★</translation>
@@ -38327,138 +43289,9 @@ In Polish: pasmo „%1”</extracomment>
         <translation>%1 ★ na okładce</translation>
     </message>
     <message>
-        <source>Set for the Publisher · %1 of %2</source>
-        <extracomment>The name of the set for a publisher with how many of its parts it has: %1 those in it, %2 all. In Polish: Zestaw dla wydawnictwa · %1 z %2</extracomment>
-        <translation>Zestaw dla wydawnictwa · %1 z %2</translation>
-    </message>
-    <message numerus="yes">
-        <source>%Ln parts</source>
-        <extracomment>The parts in the set for a publisher, before their length in all. In Polish: %Ln część / %Ln części / %Ln części</extracomment>
-        <translation>
-            <numerusform>%Ln część</numerusform>
-            <numerusform>%Ln części</numerusform>
-            <numerusform>%Ln części</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
-        <source>%Ln words in all</source>
-        <extracomment>The length of the texts of the set for a publisher in all. In Polish: %Ln słowo razem / %Ln słowa razem / %Ln słów razem; %Ln znak razem / %Ln znaki razem / %Ln znaków razem</extracomment>
-        <translation>
-            <numerusform>%Ln słowo razem</numerusform>
-            <numerusform>%Ln słowa razem</numerusform>
-            <numerusform>%Ln słów razem</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
-        <source>%Ln characters in all</source>
-        <translation>
-            <numerusform>%Ln znak razem</numerusform>
-            <numerusform>%Ln znaki razem</numerusform>
-            <numerusform>%Ln znaków razem</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>Cover</source>
-        <extracomment>Where a part of the set for a publisher comes from: the materials of the cover. In Polish: Okładka</extracomment>
-        <translation>Okładka</translation>
-    </message>
-    <message>
-        <source>The back matter of the book</source>
-        <extracomment>Where the note about the author in the set for a publisher comes from. In Polish: strony końcowe książki</extracomment>
-        <translation>Strony końcowe książki</translation>
-    </message>
-    <message>
-        <source>Texts for Publishers</source>
-        <extracomment>Where a sentence or a synopsis of the set for a publisher comes from. In Polish: Teksty dla wydawnictwa</extracomment>
-        <translation>Teksty dla wydawnictwa</translation>
-    </message>
-    <message>
         <source>Copied the set for the publisher</source>
         <extracomment>The status bar after Copy All of the set for a publisher. In Polish: Skopiowano zestaw dla wydawnictwa</extracomment>
         <translation>Skopiowano zestaw dla wydawnictwa</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::gui::PublishingSetPage</name>
-    <message>
-        <source>Set for the Publisher</source>
-        <extracomment>The heading of the set for a publisher in the Properties panel. In Polish: Zestaw dla wydawnictwa</extracomment>
-        <translation>Zestaw dla wydawnictwa</translation>
-    </message>
-    <message>
-        <source>Contents of the Set</source>
-        <extracomment>The group of the parts of the set for a publisher in the Properties panel. In Polish: Zawartość zestawu</extracomment>
-        <translation>Zawartość zestawu</translation>
-    </message>
-    <message>
-        <source>Move Up (%1)</source>
-        <extracomment>Moves a part of the set for a publisher up. In Polish: W górę (Alt+↑)</extracomment>
-        <translation>W górę (%1)</translation>
-    </message>
-    <message>
-        <source>Move Down (%1)</source>
-        <extracomment>Moves a part of the set for a publisher down. In Polish: W dół (Alt+↓)</extracomment>
-        <translation>W dół (%1)</translation>
-    </message>
-    <message>
-        <source>Space includes a part or leaves it out, Alt+Up and Alt+Down move it. The set keeps this in the book; the contents for new books are in the Settings.</source>
-        <extracomment>Under the contents of the set for a publisher. In Polish: Spacja włącza i wyłącza część, Alt+↑ i Alt+↓ ją przestawiają. Zestaw zapamiętuje to w książce; zawartość dla nowych książek ustawia się w Ustawieniach.</extracomment>
-        <translation>Spacja włącza i wyłącza część, Alt+↑ i Alt+↓ ją przestawiają. Zestaw zapamiętuje to w książce; zawartość dla nowych książek ustawia się w Ustawieniach.</translation>
-    </message>
-    <message>
-        <source>Version:</source>
-        <extracomment>The version of the part chosen of the set for a publisher. In Polish: Wersja:</extracomment>
-        <translation>Wersja:</translation>
-    </message>
-    <message>
-        <source>Source:</source>
-        <extracomment>Where the text of the part chosen of the set comes from. In Polish: Skąd:</extracomment>
-        <translation>Skąd:</translation>
-    </message>
-    <message>
-        <source>Open (%1)</source>
-        <extracomment>Opens the version of the part chosen of the set for a publisher. In Polish: Otwórz (%1)</extracomment>
-        <translation>Otwórz (%1)</translation>
-    </message>
-    <message>
-        <source>This part has no version chosen yet.</source>
-        <extracomment>The part chosen of the set for a publisher has no version. In Polish: Ta część nie ma jeszcze wybranej wersji.</extracomment>
-        <translation>Ta część nie ma jeszcze wybranej wersji.</translation>
-    </message>
-    <message>
-        <source>Export</source>
-        <extracomment>The group of the export of the set for a publisher. In Polish: Eksport</extracomment>
-        <translation>Eksport</translation>
-    </message>
-    <message>
-        <source>Texts for Publishers Settings</source>
-        <extracomment>The gear of the set for a publisher: Settings &gt; Navigator. In Polish: Ustawienia tekstów dla wydawnictwa</extracomment>
-        <translation>Ustawienia tekstów dla wydawnictwa</translation>
-    </message>
-    <message>
-        <source>The window of the export is that of File &gt; Export; the set is its fourth source beside the whole book, the texts chosen and the text in front. DOCX and Markdown files get the headings of the parts of the set.</source>
-        <extracomment>Under Export of the set for a publisher. In Polish: Okno eksportu to to samo okno co Plik › Eksportuj; zestaw jest w nim czwartym źródłem obok całej książki, wybranych tekstów i tekstu na wierzchu. Pliki DOCX i Markdown dostają nagłówki części zestawu.</extracomment>
-        <translation>Okno eksportu to to samo okno co Plik › Eksportuj; zestaw jest w nim czwartym źródłem obok całej książki, wybranych tekstów i tekstu na wierzchu. Pliki DOCX i Markdown dostają nagłówki części zestawu.</translation>
-    </message>
-    <message>
-        <source>Copy All</source>
-        <extracomment>Copies the whole set for a publisher. In Polish: Kopiuj wszystko</extracomment>
-        <translation>Kopiuj wszystko</translation>
-    </message>
-    <message>
-        <source>Export Set...</source>
-        <extracomment>Opens the window of the export with the set for a publisher. In Polish: Eksportuj zestaw...</extracomment>
-        <translation>Eksportuj zestaw...</translation>
-    </message>
-    <message>
-        <source>no version</source>
-        <extracomment>A part of the set for a publisher without a version, in its contents. In Polish: brak wersji</extracomment>
-        <translation>brak wersji</translation>
-    </message>
-    <message>
-        <source>Part Chosen: %1</source>
-        <extracomment>The group of the part chosen of the set for a publisher; %1 its name. In Polish: Wybrana część: %1</extracomment>
-        <translation>Wybrana część: %1</translation>
     </message>
 </context>
 <context>
@@ -38492,220 +43325,6 @@ In Polish: pasmo „%1”</extracomment>
         <source>Open</source>
         <extracomment>Opens the text of a part of the set for a publisher where it is written. In Polish: Otwórz</extracomment>
         <translation>Otwórz</translation>
-    </message>
-</context>
-<context>
-    <name>kalahari::gui::dialogs::PublishingTemplatesDialog</name>
-    <message>
-        <source>Templates of Texts for Publishers</source>
-        <extracomment>The title of the window. In Polish: Szablony tekstów dla wydawnictwa</extracomment>
-        <translation>Szablony tekstów dla wydawnictwa</translation>
-    </message>
-    <message>
-        <source>The templates of the type &quot;%1&quot; and your own, kept at once, in all your books. A template suggests what to write and sets the target length.</source>
-        <extracomment>%1: the book type of the book, &quot;Novel&quot;. In Polish: Szablony typu „%1” i Twoje własne, zapisywane od razu, we wszystkich Twoich książkach. Szablon podpowiada, co napisać, i ustala docelową długość.</extracomment>
-        <translation>Szablony typu „%1” i Twoje własne, zapisywane od razu, we wszystkich Twoich książkach. Szablon podpowiada, co napisać, i ustala docelową długość.</translation>
-    </message>
-    <message>
-        <source>The templates of the book types and your own, kept at once, in all your books. A template suggests what to write and sets the target length.</source>
-        <extracomment>In Polish: Szablony typów książek i Twoje własne, zapisywane od razu, we wszystkich Twoich książkach. Szablon podpowiada, co napisać, i ustala docelową długość.</extracomment>
-        <translation>Szablony typów książek i Twoje własne, zapisywane od razu, we wszystkich Twoich książkach. Szablon podpowiada, co napisać, i ustala docelową długość.</translation>
-    </message>
-    <message>
-        <source>Close</source>
-        <extracomment>The button that closes the window of the templates, whose changes are kept at once. In Polish: Zamknij</extracomment>
-        <translation>Zamknij</translation>
-    </message>
-    <message>
-        <source>&amp;Templates:</source>
-        <extracomment>The list of the templates. In Polish: &amp;Szablony:</extracomment>
-        <translation>&amp;Szablony:</translation>
-    </message>
-    <message>
-        <source>&amp;New Template</source>
-        <extracomment>Makes a new template of the writer. In Polish: &amp;Nowy szablon</extracomment>
-        <translation>&amp;Nowy szablon</translation>
-    </message>
-    <message>
-        <source>Make a &amp;Copy</source>
-        <extracomment>Makes the template chosen a template of the writer. In Polish: Utwórz &amp;kopię</extracomment>
-        <translation>Utwórz &amp;kopię</translation>
-    </message>
-    <message>
-        <source>&amp;Delete</source>
-        <extracomment>Deletes the writer&apos;s template chosen. In Polish: &amp;Usuń</extracomment>
-        <translation>&amp;Usuń</translation>
-    </message>
-    <message>
-        <source>Choose a template in the list, or make a new one.</source>
-        <extracomment>Where the fields of a template are while none is chosen. In Polish: Wybierz szablon z listy albo utwórz nowy.</extracomment>
-        <translation>Wybierz szablon z listy albo utwórz nowy.</translation>
-    </message>
-    <message>
-        <source>&amp;Part:</source>
-        <extracomment>What a template is for: a synopsis or a sentence about the book. In Polish: &amp;Rodzaj tekstu:</extracomment>
-        <translation>&amp;Rodzaj tekstu:</translation>
-    </message>
-    <message>
-        <source>N&amp;ame:</source>
-        <extracomment>The name of a template. In Polish: N&amp;azwa:</extracomment>
-        <translation>N&amp;azwa:</translation>
-    </message>
-    <message>
-        <source>Book t&amp;ypes:</source>
-        <extracomment>The book types a template is for. In Polish: &amp;Typy książek:</extracomment>
-        <translation>&amp;Typy książek:</translation>
-    </message>
-    <message>
-        <source>&amp;Length:</source>
-        <extracomment>The target length of a template. In Polish: Dług&amp;ość:</extracomment>
-        <translation>Dług&amp;ość:</translation>
-    </message>
-    <message>
-        <source>(none ticked: every type)</source>
-        <extracomment>After the boxes of the book types of the writer&apos;s template. In Polish: (bez zaznaczenia: każdy typ)</extracomment>
-        <translation>(bez zaznaczenia: każdy typ)</translation>
-    </message>
-    <message>
-        <source>none</source>
-        <extracomment>A target length of 0: the text takes the length of the Settings. In Polish: brak</extracomment>
-        <translation>brak</translation>
-    </message>
-    <message>
-        <source>characters with spaces</source>
-        <extracomment>After the target length in characters. In Polish: znaków ze spacjami</extracomment>
-        <translation>znaków ze spacjami</translation>
-    </message>
-    <message>
-        <source>&amp;words</source>
-        <extracomment>After the target length in words. In Polish: słó&amp;w</extracomment>
-        <translation>słó&amp;w</translation>
-    </message>
-    <message>
-        <source>Point</source>
-        <extracomment>The column of the names of the points. In Polish: Punkt</extracomment>
-        <translation>Punkt</translation>
-    </message>
-    <message>
-        <source>Hint</source>
-        <extracomment>The column of the hints of the points. In Polish: Podpowiedź
-----------
-The column of the hints of the fields. In Polish: Podpowiedź</extracomment>
-        <translation>Podpowiedź</translation>
-    </message>
-    <message>
-        <source>Add P&amp;oint</source>
-        <extracomment>In Polish: Doda&amp;j punkt</extracomment>
-        <translation>Doda&amp;j punkt</translation>
-    </message>
-    <message>
-        <source>R&amp;emove Point</source>
-        <extracomment>In Polish: Usuń &amp;punkt</extracomment>
-        <translation>Usuń &amp;punkt</translation>
-    </message>
-    <message>
-        <source>Move &amp;Up</source>
-        <extracomment>In Polish: W &amp;górę</extracomment>
-        <translation>W &amp;górę</translation>
-    </message>
-    <message>
-        <source>Mo&amp;ve Down</source>
-        <extracomment>In Polish: W &amp;dół</extracomment>
-        <translation>W &amp;dół</translation>
-    </message>
-    <message>
-        <source>Po&amp;ints:</source>
-        <extracomment>The points of a template of a synopsis. In Polish: Punkt&amp;y:</extracomment>
-        <translation>Punkt&amp;y:</translation>
-    </message>
-    <message>
-        <source>For example: When {event}, {hero} must {goal}, before {stakes}.</source>
-        <extracomment>In Polish: Na przykład: Gdy {event}, {hero} musi {goal}, zanim {stakes}.</extracomment>
-        <translation>Na przykład: Gdy {event}, {hero} musi {goal}, zanim {stakes}.</translation>
-    </message>
-    <message>
-        <source>The fields go in braces: {hero}. Each gets a box on the card of the sentence.</source>
-        <extracomment>Under the pattern. In Polish: Pola wzoru są w nawiasach klamrowych: {hero}. Każde ma swoje miejsce na karcie zdania.</extracomment>
-        <translation>Pola wzoru są w nawiasach klamrowych: {hero}. Każde ma swoje miejsce na karcie zdania.</translation>
-    </message>
-    <message>
-        <source>Patte&amp;rn:</source>
-        <extracomment>The pattern of a sentence about the book. In Polish: W&amp;zór:</extracomment>
-        <translation>W&amp;zór:</translation>
-    </message>
-    <message>
-        <source>In the Pattern</source>
-        <extracomment>The column of the fields as the pattern names them. In Polish: We wzorze</extracomment>
-        <translation>We wzorze</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <extracomment>The column of the names of the fields. In Polish: Nazwa</extracomment>
-        <translation>Nazwa</translation>
-    </message>
-    <message>
-        <source>&amp;Fields:</source>
-        <extracomment>The fields of the pattern. In Polish: Po&amp;la:</extracomment>
-        <translation>Po&amp;la:</translation>
-    </message>
-    <message>
-        <source>%1 – Built-in</source>
-        <extracomment>A group of the list of the templates: those of a book type. In Polish: %1 – wbudowane</extracomment>
-        <translation>%1 – wbudowane</translation>
-    </message>
-    <message>
-        <source>My Templates</source>
-        <extracomment>The group of the writer&apos;s own templates. In Polish: Moje szablony</extracomment>
-        <translation>Moje szablony</translation>
-    </message>
-    <message>
-        <source>%1 – a template of the book type, which does not change. Make a Copy to change it.</source>
-        <extracomment>Where the book types of a template of a book type are. %1: the type, &quot;Novel&quot;. In Polish: %1 – szablon typu książki, który się nie zmienia. Utwórz kopię, by go zmienić.</extracomment>
-        <translation>%1 – szablon typu książki, który się nie zmienia. Utwórz kopię, by go zmienić.</translation>
-    </message>
-    <message>
-        <source>For each text of the main part of the book.</source>
-        <extracomment>The length of a template with a point for each text, without a book. In Polish: Dla każdego tekstu głównej części książki.</extracomment>
-        <translation>Dla każdego tekstu głównej części książki.</translation>
-    </message>
-    <message numerus="yes">
-        <source>For each text; this book has %n texts, %1 characters (%2 words) in all.</source>
-        <extracomment>The length of a template with a point for each text. %1, %2: the length of all of them. In Polish: Dla każdego tekstu; ta książka ma %n tekst/teksty/tekstów, razem %1 znaków (%2 słów).</extracomment>
-        <translation>
-            <numerusform>Dla każdego tekstu; ta książka ma %n tekst, razem znaków: %1, słów: %2.</numerusform>
-            <numerusform>Dla każdego tekstu; ta książka ma %n teksty, razem znaków: %1, słów: %2.</numerusform>
-            <numerusform>Dla każdego tekstu; ta książka ma %n tekstów, razem znaków: %1, słów: %2.</numerusform>
-        </translation>
-    </message>
-    <message>
-        <source>The points are the titles of the texts of the main part of the book, so they change with them.</source>
-        <extracomment>Under the points of a template with a point for each text. In Polish: Punkty to tytuły tekstów głównej części książki, więc zmieniają się razem z nimi.</extracomment>
-        <translation>Punkty to tytuły tekstów głównej części książki, więc zmieniają się razem z nimi.</translation>
-    </message>
-    <message>
-        <source>New template</source>
-        <extracomment>The name of a new template of the writer. In Polish: Nowy szablon</extracomment>
-        <translation>Nowy szablon</translation>
-    </message>
-    <message>
-        <source>Point %1</source>
-        <extracomment>The name of a new point of a template. In Polish: Punkt %1</extracomment>
-        <translation>Punkt %1</translation>
-    </message>
-    <message>
-        <source>%1 – copy</source>
-        <extracomment>The name of a copy of a template. In Polish: %1 – kopia</extracomment>
-        <translation>%1 – kopia</translation>
-    </message>
-    <message>
-        <source>Delete the template &quot;%1&quot;? The texts written with it stay, without a template.</source>
-        <extracomment>%1: the name of the template. In Polish: Usunąć szablon „%1”? Teksty, które z niego korzystają, zostają i nie mają już szablonu.</extracomment>
-        <translation>Usunąć szablon „%1”? Teksty napisane z nim zostają, bez szablonu.</translation>
-    </message>
-    <message>
-        <source>Delete Template</source>
-        <extracomment>The title of the question. In Polish: Usuń szablon</extracomment>
-        <translation>Usuń szablon</translation>
     </message>
 </context>
 <context>
@@ -38946,6 +43565,23 @@ In Polish: Nie udało się zapisać nazwy serii: nie można zapisać projektu.</
         <source>The pages of the front and back sections of volume %1 with their text, the title page with the title of the new volume, and the first chapter.</source>
         <extracomment>%1: the number of the volume. In Polish: Strony sekcji początkowej i końcowej tomu %1 wraz z tekstem, strona tytułowa z tytułem nowego tomu i pierwszy rozdział.</extracomment>
         <translation>Strony sekcji początkowej i końcowej tomu %1 wraz z tekstem, strona tytułowa z tytułem nowego tomu i pierwszy rozdział.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::NotificationDialog</name>
+    <message>
+        <source>Notification Settings</source>
+        <extracomment>The gear of the window of notifications. In Polish: Ustawienia powiadomień</extracomment>
+        <translation>Ustawienia powiadomień</translation>
+    </message>
+    <message>
+        <source>%1: %2</source>
+        <translation>%1: %2</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <extracomment>The title of the window of notifications of several titles. In Polish: Powiadomienia</extracomment>
+        <translation>Powiadomienia</translation>
     </message>
 </context>
 <context>
@@ -39248,6 +43884,915 @@ Autor: %2</translation>
         <source>The series has this book already: it is the same book, or a volume taken out of the series that is still in it.</source>
         <extracomment>In Polish: Seria ma już tę książkę: to ta sama książka albo tom wydzielony z serii, który wciąż w niej jest.</extracomment>
         <translation>Seria ma już tę książkę: to ta sama książka albo tom wydzielony z serii, który wciąż w niej jest.</translation>
+    </message>
+</context>
+<context>
+    <name>ListSets</name>
+    <message>
+        <source>In This Book</source>
+        <extracomment>The group of the writer&apos;s sets of list formats kept in the book. In Polish: W książce</extracomment>
+        <translation>W książce</translation>
+    </message>
+    <message>
+        <source>In the Program</source>
+        <extracomment>The group of the writer&apos;s sets of list formats kept in the program, for every book. In Polish: W programie</extracomment>
+        <translation>W programie</translation>
+    </message>
+    <message>
+        <source>Numbered</source>
+        <extracomment>A group of sets of list formats. In Polish: Numerowane</extracomment>
+        <translation>Numerowane</translation>
+    </message>
+    <message>
+        <source>Multilevel</source>
+        <extracomment>A group of sets of list formats: 1.1.1., outlines. In Polish: Wielopoziomowe</extracomment>
+        <translation>Wielopoziomowe</translation>
+    </message>
+    <message>
+        <source>Bulleted</source>
+        <extracomment>A group of sets of list formats. In Polish: Punktowane</extracomment>
+        <translation>Punktowane</translation>
+    </message>
+    <message>
+        <source>Own</source>
+        <extracomment>A group of sets of list formats: the writer&apos;s own. In Polish: Własne</extracomment>
+        <translation>Własne</translation>
+    </message>
+    <message>
+        <source>%1 (default)</source>
+        <extracomment>A set of list formats that F12 or Shift+F12 give. In Polish: %1 (domyślny)</extracomment>
+        <translation>%1 (domyślny)</translation>
+    </message>
+    <message>
+        <source>default</source>
+        <extracomment>Under the tile of the default set of its kind. In Polish: domyślny</extracomment>
+        <translation>domyślny</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::BookFieldsBox</name>
+    <message>
+        <source>Own Fields</source>
+        <extracomment>The group of the Properties panel with the writer&apos;s own fields of the book. In Polish: Własne pola</extracomment>
+        <translation>Własne pola</translation>
+    </message>
+    <message>
+        <source>The book has no own fields yet.</source>
+        <extracomment>In Polish: Książka nie ma jeszcze własnych pól.</extracomment>
+        <translation>Książka nie ma jeszcze własnych pól.</translation>
+    </message>
+    <message>
+        <source>Add Field...</source>
+        <extracomment>The button of the group of the own fields, as New Field... in Insert &gt; Field... In Polish: Dodaj pole...</extracomment>
+        <translation>Dodaj pole...</translation>
+    </message>
+    <message>
+        <source>Insert in Text...</source>
+        <extracomment>The button of the group of the own fields: Insert &gt; Field..., the tab Own. In Polish: Wstaw do tekstu...</extracomment>
+        <translation>Wstaw do tekstu...</translation>
+    </message>
+    <message>
+        <source>Field Settings</source>
+        <extracomment>The gear at the title of the group of the own fields in the Properties panel: Settings &gt; Editor &gt; Writing, the background of the fields. In Polish: Ustawienia pól</extracomment>
+        <translation>Ustawienia pól</translation>
+    </message>
+    <message>
+        <source>no value – in the text %1</source>
+        <extracomment>The value of an own field without a value, in the Properties panel; %1: what the text shows. In Polish: bez wartości – w tekście %1</extracomment>
+        <translation>bez wartości – w tekście %1</translation>
+    </message>
+    <message>
+        <source>“%1”</source>
+        <extracomment>An own field named in the note of the fields of the series. In Polish: „%1”</extracomment>
+        <translation>„%1”</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 – field(s) of the series: a change applies to all the volumes.</source>
+        <extracomment>The note under the own fields of a volume: %1 the names of the fields of the series. In Polish: %1 – pole serii: zmiana dotyczy wszystkich tomów. / %1 – pola serii: zmiana dotyczy wszystkich tomów.</extracomment>
+        <translation>
+            <numerusform>%1 – pole serii: zmiana dotyczy wszystkich tomów.</numerusform>
+            <numerusform>%1 – pola serii: zmiana dotyczy wszystkich tomów.</numerusform>
+            <numerusform>%1 – pola serii: zmiana dotyczy wszystkich tomów.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Open a text of the book to insert a field in it.</source>
+        <extracomment>Why Insert in Text... of the own fields is greyed out. In Polish: Otwórz tekst książki, aby wstawić do niego pole.</extracomment>
+        <translation>Otwórz tekst książki, aby wstawić do niego pole.</translation>
+    </message>
+    <message>
+        <source>Insert a field in the text in front (Insert &gt; Field..., the tab Own)</source>
+        <extracomment>In Polish: Wstaw pole do bieżącego tekstu (Wstaw &gt; Pole..., karta „Własne”)</extracomment>
+        <translation>Wstaw pole do bieżącego tekstu (Wstaw &gt; Pole..., karta „Własne”)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorListsPage</name>
+    <message>
+        <source>A set is the layout of all nine levels of a list at once: the kind of numbers or the bullet, the text around the number and the indents.</source>
+        <extracomment>The top of Settings &gt; Editor &gt; Lists. In Polish: Zestaw to układ wszystkich dziewięciu poziomów listy naraz: rodzaj numerów albo punktor, tekst wokół numeru i wcięcia.</extracomment>
+        <translation>Zestaw to układ wszystkich dziewięciu poziomów listy naraz: rodzaj numerów albo punktor, tekst wokół numeru i wcięcia.</translation>
+    </message>
+    <message>
+        <source>Default Sets</source>
+        <extracomment>In Polish: Domyślne zestawy</extracomment>
+        <translation>Domyślne zestawy</translation>
+    </message>
+    <message>
+        <source>Numbering</source>
+        <extracomment>In Polish: Numerowanie</extracomment>
+        <translation>Numerowanie</translation>
+    </message>
+    <message>
+        <source>Bullets</source>
+        <extracomment>In Polish: Punktory</extracomment>
+        <translation>Punktory</translation>
+    </message>
+    <message>
+        <source>These keys and the buttons Bullets and Numbering of the Format toolbar give the paragraphs this set. Another set is chosen with the arrow of the button, in Format &gt; List Sets or in the Bullets and Numbering window.</source>
+        <extracomment>In Polish: Te klawisze i przyciski „Punktory” i „Numerowanie” na pasku „Formatowanie” nadają akapitom ten zestaw. Inny zestaw wybiera się strzałką przy przycisku, w menu Format &gt; Zestawy list albo w oknie „Punktory i numeracja”.</extracomment>
+        <translation>Te klawisze i przyciski „Punktory” i „Numerowanie” na pasku „Formatowanie” nadają akapitom ten zestaw. Inny zestaw wybiera się strzałką przy przycisku, w menu Format &gt; Zestawy list albo w oknie „Punktory i numeracja”.</translation>
+    </message>
+    <message>
+        <source>Sets of the Program (for Every Book)</source>
+        <extracomment>In Polish: Zestawy programu (dla wszystkich książek)</extracomment>
+        <translation>Zestawy programu (dla wszystkich książek)</translation>
+    </message>
+    <message>
+        <source>Sets of the Program</source>
+        <extracomment>The accessible name of the list of the program&apos;s sets. In Polish: Zestawy programu</extracomment>
+        <translation>Zestawy programu</translation>
+    </message>
+    <message>
+        <source>Re&amp;name...</source>
+        <extracomment>In Polish: Zmień &amp;nazwę...</extracomment>
+        <translation>Zmień &amp;nazwę...</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>&amp;Export...</source>
+        <extracomment>In Polish: &amp;Eksportuj...</extracomment>
+        <translation>&amp;Eksportuj...</translation>
+    </message>
+    <message>
+        <source>&amp;Import...</source>
+        <extracomment>In Polish: &amp;Importuj...</extracomment>
+        <translation>&amp;Importuj...</translation>
+    </message>
+    <message>
+        <source>The sets of a book are kept in the book itself, as its own styles are, so they go with it to another computer; the tab Sets of the Bullets and Numbering window manages them.</source>
+        <extracomment>In Polish: Zestawy książki są zapisane w samej książce, tak jak jej własne style, więc przenoszą się z nią na inny komputer; zarządza się nimi na karcie „Zestawy” okna „Punktory i numeracja”.</extracomment>
+        <translation>Zestawy książki są zapisane w samej książce, tak jak jej własne style, więc przenoszą się z nią na inny komputer; zarządza się nimi na karcie „Zestawy” okna „Punktory i numeracja”.</translation>
+    </message>
+    <message>
+        <source>Export List Sets</source>
+        <extracomment>In Polish: Eksportuj zestawy list / Zestawy list (*.json)
+----------
+In Polish: Nie udało się zapisać pliku %1.</extracomment>
+        <translation>Eksportuj zestawy list</translation>
+    </message>
+    <message>
+        <source>List sets (*.json)</source>
+        <translation>Zestawy list (*.json)</translation>
+    </message>
+    <message>
+        <source>The file %1 could not be written.</source>
+        <translation>Nie udało się zapisać pliku %1.</translation>
+    </message>
+    <message>
+        <source>Import List Sets</source>
+        <extracomment>In Polish: Importuj zestawy list
+----------
+In Polish: Plik %1 nie zawiera zestawów list wyeksportowanych z Kalahari.</extracomment>
+        <translation>Importuj zestawy list</translation>
+    </message>
+    <message>
+        <source>The file %1 has no list sets exported from Kalahari.</source>
+        <translation>Plik %1 nie zawiera zestawów list wyeksportowanych z Kalahari.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FootnotesPanel</name>
+    <message>
+        <source>Search in the notes...</source>
+        <extracomment>The search of the Footnotes panel. In Polish: Szukaj w przypisach...</extracomment>
+        <translation>Szukaj w przypisach...</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <extracomment>The button of the Footnotes panel that shows every note. In Polish: Wszystkie</extracomment>
+        <translation>Wszystkie</translation>
+    </message>
+    <message>
+        <source>Footnotes</source>
+        <extracomment>The button of the Footnotes panel that shows the footnotes. In Polish: Dolne</extracomment>
+        <translation>Dolne</translation>
+    </message>
+    <message>
+        <source>Endnotes</source>
+        <extracomment>The button of the Footnotes panel that shows the endnotes. In Polish: Końcowe</extracomment>
+        <translation>Końcowe</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <extracomment>The scope of the Footnotes panel: the notes of every text of the book. In Polish: Książka</extracomment>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>Notes</source>
+        <extracomment>In Polish: Przypisy</extracomment>
+        <translation>Przypisy</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <extracomment>The scope of the Footnotes panel: the notes of the text in front. In Polish: Tekst</extracomment>
+        <translation>Tekst</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>A button of the kinds of the Footnotes panel with its count: &quot;Footnotes (4)&quot;</extracomment>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>No text is open. Open a text, or choose Book to see the notes of the whole book.</source>
+        <extracomment>In Polish: Żaden tekst nie jest otwarty. Otwórz tekst albo wybierz „Książka”, aby zobaczyć przypisy całej książki.</extracomment>
+        <translation>Żaden tekst nie jest otwarty. Otwórz tekst albo wybierz „Książka”, aby zobaczyć przypisy całej książki.</translation>
+    </message>
+    <message>
+        <source>No text is open.</source>
+        <translation>Żaden tekst nie jest otwarty.</translation>
+    </message>
+    <message>
+        <source>A plain text file keeps no notes.</source>
+        <extracomment>In Polish: Plik zwykłego tekstu nie ma przypisów.</extracomment>
+        <translation>Plik zwykłego tekstu nie ma przypisów.</translation>
+    </message>
+    <message>
+        <source>The book has no notes yet.</source>
+        <translation>Książka nie ma jeszcze przypisów.</translation>
+    </message>
+    <message>
+        <source>This text has no notes yet: Insert &gt; Footnote or Insert &gt; Endnote adds one.</source>
+        <translation>Ten tekst nie ma jeszcze przypisów: dodaje je Wstaw &gt; Przypis dolny albo Wstaw &gt; Przypis końcowy.</translation>
+    </message>
+    <message>
+        <source>No note contains “%1”.</source>
+        <extracomment>In Polish: Żaden przypis nie zawiera „%1”.</extracomment>
+        <translation>Żaden przypis nie zawiera „%1”.</translation>
+    </message>
+    <message>
+        <source>No notes of this kind.</source>
+        <extracomment>In Polish: Brak przypisów tego rodzaju.</extracomment>
+        <translation>Brak przypisów tego rodzaju.</translation>
+    </message>
+    <message>
+        <source>&amp;Edit Endnote</source>
+        <extracomment>The menu of a note in the Footnotes panel. In Polish: &amp;Edytuj przypis końcowy</extracomment>
+        <translation>&amp;Edytuj przypis końcowy</translation>
+    </message>
+    <message>
+        <source>&amp;Edit Footnote</source>
+        <translation>&amp;Edytuj przypis dolny</translation>
+    </message>
+    <message>
+        <source>Con&amp;vert to Footnote</source>
+        <extracomment>In Polish: &amp;Zamień na przypis dolny</extracomment>
+        <translation>&amp;Zamień na przypis dolny</translation>
+    </message>
+    <message>
+        <source>Con&amp;vert to Endnote</source>
+        <translation>&amp;Zamień na przypis końcowy</translation>
+    </message>
+    <message>
+        <source>&amp;Copy Text</source>
+        <extracomment>Copies the text of a note in the Footnotes panel. In Polish: &amp;Kopiuj treść</extracomment>
+        <translation>&amp;Kopiuj treść</translation>
+    </message>
+    <message>
+        <source>&amp;Delete Endnote</source>
+        <extracomment>In Polish: &amp;Usuń przypis końcowy</extracomment>
+        <translation>&amp;Usuń przypis końcowy</translation>
+    </message>
+    <message>
+        <source>&amp;Delete Footnote</source>
+        <translation>&amp;Usuń przypis dolny</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FootnotesPanelCoordinator</name>
+    <message>
+        <source>Deleted: %1.</source>
+        <extracomment>The bar under the text after a note was deleted in the Footnotes panel; %1: &quot;Footnote 3&quot;. In Polish: Usunięto: %1.</extracomment>
+        <translation>Usunięto: %1.</translation>
+    </message>
+    <message>
+        <source>&amp;Undo</source>
+        <extracomment>In Polish: Cofn&amp;ij</extracomment>
+        <translation>Cofn&amp;ij</translation>
+    </message>
+    <message>
+        <source>Bring the note back</source>
+        <extracomment>In Polish: Przywróć przypis</extracomment>
+        <translation>Przywróć przypis</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ListSetsMenu</name>
+    <message>
+        <source>default</source>
+        <extracomment>By the default set of its kind in Format &gt; List Sets. In Polish: domyślny</extracomment>
+        <translation>domyślny</translation>
+    </message>
+    <message>
+        <source>&amp;Restart at %1</source>
+        <extracomment>%1 is the first number of the level of the list item: 1, a, i. In Polish: Zacznij numerowanie &amp;od %1</extracomment>
+        <translation>Zacznij numerowanie &amp;od %1</translation>
+    </message>
+    <message>
+        <source>&amp;Continue Numbering</source>
+        <extracomment>In Polish: &amp;Kontynuuj numerowanie</extracomment>
+        <translation>&amp;Kontynuuj numerowanie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::DeleteOwnFieldDialog</name>
+    <message>
+        <source>Delete Field</source>
+        <extracomment>In Polish: Usuń pole / Usunąć pole „%1”?</extracomment>
+        <translation>Usuń pole</translation>
+    </message>
+    <message>
+        <source>Delete the field “%1”?</source>
+        <translation>Usunąć pole „%1”?</translation>
+    </message>
+    <message>
+        <source>&amp;Delete Field</source>
+        <extracomment>In Polish: &amp;Usuń pole</extracomment>
+        <translation>&amp;Usuń pole</translation>
+    </message>
+    <message numerus="yes">
+        <source>The field is in the text %n times,</source>
+        <extracomment>How often an own field is in the texts; the next sentence says in how many. In Polish: Pole występuje %n raz, / %n razy, / %n razy,</extracomment>
+        <translation>
+            <numerusform>Pole występuje %n raz,</numerusform>
+            <numerusform>Pole występuje %n razy,</numerusform>
+            <numerusform>Pole występuje %n razy,</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>in %n texts.</source>
+        <extracomment>In Polish: w %n tekście. / w %n tekstach. / w %n tekstach.</extracomment>
+        <translation>
+            <numerusform>w %n tekście.</numerusform>
+            <numerusform>w %n tekstach.</numerusform>
+            <numerusform>w %n tekstach.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>&amp;Replace these places with the plain text “%1”</source>
+        <extracomment>In Polish: &amp;Zamień te miejsca na zwykły tekst „%1”</extracomment>
+        <translation>&amp;Zamień te miejsca na zwykły tekst „%1”</translation>
+    </message>
+    <message>
+        <source>&amp;Leave them as the empty field “%1”, to fix</source>
+        <extracomment>In Polish: Zostaw je &amp;jako puste pole „%1” do poprawienia</extracomment>
+        <translation>Zostaw je &amp;jako puste pole „%1” do poprawienia</translation>
+    </message>
+    <message>
+        <source>%1 in an open text and Undo in the message at the bottom of the window bring the field back everywhere.</source>
+        <extracomment>%1: the keys of Undo (Ctrl+Z). In Polish: %1 w otwartym tekście i „Cofnij” w komunikacie na dole okna przywracają pole wszędzie.</extracomment>
+        <translation>%1 w otwartym tekście i „Cofnij” w komunikacie na dole okna przywracają pole wszędzie.</translation>
+    </message>
+    <message>
+        <source>Undo</source>
+        <translation>Cofnij</translation>
+    </message>
+    <message>
+        <source>&amp;Copy</source>
+        <extracomment>In Polish: &amp;Kopiuj</extracomment>
+        <translation>&amp;Kopiuj</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ListSetNameDialog</name>
+    <message>
+        <source>Save as Set</source>
+        <extracomment>Save as Set... of Format &gt; Bullets and Numbering. In Polish: Zapisz jako zestaw / Układ wszystkich poziomów tej listy pod własną nazwą.</extracomment>
+        <translation>Zapisz jako zestaw</translation>
+    </message>
+    <message>
+        <source>The formats of all the levels of this list, under a name of yours.</source>
+        <translation>Układ wszystkich poziomów tej listy pod własną nazwą.</translation>
+    </message>
+    <message>
+        <source>Rename Set</source>
+        <extracomment>In Polish: Zmień nazwę zestawu</extracomment>
+        <translation>Zmień nazwę zestawu</translation>
+    </message>
+    <message>
+        <source>&amp;Save</source>
+        <translation>&amp;Zapisz</translation>
+    </message>
+    <message>
+        <source>&amp;Rename</source>
+        <translation>&amp;Zmień nazwę</translation>
+    </message>
+    <message>
+        <source>e.g. Chapter Outline</source>
+        <extracomment>In Polish: np. Konspekt rozdziału</extracomment>
+        <translation>np. Konspekt rozdziału</translation>
+    </message>
+    <message>
+        <source>&amp;Name</source>
+        <translation>&amp;Nazwa</translation>
+    </message>
+    <message>
+        <source>In this &amp;book (it goes with the book to another computer)</source>
+        <extracomment>Where a set of list formats is kept. In Polish: W tej &amp;książce (przenosi się z nią na inny komputer)</extracomment>
+        <translation>W tej &amp;książce (przenosi się z nią na inny komputer)</translation>
+    </message>
+    <message>
+        <source>In the &amp;program (for every book)</source>
+        <extracomment>In Polish: W &amp;programie (dla wszystkich książek)</extracomment>
+        <translation>W &amp;programie (dla wszystkich książek)</translation>
+    </message>
+    <message>
+        <source>Keep it</source>
+        <extracomment>In Polish: Zapisz w</extracomment>
+        <translation>Zapisz w</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::OwnFieldDialog</name>
+    <message>
+        <source>New Field</source>
+        <extracomment>The window of a new own field and of a changed one. In Polish: Nowe pole / Zmień pole / Nazwa i wartość, które pole pokazuje w tekście.</extracomment>
+        <translation>Nowe pole</translation>
+    </message>
+    <message>
+        <source>Change Field</source>
+        <translation>Zmień pole</translation>
+    </message>
+    <message>
+        <source>The name and the value the field shows in the text.</source>
+        <translation>Nazwa i wartość, które pole pokazuje w tekście.</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>e.g. Narrator&apos;s Name</source>
+        <extracomment>An example of the name of an own field. In Polish: np. Imię narratora</extracomment>
+        <translation>np. Imię narratora</translation>
+    </message>
+    <message>
+        <source>&amp;Name:</source>
+        <extracomment>In Polish: &amp;Nazwa:</extracomment>
+        <translation>&amp;Nazwa:</translation>
+    </message>
+    <message>
+        <source>may stay empty: the field then shows its name</source>
+        <extracomment>In Polish: może zostać puste – pole pokaże wtedy swoją nazwę</extracomment>
+        <translation>może zostać puste – pole pokaże wtedy swoją nazwę</translation>
+    </message>
+    <message>
+        <source>&amp;Value:</source>
+        <extracomment>In Polish: &amp;Wartość:</extracomment>
+        <translation>&amp;Wartość:</translation>
+    </message>
+    <message>
+        <source>a short description for the tooltip</source>
+        <extracomment>In Polish: krótki opis do podpowiedzi</extracomment>
+        <translation>krótki opis do podpowiedzi</translation>
+    </message>
+    <message>
+        <source>&amp;Description:</source>
+        <extracomment>In Polish: &amp;Opis:</extracomment>
+        <translation>&amp;Opis:</translation>
+    </message>
+    <message>
+        <source>in this &amp;book</source>
+        <extracomment>Where a new own field is saved. In Polish: w tej &amp;książce</extracomment>
+        <translation>w tej &amp;książce</translation>
+    </message>
+    <message>
+        <source>in the &amp;series: the same for all the volumes</source>
+        <extracomment>In Polish: w &amp;serii – wspólne dla wszystkich tomów</extracomment>
+        <translation>w &amp;serii – wspólne dla wszystkich tomów</translation>
+    </message>
+    <message>
+        <source>Save in:</source>
+        <extracomment>In Polish: Zapisz w:</extracomment>
+        <translation>Zapisz w:</translation>
+    </message>
+    <message>
+        <source>&amp;Another value in this book:</source>
+        <extracomment>A field of the series: this volume has a value of its own. In Polish: &amp;Inna wartość w tej książce:</extracomment>
+        <translation>&amp;Inna wartość w tej książce:</translation>
+    </message>
+    <message>
+        <source>The field needs a name.</source>
+        <extracomment>In Polish: Pole musi mieć nazwę.</extracomment>
+        <translation>Pole musi mieć nazwę.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpreadCard</name>
+    <message>
+        <source>%1 with a number</source>
+        <extracomment>The caption of a spread: a label with its number; %1: the label (&quot;Map&quot;). In Polish: %1 z numerem</extracomment>
+        <translation>%1 z numerem</translation>
+    </message>
+    <message>
+        <source>%1 · %2 × %3 px · %4</source>
+        <extracomment>Under the list of the picture of a spread: the file, its pixels and its list; %1: the name of the file, %2 and %3: its width and height, %4: the list (&quot;Pictures&quot;). In Polish: %1 · %2 × %3 px · %4</extracomment>
+        <translation>%1 · %2 × %3 px · %4</translation>
+    </message>
+    <message>
+        <source>%1 · spread</source>
+        <extracomment>The bar of the card of a spread before its pages are counted; %1: its title. In Polish: %1 · rozkładówka</extracomment>
+        <translation>%1 · rozkładówka</translation>
+    </message>
+    <message>
+        <source>%1 · spread · pages %2–%3</source>
+        <extracomment>The bar of the card of a spread; %1: its title, %2 and %3: its pages. In Polish: %1 · rozkładówka · strony %2–%3</extracomment>
+        <translation>%1 · rozkładówka · strony %2–%3</translation>
+    </message>
+    <message>
+        <source>&amp;Caption:</source>
+        <extracomment>The caption of a spread. In Polish: Podp&amp;is:</extracomment>
+        <translation>Podp&amp;is:</translation>
+    </message>
+    <message>
+        <source>(no picture)</source>
+        <extracomment>The list of the picture of a spread: none. In Polish: (bez obrazu)</extracomment>
+        <translation>(bez obrazu)</translation>
+    </message>
+    <message>
+        <source>100%</source>
+        <extracomment>The pages at their size on paper. In Polish: 100%</extracomment>
+        <translation>100%</translation>
+    </message>
+    <message>
+        <source>A spread always starts on a left page, and the texts where Settings &gt; Editor &gt; Pages and Margins say. The buttons work as Move Up and Move Down in the Navigator.</source>
+        <extracomment>In Polish: Rozkładówka zaczyna się zawsze na lewej stronie, a teksty – tam, gdzie mówią Ustawienia &gt; Edytor &gt; Strony i marginesy. Przyciski działają jak Przenieś w górę i Przenieś w dół w Nawigatorze.</extracomment>
+        <translation>Rozkładówka zaczyna się zawsze na lewej stronie, a teksty – tam, gdzie mówią Ustawienia &gt; Edytor &gt; Strony i marginesy. Przyciski działają jak Przenieś w górę i Przenieś w dół w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>All Files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Center the Picture</source>
+        <extracomment>Puts a picture that fills its area in the middle, at its smallest. In Polish: Wyśrodkuj obraz</extracomment>
+        <translation>Wyśrodkuj obraz</translation>
+    </message>
+    <message>
+        <source>Choose the Picture of the Spread</source>
+        <extracomment>The system window choosing the picture of a spread. In Polish: Wybierz obraz rozkładówki</extracomment>
+        <translation>Wybierz obraz rozkładówki</translation>
+    </message>
+    <message>
+        <source>Crop: drag the picture with the mouse or move it with the arrows; Ctrl+] and Ctrl+[ – zoom (%1%).</source>
+        <extracomment>Under Fill on the card of a spread; %1: the zoom in percent. In Polish: Kadr: przeciągnij obraz myszą albo przesuń go strzałkami; Ctrl+] i Ctrl+[ – powiększenie (%1%).</extracomment>
+        <translation>Kadr: przeciągnij obraz myszą albo przesuń go strzałkami; Ctrl+] i Ctrl+[ – powiększenie (%1%).</translation>
+    </message>
+    <message>
+        <source>Fill</source>
+        <extracomment>In Polish: Wypełnij</extracomment>
+        <translation>Wypełnij</translation>
+    </message>
+    <message>
+        <source>Fitti&amp;ng:</source>
+        <extracomment>How the picture of a spread fits its area. In Polish: &amp;Dopasowanie:</extracomment>
+        <translation>&amp;Dopasowanie:</translation>
+    </message>
+    <message>
+        <source>Images</source>
+        <extracomment>The pictures of the window. In Polish: Obrazy</extracomment>
+        <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>Label of the caption</source>
+        <extracomment>For screen readers. In Polish: Etykieta podpisu</extracomment>
+        <translation>Etykieta podpisu</translation>
+    </message>
+    <message>
+        <source>Move Earlier</source>
+        <extracomment>Moves the spread up its list, as Move Up in the Navigator. In Polish: Przenieś wcześniej</extracomment>
+        <translation>Przenieś wcześniej</translation>
+    </message>
+    <message>
+        <source>Move Later</source>
+        <extracomment>In Polish: Przenieś później</extracomment>
+        <translation>Przenieś później</translation>
+    </message>
+    <message>
+        <source>On the pages:</source>
+        <extracomment>What the pages of a spread show. In Polish: Na stronach:</extracomment>
+        <translation>Na stronach:</translation>
+    </message>
+    <message>
+        <source>Page numbe&amp;rs and running head</source>
+        <extracomment>In Polish: Nu&amp;mery stron i żywa pagina</extracomment>
+        <translation>Nu&amp;mery stron i żywa pagina</translation>
+    </message>
+    <message>
+        <source>Pict&amp;ure:</source>
+        <extracomment>The picture of a spread. In Polish: Ob&amp;raz:</extracomment>
+        <translation>Ob&amp;raz:</translation>
+    </message>
+    <message>
+        <source>Picture Area</source>
+        <extracomment>The frame of the area of the picture, shown or not. In Polish: Pole obrazu</extracomment>
+        <translation>Pole obrazu</translation>
+    </message>
+    <message>
+        <source>Picture Not Added</source>
+        <extracomment>In Polish: Nie dodano obrazu</extracomment>
+        <translation>Nie dodano obrazu</translation>
+    </message>
+    <message>
+        <source>Picture from &amp;disk...</source>
+        <extracomment>Takes a picture file from the disk to the Materials and the spread. In Polish: Obraz z dysk&amp;u...</extracomment>
+        <translation>Obraz z dysk&amp;u...</translation>
+    </message>
+    <message>
+        <source>Picture of the spread</source>
+        <extracomment>For screen readers. In Polish: Obraz rozkładówki</extracomment>
+        <translation>Obraz rozkładówki</translation>
+    </message>
+    <message>
+        <source>Picture...</source>
+        <extracomment>The bar of the card of a spread: the keys go to the list of its picture. In Polish: Obraz...</extracomment>
+        <translation>Obraz...</translation>
+    </message>
+    <message>
+        <source>Place in the Book</source>
+        <extracomment>The pages around a spread on its card. In Polish: Położenie w książce</extracomment>
+        <translation>Położenie w książce</translation>
+    </message>
+    <message>
+        <source>Print... (Ctrl+P)</source>
+        <extracomment>In Polish: Drukuj... (Ctrl+P)</extracomment>
+        <translation>Drukuj... (Ctrl+P)</translation>
+    </message>
+    <message>
+        <source>Quality for print: %1 dpi – %2</source>
+        <extracomment>On the card of a spread; %1: the dots per inch of its picture, %2: what they are good for. In Polish: Jakość do druku: %1 dpi – %2</extracomment>
+        <translation>Jakość do druku: %1 dpi – %2</translation>
+    </message>
+    <message>
+        <source>Room at the s&amp;pine:</source>
+        <extracomment>The room at the spine of a spread. In Polish: Zapas na &amp;grzbiet:</extracomment>
+        <translation>Zapas na &amp;grzbiet:</translation>
+    </message>
+    <message>
+        <source>Room at the spine</source>
+        <extracomment>For screen readers. In Polish: Zapas na grzbiet</extracomment>
+        <translation>Zapas na grzbiet</translation>
+    </message>
+    <message>
+        <source>Spine Band</source>
+        <extracomment>The band of the spine on the pages of a spread, shown or not. In Polish: Pas grzbietu</extracomment>
+        <translation>Pas grzbietu</translation>
+    </message>
+    <message>
+        <source>Spread</source>
+        <extracomment>The title of the settings on the card of a spread. In Polish: Rozkładówka</extracomment>
+        <translation>Rozkładówka</translation>
+    </message>
+    <message>
+        <source>Spreads Settings (Settings &gt; Editor &gt; Images)</source>
+        <extracomment>The gear of the card of a spread. In Polish: Ustawienia rozkładówek (Ustawienia &gt; Edytor &gt; Obrazy)</extracomment>
+        <translation>Ustawienia rozkładówek (Ustawienia &gt; Edytor &gt; Obrazy)</translation>
+    </message>
+    <message>
+        <source>Text of the caption</source>
+        <extracomment>For screen readers and as the placeholder. In Polish: Tekst podpisu</extracomment>
+        <translation>Tekst podpisu</translation>
+    </message>
+    <message>
+        <source>The Picture of the Spread</source>
+        <extracomment>In Polish: Obraz rozkładówki</extracomment>
+        <translation>Obraz rozkładówki</translation>
+    </message>
+    <message>
+        <source>The Real Size of the Pages</source>
+        <extracomment>In Polish: Rzeczywisty rozmiar stron</extracomment>
+        <translation>Rzeczywisty rozmiar stron</translation>
+    </message>
+    <message>
+        <source>The Whole Spread on the Card</source>
+        <extracomment>In Polish: Cała rozkładówka na karcie</extracomment>
+        <translation>Cała rozkładówka na karcie</translation>
+    </message>
+    <message>
+        <source>The file &quot;%1&quot; cannot be read.</source>
+        <extracomment>Under the list of the picture of a spread; %1: the name of the file. In Polish: Nie można odczytać pliku „%1”.</extracomment>
+        <translation>Nie można odczytać pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>The file &quot;%1&quot; is not a picture Kalahari can show.</source>
+        <extracomment>%1: the name of the file. In Polish: Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać.</extracomment>
+        <translation>Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać.</translation>
+    </message>
+    <message>
+        <source>The halves move away from the fold, and the strip at the spine shows on both pages.</source>
+        <extracomment>In Polish: Połówki odsuwają się od zgięcia, a pasek przy grzbiecie jest na obu stronach.</extracomment>
+        <translation>Połówki odsuwają się od zgięcia, a pasek przy grzbiecie jest na obu stronach.</translation>
+    </message>
+    <message>
+        <source>The pages of the book are being counted...</source>
+        <extracomment>In Polish: Strony książki są liczone...</extracomment>
+        <translation>Strony książki są liczone...</translation>
+    </message>
+    <message>
+        <source>The picture could not be copied into the materials of the book.</source>
+        <extracomment>In Polish: Nie udało się skopiować obrazu do materiałów książki.</extracomment>
+        <translation>Nie udało się skopiować obrazu do materiałów książki.</translation>
+    </message>
+    <message>
+        <source>The picture ta&amp;kes:</source>
+        <extracomment>Where the picture of a spread lies. In Polish: Obraz &amp;zajmuje:</extracomment>
+        <translation>Obraz &amp;zajmuje:</translation>
+    </message>
+    <message>
+        <source>The spread could not be saved.</source>
+        <extracomment>The status bar. In Polish: Nie udało się zapisać rozkładówki.</extracomment>
+        <translation>Nie udało się zapisać rozkładówki.</translation>
+    </message>
+    <message>
+        <source>The whole picture</source>
+        <extracomment>In Polish: Cały obraz</extracomment>
+        <translation>Cały obraz</translation>
+    </message>
+    <message>
+        <source>Title in the table of content&amp;s</source>
+        <extracomment>In Polish: T&amp;ytuł w spisie treści</extracomment>
+        <translation>T&amp;ytuł w spisie treści</translation>
+    </message>
+    <message>
+        <source>To the edges of the paper</source>
+        <extracomment>In Polish: Do krawędzi papieru</extracomment>
+        <translation>Do krawędzi papieru</translation>
+    </message>
+    <message>
+        <source>Whole Spread</source>
+        <extracomment>The pages fit the card. In Polish: Cała rozkładówka</extracomment>
+        <translation>Cała rozkładówka</translation>
+    </message>
+    <message>
+        <source>With the picture to the edges of the paper the caption lies on the picture, in a light frame.</source>
+        <extracomment>In Polish: Przy obrazie do krawędzi papieru podpis jest na obrazie, w jasnej ramce.</extracomment>
+        <translation>Przy obrazie do krawędzi papieru podpis jest na obrazie, w jasnej ramce.</translation>
+    </message>
+    <message>
+        <source>Within the margins</source>
+        <extracomment>In Polish: W marginesach</extracomment>
+        <translation>W marginesach</translation>
+    </message>
+    <message>
+        <source>across the spine without a break</source>
+        <extracomment>In Polish: przez grzbiet bez przerwy</extracomment>
+        <translation>przez grzbiet bez przerwy</translation>
+    </message>
+    <message>
+        <source>after it the empty page %1</source>
+        <extracomment>In Polish: po niej pusta strona %1</extracomment>
+        <translation>po niej pusta strona %1</translation>
+    </message>
+    <message>
+        <source>before it the empty page %1</source>
+        <extracomment>Beside the pages of a spread; %1: the number of the empty page. In Polish: przed nią pusta strona %1</extracomment>
+        <translation>przed nią pusta strona %1</translation>
+    </message>
+    <message>
+        <source>both pages, whole</source>
+        <extracomment>In Polish: całe obie strony</extracomment>
+        <translation>całe obie strony</translation>
+    </message>
+    <message>
+        <source>enough for print</source>
+        <extracomment>In Polish: wystarczy do druku</extracomment>
+        <translation>wystarczy do druku</translation>
+    </message>
+    <message>
+        <source>enough for printing at home; print shops usually want at least 300 dpi</source>
+        <extracomment>In Polish: wystarczy do wydruku w domu; drukarnie chcą zwykle co najmniej 300 dpi</extracomment>
+        <translation>wystarczy do wydruku w domu; drukarnie chcą zwykle co najmniej 300 dpi</translation>
+    </message>
+    <message>
+        <source>no empty pages beside it</source>
+        <extracomment>In Polish: bez pustych stron obok</extracomment>
+        <translation>bez pustych stron obok</translation>
+    </message>
+    <message>
+        <source>nothing is lost; the room left stays white</source>
+        <extracomment>In Polish: nic nie ginie, wolne miejsce zostaje białe</extracomment>
+        <translation>nic nie ginie, wolne miejsce zostaje białe</translation>
+    </message>
+    <message>
+        <source>pages %1–%2</source>
+        <extracomment>The place of a spread in the book; %1 and %2: its pages. In Polish: strony %1–%2</extracomment>
+        <translation>strony %1–%2</translation>
+    </message>
+    <message>
+        <source>the edges beyond the area are cut off</source>
+        <extracomment>In Polish: brzegi poza polem są przycięte</extracomment>
+        <translation>brzegi poza polem są przycięte</translation>
+    </message>
+    <message>
+        <source>too little for print – the picture will come out blurred; a picture with more pixels is needed</source>
+        <extracomment>In Polish: za mało do druku – obraz wyjdzie nieostry; potrzebny obraz o większej liczbie pikseli</extracomment>
+        <translation>za mało do druku – obraz wyjdzie nieostry; potrzebny obraz o większej liczbie pikseli</translation>
+    </message>
+    <message>
+        <source>under the picture, on the right page</source>
+        <extracomment>In Polish: pod obrazem, na prawej stronie</extracomment>
+        <translation>pod obrazem, na prawej stronie</translation>
+    </message>
+    <message>
+        <source>without a label and number</source>
+        <extracomment>The caption of a spread: its text alone. In Polish: bez etykiety i numeru</extracomment>
+        <translation>bez etykiety i numeru</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpreadPagesView</name>
+    <message>
+        <source>; the arrows move the picture in its area, Ctrl+] and Ctrl+[ make it larger and smaller, Home puts it in the middle</source>
+        <extracomment>After the name of the pages of a spread, for screen readers. In Polish: ; strzałki przesuwają obraz w kadrze, Ctrl+] i Ctrl+[ go powiększają i pomniejszają, Home go wyśrodkowuje</extracomment>
+        <translation>; strzałki przesuwają obraz w kadrze, Ctrl+] i Ctrl+[ go powiększają i pomniejszają, Home go wyśrodkowuje</translation>
+    </message>
+    <message>
+        <source>Choose a picture in the list &quot;Picture:&quot; or &quot;Picture from disk...&quot;</source>
+        <extracomment>Under it. In Polish: Wybierz obraz na liście „Obraz:” albo „Obraz z dysku...”</extracomment>
+        <translation>Wybierz obraz na liście „Obraz:” albo „Obraz z dysku...”</translation>
+    </message>
+    <message>
+        <source>Pages of the spread</source>
+        <extracomment>In Polish: Strony rozkładówki</extracomment>
+        <translation>Strony rozkładówki</translation>
+    </message>
+    <message>
+        <source>Pages of the spread %1 and %2</source>
+        <extracomment>The two pages of a spread on its card, for screen readers; %1 and %2: their numbers. In Polish: Strony rozkładówki %1 i %2</extracomment>
+        <translation>Strony rozkładówki %1 i %2</translation>
+    </message>
+    <message>
+        <source>Spread without a picture</source>
+        <extracomment>Drawn over the empty pages of a spread on its card. In Polish: Rozkładówka bez obrazu</extracomment>
+        <translation>Rozkładówka bez obrazu</translation>
+    </message>
+    <message>
+        <source>left page</source>
+        <extracomment>Under the left page of a spread while the pages are counted. In Polish: lewa strona</extracomment>
+        <translation>lewa strona</translation>
+    </message>
+    <message>
+        <source>page %1 · left</source>
+        <extracomment>Under the left page of a spread; %1: its number. In Polish: strona %1 · lewa</extracomment>
+        <translation>strona %1 · lewa</translation>
+    </message>
+    <message>
+        <source>page %1 · right</source>
+        <extracomment>Under the right page. In Polish: strona %1 · prawa</extracomment>
+        <translation>strona %1 · prawa</translation>
+    </message>
+    <message>
+        <source>right page</source>
+        <extracomment>In Polish: prawa strona</extracomment>
+        <translation>prawa strona</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SpreadStrip</name>
+    <message>
+        <source>%1 – empty</source>
+        <extracomment>An empty page; %1: its number. In Polish: %1 – pusta</extracomment>
+        <translation>%1 – pusta</translation>
+    </message>
+    <message>
+        <source>%1 – this spread</source>
+        <extracomment>A page of the spread itself, for screen readers; %1: its number. In Polish: %1 – ta rozkładówka</extracomment>
+        <translation>%1 – ta rozkładówka</translation>
+    </message>
+    <message>
+        <source>Pages beside the spread</source>
+        <extracomment>The small pages beside a spread on its card, for screen readers. In Polish: Strony obok rozkładówki</extracomment>
+        <translation>Strony obok rozkładówki</translation>
+    </message>
+    <message>
+        <source>empty</source>
+        <extracomment>An empty page among the small pages beside a spread. In Polish: pusta</extracomment>
+        <translation>pusta</translation>
     </message>
 </context>
 </TS>

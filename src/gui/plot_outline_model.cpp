@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plot_outline_model.cpp
 /// @brief The outline: the texts of the book in a table, with their description, point of
@@ -7,23 +8,37 @@
 
 #include "kalahari/gui/plot_outline_model.h"
 
+#include "kalahari/core/theme.h"
 #include "kalahari/gui/plot_board.h"
 
 #include <QAbstractItemModel>
 #include <QAbstractTableModel>
+#include <QBrush>
 #include <QChar>
+#include <QColor>
 #include <QComboBox>
 #include <QCompleter>
+#include <QEvent>
 #include <QFont>
+#include <QFontMetrics>
+#include <QHeaderView>
 #include <QLineEdit>
 #include <QList>
 #include <QLocale>
 #include <QModelIndex>
+#include <QMouseEvent>
 #include <QObject>
+#include <QPainter>
 #include <QPalette>
+#include <QRect>
+#include <QSize>
 #include <QString>
 #include <QStringList>
+#include <QStyle>
 #include <QStyledItemDelegate>
+#include <QStyleOptionButton>
+#include <QStyleOptionViewItem>
+#include <QTableView>
 #include <QVariant>
 #include <QWidget>
 
@@ -53,10 +68,14 @@ using Model = PlotOutlineModel;
 /// the plan
 constexpr char16_t NOTHING = u'\u2013';
 
+/// @brief Around the text of the button of a row in the plan, and beside it
+constexpr int BUTTON_PADDING = 4;
+
 /// @brief Whether @p card is a scene in the plan beside the scenes of its text: its row is in
 /// italics, without a number
 bool isPlanBesideText(const PlotCard& card) {
-    return card.planned && PlotBoard::scenesVariant() == QLatin1String(PlotBoard::SCENES_BOTH);
+    return card.isScene() && card.planned &&
+           PlotBoard::scenesVariant() == QLatin1String(PlotBoard::SCENES_BOTH);
 }
 
 /// @brief Whether cell @p column of @p card is the title of a scene without one: it shows the
@@ -161,10 +180,11 @@ QVariant foregroundOf(const PlotCard& card, int column) {
     return {};
 }
 
-/// @brief The font of the cell of @p card in @p column: italics for a field without a name and
-/// for a scene in the plan among the scenes of the text; none: the font of the table
+/// @brief The font of the cell of @p card in @p column: italics for a field without a name, for
+/// a text in the plan and for a scene in the plan among the scenes of the text; none: the font
+/// of the table
 QVariant cellFontOf(const PlotCard& card, int column) {
-    if (isUnnamed(card, column) || isPlanBesideText(card)) {
+    if (isUnnamed(card, column) || isPlanBesideText(card) || (card.planned && !card.isScene())) {
         return fontOf(false, true);
     }
     return {};
@@ -180,7 +200,19 @@ PlotOutlineModel::PlotOutlineModel(QObject* parent) : QAbstractTableModel(parent
 
 void PlotOutlineModel::setBands(const QList<PlotBand>& bands) {
     m_bands = bands;
+    // As the board: each point of view keeps its color
+    m_povs = povsOf(PlotBoard::allCardsOf(bands));
     fill();
+}
+
+void PlotOutlineModel::setColoring(const QString& colorBy, const PlotColors& colors, bool tint) {
+    m_colorBy = colorBy;
+    m_colors = colors;
+    m_tint = tint;
+    if (!m_rows.isEmpty()) {
+        emit dataChanged(index(0, 0), index(rowCount() - 1, COLUMN_COUNT - 1),
+                         {COLOR_ROLE, Qt::BackgroundRole});
+    }
 }
 
 void PlotOutlineModel::setShowScenes(bool show) {
@@ -210,6 +242,7 @@ QList<PlotOutlineModel::Row> PlotOutlineModel::rowsOf() const {
             for (qsizetype s = 0; m_showScenes && s < card.scenes.size(); ++s) {
                 Row scene;
                 scene.card = card.scenes.at(s);
+                scene.textPlanned = card.planned;
                 rows << scene;
             }
         }
@@ -275,13 +308,36 @@ QVariant PlotOutlineModel::data(const QModelIndex& index, int role) const {
         return row.part ? row.partId : row.card.id;
     case PART_ROLE:
         return row.part;
+    case BUTTON_ROLE:
+        return index.column() == STATUS_COLUMN && !row.part ? buttonOf(row) : QString();
     case Qt::TextAlignmentRole:
         return alignmentOf(index.column());
+    case COLOR_ROLE:
+    case Qt::BackgroundRole:
+        if (!row.part) {
+            return colorData(row.card, role);
+        }
+        break;
     default:
         break;
     }
     return row.part ? partData(row, index.column(), role)
                     : cardData(row.card, index.column(), role);
+}
+
+QVariant PlotOutlineModel::colorData(const PlotCard& card, int role) const {
+    const QColor color = m_colors.ofCard(card, m_colorBy, m_povs);
+    if (!color.isValid()) {
+        return {};
+    }
+    if (role == COLOR_ROLE) {
+        return color;
+    }
+    if (!m_tint) {
+        return {};
+    }
+    const QColor base = QPalette().color(QPalette::Base);
+    return QBrush(core::mixedColor(base, color, PlotColors::TINT_SHARE));
 }
 
 QVariant PlotOutlineModel::partData(const Row& row, int column, int role) {
@@ -374,6 +430,24 @@ QString PlotOutlineModel::columnTitle(int column) {
     return {};
 }
 
+QString PlotOutlineModel::buttonOf(const Row& row) const {
+    const PlotCard& card = row.card;
+    if (m_readOnly || !card.planned) {
+        return {};
+    }
+    // A scene in the plan is written in a text with a file, beside the scenes written
+    if (card.isScene()) {
+        return !row.textPlanned && isPlanBesideText(card)
+                   //: The button beside the state of a scene in the plan in the outline. In
+                   //: Polish: Napisz scenę
+                   ? tr("Write the Scene")
+                   : QString();
+    }
+    //: The button beside the state of a text in the plan, without a file, in the outline. In
+    //: Polish: Utwórz plik
+    return tr("Create the File");
+}
+
 Qt::ItemFlags PlotOutlineModel::flags(const QModelIndex& index) const {
     if (!index.isValid() || index.row() >= m_rows.size()) {
         return Qt::NoItemFlags;
@@ -414,6 +488,64 @@ bool PlotOutlineModel::setData(const QModelIndex& index, const QVariant& value, 
 
 PlotOutlineDelegate::PlotOutlineDelegate(QObject* parent) : QStyledItemDelegate(parent) {}
 
+QRect PlotOutlineDelegate::buttonRect(const QRect& rect, const QString& text, const QFont& font) {
+    const QFontMetrics metrics(font);
+    const int width = metrics.horizontalAdvance(text) + (2 * BUTTON_PADDING);
+    const int height = std::min(rect.height() - 2, metrics.height() + BUTTON_PADDING);
+    return {rect.right() - width - BUTTON_PADDING + 1, rect.top() + ((rect.height() - height) / 2),
+            width, height};
+}
+
+void PlotOutlineDelegate::paintCell(QPainter* painter, const QStyleOptionViewItem& option,
+                                    const QModelIndex& index) const {
+    const QString button = index.data(PlotOutlineModel::BUTTON_ROLE).toString();
+    if (button.isEmpty()) {
+        QStyledItemDelegate::paint(painter, option, index);
+        return;
+    }
+    // The state on the left, the button on the right
+    QStyleOptionViewItem cell = option;
+    const QRect at = buttonRect(option.rect, button, option.font);
+    cell.rect.setRight(at.left() - BUTTON_PADDING);
+    QStyledItemDelegate::paint(painter, cell, index);
+    QStyleOptionButton push;
+    push.rect = at;
+    push.text = button;
+    push.state = QStyle::State_Enabled | QStyle::State_Raised;
+    push.fontMetrics = option.fontMetrics;
+    QStyle* style = option.widget != nullptr ? option.widget->style() : nullptr;
+    if (style != nullptr) {
+        style->drawControl(QStyle::CE_PushButton, &push, painter, option.widget);
+    }
+}
+
+bool PlotOutlineDelegate::editorEvent(QEvent* event, QAbstractItemModel* model,
+                                      const QStyleOptionViewItem& option,
+                                      const QModelIndex& index) {
+    const QString button = index.data(PlotOutlineModel::BUTTON_ROLE).toString();
+    if (!button.isEmpty() && event->type() == QEvent::MouseButtonRelease) {
+        const auto* mouse = static_cast<QMouseEvent*>(event);
+        if (mouse->button() == Qt::LeftButton &&
+            buttonRect(option.rect, button, option.font).contains(mouse->position().toPoint())) {
+            emit buttonClicked(index.data(PlotOutlineModel::ID_ROLE).toString());
+            return true;
+        }
+    }
+    return QStyledItemDelegate::editorEvent(event, model, option, index);
+}
+
+QSize PlotOutlineDelegate::sizeHint(const QStyleOptionViewItem& option,
+                                    const QModelIndex& index) const {
+    QSize size = QStyledItemDelegate::sizeHint(option, index);
+    const QString button = index.data(PlotOutlineModel::BUTTON_ROLE).toString();
+    if (!button.isEmpty()) {
+        const QFontMetrics metrics(option.font);
+        size.rwidth() += metrics.horizontalAdvance(button) + (4 * BUTTON_PADDING);
+        size.setHeight(std::max(size.height(), metrics.height() + (2 * BUTTON_PADDING)));
+    }
+    return size;
+}
+
 void PlotOutlineDelegate::setSuggestions(const QStringList& povs, const QStringList& places) {
     m_povs = povs;
     m_places = places;
@@ -438,6 +570,32 @@ QWidget* PlotOutlineDelegate::createEditor(QWidget* parent, const QStyleOptionVi
         line->setCompleter(completer);
     }
     return editor;
+}
+
+void PlotOutlineDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option,
+                                const QModelIndex& index) const {
+    paintCell(painter, option, index);
+    const QColor color = index.data(PlotOutlineModel::COLOR_ROLE).value<QColor>();
+    if (!color.isValid()) {
+        return;
+    }
+    // The left edge of the table: the first column shown (the number can be hidden)
+    int first = 0;
+    if (const auto* table = qobject_cast<const QTableView*>(option.widget)) {
+        const QHeaderView* header = table->horizontalHeader();
+        for (int visual = 0; visual < header->count(); ++visual) {
+            const int logical = header->logicalIndex(visual);
+            if (!header->isSectionHidden(logical)) {
+                first = logical;
+                break;
+            }
+        }
+    }
+    if (index.column() == first) {
+        painter->fillRect(QRect(option.rect.left(), option.rect.top(), EDGE_WIDTH,
+                                option.rect.height()),
+                          color);
+    }
 }
 
 QStringList PlotOutlineDelegate::suggestionsFor(int column) const {

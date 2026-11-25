@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file navigator_panel.cpp
 /// @brief Navigator panel implementation
@@ -15,6 +16,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
+#include "kalahari/core/busy_pulse.h"
 #include "kalahari/core/card_data.h"
 #include "kalahari/core/card_relations.h"
 #include "kalahari/core/logger.h"
@@ -95,6 +97,8 @@ constexpr int COUNT_ROLE = Qt::UserRole + 7;
 /// The color of a card (core::CardData::color) as a dot at the right of its row, while the
 /// setting core::CardColors::NAVIGATOR_DOT_SETTING shows it
 constexpr int COLOR_ROLE = Qt::UserRole + 8;
+/// A note at the right of the row, grey as a number: "in the plan" of a text without a file
+constexpr int NOTE_ROLE = Qt::UserRole + 9;
 /// Room between the name of a node and its number, in multiples of the width of a space
 constexpr int COUNT_GAP = 3;
 /// Room between the number of a node and the right edge of the tree, in multiples of the width
@@ -107,6 +111,10 @@ const QString WORKSHOP_ID_PREFIX = QStringLiteral("workshop:");
 
 /// The type of the node of the book's dictionary at the top of the Workshop
 constexpr const char* BOOK_DICTIONARY_TYPE = "book_dictionary";
+/// The type of the node of the plan of the book, the first one of the Workshop
+constexpr const char* BOOK_PLAN_TYPE = "book_plan";
+/// The type of the node of the card For Publishers at the top of the Workshop
+constexpr const char* PUBLISHING_TYPE = "publishing_card";
 /// In a list of open items, the tree has the book and the Workshop as nodes of their own; a
 /// list without it (saved before them) opens them
 const QString WORKSHOP_LAYOUT = QStringLiteral("layout:workshop");
@@ -380,7 +388,8 @@ public:
                const QModelIndex& index) const override {
         const QVariant count = index.data(COUNT_ROLE);
         const auto color = index.data(COLOR_ROLE).value<QColor>();
-        if (!count.isValid() && !color.isValid()) {
+        const QString note = index.data(NOTE_ROLE).toString();
+        if (!count.isValid() && !color.isValid() && note.isEmpty()) {
             QStyledItemDelegate::paint(painter, option, index);
             return;
         }
@@ -388,7 +397,7 @@ public:
         initStyleOption(&item, index);
         const QWidget* widget = option.widget;
         QStyle* style = widget ? widget->style() : QApplication::style();
-        const QString number = count.isValid() ? QLocale().toString(count.toInt()) : QString();
+        const QString number = count.isValid() ? QLocale().toString(count.toInt()) : note;
         const QRect textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &item, widget);
         item.text = item.fontMetrics.elidedText(
             item.text, item.textElideMode,
@@ -423,9 +432,10 @@ public:
         QSize size = QStyledItemDelegate::sizeHint(option, index);
         const QVariant count = index.data(COUNT_ROLE);
         const auto color = index.data(COLOR_ROLE).value<QColor>();
-        if (count.isValid() || color.isValid()) {
+        const QString note = index.data(NOTE_ROLE).toString();
+        if (count.isValid() || color.isValid() || !note.isEmpty()) {
             const QString number =
-                count.isValid() ? QLocale().toString(count.toInt()) : QString();
+                count.isValid() ? QLocale().toString(count.toInt()) : note;
             size.rwidth() += room(option.fontMetrics, number, color);
         }
         return size;
@@ -1022,6 +1032,7 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
     workshopItem->setIcon(0, artProvider.getIcon(getIconIdForType(QStringLiteral("workshop")),
                                                  core::IconContext::TreeView));
     workshopItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+    addPlanItem(workshopItem);
     addDictionaryItem(workshopItem);
     addWorkshopItems(workshopItem, project, registry);
     workshopItem->setExpanded(true);
@@ -1367,6 +1378,8 @@ QTreeWidgetItem* NavigatorPanel::addElementItem(QTreeWidgetItem* parent,
                                                 const core::ProjectElement& element,
                                                 const core::BookTypeRegistry& registry,
                                                 bool workshop) {
+    // A spinner that waits for the book turns while the tree is made (test of 24.11)
+    core::BusyPulse::beat();
     const core::ProjectManager& pm = m_book;
     const core::ElementForm form = core::BookProject::formOf(registry, element);
     // A kind the program does not have shows its icon on the book's card of its package
@@ -1405,6 +1418,20 @@ QTreeWidgetItem* NavigatorPanel::addElementItem(QTreeWidgetItem* parent,
         item->setData(0, CARD_ROLE, element.kind.packageId);
     }
     showCardColor(item, element);
+    // A text in the plan, without a file: in italics, "in the plan" at the right
+    if (form == core::ElementForm::Text && !workshop && element.hasKind() &&
+        element.file.isEmpty()) {
+        QFont italic = item->font(0);
+        italic.setItalic(true);
+        item->setFont(0, italic);
+        //: At the right of a text in the plan, without a file, in the Navigator. In Polish: w
+        //: planie
+        item->setData(0, NOTE_ROLE, tr("in the plan"));
+        //: The tooltip of a text in the plan in the Navigator. In Polish: Rozdział w planie, bez
+        //: pliku. Menu: Utwórz plik rozdziału
+        item->setToolTip(0, tr("A chapter in the plan, without a file. Menu: Create the Chapter "
+                               "File"));
+    }
     item->setIcon(0, itemIcon(item, iconId));
     item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled) | flags);
     return item;
@@ -1592,10 +1619,13 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
     // A kind the program makes elements of has its group also empty, so that one can be added
     // to it; the other kinds when they have elements. A kind of materials hidden in the
     // settings is not there, but its materials are in the number of Materials.
+    // The texts for publishers are on the card For Publishers, not in the Materials
     const QStringList hidden = MaterialList::hiddenKinds();
+    const core::KindRef publishingKind = pm.publishingKind();
     qsizetype hiddenCount = 0;
     for (KindGroup& group : groups) {
-        if (group.elements.isEmpty() && !core::ProjectManager::canAdd(group.kind)) {
+        if ((group.elements.isEmpty() && !core::ProjectManager::canAdd(group.kind)) ||
+            (publishingKind && group.kind.kind == publishingKind.kind)) {
             continue;
         }
         if (group.shelf == core::WorkshopGroup::Resources && hidden.contains(group.key)) {
@@ -1764,8 +1794,9 @@ QString NavigatorPanel::getDisplayTitle(const core::ProjectElement& element, boo
                                         bool isModified) {
     QString title = element.title;
     // Final status = no suffix, others show [Status] with the names of the "Set Status" menu;
-    // a file of the book outside its text has no status
-    if (isText && element.hasKind()) {
+    // a file of the book outside its text has no status, nor has a text in the plan, without a
+    // file
+    if (isText && element.hasKind() && !element.file.isEmpty()) {
         const QString status = core::ProjectManager::statusOf(element);
         QString statusName;
         if (status == QLatin1String("draft")) {
@@ -2340,7 +2371,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
     // Add...: the Add Element window with the kinds of the node, in bold: the command most
     // used there. In variant A (ADD_COMMANDS_SETTING) also the kinds most added there, by name
     // ("Add Chapter..."), which open the window with the kind chosen.
-    const auto addAddActions = [&]() {
+    const auto addAddActions = [&](bool named = true) {
         QAction* addAction = menu.addAction(
             artProvider.getIcon("book.addElement", core::IconContext::Menu),
             //: The command of a node of the Navigator: the Add Element window with the kinds
@@ -2352,7 +2383,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         addAction->setEnabled(addTargetOf(item).has_value());
         connect(addAction, &QAction::triggered, this, [this, item]() { addOn(item); });
         changing << addAction;
-        for (const core::KindRef& kind : namedKindsOf(item)) {
+        for (const core::KindRef& kind : named ? namedKindsOf(item) : QList<core::KindRef>()) {
             // "Add Story...", "Dodaj opowiadanie..."
             QAction* namedAction = menu.addAction(
                 artProvider.getIcon(iconIdOf(kind), core::IconContext::Menu),
@@ -2361,6 +2392,22 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             connect(namedAction, &QAction::triggered, this,
                     [this, item, kind]() { addOn(item, kind); });
             changing << namedAction;
+        }
+        // The commands of the modules whose kinds are added here: New Relation Map... where
+        // mind maps are added
+        for (const std::shared_ptr<core::IWindowEditorProvider>& provider :
+             windowEditorsAddedAt(item)) {
+            for (const core::WindowEditorCommand& command : provider->commands()) {
+                QAction* moduleAction = menu.addAction(
+                    artProvider.getIcon(QString::fromStdString(command.id),
+                                        core::IconContext::Menu),
+                    command.menuText);
+                connect(moduleAction, &QAction::triggered, this,
+                        [this, id = QString::fromStdString(command.id)]() {
+                            emit moduleCommandRequested(id);
+                        });
+                changing << moduleAction;
+            }
         }
     };
 
@@ -2475,8 +2522,20 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         addPropertiesAction();
 
     } else if (elementType == "text_element") {
-        // Text elements (chapters, front/back matter items)
-        addOpenAction();
+        // Text elements (chapters, front/back matter items); a text in the plan gets its file
+        if (const core::ProjectElement* element = pm.findElement(elementId);
+            element != nullptr && pm.isPlannedText(*element)) {
+            QAction* createAction = menu.addAction(
+                artProvider.getIcon("plotBoard.createFile", core::IconContext::Menu),
+                //: The menu of a text in the plan, without a file, in the Navigator. In
+                //: Polish: Utwó&rz plik rozdziału
+                tr("&Create the Chapter File"));
+            changing << createAction;
+            connect(createAction, &QAction::triggered, this,
+                    [this, elementId]() { emit requestCreateTextFile(elementId); });
+        } else {
+            addOpenAction();
+        }
         addAddActions();
         menu.addSeparator();
         addRenameDeleteActions();
@@ -2603,13 +2662,19 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
     } else if (elementType == "document") {
         // The project: its window comes with the types of books (stage 4); a click on the node
-        // shows the properties of the book, or of the series. Add... starts at the book when
-        // the Add Element window chooses where it adds.
-        if (addTargetOf(item)) {
-            addAddActions();
+        // shows the properties of the book, or of the series. New Volume... first, as the
+        // volumes are in the project; Add... after it starts at the book when the Add Element
+        // window chooses where it adds. A part or a chapter by its name (Add Part...) is added
+        // in the menu of the book or of its volume.
+        if (projectOpen) {
+            changing << addNewVolumeAction(menu);
             menu.addSeparator();
         }
-        addProjectActions(menu, changing);
+        if (addTargetOf(item)) {
+            addAddActions(false);
+            menu.addSeparator();
+        }
+        addProjectActions(menu);
         menu.addSeparator();
         addExpandCollapseActions();
 
@@ -2816,12 +2881,12 @@ void NavigatorPanel::addPlotBoardAction(QMenu& menu, const QString& elementId) {
     if (!elementId.isEmpty() && (!place || place->place != core::BookPlace::Main)) {
         return;
     }
-    // The icon of Book > Plot Board
+    // The icon of Book > Book Plan
     const QAction* action = menu.addAction(
         core::ArtProvider::getInstance().getIcon("view.plotBoard", core::IconContext::Menu),
         //: The command of the book, a part and a text of the main section in the Navigator:
-        //: the plot board with its card chosen. In Polish: Pokaż na &tablicy fabuły
-        tr("Show on the Plot &Board"));
+        //: the plan of the book with its card chosen. In Polish: Pokaż w p&lanie książki
+        tr("Show in the &Book Plan"));
     connect(action, &QAction::triggered, this,
             [this, elementId]() { emit requestShowOnPlotBoard(elementId); });
     menu.addSeparator();
@@ -3119,11 +3184,34 @@ bool NavigatorPanel::requestPageOf(const QTreeWidgetItem* item, bool keys) {
         emit requestOpenBookDictionary(keys);
         return true;
     }
+    if (item != nullptr && typeOf(item) == QLatin1String(BOOK_PLAN_TYPE)) {
+        emit requestOpenBookPlan(keys);
+        return true;
+    }
+    if (item != nullptr && typeOf(item) == QLatin1String(PUBLISHING_TYPE)) {
+        emit requestOpenPublishing(keys);
+        return true;
+    }
     if (const std::optional<QString> list = listOf(item)) {
         emit requestOpenMaterialList(*list, keys);
         return true;
     }
     return false;
+}
+
+void NavigatorPanel::addPlanItem(QTreeWidgetItem* workshopItem) {
+    auto* item = new QTreeWidgetItem(workshopItem);
+    //: The first node of the Workshop in the Navigator: the board, the outline and the
+    //: chronology of the book on their tab. In Polish: Plan książki
+    item->setText(0, tr("Book Plan"));
+    //: In Polish: Tablica, konspekt i chronologia książki
+    item->setToolTip(0, tr("The board, the outline and the chronology of the book"));
+    item->setData(0, Qt::UserRole, WORKSHOP_ID_PREFIX + QStringLiteral("plan"));
+    item->setData(0, Qt::UserRole + 1, QString::fromLatin1(BOOK_PLAN_TYPE));
+    const QString iconId = QStringLiteral("view.plotBoard");
+    item->setData(0, ICON_ROLE, iconId);
+    item->setIcon(0, itemIcon(item, iconId));
+    item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 }
 
 void NavigatorPanel::addDictionaryItem(QTreeWidgetItem* workshopItem) {
@@ -3137,6 +3225,18 @@ void NavigatorPanel::addDictionaryItem(QTreeWidgetItem* workshopItem) {
     item->setData(0, ICON_ROLE, iconId);
     item->setIcon(0, itemIcon(item, iconId));
     item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+
+    // The card For Publishers after it, as Book > For Publishers
+    auto* publishing = new QTreeWidgetItem(workshopItem);
+    //: The node at the top of the Workshop in the Navigator, after Book Dictionary, that shows
+    //: the card of the texts for publishers and the set on a tab. In Polish: Dla wydawnictwa
+    publishing->setText(0, tr("For Publishers"));
+    publishing->setData(0, Qt::UserRole, WORKSHOP_ID_PREFIX + QStringLiteral("publishing"));
+    publishing->setData(0, Qt::UserRole + 1, QString::fromLatin1(PUBLISHING_TYPE));
+    const QString publishingIcon = QStringLiteral("book.publishing");
+    publishing->setData(0, ICON_ROLE, publishingIcon);
+    publishing->setIcon(0, itemIcon(publishing, publishingIcon));
+    publishing->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 }
 
 AddChooser NavigatorPanel::addChooser() {
@@ -3218,6 +3318,27 @@ std::optional<AddTarget> NavigatorPanel::addTargetOf(const QTreeWidgetItem* item
         return target;
     }
     return std::nullopt;
+}
+
+std::vector<std::shared_ptr<core::IWindowEditorProvider>> NavigatorPanel::windowEditorsAddedAt(
+    const QTreeWidgetItem* item) const {
+    std::vector<std::shared_ptr<core::IWindowEditorProvider>> providers;
+    const std::optional<AddTarget> target = addTargetOf(item);
+    if (!target || target->scope != AddTarget::Scope::Workshop) {
+        return providers;
+    }
+    for (const core::KindRef& kind : target->kinds) {
+        if (!kind || kind.kind->editor.isEmpty()) {
+            continue;
+        }
+        std::shared_ptr<core::IWindowEditorProvider> provider =
+            core::windowEditorProvider(kind.kind->editor);
+        if (provider && std::find(providers.cbegin(), providers.cend(), provider) ==
+                            providers.cend()) {
+            providers.push_back(std::move(provider));
+        }
+    }
+    return providers;
 }
 
 QList<core::KindRef> NavigatorPanel::namedKindsOf(const QTreeWidgetItem* item) const {
@@ -3311,8 +3432,10 @@ void NavigatorPanel::addOn(const QTreeWidgetItem* item, const core::KindRef& kin
     if (!target || !changeRefusal().isEmpty()) {
         return;
     }
+    // A kind chosen by its name: its small window, without the kinds
     if (kind) {
         target->kind = kind;
+        target->byName = true;
     }
     emit requestAdd(*target);
 }
@@ -3825,6 +3948,8 @@ void NavigatorPanel::expandItemsById(const QStringList& ids) {
     auto& logger = core::Logger::getInstance();
 
     for (const QString& id : ids) {
+        // A spinner that waits for the book turns meanwhile (test of 24.11)
+        core::BusyPulse::beat();
         QTreeWidgetItem* item = nullptr;
 
         if (id.startsWith(QLatin1String("book:"))) {

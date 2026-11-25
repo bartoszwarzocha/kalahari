@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_stats_pages.cpp
 /// @brief Settings > Statistics and Goals: Bar and Panel, Counting, Notifications and Colors
@@ -171,9 +172,9 @@ TEST_CASE("Statistics settings: Counting, a cut to the clippings under the words
     REQUIRE(counted != nullptr);
     REQUIRE(keepWords != nullptr);
 
-    // By default a cut lowers the words of the day, as a deletion does
+    // By default a cut leaves the words of the day as they were (test of 22.11)
     CHECK(counted->currentData().toString() == QStringLiteral("net"));
-    CHECK_FALSE(keepWords->isChecked());
+    CHECK(keepWords->isChecked());
     CHECK(keepWords->isEnabled());
 
     // Nothing lowers all the words written: the choice does not matter there
@@ -182,9 +183,11 @@ TEST_CASE("Statistics settings: Counting, a cut to the clippings under the words
     choose(counted, QStringLiteral("net"));
     CHECK(keepWords->isEnabled());
 
-    keepWords->setChecked(true);
+    // Off: a cut lowers them, as a deletion does
+    keepWords->setChecked(false);
     CHECK(page.apply() == std::vector<std::string>{"stats.clippingsKeepWords"});
-    CHECK(core::SettingsManager::getInstance().get<bool>("stats.clippingsKeepWords"));
+    CHECK_FALSE(core::SettingsManager::getInstance().get<bool>("stats.clippingsKeepWords"));
+    core::SettingsManager::getInstance().set<bool>("stats.clippingsKeepWords", true);
 }
 
 TEST_CASE("Statistics settings: Notifications", "[gui][settings][statistics]")
@@ -224,7 +227,7 @@ TEST_CASE("Statistics settings: the colors of each theme, kept only when changed
     page.load();
     QGroupBox* dark = darkColors(page);
     const QList<gui::ColorConfigWidget*> colors = dark->findChildren<gui::ColorConfigWidget*>();
-    REQUIRE(colors.size() == 17);
+    REQUIRE(colors.size() == 21);
     // The line and the times of writing take the theme's color (#FFAA00 of the Dark theme),
     // the grid and the frame a share of it over the background; the others are the theme file's
     const QColor orange(QStringLiteral("#FFAA00"));
@@ -259,7 +262,7 @@ TEST_CASE("Statistics settings: the colors of each theme, kept only when changed
     another.load();
     const QList<gui::ColorConfigWidget*> followed =
         darkColors(another)->findChildren<gui::ColorConfigWidget*>();
-    REQUIRE(followed.size() == 17);
+    REQUIRE(followed.size() == 21);
     CHECK(followed[3]->color() == QColor(QStringLiteral("#00AAFF")));
     CHECK(followed[2]->color() == gui::StatsColors::themeDefault(
                                       "statsFrame", QColor(QStringLiteral("#00AAFF")), background));

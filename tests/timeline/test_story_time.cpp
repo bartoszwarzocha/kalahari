@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_story_time.cpp
 /// @brief The time of a story: what the writer types, its text in dates and in days of the
@@ -126,6 +127,117 @@ TEST_CASE("The writer types days of the story", "[story_time]") {
     CHECK(parsed(QStringLiteral("Days 5-7")) == days);
 }
 
+TEST_CASE("The writer types seasons, halves of a year and years in words", "[story_time]") {
+    SECTION("A season with its year") {
+        const StoryTime spring = parsed(QStringLiteral("wiosna 1931"));
+        CHECK(spring.precision == StoryTime::Precision::Month);
+        CHECK(spring.first == dayOf(1931, 3, 1));
+        CHECK(spring.last == dayOf(1931, 5, 31));
+        CHECK(spring.months() == 3);
+        CHECK(parsed(QStringLiteral("Wiosną 1931")) == spring);
+        CHECK(parsed(QStringLiteral("na wiosnę 1931")) == spring);
+        CHECK(parsed(QStringLiteral("spring 1931")) == spring);
+        CHECK(parsed(QStringLiteral("in the spring of 1931")) == spring);
+        const StoryTime summer = parsed(QStringLiteral("lato 1931"));
+        CHECK(summer.first == dayOf(1931, 6, 1));
+        CHECK(summer.last == dayOf(1931, 8, 31));
+        CHECK(parsed(QStringLiteral("latem 1931")) == summer);
+        CHECK(parsed(QStringLiteral("w lecie 1931")) == summer);
+        CHECK(parsed(QStringLiteral("jesień 1931")).first == dayOf(1931, 9, 1));
+        CHECK(parsed(QStringLiteral("autumn 1931")).last == dayOf(1931, 11, 30));
+    }
+    SECTION("Winter has the year of its January") {
+        const StoryTime winter = parsed(QStringLiteral("zima 1931"));
+        CHECK(winter.first == dayOf(1930, 12, 1));
+        CHECK(winter.last == dayOf(1931, 2, 28));
+        CHECK(parsed(QStringLiteral("zimą 1931")) == winter);
+        CHECK(parsed(QStringLiteral("winter 1931")) == winter);
+        CHECK(parsed(QStringLiteral("zima 1930/31")) == winter);
+        CHECK(parsed(QStringLiteral("zima 1930/1931")) == winter);
+        CHECK_FALSE(StoryTime::parse(QStringLiteral("zima 1930/33"), DAY_ONE).has_value());
+        // So it comes before spring of the same year
+        CHECK(winter.start() < parsed(QStringLiteral("wiosna 1931")).start());
+    }
+    SECTION("Halves of a year") {
+        const StoryTime first = parsed(QStringLiteral("pierwsza połowa 1931"));
+        CHECK(first.first == dayOf(1931, 1, 1));
+        CHECK(first.last == dayOf(1931, 6, 30));
+        CHECK(first.months() == 6);
+        CHECK(parsed(QStringLiteral("w pierwszej połowie 1931")) == first);
+        CHECK(parsed(QStringLiteral("I połowa 1931")) == first);
+        CHECK(parsed(QStringLiteral("pierwsza połowa roku 1931")) == first);
+        CHECK(parsed(QStringLiteral("the first half of 1931")) == first);
+        const StoryTime second = parsed(QStringLiteral("druga połowa 1931"));
+        CHECK(second.first == dayOf(1931, 7, 1));
+        CHECK(second.last == dayOf(1931, 12, 31));
+        CHECK(parsed(QStringLiteral("II połowa 1931")) == second);
+        CHECK(parsed(QStringLiteral("second half of 1931")) == second);
+    }
+    SECTION("A year in words") {
+        const StoryTime year = parsed(QStringLiteral("1931"));
+        CHECK(parsed(QStringLiteral("rok 1931")) == year);
+        CHECK(parsed(QStringLiteral("w roku 1931")) == year);
+        CHECK(parsed(QStringLiteral("the year 1931")) == year);
+        CHECK(parsed(QStringLiteral("rok 44 p.n.e.")) == parsed(QStringLiteral("44 p.n.e.")));
+        CHECK_FALSE(StoryTime::parse(QStringLiteral("rok"), DAY_ONE).has_value());
+    }
+    SECTION("Without its year: the first that does not end before day one") {
+        // Day one is 14 April 1931: spring 1931 has it, winter comes after it
+        CHECK(parsed(QStringLiteral("wiosna")) == parsed(QStringLiteral("wiosna 1931")));
+        CHECK(parsed(QStringLiteral("lato")) == parsed(QStringLiteral("lato 1931")));
+        CHECK(parsed(QStringLiteral("zima")) == parsed(QStringLiteral("zima 1932")));
+        CHECK(parsed(QStringLiteral("pierwsza połowa")) ==
+              parsed(QStringLiteral("pierwsza połowa 1931")));
+        CHECK(parsed(QStringLiteral("druga połowa")) ==
+              parsed(QStringLiteral("druga połowa 1931")));
+        // Summer, then winter: in the order of the story
+        CHECK(parsed(QStringLiteral("lato")).start() < parsed(QStringLiteral("zima")).start());
+    }
+    SECTION("Months from one to another") {
+        const StoryTime months = parsed(QStringLiteral("marzec – maj 1931"));
+        CHECK(months == parsed(QStringLiteral("wiosna 1931")));
+        const StoryTime turn = parsed(QStringLiteral("listopad 1931 – luty 1932"));
+        CHECK(turn.first == dayOf(1931, 11, 1));
+        CHECK(turn.last == dayOf(1932, 2, 29));
+        CHECK(turn.months() == 4);
+        CHECK(parsed(QStringLiteral("April – July 1931")).months() == 4);
+    }
+    SECTION("The program writes them in words") {
+        CHECK(polishDates(QStringLiteral("spring 1931")) == QStringLiteral("wiosna 1931"));
+        CHECK(polishDates(QStringLiteral("zima 1930/31")) == QStringLiteral("zima 1931"));
+        CHECK(polishDates(QStringLiteral("first half of 1931")) ==
+              QStringLiteral("pierwsza połowa 1931"));
+        CHECK(polishDates(QStringLiteral("kwiecień – lipiec 1931")) ==
+              QStringLiteral("kwiecień – lipiec 1931"));
+        CHECK(parsed(QStringLiteral("jesień 1931")).dateText(ENGLISH) ==
+              QStringLiteral("autumn 1931"));
+        CHECK(parsed(QStringLiteral("druga połowa 1931")).dateText(ENGLISH) ==
+              QStringLiteral("second half of 1931"));
+    }
+}
+
+TEST_CASE("The writer types days of the story in words", "[story_time]") {
+    CHECK(parsed(QStringLiteral("Dzień pierwszy")).first == DAY_ONE);
+    CHECK(parsed(QStringLiteral("dzień drugi")).first == DAY_ONE + 1);
+    CHECK(parsed(QStringLiteral("Drugiego dnia")).first == DAY_ONE + 1);
+    CHECK(parsed(QStringLiteral("dnia trzeciego")).first == DAY_ONE + 2);
+    CHECK(parsed(QStringLiteral("trzeci dzień")).first == DAY_ONE + 2);
+    CHECK(parsed(QStringLiteral("w piątym dniu")).first == DAY_ONE + 4);
+    CHECK(parsed(QStringLiteral("dzień dwunasty")).first == DAY_ONE + 11);
+    CHECK(parsed(QStringLiteral("dzień dwudziesty pierwszy")).first == DAY_ONE + 20);
+    CHECK(parsed(QStringLiteral("Dzień drugi, wieczorem")) ==
+          parsed(QStringLiteral("Dzień 2, wieczorem")));
+    CHECK(parsed(QStringLiteral("day one")).first == DAY_ONE);
+    CHECK(parsed(QStringLiteral("Day twenty-one")).first == DAY_ONE + 20);
+    CHECK(parsed(QStringLiteral("the second day")).first == DAY_ONE + 1);
+    CHECK(parsed(QStringLiteral("on the third day, at night")) ==
+          parsed(QStringLiteral("Day 3, at night")));
+    for (const char* text : {"dzień", "dzień zerowy", "the day", "dzień sto pierwszy"}) {
+        INFO(text);
+        CHECK_FALSE(StoryTime::parse(QString::fromUtf8(text), DAY_ONE).has_value());
+    }
+}
+
 TEST_CASE("The writer types a part of the day", "[story_time]") {
     CHECK(parsed(QStringLiteral("14 kwietnia 1931, rano")).part == StoryTime::Part::Morning);
     CHECK(parsed(QStringLiteral("Dzień 3, noc")).part == StoryTime::Part::Night);
@@ -187,7 +299,9 @@ TEST_CASE("What the program writes reads back as the same time", "[story_time]")
     numbers.dates = DateStyle::Numbers;
     for (const char* text :
          {"14 kwietnia 1931, rano", "16–17 kwietnia 1931", "2 marca – 5 kwietnia 1931",
-          "marzec 1931", "ok. 1931", "15 marca 44 p.n.e.", "Dzień 3, 19:30",
+          "marzec 1931", "ok. 1931", "15 marca 44 p.n.e.", "Dzień 3, 19:30", "wiosna 1931",
+          "zima 1931", "pierwsza połowa 1931", "druga połowa 44 p.n.e.",
+          "listopad 1931 – luty 1932",
           "30 grudnia 1931 – 2 stycznia 1932, w nocy", "ok. 22 stycznia 1931, po południu"}) {
         INFO(text);
         const StoryTime time = parsed(QString::fromUtf8(text));
@@ -237,6 +351,13 @@ TEST_CASE("A time moves by days and by months", "[story_time]") {
           parsed(QStringLiteral("grudzień 1930")));
     CHECK(parsed(QStringLiteral("1 stycznia 1 n.e.")).movedByMonths(-1) ==
           parsed(QStringLiteral("1 grudnia 1 p.n.e.")));
+    // Months in a row keep how many they are
+    CHECK(parsed(QStringLiteral("zima 1931")).movedByMonths(3) ==
+          parsed(QStringLiteral("wiosna 1931")));
+    CHECK(parsed(QStringLiteral("pierwsza połowa 1931")).movedByMonths(6) ==
+          parsed(QStringLiteral("druga połowa 1931")));
+    CHECK(parsed(QStringLiteral("wiosna 1931")).movedByDays(92) ==
+          parsed(QStringLiteral("czerwiec – sierpień 1931")));
 }
 
 TEST_CASE("A file keeps a time as an object", "[story_time]") {
@@ -248,7 +369,11 @@ TEST_CASE("A file keeps a time as an object", "[story_time]") {
     CHECK(json.value(QStringLiteral("approx")).toBool());
     CHECK(StoryTime::fromJson(json) == days);
 
-    for (const char* text : {"marzec 1931", "1931", "15 marca 44 p.n.e.", "Dzień 3, 19:05"}) {
+    const QJsonObject spring = parsed(QStringLiteral("wiosna 1931")).toJson();
+    CHECK(spring.value(QStringLiteral("from")).toString() == QStringLiteral("1931-03"));
+    CHECK(spring.value(QStringLiteral("to")).toString() == QStringLiteral("1931-05"));
+    for (const char* text : {"marzec 1931", "1931", "15 marca 44 p.n.e.", "Dzień 3, 19:05",
+                             "zima 1931", "listopad 1931 – luty 1932"}) {
         INFO(text);
         const StoryTime time = parsed(QString::fromUtf8(text));
         CHECK(StoryTime::fromJson(time.toJson()) == time);

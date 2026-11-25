@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file card_page.h
 /// @brief The card of a character, a location or an item of the Workshop: short in the
@@ -94,6 +95,7 @@ class RelationsBox;
 /// what is typed in it. A book open read-only shows it all and changes nothing.
 class CardPage : public QWidget {
     Q_OBJECT
+    Q_MOC_INCLUDE("kalahari/gui/widgets/relations_box.h")
 
 public:
     /// @brief Side of the portrait of the short card
@@ -285,6 +287,10 @@ signals:
     /// @brief Card @p elementId was made with a relation: the Navigator shows it
     void cardAdded(const QString& elementId);
 
+    /// @brief A relation was added on the card (RelationsBox::relationAdded())
+    void relationAdded(kalahari::gui::RelationsBox* box, const QString& cardId,
+                       const QString& otherId, const QString& relationId);
+
     /// @brief Open Settings > Cards
     void requestSettings();
 
@@ -446,6 +452,10 @@ private:
     /// @brief Give the line @p watched of a field of the type "card", which got the keys, the
     /// names of the cards as they are now
     void fillSuggestions(const QObject* watched);
+
+    /// @brief The list of all the cards under the line @p line of a field of the type "card":
+    /// its arrow, a click in it or Alt+Down (test of 22.11); typing narrows it
+    void showAllCards(QLineEdit* line);
 
     /// @brief Give the card the data @p card, saying so when it cannot be saved
     void saveCard(const core::CardData& card);

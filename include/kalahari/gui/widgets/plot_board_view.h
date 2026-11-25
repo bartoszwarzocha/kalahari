@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plot_board_view.h
 /// @brief The cards of the plot board: the texts of the book in the order of the book, in
@@ -51,9 +52,11 @@ struct PlotCardEdit {
 ///
 /// The keys: the arrows go to the card in their direction, Home and End to the first and the
 /// last card; Ctrl with an arrow moves the card (in a grid Ctrl+Up and Ctrl+Down by a row);
-/// Enter opens it, F2 edits it on the board, Insert adds a text after it, Delete deletes it,
-/// Alt+Insert adds a scene at the end of its text; Ctrl+X marks it to move and Ctrl+V moves the
-/// card marked after it (Esc forgets the mark);
+/// Enter opens it (a text in the plan gets its file, a scene in the plan is written), F2 or the
+/// pencil on the card edits it on the board, Insert adds a text after it, Ctrl+Shift+Insert a
+/// text in the plan, Delete deletes it, Alt+Insert adds a scene at the end of its text and
+/// Alt+Shift+Insert a scene written (a scene break); Ctrl+X marks it to move and Ctrl+V moves
+/// the card marked after it (Esc forgets the mark);
 /// Ctrl+Z and Ctrl+Y undo and redo a change of the board; Alt+Enter shows the card in the
 /// Properties panel; the menu key and Shift+F10 open its menu. The view only asks for the
 /// changes: whoever shows it makes them and gives it the cards again.
@@ -64,6 +67,10 @@ struct PlotCardEdit {
 /// card it is dropped on. On a scene the keys move, add and delete scenes of its
 /// text: Ctrl with the arrows along the scenes moves it among them, with the other arrows to
 /// the text beside (moveToTextRequested()), Insert adds a scene after it, Delete deletes it.
+///
+/// A text in the plan (PlotCard::planned, without a file) and a scene in the plan among the
+/// scenes written have a dashed frame; the button at the bottom of the card ("Create", "Write
+/// the Scene") does what Enter does. In columns a text without scenes says so under its card.
 class PlotBoardView : public QAbstractScrollArea {
     Q_OBJECT
 
@@ -98,7 +105,10 @@ public:
         Open,         ///< Open its text in the editor (Enter)
         Edit,         ///< Edit the card on the board (F2)
         Add,          ///< Add a text after it (Insert)
+        AddPlanned,   ///< Add a text in the plan after it (Ctrl+Shift+Insert)
         AddScene,     ///< Add a scene at the end of its text (Alt+Insert)
+        NewScene,     ///< Add a scene written, a scene break: after a scene, else at the end of
+                      ///< the text (Alt+Shift+Insert)
         Delete,       ///< Delete it (Delete)
         Cut,          ///< Mark it to move (Ctrl+X)
         Paste,        ///< Move the card marked after it (Ctrl+V)
@@ -148,9 +158,9 @@ public:
     [[nodiscard]] static Key boardKey(const QKeyEvent* event);
 
     /// @brief Whether @p key may ask for what it does now: Enter and Alt+Enter need card
-    /// @p cardId chosen; F2, Alt+Insert, Delete and Ctrl+X need it in a book that can be changed
-    /// (not @p readOnly); Insert needs such a book, and Ctrl+V a card @p marked too; the other
-    /// keys may always
+    /// @p cardId chosen; F2, Alt+Insert, Alt+Shift+Insert, Delete and Ctrl+X need it in a book
+    /// that can be changed (not @p readOnly); Insert and Ctrl+Shift+Insert need such a book,
+    /// and Ctrl+V a card @p marked too; the other keys may always
     [[nodiscard]] static bool keyAllowed(Key key, bool readOnly, const QString& cardId,
                                          const QString& marked);
 
@@ -221,6 +231,25 @@ public:
     /// @brief Whether the book is open read-only: the keys and the mouse change nothing
     void setReadOnly(bool readOnly);
 
+    /// @brief Which scenes the board shows (PlotBoard::SCENES_BOTH...): a scene in the plan
+    /// among the scenes written has the button "Write the Scene" with SCENES_BOTH, and the
+    /// notes under the texts without scenes say what they lack
+    void setScenesVariant(const QString& variant);
+
+    /// @brief Where the pencil of card @p cardId is, in the coordinates of the viewport; empty
+    /// when it has none (a book read-only) or the board has no such card
+    [[nodiscard]] QRect pencilRect(const QString& cardId) const;
+
+    /// @brief Where the button at the bottom of card @p cardId is ("Create", "Write the
+    /// Scene"), in the coordinates of the viewport; empty when it has none
+    [[nodiscard]] QRect planButtonRect(const QString& cardId) const;
+
+    /// @brief What the button at the bottom of card @p card says; empty: it has none
+    [[nodiscard]] static QString planButtonText(const PlotCard& card);
+
+    /// @brief The note under text @p textId in columns ("One scene: ..."); empty: none
+    [[nodiscard]] QString noteUnder(const QString& textId) const;
+
     /// @brief Card @p elementId marked to move (Ctrl+X); empty: none
     void setMarkedCard(const QString& elementId);
     /// @brief The card marked to move (Ctrl+X); empty: none
@@ -275,8 +304,14 @@ signals:
     /// @brief Add a text after the card (Insert), a scene after the card of a scene; empty: a
     /// text at the end of the board
     void addRequested(const QString& afterId);
+    /// @brief Add a text in the plan after the card (Ctrl+Shift+Insert), after the text of a
+    /// scene; empty: at the end of the board
+    void addPlannedRequested(const QString& afterId);
     /// @brief Add a scene at the end of the text of the card (Alt+Insert)
     void addSceneRequested(const QString& cardId);
+    /// @brief Add a scene written after the scene of the card, or at the end of the text of the
+    /// card (Alt+Shift+Insert)
+    void newSceneRequested(const QString& cardId);
     /// @brief Delete the card's text (Delete)
     void deleteRequested(const QString& elementId);
     /// @brief Mark the card to move (Ctrl+X)
@@ -322,6 +357,12 @@ private:
         int index = 0;   ///< Its place in the band; of a scene, its text's
         int scene = -1;  ///< Of a scene: its place among the scenes of its text
         int column = 0;  ///< In columns: the column of its text, from 0
+        QRect rect;      ///< Where it is
+    };
+    /// @brief A note under a text without scenes, in columns
+    struct NotePlace {
+        QString textId;  ///< Its text
+        QString text;    ///< What it says
         QRect rect;      ///< Where it is
     };
     /// @brief The drawer of the scenes of a text in a grid
@@ -424,6 +465,15 @@ private:
     [[nodiscard]] QString scenesNote(const PlotCard& card) const;
     /// @brief Whether the card of @p place is a scene in the plan among scenes of its text
     [[nodiscard]] bool isPlanBesideText(const CardPlace& place) const;
+    /// @brief Whether the card of @p place has a dashed frame: a text in the plan, a scene in
+    /// the plan among scenes written
+    [[nodiscard]] bool isDashed(const CardPlace& place) const;
+    /// @brief Where the pencil of @p place is, in the coordinates of the contents; empty: none
+    [[nodiscard]] QRect pencilRectOf(const CardPlace& place) const;
+    /// @brief Where the button at the bottom of @p place is; empty: none
+    [[nodiscard]] QRect planButtonRectOf(const CardPlace& place) const;
+    /// @brief What the note under text @p card says in columns; empty: none
+    [[nodiscard]] QString noteOf(const PlotCard& card) const;
     [[nodiscard]] const CardPlace* cardAt(const QPoint& pos) const;
     [[nodiscard]] QPoint contentsPos(const QPoint& viewportPos) const;
 
@@ -457,6 +507,9 @@ private:
     void paintPlotLine(QPainter& painter, const PlotCard& card, const QRect& inner,
                        int right) const;
     void paintCurrentRing(QPainter& painter, const QRect& rect) const;
+    void paintPencil(QPainter& painter, const QRect& rect) const;
+    void paintPlanButton(QPainter& painter, const PlotCard& card, const QRect& rect) const;
+    void paintNote(QPainter& painter, const NotePlace& note) const;
     /// @brief The color of the texts on the board between the cards (@p quiet: of the notes),
     /// readable on its background
     [[nodiscard]] QColor boardTextColor(bool quiet) const;
@@ -486,6 +539,7 @@ private:
     QList<CardPlace> m_cards;
     QList<BandPlace> m_bandPlaces;
     QList<DrawerPlace> m_drawers;
+    QList<NotePlace> m_notes;  ///< Under the texts without scenes, in columns
     PlotBand m_front;                     ///< setSections()
     PlotBand m_back;                      ///< setSections()
     bool m_showSections = false;          ///< setShowSections()
@@ -502,6 +556,7 @@ private:
     Background m_background = Background::Theme;
     QStringList m_povs;  ///< The points of view of the cards, for their colors
     bool m_readOnly = false;
+    QString m_scenesVariant = QString::fromLatin1(PlotBoard::SCENES_BOTH);
     QString m_current;
     QString m_marked;
     QPoint m_pressPos;            ///< Where the left button was pressed, in the viewport

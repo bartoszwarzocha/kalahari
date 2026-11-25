@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_statistics_collector.cpp
 /// @brief Unit tests for StatisticsCollector (OpenSpec #00042 Task 7.17)
@@ -18,6 +19,7 @@
 #include <kalahari/core/writing_statistics.h>
 
 #include <QApplication>
+#include <QKeyEvent>
 #include <QMimeData>
 #include <QTemporaryDir>
 #include <memory>
@@ -297,7 +299,7 @@ TEST_CASE("StatisticsCollector: words typed and deleted count to the session",
     collector.startSession();
 
     editor.setCursorPosition({0, 11});
-    editor.insertText(QStringLiteral(" and more"));
+    editor.typeText(QStringLiteral(" and more"));
     waitForCount();
     CHECK(collector.wordCount() == 4);
     CHECK(collector.wordsWrittenThisSession() == 2);
@@ -330,7 +332,7 @@ TEST_CASE("StatisticsCollector: a text loaded into the editor is not written",
 
     // The words typed in it afterwards are
     editor.setCursorPosition({1, 11});
-    editor.insertText(QStringLiteral(" Third"));
+    editor.typeText(QStringLiteral(" Third"));
     waitForCount();
     CHECK(collector.wordsWrittenThisSession() == 1);
 
@@ -351,7 +353,7 @@ TEST_CASE("StatisticsCollector: text moved to another text is not written or del
 
     // The words typed right before it are counted, the words moved are not
     editor.setCursorPosition({0, 14});
-    editor.insertText(QStringLiteral(" Eight"));
+    editor.typeText(QStringLiteral(" Eight"));
     REQUIRE(editor.removeTextFrom({1, 0}));
     CHECK(collector.wordCount() == 4);
     waitForCount();
@@ -366,7 +368,7 @@ TEST_CASE("StatisticsCollector: text moved to another text is not written or del
 
     // The words typed after it are writing again
     editor.setCursorPosition({1, 20});
-    editor.insertText(QStringLiteral(" nine"));
+    editor.typeText(QStringLiteral(" nine"));
     waitForCount();
     CHECK(collector.wordsWrittenThisSession() == 2);
 
@@ -461,7 +463,7 @@ TEST_CASE("StatisticsCollector: follows one editor at a time", "[editor][statist
 
     SECTION("the words just typed in the editor left count to the session") {
         first.setCursorPosition({0, 7});
-        first.insertText(QStringLiteral(" more words"));
+        first.typeText(QStringLiteral(" more words"));
         collector.setBookEditor(&second);  // before the count after the edit
         CHECK(collector.wordsWrittenThisSession() == 2);
 
@@ -475,7 +477,7 @@ TEST_CASE("StatisticsCollector: follows one editor at a time", "[editor][statist
     SECTION("the edits in the editor left are not followed") {
         collector.setBookEditor(&second);
         first.setCursorPosition({0, 7});
-        first.insertText(QStringLiteral(" more words"));
+        first.typeText(QStringLiteral(" more words"));
         waitForCount();
         CHECK(collector.wordCount() == 3);
         CHECK(collector.wordsWrittenThisSession() == 0);
@@ -533,7 +535,7 @@ TEST_CASE("StatisticsCollector: the record of writing goes to the book and the j
     collector.startSession();
 
     editor->setCursorPosition({0, 11});
-    editor->insertText(QStringLiteral(" and more"));
+    editor->typeText(QStringLiteral(" and more"));
     waitForCount();
     REQUIRE(collector.pendingActivity().size() == 1);
     const kalahari::core::WritingActivity entry = collector.pendingActivity().first();
@@ -578,18 +580,101 @@ TEST_CASE("StatisticsCollector: a large change at once is not writing", "[editor
     QObject::connect(&collector, &StatisticsCollector::largeChangeSkipped, &collector,
                      [&skipped](int words) { skipped.append(words); });
 
-    editor.setCursorPosition({0, 5});
-    editor.insertText(QStringLiteral(" one two three four five six seven"));
+    // Typed over a selection of more words than the limit: they are not deleted
+    editor.setSelection({{0, 0}, {0, 5}});
+    editor.typeText(QStringLiteral("One two three four five six seven"));
     waitForCount();
-    CHECK(collector.wordCount() == 8);
-    CHECK(collector.wordsWrittenThisSession() == 0);
+    REQUIRE(collector.wordCount() == 7);
+    editor.setSelection({{0, 0}, {0, int(editor.plainText().length())}});
+    editor.typeText(QStringLiteral("x"));
+    waitForCount();
+    CHECK(collector.wordCount() == 1);
+    CHECK(collector.wordsDeletedThisSession() == 0);
     REQUIRE(skipped.size() == 1);
-    CHECK(skipped.first() == 7);
+    CHECK(skipped.first() == 6);
 
-    // What is written after it counts from the text with those words
-    editor.insertText(QStringLiteral(" eight"));
+    // What is written after it counts from the text with those words: the six words more
+    // than "Start", and "eight"
+    editor.typeText(QStringLiteral(" eight"));
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 7);
+
+    collector.endSession();
+    collector.setBookEditor(nullptr);
+}
+
+TEST_CASE("StatisticsCollector: only the writer's own writing is words written or deleted",
+          "[editor][statistics]") {
+    // Test of 22.11: the graph of writing jumped with the captions, the clippings and their
+    // Undo; it shows the writing only
+    BookEditor editor;
+    editor.fromKml(createKml("One two"));
+    StatisticsCollector collector;
+    collector.setBookEditor(&editor);
+    collector.startSession();
+    editor.setCursorPosition({0, 7});
+
+    // Typed
+    editor.typeText(QStringLiteral(" three"));
+    CHECK(collector.wordsWrittenThisSession() == 1);
+
+    // Put in by a command (a field, a caption, a replacement), with its Undo and Redo: not
+    // written, not deleted
+    editor.insertText(QStringLiteral(" four five"));
+    CHECK_FALSE(editor.isWriting());
+    CHECK(collector.wordCount() == 5);
+    editor.undo();
+    CHECK(collector.wordCount() == 3);
+    editor.redo();
+    CHECK(collector.wordCount() == 5);
     waitForCount();
     CHECK(collector.wordsWrittenThisSession() == 1);
+    CHECK(collector.wordsDeletedThisSession() == 0);
+
+    // Typed right before a command, at once: the words typed are written
+    editor.typeText(QStringLiteral(" six"));
+    editor.insertText(QStringLiteral(" seven eight"));
+    CHECK(collector.wordsWrittenThisSession() == 2);
+    CHECK(collector.wordCount() == 8);
+
+    // The keys of the text: a character typed, Backspace
+    QKeyEvent typed(QEvent::KeyPress, Qt::Key_Space, Qt::NoModifier, QStringLiteral(" "));
+    QApplication::sendEvent(&editor, &typed);
+    QKeyEvent letter(QEvent::KeyPress, Qt::Key_X, Qt::NoModifier, QStringLiteral("x"));
+    QApplication::sendEvent(&editor, &letter);
+    CHECK(collector.wordsWrittenThisSession() == 3);
+    QKeyEvent backspace(QEvent::KeyPress, Qt::Key_Backspace, Qt::NoModifier);
+    QApplication::sendEvent(&editor, &backspace);
+    CHECK(collector.wordsDeletedThisSession() == 1);
+    CHECK_FALSE(editor.isWriting());
+
+    // Cut, and its Undo: deleted, and written back
+    const QString text = editor.plainText();
+    const int six = int(text.indexOf(QStringLiteral(" six")));
+    editor.setSelection({{0, six}, {0, six + 4}});
+    editor.cut();
+    CHECK(collector.wordCount() == 7);
+    CHECK(collector.wordsDeletedThisSession() == 2);
+    editor.undo();
+    CHECK(collector.wordCount() == 8);
+    CHECK(collector.wordsWrittenThisSession() == 4);
+
+    // The text of a note written in its frame (HandWriting)
+    {
+        const BookEditor::HandWriting hand(editor);
+        CHECK(editor.isWriting());
+        editor.setCursorPosition({0, int(editor.plainText().length())});
+        editor.insertText(QStringLiteral(" nine"));
+    }
+    CHECK_FALSE(editor.isWriting());
+    CHECK(collector.wordsWrittenThisSession() == 5);
+
+    // The whole text replaced (Replace All in Book): not writing
+    editor.replaceWithKml(createKml("A b c d e f g h i j k l"));
+    CHECK(collector.wordCount() == 12);
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 5);
+    CHECK(collector.wordsDeletedThisSession() == 2);
 
     collector.endSession();
     collector.setBookEditor(nullptr);
@@ -611,7 +696,7 @@ TEST_CASE("StatisticsCollector: the words pasted are kept apart from the words w
 
     // Typed, and pasted at once after it: the words typed are written, those pasted pasted
     editor.setCursorPosition({0, 5});
-    editor.insertText(QStringLiteral(" typed "));
+    editor.typeText(QStringLiteral(" typed "));
     QMimeData data;
     data.setText(QStringLiteral("one two three"));
     editor.insertFromMimeData(&data);
@@ -646,7 +731,7 @@ TEST_CASE("StatisticsCollector: the words pasted are kept apart from the words w
 
     // Typing after it is writing again
     editor.setCursorPosition({0, int(editor.plainText().length())});
-    editor.insertText(QStringLiteral(" more"));
+    editor.typeText(QStringLiteral(" more"));
     waitForCount();
     CHECK(collector.wordsWrittenThisSession() == 2);
     CHECK(collector.wordsPastedThisSession() == 3);
@@ -665,7 +750,7 @@ TEST_CASE("StatisticsCollector: the words pasted are kept apart from the words w
 
     // Undoing what was typed in a level of its own is not undoing a paste
     editor.setCursorPosition({0, 0});
-    editor.insertText(QStringLiteral("New "));
+    editor.typeText(QStringLiteral("New "));
     waitForCount();
     editor.undo();
     waitForCount();
@@ -691,7 +776,7 @@ TEST_CASE("StatisticsCollector: a paste keeps its words while another text is fo
     QMimeData data;
     data.setText(QStringLiteral(" one two three"));
     chapterA.insertFromMimeData(&data);
-    chapterA.insertText(QStringLiteral(" more"));
+    chapterA.typeText(QStringLiteral(" more"));
     waitForCount();
     CHECK(collector.wordsPastedThisSession() == 3);
     CHECK(collector.wordsWrittenThisSession() == 1);

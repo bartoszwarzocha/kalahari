@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_repetitions_panel.cpp
 /// @brief The Repetitions panel: its cards and words, what it says without them, its keys; with
@@ -484,7 +485,8 @@ TEST_CASE("Repetitions panel: its keys go to the words, skip a word and go back 
 // The panel and the texts
 // =============================================================================
 
-TEST_CASE("Repetitions: the words of the text in front, marked in it while the panel shows",
+TEST_CASE("Repetitions: the words of the text in front, marked in it, framed while the panel "
+          "shows",
           "[gui][repetitions][coordinator]") {
     KeptSettings kept;
     setDefaults();
@@ -552,13 +554,16 @@ TEST_CASE("Repetitions: the words of the text in front, marked in it while the p
                                          QStringLiteral("rain 1:19")});
     desk.panel->setPage(RepetitionsPanel::Page::Close);
 
-    // The panel closed: no marks
+    // The panel closed: the marks stay, without the frames
     desk.dock->hide();
     QApplication::processEvents();
-    CHECK(editor->repetitionMarks().empty());
+    CHECK(marked(*editor) == QStringList{QStringLiteral("Rain 0:0"), QStringLiteral("night 0:45"),
+                                         QStringLiteral("night 1:35"), QStringLiteral("rain 0:27"),
+                                         QStringLiteral("rain 1:19")});
     desk.coordinator->showPanel();
     QApplication::processEvents();
     CHECK(editor->repetitionMarks().size() == 5);
+    CHECK(marked(*editor).contains(QStringLiteral("night 0:45*")));
 
     // Writing: counted again a moment after it stops
     editor->setCursorPosition({1, 0});
@@ -569,6 +574,48 @@ TEST_CASE("Repetitions: the words of the text in front, marked in it while the p
     // and 20th, "morning" at the 12th and 15th)
     settings().set<int>(Coordinator::DISTANCE_KEY, 8);
     CHECK(desk.lists({QStringLiteral("rain"), QStringLiteral("morning")}));
+}
+
+TEST_CASE("Repetitions: marked in the text in front with the panel closed",
+          "[gui][repetitions][coordinator]") {
+    const KeptSettings kept;
+    setDefaults();
+    REQUIRE(test::book().closeProject(false));
+    const Commands commands;
+    Desk desk;
+    REQUIRE(desk.dock->isHidden());
+
+    // The words that come back too close, marked as soon as the text is in front
+    editor::BookEditor* editor = desk.open({QStringLiteral(
+        "Jan wrócił do domu. Za oknem szumiał las, a Jan patrzył na las.")});
+    CHECK(waitUntil([editor]() { return editor->repetitionMarks().size() == 4; }));
+    CHECK(marked(*editor) == QStringList{QStringLiteral("Jan 0:0"), QStringLiteral("Jan 0:44"),
+                                         QStringLiteral("las 0:37"), QStringLiteral("las 0:59")});
+    CHECK(desk.dock->isHidden());
+
+    // Writing: counted again a moment after it stops
+    editor->setCursorPosition({0, 0});
+    editor->insertText(QStringLiteral("Las. "));
+    CHECK(waitUntil([editor]() { return editor->repetitionMarks().size() == 5; }));
+    CHECK(marked(*editor).contains(QStringLiteral("Las 0:0")));
+
+    // Another text in front: its own marks
+    editor::BookEditor* other = desk.open(RAIN, QStringLiteral("Other"));
+    CHECK(waitUntil([other]() { return other->repetitionMarks().size() == 5; }));
+    CHECK(editor->repetitionMarks().empty());
+
+    // Not marked: nothing counted while the panel is closed
+    settings().set<bool>(Coordinator::HIGHLIGHT_KEY, false);
+    CHECK(waitUntil([other]() { return other->repetitionMarks().empty(); }));
+    other->setCursorPosition({0, 0});
+    other->insertText(QStringLiteral("Night. "));
+    test::runEventLoop(1000);  // longer than the pause after the writing
+    CHECK(other->repetitionMarks().empty());
+
+    // Marked again: counted at once, the word written too
+    settings().set<bool>(Coordinator::HIGHLIGHT_KEY, true);
+    CHECK(waitUntil([other]() { return other->repetitionMarks().size() == 6; }));
+    CHECK(marked(*other).contains(QStringLiteral("Night 0:0")));
 }
 
 TEST_CASE("Repetitions: Go To and Skip This Word on a card", "[gui][repetitions][coordinator]") {

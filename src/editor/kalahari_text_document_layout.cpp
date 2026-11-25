@@ -1,19 +1,23 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file kalahari_text_document_layout.cpp
 /// @brief Custom QAbstractTextDocumentLayout implementation (OpenSpec #00043)
 
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/block_space.h>
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_tables.h>
 #include "kalahari/editor/detail/layout_notes_internal.h"
 #include "layout_flow_internal.h"
+#include <QDynamicPropertyChangeEvent>
 #include <QElapsedTimer>
 #include <QFileInfo>
 #include <QFontInfo>
@@ -149,6 +153,29 @@ void layOutUnwrapped(QTextLayout& text) {
         line.setLineWidth(UNWRAPPED_LINE_WIDTH);
     }
     text.endLayout();
+}
+
+/// @brief A line of text laid out as the text of the document is, with its top left corner
+///        at @p topLeft: its size does not depend on the painter's device (a printer's or a
+///        PDF's resolves a font set on the painter at its own resolution)
+void drawTextLine(QPainter* painter, const QString& text, const QFont& font,
+                  const QPointF& topLeft) {
+    QTextLayout layout(text, font);
+    layOutUnwrapped(layout);
+    layout.draw(painter, topLeft);
+}
+
+/// A line of text in the middle of @p area, laid out as the text of the document is
+void drawCenteredLine(QPainter* painter, const QString& text, const QFont& font,
+                      const QRectF& area) {
+    QTextLayout layout(text, font);
+    layOutUnwrapped(layout);
+    if (layout.lineCount() == 0) {
+        return;
+    }
+    const QTextLine line = layout.lineAt(0);
+    layout.draw(painter, QPointF(area.left() + (area.width() - line.naturalTextWidth()) / 2.0,
+                                 area.top() + (area.height() - line.height()) / 2.0));
 }
 
 /// Whether a format is of a character whose number the layout counts: a field, a note's number
@@ -332,6 +359,10 @@ KalahariTextDocumentLayout::KalahariTextDocumentLayout(QTextDocument* doc)
                     const auto [first, last] = changedBlocks(from, charsAdded);
                     clearLines(first, last);
                 });
+
+        // The tab guides the document has, and those it is given (eventFilter())
+        m_tabGuides = tabGuidesOf(*doc);
+        doc->installEventFilter(this);
     }
     // Qt takes U+FFFC for an object only while the layout has a handler
     for (const int objectType : LAYOUT_OBJECTS) {
@@ -375,6 +406,49 @@ void KalahariTextDocumentLayout::setFont(const QFont& font) {
 
 QFont KalahariTextDocumentLayout::font() const {
     return document()->defaultFont();
+}
+
+bool KalahariTextDocumentLayout::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == document() && event->type() == QEvent::DynamicPropertyChange &&
+        static_cast<QDynamicPropertyChangeEvent*>(event)->propertyName() ==
+            TAB_GUIDES_PROPERTY) {
+        if (std::vector<double> guides = tabGuidesOf(*document()); guides != m_tabGuides) {
+            m_tabGuides = std::move(guides);
+            invalidateAll();  // the tabs of every paragraph go to the guides
+        }
+    }
+    return QAbstractTextDocumentLayout::eventFilter(watched, event);
+}
+
+std::vector<qreal> KalahariTextDocumentLayout::tabGuidePositions() const {
+    std::vector<qreal> positions;
+    if (m_typography.pixelsPerMillimetre <= 0.0) {
+        return positions;
+    }
+    positions.reserve(m_tabGuides.size());
+    for (const double guide : m_tabGuides) {
+        positions.push_back(guide * m_typography.pixelsPerMillimetre);
+    }
+    return positions;
+}
+
+QList<QTextOption::Tab> KalahariTextDocumentLayout::tabGuideTabs(const QTextBlock& block,
+                                                                const LineFrame& frame) const {
+    // The cells of a table have their own edges. Qt counts the tabs from the start of each
+    // line, and a paragraph has one set of them: they are counted from its first line, which
+    // a guide is mostly for (a line of its own: "Name<Tab>John"), so the lines after it are as
+    // far off as its indent.
+    QList<QTextOption::Tab> tabs;
+    if (m_tabGuides.empty() || frame.rightToLeft || tableOf(block) != nullptr) {
+        return tabs;
+    }
+    const qreal lineStart = frame.left + frame.firstIndent;
+    for (const qreal position : tabGuidePositions()) {
+        if (position > lineStart) {
+            tabs.append(QTextOption::Tab(position - lineStart, QTextOption::LeftTab));
+        }
+    }
+    return tabs;
 }
 
 void KalahariTextDocumentLayout::setPageFlow(const PageFlow& flow) {
@@ -544,6 +618,7 @@ void KalahariTextDocumentLayout::clearMetrics() {
     m_styleMetrics.clear();
     m_objectMetrics.clear();
     m_directMetrics.clear();
+    m_spaceMetrics.clear();
     m_noteBoxes.clear();  // laid out in the style Footnote
 }
 
@@ -566,22 +641,42 @@ const KalahariTextDocumentLayout::BlockMetrics& KalahariTextDocumentLayout::bloc
     // The paragraph's own formatting and its list over the style
     const QString own = paragraphFormatKey(format);
     const bool listItem = isListItem(format);
-    if (own.isEmpty() && !listItem) {
-        return it->second;
+    QString key = style.id;
+    const BlockMetrics* metrics = &it->second;
+    if (!own.isEmpty() || listItem) {
+        key += QLatin1Char('|') + own;
+        if (listItem) {
+            key += QStringLiteral("|%1|").arg(format.intProperty(LIST_LEVEL_PROPERTY)) +
+                   format.stringProperty(LIST_DEFINITION_PROPERTY);
+        }
+        auto direct = m_directMetrics.find(key);
+        if (direct == m_directMetrics.end()) {
+            direct = m_directMetrics
+                         .emplace(key, directMetrics(it->second, format,
+                                                     listItem ? listItemOf(format) : std::nullopt))
+                         .first;
+        }
+        metrics = &direct->second;
     }
-    QString key = style.id + QLatin1Char('|') + own;
-    if (listItem) {
-        key += QStringLiteral("|%1|").arg(format.intProperty(LIST_LEVEL_PROPERTY)) +
-               format.stringProperty(LIST_DEFINITION_PROPERTY);
+
+    // The room of an image around its block and its caption, and of a table next to the
+    // block, over the paragraph's own
+    const BlockSpace space = blockSpace(block);
+    if (space.isEmpty()) {
+        return *metrics;
     }
-    auto direct = m_directMetrics.find(key);
-    if (direct == m_directMetrics.end()) {
-        direct = m_directMetrics
-                     .emplace(key, directMetrics(it->second, format,
-                                                 listItem ? listItemOf(format) : std::nullopt))
-                     .first;
+    const qreal pixels = packagePixels();
+    const qreal before = std::round(space.before * pixels);
+    const qreal after = std::round(space.after * pixels);
+    key += QStringLiteral("|space|%1|%2").arg(before).arg(after);
+    auto spaced = m_spaceMetrics.find(key);
+    if (spaced == m_spaceMetrics.end()) {
+        BlockMetrics withSpace = *metrics;
+        withSpace.spaceBefore += before;
+        withSpace.spaceAfter += after;
+        spaced = m_spaceMetrics.emplace(key, withSpace).first;
     }
-    return direct->second;
+    return spaced->second;
 }
 
 qreal KalahariTextDocumentLayout::packagePixels() const {
@@ -1363,6 +1458,18 @@ std::pair<QTextBlock, QTextBlock> KalahariTextDocumentLayout::changedBlocks(int 
     // other rows keep their lines, and only move
     const QTextTable* firstTable = tableOf(first);
     const QTextTable* lastTable = tableOf(last);
+
+    // An image alone in its paragraph keeps its room on the side of its caption, and the
+    // caption keeps it: a change of either one lays out the other one too (imageBlockSpace())
+    const auto ofImage = [](const QTextBlock& block) {
+        return holdsImageAlone(block) || isCaptionBlock(block);
+    };
+    if (!firstTable && ofImage(first.previous())) {
+        first = first.previous();
+    }
+    if (!lastTable && ofImage(last.next())) {
+        last = last.next();
+    }
     if (firstTable) {
         const int lastRow = firstTable == lastTable ? rowOfBlock(*firstTable, last) : firstTable->rows() - 1;
         const auto [firstRow, bandLast] = tableBand(*firstTable, rowOfBlock(*firstTable, first), lastRow);
@@ -1375,6 +1482,17 @@ std::pair<QTextBlock, QTextBlock> KalahariTextDocumentLayout::changedBlocks(int 
     if (lastTable && lastTable != firstTable) {
         const auto [firstRow, lastRow] = tableBand(*lastTable, 0, rowOfBlock(*lastTable, last));
         last = bandBlocks(*lastTable, firstRow, lastRow).second;
+    }
+
+    // A table keeps its room in the paragraphs next to it (tableBlockSpace()): a change of its
+    // first or last row, as of its format, lays them out too
+    if (const QTextTable* table = tableOf(first);
+        table != nullptr && table->firstCursorPosition().block() == first && first.previous().isValid()) {
+        first = first.previous();
+    }
+    if (const QTextTable* table = tableOf(last);
+        table != nullptr && table->lastCursorPosition().block() == last && last.next().isValid()) {
+        last = last.next();
     }
     return {first, last};
 }
@@ -1669,6 +1787,13 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* ex
     if (metrics.tabStopDistance > 0) {
         textOption.setTabStopDistance(metrics.tabStopDistance);
     }
+    // The lines lie between the margins of the style, in a cell between those of its text,
+    // the first one indented (lineFrame()). Right-to-left lines keep x at the margin: the
+    // shorter line already leaves the indent on their leading (right) side.
+    const LineFrame frame = lineFrame(block, metrics, cell);
+
+    // The tab guides across the page: a Tab goes to the next one
+    textOption.setTabs(tabGuideTabs(block, frame));
     layout->setTextOption(textOption);
 
     // Blocks laid out on demand keep only the line breaks: their glyphs are shaped again
@@ -1678,10 +1803,6 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* ex
     // paragraph again. Justified lines come out the same either way (tested).
     layout->setCacheEnabled(keepGlyphs);
 
-    // The lines lie between the margins of the style, in a cell between those of its text,
-    // the first one indented (lineFrame()). Right-to-left lines keep x at the margin: the
-    // shorter line already leaves the indent on their leading (right) side.
-    const LineFrame frame = lineFrame(block, metrics, cell);
     const qreal lineWidth = frame.right - frame.left;
     const QPointF cellOffset = cell != nullptr ? QPointF(cell->left, cell->top) : QPointF();
 
@@ -2045,13 +2166,14 @@ qreal KalahariTextDocumentLayout::paginateBlock(const QTextBlock& block, qreal t
                 lineNotes.empty() || lineNotes[static_cast<size_t>(i)].empty()
                     ? nullptr
                     : &lineNotes[static_cast<size_t>(i)];
-            qreal placed = metrics.pageBreak
-                               ? boxTop
-                               : flowLineTop(boxTop, boxHeight,
-                                             ownNotes != nullptr ? notesNeeded(*ownNotes) : 0.0);
-            const qreal offset = placed - std::floor((placed + FLOW_EPSILON) / pitch) * pitch;
-            if (breakBefore[static_cast<size_t>(i)] != 0 && offset > FLOW_EPSILON) {
-                placed = nextPageTop(placed);
+            const qreal needed = ownNotes != nullptr ? notesNeeded(*ownNotes) : 0.0;
+            qreal placed = metrics.pageBreak ? boxTop : flowLineTop(boxTop, boxHeight, needed);
+            // To the top of the next text area: below an image above and below the text that
+            // takes the top of its page (reserveTop()), as flowLineTop() places a line
+            const qreal page = std::floor((placed + FLOW_EPSILON) / pitch);
+            if (breakBefore[static_cast<size_t>(i)] != 0 &&
+                placed - page * pitch > areaTopOf(page) + FLOW_EPSILON) {
+                placed = flowLineTop(nextPageTop(placed), boxHeight, needed);
             }
             if (ownNotes != nullptr) {
                 reserveNotes(placed + boxHeight, *ownNotes);
@@ -3774,9 +3896,8 @@ void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRect
         case TextObject::SceneBreak: {
             const QString text = sceneBreakText(m_sceneBreakLook);
             if (!text.isEmpty()) {
-                painter->setFont(document()->defaultFont());
                 painter->setPen(textColor);
-                painter->drawText(rect, Qt::AlignCenter, text);
+                drawCenteredLine(painter, text, document()->defaultFont(), rect);
             } else if (m_sceneBreakLook == SceneBreakLook::Line) {
                 const qreal length = std::round(rect.width() * SCENE_BREAK_LINE_SHARE);
                 const qreal left = rect.left() + std::round((rect.width() - length) / 2.0);
@@ -3811,9 +3932,8 @@ void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRect
                 painter->drawLine(QPointF(rect.left(), middle), QPointF(gapLeft, middle));
                 painter->drawLine(QPointF(gapLeft + gap, middle), QPointF(rect.right(), middle));
             }
-            painter->setFont(labelFont);
             painter->setPen(markColor);
-            painter->drawText(rect, Qt::AlignCenter, label);
+            drawCenteredLine(painter, label, labelFont, rect);
             break;
         }
         case TextObject::FigureList:  // drawn above
@@ -4096,10 +4216,8 @@ void KalahariTextDocumentLayout::drawImage(QPainter* painter, const QRectF& box,
     painter->setPen(textColor);
     const qreal textLeft = left + glyph + gap;
     const qreal textTop = middle - (nameMetrics.height() + labelMetrics.height()) / 2.0;
-    painter->setFont(nameFont);
-    painter->drawText(QPointF(textLeft, textTop + nameMetrics.ascent()), name);
-    painter->setFont(labelFont);
-    painter->drawText(QPointF(textLeft, textTop + nameMetrics.height() + labelMetrics.ascent()), label);
+    drawTextLine(painter, name, nameFont, QPointF(textLeft, textTop));
+    drawTextLine(painter, label, labelFont, QPointF(textLeft, textTop + nameMetrics.height()));
     painter->restore();
 }
 

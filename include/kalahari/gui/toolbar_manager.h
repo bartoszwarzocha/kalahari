@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file toolbar_manager.h
 /// @brief Centralized toolbar management system (Task #00019)
@@ -18,6 +19,7 @@
 #include <QMenu>
 #include <QMap>
 #include <QObject>
+#include <QPointer>
 #include <QStringList>
 #include <string>
 #include <unordered_map>
@@ -212,6 +214,16 @@ public:
     /// @param toolbarId Toolbar ID to rebuild
     void rebuildToolbar(const QString& toolbarId);
 
+    /// @brief Give the buttons of command @p cmdId, on every toolbar, an arrow with a menu
+    ///        (QToolButton::MenuButtonPopup): the button gives the command, its arrow opens
+    ///        @p menu. The command itself has no menu, so it stays an item of the menu bar.
+    ///        The toolbars made later, or made anew, get the arrow too.
+    /// @param menu The window's (nullptr: no arrow any more)
+    void setButtonMenu(const QString& cmdId, QMenu* menu);
+
+    /// @brief The menu setButtonMenu() gave the buttons of command @p cmdId; none: no arrow
+    [[nodiscard]] QMenu* buttonMenu(const QString& cmdId) const;
+
     /// @brief Reset all toolbars to default configuration
     void resetToDefaults();
 
@@ -401,6 +413,12 @@ private:
     /// @brief Remove View menu action for a user toolbar
     /// @param toolbarId Toolbar ID
     void removeViewMenuAction(const QString& toolbarId);
+
+    /// @brief The button of @p action on @p toolbar gets the arrow of the menu of @p cmdId
+    ///        (setButtonMenu())
+    void applyButtonMenu(QToolBar* toolbar, QAction* action, const QString& cmdId) const;
+
+    QMap<QString, QPointer<QMenu>> m_buttonMenus;  ///< Of setButtonMenu(), by command
 
     // Format toolbar widgets (for future editor integration)
     QFontComboBox* m_fontComboBox = nullptr;         ///< Font family dropdown

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file settings_pages.h
 /// @brief The pages of the Settings dialog
@@ -23,11 +24,13 @@
 
 class QCheckBox;
 class QComboBox;
+class QEvent;
 class QHBoxLayout;
 class QLabel;
 class QLineEdit;
 class QListWidget;
 class QPushButton;
+class QShowEvent;
 class QSpinBox;
 class QTableWidget;
 class QTableWidgetItem;
@@ -54,6 +57,7 @@ namespace gui {
 
 class ColorConfigWidget;
 class FolderField;
+struct ListSet;
 class PaletteEdit;
 struct ReplacementEntry;
 
@@ -68,6 +72,21 @@ signals:
     ///        the open pages show it at once
     /// @param unit Name of the unit (ui.lengthUnit)
     void lengthUnitChanged(const QString& unit);
+};
+
+/// @brief Notifications: where the program's notifications show (the bar at the bottom of
+///        the window, the program's window, the system's notifications or the
+///        Notifications panel), a sample of them, and their colors in the theme in use
+class NotificationsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit NotificationsPage(QWidget* parent = nullptr);
+
+    /// @brief The list of the places
+    [[nodiscard]] QComboBox* placeList() const { return m_placeList; }
+
+private:
+    QComboBox* m_placeList = nullptr;
 };
 
 /// @brief Appearance > General: language and interface font
@@ -268,8 +287,8 @@ private:
     void addMarginNumbersGroup();
 };
 
-/// @brief Editor > Images: how new images go into the text, the captions of new books, the
-///        copies of the files and the manuscript for a publisher
+/// @brief Editor > Images: how new images go into the text, the captions of new books, new
+///        spreads, the copies of the files and the manuscript for a publisher
 ///
 /// The labels of the captions are a list of the page: Add..., Rename... and Remove change it,
 /// and the label of the caption of a new image is one of them. A book has its own labels and
@@ -299,14 +318,26 @@ private:
     /// @brief The label of the caption of new images offers the labels of the list
     void fillCaptionLabels();
 
+    /// @brief The label of the caption of new spreads: none, or one of the labels of the list
+    void fillSpreadLabels();
+
     /// @brief Rename and Remove for the label selected (one label always stays)
     void updateLabelButtons();
 
     QListWidget* m_labels = nullptr;        ///< The labels of the captions of new books
     QComboBox* m_captionLabel = nullptr;    ///< The label of the caption of a new image
+    QComboBox* m_spreadLabel = nullptr;     ///< The label of the caption of a new spread
     QPushButton* m_addLabel = nullptr;
     QPushButton* m_renameLabel = nullptr;
     QPushButton* m_removeLabel = nullptr;
+};
+
+/// @brief Editor > Tables: the room new tables keep from the text above and below them, and
+///        where Insert Caption puts the caption of a table
+class EditorTablesPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorTablesPage(QWidget* parent = nullptr);
 };
 
 /// @brief Editor > Auto-correct: what is changed in the text as it is typed, on three tabs
@@ -451,6 +482,57 @@ public:
 
 private:
     CommandRegistry& m_commands;  ///< The commands of its window
+};
+
+/// @brief Editor > Lists: the sets of list formats that F12 and Shift+F12 give, and the
+/// writer's sets of the program (for every book), with their names, export and import
+///
+/// The writer's sets of the book are kept in the book; the tab Sets of Format > Bullets and
+/// Numbering... has them.
+class EditorListsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    /// @param book The book of its window: its own sets can be the defaults too
+    /// @param commands The commands of its window: the page names the keys of Numbering and
+    ///        Bullets
+    EditorListsPage(const core::ProjectManager& book, CommandRegistry& commands, QWidget* parent = nullptr);
+
+    /// @brief The list of the program's sets of the writer, as the page has it now
+    [[nodiscard]] QListWidget* programSets() const { return m_list; }
+
+    /// @brief Rename...: a new name of the set chosen in the list
+    void renameChosen();
+
+    /// @brief Delete: take the set chosen in the list out (Apply and OK keep it so)
+    void deleteChosen();
+
+    /// @brief Export...: write the program's sets to a file
+    /// @param path The file; empty: ask for it
+    bool exportSets(const QString& path = QString());
+
+    /// @brief Import...: add the sets of a file to the program's
+    /// @param path The file; empty: ask for it
+    /// @return How many sets came in; -1: the file is not one of exported sets
+    int importSets(const QString& path = QString());
+
+private:
+    /// @brief The sets of the list, as the page has them now
+    [[nodiscard]] QList<ListSet> shownSets() const;
+
+    /// @brief Show these program's sets in the list, and the defaults with them
+    void showSets(const QList<ListSet>& sets);
+
+    /// @brief The choices of the default sets: those of their kind, as the page has them now
+    void fillDefaults();
+
+    const core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;         ///< The commands of its window
+    QComboBox* m_numbered = nullptr;
+    QComboBox* m_bulleted = nullptr;
+    QListWidget* m_list = nullptr;
+    QPushButton* m_rename = nullptr;
+    QPushButton* m_delete = nullptr;
+    QPushButton* m_export = nullptr;
 };
 
 /// @brief Editor > Clippings: what Cut to Clippings and Insert > Clipping from the Workshop do,
@@ -774,6 +856,36 @@ public:
 private:
     /// @brief The headings, the dialogue and the cleanups of each format, one format at a time
     void addFormats();
+};
+
+/// @brief Files > File Associations: the program the system opens the books (.klh) and the
+///        documents (.kchapter) with, and a button that makes it Kalahari
+///
+/// Nothing on the page is a setting: the button does it at once, as far as the system lets it
+/// (FileAssociationSystem). Windows lets only the writer choose the default program, so there
+/// the page also opens the Default Apps page of Windows Settings. The page shows the state again
+/// whenever its window becomes active (the writer comes back from the system's settings).
+class FileAssociationsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit FileAssociationsPage(QWidget* parent = nullptr);
+
+    /// @brief Show again which program opens each kind of files
+    /// @return Whether Kalahari opens all of them
+    bool refresh();
+
+protected:
+    void showEvent(QShowEvent* event) override;
+    void changeEvent(QEvent* event) override;
+
+private:
+    /// @brief Make Kalahari the program of its files, then show what came of it
+    void associate();
+
+    std::vector<QLabel*> m_states;  ///< Which program opens each kind (kalahariFileTypes())
+    QPushButton* m_associate = nullptr;
+    QPushButton* m_systemSettings = nullptr;  ///< Windows: the Default Apps page of Settings
+    QLabel* m_result = nullptr;               ///< What the last press of a button did
 };
 
 /// @brief Advanced > General: the diagnostic menu (this session only, not stored)

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_pages.h
 /// @brief The pages of a book as the page view of the editor shows them, for a PDF file and
@@ -13,8 +14,9 @@
 /// are those of the light paper (Settings > Editor > Colors), also when the editor shows the
 /// dark one. The pages are numbered through the book, each text starts on a new page or goes
 /// on after the one before it (BookExport::textsOnNewPage), with mirror margins on a right
-/// page unless it starts on a left one (a page left empty before it). Above the text the
-/// running head, below it the number of the page.
+/// page unless it starts on a left one (a page left empty before it). A spread takes a left
+/// page and the right one after it, always (a page left empty before it when needed). Above
+/// the text the running head, below it the number of the page.
 
 #pragma once
 
@@ -62,6 +64,13 @@ struct PageComment {
     int page = 0;           ///< The page of its fragment's start
     QPointF point;          ///< The top left of its fragment's start, in points
     Annotation annotation;  ///< Its kind, text, author and date
+};
+
+/// @brief A spread of the book: its two pages, a left and a right one
+struct PageSpread {
+    QString elementId;  ///< Its element
+    QString title;      ///< As the Navigator gives it
+    int page = 0;       ///< Its left page, from 0 (an odd index: page 1 is a right page)
 };
 
 /// @brief The pages of a book, laid out as the page view does
@@ -116,6 +125,9 @@ public:
     /// @brief The annotations of the texts, in reading order
     const std::vector<PageComment>& comments() const { return m_comments; }
 
+    /// @brief The spreads of the book, in reading order
+    const std::vector<PageSpread>& spreads() const { return m_spreads; }
+
     /// @brief The images on the pages and those whose files are missing (left out)
     int images() const { return m_images; }
     int missingImages() const { return m_missingImages; }
@@ -156,6 +168,9 @@ private:
     /// @brief Draw the running head and the number of a page
     void paintMargins(QPainter* painter, int page) const;
 
+    /// @brief Draw a page of a spread: its half of the picture, its caption on the right one
+    void paintSpread(QPainter* painter, const Item& item, bool right) const;
+
     const BookExport& m_book;
     Options m_options;
     std::shared_ptr<ImageStore> m_store;  ///< The files of the images, for every item
@@ -167,6 +182,7 @@ private:
     std::vector<int> m_contentsPages;  ///< The pages the tables of contents show
     std::vector<PageLink> m_links;
     std::vector<PageComment> m_comments;
+    std::vector<PageSpread> m_spreads;
     int m_images = 0;
     int m_missingImages = 0;
     double m_dpi = DEFAULT_DPI;  ///< The document units of an inch (the layout's pixels)

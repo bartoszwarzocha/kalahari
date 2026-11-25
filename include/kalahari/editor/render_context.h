@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file render_context.h
 /// @brief RenderContext - Pure data structure for rendering attributes
@@ -102,34 +103,12 @@ struct RenderColors {
     QColor field{217, 217, 217};
     QColor brokenField{255, 199, 199};
 
+    /// @brief The dashed lines of the tab guides across the pages (not valid: none drawn, as on
+    ///        the printed pages)
+    QColor tabGuide;
+
     /// @brief Check if colors are equal
-    bool operator==(const RenderColors& other) const {
-        return text == other.text &&
-               background == other.background &&
-               desk == other.desk &&
-               cursor == other.cursor &&
-               selection == other.selection &&
-               selectionText == other.selectionText &&
-               inactiveText == other.inactiveText &&
-               lineHighlight == other.lineHighlight &&
-               searchHighlight == other.searchHighlight &&
-               currentMatch == other.currentMatch &&
-               spellError == other.spellError &&
-               grammarWarning == other.grammarWarning &&
-               bookRule == other.bookRule &&
-               spokenWord == other.spokenWord &&
-               repetition == other.repetition &&
-               annotationComment == other.annotationComment &&
-               annotationTodo == other.annotationTodo &&
-               annotationNote == other.annotationNote &&
-               formattingMarks == other.formattingMarks &&
-               link == other.link &&
-               tableLines == other.tableLines &&
-               tableHeader == other.tableHeader &&
-               tableGridlines == other.tableGridlines &&
-               field == other.field &&
-               brokenField == other.brokenField;
-    }
+    bool operator==(const RenderColors& other) const = default;
 
     bool operator!=(const RenderColors& other) const {
         return !(*this == other);
@@ -152,11 +131,16 @@ struct PageModeConfig {
     QColor pageShadow{0, 0, 0, 50};           ///< Page shadow color
     bool showPageBreaks = true;                ///< Draw page shadows
     bool showPageNumbers = true;               ///< Page numbers at the bottom centre (page view)
+    int firstPageNumber = 1;                   ///< The number of page 1: its page in the book
     bool mirrorMargins = false;                ///< Facing pages (page view): pages 2, 4, ... have
                                                ///< the left and right margins of page 1 swapped
     double firstPageTop = 0.0;                 ///< Where the text starts on page 1, below the top
                                                ///< of its text area (pixels at 100%): it goes on
                                                ///< after another text (PageFlow::firstPageTop)
+    bool fillsView = false;                    ///< A text field (the continuous view only): the
+                                               ///< page is as wide and at least as high as the
+                                               ///< view, without the desk, the sheet's edge and
+                                               ///< its shadow; pageSize is not used
 };
 
 /// @brief Typewriter scrolling configuration

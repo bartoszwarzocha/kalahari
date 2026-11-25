@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file timeline_index.cpp
 /// @brief What a timeline knows of its book and the words its views share
@@ -216,9 +217,10 @@ QString TimelineWords::newEvent() {
 
 QString TimelineWords::examples() {
     //: Times the program reads; keep the quotes. In Polish: „14 kwietnia 1931, rano”,
-    //: „marzec 1931”, „16–17 kwietnia 1931”, „Dzień 3, noc”, „Dni 5–7”, „ok. 1931”
-    return tr("“14 April 1931, in the morning”, “March 1931”, “16–17 April 1931”, "
-              "“Day 3, night”, “Days 5–7”, “about 1931”");
+    //: „marzec 1931”, „wiosna 1931”, „pierwsza połowa 1931”, „16–17 kwietnia 1931”, „Dzień
+    //: 3, noc”, „dzień pierwszy”, „Dni 5–7”, „ok. 1931”
+    return tr("“14 April 1931, in the morning”, “March 1931”, “spring 1931”, “first half of "
+              "1931”, “16–17 April 1931”, “Day 3, night”, “day one”, “Days 5–7”, “about 1931”");
 }
 
 QString TimelineWords::trayName() {

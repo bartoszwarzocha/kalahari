@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file timeline_list.h
 /// @brief A timeline as a table: when, the event, its thread, characters, place and chapters
@@ -53,6 +54,9 @@ public:
     void addAfterSelected();
     void removeSelected();
 
+    /// @brief What the list says while the timeline has no events: how to add the first
+    [[nodiscard]] static QString emptyHint();
+
 signals:
     void told(const QString& message, bool undoable);
     void eventRequested(const QString& id);
@@ -63,6 +67,7 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
     void contextMenuEvent(QContextMenuEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
+    void paintEvent(QPaintEvent* event) override;
     void closeEditor(QWidget* editor, QAbstractItemDelegate::EndEditHint hint) override;
 
 private:

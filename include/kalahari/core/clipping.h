@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file clipping.h
 /// @brief Clippings: fragments cut from the texts to the Workshop (Edit > Cut to Clippings),
@@ -125,10 +126,10 @@ struct Clippings {
     /// A clipping inserted goes from the Workshop
     static constexpr const char* AFTER_INSERT_REMOVE = "remove";
     /// Whether the editor shows scissors beside each paragraph a clipping was cut from (and
-    /// not inserted since), as it shows the paperclips of the materials: off by default
+    /// not inserted since), as it shows the paperclips of the materials: on by default
     static constexpr const char* MARKS_SETTING = "editor.clippings.marks";
-    /// Whether a cut to the clippings leaves the words of the day as they were (false: it
-    /// lowers them as any deletion does with the counting "words added")
+    /// Whether a cut to the clippings leaves the words of the day as they were, as it does by
+    /// default (false: it lowers them as any deletion does with the counting "words added")
     static constexpr const char* KEEP_WORDS_SETTING = "stats.clippingsKeepWords";
     /// @}
 

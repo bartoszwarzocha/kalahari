@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_panel_widths.cpp
 /// @brief The side panels fit a narrow dock, and their muted texts can be read
@@ -16,6 +17,7 @@
 #include "kalahari/gui/panels/assistant_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/panels/notifications_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/search_panel.h"
 #include "kalahari/gui/settings/settings_page.h"
@@ -111,6 +113,14 @@ const std::vector<SidePanel>& sidePanels() {
         {"Assistant", [] { return new AssistantPanel(); }},
         {"Log", [] { return new LogPanel(); }},
         {"Navigator", [] { return new NavigatorPanel(kalahari::test::book()); }},
+        {"Notifications",
+         [] {
+             // With a notification: the list and its buttons, not the sentence of an empty one
+             auto* panel = new NotificationsPanel();
+             panel->addNotification({QStringLiteral("Statistics and Goals"),
+                                     QStringLiteral("Daily goal reached: 1,000 of 1,000 words.")});
+             return panel;
+         }},
         {"Properties", [] { return new PropertiesPanel(kalahari::test::book()); }},
         {"Search", [] { return new SearchPanel(); }},
     };

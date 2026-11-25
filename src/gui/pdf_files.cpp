@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file pdf_files.cpp
 /// @brief PDF files as the program shows them: whether it can, their first page, their data,
@@ -78,7 +79,7 @@ QString PdfFiles::choice(const char* key, const char* fallback,
 }
 
 bool PdfFiles::highlightsOn() {
-    return core::SettingsManager::getInstance().get<bool>(HIGHLIGHTS_SETTING, false);
+    return core::SettingsManager::getInstance().get<bool>(HIGHLIGHTS_SETTING, true);
 }
 
 QImage PdfFiles::firstPage(const QString& path, const QSize& bounds, QString* error) {

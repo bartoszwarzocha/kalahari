@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plot_board_view_layout.cpp
 /// @brief PlotBoardView: where the cards, the titles of the parts and the drawers of the
@@ -28,11 +29,15 @@ using board_view::descriptionLines;
 using board_view::DRAWER_PADDING;
 using board_view::GAP;
 using board_view::HEADER_GAP;
+using board_view::ICON_GAP;
+using board_view::ICON_INSET;
 using board_view::HEADER_PADDING;
 using board_view::LABEL_PADDING;
 using board_view::LINE_GAP;
 using board_view::MARGIN;
 using board_view::MIN_CARD_WIDTH;
+using board_view::MIN_ICON;
+using board_view::NOTE_GAP;
 using board_view::PADDING;
 using board_view::SCENE_INDENT;
 using board_view::smallFont;
@@ -51,7 +56,16 @@ QSize PlotBoardView::cardSizePixels() const {
     if (m_fields.description) {
         height += LINE_GAP + (metrics.lineSpacing() * descriptionLines(m_cardSize));
     }
-    if (m_fields.pov || m_fields.place || m_fields.time) {
+    // The line of the plot; the button of a card in the plan goes there too
+    const bool buttons = std::ranges::any_of(m_bands, [](const PlotBand& band) {
+        return std::ranges::any_of(band.cards, [](const PlotCard& text) {
+            return text.planned ||
+                   std::ranges::any_of(text.scenes, [](const PlotCard& scene) {
+                       return scene.planned;
+                   });
+        });
+    });
+    if (m_fields.pov || m_fields.place || m_fields.time || buttons) {
         height += LINE_GAP + small.height();
     }
     return {width, height};
@@ -61,6 +75,7 @@ void PlotBoardView::relayout() {
     m_cards.clear();
     m_bandPlaces.clear();
     m_drawers.clear();
+    m_notes.clear();
     m_sectionPlaces.clear();
     const QSize card = cardSizePixels();
     const int header = QFontMetrics(boldFont(font())).height() + HEADER_PADDING;
@@ -165,7 +180,76 @@ int PlotBoardView::layOutColumn(const CardPlace& text, const QSize& card) {
                              .scene = s, .column = text.column, .rect = rect};
         bottom = rect.bottom() + 1;
     }
+    // A text without scenes says so under its card
+    if (const QString note = noteOf(cardOfPlace(text)); !note.isEmpty()) {
+        const int width = card.width() - SCENE_INDENT;
+        const QFontMetrics metrics(smallFont(font()));
+        const int height =
+            metrics.boundingRect(QRect(0, 0, width, card.height() * 2), Qt::TextWordWrap, note)
+                .height();
+        const QRect rect(text.rect.left() + SCENE_INDENT, bottom + LINE_GAP, width, height);
+        m_notes << NotePlace{.textId = text.id, .text = note, .rect = rect};
+        bottom = rect.bottom() + 1;
+    }
     return bottom;
+}
+
+QString PlotBoardView::noteOf(const PlotCard& card) const {
+    if (!m_fields.scenes || !card.scenes.isEmpty() || card.isScene()) {
+        return {};
+    }
+    if (card.planned || m_scenesVariant == QLatin1String(PlotBoard::SCENES_PLAN)) {
+        //: Under the card of a text without scenes in the plan, on the plot board. In Polish:
+        //: Bez scen w planie.
+        return tr("No scenes in the plan.");
+    }
+    //: Under the card of a text without scene breaks, on the plot board. In Polish: Jedna
+    //: scena: tekst nie ma podziałów sceny (Wstaw > Podział sceny).
+    return tr("One scene: the text has no scene breaks (Insert > Scene Break).");
+}
+
+bool PlotBoardView::isDashed(const CardPlace& place) const {
+    return isPlanBesideText(place) || (place.scene < 0 && cardOfPlace(place).planned);
+}
+
+QRect PlotBoardView::pencilRectOf(const CardPlace& place) const {
+    if (m_readOnly) {
+        return {};
+    }
+    const QRect inner = place.rect.adjusted(PADDING, PADDING + STRIP, -PADDING, -PADDING);
+    const int side = QFontMetrics(smallFont(font())).height();
+    return {inner.right() - side + 1, inner.top(), side, side};
+}
+
+QString PlotBoardView::planButtonText(const PlotCard& card) {
+    if (!card.planned) {
+        return {};
+    }
+    //: The button on the card of a scene in the plan: a scene break with what it says in the
+    //: text. In Polish: Napisz scenę
+    return card.isScene() ? tr("Write the Scene")
+                          //: The button on the card of a text in the plan, without a file:
+                          //: its chapter file. In Polish: Utwórz
+                          : tr("Create");
+}
+
+QRect PlotBoardView::planButtonRectOf(const CardPlace& place) const {
+    const PlotCard& card = cardOfPlace(place);
+    if (m_readOnly || !card.planned) {
+        return {};
+    }
+    // A scene in the plan is written in a text with a file, beside the scenes written
+    if (card.isScene() && (m_bands.at(place.band).cards.at(place.index).planned ||
+                           m_scenesVariant != QLatin1String(PlotBoard::SCENES_BOTH))) {
+        return {};
+    }
+    const QFontMetrics metrics(smallFont(font()));
+    const int icon = std::max(MIN_ICON, metrics.height() - ICON_INSET);
+    const int width = (2 * LABEL_PADDING) + icon + ICON_GAP +
+                      metrics.horizontalAdvance(planButtonText(card));
+    const QRect inner = place.rect.adjusted(PADDING, PADDING + STRIP, -PADDING, -PADDING);
+    return {inner.right() - width + 1, inner.bottom() - metrics.height() + 1, width,
+            metrics.height()};
 }
 
 void PlotBoardView::layOutGrid(const QSize& card, int header) {
@@ -324,8 +408,10 @@ QRect PlotBoardView::scenesNoteRect(const CardPlace& place) const {
     const QFontMetrics metrics(smallFont(font()));
     const QRect inner = place.rect.adjusted(PADDING, PADDING + STRIP, -PADDING, -PADDING);
     const int width = metrics.horizontalAdvance(note) + LABEL_PADDING;
-    return {inner.right() - width + 1, inner.bottom() - metrics.height() + 1, width,
-            metrics.height()};
+    // Before the button of a text in the plan
+    const QRect button = planButtonRectOf(place);
+    const int right = button.isValid() ? button.left() - NOTE_GAP : inner.right();
+    return {right - width + 1, inner.bottom() - metrics.height() + 1, width, metrics.height()};
 }
 
 const PlotBoardView::CardPlace* PlotBoardView::cardAt(const QPoint& pos) const {

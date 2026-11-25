@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file general_pages.cpp
 /// @brief Settings pages: General, Appearance > General and Dashboard, Advanced
@@ -311,12 +312,15 @@ AdvancedLogPage::AdvancedLogPage(QWidget* parent)
     addOptionNote(form, logButton, logButtonNote);
 
     QFormLayout* file = addGroup(tr("Log File"));
-    //: In Polish: Plik kalahari.log w folderze programu zapisuje komunikaty bieżącej sesji.
-    //: Przyciski panelu dziennika otwierają jego folder, kopiują dziennik do schowka i
-    //: czyszczą panel.
-    addNote(file, tr("The file kalahari.log in the folder of the program keeps the messages of "
-                     "the current session. The buttons of the log panel open its folder, copy "
-                     "the log to the clipboard and clear the panel."));
+    //: In Polish: Plik kalahari.log zapisuje komunikaty bieżącej sesji: w folderze programu,
+    //: a gdy program nie może tam zapisywać (instalacja dla wszystkich użytkowników, pakiety
+    //: dla Linuksa, macOS) – w folderze jego ustawień. Przyciski panelu dziennika otwierają jego
+    //: folder, kopiują dziennik do schowka i czyszczą panel.
+    addNote(file, tr("The file kalahari.log keeps the messages of the current session: in the "
+                     "folder of the program, or, where the program may not write there (an "
+                     "installation for all users, the packages of Linux, macOS), in the folder "
+                     "of its settings. The buttons of the log panel open its folder, copy the "
+                     "log to the clipboard and clear the panel."));
 
     pageLayout()->addStretch();
 }

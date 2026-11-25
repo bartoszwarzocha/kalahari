@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file settings_dialog.h
 /// @brief Settings dialog for Kalahari application
@@ -14,14 +15,19 @@
 #define KALAHARI_GUI_SETTINGS_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
+#include "kalahari/gui/settings/settings_search.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 
+#include <QPointer>
 #include <QStringList>
+#include <QTimer>
 
 #include <functional>
 #include <map>
 #include <vector>
 
+class QLabel;
+class QLineEdit;
 class QStackedWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -47,6 +53,10 @@ class IconsPage;
 
 /// @brief Settings dialog with hierarchical tree navigation
 ///
+/// The search above the tree (Ctrl+F) narrows the tree to the pages whose options, or whose
+/// names, hold the words typed, and marks the options found on the page shown; the pages not
+/// built yet are built for it the first time.
+///
 /// Example usage:
 /// @code
 /// SettingsDialog dialog(this, diagnosticMode);
@@ -59,7 +69,12 @@ class SettingsDialog : public dialogs::KalahariDialog {
 public:
     /// @brief The pages the dialog can be opened at (openPage())
     static constexpr const char* GENERAL_PAGE = "general";           ///< General
+    /// Notifications: where the program's notifications show and their colors (the gears of the
+    /// bar of notifications, of their window and of the Notifications panel)
+    static constexpr const char* NOTIFICATIONS_PAGE = "notifications";
     static constexpr const char* EDITOR_COLORS_PAGE = "editor.colors";  ///< Editor > Colors
+    /// Editor > Colors, the group of the bar at the bottom of the text (its gear)
+    static constexpr const char* NOTICE_BAR_PAGE = "editor.colors.noticeBar";
     /// Editor > Writing, scrolled to its group Word Count, the cursor in its counting of the
     /// notes' words (the gear of Format > Footnote Layout...)
     static constexpr const char* WORD_COUNT_PAGE = "editor.general.wordCount";
@@ -68,14 +83,26 @@ public:
     static constexpr const char* FIELDS_PAGE = "editor.general.fields";
     /// Editor > Writing, the cursor in the Paste Command (the gear of Edit > Paste Special...)
     static constexpr const char* PASTE_PAGE = "editor.general.paste";
+    /// Editor > Writing, the cursor in the group Footnotes and Endnotes (the gear of the
+    /// Footnotes panel)
+    static constexpr const char* FOOTNOTES_PAGE = "editor.general.footnotes";
     static constexpr const char* PAGES_PAGE = "editor.pages";        ///< Editor > Pages and Margins
+    static constexpr const char* LISTS_PAGE = "editor.lists";        ///< Editor > Lists
     /// Editor > Margin Numbering, the cursor in the choice of the numbering
     static constexpr const char* MARGIN_NUMBERING_PAGE = "editor.pages.marginNumbering";
     static constexpr const char* IMAGES_PAGE = "editor.images";      ///< Editor > Images
+    /// Editor > Images, the cursor in the group of the panel Images and Tables (the gear of the
+    /// panel)
+    static constexpr const char* FIGURES_PANEL_PAGE = "editor.images.figuresPanel";
+    /// Editor > Images, the cursor in the group Spreads (the gear of the card of a spread)
+    static constexpr const char* SPREADS_PAGE = "editor.images.spreads";
+    static constexpr const char* TABLES_PAGE = "editor.tables";      ///< Editor > Tables
     static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
     /// Editor > Auto-correct (the gear of File > Import: the cleanups of the text follow it)
     static constexpr const char* AUTO_CORRECT_PAGE = "editor.autoCorrect";
     static constexpr const char* IMPORT_PAGE = "files.import";  ///< Files > Import
+    /// Files > File Associations
+    static constexpr const char* FILE_ASSOCIATIONS_PAGE = "files.associations";
     static constexpr const char* REPETITIONS_PAGE = "editor.repetitions";  ///< Editor > Repetitions
     static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* CLIPPINGS_PAGE = "editor.clippings";  ///< Editor > Clippings
@@ -126,9 +153,11 @@ public:
     void showShortcutsPage();
 
     /// @brief Open a page: EDITOR_COLORS_PAGE (the gears of Insert > Link and of the find bar),
-    /// IMAGES_PAGE (the gears of the windows of images and captions), PAGES_PAGE,
+    /// IMAGES_PAGE (the gears of the windows of images and captions), TABLES_PAGE (the gear of
+    /// the window of the caption of a table), PAGES_PAGE,
     /// MARGIN_NUMBERING_PAGE (View > Margin Numbering > Numbering Settings...),
-    /// FIELDS_PAGE (the gear of Insert > Field...), SPELLING_PAGE (the gear of the Spelling and
+    /// FIELDS_PAGE (the gear of Insert > Field...), FOOTNOTES_PAGE (the gear of the Footnotes
+    /// panel), SPELLING_PAGE (the gear of the Spelling and
     /// Grammar panel), VERSIONS_PAGE (the gear of the versions), CLIPPINGS_PAGE (the gears of
     /// the windows of the clippings), REPETITIONS_PAGE (the gear of the Repetitions panel),
     /// ANNOTATIONS_PAGE (the gear of the Annotations panel), NAVIGATOR_PAGE (the gear of a list
@@ -141,6 +170,16 @@ public:
     /// @brief Whether the dialog was closed with Open Book Dictionary (Editor > Spelling): the
     ///        window shows the book's dictionary
     [[nodiscard]] bool isBookDictionaryAsked() const { return m_bookDictionaryAsked; }
+
+    /// @brief Find the options with these words: the search shows them, the tree narrows to
+    ///        their pages at once (empty: every page again)
+    void findSettings(const QString& text);
+
+    /// @brief The search above the tree
+    [[nodiscard]] QLineEdit* searchField() const { return m_search; }
+
+    /// @brief The options the search marks on the page shown
+    [[nodiscard]] std::vector<QWidget*> markedOptions() const;
 
 public slots:
     /// @brief OK: write the changed settings, then close; a value that cannot be written
@@ -190,7 +229,36 @@ private:
 
     void onApply();
 
+    /// @brief Build a page if it is not built yet
+    /// @return Its container in the stack (null: a category)
+    QWidget* buildPage(QTreeWidgetItem* item);
+
+    /// @brief The page of an item, inside its container (null: not built, or a category)
+    [[nodiscard]] QWidget* pageOf(QTreeWidgetItem* item) const;
+
+    /// @brief Narrow the tree to the pages of the words of the search, mark the options found
+    void search();
+
+    /// @brief Whether a page shows in the search: its name or an option of it has the words;
+    ///        keeps the options found for the marks
+    bool searchPage(QTreeWidgetItem* item, const QString& category);
+
+    /// @brief Mark the options found on the page shown, the first in view
+    void showMarks(QTreeWidgetItem* item);
+
+    /// @brief The keys of the search: Esc clears it, Down goes to the tree, Enter to the first
+    ///        option found
+    bool searchKeyPressed(int key);
+
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
     QTreeWidget* m_navTree = nullptr;
+    QLineEdit* m_search = nullptr;
+    QLabel* m_searchEmpty = nullptr;  ///< Says that nothing has the words
+    QTimer m_searchTimer;             ///< The search after a pause in typing
+    SettingsSearch m_searchWords;
+    /// The options of each page the search found
+    std::map<QTreeWidgetItem*, std::vector<QPointer<QWidget>>> m_found;
     QStackedWidget* m_pageStack = nullptr;
     bool m_diagnosticMode;
     editor::SpellCheckService* m_spelling;  ///< The dictionary of the editors (not owned)

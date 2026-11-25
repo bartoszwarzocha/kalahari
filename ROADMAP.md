@@ -1,6 +1,6 @@
 # Kalahari Development Roadmap
 
-> **Writer's IDE** – C++20 + Qt6 desktop application, free and open source (MIT)
+> **Writer's IDE** – C++20 + Qt6 desktop application, free and open source (GPL 3.0)
 
 **Current Phase:** Phase 1 (Core Editor) – in progress, Part A released as 0.4.0-alpha
 **Version:** 0.4.0-alpha
@@ -17,7 +17,9 @@ today, not what was planned.
 ## Principles
 
 - **Free and open source.** Every component – the application, the plugin system and all
-  plugins, present and future – is released under the MIT License. There are no paid
+  plugins, present and future – is free and released under the GNU GPL version 3, with
+  the additional terms of NOTICE.md (the attribution of BW Digital Systems & Publishing in
+  the About window of every copy; no rights to the name "Kalahari"). There are no paid
   plugins, marketplace, subscriptions or cloud services. Your work stays on your computer.
 - **Working software over wide menus.** A menu command that is not implemented yet is shown
   disabled, with a tooltip saying so. It becomes active once its feature is wired.
@@ -60,7 +62,7 @@ Windows and Linux. What each version brings is in `CHANGELOG.md`.
 ### Part A – Editor
 
 - [x] Stage 0 – Foundation: tests on three systems, disabled unimplemented commands,
-      this roadmap and the MIT license
+      this roadmap and the MIT license (since 2026-11-25 the GNU GPL 3.0)
 - [x] Stage 1 – Speed: a 150k-word chapter opens in a fraction of a second, typing stays smooth
       (one layout core, layout on demand, the old document model removed)
 - [x] Stage 2 – Typography (line spacing, paragraph spacing, indents), paste and undo,
@@ -148,7 +150,7 @@ work, where the layouts of the window are set together (decisions of 2026-10-08 
 
 ## Phase 2 – Plugins (target: 0.5.0-alpha)
 
-All plugins are free and MIT-licensed. Plugin signing (`PluginSignature`, `TrustedKeys`)
+All plugins are free and released under the GPL 3.0, like the program. Plugin signing (`PluginSignature`, `TrustedKeys`)
 stays: it protects users from tampered code.
 
 - [ ] Plugin Manager dialog: discovery, install, uninstall, enable, disable, settings
@@ -172,7 +174,9 @@ Delivered as free plugins or core features, in an order decided after Phase 2.
 
 - [ ] Full test suite (unit, integration, GUI with QTest, rendering snapshots)
 - [ ] User manual and plugin development guide
-- [ ] Installers: Windows, macOS (`.dmg`), Linux (`.deb`, Flatpak)
+- [x] Installers: Windows (installer, ZIP), macOS (`.dmg`), Linux (`.deb`, AppImage), made and
+      checked by the CI and attached to the draft of a release
+- [ ] Linux: Flatpak (Flathub); macOS: signing and notarization with an Apple Developer ID
 - [ ] Default layouts of the toolbars and panels, with named perspectives (Writer, Editor,
       Researcher, Planner)
 - [ ] Version 1.0.0

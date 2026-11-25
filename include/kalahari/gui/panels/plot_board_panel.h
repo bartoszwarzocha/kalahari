@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plot_board_panel.h
 /// @brief The tab of the plot board in the middle of the window: the board of the cards or the
@@ -9,6 +10,7 @@
 #define KALAHARI_GUI_PANELS_PLOT_BOARD_PANEL_H
 
 #include "kalahari/gui/edit_target.h"
+#include "kalahari/gui/plan_chronology.h"
 #include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/widgets/plot_board_view.h"
 
@@ -18,6 +20,9 @@
 #include <QStringList>
 #include <QWidget>
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <optional>
 
@@ -40,11 +45,18 @@ class PlotOutlineModel;
 /// @brief The plot board on its tab: the cards of the texts of the book (PlotBoardView) or
 /// the outline, the same texts in a table (PlotOutlineModel)
 ///
-/// Over them: Board | Outline, Scenes (the scenes of the texts shown or not), the arrangement of
-/// the cards (Columns | Grid), their size, what colors them, over the outline the columns it
-/// shows, and how many texts and words the book has; the choices are kept in the settings
+/// At the top the bar of the commands of the card chosen (gui::CardBar): New Chapter, Chapter in
+/// the Plan, New Scene, Scene in the Plan, Edit the Card, Open (on a card in the plan: Create
+/// the Chapter File or Write the Scene), Card Color, State, Delete, Undo and Redo, with their
+/// keys in their tips; the same commands are in the menu of the card. Under it Board | Outline |
+/// Chronology (the scenes in the order of the story, from the module of the timelines: it has
+/// its own options and commands, gui::PlanChronology),
+/// Scenes (the scenes of the texts shown or not), the arrangement of the cards (Columns |
+/// Grid), their size, what colors them, over the outline the columns it shows, and how many
+/// texts and words the book has; the choices are kept in the settings
 /// (PlotBoard::LAYOUT_SETTING...), with what the cards show and how they are colored (Settings
-/// > Plot Board). Under them a bar says what was just done, with Undo.
+/// > Plot Board). Under them a line says what the card chosen is, and a bar what was just done,
+/// with Undo.
 ///
 /// The keys of the outline are those of the board where a table allows them: the arrows go
 /// from cell to cell, F2 or a letter edits a cell, Tab goes to the next one, Enter keeps it
@@ -57,6 +69,22 @@ class PlotBoardPanel : public QWidget, public EditTarget {
     Q_OBJECT
 
 public:
+    /// @brief The commands of the bar over the board and the outline
+    enum class Command : std::uint8_t {
+        NewText,    ///< A text after the text of the card (Insert)
+        PlanText,   ///< A text in the plan after it (Ctrl+Shift+Insert)
+        NewScene,   ///< A scene written, a scene break (Alt+Shift+Insert)
+        PlanScene,  ///< A scene in the plan: after a scene (Insert), at the end (Alt+Insert)
+        Edit,       ///< Edit the card (F2)
+        Open,       ///< Open it; create the file of a text in the plan, write a scene (Enter)
+        Color,      ///< Its own color, in a menu
+        State,      ///< Its state, in a menu
+        Delete,     ///< Delete it (Delete)
+        Undo,       ///< Ctrl+Z
+        Redo,       ///< Ctrl+Y
+        Count       ///< How many there are
+    };
+
     /// @brief The tab without texts, its look from the settings
     explicit PlotBoardPanel(QWidget* parent = nullptr);
     ~PlotBoardPanel() override;
@@ -90,20 +118,22 @@ public:
     /// @brief The points of view and the places the editors suggest
     void setSuggestions(const QStringList& povs, const QStringList& places);
 
-    /// @brief Show the board (PlotBoard::VIEW_BOARD) or the outline (VIEW_OUTLINE)
+    /// @brief Show the board (PlotBoard::VIEW_BOARD), the outline (VIEW_OUTLINE) or the
+    /// chronology (VIEW_CHRONOLOGY; the board without it)
     void showView(const QString& view);
 
-    /// @brief PlotBoard::VIEW_BOARD or VIEW_OUTLINE, whichever is shown
+    /// @brief PlotBoard::VIEW_BOARD, VIEW_OUTLINE or VIEW_CHRONOLOGY, whichever is shown
     [[nodiscard]] QString view() const;
 
-    /// @brief Give the keys to the board or the outline, whichever is shown
+    /// @brief Give the keys to the board, the outline or the chronology, whichever is shown
     void focusView();
 
-    /// @brief The card chosen on the board or in the outline: a text or a scene
-    /// (PlotBoard::sceneId()); empty: none
+    /// @brief The card chosen in the view shown: a text or a scene (PlotBoard::sceneId()); in
+    /// the chronology also an event outside the text (PlanChronology::EVENT_PREFIX); empty: none
     [[nodiscard]] QString currentCard() const;
 
-    /// @brief Choose card @p elementId (a text or a scene) on the board and in the outline
+    /// @brief Choose card @p elementId (a text or a scene) on the board, in the outline and in
+    /// the chronology (a text with scenes: its first scene there)
     bool setCurrentCard(const QString& elementId);
 
     /// @brief Card @p elementId marked to move (Ctrl+X); empty: none
@@ -122,6 +152,13 @@ public:
     /// @brief What the bar under the board says; empty when it is hidden
     [[nodiscard]] QString message() const;
 
+    /// @brief What the line under the board says of the card chosen; empty when it is hidden
+    /// (the bar under the board says something)
+    [[nodiscard]] QString hint() const;
+
+    /// @brief The action of command @p which of the bar over the board
+    [[nodiscard]] QAction* command(Command which) const;
+
     /// @brief Read the look of the board from the settings again, with the theme's colors
     void applySettings();
 
@@ -133,6 +170,12 @@ public:
 
     /// @brief The board of the cards
     [[nodiscard]] PlotBoardView* board() const { return m_board; }
+    /// @brief The chronology: the scenes in the order of the story; none without the module
+    /// of the timelines
+    [[nodiscard]] PlanChronology* chronology() const { return m_chronology; }
+    /// @brief The cards of the chronology, from the texts and the scenes of the board, in the
+    /// order of reading
+    [[nodiscard]] QList<PlanChronologyCard> chronologyCards() const;
     /// @brief The outline: the table of the texts
     [[nodiscard]] QTableView* outline() const { return m_outline; }
     /// @brief The model of the outline
@@ -174,8 +217,14 @@ signals:
     /// @brief Add a text after text @p afterId, a scene after scene @p afterId; empty: a text at
     /// the end of the main section
     void addRequested(const QString& afterId);
+    /// @brief Add a text in the plan after text @p afterId; empty: at the end of the main
+    /// section
+    void addPlannedRequested(const QString& afterId);
     /// @brief Add a scene at the end of the text of card @p cardId (Alt+Insert)
     void addSceneRequested(const QString& cardId);
+    /// @brief Add a scene written after scene @p cardId, or at the end of text @p cardId
+    /// (Alt+Shift+Insert)
+    void newSceneRequested(const QString& cardId);
     /// @brief Delete the text from the book, or the scene from its text
     void deleteRequested(const QString& elementId);
     /// @brief Mark the text to move (Ctrl+X)
@@ -202,6 +251,8 @@ signals:
     void settingsRequested();
     /// @brief The writer chose volume @p index of the series in the list Volume
     void volumeChosen(int index);
+    /// @brief View @p view is shown (showView()): PlotBoard::VIEW_BOARD...
+    void viewShown(const QString& view);
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -209,18 +260,34 @@ protected:
 
 private:
     void buildHeader(QWidget* header);
+    /// @brief The bar of the commands over the switches (plot_board_panel_commands.cpp)
+    void buildCommands(QWidget* bar);
+    /// @brief The commands follow the card chosen, what can be undone and the book
+    void updateCommands();
+    /// @brief The line under the board says what the card chosen is
+    void updateHint();
+    /// @brief What the line under the board says of card @p cardId
+    [[nodiscard]] QString hintOf(const QString& cardId) const;
+    /// @brief Ask for command @p which with the card chosen
+    void runCommand(Command which);
     /// @brief The board and the outline in a stack, and the bar under them
     void buildBody(QVBoxLayout* layout);
     void connectBoard();
     void connectOutline();
+    /// @brief The chronology asks the panel for what the board and the outline ask
+    void connectChronology();
+    /// @brief Keep what was written on card @p cardId of the chronology
+    void onChronologyEdited(const QString& cardId, const PlanChronologyEdit& edit);
     /// @brief The look follows the settings and the theme
     void followSettings();
     QAction* addMenuAction(const QString& text, const QString& keys, bool enabled,
                            const std::function<void()>& run);
-    /// @brief The states of the card in the menu
-    void addStateMenu(const QString& elementId, const std::optional<PlotCard>& found);
-    /// @brief The own colors of the card in the menu
-    void addColorMenu(const QString& elementId, const std::optional<PlotCard>& found);
+    /// @brief The states of the card in menu @p states
+    void fillStateMenu(QMenu* states, const QString& elementId,
+                       const std::optional<PlotCard>& found);
+    /// @brief The own colors of the card in menu @p colors
+    void fillColorMenu(QMenu* colors, const QString& elementId,
+                       const std::optional<PlotCard>& found);
     /// @brief Whether the card marked can go after card @p elementId
     [[nodiscard]] bool canPasteAfter(const QString& elementId) const;
     void updateTotals();
@@ -240,6 +307,9 @@ private:
     [[nodiscard]] bool takesKey(PlotBoardView::Key action) const;
     void doOutlineKey(PlotBoardView::Key action);
 
+    /// @brief Whether the chronology is in front
+    [[nodiscard]] bool showsChronology() const;
+
     QList<PlotBand> m_bands;
     bool m_readOnly = false;
     bool m_canUndo = false;  ///< setUndoState()
@@ -248,14 +318,23 @@ private:
     QStackedWidget* m_stack = nullptr;
     PlotBoardView* m_board = nullptr;
     QTableView* m_outline = nullptr;
+    PlanChronology* m_chronology = nullptr;
+    QWidget* m_commandBar = nullptr;  ///< Of the board and the outline
     PlotOutlineModel* m_model = nullptr;
     PlotOutlineDelegate* m_delegate = nullptr;
     InfoBar* m_infoBar = nullptr;
+    QLabel* m_hint = nullptr;  ///< What the card chosen is, under the board
+    std::array<QAction*, static_cast<std::size_t>(Command::Count)> m_commands{};
+    QToolButton* m_openButton = nullptr;  ///< Named on a card in the plan
+    QMenu* m_colorMenu = nullptr;         ///< Of the button Card Color
+    QMenu* m_stateMenu = nullptr;         ///< Of the button State
     QLabel* m_volumeLabel = nullptr;
     QComboBox* m_volumeBox = nullptr;
     QStringList m_volumeNames;  ///< setVolumes()
     QToolButton* m_boardButton = nullptr;
     QToolButton* m_outlineButton = nullptr;
+    QToolButton* m_chronologyButton = nullptr;
+    QLabel* m_colorLabel = nullptr;
     QToolButton* m_scenesButton = nullptr;
     QLabel* m_layoutLabel = nullptr;
     QToolButton* m_columnsButton = nullptr;

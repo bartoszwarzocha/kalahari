@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file field_dialogs.cpp
 /// @brief The windows of the fields: Insert > Date && Time... and Insert > Field...
@@ -10,17 +11,25 @@
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/settings_dialog.h"
 
+#include <QButtonGroup>
+#include <QClipboard>
+#include <QGuiApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QGridLayout>
 #include <QHBoxLayout>
+#include <QHeaderView>
 #include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QPalette>
+#include <QPushButton>
+#include <QRadioButton>
 #include <QStringList>
 #include <QTabBar>
 #include <QTabWidget>
+#include <QTreeWidget>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -38,6 +47,14 @@ constexpr int LIST_WIDTH_CHARS = 30;
 
 /// The number the formats of the word count show
 constexpr int EXAMPLE_WORDS = 12345;
+
+/// The columns of the list of the own fields
+constexpr int OWN_NAME_COLUMN = 0;
+constexpr int OWN_VALUE_COLUMN = 1;
+constexpr int OWN_PLACE_COLUMN = 2;
+
+/// The lines the list of the own fields shows at least
+constexpr int OWN_LINES = 5;
 
 /// A list as high as its lines, the lines its own (the list's own hint is higher than a small
 /// screen allows)
@@ -67,6 +84,36 @@ private:
     {
         const int line = sizeHintForRow(0) > 0 ? sizeHintForRow(0) : fontMetrics().lineSpacing();
         return (line * m_lines) + (2 * frameWidth());
+    }
+
+    int m_lines;
+};
+
+/// The own fields: as high as its header and some lines, not as a tree's default height
+class LinesTree : public QTreeWidget {
+public:
+    LinesTree(int lines, QWidget* parent)
+        : QTreeWidget(parent),
+          m_lines(lines)
+    {
+        setMinimumHeight(linesHeight());
+    }
+
+    [[nodiscard]] QSize sizeHint() const override
+    {
+        return {QTreeWidget::sizeHint().width(), linesHeight()};
+    }
+
+    [[nodiscard]] QSize minimumSizeHint() const override
+    {
+        return {QTreeWidget::minimumSizeHint().width(), linesHeight()};
+    }
+
+private:
+    [[nodiscard]] int linesHeight() const
+    {
+        const int line = fontMetrics().lineSpacing() + 4;
+        return header()->sizeHint().height() + (line * m_lines) + (2 * frameWidth());
     }
 
     int m_lines;
@@ -176,6 +223,7 @@ QString fieldFormatText(editor::FieldType type, const QString& format, const QDa
         case editor::FieldType::BookTitle:
         case editor::FieldType::Author:
         case editor::FieldType::TextTitle:
+        case editor::FieldType::Custom:
             return titleFormatText(format);
         case editor::FieldType::Page:
         case editor::FieldType::Pages:
@@ -289,7 +337,12 @@ FieldDialog::FieldDialog(Data shown, QWidget* parent)
         showFormats(QString());
     });
     connect(m_formats, &QComboBox::currentIndexChanged, this, &FieldDialog::showPreview);
-    m_lists.at(static_cast<size_t>(firstTab))->setFocus();
+    if (firstTab == m_ownTab) {
+        m_ownList->setFocus();
+    } else {
+        m_lists.at(static_cast<size_t>(firstTab))->setFocus();
+    }
+    updateButtons();
 }
 
 int FieldDialog::addTabs()
@@ -325,7 +378,189 @@ int FieldDialog::addTabs()
         connect(list, &QListWidget::currentRowChanged, this, [this]() { showFormats(QString()); });
         connect(list, &QListWidget::itemActivated, this, [this]() { accept(); });
     }
+
+    // The own fields of the book and of its series, the last tab
+    //: A tab of Insert > Field...: the writer's own fields. In Polish: &Własne
+    m_ownTab = m_tabs->addTab(ownFieldsTab(OWN_LINES), tr("O&wn"));
+    if (m_data.field.type == editor::FieldType::Custom) {
+        firstTab = m_ownTab;
+    }
     return firstTab;
+}
+
+QWidget* FieldDialog::ownFieldsTab(int lines)
+{
+    auto* page = new QWidget(m_tabs);
+    auto* pageLayout = new QVBoxLayout(page);
+    pageLayout->setSpacing(contentLayout()->spacing());
+
+    m_ownList = new LinesTree(lines, page);
+    m_ownList->setObjectName(QStringLiteral("ownFields"));
+    //: The list of the own fields of Insert > Field.... In Polish: Własne pola
+    m_ownList->setAccessibleName(tr("Own Fields"));
+    m_ownList->setRootIsDecorated(false);
+    m_ownList->setUniformRowHeights(true);
+    m_ownList->setAllColumnsShowFocus(true);
+    //: Columns of the own fields: their name, value and where they are saved. In Polish:
+    //: Nazwa / Wartość / Zapisane w
+    m_ownList->setHeaderLabels({tr("Name"), tr("Value"), tr("Saved in")});
+    m_ownList->header()->setStretchLastSection(false);
+    m_ownList->header()->setSectionResizeMode(OWN_NAME_COLUMN, QHeaderView::ResizeToContents);
+    m_ownList->header()->setSectionResizeMode(OWN_VALUE_COLUMN, QHeaderView::Stretch);
+    m_ownList->header()->setSectionResizeMode(OWN_PLACE_COLUMN, QHeaderView::ResizeToContents);
+    pageLayout->addWidget(m_ownList, 1);
+
+    m_ownNote = hintLabel(QString(), page);
+    pageLayout->addWidget(m_ownNote);
+
+    auto* buttons = new QHBoxLayout();
+    //: In Polish: &Nowe pole...
+    m_newOwn = new QPushButton(tr("&New Field..."), page);
+    //: In Polish: &Zmień...
+    m_changeOwn = new QPushButton(tr("C&hange..."), page);
+    //: In Polish: &Usuń
+    m_deleteOwn = new QPushButton(tr("De&lete"), page);
+    for (QPushButton* button : {m_newOwn, m_changeOwn, m_deleteOwn}) {
+        button->setAutoDefault(false);
+        buttons->addWidget(button);
+    }
+    buttons->addStretch(1);
+    pageLayout->addLayout(buttons);
+
+    connect(m_newOwn, &QPushButton::clicked, this, &FieldDialog::newOwnField);
+    connect(m_changeOwn, &QPushButton::clicked, this, &FieldDialog::changeOwnField);
+    connect(m_deleteOwn, &QPushButton::clicked, this, &FieldDialog::deleteOwnField);
+    connect(m_ownList, &QTreeWidget::currentItemChanged, this, [this]() {
+        if (m_tabs->currentIndex() == m_ownTab) {
+            showFormats(QString());
+        }
+        updateButtons();
+    });
+    connect(m_ownList, &QTreeWidget::itemActivated, this, [this]() {
+        if (!chosenOwnField().isEmpty()) {
+            accept();
+        }
+    });
+    fillOwnFields(m_data.field.type == editor::FieldType::Custom ? m_data.field.key
+                                                                  : QString());
+    return page;
+}
+
+void FieldDialog::fillOwnFields(const QString& chosen)
+{
+    const QString keep = chosen.isEmpty() ? chosenOwnField() : chosen;
+    const QList<OwnField> fields = m_data.ownFields ? m_data.ownFields() : QList<OwnField>{};
+    {
+        const QSignalBlocker blocker(m_ownList);
+        m_ownList->clear();
+        for (const OwnField& own : fields) {
+            auto* item = new QTreeWidgetItem(m_ownList);
+            item->setText(OWN_NAME_COLUMN, own.name);
+            if (own.value.trimmed().isEmpty()) {
+                //: An own field without a value; %1: what the text shows. In Polish: bez
+                //: wartości – w tekście %1
+                item->setText(OWN_VALUE_COLUMN,
+                              tr("no value – in the text %1").arg(QStringLiteral("[%1]").arg(own.name)));
+                item->setForeground(OWN_VALUE_COLUMN, palette().placeholderText());
+            } else {
+                item->setText(OWN_VALUE_COLUMN, own.value.simplified());
+            }
+            //: Where an own field is saved: in the book alone, or in its series (all the
+            //: volumes). In Polish: książce / serii
+            item->setText(OWN_PLACE_COLUMN, own.series ? tr("series") : tr("book"));
+            item->setData(OWN_NAME_COLUMN, Qt::UserRole, own.id);
+            item->setData(OWN_NAME_COLUMN, Qt::UserRole + 1, own.name);
+            if (!own.description.isEmpty()) {
+                for (int column = 0; column < m_ownList->columnCount(); ++column) {
+                    item->setToolTip(column, own.description);
+                }
+            }
+            if (own.id == keep) {
+                m_ownList->setCurrentItem(item);
+            }
+        }
+        if (m_ownList->currentItem() == nullptr && m_ownList->topLevelItemCount() > 0) {
+            m_ownList->setCurrentItem(m_ownList->topLevelItem(0));
+        }
+    }
+    QString note;
+    if (!m_data.ownFields) {
+        //: In Polish: Tekst spoza książki nie ma własnych pól.
+        note = tr("A text outside a book has no own fields.");
+    } else if (fields.isEmpty()) {
+        //: In Polish: Książka nie ma jeszcze własnych pól. „Nowe pole...” dodaje pole, np. imię
+        //: narratora albo nazwę wydawnictwa.
+        note = tr("The book has no own fields yet. New Field... adds one, such as the name of "
+                  "the narrator or of the publisher.");
+    } else if (!m_data.whyOwnFieldsFixed.isEmpty()) {
+        note = m_data.whyOwnFieldsFixed;
+    }
+    m_ownNote->setText(note);
+    m_ownNote->setVisible(!note.isEmpty());
+    if (m_tabs->currentIndex() == m_ownTab) {
+        showFormats(QString());
+    }
+    updateButtons();
+}
+
+QString FieldDialog::chosenOwnField() const
+{
+    const QTreeWidgetItem* item = m_ownList != nullptr ? m_ownList->currentItem() : nullptr;
+    return item != nullptr ? item->data(OWN_NAME_COLUMN, Qt::UserRole).toString() : QString();
+}
+
+void FieldDialog::updateButtons()
+{
+    const bool canChange = m_data.ownFields && m_data.whyOwnFieldsFixed.isEmpty();
+    const bool chosen = !chosenOwnField().isEmpty();
+    m_newOwn->setEnabled(canChange && m_data.newOwnField);
+    m_changeOwn->setEnabled(canChange && chosen && m_data.changeOwnField);
+    m_deleteOwn->setEnabled(canChange && chosen && m_data.deleteOwnField);
+    for (QPushButton* button : {m_newOwn, m_changeOwn, m_deleteOwn}) {
+        button->setToolTip(button->isEnabled() ? QString() : m_data.whyOwnFieldsFixed);
+    }
+    if (acceptButton() != nullptr) {
+        acceptButton()->setEnabled(m_tabs->currentIndex() != m_ownTab || chosen);
+    }
+}
+
+void FieldDialog::newOwnField()
+{
+    if (!m_newOwn->isEnabled()) {
+        return;
+    }
+    if (const QString id = m_data.newOwnField(); !id.isEmpty()) {
+        fillOwnFields(id);
+    }
+    m_ownList->setFocus();
+}
+
+void FieldDialog::changeOwnField()
+{
+    if (!m_changeOwn->isEnabled()) {
+        return;
+    }
+    const QString id = chosenOwnField();
+    if (m_data.changeOwnField(id)) {
+        fillOwnFields(id);
+    }
+    m_ownList->setFocus();
+}
+
+void FieldDialog::deleteOwnField()
+{
+    if (!m_deleteOwn->isEnabled()) {
+        return;
+    }
+    const int row = m_ownList->indexOfTopLevelItem(m_ownList->currentItem());
+    if (m_data.deleteOwnField(chosenOwnField())) {
+        fillOwnFields(QString());
+        if (QTreeWidgetItem* next = m_ownList->topLevelItem(
+                std::min(row, m_ownList->topLevelItemCount() - 1))) {
+            m_ownList->setCurrentItem(next);
+        }
+    }
+    m_ownList->setFocus();
 }
 
 QListWidget* FieldDialog::fieldList(const std::vector<editor::FieldType>& types, int lines,
@@ -379,6 +614,7 @@ void FieldDialog::addDetails()
             hints << hintText({.type = type, .format = format});
         }
     }
+    hints << hintText({.type = editor::FieldType::Custom, .format = QString()});
     hints.removeDuplicates();
     m_hint = new FieldHint(hints, m_details);
     details->addWidget(m_hint, 2, 0, 1, 2);
@@ -403,7 +639,7 @@ void FieldDialog::colorPreview()
 
 void FieldDialog::showTab(int tab)
 {
-    if (tab < 0 || static_cast<size_t>(tab) >= m_lists.size()) {
+    if (tab < 0 || tab >= m_tabs->count()) {
         return;
     }
     const QWidget* const page = m_tabs->widget(tab);
@@ -416,8 +652,13 @@ void FieldDialog::showTab(int tab)
     m_details->show();
     // The keys go to the list of the tab, unless they move between the tabs
     if (!m_tabs->tabBar()->hasFocus() && m_tabs->isVisible()) {
-        m_lists.at(static_cast<size_t>(tab))->setFocus();
+        if (tab == m_ownTab) {
+            m_ownList->setFocus();
+        } else {
+            m_lists.at(static_cast<size_t>(tab))->setFocus();
+        }
     }
+    updateButtons();
 }
 
 editor::TextField FieldDialog::field() const
@@ -425,12 +666,21 @@ editor::TextField FieldDialog::field() const
     editor::TextField field;
     field.type = chosenType();
     field.format = editor::normalizedFieldFormat(field.type, m_formats->currentData().toString());
+    if (field.type == editor::FieldType::Custom) {
+        if (const QTreeWidgetItem* item = m_ownList->currentItem()) {
+            field.key = item->data(OWN_NAME_COLUMN, Qt::UserRole).toString();
+            field.name = item->data(OWN_NAME_COLUMN, Qt::UserRole + 1).toString();
+        }
+    }
     return field;
 }
 
 editor::FieldType FieldDialog::chosenType() const
 {
     const int tab = m_tabs->currentIndex();
+    if (tab == m_ownTab) {
+        return editor::FieldType::Custom;
+    }
     const QListWidgetItem* item = tab >= 0 && static_cast<size_t>(tab) < m_lists.size()
                                       ? m_lists.at(static_cast<size_t>(tab))->currentItem()
                                       : nullptr;
@@ -499,10 +749,219 @@ QString FieldDialog::hintText(const editor::TextField& field)
                        //: innego dnia.
                        : tr("Today's date: it changes when the text is opened on another day.");
             break;
+        case editor::FieldType::Custom:
+            //: In Polish: Nowa wartość zmienia to pole w całej książce, także w eksporcie i
+            //: wydruku.
+            hint = tr("A new value changes the field in the whole book, in export and printing "
+                      "too.");
+            break;
     }
     //: In Polish: Szare tło pól można wyłączyć w Ustawieniach.
     return hint + QLatin1Char(' ') +
            tr("The gray background of the fields can be turned off in the Settings.");
+}
+
+// =============================================================================
+// New Field... and Change... of an own field
+// =============================================================================
+
+OwnFieldDialog::OwnFieldDialog(const OwnField& field, bool inSeries, NameCheck checkName,
+                               QWidget* parent)
+    : KalahariDialog(parent),
+      m_field(field),
+      m_checkName(std::move(checkName))
+{
+    const bool isNew = field.id.isEmpty();
+    //: The window of a new own field and of a changed one. In Polish: Nowe pole / Zmień pole /
+    //: Nazwa i wartość, które pole pokazuje w tekście.
+    setHeading(isNew ? tr("New Field") : tr("Change Field"),
+               tr("The name and the value the field shows in the text."));
+    setHeadingIcon(QStringLiteral("insert.field"));
+    if (isNew) {
+        //: In Polish: Dodaj
+        setAcceptText(tr("Add"));
+    }
+
+    m_name = new QLineEdit(field.name, this);
+    //: An example of the name of an own field. In Polish: np. Imię narratora
+    m_name->setPlaceholderText(tr("e.g. Narrator's Name"));
+    //: In Polish: &Nazwa:
+    addField(tr("&Name:"), m_name);
+
+    m_value = new QLineEdit(field.series ? field.seriesValue : field.value, this);
+    //: In Polish: może zostać puste – pole pokaże wtedy swoją nazwę
+    m_value->setPlaceholderText(tr("may stay empty: the field then shows its name"));
+    //: In Polish: &Wartość:
+    addField(tr("&Value:"), m_value);
+
+    m_description = new QLineEdit(field.description, this);
+    //: In Polish: krótki opis do podpowiedzi
+    m_description->setPlaceholderText(tr("a short description for the tooltip"));
+    //: In Polish: &Opis:
+    addField(tr("&Description:"), m_description);
+
+    if (inSeries) {
+        auto* places = new QWidget(this);
+        auto* placesLayout = new QVBoxLayout(places);
+        placesLayout->setContentsMargins(0, 0, 0, 0);
+        //: Where a new own field is saved. In Polish: w tej &książce
+        m_inBook = new QRadioButton(tr("in this &book"), places);
+        //: In Polish: w &serii – wspólne dla wszystkich tomów
+        m_inSeries = new QRadioButton(tr("in the &series: the same for all the volumes"), places);
+        auto* group = new QButtonGroup(places);
+        group->addButton(m_inBook);
+        group->addButton(m_inSeries);
+        (field.series ? m_inSeries : m_inBook)->setChecked(true);
+        // A field made stays where it is: its fields in the texts of the other volumes
+        m_inBook->setEnabled(isNew);
+        m_inSeries->setEnabled(isNew);
+        placesLayout->addWidget(m_inBook);
+        placesLayout->addWidget(m_inSeries);
+        //: In Polish: Zapisz w:
+        addField(tr("Save in:"), places);
+
+        auto* own = new QWidget(this);
+        auto* ownLayout = new QHBoxLayout(own);
+        ownLayout->setContentsMargins(0, 0, 0, 0);
+        //: A field of the series: this volume has a value of its own. In Polish: &Inna wartość
+        //: w tej książce:
+        m_ownValue = new QCheckBox(tr("&Another value in this book:"), own);
+        m_ownValue->setChecked(field.series && field.ownValue);
+        m_volumeValue = new QLineEdit(field.series && field.ownValue ? field.value : QString(), own);
+        ownLayout->addWidget(m_ownValue);
+        ownLayout->addWidget(m_volumeValue, 1);
+        contentLayout()->addWidget(own);
+        connect(m_inSeries, &QRadioButton::toggled, this, &OwnFieldDialog::updateValues);
+        connect(m_ownValue, &QCheckBox::toggled, this, &OwnFieldDialog::updateValues);
+    }
+
+    m_problem = hintLabel(QString(), this);
+    m_problem->hide();
+    contentLayout()->addWidget(m_problem);
+    connect(m_name, &QLineEdit::textEdited, m_problem, &QLabel::hide);
+    updateValues();
+    m_name->setFocus();
+}
+
+void OwnFieldDialog::updateValues()
+{
+    if (m_inSeries == nullptr) {
+        return;
+    }
+    const bool series = m_inSeries->isChecked();
+    m_ownValue->setVisible(series);
+    m_volumeValue->setVisible(series);
+    m_volumeValue->setEnabled(m_ownValue->isChecked());
+}
+
+OwnField OwnFieldDialog::field() const
+{
+    OwnField field = m_field;
+    field.name = m_name->text().simplified();
+    field.description = m_description->text().trimmed();
+    field.series = m_inSeries != nullptr && m_inSeries->isChecked();
+    if (field.series) {
+        field.seriesValue = m_value->text();
+        field.ownValue = m_ownValue->isChecked();
+        field.value = field.ownValue ? m_volumeValue->text() : field.seriesValue;
+    } else {
+        field.value = m_value->text();
+        field.seriesValue.clear();
+        field.ownValue = false;
+    }
+    return field;
+}
+
+void OwnFieldDialog::accept()
+{
+    const QString name = m_name->text().simplified();
+    QString problem;
+    if (name.isEmpty()) {
+        //: In Polish: Pole musi mieć nazwę.
+        problem = tr("The field needs a name.");
+    } else if (m_checkName) {
+        problem = m_checkName(name);
+    }
+    if (!problem.isEmpty()) {
+        m_problem->setText(problem);
+        m_problem->show();
+        m_name->setFocus();
+        m_name->selectAll();
+        return;
+    }
+    KalahariDialog::accept();
+}
+
+// =============================================================================
+// Delete of an own field used in the texts
+// =============================================================================
+
+DeleteOwnFieldDialog::DeleteOwnFieldDialog(const OwnField& field, int uses, int texts,
+                                           const QString& undoKeys, QWidget* parent)
+    : KalahariDialog(parent)
+{
+    //: In Polish: Usuń pole / Usunąć pole „%1”?
+    setHeading(tr("Delete Field"), tr("Delete the field \u201c%1\u201d?").arg(field.name));
+    setHeadingIcon(QStringLiteral("insert.field"));
+    //: In Polish: &Usuń pole
+    setAcceptText(tr("&Delete Field"));
+
+    //: How often an own field is in the texts; the next sentence says in how many. In Polish:
+    //: Pole występuje %n raz, / %n razy, / %n razy,
+    m_message = tr("The field is in the text %n times,", nullptr, uses) + QLatin1Char(' ') +
+                //: In Polish: w %n tekście. / w %n tekstach. / w %n tekstach.
+                tr("in %n texts.", nullptr, texts);
+    auto* says = new QLabel(m_message, this);
+    says->setWordWrap(true);
+    contentLayout()->addWidget(says);
+
+    const QString value = field.value.simplified();
+    //: In Polish: &Zamień te miejsca na zwykły tekst „%1”
+    m_asText = new QRadioButton(
+        tr("&Replace these places with the plain text \u201c%1\u201d").arg(value), this);
+    //: In Polish: Zostaw je &jako puste pole „%1” do poprawienia
+    m_keep = new QRadioButton(
+        tr("&Leave them as the empty field \u201c%1\u201d, to fix")
+            .arg(QStringLiteral("[%1]").arg(field.name)),
+        this);
+    auto* group = new QButtonGroup(this);
+    group->addButton(m_asText);
+    group->addButton(m_keep);
+    if (value.isEmpty()) {
+        // A field without a value: no text to put in its places
+        m_asText->setEnabled(false);
+        m_keep->setChecked(true);
+    } else {
+        m_asText->setChecked(true);
+    }
+    contentLayout()->addWidget(m_asText);
+    contentLayout()->addWidget(m_keep);
+    //: %1: the keys of Undo (Ctrl+Z). In Polish: %1 w otwartym tekście i „Cofnij” w komunikacie
+    //: na dole okna przywracają pole wszędzie.
+    contentLayout()->addWidget(hintLabel(
+        tr("%1 in an open text and Undo in the message at the bottom of the window bring the "
+           "field back everywhere.")
+            .arg(undoKeys.isEmpty() ? tr("Undo") : undoKeys),
+        this));
+
+    //: In Polish: &Kopiuj
+    QPushButton* copy = addSideButton(tr("&Copy"));
+    connect(copy, &QPushButton::clicked, this, [this]() {
+        if (QClipboard* clipboard = QGuiApplication::clipboard()) {
+            clipboard->setText(message());
+        }
+    });
+    (m_asText->isEnabled() ? m_asText : m_keep)->setFocus();
+}
+
+bool DeleteOwnFieldDialog::asText() const
+{
+    return m_asText->isEnabled() && m_asText->isChecked();
+}
+
+QString DeleteOwnFieldDialog::message() const
+{
+    return headingDescription() + QLatin1Char('\n') + m_message;
 }
 
 }  // namespace kalahari::gui::dialogs

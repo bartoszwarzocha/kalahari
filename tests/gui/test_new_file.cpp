@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_new_file.cpp
 /// @brief New File: an element of the open book or an empty text file in the New File window,
@@ -491,9 +492,9 @@ TEST_CASE("New File: the kinds of the book in its parts, the greyed ones saying 
                             "for the table of contents yet.";
     CHECK(joined(rowsOf(*dialog.kindList())) ==
           "# Front Section | " + titlePage + " | Copyright page | Dedication | Epigraph | " +
-              toc + " | Preface | # Main Section | Prologue | Chapter | Epilogue | " +
-              "# Back Section | Afterword | Acknowledgments | Glossary | About the author | " +
-              toc);
+              toc + " | Preface | Spread | # Main Section | Prologue | Chapter | Epilogue | " +
+              "Spread | # Back Section | Afterword | Acknowledgments | Glossary | About the " +
+              "author | Spread | " + toc);
 }
 
 TEST_CASE("New File: the chosen kind, the title of the new element and its place",
@@ -1173,7 +1174,13 @@ TEST_CASE("New File: a book opened from its card on the Dashboard leaves the cha
     QStringList said;
     CHECK(test::accepting([&]() { click(*card, Qt::RightButton); }, &said) == 0);
     CHECK_FALSE(pm.isProjectOpen());
-    CHECK(test::accepting([&]() { click(*card, Qt::LeftButton); }, &said) == 0);
+    // The card is darkened first and the book opens a moment later (test of 23.11)
+    CHECK(test::accepting(
+              [&]() {
+                  click(*card, Qt::LeftButton);
+                  QCoreApplication::processEvents();
+              },
+              &said) == 0);
     INFO(said.join(QStringLiteral("\n")).toStdString());
     CHECK(pm.isProjectOpen());
     CHECK(pm.getManifestPath() == manifest);
@@ -1280,9 +1287,10 @@ TEST_CASE("Add Element: the kinds of the place it was opened on, the usual one c
         CHECK(test::textsOf(dialog).contains(
             QStringLiteral("Choose the kind of the new element, its title, status and place.")));
         CHECK(joined(enabledRowsOf(dialog)) ==
-              "# Front Section | Copyright page | Dedication | Epigraph | Preface | "
-              "# Main Section | Prologue | Part | Chapter | Epilogue | # Back Section | "
-              "Afterword | Acknowledgments | Glossary | About the author");
+              "# Front Section | Copyright page | Dedication | Epigraph | Preface | Spread | "
+              "# Main Section | Prologue | Part | Chapter | Epilogue | Spread | "
+              "# Back Section | Afterword | Acknowledgments | Glossary | About the author | "
+              "Spread");
         REQUIRE(dialog.kind());
         CHECK(dialog.kind().kind->id == QStringLiteral("chapter"));
         CHECK(dialog.place() == core::ElementPlace{BookPlace::Main, QString(), 2});
@@ -1305,7 +1313,8 @@ TEST_CASE("Add Element: the kinds of the place it was opened on, the usual one c
             withoutChoice(addingOn(gui::AddTarget::Scope::Section, QString(), BookPlace::Back)),
             types);
         CHECK(joined(enabledRowsOf(dialog)) ==
-              "# Back Section | Afterword | Acknowledgments | Glossary | About the author");
+              "# Back Section | Afterword | Acknowledgments | Glossary | About the author | "
+              "Spread");
         REQUIRE(dialog.kind());
         CHECK(dialog.kind().kind->id == QStringLiteral("afterword"));
         CHECK(dialog.place().place == BookPlace::Back);
@@ -1317,7 +1326,7 @@ TEST_CASE("Add Element: the kinds of the place it was opened on, the usual one c
         REQUIRE_FALSE(part.isEmpty());
         NewFileDialog dialog(withoutChoice(addingOn(gui::AddTarget::Scope::Group, part)), types);
         CHECK(joined(enabledRowsOf(dialog)) ==
-              "# In the part \"Part One\" | Prologue | Chapter | Epilogue | Epigraph");
+              "# In the part \"Part One\" | Prologue | Chapter | Epilogue | Spread | Epigraph");
         REQUIRE(dialog.kind());
         CHECK(dialog.kind().kind->id == QStringLiteral("chapter"));
         CHECK(dialog.place() == core::ElementPlace{BookPlace::Main, part, 0});
@@ -1709,7 +1718,8 @@ TEST_CASE("Add Element: the sections of the book and the Workshop at the top, on
         CHECK(choicesOf(dialog) == QStringList{"&Front Section", "&Main Section", "&Back Section",
                                                "&Workshop"});
         CHECK(chosenOf(dialog) == QStringLiteral("Main Section"));
-        CHECK(joined(rowsOf(*dialog.kindList())) == "Prologue | Part | Chapter | Epilogue");
+        CHECK(joined(rowsOf(*dialog.kindList())) ==
+              "Prologue | Part | Chapter | Epilogue | Spread");
         REQUIRE(dialog.kind());
         CHECK(dialog.kind().kind->id == QStringLiteral("chapter"));
         CHECK(dialog.place() == core::ElementPlace{BookPlace::Main, QString(), 2});
@@ -1721,7 +1731,7 @@ TEST_CASE("Add Element: the sections of the book and the Workshop at the top, on
         back->click();
         CHECK(chosenOf(dialog) == QStringLiteral("Back Section"));
         CHECK(joined(enabledRowsOf(dialog)) ==
-              "Afterword | Acknowledgments | Glossary | About the author");
+              "Afterword | Acknowledgments | Glossary | About the author | Spread");
         CHECK(chosenTileOf(dialog) == QStringLiteral("Afterword"));
         CHECK(dialog.place().place == BookPlace::Back);
         CHECK(dialog.titleEdit()->text() == QStringLiteral("Afterword"));
@@ -1765,7 +1775,7 @@ TEST_CASE("Add Element: the sections of the book and the Workshop at the top, on
         NewFileDialog inPart(bySections(addingOn(gui::AddTarget::Scope::Group, part)), types);
         CHECK(chosenOf(inPart) == QStringLiteral("Main Section"));
         CHECK(joined(rowsOf(*inPart.kindList())) ==
-              "Prologue | Part | Chapter | Epilogue | Epigraph");
+              "Prologue | Part | Chapter | Epilogue | Spread | Epigraph");
         REQUIRE(inPart.kind());
         CHECK(inPart.kind().kind->id == QStringLiteral("chapter"));
         CHECK(inPart.place() == core::ElementPlace{BookPlace::Main, part, 0});
@@ -1842,9 +1852,9 @@ TEST_CASE("Add Element: the book and the Workshop at the top, all sections of th
     CHECK(choicesOf(dialog) == QStringList{"&Book", "&Workshop"});
     CHECK(chosenOf(dialog) == QStringLiteral("Book"));
     CHECK(joined(enabledRowsOf(dialog)) ==
-          "# Front Section | Copyright page | Dedication | Epigraph | Preface | "
-          "# Main Section | Prologue | Part | Chapter | Epilogue | # Back Section | "
-          "Afterword | Acknowledgments | Glossary | About the author");
+          "# Front Section | Copyright page | Dedication | Epigraph | Preface | Spread | "
+          "# Main Section | Prologue | Part | Chapter | Epilogue | Spread | # Back Section | "
+          "Afterword | Acknowledgments | Glossary | About the author | Spread");
     CHECK(chosenTileOf(dialog) == QStringLiteral("Chapter"));
     choiceOf(dialog, QStringLiteral("Workshop"))->click();
     CHECK(joined(enabledRowsOf(dialog)) == WORKSHOP_KINDS);
@@ -1902,7 +1912,7 @@ TEST_CASE("Add Element: a material of the cover with its kind, source, title and
     REQUIRE(dialog.kind());
     CHECK(dialog.kind().kind->id == QStringLiteral("cover"));
     CHECK(dialog.coverGroup()->isVisibleTo(&dialog));
-    CHECK(dialog.coverButtons()->buttons().size() == 6);
+    CHECK(dialog.coverButtons()->buttons().size() == 8);
     CHECK(dialog.coverPart() == QStringLiteral("blurb"));
     CHECK(dialog.materialOrigin() == NewFileDialog::MaterialOrigin::None);
     CHECK(dialog.titleEdit()->text() == QStringLiteral("Description 1"));

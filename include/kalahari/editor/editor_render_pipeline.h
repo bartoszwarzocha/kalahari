@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file editor_render_pipeline.h
 /// @brief Unified rendering pipeline for BookEditor (OpenSpec #00043 Phase 12.1)
@@ -193,8 +194,16 @@ public:
     void setConfigPageLayout(const QSizeF& pageSize, const QMarginsF& marginsMm, double pageGap,
                              bool mirrorMargins = false);
 
+    /// @brief Make the page a text field, or a page again (PageModeConfig::fillsView;
+    ///        recalculates: pageLayout, textWidth, and again whenever the view, the zoom or
+    ///        the paper scale changes)
+    void setConfigFillsView(bool fills);
+
     /// @brief Show or hide the page numbers (repaint only)
     void setConfigShowPageNumbers(bool show);
+
+    /// @brief Set the number of the first page: its page in the whole book (repaint only)
+    void setConfigFirstPageNumber(int number);
 
     /// @brief Set typewriter scrolling (recalculates: origin and scroll padding)
     /// @param enabled Keep the cursor line at a fixed height of the view
@@ -424,6 +433,25 @@ public:
         return m_fragmentHighlight;
     }
 
+    /// @brief A fragment of a text for publishers linked to a point of its template: a fill
+    ///        under its text (the points shown in the text) and a bar beside its lines on the
+    ///        left margin
+    struct PointMark {
+        CursorPosition start;  ///< Where it starts
+        CursorPosition end;    ///< Where it ends
+        QColor fill;           ///< Under the text; invalid: none
+        QColor bar;            ///< Beside the lines; invalid: none
+        int lane = 0;          ///< Of the bars side by side: 0 is next to the text
+
+        bool operator==(const PointMark& other) const = default;
+    };
+
+    /// @brief Show the fragments linked to the points (none: no marks)
+    void setPointMarks(std::vector<PointMark> marks);
+
+    /// @brief The fragments linked to the points, as shown
+    const std::vector<PointMark>& pointMarks() const { return m_pointMarks; }
+
     // =========================================================================
     // Main Render Entry Point (Stage 3+4)
     // =========================================================================
@@ -550,6 +578,11 @@ private:
     /// @brief Render text frame border
     void renderTextFrameBorder(QPainter* painter, const QRect& clipRect);
 
+    /// @brief Render the tab guides of the text (TextSource::tabGuidePositions()): dashed
+    ///        lines down a text area (widget coordinates), where they reach into the clip rect;
+    ///        none without their color (a printed page)
+    void renderTabGuides(QPainter* painter, const QRectF& textArea, const QRect& clipRect) const;
+
     /// @brief Render visible paragraphs
     void renderParagraphs(QPainter* painter, const QRect& clipRect);
 
@@ -577,11 +610,6 @@ private:
     /// @brief Draw the formatting marks of a paragraph over its text, in their color
     void renderFormattingMarks(QPainter* painter, size_t index,
                                const std::vector<FormattingMark>& marks, double widgetY);
-
-    /// @brief Draw the hint of an empty paragraph under a heading of a point of the skeleton
-    ///        (ITextSource::paragraphHint()) in the color of the formatting marks, on its first
-    ///        line, as far as the line reaches; a printed page has none
-    void renderHint(QPainter* painter, size_t index, double widgetY);
 
     /// @brief Render selection highlights
     void renderSelection(QPainter* painter, const QRect& clipRect);
@@ -648,6 +676,9 @@ private:
 
     /// @brief Draw the fragment shown in a color (under the text)
     void renderFragmentHighlight(QPainter* painter);
+
+    /// @brief Draw the fills and the bars of the fragments linked to the points
+    void renderPointMarks(QPainter* painter);
 
     /// @brief Draw what a paragraph has in the room under its text (the decorator)
     void renderParagraphDecoration(QPainter* painter, size_t index, double widgetY);
@@ -744,6 +775,7 @@ private:
     std::vector<ParagraphHighlight> m_repetitions;   ///< Repeated words, by paragraph
     RepetitionMarkStyle m_repetitionStyle = RepetitionMarkStyle::Background;
     std::optional<FragmentHighlight> m_fragmentHighlight;  ///< Fragment shown in a color
+    std::vector<PointMark> m_pointMarks;  ///< Fragments linked to the points
     ParagraphDecorator m_paragraphDecorator;     ///< Draws the room under the paragraphs
     PageDecorator m_pageDecorator;               ///< Draws on the pages besides their lines
     /// While renderPrintedPage() draws: the page, the top and the bottom of its text area
@@ -822,6 +854,10 @@ private:
     /// @brief Calculate the view mapping: origin, page position, scroll padding; also
     ///        handed to the viewport manager (view scale and top inset)
     void computeViewGeometry();
+
+    /// @brief Calculate the page and the view mapping anew and give the text its width and
+    ///        page flow: the page's size or margins changed
+    void recomputePage();
 };
 
 }  // namespace kalahari::editor

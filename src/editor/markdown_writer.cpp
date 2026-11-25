@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file markdown_writer.cpp
 /// @brief Export of a book to Markdown (GitHub Flavored Markdown)
@@ -168,6 +169,7 @@ public:
         const QFileInfo file(path);
         m_folder = file.absolutePath();
         m_images.setFolder(book.imagesFolder);
+        m_images.setOutsideFiles(book.pictures);
         m_textWidth = book.page.textWidthPoints();
     }
 
@@ -246,7 +248,7 @@ void MarkdownWriter::prepare() {
     std::vector<std::tuple<int, int, QString>> notes;  // item, note, number
     for (size_t index = 0; index < m_book.items.size(); ++index) {
         const ExportItem& item = m_book.items[index];
-        m_texts.push_back(std::make_unique<ExportText>(item));
+        m_texts.push_back(std::make_unique<ExportText>(item, exportFieldContext(m_book, item)));
         const ExportText& text = *m_texts.back();
         const bool titled = m_book.titleHeadings && !item.title.trimmed().isEmpty() &&
                             (item.kind == ExportItemKind::Contents ||

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_command_icons.cpp
 /// @brief Every command in a menu has an icon, and every submenu, in the icon colors
@@ -106,10 +107,9 @@ TEST_CASE("Menus: every submenu has an icon, in the icon colors after they chang
     }
     // Recent Books, Import, Export, Formatting Character, Text Style, Text Effects, Change
     // Case, Align Text, the Table menu's Insert, Delete, Select and Convert, the Image menu's
-    // Wrap Text, Rotate and Filter, Statistics, Texts for Publishers, Plugins, Assistant
-    // Actions, View Mode, Zoom, Margin Numbering, Panels, Perspectives, Toolbars, the Edit
-    // menu's To Dos
-    CHECK(submenus.size() == 26);
+    // Wrap Text, Rotate and Filter, Statistics, Plugins, Assistant Actions, View Mode, Zoom,
+    // Margin Numbering, Panels, Perspectives, Toolbars, the Edit menu's To Dos
+    CHECK(submenus.size() == 25);
     for (const auto& [path, submenu] : submenus) {
         INFO(path.toStdString());
         CHECK_FALSE(submenu->icon().isNull());

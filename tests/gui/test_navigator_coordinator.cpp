@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_navigator_coordinator.cpp
 /// @brief The Navigator's commands on the open book project: adding, renaming, moving and
@@ -16,6 +17,7 @@
 #include <kalahari/core/file_trash.h>
 #include <kalahari/core/kind_words.h>
 #include <kalahari/core/name_declension.h>
+#include <kalahari/core/page_start.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/editor/book_editor.h>
@@ -29,11 +31,14 @@
 #include <kalahari/gui/icon_registrar.h>
 #include <kalahari/gui/material_downloader.h>
 #include <kalahari/gui/navigator_coordinator.h>
+#include <kalahari/gui/notifications.h>
+#include <kalahari/gui/panels/card_panel.h>
 #include <kalahari/gui/panels/editor_panel.h>
 #include <kalahari/gui/panels/image_preview_panel.h>
 #include <kalahari/gui/panels/material_page.h>
 #include <kalahari/gui/panels/navigator_panel.h>
 #include <kalahari/gui/panels/properties_panel.h>
+#include <kalahari/gui/panels/spread_card.h>
 #include <kalahari/gui/paste_target.h>
 #include <kalahari/gui/utils/access_keys.h>
 #include <kalahari/gui/utils/file_location.h>
@@ -864,14 +869,15 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     }
     TestFileChooser chooser(picture);
 
-    // The Workshop has the book's dictionary at its top, and the groups of the kinds the
-    // program makes, also empty: the cards of the characters, the locations and the items,
-    // then the working notes and the kinds of materials, in Materials, after the list Sources
+    // The Workshop has the Book Plan, the book's dictionary and For Publishers at its top, and
+    // the groups of the kinds the program makes, also empty: the cards of the characters, the
+    // locations and the items, then the working notes and the kinds of materials, in
+    // Materials, after the list Sources; the texts for publishers are on the card only
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
-          "Book Dictionary, Characters, Locations, Items, Materials");
+          "Book Plan, Book Dictionary, For Publishers, Characters, Locations, Items, Materials");
     CHECK(navigator.itemsIn(QStringLiteral("workshop:materials")) ==
-          "Sources, Working notes, Clippings, Cover, Texts for publishers, Quotes, Web pages, "
-          "Pictures, Documents, Publications, Recordings, Other files");
+          "Sources, Working notes, Clippings, Cover, Quotes, Web pages, Pictures, Documents, "
+          "Publications, Recordings, Other files");
 
     // A working note has no status; it opens in the editor
     CHECK(navigator.add(onWorkshop(), {addAs({.kind = "work_note"})}) == 1);
@@ -1078,6 +1084,33 @@ TEST_CASE("Navigator commands: Add and New Chapter start from the element in the
     CHECK(titles(novel.book().mainElements) == titles(novel.savedBook().mainElements));
 }
 
+TEST_CASE("Navigator commands: New Spread goes right after the element in front, its card "
+          "open", "[gui][navigator][spread]") {
+    OpenNovel novel;
+    Navigator navigator;
+    const QString first = navigator.added(QStringLiteral("chapter"));
+    const QString last = navigator.added(QStringLiteral("chapter"));
+
+    // The chapter in the editor: the spread right after it, its card in front
+    navigator.coordinator.onElementSelected(first, QStringLiteral("Chapter 1"));
+    CHECK(answering([&navigator] { navigator.coordinator.onRequestNewSpread(); },
+                    {addAs({.title = "The Route"})}) == 1);
+    REQUIRE(novel.book().mainElements.size() == 3);
+    const core::ProjectElement& spread = novel.book().mainElements.at(1);
+    CHECK(spread.title == QStringLiteral("The Route"));
+    CHECK(spread.kind.toString() == QStringLiteral("kalahari.base:spread"));
+    auto* card = qobject_cast<gui::SpreadCard*>(navigator.tabs->currentWidget());
+    REQUIRE(card != nullptr);
+    CHECK(card->elementId() == spread.id);
+
+    // The card in front: the next spread after it
+    CHECK(answering([&navigator] { navigator.coordinator.onRequestNewSpread(); },
+                    {addAs({.title = "The Tree"})}) == 1);
+    REQUIRE(novel.book().mainElements.size() == 4);
+    CHECK(novel.book().mainElements.at(2).title == QStringLiteral("The Tree"));
+    CHECK(novel.book().mainElements.last().id == last);
+}
+
 TEST_CASE("Navigator commands: the book and the Workshop are named and the Workshop grouped, "
           "saved at once", "[gui][navigator]") {
     OpenNovel novel;
@@ -1124,13 +1157,13 @@ TEST_CASE("Navigator commands: the book and the Workshop are named and the Works
     CHECK(pm.project()->workshop.grouped);
     CHECK(novel.savedProject().workshop.grouped);
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
-          "Book Dictionary, Libraries, Materials");
+          "Book Plan, Book Dictionary, For Publishers, Libraries, Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop grouped"));
     navigator.coordinator.onRequestWorkshopGrouped(false);
     CHECK_FALSE(pm.project()->workshop.grouped);
     CHECK_FALSE(novel.savedProject().workshop.grouped);
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
-          "Book Dictionary, Characters, Locations, Items, Materials");
+          "Book Plan, Book Dictionary, For Publishers, Characters, Locations, Items, Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop not grouped"));
 }
 
@@ -1275,7 +1308,7 @@ TEST_CASE("Navigator menus: Add... and the commands named after kinds, or Add...
     CHECK(navigator.addCommandsOf(navigator.item(QStringLiteral("workshop:kalahari.base:quote"))) ==
           QStringList{"Add...", "Add Quote..."});
 
-    // A command named after a kind opens the window with that kind chosen
+    // A command named after a kind chooses that kind by its name: its small window
     QList<gui::AddTarget> requested;
     QObject::connect(navigator.panel, &gui::NavigatorPanel::requestAdd,
                      [&requested](const gui::AddTarget& target) { requested << target; });
@@ -1285,6 +1318,11 @@ TEST_CASE("Navigator menus: Add... and the commands named after kinds, or Add...
     CHECK(requested.first().id == part);
     REQUIRE(requested.first().kind);
     CHECK(requested.first().kind.kind->id == QStringLiteral("chapter"));
+    CHECK(requested.first().byName);
+    // Add... is the window of the kinds
+    CHECK(navigator.inMenuOf(navigator.item(part), QStringLiteral("Add...")));
+    REQUIRE(requested.size() == 2);
+    CHECK_FALSE(requested.last().byName);
 
     // Add... only: the kind is chosen in the window
     settings.set<std::string>(gui::NavigatorPanel::ADD_COMMANDS_SETTING, "single");
@@ -1296,6 +1334,132 @@ TEST_CASE("Navigator menus: Add... and the commands named after kinds, or Add...
         CHECK(navigator.addCommandsOf(node) == QStringList{"Add..."});
     }
     settings.set<std::string>(gui::NavigatorPanel::ADD_COMMANDS_SETTING, before);
+}
+
+TEST_CASE("Navigator: a kind chosen by its name gets the small window of its title, a card none "
+          "and its form at once",
+          "[gui][navigator][addelement]") {
+    gui::registerAllIcons();
+    OpenNovel novel;
+    Navigator navigator;
+    auto& pm = novel.pm;
+    const QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    const QString picture = folder.filePath(QStringLiteral("map.png"));
+    {
+        QFile file(picture);
+        REQUIRE(file.open(QIODevice::WriteOnly));
+        REQUIRE(file.write("PNG") == 3);
+    }
+    TestFileChooser chooser(picture);
+    const auto byName = [](const QString& kindId) {
+        gui::AddTarget target = onWorkshop();
+        target.kind = novelKind(kindId);
+        target.byName = true;
+        return target;
+    };
+    // What the small window shows, and Add with the title typed in it, if any
+    struct Shown {
+        QString title;
+        QString description;
+        bool kinds = true;
+        bool place = true;
+        bool status = true;
+        bool source = false;
+        int width = 0;
+    };
+    const auto smallWindow = [](Shown* shown, const QString& typed) -> Answer {
+        return [shown, typed](QDialog& dialog) {
+            auto* window = qobject_cast<gui::dialogs::NewFileDialog*>(&dialog);
+            if (window == nullptr) {  // no REQUIRE in an event handler
+                dialog.reject();
+                return;
+            }
+            shown->title = window->windowTitle();
+            shown->description = window->headingDescription();
+            shown->kinds = window->kindList()->isVisibleTo(window);
+            shown->place = window->picker()->isVisibleTo(window);
+            shown->status = window->statusBox()->isVisibleTo(window);
+            shown->source = window->sourceGroup()->isVisibleTo(window);
+            shown->width = window->width();
+            addAs({.title = typed})(dialog);
+        };
+    };
+
+    // Add Working note...: the window, named after the kind, asks only for the title, without
+    // the tiles, the description, the status and the place; the note opens in the editor
+    Shown note;
+    CHECK(navigator.add(byName(QStringLiteral("work_note")),
+                        {smallWindow(&note, QStringLiteral("Plan"))}) == 1);
+    CHECK(note.title == QStringLiteral("Add Working note"));
+    CHECK(note.description == QStringLiteral("Type the title of the working note."));
+    CHECK_FALSE(note.kinds);
+    CHECK_FALSE(note.place);
+    CHECK_FALSE(note.status);
+    CHECK_FALSE(note.source);
+    CHECK(note.width < 700);  // the window of all the kinds is at least 700 pixels wide
+    REQUIRE(pm.project()->workshop.elements.size() == 1);
+    const core::ProjectElement plan = pm.project()->workshop.elements.first();
+    CHECK(plan.title == QStringLiteral("Plan"));
+    CHECK(plan.kind.toString() == QStringLiteral("kalahari.base:work_note"));
+    REQUIRE(navigator.tabs->count() == 1);
+    CHECK(navigator.tabs->currentWidget()->property("elementId").toString() == plan.id);
+
+    // Add Picture...: the title and the source a material needs, nothing more
+    Shown map;
+    CHECK(navigator.add(byName(QStringLiteral("picture")), {smallWindow(&map, QString())}) == 1);
+    CHECK(map.title == QStringLiteral("Add Picture"));
+    CHECK(map.description == QStringLiteral("Choose the source of the picture and its title."));
+    CHECK_FALSE(map.kinds);
+    CHECK_FALSE(map.place);
+    CHECK(map.source);
+    REQUIRE(pm.project()->workshop.elements.size() == 2);
+    CHECK(titles(pm.project()->workshop.elements) == "Plan, map");
+    CHECK(qobject_cast<gui::MaterialCardPanel*>(navigator.tabs->currentWidget()) != nullptr);
+
+    // Add Character...: no window; the card opens on its form with the proposed name selected,
+    // so that typing replaces it
+    CHECK(navigator.add(byName(QStringLiteral("character"))) == 0);
+    REQUIRE(pm.project()->workshop.elements.size() == 3);
+    const core::ProjectElement* character = nullptr;
+    for (const core::ProjectElement& element : pm.project()->workshop.elements) {
+        if (element.kind.toString() == QStringLiteral("kalahari.base:character")) {
+            character = &element;
+        }
+    }
+    REQUIRE(character != nullptr);
+    CHECK(character->title == QStringLiteral("Character 1"));
+    auto* form = qobject_cast<gui::CardPanel*>(navigator.tabs->currentWidget());
+    REQUIRE(form != nullptr);
+    CHECK(form->elementId() == character->id);
+    auto* name = form->findChild<QLineEdit*>(QStringLiteral("cardNameEdit"));
+    REQUIRE(name != nullptr);
+    CHECK(name->selectedText() == QStringLiteral("Character 1"));
+    CHECK(navigator.statusBar->currentMessage() ==
+          QStringLiteral("Character added: Character 1"));
+    CHECK(titles(novel.savedProject().workshop.elements) == titles(pm.project()->workshop.elements));
+
+    // Book > New Chapter: the small window of the title of the chapter
+    Shown chapter;
+    CHECK(answering([&navigator] { navigator.coordinator.onRequestNewChapter(); },
+                    {smallWindow(&chapter, QString())}) == 1);
+    CHECK(chapter.title == QStringLiteral("Add Chapter"));
+    CHECK(chapter.description == QStringLiteral("Type the title of the chapter."));
+    CHECK_FALSE(chapter.kinds);
+    CHECK_FALSE(chapter.place);
+    CHECK_FALSE(chapter.status);
+    REQUIRE(novel.book().mainElements.size() == 1);
+    CHECK(novel.book().mainElements.first().status == QStringLiteral("draft"));
+
+    // The general Add... shows the kinds, also on the group of the characters
+    gui::AddTarget characters = onWorkshop();
+    characters.kinds = {novelKind(QStringLiteral("character"))};
+    characters.kind = characters.kinds.first();
+    Shown all;
+    CHECK(navigator.add(characters, {smallWindow(&all, QString())}) == 1);
+    CHECK(all.title == QStringLiteral("Add Element"));
+    CHECK(all.kinds);
+    CHECK(pm.project()->workshop.elements.size() == 4);
 }
 
 TEST_CASE("Navigator commands: an element moves to the place chosen in the Move dialog, or "
@@ -2782,18 +2946,21 @@ TEST_CASE("Navigator commands: a chapter set to start on a left page in the Prop
     REQUIRE(editor != nullptr);
     CHECK_FALSE(editor->getBookEditor()->appearance().pageMargins.firstPageLeft);
 
-    // A right page unless checked
+    // As its kind and the settings say until chosen
     navigator.properties->showChapterProperties(id);
-    auto* left = navigator.properties->findChild<QCheckBox*>(QStringLiteral("chapterFirstPageLeft"));
-    REQUIRE(left != nullptr);
-    CHECK(left->isVisibleTo(navigator.properties));
-    CHECK(left->isEnabled());
-    CHECK_FALSE(left->isChecked());
+    auto* firstPage =
+        navigator.properties->findChild<QComboBox*>(QStringLiteral("chapterFirstPage"));
+    REQUIRE(firstPage != nullptr);
+    CHECK(firstPage->isVisibleTo(navigator.properties));
+    CHECK(firstPage->isEnabled());
+    CHECK(firstPage->currentData().toString().isEmpty());
+    CHECK(firstPage->findData(QStringLiteral("right")) >= 0);
+    CHECK(firstPage->findData(QStringLiteral("next")) >= 0);
 
-    left->setChecked(true);
-    CHECK(pm.findElement(id)->firstPageLeft);
+    firstPage->setCurrentIndex(firstPage->findData(QStringLiteral("left")));
+    CHECK(pm.findElement(id)->firstPage == core::PageStart::Left);
     REQUIRE(novel.savedBook().mainElements.size() == 1);
-    CHECK(novel.savedBook().mainElements.first().firstPageLeft);
+    CHECK(novel.savedBook().mainElements.first().firstPage == core::PageStart::Left);
     CHECK(editor->getBookEditor()->appearance().pageMargins.firstPageLeft);
 
     // Opened again, the editor has it from the start
@@ -2808,7 +2975,7 @@ TEST_CASE("Navigator commands: a chapter set to start on a left page in the Prop
     // A part has no pages of its own
     const QString part = navigator.added(QStringLiteral("part"));
     navigator.properties->showChapterProperties(part);
-    CHECK_FALSE(left->isVisibleTo(navigator.properties));
+    CHECK_FALSE(firstPage->isVisibleTo(navigator.properties));
 }
 
 namespace {
@@ -3280,13 +3447,43 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
         emit navigator.coordinator.materialDownloader()->finished(result);
         CHECK(pm.findElement(pageId)->title == QStringLiteral("The desert"));
 
-        // A failure nobody asked about goes to the status bar
+        // A failure nobody asked about goes to the status bar without the notifications of a
+        // window
         result.title.clear();
         result.error = QStringLiteral("The server did not answer in time.");
         emit navigator.coordinator.materialDownloader()->finished(result);
-        CHECK(navigator.statusBar->currentMessage() ==
-              QStringLiteral("Nothing was downloaded for \"The desert\": The server did not "
-                             "answer in time."));
+        const QString failed = QStringLiteral(
+            "Nothing was downloaded for \"The desert\": The server did not answer in time.");
+        CHECK(navigator.statusBar->currentMessage() == failed);
+
+        // With them, a warning among them (here as a notification of the system)
+        navigator.statusBar->clearMessage();
+        QStringList notified;
+        gui::NotificationCoordinator::setSystemNotifier(
+            [&notified](const QString& title, const QString& text, gui::Notification::Kind kind) {
+                notified << title + QStringLiteral(": ") + text +
+                                (kind == gui::Notification::Kind::Warning ? QStringLiteral(" (!)")
+                                                                          : QString());
+                return true;
+            });
+        const struct NotifierGuard {
+            NotifierGuard() = default;
+            ~NotifierGuard() { gui::NotificationCoordinator::setSystemNotifier({}); }
+            NotifierGuard(const NotifierGuard&) = delete;
+            NotifierGuard& operator=(const NotifierGuard&) = delete;
+            NotifierGuard(NotifierGuard&&) = delete;
+            NotifierGuard& operator=(NotifierGuard&&) = delete;
+        } notifierGuard;
+        core::SettingsManager::getInstance().set<std::string>(
+            gui::NotificationCoordinator::PLACE_SETTING, "system");
+        gui::NotificationCoordinator notifications(nullptr, {});
+        navigator.coordinator.setNotifications(&notifications);
+        emit navigator.coordinator.materialDownloader()->finished(result);
+        QCoreApplication::processEvents();
+        CHECK(notified ==
+              QStringList{QStringLiteral("Materials: ") + failed + QStringLiteral(" (!)")});
+        CHECK(navigator.statusBar->currentMessage().isEmpty());
+        navigator.coordinator.setNotifications(nullptr);
     }
 
     SECTION("the picture downloaded is the copy, which opens on its preview tab") {
@@ -3317,8 +3514,8 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
     }
 }
 
-TEST_CASE("Navigator: Create Card opens Add Element with the name, a card deleted asks whether "
-          "its name stays in the book's dictionary",
+TEST_CASE("Navigator: Create Card adds the card with the name at once, a card deleted asks "
+          "whether its name stays in the book's dictionary",
           "[gui][navigator][cards][dictionary]") {
     gui::registerAllIcons();
     OpenNovel novel;
@@ -3332,36 +3529,22 @@ TEST_CASE("Navigator: Create Card opens Add Element with the name, a card delete
     QObject::connect(&pm, &core::ProjectManager::cardAdded, &listener,
                      [&added](const QString& elementId) { added << elementId; });
 
-    // Create Card: Add Element with the kind chosen and the name in it
-    QString titleShown;
+    // Create Card: the kind is chosen by its name, so no window; the card with the name in
+    // it, its words as the writer would type them, opens on its form
     bool made = false;
-    CHECK(answering(
-              [&]() {
-                  made = navigator.coordinator.onRequestAddCard(QStringLiteral(" Jan  Kos "),
-                                                                character);
-              },
-              {[&titleShown](QDialog& dialog) {
-                  auto* window = qobject_cast<gui::dialogs::NewFileDialog*>(&dialog);
-                  if (window == nullptr) {  // no REQUIRE in an event handler
-                      dialog.reject();
-                      return;
-                  }
-                  titleShown = window->titleEdit()->text();
-                  window->acceptButton()->click();
-              }}) == 1);
+    CHECK(answering([&]() {
+              made = navigator.coordinator.onRequestAddCard(QStringLiteral(" Jan  Kos "),
+                                                            character);
+          }) == 0);
     CHECK(made);
-    CHECK(titleShown == QStringLiteral("Jan Kos"));
     REQUIRE(added.size() == 1);
     const core::ProjectElement* jan = pm.findElement(added.first());
     REQUIRE(jan != nullptr);
     CHECK(jan->title == QStringLiteral("Jan Kos"));
     CHECK(pm.kindOf(*jan).reference() == character.reference());
-
-    // Its window closed: no card
-    CHECK(answering([&]() {
-              CHECK_FALSE(navigator.coordinator.onRequestAddCard(QStringLiteral("Ewa"), character));
-          }) == 1);
-    CHECK(added.size() == 1);
+    auto* form = qobject_cast<gui::CardPanel*>(navigator.tabs->currentWidget());
+    REQUIRE(form != nullptr);
+    CHECK(form->elementId() == jan->id);
 
     // Deleted, a card with a name in the book's dictionary asks whether the name stays
     const core::NameDeclension english(QStringLiteral("en"));

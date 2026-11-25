@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file annotation.cpp
 /// @brief Annotations on the text: comments, TODOs and notes
@@ -11,6 +12,7 @@
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_link.h>
+#include <kalahari/editor/text_points.h>
 
 #include <QTextBlock>
 #include <QTextBoundaryFinder>
@@ -496,6 +498,8 @@ QTextCharFormat insertionFormat(const QTextCursor& cursor) {
          linkAddressOf(characterFormat(document, position - 1)) != link)) {
         setLinkAddress(format, QString());
     }
+    // And the points of a text for publishers
+    keepTemplatePointsBetween(format, document, position);
     return format;
 }
 

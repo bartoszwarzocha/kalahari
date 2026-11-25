@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file material_page.cpp
 /// @brief The short card of a material in the Properties panel, and the materials of an
@@ -26,6 +27,7 @@
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/core/volume_materials.h"
@@ -45,6 +47,7 @@
 #include <QEvent>
 #include <QFileInfo>
 #include <QFormLayout>
+#include <QStandardItemModel>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QKeyEvent>
@@ -368,6 +371,36 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
     }
     descriptionLayout->addWidget(m_counter);
     m_counter->hide();
+    // A note about the author of the cover can start from the note of the book
+    m_bioRow = new QWidget(descriptionGroup);
+    m_bioRow->setObjectName(QStringLiteral("coverBioRow"));
+    auto* bioLayout = new QVBoxLayout(m_bioRow);
+    bioLayout->setContentsMargins(0, 3, 0, 0);
+    bioLayout->setSpacing(3);
+    //: Copies the text of the note About the Author of the back part of the book into a note
+    //: about the author of the cover. In Polish: Weź tekst z noty o autorze
+    m_bioButton = new QPushButton(tr("Take the Text of About the Author"), m_bioRow);
+    m_bioButton->setObjectName(QStringLiteral("coverBioButton"));
+    m_bioButton->setIcon(
+        core::ArtProvider::getInstance().getIcon("edit.copy", core::IconContext::Button));
+    bioLayout->addWidget(m_bioButton, 0, Qt::AlignLeft);
+    bioLayout->addWidget(hintLabel(
+        m_bioRow,
+        //: Under the button that takes the text of the note About the Author. In Polish:
+        //: Kopiuje treść „Noty o autorze” z części końcowej; dalej oba teksty zmienia się
+        //: osobno.
+        tr("Copies the text of \"About the Author\" of the back part; from then on the two "
+           "texts are changed apart."),
+        "coverBioNote"));
+    descriptionLayout->addWidget(m_bioRow);
+    m_bioRow->hide();
+    connect(m_bioButton, &QPushButton::clicked, this, &MaterialPage::takeAboutAuthor);
+    // A note About the Author added or deleted in the Navigator while the card is open
+    connect(&m_book, &core::ProjectManager::projectChanged, this, [this]() {
+        if (!m_bioRow->isHidden()) {
+            updateBioButton();
+        }
+    });
     connect(m_descriptionEdit, &QPlainTextEdit::textChanged, this, &MaterialPage::updateCounter);
 
     // A quote: where it comes from, under its words; on the short card the entry of a source
@@ -669,7 +702,9 @@ void MaterialPage::showSource(const core::ProjectElement& element) {
     m_previewButton->setToolTip(m_picture           ? tr("Open the Preview")
                                 : problem.isEmpty() ? onlyPictures
                                                     : problem);
-    m_systemButton->setVisible(fromFile);
+    // A text of the book, like a clipping, is a file of the program: no system program opens it
+    const bool bookText = pm.formOf(element) == core::ElementForm::Text;
+    m_systemButton->setVisible(fromFile && !bookText);
     m_systemButton->setEnabled(file.exists);
     m_browserButton->setVisible(fromWeb);
     //: The tooltip of Open in Browser: %1 the address. In Polish: Otwórz %1 w przeglądarce
@@ -1125,17 +1160,7 @@ void MaterialPage::showCover(const core::ProjectElement& element) {
     }
     m_coverPartBox->setCurrentIndex(m_coverPartBox->findData(part));
 
-    const QSignalBlocker placeBlocker(m_coverPlaceBox);
-    m_coverPlaceBox->clear();
-    for (const QString& place : CoverMaterial::places()) {
-        m_coverPlaceBox->addItem(CoverNames::placeName(place), place);
-    }
-    m_coverPlaceBox->addItem(CoverNames::placeName(QString()), QString());
-    if (m_coverPlaceBox->findData(m_coverData.place) < 0) {
-        // A place this version does not know stays as it is
-        m_coverPlaceBox->addItem(m_coverData.place, m_coverData.place);
-    }
-    m_coverPlaceBox->setCurrentIndex(m_coverPlaceBox->findData(m_coverData.place));
+    fillPlaces(part, m_coverData.place);
 
     const QSignalBlocker stateBlocker(m_coverStateBox);
     m_coverStateBox->clear();
@@ -1177,20 +1202,32 @@ void MaterialPage::showCover(const core::ProjectElement& element) {
     const bool opinion = part == QLatin1String(CoverMaterial::OPINION);
     const bool design = part == QLatin1String(CoverMaterial::DESIGN);
     const bool reference = part == QLatin1String(CoverMaterial::REFERENCE);
+    const bool photo = part == QLatin1String(CoverMaterial::AUTHOR_PHOTO);
     const bool onCover = CoverMaterial::goesOnCover(part);
     m_coverForm->setRowVisible(m_coverPlaceBox, onCover);
     m_coverForm->setRowVisible(m_coverStateBox, onCover);
-    m_coverForm->setRowVisible(m_coverAuthorEdit, opinion || design || reference);
+    m_coverForm->setRowVisible(m_coverAuthorEdit, opinion || design || reference || photo);
     m_coverForm->setRowVisible(m_coverRoleEdit, opinion);
     m_coverForm->setRowVisible(m_coverSourceEdit, opinion);
     m_coverForm->setRowVisible(m_coverDateEdit, opinion || design);
-    m_coverForm->setRowVisible(m_coverConsentBox, opinion);
+    m_coverForm->setRowVisible(m_coverConsentBox, opinion || photo);
     m_coverForm->setRowVisible(m_coverLicenseEdit, reference);
     m_coverForm->setRowVisible(m_coverAboutEdit, reference);
     if (auto* caption = qobject_cast<QLabel*>(m_coverForm->labelForField(m_coverAuthorEdit))) {
-        //: Who made a reference picture, or where it comes from. In Polish: &Autor albo
-        //: źródło:
-        caption->setText(reference ? tr("&Author or source:") : tr("&Author:"));
+        if (reference) {
+            //: Who made a reference picture, or where it comes from. In Polish: &Autor albo
+            //: źródło:
+            caption->setText(tr("&Author or source:"));
+        } else if (photo) {
+            //: Who took the photo of the author. In Polish: &Fotograf:
+            caption->setText(tr("&Photographer:"));
+        } else {
+            caption->setText(tr("&Author:"));
+        }
+    }
+    m_bioRow->setVisible(part == QLatin1String(CoverMaterial::BIO));
+    if (part == QLatin1String(CoverMaterial::BIO)) {
+        updateBioButton();
     }
 
     showVolume(element);
@@ -1305,21 +1342,106 @@ void MaterialPage::saveCover(const std::function<void(core::CoverData&)>& change
 
 void MaterialPage::savePart() {
     const QString part = m_coverPartBox->currentData().toString();
-    saveCover([&part](core::CoverData& cover) {
+    const core::CoverParts parts = m_book.coverParts();
+    saveCover([&part, &parts](core::CoverData& cover) {
         using core::CoverMaterial;
         if (cover.part == part) {
             return;
         }
         // A note has no place and state; a text that comes on the cover goes to the place of
-        // its part
+        // its part; a design goes on the whole cover or jacket, and the rest not
+        const bool known = CoverMaterial::places().contains(cover.place);
+        const bool whole = CoverMaterial::isWhole(cover.place);
         if (!CoverMaterial::goesOnCover(part)) {
             cover.place.clear();
             cover.state.clear();
         } else if (!CoverMaterial::goesOnCover(cover.part)) {
-            cover.place = CoverMaterial::defaultPlaceOf(part);
+            cover.place = CoverMaterial::defaultPlaceOf(part, parts);
+        } else if (known && whole != (part == QLatin1String(CoverMaterial::DESIGN))) {
+            cover.place.clear();
         }
         cover.part = part;
     });
+}
+
+void MaterialPage::fillPlaces(const QString& part, const QString& place) {
+    using core::CoverMaterial;
+    const QSignalBlocker placeBlocker(m_coverPlaceBox);
+    m_coverPlaceBox->clear();
+    auto* model = qobject_cast<QStandardItemModel*>(m_coverPlaceBox->model());
+    const core::CoverParts parts = m_book.coverParts();
+    const bool design = part == QLatin1String(CoverMaterial::DESIGN);
+    const bool known = CoverMaterial::parts().contains(part);
+    // The places of the cover, then those of the jacket, each under the name of its part
+    for (const bool jacket : {false, true}) {
+        const QStringList& places = jacket ? CoverMaterial::jacketPlaces()
+                                           : CoverMaterial::coverPlaces();
+        const bool off = jacket && !parts.jacket;
+        QString heading = CoverNames::placeGroupName(places.constFirst());
+        if (off) {
+            //: The heading of the places of the jacket in the box of the place, while the
+            //: book has no jacket: %1 the name of the jacket. In Polish: %1 (wyłączona)
+            heading = tr("%1 (turned off)", "the jacket").arg(heading);
+        }
+        m_coverPlaceBox->addItem(heading);
+        if (model != nullptr) {
+            QStandardItem* item = model->item(model->rowCount() - 1);
+            item->setFlags(Qt::NoItemFlags);
+            QFont bold = m_coverPlaceBox->font();
+            bold.setBold(true);
+            item->setFont(bold);
+        }
+        for (const QString& each : places) {
+            // A design on the whole, the rest on its parts; a part this version does not
+            // know takes any
+            if (known && CoverMaterial::isWhole(each) != design && each != place) {
+                continue;
+            }
+            QString name = CoverNames::placeName(each);
+            const bool on = CoverMaterial::isOn(each, parts);
+            if (!on && !off) {
+                //: A place on a part of the cover turned off, in the box of the place: %1 the
+                //: place. In Polish: %1 (wyłączone)
+                name = tr("%1 (turned off)", "a place").arg(name);
+            }
+            m_coverPlaceBox->addItem(name, each);
+            if (!on && each != place && model != nullptr) {
+                model->item(model->rowCount() - 1)->setEnabled(false);
+            }
+        }
+    }
+    m_coverPlaceBox->addItem(CoverNames::placeName(QString()), QString());
+    if (m_coverPlaceBox->findData(place) < 0) {
+        // A place this version does not know stays as it is
+        m_coverPlaceBox->addItem(place, place);
+    }
+    m_coverPlaceBox->setCurrentIndex(m_coverPlaceBox->findData(place));
+}
+
+void MaterialPage::updateBioButton() {
+    const core::ProjectBook* current = m_book.book();
+    const bool has =
+        current != nullptr && core::PublishingTexts::aboutAuthorOf(*current) != nullptr;
+    m_bioButton->setEnabled(has && !m_book.isReadOnly());
+    m_bioButton->setToolTip(
+        has ? QString()
+            //: The button that takes the text of the note About the Author, in a book
+            //: without one. In Polish: Książka nie ma „Noty o autorze” w części końcowej.
+            : tr("The book has no \"About the Author\" in its back part."));
+}
+
+void MaterialPage::takeAboutAuthor() {
+    const core::ProjectBook* current = m_book.book();
+    const core::ProjectElement* note =
+        current != nullptr ? core::PublishingTexts::aboutAuthorOf(*current) : nullptr;
+    if (note == nullptr || m_book.isReadOnly()) {
+        return;
+    }
+    m_descriptionEdit->setPlainText(m_book.publishingTextOf(note->id).trimmed());
+    saveDescription();
+    //: The status bar after the text of the note About the Author is taken for a note about
+    //: the author of the cover. In Polish: Skopiowano treść „Noty o autorze” z części końcowej.
+    emit message(tr("The text of \"About the Author\" of the back part was copied."));
 }
 
 void MaterialPage::saveState() {

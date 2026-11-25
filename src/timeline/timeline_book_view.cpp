@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file timeline_book_view.cpp
 /// @brief The time and the book
@@ -559,6 +560,14 @@ void TimelineBookView::keyPressEvent(QKeyEvent* event) {
             return;
         case Qt::Key_Escape:
             m_document.select(QString());
+            return;
+        case Qt::Key_Insert:
+            emit addRequested();
+            return;
+        case Qt::Key_Delete:
+            if (!selected.isEmpty()) {
+                emit deleteRequested();
+            }
             return;
         case Qt::Key_Return:
         case Qt::Key_Enter:

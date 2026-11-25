@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_cover_material.cpp
 /// @brief The materials of the cover: their data in the book file, their parts and places,
@@ -146,10 +147,14 @@ TEST_CASE("Cover materials: problems of their data", "[core][cover]") {
 }
 
 TEST_CASE("Cover materials: parts and places", "[core][cover]") {
-    CHECK(CoverMaterial::parts() ==
-          QStringList{"blurb", "tagline", "opinion", "design", "reference", "note"});
-    CHECK(CoverMaterial::places() ==
+    CHECK(CoverMaterial::parts() == QStringList{"blurb", "tagline", "opinion", "bio", "design",
+                                                "authorPhoto", "reference", "note"});
+    CHECK(CoverMaterial::coverPlaces() ==
           QStringList{"front", "spine", "back", "frontFlap", "backFlap", "whole"});
+    CHECK(CoverMaterial::jacketPlaces() ==
+          QStringList{"jacketFront", "jacketSpine", "jacketBack", "jacketFrontFlap",
+                      "jacketBackFlap", "jacketWhole"});
+    CHECK(CoverMaterial::places() == CoverMaterial::coverPlaces() + CoverMaterial::jacketPlaces());
 
     // Where a new material goes
     CHECK(CoverMaterial::defaultPlaceOf(QStringLiteral("blurb")) == QStringLiteral("back"));
@@ -159,7 +164,43 @@ TEST_CASE("Cover materials: parts and places", "[core][cover]") {
     CHECK(CoverMaterial::defaultPlaceOf(QStringLiteral("reference")).isEmpty());
     CHECK(CoverMaterial::defaultPlaceOf(QStringLiteral("note")).isEmpty());
 
+    // A note about the author and a photo of the author go on the back flap of the jacket,
+    // else on the back flap of the cover, else on the back
+    CoverParts parts;
+    for (const char* part : {"bio", "authorPhoto"}) {
+        const QString each = QString::fromLatin1(part);
+        CHECK(CoverMaterial::defaultPlaceOf(each) == QStringLiteral("backFlap"));
+        parts.jacket = true;
+        CHECK(CoverMaterial::defaultPlaceOf(each, parts) == QStringLiteral("jacketBackFlap"));
+        parts.jacket = false;
+        parts.flaps = false;
+        CHECK(CoverMaterial::defaultPlaceOf(each, parts) == QStringLiteral("back"));
+        parts.flaps = true;
+    }
+    // The places of a part turned off are not on the cover; the others always are
+    parts.flaps = false;
+    CHECK_FALSE(CoverMaterial::isOn(QStringLiteral("frontFlap"), parts));
+    CHECK(CoverMaterial::isOn(QStringLiteral("back"), parts));
+    CHECK_FALSE(CoverMaterial::isOn(QStringLiteral("jacketBack"), parts));
+    CHECK(CoverMaterial::isOn(QStringLiteral("belly band"), parts));
+    parts.jacket = true;
+    // The jacket always has its flaps
+    CHECK(CoverMaterial::isOn(QStringLiteral("jacketFrontFlap"), parts));
+    CHECK(CoverMaterial::isWhole(QStringLiteral("jacketWhole")));
+    CHECK(CoverMaterial::isWhole(QStringLiteral("whole")));
+    CHECK_FALSE(CoverMaterial::isWhole(QStringLiteral("jacketFront")));
+    CHECK(CoverMaterial::isJacketPlace(QStringLiteral("jacketSpine")));
+    CHECK_FALSE(CoverMaterial::isJacketPlace(QStringLiteral("spine")));
+
     // Texts and pictures; the texts with a target; what goes on the cover
+    CHECK(CoverMaterial::isText(QStringLiteral("bio")));
+    CHECK(CoverMaterial::hasTarget(QStringLiteral("bio")));
+    CHECK(CoverMaterial::choosesOne(QStringLiteral("bio")));
+    CHECK(CoverMaterial::isPicture(QStringLiteral("authorPhoto")));
+    CHECK(CoverMaterial::goesOnCover(QStringLiteral("authorPhoto")));
+    CHECK(CoverMaterial::choosesOne(QStringLiteral("authorPhoto")));
+    CHECK(CoverMaterial::canChange(QStringLiteral("bio"), QStringLiteral("blurb")));
+    CHECK(CoverMaterial::canChange(QStringLiteral("authorPhoto"), QStringLiteral("design")));
     for (const char* text : {"blurb", "tagline", "opinion", "note"}) {
         CHECK(CoverMaterial::isText(QString::fromLatin1(text)));
         CHECK_FALSE(CoverMaterial::isPicture(QString::fromLatin1(text)));
@@ -197,6 +238,8 @@ TEST_CASE("Cover materials: lengths and targets", "[core][cover]") {
     CHECK(CoverMaterial::defaultTargetOf(QStringLiteral("blurb"), false) == 600);
     CHECK(CoverMaterial::defaultTargetOf(QStringLiteral("tagline"), false) == 60);
     CHECK(CoverMaterial::defaultTargetOf(QStringLiteral("opinion"), false) == 200);
+    CHECK(CoverMaterial::defaultTargetOf(QStringLiteral("bio"), false) == 500);
+    CHECK(CoverMaterial::defaultTargetOf(QStringLiteral("bio"), true) == 80);
     CHECK(CoverMaterial::defaultTargetOf(QStringLiteral("blurb"), true) == 100);
     CHECK(CoverMaterial::defaultTargetOf(QStringLiteral("note"), false) == 0);
     {
@@ -219,4 +262,91 @@ TEST_CASE("Cover materials: lengths and targets", "[core][cover]") {
     CHECK(CoverMaterial::targetOf(cover, true) == 10);
     cover.part = QStringLiteral("note");
     CHECK(CoverMaterial::targetOf(cover, false) == 0);
+}
+
+TEST_CASE("Cover parts: the flaps, the jacket and the endpapers in the book file",
+          "[core][cover]") {
+    // A book without them has the flaps of the cover only
+    const CoverParts none;
+    CHECK(none.flaps);
+    CHECK_FALSE(none.jacket);
+    CHECK_FALSE(none.endpapers);
+
+    const QByteArray text = R"({ "format": 2, "id": "p",
+        "books": [ { "id": "b", "folder": "book",
+                     "coverParts": { "flaps": false, "jacket": true, "endpapers": true,
+                                     "frontEndpaper": { "fill": "pattern", "pattern": "diagonal",
+                                                        "colors": ["#9a5a2e", "#efe2c2"] },
+                                     "backEndpaper": { "fill": "tile", "picture": "m-17",
+                                                       "scale": 40, "sameAsFront": true,
+                                                       "gloss": "matte" },
+                                     "spineWidth": 22 } } ],
+        "workshop": { "grouped": false, "elements": [] } })";
+    QStringList problems;
+    const std::optional<BookProject> project = BookProject::fromJson(jsonOf(text), problems);
+    INFO(problems.join(QStringLiteral("; ")).toStdString());
+    REQUIRE(project.has_value());
+    REQUIRE(problems.isEmpty());
+    REQUIRE(project->books.at(0).coverParts.has_value());
+    const CoverParts& parts = *project->books.at(0).coverParts;
+    CHECK_FALSE(parts.flaps);
+    CHECK(parts.jacket);
+    CHECK(parts.endpapers);
+    CHECK(parts.front.fill == QStringLiteral("pattern"));
+    CHECK(parts.front.pattern == QStringLiteral("diagonal"));
+    CHECK(parts.front.patternColor == QStringLiteral("#9a5a2e"));
+    CHECK(parts.front.paperColor == QStringLiteral("#efe2c2"));
+    CHECK(parts.front.scale == Endpaper::DEFAULT_SCALE);
+    CHECK(parts.back.fill == QStringLiteral("tile"));
+    CHECK(parts.back.picture == QStringLiteral("m-17"));
+    CHECK(parts.back.scale == 40);
+    CHECK(parts.back.sameAsFront);
+    // The back endpaper as the front one shows the front's fill, and keeps its own
+    CHECK(parts.backShown().fill == QStringLiteral("pattern"));
+    // Fields this version does not know are kept, and saved back
+    CHECK(parts.extra.keys() == QStringList{QStringLiteral("spineWidth")});
+    CHECK(parts.back.extra.keys() == QStringList{QStringLiteral("gloss")});
+    const auto partsOf = [](const QJsonObject& json) {
+        return json.value(QStringLiteral("books"))
+            .toArray()
+            .at(0)
+            .toObject()
+            .value(QStringLiteral("coverParts"));
+    };
+    INFO(QJsonDocument(partsOf(project->toJson()).toObject()).toJson().toStdString());
+    CHECK(partsOf(project->toJson()) == partsOf(jsonOf(text)));
+
+    // An unknown pattern shows dots
+    Endpaper odd;
+    odd.pattern = QStringLiteral("tartan");
+    CHECK(odd.shownPattern() == QStringLiteral("dots"));
+
+    // A book without parts of its own writes none
+    BookProject changed = *project;
+    changed.books[0].coverParts.reset();
+    CHECK_FALSE(changed.toJson()[QStringLiteral("books")][0].toObject().contains(
+        QStringLiteral("coverParts")));
+}
+
+TEST_CASE("Cover parts: problems of their data", "[core][cover]") {
+    const auto problemOf = [](const QByteArray& parts) {
+        QStringList problems;
+        BookProject::fromJson(
+            jsonOf(R"({ "format": 2, "id": "p", "books": [ { "id": "b", "folder": "book", )"
+                   R"("coverParts": )" +
+                   parts + R"( } ], "workshop": { "grouped": false, "elements": [] } })"),
+            problems);
+        return problems.join(QStringLiteral("; "));
+    };
+    CHECK(problemOf("true") == QStringLiteral("books[0].coverParts: must be an object"));
+    CHECK(problemOf(R"({ "jacket": "yes" })") ==
+          QStringLiteral("books[0].coverParts.jacket: must be true or false"));
+    CHECK(problemOf(R"({ "frontEndpaper": { "colors": ["red", "#ffffff"] } })") ==
+          QStringLiteral("books[0].coverParts.frontEndpaper.colors: must be a list of two "
+                         "colors: \"#RRGGBB\""));
+    CHECK(problemOf(R"({ "backEndpaper": { "scale": 200 } })") ==
+          QStringLiteral("books[0].coverParts.backEndpaper.scale: must be a whole number from 5 "
+                         "to 100"));
+    CHECK(problemOf(R"({ "backEndpaper": { "color": "#12345" } })") ==
+          QStringLiteral("books[0].coverParts.backEndpaper.color: must be a color: \"#RRGGBB\""));
 }

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_export.h
 /// @brief Export of a book to a Word document (DOCX), to Markdown (GitHub Flavored), to PDF and
@@ -21,10 +22,13 @@
 #ifndef KALAHARI_EDITOR_BOOK_EXPORT_H
 #define KALAHARI_EDITOR_BOOK_EXPORT_H
 
+#include <kalahari/core/page_start.h>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/spread_look.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 
 #include <QDateTime>
@@ -107,6 +111,8 @@ enum class ExportItemKind {
     Text,      ///< A text of the book: its KML
     Group,     ///< A group of texts (a part): only its title
     Contents,  ///< The table of contents of the book: its title and the headings of the file
+    Spread,    ///< A spread: one picture over a left and a right page (a PDF and the print;
+               ///< the other files get it as a text with the picture, spreadsAsTexts())
 };
 
 /// @brief An item of the export, in the order of the file
@@ -119,7 +125,17 @@ struct ExportItem {
     QString kml;         ///< Its text (ExportItemKind::Text)
     CaptionContext captions;   ///< The numbering of its captions in the book around it
     FootnoteContext footnotes;  ///< The numbering of its notes in the book around it
-    bool firstPageLeft = false;  ///< It starts on a left page (mirror margins)
+    /// The page it starts on with mirror margins and each item from a new page: a right one,
+    /// a left one (a page left empty before it when needed) or the next one; never Auto
+    core::PageStart start = core::PageStart::Right;
+    /// Of a spread: its picture and how it lies (ExportItemKind::Spread); it always starts on
+    /// a left page, also without mirror margins, and the item after it on a new page
+    SpreadLook spread;
+    QString spreadLabel;  ///< Of a spread: the label of its caption with a number; empty: none
+    QString spreadText;   ///< Of a spread: the text of its caption
+    bool spreadCaption = false;  ///< Of a spread: it has a caption
+    bool inContents = true;      ///< Of a spread: its title is a heading of the book (a line
+                                 ///< of the table of contents, a bookmark)
 };
 
 /// @brief What goes to the file of an export, and how it looks
@@ -131,6 +147,9 @@ struct BookExport {
     QString fontFamily;        ///< The font of Normal (and of the styles without one of their own)
     QString imagesFolder;      ///< The folder the sources of the images are relative to; empty:
                                ///< no images go to the file
+    /// The pictures outside the folder of images (of the spreads, in the Workshop): their
+    /// sources in the items, and their files
+    QHash<QString, QString> pictures;
     SceneBreakLook sceneBreak = SceneBreakLook::Asterisks;  ///< As the editor shows them
     ExportPage page;
     bool textsOnNewPage = true;   ///< Each item from a new page (DOCX)
@@ -149,8 +168,14 @@ struct BookExport {
     /// The words in front of the text of a TODO and a note in Word's comments ("TODO", "Note"),
     /// in the program's language; a comment has none
     QHash<AnnotationKind, QString> annotationLabels;
+    /// The own fields of the book and of its series, by their ids: what their fields show
+    QMap<QString, CustomFieldValue> customFields;
     std::vector<ExportItem> items;
 };
+
+/// @brief What the fields of an item of the export show: the book's title, author and
+///        language, the item's title, the own fields of the book, the time of the export
+FieldContext exportFieldContext(const BookExport& book, const ExportItem& item);
 
 /// @brief What went wrong with an export
 struct ExportProblem {
@@ -178,6 +203,15 @@ struct ExportResult {
 
 /// @brief Reports the progress of the work, 0-100
 using ExportProgress = std::function<void(int)>;
+
+/// @brief The id of the number of a spread's caption, which the book counts with the captions
+///        of its texts: "spread-" and the id of its element
+QString spreadCaptionId(const QString& elementId);
+
+/// @brief Make the spreads of @p book texts, for a file that shows a page at a time (Word, an
+///        e-book, Markdown): the whole picture in a paragraph of its own and its caption under
+///        it (spreadKml()); the title of a spread not in the table of contents is not shown
+void spreadsAsTexts(BookExport& book);
 
 /// @brief The name of the folder of the images of a Markdown file named @p baseName (without
 ///        its extension): "<name> – images", the last word in the program's language

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file card_page.cpp
 /// @brief The card of a character, a location or an item of the Workshop
@@ -36,6 +37,7 @@
 #include "kalahari/gui/widgets/palette_edit.h"
 #include "kalahari/gui/widgets/relations_box.h"
 
+#include <QAction>
 #include <QApplication>
 #include <QComboBox>
 #include <QCompleter>
@@ -57,6 +59,7 @@
 #include <QListWidget>
 #include <QMenu>
 #include <QMimeData>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPlainTextEdit>
@@ -406,6 +409,7 @@ CardPage::CardPage(core::ProjectManager& book, bool full, QWidget* parent)
     connect(m_relations, &RelationsBox::requestShowCard, this,
             full ? &CardPage::requestOpenCard : &CardPage::requestSelectCard);
     connect(m_relations, &RelationsBox::cardAdded, this, &CardPage::cardAdded);
+    connect(m_relations, &RelationsBox::relationAdded, this, &CardPage::relationAdded);
     // The declension of the name, as the book's dictionary has it
     m_nameBox = new CardNameBox(m_book, full, this);
     connect(m_nameBox, &CardNameBox::requestNameWindow, this, &CardPage::requestNameWindow);
@@ -879,7 +883,14 @@ void CardPage::setDescriptionWidget(QWidget* description) {
     if (m_descriptionGroup == nullptr || description == nullptr) {
         return;
     }
-    m_descriptionGroup->layout()->addWidget(description);
+    // In the frame of a text field, as the other fields of the card
+    auto* frame = new QFrame(m_descriptionGroup);
+    frame->setObjectName(QStringLiteral("descriptionFrame"));
+    frame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    auto* frameLayout = new QVBoxLayout(frame);
+    frameLayout->setContentsMargins(0, 0, 0, 0);
+    frameLayout->addWidget(description);
+    m_descriptionGroup->layout()->addWidget(frame);
     m_description = description;
     // After the data, before the relations, as it stands
     setTabOrder(m_ownFields->table(), description);
@@ -995,6 +1006,16 @@ QWidget* CardPage::createEditor(const core::CardField& field) {
         completer->setCaseSensitivity(Qt::CaseInsensitive);
         completer->setFilterMode(Qt::MatchContains);
         line->setCompleter(completer);
+        // A list of the cards at once: the arrow at its end, a click in it or Alt+Down show
+        // them all, typing narrows them
+        QAction* showAll = line->addAction(
+            core::ArtProvider::getInstance().getIcon(QStringLiteral("common.expandMore")),
+            QLineEdit::TrailingPosition);
+        showAll->setObjectName(QStringLiteral("showAllCards"));
+        //: The arrow at the end of a field of a card that names another card. In Polish:
+        //: Pokaż wszystkie karty (Alt+↓)
+        showAll->setToolTip(tr("Show all the cards (Alt+Down)"));
+        connect(showAll, &QAction::triggered, this, [this, line]() { showAllCards(line); });
         // The names of the cards as they are when it gets the keys
         line->installEventFilter(this);
         m_fieldOf.insert(line, fieldId);
@@ -1517,7 +1538,31 @@ bool CardPage::eventFilter(QObject* watched, QEvent* event) {
     } else if (event->type() == QEvent::FocusIn) {
         fillSuggestions(watched);
     }
+    // A field naming a card: its list at a click or with Alt+Down
+    if (auto* line = qobject_cast<QLineEdit*>(watched);
+        line != nullptr && line->completer() != nullptr && m_fieldOf.contains(watched)) {
+        if (event->type() == QEvent::MouseButtonRelease &&
+            static_cast<const QMouseEvent*>(event)->button() == Qt::LeftButton) {
+            showAllCards(line);
+        } else if (event->type() == QEvent::KeyPress) {
+            const auto* key = static_cast<const QKeyEvent*>(event);
+            if (key->key() == Qt::Key_Down && key->modifiers() == Qt::AltModifier) {
+                showAllCards(line);
+                return true;
+            }
+        }
+    }
     return QWidget::eventFilter(watched, event);
+}
+
+void CardPage::showAllCards(QLineEdit* line) {
+    QCompleter* completer = line->completer();
+    if (completer == nullptr || line->isReadOnly() || !line->isEnabled()) {
+        return;
+    }
+    fillSuggestions(line);
+    completer->setCompletionPrefix(QString());
+    completer->complete();
 }
 
 void CardPage::saveFocused(const QObject* watched) {

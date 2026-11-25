@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file chapter_document.cpp
 /// @brief Implementation of ChapterDocument for .kchapter format
@@ -7,6 +8,7 @@
 /// OpenSpec #00035: KChapter Document Format
 
 #include <kalahari/core/chapter_document.h>
+#include <kalahari/core/busy_pulse.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/kml_format_registry.h>
@@ -550,11 +552,6 @@ private:
 
 QString ChapterDocument::kmlToPlainText(const QString& kml)
 {
-    return kmlToPlainText(kml, QStringView());
-}
-
-QString ChapterDocument::kmlToPlainText(const QString& kml, QStringView skippedStyle)
-{
     // Collect the text of the paragraphs in a single streaming pass, by the editor's
     // rules (KmlDocumentModel): a fragment gets the same root element; the paragraphs are
     // the <p>, <paragraph> and heading children of the root and the items of its lists, with
@@ -571,9 +568,10 @@ QString ChapterDocument::kmlToPlainText(const QString& kml, QStringView skippedS
     }
     ParagraphTexts paragraphs(result);
     while (reader.readNextStartElement()) {
-        const bool skipped = !skippedStyle.isEmpty() &&
-                             reader.attributes().value(QStringLiteral("style")) == skippedStyle;
-        if (isParagraphElement(reader.name()) && !skipped) {
+        // A long text read while a book opens: a spinner that waits for it turns (test of
+        // 24.11)
+        BusyPulse::beat();
+        if (isParagraphElement(reader.name())) {
             paragraphs.addParagraph(reader);
         } else if (isListElement(reader.name())) {
             paragraphs.addList(reader);

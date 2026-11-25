@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file navigator_coordinator.h
 /// @brief Navigator panel interaction coordination for MainWindow
@@ -11,15 +12,18 @@
 #define KALAHARI_GUI_NAVIGATOR_COORDINATOR_H
 
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QMap>
 #include <QList>
 #include <QSet>
 #include <functional>
 #include <optional>
+#include <string>
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/window_editor_provider.h"
 #include "kalahari/gui/add_target.h"
 #include "kalahari/gui/material_downloader.h"
 #include "kalahari/gui/material_source.h"
@@ -51,11 +55,15 @@ namespace gui {
 
 class NavigatorPanel;
 class PropertiesPanel;
+class BookPageNumbers;
 class CardPanel;
-class PitchPanel;
+class PublishingCardPanel;
+class SpreadCard;
 class EditorPanel;
 class MaterialCardPanel;
+class NotificationCoordinator;
 class PreviewPanel;
+class RelationsBox;
 
 namespace dialogs {
 class NewFileDialog;
@@ -84,6 +92,7 @@ using BookSaver = std::function<bool(const QString&)>;
 /// @endcode
 class NavigatorCoordinator : public QObject {
     Q_OBJECT
+    Q_MOC_INCLUDE("kalahari/gui/widgets/relations_box.h")
 
 public:
     /// @brief Constructor
@@ -140,6 +149,10 @@ public:
     /// of the chapter's tab is the saved text again.
     void discardChapterChanges(const QString& elementId);
 
+    /// @brief A text not open changed in the book (Replace All in Book) or back to its file:
+    /// the Navigator shows a "*" while it is not saved, and the counts of the book its words
+    void showUnsavedText(const QString& elementId);
+
     /// @brief Clear current element ID (on project close)
     void clearCurrentElement() { m_currentElementId.clear(); }
 
@@ -167,17 +180,35 @@ public:
     /// @return The elements whose text could not be written: @p element or elements inside it
     QList<const core::ProjectElement*> saveTextsOf(const core::ProjectElement& element);
 
+    /// @brief What the window gives the module of editor @p editorId for element
+    /// @p elementId (empty: for a command of the module)
+    [[nodiscard]] core::WindowEditorContext windowEditorContext(const QString& editorId,
+                                                                const QString& elementId);
+
+    /// @brief Run command @p commandId of a module (core::WindowEditorCommand): New Relation
+    /// Map... of the mind maps
+    void runWindowEditorCommand(const std::string& commandId);
+
+    /// @brief Show under @p box what a module offers after relation @p relationId of card
+    /// @p cardId with card @p otherId was added: a map of relations after the first relation
+    void offerAfterRelation(kalahari::gui::RelationsBox* box, const QString& cardId,
+                            const QString& otherId, const QString& relationId);
+
     /// @brief The new element @p elementId with @p title is shown in the Navigator; a text
-    /// element opens in the editor with the cursor at the start of its text
+    /// element opens in the editor with the cursor at the start of its text, a card on its
+    /// form with the name selected
     void showAdded(const QString& elementId, const QString& title);
 
     /// @brief Show the title of element @p elementId on its open tab, with the "*" of its
     /// unsaved changes
     void refreshTabTitle(const QString& elementId);
 
-    /// @brief Give the open tab of element @p elementId whether the element starts on a left
-    /// page (the Properties panel changed it)
+    /// @brief Give the open tab of element @p elementId its first page again: the page it
+    /// starts on changed in the Properties panel, and the pages of the book after it
     void refreshFirstPage(const QString& elementId);
+
+    /// @brief The first pages of the texts in the whole book, which the editors show
+    [[nodiscard]] BookPageNumbers& pageNumbers() { return *m_pageNumbers; }
 
     // =========================================================================
     // Statistics Integration (OpenSpec #00042 Task 7.7)
@@ -257,6 +288,10 @@ public slots:
     /// @param elementId Element ID (empty for document properties)
     void onRequestProperties(const QString& elementId);
 
+    /// @brief Show in the Properties how the endpaper of @p side is filled, chosen on the plan
+    /// of the cover (CoverPlan::FRONT_ENDPAPER, BACK_ENDPAPER)
+    void onRequestEndpaperProperties(const QString& side);
+
     /// @brief Handle section properties request from navigator
     /// @param sectionType Section type ("section_frontmatter", "section_body", "section_backmatter")
     void onRequestSectionProperties(const QString& sectionType);
@@ -294,15 +329,21 @@ public slots:
     /// @brief Book > Add...: Add Element for what is in front (addTargetHere())
     void onRequestAddHere();
 
-    /// @brief Create Card in the context menu of a word or a selection of a text: Add Element
-    /// with the kind of card @p kind chosen and @p title in it (the book's dictionary gives the
-    /// new card its name, ProjectManager::cardAdded())
-    /// @return false when the writer closed the window without adding
+    /// @brief Create Card in the context menu of a word or a selection of a text: a card of
+    /// kind @p kind named @p title added at once, its form open (the book's dictionary gives
+    /// the new card its name, ProjectManager::cardAdded())
+    /// @return false when no card was added
     bool onRequestAddCard(const QString& title, const core::KindRef& kind);
 
-    /// @brief Book > New Chapter...: Add Element for what is in front with the main text kind
-    /// of the book chosen; the whole book when the list of the element in front cannot have it
+    /// @brief Book > New Chapter...: the small window of the title of a new element of the
+    /// main text kind of the book, for what is in front; the whole book when the list of the
+    /// element in front cannot have it
     void onRequestNewChapter();
+
+    /// @brief Book > New Spread...: a spread right after the element in front, else the one
+    /// chosen in the Navigator, when its list can have one there; else at the end of the main
+    /// part. The small window of its title, then its card
+    void onRequestNewSpread();
 
     /// @brief Where Book > Add... adds: right after the element of the editor's tab in front,
     /// with its kind (in the Workshop, in the group of its kind); the whole book for any other
@@ -362,6 +403,13 @@ public slots:
     /// address on its card
     void onRequestOpenMaterial(const QString& elementId);
 
+    /// @brief Show the card For Publishers on its tab, in front (Workshop > For Publishers, Book
+    /// > For Publishers, a text for publishers opened anywhere)
+    /// @param elementId The version it shows; empty: the one it shows
+    /// @param keys The card gets the keys
+    /// @return The card; nullptr without an open book
+    PublishingCardPanel* openPublishingCard(const QString& elementId, bool keys);
+
     /// @brief Show the card of material @p elementId on a tab of its own in the middle of the
     /// window, or bring its tab to the front
     /// @param description The description gets the keys, at its end, else the title
@@ -404,6 +452,10 @@ public slots:
 
     /// @brief The downloads for the materials with an address, for tests
     [[nodiscard]] MaterialDownloader* materialDownloader() const { return m_downloader; }
+
+    /// @brief Where a download nobody asked for says that nothing was downloaded: the
+    ///        notifications of the window; without them, the status bar
+    void setNotifications(NotificationCoordinator* notifications);
 
     /// @brief Show the preview of material @p elementId on a tab of its own beside the
     /// chapters, or bring its tab to the front, with the keys in it: of a picture, or of a PDF
@@ -453,6 +505,10 @@ signals:
     /// out of the series does
     void requestOpenBookInNewWindow(const QString& manifest);
 
+    /// @brief Text @p elementId is in the plan, without a file: it opens on its card of the
+    /// Book Plan, where Create gives it its file
+    void requestShowPlanned(const QString& elementId);
+
     /// @brief Emitted when navigator should be refreshed
     void refreshNavigatorRequested();
 
@@ -466,6 +522,13 @@ signals:
     /// @brief The gear of the tab of a module (a mind map, a timeline): its page of Settings,
     /// which SettingsDialog::openPage() opens by @p editorId
     void windowEditorSettingsRequested(const QString& editorId);
+
+    /// @brief The card For Publishers @p card is on its tab now: the window connects its
+    /// export, print, settings and the Cover
+    void publishingCardCreated(kalahari::gui::PublishingCardPanel* card);
+    /// @brief The card of a spread @p card is on its tab now: the window connects its print,
+    /// its gear and the numbers of its caption
+    void spreadCardCreated(kalahari::gui::SpreadCard* card);
     /// @brief Find in Book of a full card: the texts of the book searched for the name of card
     /// @p cardId, all its forms and its other names
     void findInBookRequested(const QString& cardId);
@@ -532,9 +595,23 @@ private:
     /// @brief The Add Element window on @p target, which @p prepare fills before it opens (a
     /// material dropped on the Navigator), and the element added with it: a material opens on
     /// its card in the middle of the window, with the keys in its description
+    ///
+    /// A kind chosen by its name (AddTarget::byName) has the small window of its title; a card
+    /// chosen so has none: it is added at once and its form opens.
+    /// @param title The title the window starts with, or of a card added at once (Create Card);
+    /// empty: the proposed one ("Character 3")
     /// @return false when the writer closed the window without adding
     bool addWithWindow(const AddTarget& target,
-                       const std::function<void(dialogs::NewFileDialog&)>& prepare = {});
+                       const std::function<void(dialogs::NewFileDialog&)>& prepare = {},
+                       const QString& title = QString());
+
+    /// @brief Element @p elementId of @p kind, just added with @p title, shown as showAdded()
+    /// shows it, with a message in the status bar; without it (an empty @p elementId) the
+    /// writer is told that it could not be added, and @p why, or that the changes could not
+    /// be saved
+    /// @return Whether the element was added
+    bool showAddedOrWhy(const QString& elementId, const core::KindRef& kind, const QString& title,
+                        const QString& why = QString());
 
     /// @brief The kind of materials @p kindId (core::MaterialKinds) of the open book; its first
     /// kind of materials when it has not that one or @p kindId is empty; none without any
@@ -542,12 +619,17 @@ private:
 
     /// @brief Download what material @p elementId needs from its address: the title of its
     /// page, or the copy of its picture; @p asked: the writer asked for it, so a failure is
-    /// told in a window, else on the status bar
+    /// told in a window, else as a notification (on the status bar without notifications)
     void download(const QString& elementId, bool asked);
 
     /// @brief A download for a material ended with @p result: the title of its page replaces
     /// the title its address gave, unless the writer changed it, and the picture is its copy
     void onDownloadFinished(const MaterialDownloader::Result& result);
+
+    /// @brief Nothing was downloaded for @p material because of @p error: in a window when
+    ///        the writer asked for it (@p asked), else as a notification
+    void sayDownloadFailed(const core::ProjectElement& material, const QString& error,
+                           bool asked);
 
     /// @brief The cards of material @p elementId show whether a download for it is on its way
     void showDownloading(const QString& elementId);
@@ -564,13 +646,11 @@ private:
     /// name shows on the tab and in the Navigator, its gear opens Settings > Cards
     CardPanel* createCardPanel(const QString& elementId);
 
-    /// @brief The card of sentence about the book @p elementId, for its tab: its title shows on
-    /// the tab and in the Navigator, what the book keeps of it in the lists
-    PitchPanel* createPitchPanel(const QString& elementId);
-
     /// @brief Element @p element of a window kind on a new tab of the module that edits it
     /// (core::IWindowEditorProvider), in front; the status bar says when no module edits it
     void openWindowEditor(const core::ProjectElement& element);
+    /// @brief Spread @p element on a new tab of its card (SpreadCard), in front
+    void openSpreadCard(const core::ProjectElement& element);
     /// @brief The previews of the materials, in the book window and in windows of their own
     [[nodiscard]] QList<PreviewPanel*> previews() const;
 
@@ -598,6 +678,7 @@ private:
     PropertiesPanel* m_propertiesPanel;
     QTabWidget* m_centralTabs;
     QStatusBar* m_statusBar;
+    QPointer<NotificationCoordinator> m_notifications;
 
     /// @brief Tracks dirty state per chapter elementId
     QMap<QString, bool> m_dirtyChapters;
@@ -610,6 +691,9 @@ private:
 
     /// @brief Counts the words of the changed chapters a moment after the last change
     QTimer* m_wordCountTimer{nullptr};
+
+    /// @brief The first pages of the texts in the whole book
+    BookPageNumbers* m_pageNumbers{nullptr};
 
     /// @brief Chapters changed since their words were counted
     QSet<QString> m_uncountedChapters;

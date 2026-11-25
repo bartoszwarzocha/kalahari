@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file publishing_texts.cpp
 /// @brief The texts for publishers: their data, templates, lengths and the set of a book
@@ -20,6 +21,7 @@
 #include <QRegularExpressionMatchIterator>
 #include <QSet>
 #include <QStringView>
+#include <QXmlStreamReader>
 
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
@@ -431,7 +433,7 @@ const ProjectElement* chosenForCover(const BookProject& project, const ProjectBo
 }
 
 /// The first note about the author in the back part of @p book
-const ProjectElement* aboutAuthorOf(const ProjectBook& book) {
+const ProjectElement* firstAboutAuthorOf(const ProjectBook& book) {
     QList<const ProjectElement*> notes;
     collect(book.backElements,
             [](const ProjectElement& element) {
@@ -451,7 +453,7 @@ const ProjectElement* chosenVersion(const BookProject& project, const ProjectBoo
         return chosenForCover(project, book, part, CoverMaterial::BACK);
     }
     if (part == QLatin1String(PublishingTexts::ABOUT_AUTHOR)) {
-        return aboutAuthorOf(book);
+        return firstAboutAuthorOf(book);
     }
     return chosenText(project, book, part);
 }
@@ -778,12 +780,49 @@ bool PublishingTexts::hasPattern(const QString& part) {
     return part == QLatin1String(PITCH);
 }
 
-bool PublishingTexts::pointsInText() {
-    return SettingsManager::getInstance().get<std::string>(POINTS_SETTING, "beside") == "inText";
-}
-
 bool PublishingTexts::showsPages() {
     return SettingsManager::getInstance().get<bool>(PAGES_SETTING, true);
+}
+
+bool PublishingTexts::showsPointBars() {
+    return SettingsManager::getInstance().get<bool>(POINT_BARS_SETTING, true);
+}
+
+bool PublishingTexts::warnsOfPoints() {
+    return SettingsManager::getInstance().get<bool>(POINT_WARNINGS_SETTING, true);
+}
+
+QSet<QString> PublishingTexts::linkedPointsOf(const QString& kml) {
+    // The tag and its attribute as editor::TEXT_POINTS_TAG and TEXT_POINTS_IDS name them
+    QSet<QString> linked;
+    QStringList open;  // the ids of each <points> the reader is in
+    QXmlStreamReader reader(QStringLiteral("<root>") + kml + QStringLiteral("</root>"));
+    while (!reader.atEnd()) {
+        switch (reader.readNext()) {
+        case QXmlStreamReader::StartElement:
+            if (reader.name() == QLatin1String("points")) {
+                open << reader.attributes().value(QLatin1String("ids")).toString();
+            }
+            break;
+        case QXmlStreamReader::EndElement:
+            if (reader.name() == QLatin1String("points") && !open.isEmpty()) {
+                open.removeLast();
+            }
+            break;
+        case QXmlStreamReader::Characters:
+            if (!open.isEmpty() && !reader.text().trimmed().isEmpty()) {
+                for (const QString& ids : std::as_const(open)) {
+                    for (const QString& id : ids.split(QLatin1Char(' '), Qt::SkipEmptyParts)) {
+                        linked.insert(id);
+                    }
+                }
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    return linked;
 }
 
 std::string PublishingTexts::targetSettingOf(const QString& part, bool words) {
@@ -937,6 +976,10 @@ QList<const ProjectElement*> PublishingTexts::versionsOf(const BookProject& proj
         });
     }
     return versions;
+}
+
+const ProjectElement* PublishingTexts::aboutAuthorOf(const ProjectBook& book) {
+    return firstAboutAuthorOf(book);
 }
 
 QList<PublishingSetPart> PublishingTexts::resolveSet(const BookProject& project,

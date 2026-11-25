@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_editor_view.cpp
 /// @brief BookEditor: scrolling, view modes, zoom, pages, typewriter scrolling, Focus, Distraction-Free mode
@@ -629,6 +630,11 @@ void BookEditor::updateScrollBarRange()
     m_verticalScrollBar->setMaximum(static_cast<int>(std::ceil(maxOffset)));
     m_verticalScrollBar->setPageStep(std::max(1, static_cast<int>(pageStep)));
     m_updatingScrollBar = false;
+    // A text field shows its scroll bar only while there is something to scroll (the text
+    // keeps the bar's room, so it does not wrap anew when the bar comes)
+    if (m_appearance.pageLayout.fillsView && !m_distractionFree) {
+        m_verticalScrollBar->setVisible(maxOffset >= 1.0);
+    }
 
     // Position scrollbar on right edge (also update position on resize)
     int scrollBarWidth = m_verticalScrollBar->sizeHint().width();
@@ -711,10 +717,12 @@ void BookEditor::applyPageLayout()
         left = margins.firstPageLeft ? margins.outer : margins.inner;
         right = margins.firstPageLeft ? margins.inner : margins.outer;
     }
+    m_renderPipeline->setConfigFillsView(m_appearance.pageLayout.fillsView);
     m_renderPipeline->setConfigPageLayout(sizePoints,
                                           QMarginsF(left, margins.top, right, margins.bottom),
                                           m_appearance.pageLayout.pageGap, margins.mirrored);
     m_renderPipeline->setConfigShowPageNumbers(m_appearance.pageLayout.showPageNumbers);
+    m_renderPipeline->setConfigFirstPageNumber(m_appearance.pageLayout.firstPageNumber);
 }
 
 void BookEditor::startScrollAnimation(qreal targetOffset, int durationMs)
@@ -913,9 +921,11 @@ void BookEditor::setDistractionFree(bool enabled)
     }
     m_distractionFree = enabled;
 
-    // The scroll bars hide with the window's bars (the wheel and the keys still scroll)
+    // The scroll bars hide with the window's bars (the wheel and the keys still scroll); a
+    // text field's comes back only with something to scroll
     if (m_verticalScrollBar != nullptr) {
-        m_verticalScrollBar->setVisible(!enabled);
+        m_verticalScrollBar->setVisible(
+            !enabled && (!m_appearance.pageLayout.fillsView || m_verticalScrollBar->maximum() > 0));
     }
     updateHorizontalScrollBar();
 

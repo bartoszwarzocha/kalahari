@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file writing_stats_model.h
 /// @brief What the statistics bar, the Statistics panel and the goals show: the record of
@@ -10,13 +11,16 @@
 
 #include <kalahari/core/writing_activity.h>
 #include <kalahari/core/writing_goals.h>
+#include <kalahari/core/writing_plan.h>
 #include <kalahari/core/writing_journal.h>
 #include <kalahari/core/writing_statistics.h>
 
 #include <QDateTime>
+#include <QHash>
 #include <QObject>
 #include <QSet>
 #include <QString>
+#include <QStringList>
 
 #include <functional>
 #include <utility>
@@ -43,6 +47,13 @@ struct DayPiece {
     [[nodiscard]] int counted(core::GoalCounting counting) const {
         return counting == core::GoalCounting::Net ? written - deleted : written;
     }
+};
+
+/// @brief Where the daily goal of today comes from
+enum class DailyGoalSource {
+    Own,       ///< The writer's own daily goal (Settings > Statistics and Goals)
+    Deadline,  ///< What the deadline of the book needs (core::dailyGoalForDeadline())
+    Schedule,  ///< What the schedule of the book needs (core::dailyGoalForPlan())
 };
 
 /// @brief The statistics of writing of the writer and of the open book
@@ -103,6 +114,11 @@ public:
     /// @brief The words of the open book now; 0 without one
     [[nodiscard]] int bookWords() const;
 
+    /// @brief The texts of the open book (of the volume) now, by id: their words now and
+    ///        whether they are still written (the coordinator gives it); what the daily goal
+    ///        of the schedule counts
+    void setPlannedTextsSource(std::function<QHash<QString, core::PlannedText>()> source);
+
     /// @brief The words the open book had when today's writing day started, as the record of
     /// today says: what the deadline counts from
     [[nodiscard]] int bookWordsAtStartOfToday() const;
@@ -114,10 +130,19 @@ public:
     /// @return false without a book or when they cannot be written
     bool setGoals(const core::BookGoals& goals);
 
+    /// @brief The schedule of the open book (of the volume of a series); empty without one
+    [[nodiscard]] const core::WritingPlan& plan() const { return m_plan; }
+
+    /// @brief Keep a new schedule of the open book in its project.db; when the daily goal
+    ///        comes from it, goalsChanged() too
+    /// @return false without a book, with a book open read-only or when it cannot be written
+    bool setPlan(const core::WritingPlan& plan);
+
     /// @brief The volume of a series whose goals and words the book has: its goals in the
     ///        setting @p goalsKey (core::BookGoals::settingKeyOf()), its texts @p elementIds;
     ///        an empty key: one book, its goals in core::BookGoals::SETTING_KEY and all its
-    ///        texts. The goals are read again when they are of another volume.
+    ///        texts. The goals and the schedule are read again when they are of another
+    ///        volume.
     void setVolume(const QString& goalsKey, const QSet<QString>& elementIds);
 
     /// @brief The record of the texts of the volume (setVolume()), with what is not saved yet;
@@ -177,8 +202,17 @@ public:
     [[nodiscard]] qint64 minutesIntoDay(const QDate& day, const QDateTime& when) const;
 
     /// @brief The words of the daily goal today: the daily goal of the rules, or what the
-    /// deadline of the book needs when its goals say so
+    /// deadline or the schedule of the book needs when its goals say so
     [[nodiscard]] int dailyGoalToday() const;
+
+    /// @brief Where dailyGoalToday() comes from: the deadline while it is ahead and the book
+    /// has a length, the schedule while it plans a text, otherwise the writer's own goal
+    [[nodiscard]] DailyGoalSource dailyGoalSourceToday() const;
+
+    /// @brief What the schedule of the book needs today (core::dailyGoalForPlan()), whatever
+    /// the goals say; 0 without a book
+    /// @param texts When given, gets the texts that make it up
+    [[nodiscard]] int dailyGoalForPlanToday(QStringList* texts = nullptr) const;
 
 signals:
     /// @brief The numbers changed: something was written, saved or the time went on
@@ -187,12 +221,18 @@ signals:
     /// @brief The goals of the book changed (setGoals(), another book)
     void goalsChanged();
 
+    /// @brief The schedule of the book changed (setPlan(), another book or volume)
+    void planChanged();
+
 private:
     /// @brief changed() soon, at most every CHANGE_INTERVAL_MS
     void schedule();
 
-    /// @brief Read the record of the open book and its goals
+    /// @brief Read the record of the open book, its goals and its schedule
     void readBook();
+
+    /// @brief Read the goals and the schedule of the open book or of the volume
+    void readGoals();
 
     /// @brief The setting of the goals of the open book or of the volume
     [[nodiscard]] QString goalsKey() const;
@@ -202,6 +242,7 @@ private:
     core::WritingStatistics m_journalRecord;  ///< Saved in the journal
     core::WritingStatistics m_bookRecord;     ///< Saved in the book
     core::BookGoals m_goals;
+    core::WritingPlan m_plan;
     core::ProjectDatabase* m_database{nullptr};
     QString m_bookId;
     bool m_bookReadOnly{false};
@@ -210,6 +251,7 @@ private:
     editor::StatisticsCollector* m_collector{nullptr};
     std::function<int()> m_bookWords;
     std::function<int()> m_seriesWords;
+    std::function<QHash<QString, core::PlannedText>()> m_plannedTexts;
     QString m_goalsKey;          ///< The setting of the goals of the volume; empty: one book
     QSet<QString> m_volumeTexts;  ///< The texts of the volume (m_goalsKey not empty)
     std::function<QDateTime()> m_clock;

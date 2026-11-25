@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_texts.cpp
 /// @brief The texts of the open book in reading order, and the saved text of one not open
@@ -20,24 +21,28 @@ namespace kalahari::gui {
 
 namespace {
 
-/// The text elements of a list and the groups in it, in reading order
+/// The text elements of a list and the groups in it, in reading order (with @p spreads the
+/// spreads among them)
 void collectTexts(const core::ProjectManager& projects,
                   const QList<core::ProjectElement>& elements, core::BookPlace place,
-                  const core::KindRef& mainKind, std::vector<BookTextElement>& texts) {
+                  const core::KindRef& mainKind, bool spreads,
+                  std::vector<BookTextElement>& texts) {
     for (const core::ProjectElement& element : elements) {
         if (!element.file.isEmpty() && projects.formOf(element) == core::ElementForm::Text) {
             const bool chapter = place == core::BookPlace::Main && mainKind &&
                                  projects.kindOf(element).kind == mainKind.kind;
-            texts.push_back({&element, place, chapter});
+            texts.push_back({&element, place, chapter, false});
+        } else if (spreads && projects.isSpread(element)) {
+            texts.push_back({&element, place, false, true});
         }
-        collectTexts(projects, element.elements, place, mainKind, texts);
+        collectTexts(projects, element.elements, place, mainKind, spreads, texts);
     }
 }
 
 }  // namespace
 
 std::vector<BookTextElement> bookTextElements(const core::ProjectManager& book,
-                                              const core::ProjectBook* volume) {
+                                              const core::ProjectBook* volume, bool spreads) {
     std::vector<BookTextElement> texts;
     const core::ProjectBook* opened = volume;
     if (opened == nullptr && book.isProjectOpen()) {
@@ -47,9 +52,9 @@ std::vector<BookTextElement> bookTextElements(const core::ProjectManager& book,
         return texts;
     }
     const core::KindRef mainKind = book.mainTextKind();
-    collectTexts(book, opened->frontElements, core::BookPlace::Front, mainKind, texts);
-    collectTexts(book, opened->mainElements, core::BookPlace::Main, mainKind, texts);
-    collectTexts(book, opened->backElements, core::BookPlace::Back, mainKind, texts);
+    collectTexts(book, opened->frontElements, core::BookPlace::Front, mainKind, spreads, texts);
+    collectTexts(book, opened->mainElements, core::BookPlace::Main, mainKind, spreads, texts);
+    collectTexts(book, opened->backElements, core::BookPlace::Back, mainKind, spreads, texts);
     return texts;
 }
 

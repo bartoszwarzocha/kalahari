@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file theme_manager.cpp
 /// @brief Implementation of ThemeManager
@@ -83,8 +84,8 @@ ThemeManager::ThemeManager() {
     // Create fallback theme first (used if loading fails)
     m_currentTheme.name = "Fallback";
     m_currentTheme.version = "1.0";
-    m_currentTheme.colors.primary = QColor("#333333");
-    m_currentTheme.colors.secondary = QColor("#999999");
+    m_currentTheme.colors.primary = QColor("#8f8f8f");
+    m_currentTheme.colors.secondary = QColor("#ebebeb");
     m_currentTheme.colors.accent = QColor("#0078D4");
     m_currentTheme.colors.background = QColor("#FFFFFF");
     m_currentTheme.colors.text = QColor("#000000");

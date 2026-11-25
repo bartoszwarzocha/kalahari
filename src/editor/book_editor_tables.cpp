@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_editor_tables.cpp
 /// @brief BookEditor: tables, the keys in them and at their edges
@@ -58,6 +59,11 @@ bool BookEditor::isInTable() const
 
 void BookEditor::insertTable(int columns, int rows, bool headerRow)
 {
+    insertTable(columns, rows, headerRow, NewTableOptions{});
+}
+
+void BookEditor::insertTable(int columns, int rows, bool headerRow, const NewTableOptions& options)
+{
     if (refusesChange() || isInTable()) {
         return;
     }
@@ -72,6 +78,8 @@ void BookEditor::insertTable(int columns, int rows, bool headerRow)
     shape.columns = std::clamp(columns, 1, MAX_INSERTED_TABLE_COLUMNS);
     shape.rows = std::clamp(rows, 1, MAX_INSERTED_TABLE_ROWS);
     shape.headerRows = headerRow ? 1 : 0;
+    shape.properties.spaceAbove = std::clamp(options.spaceAbove, 0.0, MAX_TABLE_SPACE);
+    shape.properties.spaceBelow = std::clamp(options.spaceBelow, 0.0, MAX_TABLE_SPACE);
 
     // One undo step: the replaced selection, the table with its cells in the format of the
     // text, and the empty paragraphs it leaves next to it

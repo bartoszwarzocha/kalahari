@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file navigator_panel.h
 /// @brief Navigator panel for project structure navigation (Qt6)
@@ -15,6 +16,7 @@
 #define KALAHARI_GUI_PANELS_NAVIGATOR_PANEL_H
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/window_editor_provider.h"
 #include "kalahari/gui/add_target.h"
 #include "kalahari/gui/material_source.h"
 
@@ -30,7 +32,9 @@
 #include <QStringList>
 
 #include <functional>
+#include <memory>
 #include <optional>
+#include <vector>
 
 class QAction;
 class QMenu;
@@ -498,6 +502,20 @@ signals:
     /// @param keys The page gets the keys (Enter), else the Navigator keeps them (a click)
     void requestOpenBookDictionary(bool keys);
 
+    /// @brief Request to show the plan of the book (the plot board) on its tab: a click on
+    /// Book Plan at the top of the Workshop, or Enter on it
+    /// @param keys The plan gets the keys (Enter), else the Navigator keeps them (a click)
+    void requestOpenBookPlan(bool keys);
+
+    /// @brief Request to give text in the plan @p elementId its chapter file (Create the
+    /// Chapter File in its menu)
+    void requestCreateTextFile(const QString& elementId);
+
+    /// @brief Request to show the card For Publishers on its tab: a click on For Publishers at
+    /// the top of the Workshop, or Enter on it
+    /// @param keys The card gets the keys (Enter), else the Navigator keeps them (a click)
+    void requestOpenPublishing(bool keys);
+
     /// @brief Request to hide kind @p list of the materials (MaterialList::HIDDEN_SETTING) in
     /// the Navigator of every book: Hide Kind in the menu of the kind
     void requestHideKind(const QString& list);
@@ -561,6 +579,10 @@ signals:
     /// @note The tree does not change; it shows the new order once it is loaded again
     void elementMovedTo(const QString& elementId, const kalahari::core::ElementPlace& place,
                         const QString& bookId = QString());
+
+    /// @brief A command of a module that adds elements of its kinds was chosen in the menu of a
+    /// node where they are added (core::WindowEditorCommand: New Relation Map...)
+    void moduleCommandRequested(const QString& commandId);
 
     /// @brief Request to choose a new place of an element in the book (Move...)
     /// @param elementId Element ID
@@ -683,8 +705,9 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
-    /// @brief Add... on @p item: the Add Element window with its kinds, the kind @p kind
-    /// chosen at the start; nothing when nothing can be added there
+    /// @brief Add... on @p item: the Add Element window with its kinds; with a kind @p kind
+    /// chosen by its name (Add Chapter...), the small window of that kind
+    /// (AddTarget::byName); nothing when nothing can be added there
     void addOn(const QTreeWidgetItem* item, const core::KindRef& kind = {});
 
     /// @brief Rename @p item: an element, a section, the book or the Workshop; nothing for the
@@ -710,6 +733,11 @@ private:
     /// @brief The "+" button can add on the current node
     void updateAddButton();
 
+    /// @brief The modules whose kinds are the only ones added at @p item of the Workshop, each
+    /// once: the mind maps at their group and at a map
+    std::vector<std::shared_ptr<core::IWindowEditorProvider>> windowEditorsAddedAt(
+        const QTreeWidgetItem* item) const;
+
     /// @brief The kinds the menu of @p item names in its own commands ("Add Chapter..."),
     /// those most added there; none in variant "single" of "navigator.addCommands"
     QList<core::KindRef> namedKindsOf(const QTreeWidgetItem* item) const;
@@ -725,7 +753,9 @@ private:
     bool requestPageOf(const QTreeWidgetItem* item, bool keys);
 
     /// @brief Add Book Dictionary at the top of the Workshop (@p workshopItem)
-    void addDictionaryItem(QTreeWidgetItem* workshopItem);
+    void addDictionaryItem(QTreeWidgetItem* workshopItem);  ///< and For Publishers after it
+    /// @brief The node Book Plan, the first one of the Workshop
+    void addPlanItem(QTreeWidgetItem* workshopItem);
 
     /// @brief Add the groups of the kinds of the Workshop of @p project with their elements
     /// under @p workshopItem
@@ -800,8 +830,8 @@ private:
     /// @brief Add New Volume... to @p menu
     QAction* addNewVolumeAction(QMenu& menu) const;
 
-    /// @brief Add the commands of the volume of @p item to @p menu: New Volume..., Volume
-    /// Earlier and Volume Later
+    /// @brief Add the commands of the volume of @p item to @p menu: Volume Earlier and Volume
+    /// Later (New Volume... is in the menu of the project)
     /// @return The commands, which change the book
     QList<QAction*> addVolumeActions(QMenu& menu, const QTreeWidgetItem* item);
 
@@ -812,8 +842,8 @@ private:
     /// the series, so a book open read-only has it too
     void addTakeOutVolumeAction(QMenu& menu, const QTreeWidgetItem* item);
 
-    /// @brief Add the commands of the node of the book @p item to @p menu: Rename... and New
-    /// Volume... of a book, the commands of the volume (addVolumeActions()) in a series
+    /// @brief Add the commands of the node of the book @p item to @p menu: Rename... of a
+    /// book, the commands of the volume (addVolumeActions()) in a series
     /// @return The commands, which change the book
     QList<QAction*> addBookActions(QMenu& menu, const QTreeWidgetItem* item);
 
@@ -826,10 +856,10 @@ private:
     /// @return The commands that change the book: Delete Volume...
     QList<QAction*> addVolumeRemovalActions(QMenu& menu, const QTreeWidgetItem* item);
 
-    /// @brief Add the commands of the project's node to @p menu: New Volume... and Series
-    /// Properties... of a series, else Project Properties..., which waits for the types of
-    /// books; the commands that change the book go to @p changing
-    void addProjectActions(QMenu& menu, QList<QAction*>& changing);
+    /// @brief Add the properties of the project's node to @p menu: Series Properties... of a
+    /// series, else Project Properties..., which waits for the types of books (New Volume...
+    /// comes before them in the menu)
+    void addProjectActions(QMenu& menu);
 
     /// @brief The keys of a volume of a series on its node @p item: Alt+Up and Alt+Down move
     /// it, Delete deletes it; run only when @p run

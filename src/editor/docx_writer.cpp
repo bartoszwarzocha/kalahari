@@ -1,22 +1,27 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file docx_writer.cpp
 /// @brief Export of a book to a Word document (WordprocessingML, ECMA-376)
 ///
 /// Each item of the export is a section of the document: a section starts it on a new page
-/// (on a right one with mirror margins, unless the text starts on a left one) or goes on after
-/// the item before, and it numbers the item's notes as the book does. The paragraph styles of
-/// the book are the document's: Normal, Heading 1-3, Quote, Caption and the footnotes' style
-/// are Word's own (Word shows their names in its language), the others have their names in
-/// the program's language. The lists are Word's lists, the notes Word's footnotes and
-/// endnotes, the annotations, when the export takes them, Word's comments.
+/// (with mirror margins on the page the item starts on: a right, a left or the next one) or
+/// goes on after the item before, and it numbers the item's notes as the book does. The
+/// paragraph styles of the book are the document's: Normal, Heading 1-3, Quote, Caption and
+/// the footnotes' style are Word's own (Word shows their names in its language), the others
+/// have their names in the program's language. The lists are Word's lists, the notes Word's
+/// footnotes and endnotes, the annotations, when the export takes them, Word's comments.
 
 #include "kalahari/editor/detail/book_export_internal.h"
 
+#include <kalahari/core/page_start.h>
+#include <kalahari/editor/block_space.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_format.h>
+#include <kalahari/editor/tab_guides.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_tables.h>
@@ -30,10 +35,12 @@
 #include <QTextTable>
 #include <QTimeZone>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <deque>
 #include <map>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -46,10 +53,6 @@ using namespace exporting;
 // =============================================================================
 
 constexpr double POINTS_PER_MILLIMETRE = 72.0 / 25.4;
-
-/// The room between an image the text flows around and the text: 0.3 cm, as the editor
-/// leaves it (points)
-constexpr double FLOAT_GAP_POINTS = 0.3 * 72.0 / 2.54;
 
 /// The order of the images anchored to their paragraphs, one above another (Word's numbers
 /// start here)
@@ -76,6 +79,31 @@ constexpr int RUNNING_HEAD_SPACING_TWIPS = 16;
 /// Twentieths of a point: the lengths of WordprocessingML
 int twips(double points) {
     return static_cast<int>(std::lround(points * 20.0));
+}
+
+/// The type of a section that starts on a new page: with mirror margins on the page the item
+/// starts on, a right page odd in Word and a left one even
+QString newPageSectionType(bool mirrored, core::PageStart start) {
+    if (!mirrored || start == core::PageStart::Next) {
+        return QStringLiteral("nextPage");
+    }
+    return start == core::PageStart::Left ? QStringLiteral("evenPage")
+                                          : QStringLiteral("oddPage");
+}
+
+/// The tab stops of the text's tab guides (tab_guides.h): Word counts them from the left
+/// margin of the text, as the guides are; empty without guides
+QString tabStops(const QTextDocument& document) {
+    const std::vector<double> guides = tabGuidesOf(document);
+    if (guides.empty()) {
+        return {};
+    }
+    QString tabs = QStringLiteral("<w:tabs>");
+    for (const double guide : guides) {
+        tabs += QStringLiteral("<w:tab w:val=\"left\" w:pos=\"%1\"/>")
+                    .arg(twips(guide * POINTS_PER_MILLIMETRE));
+    }
+    return tabs + QStringLiteral("</w:tabs>");
 }
 
 /// English Metric Units: the lengths of DrawingML
@@ -148,6 +176,19 @@ QString numberFormatValue(ListNumberFormat format) {
         case ListNumberFormat::Bullet: return QStringLiteral("bullet");
     }
     return QStringLiteral("decimal");
+}
+
+/// The text of a numbered level as Word writes it: its prefix, the numbers of the levels
+/// above it the level shows ("%1."), its own number and its suffix: "§ %1.%2."
+QString wordLevelText(const ListDefinition& definition, int level) {
+    const ListLevel& format = definition.levels[static_cast<size_t>(level)];
+    QString text = format.prefix;
+    for (int above = level - std::clamp(format.shownLevels, 0, level); above < level; ++above) {
+        if (!definition.levels[static_cast<size_t>(above)].isBullet()) {
+            text += QStringLiteral("%%1.").arg(above + 1);
+        }
+    }
+    return text + QStringLiteral("%%1").arg(level + 1) + format.suffix;
 }
 
 QString noteFormatValue(NoteNumberFormat format) {
@@ -294,6 +335,7 @@ struct ParagraphProperties {
     std::optional<bool> widowControl;
     QString numbering;  ///< <w:numPr>...</w:numPr>
     QString borders;    ///< <w:pBdr>...</w:pBdr>
+    QString tabs;       ///< <w:tabs>...</w:tabs>
     std::optional<double> spaceBefore;  ///< Points
     std::optional<double> spaceAfter;
     std::optional<LineSpacing> lineSpacing;
@@ -328,6 +370,7 @@ struct ParagraphProperties {
         if (widowControl) result += flagElement("widowControl", *widowControl);
         result += numbering;
         result += borders;
+        result += tabs;
         if (spaceBefore || spaceAfter || lineSpacing) {
             result += QStringLiteral("<w:spacing");
             if (spaceBefore) result += attribute("w:before", number(twips(*spaceBefore)));
@@ -470,6 +513,7 @@ public:
     DocxWriter(const BookExport& book, const ExportProgress& progress)
         : m_book(book), m_progress(progress) {
         m_images.setFolder(book.imagesFolder);
+        m_images.setOutsideFiles(book.pictures);
         m_textWidth = book.page.textWidthPoints();
         m_textHeight = book.page.textHeightPoints();
         mapStyles();
@@ -860,7 +904,7 @@ QString DocxWriter::listNumbering(size_t item, const ListItem& listItem, int sho
             const ListLevel& format = list.definition.levels[static_cast<size_t>(level)];
             const QString text = format.isBullet()
                                      ? (format.bullet.isEmpty() ? QString(QChar(BULLET_DISC)) : format.bullet)
-                                     : QStringLiteral("%%1").arg(level + 1) + format.suffix;
+                                     : wordLevelText(list.definition, level);
             const QString alignment = format.alignment == ListMarkerAlignment::Center ? QStringLiteral("center")
                                       : format.alignment == ListMarkerAlignment::Right ? QStringLiteral("right")
                                                                                         : QStringLiteral("left");
@@ -1033,17 +1077,19 @@ QString DocxWriter::drawing(const ImageProperties& image, double lineWidth, Part
                       .arg(image.wrap == ImageWrap::SquareLeft ? QStringLiteral("right")
                                                                : QStringLiteral("left"));
         const QString side = anchorSide(image.wrap, alignment);
-        const QString gap = number(emu(FLOAT_GAP_POINTS));
+        // The room above it is its paragraph's; below it and beside it the image's own
+        const QString below = number(emu(image.spaceBelow));
+        const QString beside = number(emu(image.spaceBeside));
         start = QStringLiteral("<w:r><w:drawing><wp:anchor distT=\"0\" distB=\"%1\""
-                               " distL=\"%1\" distR=\"%1\" simplePos=\"0\" relativeHeight=\"%2\""
+                               " distL=\"%2\" distR=\"%2\" simplePos=\"0\" relativeHeight=\"%3\""
                                " behindDoc=\"0\" locked=\"0\" layoutInCell=\"1\""
                                " allowOverlap=\"0\">"
                                "<wp:simplePos x=\"0\" y=\"0\"/>"
                                "<wp:positionH relativeFrom=\"column\">"
-                               "<wp:align>%3</wp:align></wp:positionH>"
+                               "<wp:align>%4</wp:align></wp:positionH>"
                                "<wp:positionV relativeFrom=\"paragraph\">"
                                "<wp:posOffset>0</wp:posOffset></wp:positionV>")
-                    .arg(gap, number(ANCHOR_HEIGHT_BASE + id), side) +
+                    .arg(below, beside, number(ANCHOR_HEIGHT_BASE + id), side) +
                 extent + wrap;
         end = QStringLiteral("</wp:anchor></w:drawing></w:r>");
     }
@@ -1242,6 +1288,26 @@ void DocxWriter::writeParagraph(const ExportText& text, size_t item, const QText
     }
     if (const Qt::Alignment alignment = ownAlignment(format); alignment) {
         properties.alignment = alignmentValue(alignment);
+    }
+    // The room of an image around its paragraph and its caption, and of a table next to the
+    // paragraph, over the paragraph's own (or its style's) room
+    if (const BlockSpace space = blockSpace(block); !space.isEmpty()) {
+        const QVariantMap& style = m_book.styles.shownStyle(styleId).properties;
+        const auto styleSpace = [&style](const char* name) {
+            return std::max(0.0, style.value(QLatin1String(name)).toDouble());
+        };
+        if (space.before > 0.0) {
+            properties.spaceBefore =
+                properties.spaceBefore.value_or(styleSpace("spaceBefore")) + space.before;
+        }
+        if (space.after > 0.0) {
+            properties.spaceAfter =
+                properties.spaceAfter.value_or(styleSpace("spaceAfter")) + space.after;
+        }
+    }
+    // A Tab goes to the guides of the text, as in the editor (not in the cells of a table)
+    if (topLevel) {
+        properties.tabs = tabStops(text.document());
     }
     // A heading of the text: a bookmark the table of contents goes to
     QString content;
@@ -1589,9 +1655,7 @@ QString DocxWriter::sectionProperties(size_t index) const {
     xml += notes("endnotePr", item.footnotes.endnotesBefore, endnotesBefore, endnotesIn, item.footnotes.endnoteFormat);
     QString type = QStringLiteral("continuous");
     if (index > 0 && m_book.textsOnNewPage) {
-        type = !page.mirrored ? QStringLiteral("nextPage")
-               : item.firstPageLeft ? QStringLiteral("evenPage")
-                                    : QStringLiteral("oddPage");
+        type = newPageSectionType(page.mirrored, item.start);
     }
     xml += valueElement("type", type);
     xml += QStringLiteral("<w:pgSz") + attribute("w:w", number(twips(page.width * POINTS_PER_MILLIMETRE))) +
@@ -1814,7 +1878,7 @@ std::vector<std::pair<QString, QByteArray>> DocxWriter::build(ExportResult* resu
     // The texts read, the titles decided, the headings and captions of the file counted
     for (size_t index = 0; index < count; ++index) {
         const ExportItem& item = m_book.items[index];
-        m_texts.push_back(std::make_unique<ExportText>(item));
+        m_texts.push_back(std::make_unique<ExportText>(item, exportFieldContext(m_book, item)));
         const bool titled = m_book.titleHeadings && !item.title.trimmed().isEmpty() &&
                             item.kind != ExportItemKind::Contents &&
                             !(item.kind == ExportItemKind::Text &&

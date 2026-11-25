@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file command_registrar.h
 /// @brief Application command registration with CommandRegistry
@@ -49,6 +50,15 @@ enum class TableCommand {
     TextToTable,         ///< Convert > Text to Table...: its window
     TableToText,         ///< Convert > Table to Text...: its window
     Properties,          ///< Table Properties...: its window
+    Caption,             ///< Insert Caption...: the window of the table's caption
+};
+
+/// @brief The commands of the tab guides of the text with the keys (Format > Align Text)
+enum class TabGuideCommand {
+    Toggle,     ///< Set or Remove Tab Guide: the guide at the cursor taken away, or a new one
+    MoveLeft,   ///< Move Tab Guide Left: the guide nearest the cursor a step left
+    MoveRight,  ///< Move Tab Guide Right
+    RemoveAll,  ///< Remove All Tab Guides
 };
 
 /// @brief The commands of the Image menu (the selected image of the text with the keys)
@@ -130,6 +140,8 @@ struct CommandCallbacks {
                                                 ///< in front
     std::function<void()> onNewChapter;         ///< Book > New Chapter... (named after the
                                                 ///< main texts of the book: New Story...)
+    std::function<void()> onNewSpread;          ///< Book > New Spread...: one picture over
+                                                ///< a left and a right page
     std::function<void()> onNewVolume;          ///< Book > New Volume...: a new book of the
                                                 ///< series
     std::function<void()> onJoinVolume;         ///< Book > Join Book as Volume...: a book
@@ -168,6 +180,7 @@ struct CommandCallbacks {
     std::function<void()> onInsertTable;        ///< Insert > Table...
     std::function<void()> onInsertImage;        ///< Insert > Image...
     std::function<void(TableCommand)> onTable;  ///< The Table menu
+    std::function<void(TabGuideCommand)> onTabGuide;  ///< Format > Align Text: the tab guides
     std::function<void(ImageCommand)> onImage;  ///< The Image menu
 
     // Format > Text Effects
@@ -198,7 +211,10 @@ struct CommandCallbacks {
     std::function<void()> onDecreaseIndent;     ///< Format > Decrease Indent
     std::function<void()> onBullets;            ///< Format > Bullets
     std::function<void()> onNumbering;          ///< Format > Numbering
+    std::function<void()> onListSets;           ///< Format > Pick List Set, given keys: its menu
     std::function<void()> onBulletsNumbering;   ///< Format > Bullets and Numbering...
+    /// Format > Page Size and Margins...: Settings > Editor > Pages and Margins
+    std::function<void()> onPageSettings;
 
     /// Format > Text Style: puts the paragraphs of the cursor or the selection in the style
     /// of this id (editor/paragraph_styles.h)
@@ -210,6 +226,7 @@ struct CommandCallbacks {
     std::function<void()> onDashboard;          ///< View > Dashboard
     std::function<void()> onPlotBoard;          ///< Book > Plot Board
     std::function<void()> onOutline;            ///< Book > Outline
+    std::function<void()> onPublishing;         ///< Book > For Publishers
     std::function<void()> onResetLayout;        ///< View > Reset Layout
 
     // View Mode Commands (OpenSpec #00042 Phase 7.3)

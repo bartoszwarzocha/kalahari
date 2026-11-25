@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_text_footnotes.cpp
 /// @brief Footnotes and endnotes: the model, the numbers, the note's text and KML
@@ -1045,5 +1046,39 @@ TEST_CASE("Notes: pasted from LibreOffice and Word, the notes stay notes",
             "href=\"#sdfootnote2anc\">2</a>Kept text.</p></div>"));
         CHECK(editorNotesOf(kml) == QStringList{QStringLiteral("f:Cold rain.")});
         CHECK(ClipboardHandler::kmlToText(kml).contains(QStringLiteral("2Kept text.")));
+    }
+}
+
+TEST_CASE("Notes: the notes of a text's KML with the words before their numbers",
+          "[editor][footnotes][kml]") {
+    CHECK(lastWords(QStringLiteral("one two  three"), 5) == QStringLiteral("one two three"));
+    CHECK(lastWords(QStringLiteral("one two three four"), 2) == QStringLiteral("…three four"));
+    CHECK(lastWords(QString(QChar::ObjectReplacementCharacter) + QStringLiteral(" word"), 3) ==
+          QStringLiteral("word"));
+    CHECK(lastWords(QStringLiteral("words"), 0).isEmpty());
+
+    const QString kml = QStringLiteral(
+        "<kml><p>The guide, called <b>Hilary</b><footnote id=\"f1\">A name given by the "
+        "<i>missionaries</i>.</footnote>, led nine camels<endnote id=\"f2\">And a donkey."
+        "</endnote>.</p><p>A new<br/>paragraph<footnote id=\"f3\"><p>One.</p><p>Two.</p>"
+        "</footnote></p></kml>");
+    const std::vector<NoteInText> notes = notesInKml(kml, 3);
+    REQUIRE(notes.size() == 3);
+    CHECK(notes[0].note.id == QStringLiteral("f1"));
+    CHECK(notes[0].note.kind == NoteKind::Footnote);
+    CHECK(notes[0].before == QStringLiteral("…guide, called Hilary"));
+    CHECK(notePlainText(notes[0].note.content) ==
+          QStringLiteral("A name given by the missionaries."));
+    // The text of the note before it is not in the words before the next one
+    CHECK(notes[1].note.kind == NoteKind::Endnote);
+    CHECK(notes[1].before == QStringLiteral("…led nine camels"));
+    CHECK(notes[2].before == QStringLiteral("A new paragraph"));
+    CHECK(notesInKml(QStringLiteral("<kml><p>No notes</p></kml>"), 3).empty());
+
+    // The same notes as notesOfKml()
+    const std::vector<Footnote> plain = notesOfKml(kml);
+    REQUIRE(plain.size() == notes.size());
+    for (size_t i = 0; i < plain.size(); ++i) {
+        CHECK(plain[i] == notes[i].note);
     }
 }

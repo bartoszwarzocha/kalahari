@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file edit_coordinator.h
 /// @brief Undo, Redo, Cut, Copy, Paste, Delete and Select All work on the element with the
@@ -12,6 +13,7 @@
 
 #include <QMetaObject>
 #include <QObject>
+#include <QString>
 
 #include <functional>
 #include <string>
@@ -22,6 +24,7 @@ class QWidget;
 
 namespace kalahari::gui {
 class CommandRegistry;
+struct Command;
 }  // namespace kalahari::gui
 
 namespace kalahari::editor {
@@ -50,6 +53,10 @@ namespace kalahari::gui {
 /// The commands of the book's text (addTextCommands(): Select Word, Insert > Page Break...)
 /// work only with the keys in the text: in a field (the find bar, the Navigator's filter)
 /// they are greyed out, and their keys stay with the field.
+///
+/// A greyed out command says why in its tooltip and in the status bar: the Edit commands
+/// (whyNot()), and, for the window's commands that do not say it themselves, that no text is
+/// in front or that the keys are not in it (CommandRegistry::setFallbackReason()).
 class EditCoordinator : public QObject {
     Q_OBJECT
 
@@ -85,6 +92,10 @@ public:
 
     /// @brief Whether a command can do something on an element
     [[nodiscard]] bool canDo(Edit edit, QWidget* element) const;
+
+    /// @brief Why a command can do nothing on an element ("Nothing is selected"); empty
+    ///        where it can
+    [[nodiscard]] QString whyNot(Edit edit, QWidget* element) const;
 
     /// @brief Do a command on an element
     /// @return Whether it did something (where it cannot, it does nothing)
@@ -127,6 +138,11 @@ private:
     [[nodiscard]] static bool fieldCan(const Target& target, Edit edit);
     /// @brief Do @p edit in the field or the book's text of @p target
     static void fieldDoOn(const Target& target, Edit edit);
+
+    /// @brief Why a greyed out command of the window that does not say it itself is greyed
+    ///        out: no text in front, the keys not in the text, a read-only text; empty:
+    ///        nothing to say
+    [[nodiscard]] QString fallbackReason(const Command& command) const;
 
     /// @brief Remember the element that had the keys last, outside the menus and toolbars
     void setLastFocus(QWidget* element);

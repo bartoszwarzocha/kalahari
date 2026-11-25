@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file material_list.cpp
 /// @brief The lists of the materials of the Workshop on their tabs
@@ -13,9 +14,9 @@
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
-#include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/source_description.h"
+#include "kalahari/core/volume_materials.h"
 #include "kalahari/gui/card_list.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
@@ -25,6 +26,7 @@
 #include "kalahari/gui/material_source.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/source_names.h"
+#include "kalahari/gui/volume_names.h"
 
 #include <QDateTime>
 #include <QFileInfo>
@@ -95,8 +97,11 @@ QList<core::KindRef> materialKinds(const core::ProjectManager& book) {
     if (project == nullptr) {
         return kinds;
     }
-    const auto add = [&kinds](const core::KindRef& kind) {
+    // The texts for publishers are on the card For Publishers, not in a list of the Materials
+    const core::KindRef publishing = pm.publishingKind();
+    const auto add = [&kinds, &publishing](const core::KindRef& kind) {
         if (kind && kind.kind->workshopGroup == core::WorkshopGroup::Resources &&
+            !(publishing && kind.kind == publishing.kind) &&
             std::none_of(kinds.cbegin(), kinds.cend(),
                          [&kind](const core::KindRef& known) { return known.kind == kind.kind; })) {
             kinds.append(kind);
@@ -124,9 +129,12 @@ QList<const core::ProjectElement*> elementsOf(const core::ProjectManager& book,
         return elements;
     }
     const bool sources = list == QLatin1String(MaterialList::SOURCES);
+    // The texts for publishers are on the card For Publishers (materialKinds())
+    const core::KindRef publishing = pm.publishingKind();
     for (const core::ProjectElement& element : project->workshop.elements) {
         const core::KindRef kind = pm.kindOf(element);
         if (kind && kind.kind->workshopGroup == core::WorkshopGroup::Resources &&
+            !(publishing && kind.kind == publishing.kind) &&
             (sources ? kind.kind->isMaterial() && !element.source.isEmpty()
                      : list.isEmpty() || kind.reference() == list)) {
             elements << &element;
@@ -207,7 +215,8 @@ QString detailsOf(const MaterialRow& row, const QString& kindId) {
 /// What a material of the cover shows in the columns of its list: its text or title, its part,
 /// author, place and state, and the length of its text; the size of a picture is set with the
 /// file
-void setCoverTexts(MaterialRow& row, const core::ProjectElement& element) {
+void setCoverTexts(MaterialRow& row, const core::ProjectElement& element,
+                   const core::CoverParts& parts) {
     using core::CoverMaterial;
     const core::CoverData& cover = element.cover;
     const auto set = [&row](const char* id, const QString& text) {
@@ -231,7 +240,14 @@ void setCoverTexts(MaterialRow& row, const core::ProjectElement& element) {
     set(MaterialList::COVER_PART, CoverNames::partName(cover.part));
     set(MaterialList::COVER_AUTHOR, cover.author);
     if (CoverMaterial::goesOnCover(cover.part) || !cover.place.isEmpty()) {
-        set(MaterialList::COVER_PLACE, CoverNames::placeName(cover.place));
+        // A place on a part of the cover turned off says so: the material waits for it
+        const QString off = CoverNames::partOffText(cover.place, parts);
+        set(MaterialList::COVER_PLACE,
+            off.isEmpty()
+                ? CoverNames::placeName(cover.place)
+                //: The place of a material of the cover on a part turned off, in its list: %1
+                //: the place, %2 the part turned off. In Polish: %1 (%2)
+                : MaterialList::tr("%1 (%2)").arg(CoverNames::placeName(cover.place), off));
         row.order.insert(QString::fromLatin1(MaterialList::COVER_PLACE),
                          CoverMaterial::places().contains(cover.place)
                              ? CoverMaterial::places().indexOf(cover.place)
@@ -393,7 +409,7 @@ MaterialRow rowOf(const core::ProjectManager& book, const core::ProjectElement& 
             }
         }
         if (kindId == QLatin1String(core::MaterialKinds::COVER)) {
-            setCoverTexts(row, element);
+            setCoverTexts(row, element, book.coverParts());
         }
         if (kindId == QLatin1String(core::MaterialKinds::PICTURE)) {
             if (element.url.isEmpty()) {
@@ -411,7 +427,6 @@ MaterialRow rowOf(const core::ProjectManager& book, const core::ProjectElement& 
         }
     }
     MaterialList::setClippingTexts(row, book, element);
-    MaterialList::setPublishingTexts(row, book, element);
     MaterialList::setVolumeTexts(row, book, element);
     if (!row.text) {
         setSourceTexts(book, row, element);
@@ -460,13 +475,6 @@ void setListSetting(const QString& list, const char* name, const json& value) {
     }
     kept[name] = value;
     settings.set<json>(MaterialList::LISTS_SETTING, lists);
-}
-
-/// The words of text for publishers @p elementId of @p book, else its @p title
-QString publishingWordsOf(const core::ProjectManager& book, const QString& elementId,
-                          const QString& title) {
-    const QString text = book.publishingTextOf(elementId).trimmed();
-    return text.isEmpty() ? title : text;
 }
 
 } // namespace
@@ -565,19 +573,15 @@ bool MaterialList::isClippings(const QString& list) {
     return baseKindOf(kindOfList(list)) == QLatin1String(core::Clippings::KIND);
 }
 
-bool MaterialList::isPublishing(const QString& list) {
-    return baseKindOf(kindOfList(list)) == QLatin1String(core::PublishingTexts::KIND);
-}
-
 bool MaterialList::hasGroups(const QString& list) {
-    return isCover(list) || isPublishing(list);
+    return isCover(list);
 }
 
 QString MaterialList::partColumnOf(const QString& list) {
     if (isCover(list)) {
         return QString::fromLatin1(COVER_PART);
     }
-    return isPublishing(list) ? QString::fromLatin1(PUBLISHING_PART) : QString();
+    return {};
 }
 
 QStringList MaterialList::addKindsOf(const core::ProjectManager& book, const QString& list) {
@@ -763,9 +767,6 @@ QList<MaterialColumn> MaterialList::ownColumnsOf(const QString& kindId) {
     if (kindId == QLatin1String(core::Clippings::KIND)) {
         return clippingColumns();
     }
-    if (kindId == QLatin1String(core::PublishingTexts::KIND)) {
-        return publishingColumns();
-    }
     return {};
 }
 
@@ -799,9 +800,6 @@ QString MaterialList::firstSortOf(const QString& list) {
     if (kindId == QLatin1String(core::MaterialKinds::COVER)) {
         return QString::fromLatin1(COVER_TEXT);
     }
-    if (kindId == QLatin1String(core::PublishingTexts::KIND)) {
-        return QString::fromLatin1(PUBLISHING_TEXT);
-    }
     if (kindId == QLatin1String(core::Clippings::KIND)) {
         return QString::fromLatin1(CLIPPING_CUT);
     }
@@ -828,19 +826,7 @@ QList<MaterialRow> MaterialList::rowsOf(const core::ProjectManager& book, const 
             row.copy = core::Bibliography::entry(element->source, element->title, style,
                                                  pm.bookLanguage(), false);
         }
-        // The search finds a text for publishers by its words too
-        if (row.publishing) {
-            row.search += QLatin1Char('\n') + pm.publishingTextOf(element->id).toLower();
-        }
         rows << row;
-    }
-    // The texts for publishers with the descriptions and the taglines of the cover
-    if (isPublishing(list) && fromCoverShown(list)) {
-        for (const core::ProjectElement* element : publishingCoverTexts(book)) {
-            MaterialRow row = rowOf(book, *element, pm.kindOf(*element));
-            setPublishingCoverTexts(row, *element);
-            rows << row;
-        }
     }
     return rows;
 }
@@ -892,7 +878,7 @@ void MaterialList::setTilesShown(const QString& list, bool tiles) {
 }
 
 bool MaterialList::planShown(const QString& list) {
-    if (!isCover(list) && !isPublishing(list)) {
+    if (!isCover(list)) {
         return false;
     }
     const json kept = listSettings(list);
@@ -916,17 +902,34 @@ void MaterialList::setGroupsShown(const QString& list, bool groups) {
     setListSetting(list, "groups", groups);
 }
 
-bool MaterialList::fromCoverShown(const QString& list) {
-    if (!isPublishing(list)) {
-        return false;
+void MaterialList::addVolumeColumn(const core::ProjectManager& book, const QString& list,
+                                   QList<MaterialColumn>& columns) {
+    if (!hasGroups(list) || !book.isSeries()) {
+        return;
     }
-    const json kept = listSettings(list);
-    return !kept.contains("fromCover") || !kept.at("fromCover").is_boolean() ||
-           kept.at("fromCover").get<bool>();
+    const QString part = partColumnOf(list);
+    const auto before =
+        std::find_if(columns.cbegin(), columns.cend(),
+                     [&part](const MaterialColumn& each) { return each.id == part; });
+    //: The volume of a series a material of the cover is for, or the whole series. In Polish:
+    //: Tom
+    columns.insert(before - columns.cbegin(), MaterialColumn{.id = QString::fromLatin1(VOLUME),
+                                                             .title = tr("Volume"),
+                                                             .shown = true,
+                                                             .sortable = true});
 }
 
-void MaterialList::setFromCoverShown(const QString& list, bool shown) {
-    setListSetting(list, "fromCover", shown);
+void MaterialList::setVolumeTexts(MaterialRow& row, const core::ProjectManager& book,
+                                  const core::ProjectElement& element) {
+    if (!book.isSeries() || !core::VolumeMaterials::isVolumeMaterial(element)) {
+        return;
+    }
+    row.volume = VolumeNames::nameOf(book, element);
+    row.volumeOrder = VolumeNames::orderOf(book, element);
+    if (!row.volume.isEmpty()) {
+        row.texts.insert(QString::fromLatin1(VOLUME), row.volume);
+    }
+    row.order.insert(QString::fromLatin1(VOLUME), row.volumeOrder);
 }
 
 bool MaterialList::ownTabs() {
@@ -970,10 +973,6 @@ QString MaterialList::copyTextOf(const core::ProjectManager& book, const QString
     const core::ProjectElement* element = pm.findElement(elementId);
     if (element == nullptr) {
         return {};
-    }
-    // The words of a text for publishers
-    if (core::ProjectManager::isPublishingText(*element)) {
-        return publishingWordsOf(pm, elementId, element->title);
     }
     const core::KindRef kind = pm.kindOf(*element);
     if (baseKindOf(kind) == QLatin1String(core::MaterialKinds::QUOTE) &&

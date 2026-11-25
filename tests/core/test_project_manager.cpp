@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_project_manager.cpp
 /// @brief ProjectManager: creating, opening and saving book projects, their elements, the text
@@ -16,6 +17,7 @@
 #include <kalahari/core/database_types.h>
 #include <kalahari/core/file_trash.h>
 #include <kalahari/core/link_roles.h>
+#include <kalahari/core/page_start.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/project_database.h>
 #include <kalahari/core/recent_books_manager.h>
@@ -2989,7 +2991,7 @@ TEST_CASE("ProjectManager keeps the status in the .klh file and in the chapter f
     REQUIRE(pm.closeProject(false));
 }
 
-TEST_CASE("ProjectManager keeps in the .klh file that a chapter starts on a left page",
+TEST_CASE("ProjectManager keeps in the .klh file the page a chapter starts on",
           "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();
@@ -3000,21 +3002,25 @@ TEST_CASE("ProjectManager keeps in the .klh file that a chapter starts on a left
     REQUIRE_FALSE(id.isEmpty());
     REQUIRE_FALSE(part.isEmpty());
 
-    // A right page unless the chapter says otherwise
-    CHECK_FALSE(pm.findElement(id)->firstPageLeft);
-    REQUIRE(pm.setFirstPageLeft(id, true));
-    CHECK(pm.findElement(id)->firstPageLeft);
-    CHECK_FALSE(pm.setFirstPageLeft(part, true));  // a group has no pages of its own
-    CHECK_FALSE(pm.findElement(part)->firstPageLeft);
+    // As its kind says unless the chapter says otherwise
+    CHECK(pm.findElement(id)->firstPage == PageStart::Auto);
+    REQUIRE(pm.setFirstPage(id, PageStart::Left));
+    CHECK(pm.findElement(id)->firstPage == PageStart::Left);
+    CHECK_FALSE(pm.setFirstPage(part, PageStart::Left));  // a group has no pages of its own
+    CHECK(pm.findElement(part)->firstPage == PageStart::Auto);
     REQUIRE(pm.closeProject(false));
 
     // The .klh file keeps it
     REQUIRE(pm.openProject(manifest));
-    CHECK(pm.findElement(id)->firstPageLeft);
-    REQUIRE(pm.setFirstPageLeft(id, false));
+    CHECK(pm.findElement(id)->firstPage == PageStart::Left);
+    REQUIRE(pm.setFirstPage(id, PageStart::Next));
     REQUIRE(pm.closeProject(false));
     REQUIRE(pm.openProject(manifest));
-    CHECK_FALSE(pm.findElement(id)->firstPageLeft);
+    CHECK(pm.findElement(id)->firstPage == PageStart::Next);
+    REQUIRE(pm.setFirstPage(id, PageStart::Auto));
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.findElement(id)->firstPage == PageStart::Auto);
     REQUIRE(pm.closeProject(false));
 }
 

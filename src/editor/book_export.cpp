@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_export.cpp
 /// @brief What the writers of DOCX and Markdown share: the texts read as the editor reads
@@ -9,7 +10,9 @@
 
 #include "kalahari/editor/detail/book_editor_internal.h"
 
+#include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_tables.h>
@@ -68,17 +71,49 @@ QString markdownImagesFolderName(const QString& baseName, const QString& imagesW
     return baseName + QStringLiteral(" – ") + imagesWord;
 }
 
+QString spreadCaptionId(const QString& elementId) {
+    return QStringLiteral("spread-") + elementId;
+}
+
+void spreadsAsTexts(BookExport& book) {
+    for (ExportItem& item : book.items) {
+        if (item.kind != ExportItemKind::Spread) {
+            continue;
+        }
+        item.kind = ExportItemKind::Text;
+        const QString label = item.spreadCaption ? item.spreadLabel : QString();
+        const QString text = item.spreadCaption ? item.spreadText : QString();
+        item.kml = spreadKml(item.spread, item.title, label, text, spreadCaptionId(item.elementId));
+        if (!item.inContents) {
+            item.title.clear();
+        }
+    }
+}
+
+FieldContext exportFieldContext(const BookExport& book, const ExportItem& item) {
+    FieldContext context;
+    context.bookTitle = book.title;
+    context.author = book.author;
+    context.textTitle = item.title;
+    context.language = book.language;
+    context.customFields = book.customFields;
+    context.now = QDateTime::currentDateTime();
+    return context;
+}
+
 namespace exporting {
 
 // =============================================================================
 // A text of the export
 // =============================================================================
 
-ExportText::ExportText(const ExportItem& item) : m_document(std::make_unique<QTextDocument>()) {
+ExportText::ExportText(const ExportItem& item, const FieldContext& fields)
+    : m_document(std::make_unique<QTextDocument>()), m_fields(fields) {
     m_document->setUndoRedoEnabled(false);
     if (item.kind == ExportItemKind::Text && !item.kml.isEmpty()) {
         KmlDocumentModel model;
         model.loadKml(item.kml);  // unreadable KML: the paragraphs read before the error
+        setTabGuidesOf(*m_document, model.tabGuides());
         QTextCursor cursor(m_document.get());
         cursor.beginEditBlock();
         appendParagraphs(cursor, model);
@@ -87,12 +122,39 @@ ExportText::ExportText(const ExportItem& item) : m_document(std::make_unique<QTe
     m_captions = CaptionNumbers(*m_document, item.captions);
     m_notes = FootnoteNumbers(*m_document, item.footnotes);
     m_listNumbers = listNumbers(*m_document);
+    m_listMarkers = listMarkers(*m_document);
     m_annotations = annotationsIn(*m_document);
+    // The words, for a field of the words (as the editor counts them, without the notes)
+    bool words = false;
+    for (QTextBlock block = m_document->begin(); block.isValid() && !words; block = block.next()) {
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd() && !words; ++it) {
+            const std::optional<TextField> field =
+                it.fragment().isValid() ? textFieldOf(it.fragment().charFormat()) : std::nullopt;
+            words = field && field->type == FieldType::Words;
+        }
+    }
+    if (words) {
+        m_words = core::countText(m_document->toPlainText(), core::WordCountRules{}).words;
+    }
+}
+
+QString ExportText::fieldText(const TextField& field) const {
+    if (isPageField(field.type)) {
+        return {};
+    }
+    FieldCounts counts;
+    counts.words = m_words;
+    return textFieldText(field, m_fields, counts);
 }
 
 int ExportText::listNumber(const QTextBlock& block) const {
     const auto index = static_cast<size_t>(block.blockNumber());
     return index < m_listNumbers.size() ? m_listNumbers[index] : -1;
+}
+
+QString ExportText::listMarker(const QTextBlock& block) const {
+    const auto index = static_cast<size_t>(block.blockNumber());
+    return index < m_listMarkers.size() ? m_listMarkers[index] : QString();
 }
 
 // =============================================================================
@@ -130,6 +192,13 @@ std::vector<Piece> piecesOf(const QTextBlock& block, const ExportText& text) {
                     piece.kind = Piece::Kind::Field;
                     piece.reference = reference;
                     piece.text = text.captions().fieldText(position, format).text;
+                } else if (const std::optional<TextField> field = textFieldOf(format)) {
+                    piece.text = text.fieldText(*field);
+                    if (piece.text.isEmpty()) {
+                        ++i;  // a page field: only a print has pages
+                        continue;
+                    }
+                    piece.kind = Piece::Kind::Field;
                 } else if (const std::optional<Footnote> note = footnoteOf(format)) {
                     piece.kind = Piece::Kind::Note;
                     piece.note = *note;

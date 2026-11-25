@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_export_coordinator.h
 /// @brief File > Export > DOCX, PDF, Markdown and EPUB, and File > Print: the windows of the
@@ -105,6 +106,10 @@ public:
     /// @brief Open the window of the print, with the printers of the system
     void printBook();
 
+    /// @brief Open the window of the print with the set for a publisher chosen (Print Set... of
+    ///        the card For Publishers)
+    void printSet();
+
     /// @brief What the window says about the book and the text in front
     /// @param volumeId The volume of a series; empty: the current book
     [[nodiscard]] dialogs::ExportBookDialog::Book dialogBook(
@@ -148,6 +153,9 @@ public:
                                  editor::ExportResult* result, editor::ExportProblem* problem);
 
 private:
+    /// @brief Open the window of the print with, when given, @p content chosen
+    void printContent(std::optional<dialogs::BookOutputDialog::Content> content);
+
     /// @brief Open the window of the export with @p format and, when given, @p content chosen
     void exportContent(editor::ExportFormat format,
                        std::optional<dialogs::BookOutputDialog::Content> content);
@@ -176,8 +184,11 @@ private:
     editor::ExportItem textItem(const core::ProjectElement& element,
                                 const QHash<QString, const editor::BookEditor*>& open) const;
 
+    /// @brief A spread of the book with its look, its caption numbered in the book around it
+    editor::ExportItem spreadItem(const core::ProjectElement& element) const;
+
     /// @brief Add the text in front to @p book: of the book, or a file outside it with its
-    ///        own title, language and images
+    ///        own title, language and images; or the spread in front
     void addFrontText(const QHash<QString, const editor::BookEditor*>& open,
                       editor::BookExport& book) const;
 

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file message_dialog.cpp
 /// @brief The program's own windows for messages, questions and a typed text
@@ -106,6 +107,15 @@ MessageDialog::MessageDialog(Kind kind, const QString& title, const QString& tex
     cancelButton()->hide();
     connect(acceptButton(), &QPushButton::clicked, this, [this]() { m_answer = Answer::Accept; });
     acceptButton()->setFocus();
+}
+
+void MessageDialog::setMessage(Kind kind, const QString& title, const QString& text)
+{
+    m_title = title;
+    m_text = text;
+    setHeading(title);
+    setHeadingIcon(iconId(kind));
+    m_textLabel->setText(text);
 }
 
 void MessageDialog::setDetails(const QString& details)

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file kml_serializer.cpp
 /// @brief KML Serializer implementation (OpenSpec #00043 Phase 11.2)
@@ -18,7 +19,7 @@
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_link.h>
-#include <kalahari/editor/text_skeleton.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_tables.h>
 #include <kalahari/core/logger.h>
 #include <QTextDocument>
@@ -33,6 +34,7 @@
 #include <algorithm>
 #include <cmath>
 #include <set>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -132,7 +134,23 @@ QString KmlSerializer::toKml(const QTextDocument* document) const
     }
 
     // The whole text, without the paragraph separator that ends the document
-    return toKml(document, 0, document->characterCount() - 1);
+    QString kml = toKml(document, 0, document->characterCount() - 1);
+
+    // and its tab guides, first: they are of the whole text (a part of it has none)
+    const std::vector<double> guides = tabGuidesOf(*document);
+    if (!guides.empty()) {
+        const QString newline = m_indented ? QStringLiteral("\n") : QString();
+        const QString indent = m_indented ? QStringLiteral("  ") : QString();
+        QString section = indent + QStringLiteral("<tab-guides>") + newline;
+        for (const double guide : guides) {
+            section += indent + indent +
+                       QStringLiteral("<guide at=\"%1\"/>").arg(QString::number(guide)) +
+                       newline;
+        }
+        section += indent + QStringLiteral("</tab-guides>") + newline;
+        kml.insert(QStringLiteral("<kml>").size() + newline.size(), section);
+    }
+    return kml;
 }
 
 QString KmlSerializer::toKml(const QTextDocument* document, int from, int to) const
@@ -507,15 +525,6 @@ QString KmlSerializer::serializeBlockAttributes(const QTextBlock& block) const
     if (isCaptionAbove(block.blockFormat())) {
         attrs += QStringLiteral(" caption=\"above\"");
     }
-    // A heading of a point of the skeleton: the id of the point and its hint
-    if (const std::optional<SkeletonPoint> point = templatePointOf(block.blockFormat())) {
-        attrs += QStringLiteral(" point=\"") + KmlFormatRegistry::escapeXmlAttribute(point->id) +
-                 QLatin1Char('"');
-        if (!point->hint.isEmpty()) {
-            attrs += QStringLiteral(" hint=\"") +
-                     KmlFormatRegistry::escapeXmlAttribute(point->hint) + QLatin1Char('"');
-        }
-    }
     return attrs;
 }
 
@@ -763,8 +772,10 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
 bool KmlSerializer::hasMetadata(const QTextCharFormat& format) const
 {
     // Check if any metadata property is set
-    return format.property(KmlPropCharRef).isValid() ||
-           format.property(KmlPropLocRef).isValid();
+    const auto& defs = KmlFormatRegistry::metadataTagDefinitions();
+    return std::any_of(defs.cbegin(), defs.cend(), [&format](const MetadataTagDef& def) {
+        return format.property(def.propertyId).isValid();
+    });
 }
 
 QString KmlSerializer::metadataToOpenTag(const QTextCharFormat& format) const

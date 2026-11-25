@@ -7,6 +7,11 @@ project(Kalahari
     LANGUAGES CXX
 )
 
+# macOS: Objective-C++ for the APIs of the system (src/gui/utils/file_associations_mac.mm)
+if(APPLE)
+    enable_language(OBJCXX)
+endif()
+
 # C++20 standard (required)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -235,6 +240,13 @@ else()
     endif()
 endif()
 
+# Windows: the settings of the driver of the printer (its window, paper sources and quality)
+# reach the print through the print engine of Qt, whose API is private
+# (src/gui/printer_driver.cpp)
+if(WIN32 AND NOT TARGET Qt6::PrintSupportPrivate)
+    find_package(Qt6 REQUIRED COMPONENTS PrintSupportPrivate)
+endif()
+
 # The preview of PDF files in the program: PDFium (KALAHARI_PDF_AVAILABLE, PDFium::pdfium)
 include("${CMAKE_SOURCE_DIR}/cmake/Pdfium.cmake")
 
@@ -249,6 +261,29 @@ configure_file(
     ${CMAKE_SOURCE_DIR}/include/kalahari/version.h.in
     ${CMAKE_BINARY_DIR}/include/kalahari/version.h
     @ONLY
+)
+
+# What the program is built from (kalahari/build_info.h): the commit, its branch, whether the
+# code differs from it, when and in which configuration. cmake/BuildInfo.cmake runs at every
+# build and writes the file again only when the code is another.
+find_package(Git QUIET)
+set(KALAHARI_BUILD_INFO_SOURCE "${CMAKE_BINARY_DIR}/generated/build_info.cpp")
+add_custom_target(kalahari_build_info_file
+    COMMAND ${CMAKE_COMMAND}
+        "-DGIT_EXECUTABLE=${GIT_EXECUTABLE}"
+        "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        "-DTEMPLATE=${CMAKE_SOURCE_DIR}/cmake/build_info.cpp.in"
+        "-DOUTPUT=${KALAHARI_BUILD_INFO_SOURCE}"
+        -P "${CMAKE_SOURCE_DIR}/cmake/BuildInfo.cmake"
+    BYPRODUCTS "${KALAHARI_BUILD_INFO_SOURCE}"
+    COMMENT "Build information: the commit and the time of the build"
+    VERBATIM
+)
+add_library(kalahari_build_info STATIC "${KALAHARI_BUILD_INFO_SOURCE}")
+add_dependencies(kalahari_build_info kalahari_build_info_file)
+target_include_directories(kalahari_build_info PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_compile_definitions(kalahari_build_info PRIVATE
+    "KALAHARI_BUILD_CONFIGURATION=\"$<CONFIG>\""
 )
 
 # Include directories
@@ -308,8 +343,9 @@ message(STATUS "Resources will be copied to output directory via POST_BUILD")
 enable_testing()
 add_subdirectory(tests)
 
-# Installation rules (Phase 5)
-# install(TARGETS kalahari DESTINATION bin)
+# What `cmake --install` puts where, the icon and version of the program file, the bundle of
+# macOS (scripts/package.py makes the packages from it)
+include("${CMAKE_SOURCE_DIR}/cmake/Packaging.cmake")
 
 # Print configuration summary
 message(STATUS "")

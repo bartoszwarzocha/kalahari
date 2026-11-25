@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file writing_stats_panel.cpp
 /// @brief The Statistics panel
@@ -1593,6 +1594,7 @@ void WritingStatsPanel::showToday(const Context& context, ViewData& viewData) co
                                            : stats_painter::words(goal - words),
                              words >= goal ? context.colors.done : QColor()});
     }
+    appendGoalSource(context, viewData);
     const core::WritingTemperature temperature = statistics.temperature(context.now);
     const QString temperatureName = stats_painter::temperatureName(temperature);
     if (!temperatureName.isEmpty()) {
@@ -1630,6 +1632,53 @@ void WritingStatsPanel::showToday(const Context& context, ViewData& viewData) co
         }
     }
     viewData.goals = true;
+}
+
+void WritingStatsPanel::appendGoalSource(const Context& context, ViewData& viewData) const
+{
+    // Where the daily goal comes from, when it is not the writer's own
+    switch (context.model->dailyGoalSourceToday()) {
+    case DailyGoalSource::Deadline:
+        //: The daily goal of today comes from... In Polish: Cel dzienny z
+        viewData.details.append({tr("Daily goal from"),
+                                 //: After "Daily goal from". In Polish: terminu książki
+                                 tr("the deadline of the book"), {}});
+        break;
+    case DailyGoalSource::Schedule: {
+        QStringList ids;
+        const int needed = context.model->dailyGoalForPlanToday(&ids);
+        QStringList titles;
+        for (const QString& id : std::as_const(ids)) {
+            const QString title = m_textTitle ? m_textTitle(id) : QString();
+            if (!title.isEmpty()) {
+                titles.append(title);
+            }
+        }
+        QString source;
+        if (!context.rules.isWritingDay(context.today)) {
+            //: In Polish: harmonogramu – dziś dzień wolny
+            source = tr("the schedule – today is a day off");
+        } else if (needed == 0) {
+            //: In Polish: harmonogramu – nic na dziś
+            source = tr("the schedule – nothing planned for today");
+        } else {
+            // The texts it comes from; without their titles, the words
+            //: %1: the texts planned for today. In Polish: harmonogramu: %1
+            source = tr("the schedule: %1")
+                         .arg(titles.isEmpty() ? stats_painter::words(needed)
+                                               : titles.join(QStringLiteral(", ")));
+        }
+        //: The daily goal of today comes from... In Polish: Cel dzienny z
+        viewData.details.append({tr("Daily goal from"), source, {},
+                                 //: In Polish: Słowa, których brakuje tekstom zaplanowanym na
+                                 //: dziś, przez dni pisania, które zostały w ich planie
+                                 tr("The words the texts planned for today lack, over the "
+                                    "writing days left in their plan")});
+        break;
+    }
+    case DailyGoalSource::Own:
+        break;
+    }
 }
 
 // -----------------------------------------------------------------------------

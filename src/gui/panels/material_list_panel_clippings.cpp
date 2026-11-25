@@ -1,9 +1,10 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file material_list_panel_clippings.cpp
 /// @brief The commands of the list of the clippings: Restore to Its Place, Go to Its Place and
-///        the gear of their settings, and the gear of the texts for publishers
+///        the gear of their settings
 
 #include "kalahari/gui/panels/material_list_panel.h"
 
@@ -87,8 +88,6 @@ void MaterialListPanel::openSettings() {
     QString page;
     if (MaterialList::isClippings(m_list)) {
         page = QString::fromLatin1(SettingsDialog::CLIPPINGS_PAGE);
-    } else if (MaterialList::isPublishing(m_list)) {
-        page = QString::fromLatin1(SettingsDialog::PUBLISHING_PAGE);
     }
     if (!page.isEmpty() && dialogs::KalahariDialog::openSettings(this, page)) {
         return;

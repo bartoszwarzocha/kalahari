@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file settings_schema.cpp
 /// @brief Default values of all application settings
@@ -37,6 +38,8 @@ std::map<std::string, json> buildDefaults() {
         // The Statistics panel has its place in the saved layout: a layout saved before it
         // gets it once, in the tab after the Annotations panel (DockCoordinator)
         {"window.statisticsPanelPlaced", false},
+        // View > Show Status Bar: the status bar under the window, in every book window
+        {"window.showStatusBar", true},
         // The tabs in the middle of the window (Settings > Appearance > General): in one row
         // with arrows when they do not fit ("single") or in more rows ("wrap")
         {"window.tabRows", "single"},
@@ -107,8 +110,9 @@ std::map<std::string, json> buildDefaults() {
         {"stats.largeChangeWords", 500},
         {"stats.countPasted", false},
         // A cut to the clippings leaves the words of the day as they were (false: it lowers
-        // them as a deletion does)
-        {"stats.clippingsKeepWords", false},
+        // them as a deletion does); on by default: the graph of writing shows the writing
+        // only (test of 22.11)
+        {"stats.clippingsKeepWords", true},
         {"stats.goalCounting", "net"},
         {"stats.dailyGoalAllBooks", true},
         {"stats.writingDays", 31},
@@ -146,8 +150,12 @@ std::map<std::string, json> buildDefaults() {
         {"stats.panel.hours", true},
         {"stats.panel.awards", true},
         {"stats.statusBar", true},
-        // Messages in the bar at the bottom of the window (Settings > Statistics and Goals >
-        // Notifications), the summary of the session and the badges and challenges
+        // Where the program's notifications show: "bar" (at the bottom of the window),
+        // "window" (the program's own), "system" or "panel" (the Notifications panel; Settings >
+        // Notifications)
+        {"notifications.place", "bar"},
+        // Notifications of the statistics (Settings > Statistics and Goals > Notifications),
+        // the summary of the session and the badges and challenges
         {"stats.notify.dailyGoal", true},
         // The daily goal reached opens the Statistics panel on the view Today
         {"stats.notify.showPanel", true},
@@ -216,7 +224,8 @@ std::map<std::string, json> buildDefaults() {
         {"materials.linkParagraphs", true},
         // The materials of the cover (Settings > Navigator > Cover): their lengths in
         // characters with spaces ("characters") or in "words", and the default target length
-        // of a description, a tagline and an opinion in each unit (core::CoverMaterial)
+        // of a description, a tagline, an opinion and a note about the author in each unit
+        // (core::CoverMaterial)
         {"materials.cover.lengthUnit", "characters"},
         {"materials.cover.targets.blurb.characters", 600},
         {"materials.cover.targets.blurb.words", 100},
@@ -224,6 +233,8 @@ std::map<std::string, json> buildDefaults() {
         {"materials.cover.targets.tagline.words", 10},
         {"materials.cover.targets.opinion.characters", 200},
         {"materials.cover.targets.opinion.words", 35},
+        {"materials.cover.targets.bio.characters", 500},
+        {"materials.cover.targets.bio.words", 80},
         // The texts for publishers (Settings > Navigator > Texts for Publishers): the default
         // target length of a sentence about the book and of a synopsis without a template in
         // each unit (that of the cover), whether a synopsis gives its length in standard pages
@@ -235,7 +246,10 @@ std::map<std::string, json> buildDefaults() {
         {"materials.publishing.targets.synopsis.characters", SYNOPSIS_CHARACTERS},
         {"materials.publishing.targets.synopsis.words", SYNOPSIS_WORDS},
         {"materials.publishing.pages", true},
-        {"materials.publishing.templatePoints", "beside"},
+        // the bars of the fragments of a synopsis linked to its points, and the warning of the
+        // points without a fragment when the set is copied or exported
+        {"materials.publishing.pointBars", true},
+        {"materials.publishing.pointWarnings", true},
         {"materials.publishing.set",
          json::array({"pitch", "tagline", "blurb", "synopsis", "aboutAuthor"})},
         {"materials.publishing.templates", json::array()},
@@ -269,7 +283,7 @@ std::map<std::string, json> buildDefaults() {
         {"materials.pdf.lastZoom", "pageWidth"},
         {"materials.pdf.side", "bookmarks"},
         {"materials.pdf.openAtLastPage", true},
-        {"materials.pdf.highlights", false},
+        {"materials.pdf.highlights", true},
 
         // The commands that the menu of a node of the Navigator has for adding: "named" ("Add..."
         // and the commands named after the kinds most added there) or "single" ("Add..." only)
@@ -415,15 +429,19 @@ std::map<std::string, json> buildDefaults() {
         {"export.epub.cover", "design"},
         // File > Print: the writer's last choices of the window; its layout is the export's
         // (export.*). What goes to the printer, as export.content ("front" the first time, as
-        // Ctrl+P in the editors of text); the copies whole one after another; the pages on a
-        // sheet ("onePage", "twoPages" side by side, "booklet" folded in half); one page as
-        // large as the sheet allows, else of its own size; the crop marks of a page of its own
-        // size
+        // Ctrl+P in the editors of text); the copies whole one after another; the last sheet
+        // first (for a printer that lays the sheets face up); the pages on a sheet ("onePage",
+        // "twoPages" side by side, "booklet" folded in half); one page as large as the sheet
+        // allows, else of its own size; the crop marks of a page of its own size
         {"print.content", "front"},
         {"print.collate", true},
+        {"print.reverse", false},
         {"print.sheet.layout", "onePage"},
         {"print.sheet.fit", true},
         {"print.sheet.cropMarks", false},
+        // The sections of the window of the print open the last time, and its zoom
+        {"print.openSections", "printer,content,pages"},
+        {"print.previewZoom", "wholeSheet"},
         // File > Import > DOCX, Markdown and Plain Text: the writer's last choices of the
         // window. Where the texts go: "book" (the open book), "newBook" or "otherFiles"; more
         // files each as one text
@@ -513,14 +531,36 @@ std::map<std::string, json> buildDefaults() {
         {"editor.images.layout", "inline"},
         {"editor.images.alignment", "center"},
         {"editor.images.width", 0},
+        // The room a new image keeps from the text above it, below it and beside it (points)
+        {"editor.images.spaceAbove", 6.0},
+        {"editor.images.spaceBelow", 6.0},
+        {"editor.images.spaceBeside", 8.5},
         {"editor.images.addCaption", true},
         {"editor.images.captionLabel", ""},
         {"editor.images.askCaption", true},
         {"editor.images.downscale", false},
         {"editor.images.maxDpi", 300},
         {"editor.images.manuscript", "inline"},
+        // New spreads (Settings > Editor > Images, Spreads; core/spread.h): the picture within
+        // the margins ("margins") or to the edges of paper ("edge"), the whole picture
+        // ("whole") or filling its area ("fill"), the room at the spine in millimetres, a
+        // caption with a label and a number (empty: its text alone), the page numbers and the
+        // running head on their pages, their titles in the table of contents
+        {"editor.spread.area", "margins"},
+        {"editor.spread.fit", "whole"},
+        {"editor.spread.gutter", 0.0},
+        {"editor.spread.caption", false},
+        {"editor.spread.captionLabel", ""},
+        {"editor.spread.pageNumbers", false},
+        {"editor.spread.inContents", false},
+        // New tables (Settings > Editor > Tables): the room they keep from the text above and
+        // below them (points), and where Insert Caption puts the caption of a table ("above",
+        // "below")
+        {"editor.tables.spaceAbove", 6.0},
+        {"editor.tables.spaceBelow", 6.0},
+        {"editor.tables.captionPosition", "above"},
         // The captions of new books: their labels (an empty list: Figure, Photo, Illustration,
-        // Map, Diagram in the user's language), the number format ("1", "a", "A", "i", "I"),
+        // Map, Diagram, Table in the user's language), the number format ("1", "a", "A", "i", "I"),
         // numbered anew in each chapter after its number, and what a cross-reference shows
         // ("number", "label", "caption", "position"). A book keeps its own from its first
         // caption on.
@@ -538,7 +578,7 @@ std::map<std::string, json> buildDefaults() {
         {"editor.clippings.noSelection", "paragraph"},
         {"editor.clippings.insert", "window"},
         {"editor.clippings.afterInsert", "keep"},
-        {"editor.clippings.marks", false},
+        {"editor.clippings.marks", true},
         {"editor.lineHeight", 1.6},
         {"editor.paragraphSpacing", 12.0},
         {"editor.firstLineIndent", true},
@@ -600,8 +640,8 @@ std::map<std::string, json> buildDefaults() {
         {"editor.cursor.lineWidth", 2},
 
         // Editor: page margins in millimetres. Mirror margins: the inner one at the binding,
-        // the outer one at the edge; the first page of a chapter is a right page unless the
-        // chapter starts on a left one (the chapter's own setting, in the book)
+        // the outer one at the edge; the first page of a text is a left or a right one as the
+        // book puts it (core/page_start.h, editor.page.textsStart)
         {"editor.margins.pageTop", 25.4},
         {"editor.margins.pageBottom", 25.4},
         {"editor.margins.pageLeft", 25.4},
@@ -616,6 +656,13 @@ std::map<std::string, json> buildDefaults() {
         {"editor.page.customHeight", 297.0},
         {"editor.page.gap", 20},
         {"editor.page.showNumbers", true},
+        // The page numbers of the page view: those of the whole book, as a PDF of it has them
+        // ("book"), or from 1 in each text ("text")
+        {"editor.page.numbering", "book"},
+        // With mirror margins, the page a text whose kind says nothing starts on (a chapter):
+        // a right one, a left page before it left empty when needed ("right"), or the next one
+        // ("next"); core/page_start.h
+        {"editor.page.textsStart", "right"},
 
         // Editor: typewriter scrolling
         {"editor.typewriter.enabled", false},
@@ -637,6 +684,13 @@ std::map<std::string, json> buildDefaults() {
         // when it is a date alone, and Update Automatically (a field), as it was last
         {"editor.fields.dateFormat", "long"},
         {"editor.fields.dateAsField", false},
+
+        // Editor: the sets of list formats (Settings > Editor > Lists, gui/list_sets.h): the
+        // writer's sets of the program, for every book ({ "id", "name", "definition" } each),
+        // and the ids of the sets F12 (a numbered list) and Shift+F12 (a bulleted one) give
+        {"editor.lists.sets", json::array()},
+        {"editor.lists.numberedSet", "numbered"},
+        {"editor.lists.bulletedSet", "bulleted"},
 
         // Editor: the working numbers on the left margin (View > Margin Numbering), only on the
         // screen: "none", "lines" (every line) or "paragraphs" (every paragraph with text). A
@@ -669,9 +723,10 @@ std::map<std::string, json> buildDefaults() {
         // "compact" (the text alone, the author and the date at its end); a collapsed one
         // "mark" (its mark alone) or "line" (a line with the start of its text); "expanded" or
         // "collapsed" after a chapter opens; a long text cut short after so many lines (0:
-        // whole); the size of their text in percent of the chapter's; how much of the kind's
-        // color they have, in percent of the usual; the fragment of the card the mouse is on
-        // highlighted; "show" or "hide" them in Distraction-Free
+        // whole); the size of their text in percent of the chapter's; the room on each side of
+        // them, from the edges of the text, in millimetres; how much of the kind's color they
+        // have, in percent of the usual; the fragment of the card the mouse is on highlighted;
+        // "show" or "hide" them in Distraction-Free
         {"editor.annotationCards.show", false},
         {"editor.annotationCards.comments", true},
         {"editor.annotationCards.todos", true},
@@ -680,7 +735,8 @@ std::map<std::string, json> buildDefaults() {
         {"editor.annotationCards.collapsedLook", "mark"},
         {"editor.annotationCards.afterOpening", "expanded"},
         {"editor.annotationCards.longLines", 0},
-        {"editor.annotationCards.fontSize", 90},
+        {"editor.annotationCards.fontSize", 70},
+        {"editor.annotationCards.sideMargin", 4.0},
         {"editor.annotationCards.tint", 100},
         {"editor.annotationCards.highlightFragment", true},
         {"editor.annotationCards.distractionFree", "show"},
@@ -689,6 +745,14 @@ std::map<std::string, json> buildDefaults() {
         // the words of the footnotes and endnotes count (as in Microsoft Word)
         {"editor.wordCount.dashesAsWords", false},
         {"editor.wordCount.notes", true},
+        // The cards of the Footnotes panel (gui/panels/footnotes_panel.h): the words before
+        // the number in its text, and the lines of the note's text (1-6)
+        {"editor.footnotes.panelBefore", true},
+        {"editor.footnotes.panelLines", 2},
+        // The cards of the panel Images and Tables (gui/panels/figures_panel.h): the pictures
+        // of the images and the drawings of the tables, and the lines of a caption (1-6)
+        {"editor.figures.panelPictures", true},
+        {"editor.figures.panelLines", 2},
 
         // Editor: autocorrect, the changes of the text as it is typed (Settings > Editor >
         // Auto-correct): on or off as a whole (also Tools > Auto-correct as You Type), and
@@ -761,12 +825,13 @@ std::map<std::string, json> buildDefaults() {
         // Editor: quick insert (Settings > Editor > Quick Insert, gui/quick_insert_items.h).
         // @ or # typed at the start of a word opens a list of the sources chosen for it:
         // "cards" (the names of the cards of the Workshop), "fragments" (the writer's text
-        // fragments), "characters" (the typographic characters). The fragments and the
+        // fragments), "characters" (the typographic characters), "fields" (the own fields of
+        // the book, inserted as fields). The fragments and the
         // characters: [{"name", "text", "kind": "fragment" | "character"}]; null: the
         // characters the program has at first
         {"editor.quickInsert.enabled", true},
         {"editor.quickInsert.at", json::array({"cards"})},
-        {"editor.quickInsert.hash", json::array({"fragments", "characters"})},
+        {"editor.quickInsert.hash", json::array({"fragments", "characters", "fields"})},
         {"editor.quickInsert.items", nullptr},
 
         // Editor: repetitions of words (Settings > Editor > Repetitions, RepetitionsCoordinator).
@@ -774,8 +839,8 @@ std::map<std::string, json> buildDefaults() {
         // minLength do not count. mergeForms: the forms of a word count as one (by the
         // spelling dictionary); skipCommon: the very common words of the language do not
         // count; skipped: the writer's words that do not count, in lower case. highlight: the
-        // words too close are marked in the text while the panel shows, with a "background" or
-        // a "wave"
+        // words too close are marked in the text in front, the panel shown or not, with a
+        // "background" or a "wave"
         {"editor.repetitions.distance", 30},
         {"editor.repetitions.minLength", 3},
         {"editor.repetitions.mergeForms", true},

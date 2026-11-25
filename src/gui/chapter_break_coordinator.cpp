@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file chapter_break_coordinator.cpp
 /// @brief Book > Chapter Break: the text from the cursor to a new text of the book right after
@@ -272,7 +273,7 @@ QString ChapterBreakCoordinator::breakText(editor::BookEditor* text) {
         tr("The text from the cursor went to \"%1\", right after \"%2\".").arg(title,
                                                                               element.title);
     if (EditorPanel* addedPanel = panelOf(added); m_showNotice && addedPanel != nullptr) {
-        //: In Polish: &Cofnij / Połącz teksty z powrotem
+        //: In Polish: Cofn&ij / Połącz teksty z powrotem
         m_showNotice(addedPanel, message, tr("&Undo"), tr("Join the texts again"),
                      [this]() { undo(); });
     } else {

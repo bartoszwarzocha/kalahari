@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file kml_format_registry.h
 /// @brief KML Format Registry - Single source of truth for KML tag mappings (OpenSpec #00043)
@@ -38,6 +39,10 @@ enum KmlPropertyId {
     /// @brief Letter spacing of the text (<span spacing>): points (double), more than 0
     /// expanded, less condensed; the layout shows it as Qt's absolute letter spacing
     KmlPropLetterSpacing = QTextFormat::UserProperty + 105,
+
+    /// @brief Points of the template of a text for publishers the text is linked to
+    /// (<points ids>, see text_points.h)
+    KmlPropTemplatePoints = QTextFormat::UserProperty + 106,
 };
 
 /// @brief Accepted range of the letter spacing, in points

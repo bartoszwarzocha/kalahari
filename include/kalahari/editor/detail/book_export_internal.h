@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_export_internal.h
 /// @brief What the writers of DOCX, Markdown and EPUB share (not part of the editor's API): a text
@@ -33,8 +34,9 @@ namespace kalahari::editor::exporting {
 ///        captions and notes in the book around it
 class ExportText {
 public:
-    /// @brief Read the text of @p item (an item without a text: an empty document)
-    explicit ExportText(const ExportItem& item);
+    /// @brief Read the text of @p item (an item without a text: an empty document); its fields
+    ///        show what @p fields says (exportFieldContext())
+    explicit ExportText(const ExportItem& item, const FieldContext& fields = FieldContext{});
 
     ExportText(const ExportText&) = delete;
     ExportText& operator=(const ExportText&) = delete;
@@ -43,9 +45,16 @@ public:
     [[nodiscard]] const CaptionNumbers& captions() const { return m_captions; }
     [[nodiscard]] const FootnoteNumbers& notes() const { return m_notes; }
 
+    /// @brief What a field of text_fields.h in the text shows; empty for a page field, which
+    ///        only the pages of a print have
+    [[nodiscard]] QString fieldText(const TextField& field) const;
+
     /// @brief The number of a list item as the editor counts it; -1: none (outside a list, an
     ///        item without a number)
     [[nodiscard]] int listNumber(const QTextBlock& block) const;
+
+    /// @brief The mark of a list item as the editor shows it ("1.2.", "•"); empty: none
+    [[nodiscard]] QString listMarker(const QTextBlock& block) const;
 
     /// @brief The annotations of the text with their places
     [[nodiscard]] const std::vector<AnnotationPlace>& annotations() const { return m_annotations; }
@@ -55,7 +64,10 @@ private:
     CaptionNumbers m_captions;
     FootnoteNumbers m_notes;
     std::vector<int> m_listNumbers;
+    std::vector<QString> m_listMarkers;
     std::vector<AnnotationPlace> m_annotations;
+    FieldContext m_fields;
+    int m_words = 0;  ///< Of the text, for a field of the words
 };
 
 /// @brief A piece of a paragraph: a run of text in one format, or one object of the line
@@ -63,7 +75,8 @@ struct Piece {
     enum class Kind {
         Text,       ///< Characters (a line break: QChar::LineSeparator, a tab: '\t')
         Image,      ///< An image
-        Field,      ///< A caption's number or a cross-reference: the text it shows
+        Field,      ///< A caption's number, a cross-reference or a field of text_fields.h:
+                    ///< the text it shows
         Note,       ///< The number of a footnote or an endnote
     };
 

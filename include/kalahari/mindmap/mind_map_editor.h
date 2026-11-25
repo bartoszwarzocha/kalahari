@@ -1,9 +1,10 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file mind_map_editor.h
-/// @brief The tab of a mind map: its bar, the map or the list, and the bar of messages under
-/// them
+/// @brief The tab of a mind map: the bar of its commands, the bar of its view, the map of
+/// nodes or the list, and the bar of messages under them
 
 #ifndef KALAHARI_MINDMAP_MIND_MAP_EDITOR_H
 #define KALAHARI_MINDMAP_MIND_MAP_EDITOR_H
@@ -15,36 +16,40 @@
 #include <QWidget>
 
 #include <functional>
+#include <memory>
 
 class QComboBox;
 class QLabel;
+class QPushButton;
 class QStackedWidget;
 class QTimer;
 class QToolButton;
 
-namespace kalahari::gui {
-class InfoBar;
-}  // namespace kalahari::gui
-
 namespace kalahari::mindmap {
 
+class MindMapContent;
 class MindMapDocument;
 class MindMapList;
 class MindMapView;
 
 /// @brief The tab of a mind map of the Workshop
 ///
-/// +----------------------------------------------------------------------------------+
-/// | View: [Map|List]  Layout: [Both sides v]  Highlight: [nothing v]  [-] 100% [+]   |
-/// |                                                 12 nodes · 2 connections  [gear] |
-/// +----------------------------------------------------------------------------------+
-/// | the map, or the list                                                             |
-/// +----------------------------------------------------------------------------------+
-/// | [i] Deleted "Kompas" with its branch: 3 nodes.                    [Undo]  [X]    |
-/// +----------------------------------------------------------------------------------+
+/// +------------------------------------------------------------------------------------+
+/// | [+ Add Node... v] [branch] [below] [name] [fold] [frame] [Arrange v] [del] [<] [>] |
+/// |                                                          [-] 100% [+] [whole map]  |
+/// +------------------------------------------------------------------------------------+
+/// | View: [Map|List]  Background: [grid v]  Lines: [curved v]  Highlight: [nothing v]  |
+/// |                                    Mind map · 12 nodes · 9 links            [gear] |
+/// +------------------------------------------------------------------------------------+
+/// | the map of nodes, or the list                                                      |
+/// +------------------------------------------------------------------------------------+
+/// | Added "Amara" with its relations to the cards on the map: 2.               [Undo]  |
+/// +------------------------------------------------------------------------------------+
 ///
-/// Each change is saved to the file of the map at once. The bar under the map says what was
-/// done, with Undo where it can be undone.
+/// Each change is saved to the file of the map at once. The line under the map says what was
+/// done, with Undo where it can be undone; after a while, and when nothing was done, it says
+/// what the selection is and what can be done with it. The tooltips of the commands name
+/// their keys.
 class MindMapEditor : public QWidget {
     Q_OBJECT
 
@@ -61,39 +66,72 @@ public:
     [[nodiscard]] MindMapDocument& document() { return *m_document; }
     [[nodiscard]] MindMapView* view() const { return m_view; }
     [[nodiscard]] MindMapList* list() const { return m_list; }
+    [[nodiscard]] MindMapContent& content() { return *m_content; }
 
     /// @brief Say @p message in the bar under the map; with @p undoable it offers Undo
     void tell(const QString& message, bool undoable);
 
+    /// @brief The text of the line under the map, for the tests
+    [[nodiscard]] QString infoText() const;
+
+    /// @brief Open the window of node @p id: its name, kind, note, rows, attributes, picture
+    void openNodeWindow(const QString& id);
+
+    /// @brief Read the book again and draw the map: the book changed
+    void bookChanged();
+
+protected:
+    void showEvent(QShowEvent* event) override;
+
 private:
-    void buildBar(QWidget* bar);
+    void buildCommands(QWidget* bar);
+    void buildViewBar(QWidget* bar);
+    QToolButton* addCommand(QWidget* bar, const char* icon, const QString& name,
+                            const QString& keys, const std::function<void()>& run);
     void showMode(MindMapMode mode, bool keep);
     void applyLook();
     void updateBar();
-    void editNote(const QString& id);
+    void showHint();
     void chooseLink(const QString& id);
     void openElement(const QString& elementId);
+    void syncRelationMap();
     [[nodiscard]] QString titleOf(const QString& elementId) const;
 
     core::ProjectManager& m_book;
     QString m_elementId;
     std::function<void()> m_openSettings;
     std::function<void(const QString&)> m_openElement;
+    std::unique_ptr<MindMapContent> m_content;
     MindMapDocument* m_document = nullptr;
     MindMapView* m_view = nullptr;
     MindMapList* m_list = nullptr;
     QStackedWidget* m_stack = nullptr;
+    QWidget* m_commands = nullptr;
+    QToolButton* m_add = nullptr;
+    QToolButton* m_branch = nullptr;
+    QToolButton* m_below = nullptr;
+    QToolButton* m_rename = nullptr;
+    QToolButton* m_fold = nullptr;
+    QToolButton* m_frame = nullptr;
+    QToolButton* m_arrange = nullptr;
+    QToolButton* m_remove = nullptr;
+    QToolButton* m_undo = nullptr;
+    QToolButton* m_redo = nullptr;
     QToolButton* m_mapButton = nullptr;
     QToolButton* m_listButton = nullptr;
-    QComboBox* m_layout = nullptr;
+    QComboBox* m_background = nullptr;
+    QComboBox* m_lines = nullptr;
     QComboBox* m_highlight = nullptr;
-    QWidget* m_zoomBox = nullptr;
     QLabel* m_zoomLabel = nullptr;
-    QLabel* m_counts = nullptr;
+    QLabel* m_what = nullptr;
     QToolButton* m_gear = nullptr;
-    gui::InfoBar* m_info = nullptr;
-    QTimer* m_infoTimer = nullptr;
+    QWidget* m_info = nullptr;  ///< The line under the map
+    QLabel* m_infoText = nullptr;
+    QPushButton* m_infoUndo = nullptr;
+    QTimer* m_infoTimer = nullptr;  ///< Ends a message: the line shows the hint again
+    QTimer* m_bookTimer = nullptr;  ///< Reads the book again once after its changes
     int m_settingsListener = -1;
+    bool m_synced = false;  ///< A map of relations took the new relations of its cards
 };
 
 }  // namespace kalahari::mindmap

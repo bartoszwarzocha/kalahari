@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file kml_serializer.h
 /// @brief KML Serializer - serializes QTextDocument back to KML (OpenSpec #00043 Phase 11.2)
@@ -72,7 +73,8 @@ public:
     // Main Serialization Methods
     // =========================================================================
 
-    /// @brief Serialize QTextDocument to KML string
+    /// @brief Serialize QTextDocument to KML string: its paragraphs, and its tab guides
+    ///        (tab_guides.h) in the <tab-guides> section before them
     /// @param document The document to serialize
     /// @return KML markup string
     QString toKml(const QTextDocument* document) const;

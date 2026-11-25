@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file statistics_collector.cpp
 /// @brief Real-time document statistics collection implementation (OpenSpec #00042 Phase 6)
@@ -31,10 +32,10 @@ StatisticsCollector::StatisticsCollector(QObject* parent)
     m_flushTimer->setInterval(FLUSH_INTERVAL_MS);
     connect(m_flushTimer, &QTimer::timeout, this, &StatisticsCollector::onFlushTimer);
 
-    // Create debounce timer for statistics calculation
+    // statisticsChanged() once the editing stops for a moment
     m_debounceTimer = new QTimer(this);
     m_debounceTimer->setSingleShot(true);
-    connect(m_debounceTimer, &QTimer::timeout, this, &StatisticsCollector::debouncedRecalculate);
+    connect(m_debounceTimer, &QTimer::timeout, this, &StatisticsCollector::announceStatistics);
 
     core::Logger::getInstance().debug("StatisticsCollector created");
 }
@@ -64,12 +65,8 @@ void StatisticsCollector::setBookEditor(BookEditor* editor)
         return;
     }
 
-    // The last edits in the previous editor still count to the session, in its text
+    // The edits in the previous editor are counted already, in its text
     if (m_editor) {
-        if (m_debounceTimer->isActive()) {
-            m_debounceTimer->stop();
-            debouncedRecalculate();
-        }
         disconnect(m_editor, nullptr, this, nullptr);
         // Its pastes keep their words while it keeps their undo: until it shows another text
         // or is closed
@@ -88,12 +85,12 @@ void StatisticsCollector::setBookEditor(BookEditor* editor)
                 this, &StatisticsCollector::onContentChanged);
         // The words pasted are kept apart from the words written
         connect(m_editor, &BookEditor::pastingStarted, this,
-                &StatisticsCollector::countPendingChange);
+                &StatisticsCollector::startAnnouncedChange);
         connect(m_editor, &BookEditor::pastingFinished, this,
                 &StatisticsCollector::onPastingFinished);
         // Text moved to or from another text (Book > Chapter Break) is not written or deleted
         connect(m_editor, &BookEditor::movingStarted, this,
-                &StatisticsCollector::countPendingChange);
+                &StatisticsCollector::startAnnouncedChange);
         connect(m_editor, &BookEditor::movingFinished, this, &StatisticsCollector::rebase);
         // A newly loaded text, or new rules of counting, are not words written or deleted; a
         // new text has no undo, and no pastes to undo
@@ -193,9 +190,6 @@ void StatisticsCollector::startSession()
     // Reset session counters; the time of writing starts with the first change
     m_recorder.resetTotals();
     m_recorder.pause();
-
-    // Capture current word count for delta calculation
-    m_previousWordCount = m_wordCount;
 
     // Start auto-flush timer
     m_flushTimer->start();
@@ -307,61 +301,58 @@ void StatisticsCollector::onFlushTimer()
 
 void StatisticsCollector::onContentChanged()
 {
-    // Debounce: restart timer on each change
-    // Stats will be calculated 250ms after last keystroke
-    // This prevents O(N) stats calculation on every keystroke
-    if (m_debounceTimer) {
-        m_debounceTimer->start(STATS_DEBOUNCE_MS);
-    }
-
     // The time of writing runs from change to change (cheap operation)
     if (m_sessionActive) {
         m_recorder.noteActivity(QDateTime::currentDateTime());
         emit writingRecorded();
     }
+
+    // A paste and text moved are counted when they are made (onPastingFinished(), rebase())
+    if (m_announcedChange) {
+        return;
+    }
+    // Each change is counted at once (the editor keeps the counts of its paragraphs, so only
+    // the paragraphs it touched are counted again): the words of a change that is not the
+    // writer's own writing, as a caption, a clipping or a replacement, are not words written
+    // or deleted, those typed right before it are (test of 22.11)
+    countChange(m_editor != nullptr && m_editor->isWriting());
 }
 
-void StatisticsCollector::debouncedRecalculate()
+void StatisticsCollector::countChange(bool writing)
 {
-    // Store previous word count for delta calculation
-    int previousWords = m_wordCount;
-
-    // Recalculate all statistics
+    const int previousWords = m_wordCount;
     recalculateStats();
-
-    // Calculate word delta for session tracking (only if session active)
-    if (m_sessionActive) {
-        const int wordsDelta = m_wordCount - previousWords;
-        if (wordsDelta != 0) {
-            m_previousWordCount = m_wordCount;
-            // Pasting or cutting a chapter, or restoring a version, is not writing
-            if (m_recorder.recordWords(wordsDelta, QDateTime::currentDateTime())) {
-                emit writingRecorded();
-                emit sessionStatsUpdated(m_recorder.written(), m_recorder.deleted(),
-                                         activeMinutesThisSession());
-            } else {
-                core::Logger::getInstance().info(
-                    "StatisticsCollector: a change of {} words at once is not counted as writing",
-                    wordsDelta);
-                emit largeChangeSkipped(std::abs(wordsDelta));
-            }
+    const int wordsDelta = m_wordCount - previousWords;
+    if (m_sessionActive && writing && wordsDelta != 0) {
+        // Typing over a whole chapter selected is not writing either
+        if (m_recorder.recordWords(wordsDelta, QDateTime::currentDateTime())) {
+            emit writingRecorded();
+            emit sessionStatsUpdated(m_recorder.written(), m_recorder.deleted(),
+                                     activeMinutesThisSession());
+        } else {
+            core::Logger::getInstance().info(
+                "StatisticsCollector: a change of {} words at once is not counted as writing",
+                wordsDelta);
+            emit largeChangeSkipped(std::abs(wordsDelta));
         }
     }
+    // The counts are told once the editing stops for a moment
+    m_debounceTimer->start(STATS_DEBOUNCE_MS);
+}
 
-    // Emit statistics changed
+void StatisticsCollector::announceStatistics()
+{
     emit statisticsChanged(m_wordCount, m_characterCount, paragraphCount());
 }
 
-void StatisticsCollector::countPendingChange()
+void StatisticsCollector::startAnnouncedChange()
 {
-    if (m_debounceTimer->isActive()) {
-        m_debounceTimer->stop();
-        debouncedRecalculate();
-    }
+    m_announcedChange = true;
 }
 
 void StatisticsCollector::onPastingFinished(int level, bool undoOrRedo)
 {
+    m_announcedChange = false;
     m_debounceTimer->stop();
     const int previousWords = m_wordCount;
     recalculateStats();
@@ -370,7 +361,6 @@ void StatisticsCollector::onPastingFinished(int level, bool undoOrRedo)
         m_pastedAtLevel[m_editor].insert(level, std::max(0, wordsDelta));
     }
     if (m_sessionActive && wordsDelta != 0) {
-        m_previousWordCount = m_wordCount;
         const QDateTime now = QDateTime::currentDateTime();
         // Pasted: the words it brought. A paste that replaced more words than it brought
         // deleted words written by hand. Undone and redone, a paste takes away and brings back
@@ -397,9 +387,9 @@ void StatisticsCollector::onPastingFinished(int level, bool undoOrRedo)
 void StatisticsCollector::rebase()
 {
     // The counts of now are where the next words written or deleted are counted from
+    m_announcedChange = false;
     m_debounceTimer->stop();
     recalculateStats();
-    m_previousWordCount = m_wordCount;
     emit statisticsChanged(m_wordCount, m_characterCount, paragraphCount());
 }
 

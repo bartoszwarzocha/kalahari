@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file stats_pages.cpp
 /// @brief Settings > Statistics and Goals: Bar and Panel, Counting, Notifications and Colors
@@ -479,9 +480,10 @@ StatsCountingPage::StatsCountingPage(QWidget* parent)
 StatsNotificationsPage::StatsNotificationsPage(QWidget* parent)
     : StatsSettingsPage(parent)
 {
-    //: In Polish: Wiadomości pokazują się na pasku na dole okna, z przyciskiem kopiowania.
-    addIntro(tr("The messages show in the bar at the bottom of the window, with a button that "
-                "copies them."));
+    //: In Polish: Wiadomości pokazują się tam, gdzie powiadomienia programu: domyślnie na pasku
+    //: na dole okna (Ustawienia > Powiadomienia).
+    addIntro(tr("The messages show where the program's notifications do: by default in the bar "
+                "at the bottom of the window (Settings > Notifications)."));
 
     QFormLayout* messages = addGroup(tr("Messages"));
     addOption(messages, tr("&Daily goal reached"), "stats.notify.dailyGoal");
@@ -592,6 +594,14 @@ void StatsColorsPage::addTheme(const QString& themeName)
         tr("Badges: gold"),
         //: In Polish: Odznaki: platynowa
         tr("Badges: platinum"),
+        //: In Polish: Harmonogram: pasek pisania
+        tr("Schedule: bar of writing"),
+        //: In Polish: Harmonogram: pasek poprawek
+        tr("Schedule: bar of revisions"),
+        //: In Polish: Harmonogram: dziś
+        tr("Schedule: today"),
+        //: In Polish: Harmonogram: po terminie
+        tr("Schedule: late"),
     };
     const std::vector<std::string>& keys = StatsColors::keys();
     // The colors that follow the theme's color lie over the background of the graphs: the

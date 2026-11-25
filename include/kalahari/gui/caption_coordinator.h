@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file caption_coordinator.h
 /// @brief The numbered captions of the book: the numbers of every open text in the book around
@@ -127,12 +128,19 @@ public:
     // =========================================================================
 
     /// @brief Insert > Caption... (Image > Insert Caption...): the window of the caption of the
-    ///        image the editor in front acts on (BookEditor::captionTargetImage())
+    ///        image the editor in front acts on (BookEditor::captionTargetImage()), else of the
+    ///        table it acts on (BookEditor::captionTargetTable())
     void insertCaption();
 
     /// @brief The window of the caption of the image at @p position of @p editor
     /// @return Whether the caption changed
     bool editCaption(editor::BookEditor& editor, int position);
+
+    /// @brief Table > Insert Caption...: the window of the caption of the table at @p position
+    ///        of @p editor; a new caption has the label Table (added to the book's labels when
+    ///        it has none such) and goes where the Settings say (TABLE_CAPTION_POSITION_KEY)
+    /// @return Whether the caption changed
+    bool editTableCaption(editor::BookEditor& editor, int position);
 
     /// @brief The caption of an image Insert > Image... puts at the cursor of @p editor: the
     ///        window of the caption of a new image, unless the Settings say not to ask
@@ -190,10 +198,11 @@ private:
     void keepCaptionsOnce();
 
     /// @brief What the window of a caption shows for the place @p position of @p editor (an
-    ///        image, or the cursor where a new one goes); a caption without a label gets that
-    ///        of the Settings for new images
+    ///        image, or the cursor where a new one goes; a table with @p table); a caption
+    ///        without a label gets that of the Settings for new images (a table's: Table)
     dialogs::InsertCaptionDialog::Data captionDialogData(editor::BookEditor& editor, int position,
-                                                         editor::ImageCaption caption);
+                                                         editor::ImageCaption caption,
+                                                         bool table = false);
 
     /// @brief The labels the window of a caption added or took away; the book keeps its own
     ///        from now on

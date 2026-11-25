@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_editor_captions.cpp
 /// @brief BookEditor: numbered captions of images, cross-references and the list of figures
@@ -11,11 +12,13 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_images.h>
+#include <kalahari/editor/text_tables.h>
 #include <QScopedValueRollback>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTextDocumentFragment>
+#include <QTextTable>
 #include <QTimer>
 #include <algorithm>
 
@@ -208,8 +211,34 @@ std::optional<ImageCaption> BookEditor::imageCaptionOf(int position) const
     if (!m_textBuffer || !editor::imageAt(*m_textBuffer, position)) {
         return std::nullopt;
     }
+    return captionOfBlock(captionBlockOf(m_textBuffer->findBlock(position)));
+}
+
+std::optional<int> BookEditor::captionTargetTable() const
+{
+    if (!m_textBuffer) {
+        return std::nullopt;
+    }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    const QTextTable* table = tableOf(block);
+    if (table == nullptr) {
+        table = tableOfCaption(block);
+    }
+    return table != nullptr ? std::optional<int>(table->firstPosition()) : std::nullopt;
+}
+
+std::optional<ImageCaption> BookEditor::tableCaptionOf(int position) const
+{
+    const QTextTable* table = m_textBuffer ? tableAt(*m_textBuffer, position) : nullptr;
+    if (table == nullptr) {
+        return std::nullopt;
+    }
+    return captionOfBlock(captionBlockOfTable(*table));
+}
+
+ImageCaption BookEditor::captionOfBlock(const QTextBlock& block) const
+{
     ImageCaption caption;
-    const QTextBlock block = captionBlockOf(m_textBuffer->findBlock(position));
     if (!block.isValid()) {
         return caption;
     }
@@ -233,9 +262,22 @@ QString BookEditor::captionNumberAt(int position, const QString& label) const
     if (!m_textBuffer) {
         return QString();
     }
-    const CaptionNumbers& numbers = captionNumbers();
     const QTextBlock imageBlock = m_textBuffer->findBlock(position);
-    const QTextBlock caption = captionBlockOf(imageBlock);
+    return captionNumberIn(captionBlockOf(imageBlock), imageBlock.position(), label);
+}
+
+QString BookEditor::tableCaptionNumberAt(int position, const QString& label) const
+{
+    const QTextTable* table = m_textBuffer ? tableAt(*m_textBuffer, position) : nullptr;
+    if (table == nullptr) {
+        return QString();
+    }
+    return captionNumberIn(captionBlockOfTable(*table), table->firstPosition(), label);
+}
+
+QString BookEditor::captionNumberIn(const QTextBlock& caption, int place, const QString& label) const
+{
+    const CaptionNumbers& numbers = captionNumbers();
     const CaptionParts parts = caption.isValid() ? captionParts(caption) : CaptionParts{};
     if (parts.numberAt >= 0 && parts.number.label == label) {
         return numbers.fieldText(parts.numberAt, captionNumberCharFormat(parts.numberAt)).text;
@@ -252,9 +294,9 @@ QString BookEditor::captionNumberAt(int position, const QString& label) const
             m_captionContext.before.begin(), m_captionContext.before.end(),
             [&label](const BookCaption& before) { return before.label == label; }));
     }
-    const int place = caption.isValid() && isCaptionAbove(caption.blockFormat())
-                          ? caption.position()
-                          : imageBlock.position();
+    if (caption.isValid() && isCaptionAbove(caption.blockFormat())) {
+        place = caption.position();
+    }
     for (const BookCaption& own : numbers.own()) {
         if (own.label == label && own.position < place && own.position != parts.numberAt) {
             ++counted;
@@ -280,7 +322,18 @@ bool BookEditor::confirmCaptionRemoval(const QTextBlock& caption)
 
 bool BookEditor::setImageCaption(int position, const ImageCaption& caption)
 {
-    const std::optional<ImageCaption> current = imageCaptionOf(position);
+    return setCaptionOf(position, false, caption);
+}
+
+bool BookEditor::setTableCaption(int position, const ImageCaption& caption)
+{
+    return setCaptionOf(position, true, caption);
+}
+
+bool BookEditor::setCaptionOf(int position, bool table, const ImageCaption& caption)
+{
+    const std::optional<ImageCaption> current =
+        table ? tableCaptionOf(position) : imageCaptionOf(position);
     if (!current) {
         return false;
     }
@@ -302,8 +355,15 @@ bool BookEditor::setImageCaption(int position, const ImageCaption& caption)
         return false;
     }
     QTextDocument* document = m_textBuffer.get();
-    const QTextBlock imageBlock = document->findBlock(position);
-    QTextBlock block = captionBlockOf(imageBlock);
+    // The caption's block now, and that of the image or the table as the text changes
+    const auto captionNow = [document, table](int at) {
+        if (table) {
+            const QTextTable* own = tableAt(*document, at);
+            return own != nullptr ? captionBlockOfTable(*own) : QTextBlock();
+        }
+        return captionBlockOf(document->findBlock(at));
+    };
+    QTextBlock block = captionNow(position);
 
     // Its number goes: the cross-references to it would show "?"
     if (block.isValid() && (!wanted.shown || !wanted.numbered) && !confirmCaptionRemoval(block)) {
@@ -315,14 +375,26 @@ bool BookEditor::setImageCaption(int position, const ImageCaption& caption)
     QTextCursor cursor(document);
     cursor.beginEditBlock();
     document->appendUndoItem(new CallbackUndoItem([this, before] { m_stepCursor = before; }));
-    QTextCursor image(document);  // follows the image as the text before it changes
-    image.setPosition(position);
+    QTextCursor target(document);  // follows the image or the table as the text before it changes
+    target.setPosition(position);
+    // A new caption's block on its side of the image or the table
+    const auto insertBlock = [this, &cursor, &target, document, table](
+                                 const QTextBlockFormat& format, const QTextCharFormat& charFormat,
+                                 bool above) {
+        if (table) {
+            const QTextTable* own = tableAt(*document, target.position());
+            return own != nullptr
+                       ? insertTableCaptionBlock(cursor, *own, format, charFormat, above)
+                       : QTextBlock();
+        }
+        return insertCaptionBlock(cursor, target.block(), format, charFormat, above);
+    };
 
     if (!wanted.shown) {
         removeBlock(cursor, block);
-        cursor.setPosition(image.position() + 1);
+        cursor.setPosition(table ? target.position() : target.position() + 1);
     } else {
-        // On the other side of the image: the paragraph moves, with its formatting
+        // On the other side: the paragraph moves, with its formatting
         if (block.isValid() && isCaptionAbove(block.blockFormat()) != wanted.above) {
             QTextCursor content(document);
             content.setPosition(block.position());
@@ -332,12 +404,19 @@ bool BookEditor::setImageCaption(int position, const ImageCaption& caption)
             setCaptionAbove(format, wanted.above);
             const QTextCharFormat blockCharFormat = block.charFormat();
             removeBlock(cursor, block);
-            block = insertCaptionBlock(cursor, image.block(), format, blockCharFormat, wanted.above);
+            block = insertBlock(format, blockCharFormat, wanted.above);
             cursor.insertFragment(fragment);
             block = cursor.block();
         }
         if (!block.isValid()) {
-            block = newCaptionBlock(cursor, image.block(), wanted.above);
+            if (table) {
+                QTextBlockFormat format = paragraphBlockFormat();
+                setParagraphStyle(format, QLatin1String(CAPTION_STYLE_ID));
+                setCaptionAbove(format, wanted.above);
+                block = insertBlock(format, QTextCharFormat(), wanted.above);
+            } else {
+                block = newCaptionBlock(cursor, target.block(), wanted.above);
+            }
         }
         writeCaption(cursor, block, wanted, *current);
         cursor.setPosition(block.position() + block.length() - 1);
@@ -385,6 +464,40 @@ QTextBlock BookEditor::insertCaptionBlock(QTextCursor& cursor, const QTextBlock&
     const QTextCharFormat imageCharFormat = imageBlock.charFormat();
     cursor.setPosition(imageBlock.position());
     cursor.insertBlock(imageFormat, imageCharFormat);
+    QTextCursor caption(cursor.block().previous());
+    caption.setBlockFormat(format);
+    caption.setBlockCharFormat(charFormat);
+    cursor.setPosition(caption.block().position());
+    return caption.block();
+}
+
+QTextBlock BookEditor::insertTableCaptionBlock(QTextCursor& cursor, const QTextTable& table,
+                                               const QTextBlockFormat& format,
+                                               const QTextCharFormat& charFormat, bool above)
+{
+    // An empty paragraph the table needs on that side (at the start or the end of the text,
+    // between two tables) becomes the caption; at the end of the text a paragraph stays
+    // after the caption to write on
+    const QTextBlock beside = above ? table.firstCursorPosition().block().previous()
+                                    : table.lastCursorPosition().block().next();
+    if (beside.length() == 1 && !canRemoveBlock(beside) && (above || beside.next().isValid())) {
+        cursor.setPosition(beside.position());
+        cursor.setBlockFormat(format);
+        cursor.setBlockCharFormat(charFormat);
+        return cursor.block();
+    }
+    if (above) {
+        // After the paragraph before the table
+        cursor.setPosition(beside.position() + beside.length() - 1);
+        cursor.insertBlock(format, charFormat);
+        return cursor.block();
+    }
+    // Before the paragraph after it: that paragraph goes on in a block of its own, with its
+    // formats, and the one left right after the table becomes the caption
+    const QTextBlockFormat besideFormat = beside.blockFormat();
+    const QTextCharFormat besideCharFormat = beside.charFormat();
+    cursor.setPosition(beside.position());
+    cursor.insertBlock(besideFormat, besideCharFormat);
     QTextCursor caption(cursor.block().previous());
     caption.setBlockFormat(format);
     caption.setBlockCharFormat(charFormat);

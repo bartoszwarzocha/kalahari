@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_navigator_panel.cpp
 /// @brief The Navigator's tree of a book project and the places elements are dragged to
@@ -169,7 +170,8 @@ TEST_CASE("Navigator: the book's dictionary at the top of the Workshop opens its
     CHECK(dictionary->text(0) == QStringLiteral("Book Dictionary"));
     CHECK(typeOf(dictionary) == QStringLiteral("book_dictionary"));
     CHECK(typeOf(dictionary->parent()) == QStringLiteral("workshop"));
-    CHECK(dictionary->parent()->indexOfChild(dictionary) == 0);
+    // After the Book Plan, the first of the Workshop
+    CHECK(dictionary->parent()->indexOfChild(dictionary) == 1);
     CHECK_FALSE(dictionary->flags().testFlag(Qt::ItemIsDragEnabled));
     CHECK_FALSE(dictionary->flags().testFlag(Qt::ItemIsDropEnabled));
 
@@ -183,6 +185,43 @@ TEST_CASE("Navigator: the book's dictionary at the top of the Workshop opens its
     emit tree->itemClicked(dictionary, 0);
     emit tree->itemActivated(dictionary, 0);
     CHECK(opened == QList<bool>{false, true});
+    CHECK(selected.isEmpty());
+}
+
+TEST_CASE("Navigator: the Book Plan, the first node of the Workshop, opens on its tab",
+          "[gui][navigator][plotboard]") {
+    // Test of 22.11: where to open the plot board from; the Book Plan is its board, its outline
+    // and its chronology
+    gui::NavigatorPanel panel(kalahari::test::book());
+    auto* tree = panel.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    panel.loadProject(novel({}, {element("Prologue", "kalahari.base:chapter")}), registry());
+
+    QTreeWidgetItem* board = findItem(tree, "workshop:plan");
+    REQUIRE(board != nullptr);
+    CHECK(board->text(0) == QStringLiteral("Book Plan"));
+    CHECK(typeOf(board) == QStringLiteral("book_plan"));
+    CHECK(typeOf(board->parent()) == QStringLiteral("workshop"));
+    CHECK(board->parent()->indexOfChild(board) == 0);
+    // The icon of Book > Book Plan (the tests register no icons)
+    CHECK(board->data(0, Qt::UserRole + 2).toString() == QStringLiteral("view.plotBoard"));
+    CHECK_FALSE(board->flags().testFlag(Qt::ItemIsDragEnabled));
+    CHECK_FALSE(board->flags().testFlag(Qt::ItemIsDropEnabled));
+
+    // A click shows the plan; Enter (or a double click) gives it the keys too
+    QList<bool> opened;
+    QObject::connect(&panel, &gui::NavigatorPanel::requestOpenBookPlan,
+                     [&opened](bool keys) { opened.append(keys); });
+    QList<bool> dictionary;
+    QObject::connect(&panel, &gui::NavigatorPanel::requestOpenBookDictionary,
+                     [&dictionary](bool keys) { dictionary.append(keys); });
+    QStringList selected;
+    QObject::connect(&panel, &gui::NavigatorPanel::elementSelected,
+                     [&selected](const QString& id) { selected.append(id); });
+    emit tree->itemClicked(board, 0);
+    emit tree->itemActivated(board, 0);
+    CHECK(opened == QList<bool>{false, true});
+    CHECK(dictionary.isEmpty());
     CHECK(selected.isEmpty());
 }
 

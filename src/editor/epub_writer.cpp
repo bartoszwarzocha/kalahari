@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file epub_writer.cpp
 /// @brief Export of a book to an EPUB 3 e-book
@@ -15,9 +16,11 @@
 
 #include "kalahari/editor/detail/book_export_internal.h"
 
+#include <kalahari/editor/block_space.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_format.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_tables.h>
@@ -127,6 +130,17 @@ QString listType(ListNumberFormat format) {
         case ListNumberFormat::Bullet: break;
     }
     return QString();
+}
+
+/// Whether the items of a level need their marks written out: HTML lists have no text around
+/// their numbers, no numbers of the levels above and no bullets but •, ◦ and ▪
+bool writesOwnMarks(const ListLevel& level) {
+    if (level.isBullet()) {
+        return level.bullet != QString(QChar(BULLET_DISC)) &&
+               level.bullet != QString(QChar(BULLET_CIRCLE)) &&
+               level.bullet != QString(QChar(BULLET_SQUARE));
+    }
+    return level.suffix != QLatin1String(".") || !level.prefix.isEmpty() || level.shownLevels > 0;
 }
 
 /// The CSS of a border line of a table
@@ -268,6 +282,7 @@ public:
           m_title(book.title.simplified().isEmpty() ? fallbackTitle : book.title.simplified()),
           m_progress(progress) {
         m_images.setFolder(book.imagesFolder);
+        m_images.setOutsideFiles(book.pictures);
         m_textWidth = std::max(1.0, book.page.textWidthPoints());
         const double normal =
             book.styles.normal().properties.value(QStringLiteral("fontSize")).toDouble();
@@ -296,7 +311,7 @@ private:
     void writeTable(const ExportText& text, size_t index, const QTextTable& table, QString& out);
     void closeLists(QString& out);
     QString paragraphOf(const ExportText& text, const QTextBlock& block, const QString& tag,
-                        const QString& attributes, bool inList);
+                        const QString& attributes, bool inList, const QString& lead = QString());
     QString inlineOf(const ExportText& text, const QTextBlock& block, double size, bool code);
     QString runOf(const QString& characters, const QTextCharFormat& format, double size,
                   bool code) const;
@@ -379,7 +394,7 @@ double EpubWriter::styleSize(const QString& style) const {
 void EpubWriter::prepare() {
     for (size_t index = 0; index < m_book.items.size(); ++index) {
         const ExportItem& item = m_book.items[index];
-        m_texts.push_back(std::make_unique<ExportText>(item));
+        m_texts.push_back(std::make_unique<ExportText>(item, exportFieldContext(m_book, item)));
         const ExportText& text = *m_texts.back();
         if (item.kind == ExportItemKind::Contents && m_contentsItem < 0) {
             m_contentsItem = static_cast<int>(index);
@@ -515,6 +530,8 @@ QString EpubWriter::styleCss() const {
         "h1, h2, h3, h4, h5, h6 { margin: 0; page-break-after: avoid; break-after: avoid; }\n"
         "img { max-width: 100%; height: auto; }\n"
         "li > p { text-indent: 0; margin-left: 0; }\n"
+        "ol.marks, ul.marks { list-style: none; }\n"
+        ".list-mark { display: inline-block; min-width: 1.5em; margin-left: -1.5em; }\n"
         "table { border-collapse: collapse; margin-top: 0.5em; margin-bottom: 0.5em; }\n"
         "td, th { padding: 0.2em 0.4em; vertical-align: top; text-align: left; }\n"
         "td > p, th > p { text-indent: 0; }\n"
@@ -862,7 +879,7 @@ QString EpubWriter::inlineOf(const ExportText& text, const QTextBlock& block, do
 }
 
 QString EpubWriter::paragraphOf(const ExportText& text, const QTextBlock& block, const QString& tag,
-                                const QString& attributes, bool inList) {
+                                const QString& attributes, bool inList, const QString& lead) {
     const QString style = shownStyleOf(m_book.styles, block);
     const double size = styleSize(style);
     const bool code = isStyleBasedOn(m_book.styles, style, QStringLiteral("code"));
@@ -870,6 +887,7 @@ QString EpubWriter::paragraphOf(const ExportText& text, const QTextBlock& block,
     if (content.isEmpty()) {
         content = QStringLiteral("<br/>");  // an empty paragraph keeps its line
     }
+    content.prepend(lead);
 
     // The paragraph's own formatting over its style's (a list item: the indents of its list)
     const QTextBlockFormat format = block.blockFormat();
@@ -884,11 +902,27 @@ QString EpubWriter::paragraphOf(const ExportText& text, const QTextBlock& block,
     if (own.rightIndent) {
         css << QStringLiteral("margin-right: ") + emOf(*own.rightIndent, size);
     }
-    if (own.spaceBefore) {
-        css << QStringLiteral("margin-top: ") + emOf(*own.spaceBefore, size);
+    // The room of an image around its paragraph and its caption, and of a table next to the
+    // paragraph, over the paragraph's own (or its style's) room
+    std::optional<double> spaceBefore = own.spaceBefore;
+    std::optional<double> spaceAfter = own.spaceAfter;
+    if (const BlockSpace space = blockSpace(block); !space.isEmpty()) {
+        const QVariantMap& properties = m_book.styles.shownStyle(style).properties;
+        const auto styleSpace = [&properties](const char* name) {
+            return std::max(0.0, properties.value(QLatin1String(name)).toDouble());
+        };
+        if (space.before > 0.0) {
+            spaceBefore = spaceBefore.value_or(styleSpace("spaceBefore")) + space.before;
+        }
+        if (space.after > 0.0) {
+            spaceAfter = spaceAfter.value_or(styleSpace("spaceAfter")) + space.after;
+        }
     }
-    if (own.spaceAfter) {
-        css << QStringLiteral("margin-bottom: ") + emOf(*own.spaceAfter, size);
+    if (spaceBefore) {
+        css << QStringLiteral("margin-top: ") + emOf(*spaceBefore, size);
+    }
+    if (spaceAfter) {
+        css << QStringLiteral("margin-bottom: ") + emOf(*spaceAfter, size);
     }
     if (m_book.epub.bookStyles && own.lineSpacing) {
         css << QStringLiteral("line-height: ") + (own.lineSpacing->rule == LineSpacingRule::Multiple
@@ -925,6 +959,7 @@ void EpubWriter::writeListItem(const ExportText& text, const QTextBlock& block,
     }
     // The lists deeper than its level end, and one of its level of another list or kind
     const bool numbered = !item.levelFormat().isBullet();
+    const bool ownMarks = writesOwnMarks(item.levelFormat());
     while (!m_lists.empty() &&
            (m_lists.back().level > item.level ||
             (m_lists.back().level == item.level &&
@@ -937,14 +972,25 @@ void EpubWriter::writeListItem(const ExportText& text, const QTextBlock& block,
         out += QStringLiteral("</li>\n");
     } else {
         // A list of its own, in the item of the level above when one is open
-        if (numbered) {
-            const QString type = listType(item.levelFormat().format);
+        const QString type = listType(item.levelFormat().format);
+        if (ownMarks) {
+            out += (numbered ? QStringLiteral("<ol") : QStringLiteral("<ul")) +
+                   attribute("class", QStringLiteral("marks")) + QStringLiteral(">\n");
+        } else if (numbered) {
             out += QStringLiteral("<ol") + (type.isEmpty() ? QString() : attribute("type", type)) +
                    QStringLiteral(">\n");
         } else {
             out += QStringLiteral("<ul>\n");
         }
         m_lists.push_back({item.id, item.level, numbered});
+    }
+    // The mark written out, in the place of the list's own
+    if (ownMarks) {
+        out += QStringLiteral("<li>") +
+               paragraphOf(text, block, QStringLiteral("p"), QString(), true,
+                           QStringLiteral("<span class=\"list-mark\">") +
+                               xmlEscaped(text.listMarker(block)) + QStringLiteral("</span> "));
+        return;
     }
     out += numbered ? QStringLiteral("<li") +
                           attribute("value", QString::number(std::max(0, text.listNumber(block)))) +
@@ -1153,6 +1199,8 @@ QString EpubWriter::itemDocument(size_t index) {
                 type = QStringLiteral(" epub:type=\"chapter\" role=\"doc-chapter\"");
             }
             break;
+        case ExportItemKind::Spread:
+            break;  // an e-book has it as a text (spreadsAsTexts())
     }
     QString body = QStringLiteral("<section") + type + QStringLiteral(">\n");
     if (m_withTitle[index]) {

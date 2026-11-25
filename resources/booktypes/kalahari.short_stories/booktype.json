@@ -26,6 +26,7 @@
     },
     "section": {
       "form": "group", "places": ["main"], "icon": "structure.part",
+      "firstPage": "right",
       "name": { "pl": "Dział", "en": "Division" },
       "plural": { "pl": "Działy", "en": "Divisions" },
       "words": {
@@ -65,9 +66,10 @@
       }
     }
   },
-  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "introduction"],
-  "main":     ["story", "section"],
-  "back":     ["contributors", "first_publications", "acknowledgments", "about_author", "toc"],
+  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "introduction", "spread"],
+  "main":     ["story", "section", "spread"],
+  "back":     ["contributors", "first_publications", "acknowledgments", "about_author",
+               "spread", "toc"],
   "workshop": ["mindmap", "character", "location", "work_note", "clipping", "cover", "publishing",
                "quote", "web_page", "picture", "document", "publication", "recording", "other_file"],
   "primary":  "story",

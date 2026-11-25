@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_field_coordinator.cpp
 /// @brief The fields of the open texts: what they show of the book, Insert > Date && Time...,
@@ -253,6 +254,9 @@ TEST_CASE("Fields: the open texts show the book's title, author, language and th
 TEST_CASE("Fields: a text of a series shows the title, author and language of its volume",
           "[gui][fields][series]") {
     OpenNovel book(QStringLiteral("Sand"));
+    const core::ProjectBook* sand = book.pm.book();
+    REQUIRE(sand != nullptr);
+    const QString sandId = sand->id;
     core::NewBook request;
     request.title = QStringLiteral("Dunes");
     request.author = QStringLiteral("Other Author");
@@ -273,11 +277,24 @@ TEST_CASE("Fields: a text of a series shows the title, author and language of it
     const core::ProjectBook* volume = book.pm.book();
     REQUIRE(volume != nullptr);
     REQUIRE_FALSE(volume->mainElements.isEmpty());
-    const editor::FieldContext second =
-        fields.coordinator.contextFor(volume->mainElements.constFirst().id);
+    const QString dunesText = volume->mainElements.constFirst().id;
+    const editor::FieldContext second = fields.coordinator.contextFor(dunesText);
     CHECK(second.bookTitle == QStringLiteral("Dunes"));
     CHECK(second.author == QStringLiteral("Other Author"));
     CHECK(second.language == QStringLiteral("pl"));
+
+    // A text of the second volume open on a tab, with the first one current (test of 22.11,
+    // part 53): its fields show its volume
+    window.navigator.onElementSelected(dunesText, QStringLiteral("Chapter 1"));
+    REQUIRE(window.tabs->count() == 1);
+    editor::BookEditor* text = window.editor(0)->getBookEditor();
+    REQUIRE(text != nullptr);
+    REQUIRE(book.pm.setCurrentBook(sandId));
+    QCoreApplication::processEvents();
+    CHECK(fields.coordinator.contextFor(dunesText).bookTitle == QStringLiteral("Dunes"));
+    CHECK(text->fieldContext().bookTitle == QStringLiteral("Dunes"));
+    CHECK(text->fieldContext().author == QStringLiteral("Other Author"));
+    CHECK(text->fieldContext().language == QStringLiteral("pl"));
 }
 
 TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... changes it",
@@ -297,11 +314,13 @@ TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... cha
     CHECK(answering<FieldDialog>(
         [&fields]() { fields.coordinator.insertField(); },
         [&preview, &hint](FieldDialog& dialog) {
-            // The fields in four tabs: the book, the text, the pages, the date
+            // The fields in four tabs: the book, the text, the pages, the date; the book's own
+            // fields in the fifth
             auto* tabs = only<QTabWidget>(dialog);
-            REQUIRE(tabs->count() == 4);
+            REQUIRE(tabs->count() == 5);
             CHECK(tabs->tabText(0) == QStringLiteral("&Book"));
             CHECK(tabs->tabText(3) == QStringLiteral("&Date"));
+            CHECK(tabs->tabText(4) == QStringLiteral("O&wn"));
             int fieldCount = 0;
             for (const QListWidget* list : tabs->findChildren<QListWidget*>()) {
                 fieldCount += list->count();
@@ -584,20 +603,22 @@ TEST_CASE("Fields: the windows in Polish, their keys, the gear, a small screen",
     layOut(fieldDialog);
     CHECK(fieldDialog.windowTitle() == QStringLiteral("Pole"));
     auto* tabs = only<QTabWidget>(fieldDialog);
-    REQUIRE(tabs->count() == 4);
+    REQUIRE(tabs->count() == 5);
     CHECK(tabs->tabText(0) == QStringLiteral("&Książka"));
     CHECK(tabs->tabText(1) == QStringLiteral("&Tekst"));
     CHECK(tabs->tabText(2) == QStringLiteral("&Strony"));
     CHECK(tabs->tabText(3) == QStringLiteral("&Data"));
+    CHECK(tabs->tabText(4) == QStringLiteral("&Własne"));
     auto* list = shownList(fieldDialog);
     CHECK(fieldDialog.focusWidget() == list);
     CHECK(list->item(0)->text() == QStringLiteral("Tytuł książki"));
     CHECK(only<QComboBox>(fieldDialog)->itemText(1) == QStringLiteral("WIELKIMI LITERAMI"));
     checkKeys(fieldDialog);
 
-    // Every field: the window keeps its size, small enough, nothing in it scrolls
+    // Every field: the window keeps its size, small enough, nothing in it scrolls (the own
+    // fields, in the last tab, have no list of the program's fields)
     const QSize size = fieldDialog.sizeHint();
-    for (int tab = 0; tab < tabs->count(); ++tab) {
+    for (int tab = 0; tab < tabs->count() - 1; ++tab) {
         tabs->setCurrentIndex(tab);
         QListWidget* shown = shownList(fieldDialog);
         for (int row = 0; row < shown->count(); ++row) {

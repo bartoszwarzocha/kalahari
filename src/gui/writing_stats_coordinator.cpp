@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file writing_stats_coordinator.cpp
 /// @brief The statistics and goals of writing in the main window
@@ -19,13 +20,16 @@
 #include "kalahari/gui/dialogs/session_summary_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
+#include "kalahari/gui/notifications.h"
+#include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/panels/writing_awards_tab.h"
+#include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/writing_goals_tab.h"
+#include "kalahari/gui/panels/writing_schedule_tab.h"
 #include "kalahari/gui/panels/writing_stats_panel.h"
 #include "kalahari/gui/utils/panel_toggle.h"
 #include "kalahari/gui/utils/setting_toggle.h"
 #include "kalahari/gui/widgets/badge_painter.h"
-#include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/stats_painter.h"
 #include "kalahari/gui/widgets/status_bar_writing.h"
 #include "kalahari/gui/widgets/writing_stats_bar.h"
@@ -33,13 +37,10 @@
 #include "kalahari/gui/writing_stats_model.h"
 
 #include <QAction>
-#include <QApplication>
-#include <QClipboard>
 #include <QDockWidget>
 #include <QLocale>
 #include <QSet>
 #include <QTabWidget>
-#include <QTimer>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -124,6 +125,73 @@ WritingGoalsTab::BookSource bookSource(core::ProjectManager& projects)
     return source;
 }
 
+/// @brief The rows of the schedule of the book open in @p projects: the book, then the
+/// texts of its main section, each part with its texts
+QList<ScheduleRow> scheduleRowsOf(const core::ProjectManager& projects)
+{
+    QList<ScheduleRow> rows;
+    const core::ProjectBook* book = projects.book();
+    if (book == nullptr) {
+        return rows;
+    }
+    ScheduleRow whole;
+    whole.kind = ScheduleRow::Kind::Book;
+    whole.title = book->title;
+    whole.iconId = QStringLiteral("book.newVolume");
+    rows << whole;
+    const auto iconOf = [&projects](const QString& id) {
+        const core::ProjectElement* element = projects.findElement(id);
+        return element != nullptr ? NavigatorPanel::iconIdOf(projects.bookTypes(), *element)
+                                  : QString();
+    };
+    int words = 0;
+    for (const PlotBand& band : PlotBoard::bandsOf(projects)) {
+        if (!band.partId.isEmpty()) {
+            ScheduleRow part;
+            part.kind = ScheduleRow::Kind::Part;
+            part.id = band.partId;
+            part.title = band.title;
+            part.iconId = iconOf(band.partId);
+            part.words = band.words();
+            rows << part;
+        }
+        for (const PlotCard& card : band.cards) {
+            ScheduleRow text;
+            text.id = card.id;
+            text.title = card.title;
+            text.kindName = card.kindName;
+            text.iconId = iconOf(card.id);
+            text.status = card.status;
+            text.words = card.words;
+            text.partId = band.partId;
+            words += card.words;
+            rows << text;
+        }
+    }
+    rows.first().words = words;
+    return rows;
+}
+
+/// @brief The texts of the open book as the daily goal of its schedule counts them: their
+/// words now and whether they are still written (not in revision, not final)
+QHash<QString, core::PlannedText> plannedTextsOf(const core::ProjectManager& projects)
+{
+    QHash<QString, core::PlannedText> texts;
+    if (projects.book() == nullptr) {
+        return texts;
+    }
+    for (const PlotBand& band : PlotBoard::bandsOf(projects)) {
+        for (const PlotCard& card : band.cards) {
+            core::PlannedText text;
+            text.words = card.words;
+            text.beingWritten = card.status != QLatin1String("revision")
+                                && card.status != QLatin1String("final");
+            texts.insert(card.id, text);
+        }
+    }
+    return texts;
+}
+
 }  // namespace
 
 WritingStatsCoordinator::WritingStatsCoordinator(core::ProjectManager& book,
@@ -145,6 +213,7 @@ WritingStatsCoordinator::WritingStatsCoordinator(core::ProjectManager& book,
         return openBook != nullptr ? m_book.statisticsOf(openBook->mainElements).words : 0;
     });
     m_model->setSeriesWordsSource([this]() { return seriesWordsOf(m_book); });
+    m_model->setPlannedTextsSource([this]() { return plannedTextsOf(m_book); });
     m_tracker = new WritingAwardsTracker(m_model, this);
     m_tracker->setBookSource(awardsSource(m_book));
     m_sessionStart = m_model->now();
@@ -168,27 +237,6 @@ WritingStatsCoordinator::WritingStatsCoordinator(core::ProjectManager& book,
     });
     applyBarVisibility();
 
-    // The bar of the messages at the bottom of the middle, under the tabs of the texts
-    m_messageBar = new InfoBar(middle);
-    m_messageBar->setObjectName(QStringLiteral("statsMessageBar"));
-    connect(m_messageBar, &QObject::destroyed, this, [this]() { m_messageBar = nullptr; });
-    //: The button of a message at the bottom of the window. In Polish: Kopiuj
-    m_messageBar->setActionText(tr("Copy"));
-    //: In Polish: Kopiuj tę wiadomość
-    m_messageBar->setActionToolTip(tr("Copy this message"));
-    m_messageBar->hide();
-    if (auto* layout = middle != nullptr ? qobject_cast<QVBoxLayout*>(middle->layout())
-                                         : nullptr) {
-        layout->addWidget(m_messageBar);
-    }
-    connect(m_messageBar, &InfoBar::actionClicked, this, [this]() {
-        QApplication::clipboard()->setText(m_messageBar->message());
-    });
-    connect(m_messageBar, &InfoBar::dismissed, m_messageBar, &QWidget::hide);
-    m_messageTimer = new QTimer(this);
-    m_messageTimer->setSingleShot(true);
-    m_messageTimer->setInterval(0);
-    connect(m_messageTimer, &QTimer::timeout, this, &WritingStatsCoordinator::flushMessages);
     connectMessages();
 
     // The Statistics panel: the views of the same statistics, with the titles of the book
@@ -254,9 +302,6 @@ WritingStatsCoordinator::~WritingStatsCoordinator()
     if (m_bar != nullptr && m_bar->parent() == nullptr) {
         delete m_bar;
     }
-    if (m_messageBar != nullptr && m_messageBar->parent() == nullptr) {
-        delete m_messageBar;
-    }
 }
 
 void WritingStatsCoordinator::connectCommands()
@@ -275,6 +320,12 @@ void WritingStatsCoordinator::connectCommands()
         command->execute = [this]() { openGoals(); };
         command->isEnabled = []() { return true; };
         registry.updateActionState("tools.writingGoals");
+    }
+    // The tab of the schedule, from the Tools menu and the Statistics toolbar
+    if (Command* command = registry.getCommand("tools.writingSchedule")) {
+        command->execute = [this]() { openSchedule(); };
+        command->isEnabled = []() { return true; };
+        registry.updateActionState("tools.writingSchedule");
     }
     // The tab of the badges, from the Tools menu, the panel and the Statistics toolbar
     if (Command* command = registry.getCommand("tools.challenges")) {
@@ -330,6 +381,47 @@ WritingGoalsTab* WritingStatsCoordinator::openGoals()
     return tab;
 }
 
+WritingScheduleTab* WritingStatsCoordinator::openSchedule()
+{
+    QTabWidget* tabs = m_docks != nullptr ? m_docks->centralTabs() : nullptr;
+    if (tabs == nullptr) {
+        return nullptr;
+    }
+    WritingScheduleTab* tab = nullptr;
+    for (int index = 0; index < tabs->count() && tab == nullptr; ++index) {
+        tab = qobject_cast<WritingScheduleTab*>(tabs->widget(index));
+    }
+    if (tab == nullptr) {
+        tab = new WritingScheduleTab(m_model, tabs);
+        tab->setRowsSource([this]() { return scheduleRowsOf(m_book); });
+        // DockCoordinator::refreshTabIcons() gives the tab the icon of another theme
+        tab->setProperty("tabIconId", QString::fromLatin1(WritingScheduleTab::ICON_ID));
+        connect(tab, &WritingScheduleTab::goalsRequested, this,
+                [this]() { m_commands.executeCommand("tools.writingGoals"); });
+        connect(tab, &WritingScheduleTab::settingsRequested, this, [this]() {
+            if (m_openSettings) {
+                m_openSettings(QString::fromLatin1(SCHEDULE_SETTINGS_PAGE));
+            }
+        });
+        // The texts of the book: added, moved, renamed, their state changed
+        connect(&m_book, &core::ProjectManager::projectChanged, tab, [tab]() {
+            if (tab->isVisible()) {
+                tab->refresh();
+            }
+        });
+        const int index = tabs->addTab(
+            tab,
+            core::ArtProvider::getInstance().getIcon(
+                QString::fromLatin1(WritingScheduleTab::ICON_ID)),
+            WritingScheduleTab::tabTitle());
+        tabs->setTabToolTip(index, WritingScheduleTab::tabTitle());
+        core::Logger::getInstance().info("WritingStatsCoordinator: Writing schedule opened");
+    }
+    tabs->setCurrentWidget(tab);
+    tab->view()->setFocus();
+    return tab;
+}
+
 WritingAwardsTab* WritingStatsCoordinator::openAwards()
 {
     QTabWidget* tabs = m_docks != nullptr ? m_docks->centralTabs() : nullptr;
@@ -375,24 +467,20 @@ int WritingStatsCoordinator::addChallenge()
     return id;
 }
 
-void WritingStatsCoordinator::showMessage(const QString& message)
+void WritingStatsCoordinator::setNotifications(NotificationCoordinator* notifications)
 {
-    if (message.isEmpty()) {
-        return;
-    }
-    m_pendingMessages.append(message);
-    m_messageTimer->start();
+    m_notifications = notifications;
 }
 
-void WritingStatsCoordinator::flushMessages()
+void WritingStatsCoordinator::showMessage(const QString& message)
 {
-    if (m_pendingMessages.isEmpty() || m_messageBar == nullptr) {
+    if (message.isEmpty() || m_notifications == nullptr) {
         return;
     }
-    // The messages of one moment together, in the order they came
-    m_messageBar->setMessage(m_pendingMessages.join(QLatin1Char(' ')));
-    m_pendingMessages.clear();
-    m_messageBar->show();
+    // The notifications of one moment show together, in the order they came
+    //: The title of the notifications of the goals, the deadlines, the badges and the
+    //: challenges. In Polish: Statystyki i cele
+    m_notifications->notify({tr("Statistics and Goals"), message});
 }
 
 void WritingStatsCoordinator::connectMessages()
@@ -420,20 +508,13 @@ void WritingStatsCoordinator::connectMessages()
                 }
                 showMessage(text);
             });
-    // The day at once in the Statistics panel, when the settings say so; later the assistant
-    // is to congratulate the writer there too
+    // The day in the Statistics panel, when the settings say so, after the notification: where
+    // the Notifications panel shows it, beside the Statistics panel, this one stays in front
     connect(m_tracker, &WritingAwardsTracker::dailyGoalReached, this, [this, on]() {
-        if (!on("stats.notify.showPanel", true) || m_docks == nullptr) {
-            return;
+        if (on("stats.notify.showPanel", true)) {
+            QMetaObject::invokeMethod(this, &WritingStatsCoordinator::showDayInPanel,
+                                      Qt::QueuedConnection);
         }
-        QDockWidget* dock = m_docks->statisticsDock();
-        WritingStatsPanel* panel = m_docks->statisticsPanel();
-        if (dock == nullptr || panel == nullptr) {
-            return;
-        }
-        panel->setView(WritingStatsPanel::View::Today);
-        dock->show();
-        dock->raise();
     });
     connect(m_tracker, &WritingAwardsTracker::weeklyGoalReached, this,
             [this, on](int words, int goal) {
@@ -503,6 +584,18 @@ void WritingStatsCoordinator::connectMessages()
                                 .arg(badge_painter::challengeTitle(challenge),
                                      badge_painter::challengePeriod(challenge)));
             });
+}
+
+void WritingStatsCoordinator::showDayInPanel()
+{
+    QDockWidget* dock = m_docks != nullptr ? m_docks->statisticsDock() : nullptr;
+    WritingStatsPanel* panel = m_docks != nullptr ? m_docks->statisticsPanel() : nullptr;
+    if (dock == nullptr || panel == nullptr) {
+        return;
+    }
+    panel->setView(WritingStatsPanel::View::Today);
+    dock->show();
+    dock->raise();
 }
 
 void WritingStatsCoordinator::attachStatusBar(QStatusBar* statusBar)

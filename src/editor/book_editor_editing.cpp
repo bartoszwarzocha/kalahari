@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_editor_editing.cpp
 /// @brief BookEditor: typing and deleting, undo and redo, the clipboard
@@ -25,6 +26,7 @@
 #include <QImage>
 #include <QGuiApplication>
 #include <QMimeData>
+#include <QScopedValueRollback>
 #include <QTextBoundaryFinder>
 #include <QTextDocumentFragment>
 #include <QUrl>
@@ -416,7 +418,20 @@ void BookEditor::insertText(const QString& text)
         cursor = selectionToReplace();
         clearSelection();
     }
+    // The text of a command (a field, a date, a quotation) is a step of its own, apart from
+    // the text typed right before it, and the text typed after a command's: the Undo and Redo
+    // of each are writing or not, as it was (test of 22.11). Typed right after a paste, it
+    // stays in the paste's step, which counts the words typed in it apart.
+    const bool ownStep = m_undoLevel > 0 &&
+                         m_handWriting != m_writingLevels.contains(m_undoLevel) &&
+                         !(m_handWriting && m_pasteLevels.contains(m_undoLevel));
+    if (ownStep) {
+        cursor.beginEditBlock();
+    }
     insertKeepingAnnotations(cursor, text, pending);
+    if (ownStep) {
+        cursor.endEditBlock();
+    }
 
     // Mirror the resulting QTextCursor into the editor's cursor model.
     m_cursorPosition.paragraph = cursor.blockNumber();
@@ -434,6 +449,7 @@ void BookEditor::typeText(const QString& text)
     if (refusesChange()) {
         return;
     }
+    const HandWriting writing(*this);  // with its autocorrections
     qsizetype typed = 0;
     for (qsizetype i = 0; i < text.size(); ++i) {
         if (startsAutoCorrection(text.at(i))) {
@@ -631,6 +647,8 @@ bool BookEditor::deleteSelectedText()
     if (const std::optional<int> image = selectedImage(); image && removeImageWithCaption(*image)) {
         return true;
     }
+    // The writer's own deleting (Edit > Delete)
+    const HandWriting writing(*this);
     return removeSelection(true);
 }
 
@@ -718,10 +736,12 @@ bool BookEditor::takeSelection(bool moved)
     if (refusesChange() || !hasSelection() || !m_textBuffer) {
         return false;
     }
-    // With the annotations, as Cut takes them: they go with the text
+    // With the annotations, as Cut takes them: they go with the text. Not moved, the words
+    // are deleted as Cut deletes them.
     if (moved) {
         emit movingStarted();
     }
+    const QScopedValueRollback<bool> writing(m_handWriting, m_handWriting || !moved);
     const bool taken = removeSelection(false);
     if (moved) {
         if (taken) {
@@ -910,7 +930,9 @@ void BookEditor::insertCharacters(const QString& characters)
     ensureDocument();
 
     // As typed text, in an edit block of its own, which parts it from the text typed before
-    // it in the undo history; autocorrect does not look at it
+    // it in the undo history; autocorrect does not look at it. A character chosen is the
+    // writer's own writing, as one typed.
+    const HandWriting writing(*this);
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
@@ -1322,6 +1344,8 @@ void BookEditor::undo()
     m_pendingFormat = QTextCharFormat();
     const int level = m_undoLevel;
     const LevelKind kind = announceLevel(level);
+    // Undoing the writer's own writing is writing, undoing anything else is not
+    const QScopedValueRollback<bool> writing(m_handWriting, kind.writing);
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->undo(&cursor);
     m_undoLevel = std::max(0, level - 1);
@@ -1354,6 +1378,7 @@ void BookEditor::redo()
     m_pendingFormat = QTextCharFormat();  // as undo() does
     const int level = m_undoLevel + 1;
     const LevelKind kind = announceLevel(level);
+    const QScopedValueRollback<bool> writing(m_handWriting, kind.writing);  // as undo()
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->redo(&cursor);
     m_undoLevel = level;
@@ -1373,7 +1398,8 @@ void BookEditor::redo()
 BookEditor::LevelKind BookEditor::announceLevel(int level)
 {
     const LevelKind kind{.pasting = m_pasteLevels.contains(level),
-                         .moving = m_movedLevels.contains(level)};
+                         .moving = m_movedLevels.contains(level),
+                         .writing = m_writingLevels.contains(level)};
     if (kind.pasting) {
         emit pastingStarted();
     }
@@ -1405,6 +1431,7 @@ void BookEditor::undoWithoutRedo()
     m_textBuffer->clearUndoRedoStacks(QTextDocument::RedoStack);
     m_pasteLevels.removeIf([this](int paste) { return paste > m_undoLevel; });
     m_movedLevels.removeIf([this](int moved) { return moved > m_undoLevel; });
+    m_writingLevels.removeIf([this](int writing) { return writing > m_undoLevel; });
 }
 
 void BookEditor::clearUndoStack()
@@ -1418,6 +1445,7 @@ void BookEditor::clearUndoStack()
         m_undoLevel = 0;
         m_pasteLevels.clear();
         m_movedLevels.clear();
+        m_writingLevels.clear();
         m_learnableChange.reset();  // no longer undone
         m_textBuffer->setModified(!modified);
         m_textBuffer->setModified(modified);
@@ -1447,8 +1475,9 @@ void BookEditor::cut()
     // Copy first
     copy();
 
-    // Then delete selection (one undo step). The annotations go to the clipboard with
-    // the text: pasted, they come back.
+    // Then delete selection (one undo step), the writer's own deleting. The annotations go
+    // to the clipboard with the text: pasted, they come back.
+    const HandWriting writing(*this);
     removeSelection(false);
 }
 

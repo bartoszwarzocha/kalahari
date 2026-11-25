@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file document_coordinator.h
 /// @brief Document lifecycle and file operations coordination for MainWindow
@@ -131,6 +132,18 @@ public:
     /// @param action What the button does; the notice goes before it
     void showNotice(EditorPanel* editor, const QString& message, const QString& actionText,
                     const QString& actionToolTip, std::function<void()> action);
+
+    /// @brief A button of a notice (showNotice())
+    struct NoticeAction {
+        QString text;                  ///< With a mnemonic; empty: no button
+        QString toolTip;
+        std::function<void()> action;  ///< What it does; the notice goes before it
+    };
+
+    /// @brief As showNotice() above, with two buttons; without @p editor the notice is under
+    ///        any tab, until another one comes, the writer closes it or the book closes
+    void showNotice(EditorPanel* editor, const QString& message, const NoticeAction& first,
+                    const NoticeAction& second);
 
     /// @brief Whether a notice is shown under the text of @p editor (showNotice())
     [[nodiscard]] bool hasNotice(const EditorPanel* editor) const;
@@ -510,6 +523,7 @@ private:
         QString actionText;
         QString actionToolTip;
         std::function<void()> action;
+        NoticeAction second;              ///< Its second button; without its text none
         QMetaObject::Connection changed;  ///< The first change of the text ends it
         QMetaObject::Connection closed;   ///< So does closing its tab
     };

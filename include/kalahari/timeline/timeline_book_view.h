@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file timeline_book_view.h
 /// @brief The time and the book: the chapters top to bottom, the time of their events left to
@@ -36,7 +37,8 @@ class TimelineDocument;
 ///
 /// A dashed line joins the chapters in the order of reading; a ring marks a flashback: an
 /// event earlier than what happened in the chapter before. A click selects an event, a double
-/// click opens the window "Event".
+/// click opens the window "Event"; Insert asks for a new event, Delete for the deletion of the
+/// event selected (the tab adds it in the window "Event" and deletes it).
 class TimelineBookView : public QAbstractScrollArea {
     Q_OBJECT
 
@@ -71,6 +73,10 @@ signals:
     void told(const QString& message, bool undoable);
     void eventRequested(const QString& id);
     void chapterRequested(const QString& id);
+    /// @brief Insert: a new event
+    void addRequested();
+    /// @brief Delete: the event selected deleted
+    void deleteRequested();
 
 protected:
     bool event(QEvent* event) override;

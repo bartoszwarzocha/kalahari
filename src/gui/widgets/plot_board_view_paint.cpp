@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plot_board_view_paint.cpp
 /// @brief PlotBoardView: the cards, the titles of the parts and the drawers of the scenes
@@ -248,6 +249,19 @@ void PlotBoardView::paintBands(QPainter& painter, const QRect& shown) const {
             paintCard(painter, place);
         }
     }
+    for (const NotePlace& note : m_notes) {
+        if (note.rect.intersects(shown)) {
+            paintNote(painter, note);
+        }
+    }
+}
+
+void PlotBoardView::paintNote(QPainter& painter, const NotePlace& note) const {
+    QFont small = smallFont(font());
+    small.setItalic(true);
+    painter.setFont(small);
+    painter.setPen(boardTextColor(true));
+    painter.drawText(note.rect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, note.text);
 }
 
 void PlotBoardView::paintBandHeader(QPainter& painter, const BandPlace& place) const {
@@ -366,15 +380,27 @@ void PlotBoardView::paintCard(QPainter& painter, const CardPlace& place) const {
     if (card.id == m_marked) {
         painter.setOpacity(MARKED_OPACITY);
     }
-    const bool planned = isPlanBesideText(place);
+    const bool planned = isDashed(place);
     paintCardFrame(painter, card, place.rect, planned);
-    const int titleTop = paintCardHead(painter, card, inner);
+    // The pencil at the top right, beside the state
+    QRect head = inner;
+    if (const QRect pencil = pencilRectOf(place); pencil.isValid()) {
+        paintPencil(painter, pencil);
+        head.setRight(pencil.left() - STATE_GAP);
+    }
+    const int titleTop = paintCardHead(painter, card, head);
     const int descriptionTop = paintCardTitle(painter, card, inner, titleTop) + LINE_GAP;
     if (m_fields.description) {
         paintCardDescription(painter, card, inner, descriptionTop, planned);
     }
-    // The scenes of a text, when they are not shown under it, at the bottom right
-    const int right = paintScenesNote(painter, place, inner.right());
+    // The button of a card in the plan and the scenes of a text, when they are not shown
+    // under it, at the bottom right
+    int right = inner.right();
+    if (const QRect button = planButtonRectOf(place); button.isValid()) {
+        paintPlanButton(painter, card, button);
+        right = button.left() - NOTE_GAP;
+    }
+    right = std::min(right, paintScenesNote(painter, place, inner.right()));
     if (m_fields.pov || m_fields.place || m_fields.time) {
         paintPlotLine(painter, card, inner, right);
     }
@@ -426,8 +452,12 @@ int PlotBoardView::paintCardHead(QPainter& painter, const PlotCard& card,
     const int stateWidth =
         m_fields.status && !card.planned ? paintCardState(painter, card, inner) : 0;
     QString kind = card.kindName;
-    // A scene in the plan has no words yet
-    if (m_fields.words && !card.planned) {
+    if (card.planned && !card.isScene()) {
+        //: The head of the card of a text in the plan, after its kind ("Chapter · In the plan
+        //: – no file"). In Polish: W planie – bez pliku
+        kind = QStringLiteral("%1 · %2").arg(kind, tr("In the plan – no file"));
+    } else if (m_fields.words && !card.planned) {
+        // A scene in the plan has no words yet
         const QString words = PlotBoard::wordsText(card.words);
         kind = kind.isEmpty() ? words : QStringLiteral("%1 · %2").arg(kind, words);
     }
@@ -526,6 +556,39 @@ void PlotBoardView::paintPlotLine(QPainter& painter, const PlotCard& card, const
     if (m_fields.time) {
         paintPlotItem(painter, line, "plotBoard.time", card.plot.time, false);
     }
+}
+
+void PlotBoardView::paintPencil(QPainter& painter, const QRect& rect) const {
+    const int side = std::max(MIN_ICON, rect.height() - ICON_INSET);
+    const QPixmap pencil =
+        core::ArtProvider::getInstance().getPixmap(QStringLiteral("edit.rename"), side);
+    painter.drawPixmap(QRect(rect.left() + ((rect.width() - side) / 2),
+                             rect.top() + ((rect.height() - side) / 2), side, side),
+                       pencil);
+}
+
+void PlotBoardView::paintPlanButton(QPainter& painter, const PlotCard& card,
+                                    const QRect& rect) const {
+    const QPalette& colors = palette();
+    painter.save();
+    painter.setOpacity(1.0);
+    painter.setPen(colors.color(QPalette::Mid));
+    painter.setBrush(colors.color(QPalette::Button));
+    painter.drawRoundedRect(QRectF(rect).adjusted(HALF_PIXEL, HALF_PIXEL, -HALF_PIXEL,
+                                                  -HALF_PIXEL),
+                            RADIUS, RADIUS);
+    const QFont small = smallFont(font());
+    const int icon = std::max(MIN_ICON, rect.height() - ICON_INSET);
+    const QPixmap pixmap = core::ArtProvider::getInstance().getPixmap(
+        QString::fromLatin1(card.isScene() ? "plotBoard.writeScene" : "plotBoard.createFile"),
+        icon);
+    const int x = rect.left() + LABEL_PADDING;
+    painter.drawPixmap(QRect(x, rect.top() + ((rect.height() - icon) / 2), icon, icon), pixmap);
+    painter.setFont(small);
+    painter.setPen(colors.color(QPalette::ButtonText));
+    painter.drawText(rect.adjusted(LABEL_PADDING + icon + ICON_GAP, 0, 0, 0),
+                     Qt::AlignLeft | Qt::AlignVCenter, planButtonText(card));
+    painter.restore();
 }
 
 void PlotBoardView::paintCurrentRing(QPainter& painter, const QRect& rect) const {

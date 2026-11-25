@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file editor_types.h
 /// @brief Common types for Kalahari text editor module (OpenSpec #00042)
@@ -103,6 +104,8 @@ struct LayoutTypography {
     qreal tabIndent = 0.0;           ///< Between the tab stops of a style without a first-line
                                      ///< indent (TabStops::Indent); 0: Qt's default
     int tabSpaces = 4;               ///< Spaces between two tab stops (TabStops::Spaces)
+    qreal pixelsPerMillimetre = 0.0;  ///< A millimetre in document units, for the tab guides
+                                      ///< (tab_guides.h); 0: the text has no guides
 
     bool operator==(const LayoutTypography&) const = default;
 };

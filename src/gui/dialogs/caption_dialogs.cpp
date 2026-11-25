@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file caption_dialogs.cpp
 /// @brief The windows of the numbered captions: Insert Caption, Caption Numbering and Insert
@@ -117,6 +118,12 @@ InsertCaptionDialog::InsertCaptionDialog(Data shown, QWidget* parent)
         setHeadingIcon(QStringLiteral("insert.image"));
         //: In Polish: Wstaw
         setAcceptText(tr("Insert"));
+    } else if (m_data.table) {
+        //: The caption of a table. In Polish: Podpis tabeli z numerem nadawanym przez program.
+        const QString heading = tr("The caption of the table, with a number the program gives.");
+        setHeading(tr("Insert Caption"), heading);
+        setHeadingIcon(QStringLiteral("insert.caption"));
+        setAcceptText(tr("OK"));
     } else {
         //: In Polish: Wstaw podpis / Podpis obrazu z numerem nadawanym przez program.
         setHeading(tr("Insert Caption"),
@@ -124,8 +131,14 @@ InsertCaptionDialog::InsertCaptionDialog(Data shown, QWidget* parent)
         setHeadingIcon(QStringLiteral("insert.caption"));
         setAcceptText(tr("OK"));
     }
-    //: The tooltip of the gear of the windows of images. In Polish: Ustawienia obrazów
-    addSettingsButton(QString::fromLatin1(SettingsDialog::IMAGES_PAGE), tr("Image Settings"));
+    if (m_data.table) {
+        //: The tooltip of the gear of the window of the caption of a table. In Polish:
+        //: Ustawienia tabel
+        addSettingsButton(QString::fromLatin1(SettingsDialog::TABLES_PAGE), tr("Table Settings"));
+    } else {
+        //: The tooltip of the gear of the windows of images. In Polish: Ustawienia obrazów
+        addSettingsButton(QString::fromLatin1(SettingsDialog::IMAGES_PAGE), tr("Image Settings"));
+    }
 
     // A label of an older caption the book's list does not have
     const QString wanted = editor::normalizedLabel(m_data.caption.label);
@@ -165,13 +178,20 @@ InsertCaptionDialog::InsertCaptionDialog(Data shown, QWidget* parent)
     grid->addWidget(fieldLabel(tr("&Label"), m_label, this), 1, 0);
     grid->addLayout(labelRow, 1, 1);
 
-    // Under the image or above it
+    // Under the image or the table, or above it
     m_position = new QComboBox(this);
     m_position->setFixedWidth(fieldWidth);
-    //: In Polish: Pod obrazem
-    m_position->addItem(tr("Below the image"), false);
-    //: In Polish: Nad obrazem
-    m_position->addItem(tr("Above the image"), true);
+    if (m_data.table) {
+        //: In Polish: Pod tabelą
+        m_position->addItem(tr("Below the table"), false);
+        //: In Polish: Nad tabelą
+        m_position->addItem(tr("Above the table"), true);
+    } else {
+        //: In Polish: Pod obrazem
+        m_position->addItem(tr("Below the image"), false);
+        //: In Polish: Nad obrazem
+        m_position->addItem(tr("Above the image"), true);
+    }
     m_position->setCurrentIndex(m_data.caption.above ? 1 : 0);
     auto* positionRow = new QHBoxLayout();
     positionRow->addWidget(m_position);
@@ -195,12 +215,20 @@ InsertCaptionDialog::InsertCaptionDialog(Data shown, QWidget* parent)
     numberingRow->addWidget(m_numberingHint, 1);
     contentLayout()->addLayout(numberingRow);
 
-    //: In Polish: Etykieta to rodzaj obrazu; każda ma własną numerację („Mapa 1”, „Mapa 2” obok
-    //: „Rysunek 1”, „Rysunek 2”). Podpis jest akapitem stylu „Podpis”.
-    contentLayout()->addWidget(hintLabel(
-        tr("A label is a kind of image, and each has its own numbering (\"Map 1\", \"Map 2\" "
-           "next to \"Figure 1\", \"Figure 2\"). The caption is a paragraph in the style Caption."),
-        this));
+    QString labels;
+    if (m_data.table) {
+        //: The caption of a table. In Polish: Każda etykieta ma własną numerację („Tabela 1”,
+        //: „Tabela 2” obok „Rysunek 1”, „Rysunek 2”). Podpis jest akapitem stylu „Podpis”.
+        labels = tr("Each label has its own numbering (\"Table 1\", \"Table 2\" next to \"Figure "
+                    "1\", \"Figure 2\"). The caption is a paragraph in the style Caption.");
+    } else {
+        //: In Polish: Etykieta to rodzaj obrazu; każda ma własną numerację („Mapa 1”, „Mapa
+        //: 2” obok „Rysunek 1”, „Rysunek 2”). Podpis jest akapitem stylu „Podpis”.
+        labels = tr("A label is a kind of image, and each has its own numbering (\"Map 1\", "
+                    "\"Map 2\" next to \"Figure 1\", \"Figure 2\"). The caption is a paragraph "
+                    "in the style Caption.");
+    }
+    contentLayout()->addWidget(hintLabel(labels, this));
     contentLayout()->addStretch(1);
 
     // An image with a caption can lose it; a new one goes in without one

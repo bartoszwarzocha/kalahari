@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file text_source_adapter.h
 /// @brief Abstract text source interface for EditorRenderPipeline (OpenSpec #00043 Phase 12.1)
@@ -34,12 +35,6 @@ namespace kalahari::editor {
 
 // Forward declarations
 class KalahariTextDocumentLayout;
-
-/// @brief The hint an empty paragraph shows (ITextSource::paragraphHint())
-struct ParagraphHint {
-    QString text;  ///< What to write there; empty: none
-    QFont font;    ///< As the text of the paragraph would be
-};
 
 /// @brief A cell of a table's grid: its row and column, the rows and columns it spans, and
 ///        its background
@@ -140,12 +135,6 @@ public:
         size_t /*index*/) const {
         return {};
     }
-
-    /// @brief The hint an empty paragraph shows under a heading of a point of the skeleton
-    ///        (skeletonHintOf()), in the font its text would have
-    /// @param index Paragraph index (0-based)
-    /// @note Sources without a skeleton have none
-    [[nodiscard]] virtual ParagraphHint paragraphHint(size_t /*index*/) const { return {}; }
 
     /// @brief The text of a paragraph with colors of its own, and of its links
     ///        (character_format.h)
@@ -270,6 +259,10 @@ public:
     /// @brief Number of pages the text fills (1 without page flow)
     [[nodiscard]] virtual int pageCount() const { return 1; }
 
+    /// @brief The places of the tab guides of the text from the left edge of the text
+    ///        (document units, tab_guides.h); none in sources without them
+    [[nodiscard]] virtual std::vector<double> tabGuidePositions() const { return {}; }
+
     /// @brief What the numbers on the margin count before a paragraph (see MarginCounts)
     /// @param index Paragraph index; paragraphCount(): the whole text
     /// @note Sources without the count take every paragraph for one line with text
@@ -308,7 +301,6 @@ public:
     [[nodiscard]] std::vector<TextHighlight> paragraphHighlights(size_t index) const override;
     [[nodiscard]] std::vector<AnnotationMark> paragraphAnnotationMarks(size_t index) const override;
     [[nodiscard]] std::vector<FormattingMark> paragraphFormattingMarks(size_t index) const override;
-    [[nodiscard]] ParagraphHint paragraphHint(size_t index) const override;
     [[nodiscard]] std::vector<ColoredText> paragraphColors(size_t index) const override;
     void drawListMarker(QPainter* painter, size_t index) const override;
 
@@ -336,6 +328,7 @@ public:
     [[nodiscard]] double paragraphSpacing() const override;
     void setPageFlow(const PageFlow& flow) override;
     [[nodiscard]] int pageCount() const override;
+    [[nodiscard]] std::vector<double> tabGuidePositions() const override;
     [[nodiscard]] MarginCounts marginCountsBefore(size_t index) const override;
     [[nodiscard]] bool isNumberedParagraph(size_t index) const override;
 

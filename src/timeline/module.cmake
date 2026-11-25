@@ -1,7 +1,8 @@
 # Timelines of the Workshop: a module of their own
 #
 # The program knows it only by its provider of the editor "timeline" of the window kinds
-# (core::IWindowEditorProvider), which registerTimelineModule() registers; nothing else of
+# (core::IWindowEditorProvider) and by its chronology of the Book Plan
+# (gui::IPlanChronologyProvider), which registerTimelineModule() registers; nothing else of
 # the program names its classes.
 
 # The model: the time of the story, the timeline, its file and its axis (Qt Core only)
@@ -27,6 +28,10 @@ set(KALAHARI_TIMELINE_GUI_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/timeline_dialogs.cpp    # The windows "Event" and "Timeline"
     ${CMAKE_CURRENT_LIST_DIR}/timeline_editor.cpp     # The tab: its bar, views, messages
     ${CMAKE_CURRENT_LIST_DIR}/timeline_settings_page.cpp  # Settings > Timelines
+    ${CMAKE_CURRENT_LIST_DIR}/plan_chronology_layout.cpp   # The chronology of the Book Plan
+    ${CMAKE_CURRENT_LIST_DIR}/plan_chronology_grid.cpp     # Its cards: painting, keys
+    ${CMAKE_CURRENT_LIST_DIR}/plan_chronology_dialogs.cpp  # Its windows: a card, the periods
+    ${CMAKE_CURRENT_LIST_DIR}/plan_chronology_view.cpp     # Its options and commands
     ${CMAKE_CURRENT_LIST_DIR}/timeline_module.cpp     # The provider of the editor "timeline"
     # Headers with Q_OBJECT (for AUTOMOC)
     ${CMAKE_CURRENT_LIST_DIR}/../../include/kalahari/timeline/timeline_document.h
@@ -36,4 +41,5 @@ set(KALAHARI_TIMELINE_GUI_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/../../include/kalahari/timeline/timeline_dialogs.h
     ${CMAKE_CURRENT_LIST_DIR}/../../include/kalahari/timeline/timeline_editor.h
     ${CMAKE_CURRENT_LIST_DIR}/../../include/kalahari/timeline/timeline_settings_page.h
+    ${CMAKE_CURRENT_LIST_DIR}/../../include/kalahari/timeline/plan_chronology_view.h
 )

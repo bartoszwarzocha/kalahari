@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file relations_box.h
 /// @brief The relations of a card of a character, a location or an item with the other cards
@@ -78,6 +79,10 @@ public:
     /// @brief The menu of a row, filled when it opens
     [[nodiscard]] QMenu* rowMenu() const { return m_menu; }
 
+    /// @brief Show @p offer under the relations: what a module offers after a new relation
+    /// (core::IWindowEditorProvider::relationAdded()); the offer closes itself
+    void showOffer(QWidget* offer);
+
 public slots:
     /// @brief Open the window Relation for a new relation of the card
     void addRelation();
@@ -94,6 +99,11 @@ signals:
 
     /// @brief Card @p cardId was made in the window Relation: the Navigator shows it
     void cardAdded(const QString& cardId);
+
+    /// @brief Relation @p relationId of card @p cardId with card @p otherId was added in the
+    /// window Relation: a module may offer something under the relations (showOffer())
+    void relationAdded(kalahari::gui::RelationsBox* box, const QString& cardId,
+                       const QString& otherId, const QString& relationId);
 
 protected:
     /// @brief Insert, Delete, F2 and Enter of the list

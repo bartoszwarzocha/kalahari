@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file document_windows.cpp
 /// @brief The texts of the book window in its tabs and in the windows of their own the tabs are
@@ -318,6 +319,7 @@ void DocumentWindows::updateFront() {
     if (m_commands != nullptr && m_commands->getCommand(MOVE_TAB_COMMAND) != nullptr) {
         m_commands->updateActionState(MOVE_TAB_COMMAND);
         m_commands->updateActionState(RETURN_TAB_COMMAND);
+        m_commands->updateActionState(TAB_LIST_COMMAND);
     }
     emit frontChanged(page);
 }
@@ -756,6 +758,40 @@ int DocumentWindows::registerCommands(CommandRegistry& registry,
             if (DocumentWindows* w = windows()) emit w->settingsRequested();
         },
         nullptr);
+
+    // Why the commands of the tab in front are greyed out (test of 22.11: no explanation)
+    if (Command* move = registry.getCommand(MOVE_TAB_COMMAND)) {
+        move->disabledReason = [windows]() {
+            DocumentWindows* w = windows();
+            QWidget* page = w != nullptr ? w->frontPage() : nullptr;
+            if (page == nullptr) {
+                //: Why Window > Move Tab to New Window is greyed out. In Polish: Żadna karta
+                //: nie jest otwarta
+                return tr("No tab is open");
+            }
+            if (!canDetach(page)) {
+                //: Why Window > Move Tab to New Window is greyed out over the Dashboard. In
+                //: Polish: Do osobnego okna można przenieść tylko kartę tekstu
+                return tr("Only the tab of a text moves to a window of its own");
+            }
+            //: Why Window > Move Tab to New Window is greyed out. In Polish: Karta jest
+            //: jedyna w swoim oknie
+            return w->isDetached(page) ? tr("The tab is alone in a window of its own")
+                                       : QString();
+        };
+    }
+    if (Command* back = registry.getCommand(RETURN_TAB_COMMAND)) {
+        back->disabledReason = [windows]() {
+            //: Why Window > Return Tab to Book Window is greyed out. In Polish: Karta na
+            //: wierzchu jest w oknie książki
+            return windows() != nullptr ? tr("The tab in front is in the book window")
+                                        : QString();
+        };
+    }
+    if (Command* list = registry.getCommand(TAB_LIST_COMMAND)) {
+        //: Why Window > Tab List is greyed out. In Polish: Żadna karta nie jest otwarta
+        list->disabledReason = []() { return tr("No tab is open"); };
+    }
     return count;
 }
 
@@ -1004,12 +1040,11 @@ void DetachedWindow::updatePageStatus() {
         m_zoomLabel->hide();
         return;
     }
-    const int total = bookEditor->totalPages();
-    m_pageLabel->setVisible(total > 0);
-    if (total > 0) {
-        //: The status bar of a window of its own, as that of the book window. In Polish:
-        //: Strona %1 z %2
-        m_pageLabel->setText(tr("Page %1 of %2").arg(bookEditor->currentPage()).arg(total));
+    // As the status bar of the book window
+    const QString page = editor->pageStatus();
+    m_pageLabel->setVisible(!page.isEmpty());
+    if (!page.isEmpty()) {
+        m_pageLabel->setText(page);
     }
     m_zoomLabel->setText(tr("%1%").arg(qRound(bookEditor->zoomFactor() * 100.0)));
     m_zoomLabel->show();

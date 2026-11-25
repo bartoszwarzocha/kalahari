@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file timeline_axis_view.h
 /// @brief The axis of a timeline: its lanes and events, the keys and the mouse that change them
@@ -72,6 +73,9 @@ public:
     void startEditing(const QString& id, const QString& seed = QString());
     [[nodiscard]] bool isEditing() const;
 
+    /// @brief What the axis says while the timeline has no events: how to add the first
+    [[nodiscard]] static QString emptyHint();
+
     // The changes of the keys and the menus
     void addAfterSelected();
     void removeSelected();
@@ -143,6 +147,7 @@ private:
     void paintHeads(QPainter& painter) const;
     void paintItem(QPainter& painter, const TimelineItem& item, bool tray) const;
     void paintDrag(QPainter& painter) const;
+    void paintEmptyHint(QPainter& painter) const;
 
     // Keys and the mouse (timeline_axis_view_input.cpp)
     void selectNeighbour(int direction);

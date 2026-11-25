@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file info_bar.cpp
 /// @brief A message across the text area: an icon, the message, a button and a close button
@@ -25,6 +26,7 @@ constexpr int ICON_SIZE = 20;
 
 InfoBar::InfoBar(QWidget* parent)
     : QFrame(parent)
+    , m_iconId(QStringLiteral("help.about"))
 {
     setObjectName(QStringLiteral("infoBar"));
     setFrameShape(QFrame::StyledPanel);
@@ -51,6 +53,11 @@ InfoBar::InfoBar(QWidget* parent)
     m_actionButton->hide();
     layout->addWidget(m_actionButton);
 
+    m_secondButton = new QPushButton(this);
+    m_secondButton->setCursor(Qt::PointingHandCursor);
+    m_secondButton->hide();
+    layout->addWidget(m_secondButton);
+
     m_closeButton = new QToolButton(this);
     m_closeButton->setAutoRaise(true);
     m_closeButton->setFixedSize(ICON_SIZE, ICON_SIZE);
@@ -59,6 +66,7 @@ InfoBar::InfoBar(QWidget* parent)
     layout->addWidget(m_closeButton);
 
     connect(m_actionButton, &QPushButton::clicked, this, &InfoBar::actionClicked);
+    connect(m_secondButton, &QPushButton::clicked, this, &InfoBar::secondActionClicked);
     connect(m_closeButton, &QToolButton::clicked, this, &InfoBar::dismissed);
 
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this, [this]() {
@@ -67,6 +75,14 @@ InfoBar::InfoBar(QWidget* parent)
     });
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &InfoBar::updateIcons);
+    // The colors of the "editor" section the writer changes (setColorKeys(),
+    // setEmphasisColorKeys())
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::editorColorsChanged, this,
+            [this]() {
+                if (!m_backgroundKey.empty() || !m_textKey.empty()) {
+                    updateStyling();
+                }
+            });
 
     updateStyling();
     updateIcons();
@@ -98,19 +114,96 @@ void InfoBar::setActionEnabled(bool enabled)
     m_actionButton->setEnabled(enabled);
 }
 
+void InfoBar::setSecondActionText(const QString& text)
+{
+    m_secondButton->setText(text);
+    m_secondButton->setVisible(!text.isEmpty());
+}
+
+void InfoBar::setSecondActionToolTip(const QString& toolTip)
+{
+    m_secondButton->setToolTip(toolTip);
+}
+
+void InfoBar::setIconId(const QString& iconId)
+{
+    if (iconId == m_iconId) {
+        return;
+    }
+    m_iconId = iconId;
+    updateIcons();
+}
+
+void InfoBar::showSettingsButton(const QString& toolTip)
+{
+    if (m_settingsButton == nullptr) {
+        m_settingsButton = new QToolButton(this);
+        m_settingsButton->setObjectName(QStringLiteral("infoBarSettings"));
+        m_settingsButton->setAutoRaise(true);
+        m_settingsButton->setFixedSize(ICON_SIZE, ICON_SIZE);
+        m_settingsButton->setCursor(Qt::PointingHandCursor);
+        // Before the close button, which ends the bar
+        if (auto* row = qobject_cast<QHBoxLayout*>(layout())) {
+            row->insertWidget(row->indexOf(m_closeButton), m_settingsButton);
+        }
+        connect(m_settingsButton, &QToolButton::clicked, this, &InfoBar::settingsClicked);
+        updateIcons();
+    }
+    m_settingsButton->setToolTip(toolTip);
+    m_settingsButton->setAccessibleName(toolTip);
+}
+
+void InfoBar::setColorKeys(const std::string& backgroundKey, const std::string& borderKey)
+{
+    m_backgroundKey = backgroundKey;
+    m_borderKey = borderKey;
+    updateStyling();
+}
+
+void InfoBar::setEmphasisColorKeys(const std::string& textKey, const std::string& actionKey,
+                                   const std::string& actionTextKey)
+{
+    m_textKey = textKey;
+    m_actionKey = actionKey;
+    m_actionTextKey = actionTextKey;
+    updateStyling();
+}
+
 void InfoBar::updateStyling()
 {
-    const auto& theme = core::ThemeManager::getInstance().getCurrentTheme();
+    const auto& themes = core::ThemeManager::getInstance();
+    const auto& theme = themes.getCurrentTheme();
 
-    // A subtle info color scheme; the theme resolves the light and dark values. The rule is
-    // the bar's own: its labels (frames too) get no border of their own.
-    setStyleSheet(QString("QFrame#infoBar { background-color: %1; border: 1px solid %2; "
-                          "border-radius: 4px; }")
-                      .arg(theme.colors.infoBarBackground.name(),
-                           theme.colors.infoBarBorder.name()));
+    // A subtle info color scheme; the theme resolves the light and dark values, or the colors
+    // of setColorKeys() do, which the writer can change. The rule is the bar's own: its labels
+    // (frames too) get no border of their own. It names the class, not the object: a bar with
+    // a name of its own (the notifications, the plot board) keeps its colors.
+    const QColor background = m_backgroundKey.empty()
+                                  ? theme.colors.infoBarBackground
+                                  : themes.editorColor(m_backgroundKey,
+                                                       theme.colors.infoBarBackground);
+    const QColor border = m_borderKey.empty()
+                              ? theme.colors.infoBarBorder
+                              : themes.editorColor(m_borderKey, theme.colors.infoBarBorder);
+    setStyleSheet(QString("kalahari--gui--InfoBar { background-color: %1; "
+                          "border: 1px solid %2; border-radius: 4px; }")
+                      .arg(background.name(), border.name()));
 
+    const QColor text = m_textKey.empty()
+                            ? theme.palette.windowText
+                            : themes.editorColor(m_textKey, theme.palette.windowText);
     m_messageLabel->setStyleSheet(QString("QLabel { color: %1; background: transparent; }")
-                                      .arg(theme.palette.windowText.name()));
+                                      .arg(text.name()));
+    // Both buttons alike (Undo and Save All after Replace All in Book)
+    const QString buttons = actionButtonStyle();
+    m_actionButton->setStyleSheet(buttons);
+    m_secondButton->setStyleSheet(buttons);
+}
+
+QString InfoBar::actionButtonStyle() const
+{
+    const auto& themes = core::ThemeManager::getInstance();
+    const auto& theme = themes.getCurrentTheme();
 
     // Greyed out as the theme greys out every button (Theme::Palette::toQPalette): the style
     // sheet takes the place of the palette, and without its own colors a disabled button
@@ -124,29 +217,43 @@ void InfoBar::updateStyling()
             .arg(color.blue())
             .arg(color.alpha());
     };
-    m_actionButton->setStyleSheet(QString("QPushButton { background-color: %1; color: %2; "
-                                          "border: 1px solid %3; border-radius: 3px; "
-                                          "padding: 4px 12px; } "
-                                          "QPushButton:hover { background-color: %4; } "
-                                          "QPushButton:pressed { background-color: %5; } "
-                                          "QPushButton:disabled { background-color: %6; "
-                                          "color: %7; border-color: %8; }")
-                                      .arg(theme.palette.button.name(),
-                                           theme.palette.buttonText.name(),
-                                           theme.palette.mid.name(), theme.palette.light.name(),
-                                           theme.palette.mid.name())
-                                      .arg(disabled(QPalette::Button),
-                                           disabled(QPalette::ButtonText),
-                                           disabled(QPalette::Mid)));
+    const QString disabledRule = QString("QPushButton:disabled { background-color: %1; "
+                                         "color: %2; border-color: %3; }")
+                                     .arg(disabled(QPalette::Button),
+                                          disabled(QPalette::ButtonText),
+                                          disabled(QPalette::Mid));
+    if (!m_actionKey.empty()) {
+        // Filled with its own color, in bold: seen at once next to the message
+        const QColor fill = themes.editorColor(m_actionKey, theme.palette.highlight);
+        const QColor label = themes.editorColor(m_actionTextKey, theme.palette.highlightedText);
+        return QString("QPushButton { background-color: %1; color: %2; border: 1px solid %3; "
+                       "border-radius: 3px; padding: 4px 14px; font-weight: bold; } "
+                       "QPushButton:hover { background-color: %4; } "
+                       "QPushButton:pressed { background-color: %3; } ")
+                   .arg(fill.name(), label.name(), fill.darker(125).name(),
+                        fill.lighter(112).name()) +
+               disabledRule;
+    }
+    return QString("QPushButton { background-color: %1; color: %2; border: 1px solid %3; "
+                   "border-radius: 3px; padding: 4px 12px; } "
+                   "QPushButton:hover { background-color: %4; } "
+                   "QPushButton:pressed { background-color: %5; } ")
+               .arg(theme.palette.button.name(), theme.palette.buttonText.name(),
+                    theme.palette.mid.name(), theme.palette.light.name(),
+                    theme.palette.mid.name()) +
+           disabledRule;
 }
 
 void InfoBar::updateIcons()
 {
     auto& artProvider = core::ArtProvider::getInstance();
 
-    // The info icon (help.about uses info.svg)
-    m_iconLabel->setPixmap(artProvider.getThemedIcon("help.about").pixmap(ICON_SIZE, ICON_SIZE));
+    // The info icon by default (help.about uses info.svg)
+    m_iconLabel->setPixmap(artProvider.getThemedIcon(m_iconId).pixmap(ICON_SIZE, ICON_SIZE));
     m_closeButton->setIcon(artProvider.getIcon("dock.close", core::IconContext::Button));
+    if (m_settingsButton != nullptr) {
+        m_settingsButton->setIcon(artProvider.getIcon("dock.settings", core::IconContext::Button));
+    }
 }
 
 } // namespace kalahari::gui

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_command_shortcuts.cpp
 /// @brief The keyboard shortcuts of the application's commands
@@ -180,6 +181,17 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"format.alignCenter", QStringLiteral("Ctrl+E")},
         {"format.alignRight", QStringLiteral("Ctrl+R")},
         {"format.justify", QStringLiteral("Ctrl+J")},
+#ifdef Q_OS_MACOS
+        // Option+Shift+Cmd, as the pastes: Option+Shift with an arrow selects words
+        {"format.tabGuide.toggle", QStringLiteral("Ctrl+Alt+Shift+G")},
+        {"format.tabGuide.moveLeft", QStringLiteral("Ctrl+Alt+Shift+Left")},
+        {"format.tabGuide.moveRight", QStringLiteral("Ctrl+Alt+Shift+Right")},
+#else
+        // The tab guides: Alt+Shift with G and the arrows, free in the program and the systems
+        {"format.tabGuide.toggle", QStringLiteral("Alt+Shift+G")},
+        {"format.tabGuide.moveLeft", QStringLiteral("Alt+Shift+Left")},
+        {"format.tabGuide.moveRight", QStringLiteral("Alt+Shift+Right")},
+#endif
         {"format.bullets", QStringLiteral("Shift+F12")},  // as in LibreOffice
         {"format.numbering", QStringLiteral("F12")},
 #ifdef Q_OS_MACOS
@@ -195,6 +207,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"tools.spellcheck", QStringLiteral("Shift+F7")},
         {"tools.nextMisspelling", QStringLiteral("F7")},
         {"tools.nextRepetition", QStringLiteral("Ctrl+Shift+F7")},
+        {"tools.publishing.linkPoint", QStringLiteral("Ctrl+Shift+D")},
         {"view.navigator", QStringLiteral("F2")},
         {"view.log", QStringLiteral("F4")},
         {"view.search", QStringLiteral("F5")},

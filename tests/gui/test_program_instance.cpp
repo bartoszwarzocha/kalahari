@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_program_instance.cpp
 /// @brief One program for the writer: a later start hands its request to the program that
@@ -13,6 +14,7 @@
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFile>
+#include <QFileOpenEvent>
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QThread>
@@ -240,4 +242,24 @@ TEST_CASE("The channel is the same for every start of the program", "[gui][progr
     const QString key = ProgramInstance::defaultKey();
     CHECK(key == ProgramInstance::defaultKey());
     CHECK(key.startsWith(QStringLiteral("kalahari-")));
+}
+
+TEST_CASE("A book opened in Finder is a request like a later start's", "[gui][program_instance]")
+{
+    // macOS sends the file opened in Finder to the application as an event
+    ProgramInstance program(testKey());
+    QStringList requests;
+    QObject::connect(&program, &ProgramInstance::requested,
+                     [&requests](const QString& path) { requests << path; });
+
+    QFileOpenEvent opened(QStringLiteral("/Books/Novel/Novel.klh"));
+    CHECK(QCoreApplication::sendEvent(QCoreApplication::instance(), &opened));
+    CHECK(requests == QStringList{QStringLiteral("/Books/Novel/Novel.klh")});
+
+    // An event without a file, and the same event sent to another object, are not requests
+    QFileOpenEvent empty(QString{});
+    QCoreApplication::sendEvent(QCoreApplication::instance(), &empty);
+    QObject other;
+    QCoreApplication::sendEvent(&other, &opened);
+    CHECK(requests.size() == 1);
 }

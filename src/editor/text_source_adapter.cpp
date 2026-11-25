@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file text_source_adapter.cpp
 /// @brief Implementation of ITextSource adapters (OpenSpec #00043 Phase 12.1)
@@ -8,7 +9,6 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_data.h>
 #include <kalahari/editor/text_link.h>
-#include <kalahari/editor/text_skeleton.h>
 #include <kalahari/editor/text_tables.h>
 #include <QPainter>
 #include <QTextDocument>
@@ -105,17 +105,6 @@ std::vector<AnnotationMark> QTextDocumentSource::paragraphAnnotationMarks(size_t
 
 std::vector<FormattingMark> QTextDocumentSource::paragraphFormattingMarks(size_t index) const {
     return formattingMarksOf(blockAt(index));
-}
-
-ParagraphHint QTextDocumentSource::paragraphHint(size_t index) const {
-    const QTextBlock block = blockAt(index);
-    QString text = skeletonHintOf(block);
-    if (text.isEmpty()) {
-        return {};
-    }
-    const KalahariTextDocumentLayout* layout = kalahariLayout();
-    return {std::move(text),
-            layout != nullptr ? layout->paragraphFont(block) : m_document->defaultFont()};
 }
 
 std::vector<ColoredText> QTextDocumentSource::paragraphColors(size_t index) const {
@@ -449,6 +438,11 @@ void QTextDocumentSource::setPageFlow(const PageFlow& flow) {
 int QTextDocumentSource::pageCount() const {
     const auto* layout = kalahariLayout();
     return layout ? layout->pageCount() : 1;
+}
+
+std::vector<double> QTextDocumentSource::tabGuidePositions() const {
+    const auto* layout = kalahariLayout();
+    return layout != nullptr ? layout->tabGuidePositions() : std::vector<double>{};
 }
 
 MarginCounts QTextDocumentSource::marginCountsBefore(size_t index) const {

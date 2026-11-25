@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plot_board_panel_header.cpp
 /// @brief PlotBoardPanel: the switches over the board and the outline, their gear, and their
@@ -9,6 +10,7 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/gui/panels/plot_board_panel.h"
+#include "kalahari/gui/plan_chronology.h"
 #include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/plot_outline_model.h"
 #include "kalahari/gui/widgets/flow_layout.h"
@@ -160,11 +162,20 @@ void PlotBoardPanel::buildHeader(QWidget* header) {
     m_boardButton = switchButton(tr("Board"), "plotBoardShowBoard", header);
     //: The switch: the table of the texts. In Polish: Konspekt
     m_outlineButton = switchButton(tr("Outline"), "plotBoardShowOutline", header);
+    //: The switch: the scenes in the order of the story. In Polish: Chronologia
+    m_chronologyButton = switchButton(tr("Chronology"), "plotBoardShowChronology", header);
+    m_chronologyButton->setVisible(planChronologyProvider() != nullptr);
     auto* views = new QButtonGroup(header);
     views->addButton(m_boardButton);
     views->addButton(m_outlineButton);
+    views->addButton(m_chronologyButton);
     flow->addWidget(m_boardButton);
     flow->addWidget(m_outlineButton);
+    flow->addWidget(m_chronologyButton);
+    connect(m_chronologyButton, &QToolButton::clicked, this, [this]() {
+        showView(QString::fromLatin1(PlotBoard::VIEW_CHRONOLOGY));
+        setSetting(PlotBoard::VIEW_SETTING, PlotBoard::VIEW_CHRONOLOGY);
+    });
     connect(m_boardButton, &QToolButton::clicked, this, [this]() {
         showView(QString::fromLatin1(PlotBoard::VIEW_BOARD));
         setSetting(PlotBoard::VIEW_SETTING, PlotBoard::VIEW_BOARD);
@@ -230,6 +241,7 @@ void PlotBoardPanel::buildHeader(QWidget* header) {
     // What colors the cards
     //: What colors the cards of the plot board. In Polish: &Kolory:
     auto* colorLabel = new QLabel(tr("&Colors:"), header);
+    m_colorLabel = colorLabel;
     m_colorBy = new QComboBox(header);
     m_colorBy->setObjectName(QStringLiteral("plotBoardColorBy"));
     colorLabel->setBuddy(m_colorBy);
@@ -280,9 +292,16 @@ void PlotBoardPanel::applySettings() {
                                 ? PlotBoardView::Arrangement::Grid
                                 : PlotBoardView::Arrangement::Columns);
     m_board->setCardSize(cardSizeOf(setting(PlotBoard::SIZE_SETTING)));
+    const bool tint =
+        setting(PlotBoard::COLOR_PLACE_SETTING) == QLatin1String(PlotBoard::COLOR_TINT);
     m_board->setColoring(setting(PlotBoard::COLOR_SETTING), PlotColors::current());
-    m_board->setTint(setting(PlotBoard::COLOR_PLACE_SETTING) ==
-                     QLatin1String(PlotBoard::COLOR_TINT));
+    m_board->setTint(tint);
+    // The outline shows the colors of the cards too (test of 23.11)
+    m_model->setColoring(setting(PlotBoard::COLOR_SETTING), PlotColors::current(), tint);
+    // The cards of the chronology have the colors of the board
+    if (m_chronology != nullptr) {
+        m_chronology->setCards(chronologyCards());
+    }
     m_board->setBackground(backgroundOf(setting(PlotBoard::BACKGROUND_SETTING)));
     m_board->setFields(fieldsOf(core::SettingsManager::getInstance()));
     const bool scenes =
@@ -293,6 +312,8 @@ void PlotBoardPanel::applySettings() {
         core::SettingsManager::getInstance().get<bool>(PlotBoard::SECTIONS_SETTING, false));
     applyOutlineColumns();
     updateSwitches();
+    m_board->setScenesVariant(PlotBoard::scenesVariant());
+    updateCommands();
     // Other scenes are other cards
     if (const QString variant = PlotBoard::scenesVariant(); variant != m_scenesVariant) {
         const bool changed = !m_scenesVariant.isEmpty();
@@ -305,8 +326,17 @@ void PlotBoardPanel::applySettings() {
 
 void PlotBoardPanel::updateSwitches() {
     const bool outline = m_stack->currentWidget() == m_outline;
-    m_boardButton->setChecked(!outline);
+    const bool chronology = showsChronology();
+    m_boardButton->setChecked(!outline && !chronology);
     m_outlineButton->setChecked(outline);
+    m_chronologyButton->setChecked(chronology);
+    // The chronology has its own options and commands
+    m_commandBar->setVisible(!chronology);
+    for (QWidget* widget :
+         {static_cast<QWidget*>(m_scenesButton), static_cast<QWidget*>(m_colorLabel),
+          static_cast<QWidget*>(m_colorBy), static_cast<QWidget*>(m_totals)}) {
+        widget->setVisible(!chronology);
+    }
     m_scenesButton->setChecked(m_board->showsScenes());
     // The look of the cards is the board's
     for (QWidget* widget : {static_cast<QWidget*>(m_layoutLabel),
@@ -316,7 +346,7 @@ void PlotBoardPanel::updateSwitches() {
                             static_cast<QWidget*>(m_smallButton),
                             static_cast<QWidget*>(m_mediumButton),
                             static_cast<QWidget*>(m_largeButton)}) {
-        widget->setVisible(!outline);
+        widget->setVisible(!outline && !chronology);
     }
     m_outlineColumnsButton->setVisible(outline);
     const bool grid = m_board->arrangement() == PlotBoardView::Arrangement::Grid;
@@ -360,9 +390,9 @@ QToolButton* PlotBoardPanel::buildSettingsButton(QWidget* header) const {
     auto* button = new QToolButton(header);
     button->setObjectName(QStringLiteral("plotBoardSettings"));
     button->setAutoRaise(true);
-    //: The gear over the plot board and the outline: Settings > Plot Board. In Polish:
-    //: Ustawienia tablicy fabuły
-    button->setToolTip(tr("Plot Board Settings"));
+    //: The gear over the plan of the book: Settings > Book Plan. In Polish: Ustawienia planu
+    //: książki
+    button->setToolTip(tr("Book Plan Settings"));
     button->setAccessibleName(button->toolTip());
     const auto refreshIcon = [button]() {
         button->setIcon(core::ArtProvider::getInstance().getIcon(

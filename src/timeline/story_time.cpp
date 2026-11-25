@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file story_time.cpp
 /// @brief The time of a story: its days of the calendar, its place on a time axis, its text in
@@ -202,6 +203,71 @@ QString englishCount(int count, const char* one, const char* many) {
     return QString::fromLatin1(count == 1 ? one : many);
 }
 
+/// The index of month @p month of year @p year among all months, and back
+int monthIndex(int year, int month) {
+    return year * MONTHS + (month - 1);
+}
+
+CalendarDay monthOfIndex(int index) {
+    const int year = index >= 0 ? index / MONTHS : (index - (MONTHS - 1)) / MONTHS;
+    return CalendarDay{year, index - year * MONTHS + 1, 1};
+}
+
+/// The Julian day of the last day of the month of @p day
+std::optional<qint64> lastDayOfMonth(const CalendarDay& day) {
+    const std::optional<qint64> next =
+        monthOfIndex(monthIndex(day.year, day.month) + 1).julianDay();
+    if (!next) {
+        return std::nullopt;
+    }
+    return *next - 1;
+}
+
+/// The seasons as the program writes them, from spring: "wiosna", "spring"
+QString seasonName(int index, TimeLanguage language) {
+    static const std::array<const char*, 4> polish{"wiosna", "lato", "jesień", "zima"};
+    static const std::array<const char*, 4> english{"spring", "summer", "autumn", "winter"};
+    const auto at = static_cast<std::size_t>(index);
+    return language == TimeLanguage::Polish ? QString::fromUtf8(polish.at(at))
+                                            : QString::fromLatin1(english.at(at));
+}
+
+/// Months in a row: "wiosna 1931", "zima 1931" (December 1930 to February 1931), "pierwsza
+/// połowa 1931", "marzec – maj 1931", "listopad 1931 – luty 1932"
+QString monthsText(const CalendarDay& from, const CalendarDay& to, TimeLanguage language) {
+    const bool polish = language == TimeLanguage::Polish;
+    const int count = monthIndex(to.year, to.month) - monthIndex(from.year, from.month) + 1;
+    constexpr int SEASON = 3;
+    constexpr int HALF = 6;
+    constexpr int WINTER = 12;
+    if (count == SEASON && from.month % SEASON == 0) {
+        const int season = from.month == WINTER ? 3 : from.month / SEASON - 1;
+        return QStringLiteral("%1 %2").arg(seasonName(season, language),
+                                           StoryTime::yearText(to.year, language));
+    }
+    if (count == HALF && (from.month == 1 || from.month == HALF + 1)) {
+        const bool firstHalf = from.month == 1;
+        const QString year = StoryTime::yearText(from.year, language);
+        if (polish) {
+            return (firstHalf ? QStringLiteral("pierwsza połowa %1")
+                              : QStringLiteral("druga połowa %1"))
+                .arg(year);
+        }
+        return (firstHalf ? QStringLiteral("first half of %1") : QStringLiteral("second half of %1"))
+            .arg(year);
+    }
+    if (from.year == to.year) {
+        return QStringLiteral("%1 %2 %3 %4")
+            .arg(StoryTime::monthName(from.month, language), DASH,
+                 StoryTime::monthName(to.month, language),
+                 StoryTime::yearText(to.year, language));
+    }
+    return QStringLiteral("%1 %2 %3 %4 %5")
+        .arg(StoryTime::monthName(from.month, language),
+             StoryTime::yearText(from.year, language), DASH,
+             StoryTime::monthName(to.month, language), StoryTime::yearText(to.year, language));
+}
+
 /// The day of a file: "1931-04-14", "-0043-03-15", "1931-04", "1931"
 QString fileDay(qint64 julianDay, StoryTime::Precision precision) {
     const CalendarDay day = CalendarDay::of(julianDay);
@@ -299,11 +365,42 @@ StoryTime StoryTime::day(qint64 julianDay) {
     return time;
 }
 
+std::optional<StoryTime> StoryTime::monthsInRow(int year, int month, int count) {
+    if (month < 1 || month > MONTHS || count < 1) {
+        return std::nullopt;
+    }
+    const std::optional<qint64> first = CalendarDay{year, month, 1}.julianDay();
+    const std::optional<qint64> last =
+        lastDayOfMonth(monthOfIndex(monthIndex(year, month) + count - 1));
+    if (!first || !last) {
+        return std::nullopt;
+    }
+    StoryTime time = day(*first);
+    time.precision = Precision::Month;
+    if (count > 1) {
+        time.last = *last;
+    }
+    return time;
+}
+
+int StoryTime::months() const {
+    if (precision != Precision::Month) {
+        return 0;
+    }
+    if (!isSpan()) {
+        return 1;
+    }
+    const CalendarDay from = CalendarDay::of(first);
+    const CalendarDay to = CalendarDay::of(last);
+    return monthIndex(to.year, to.month) - monthIndex(from.year, from.month) + 1;
+}
+
 double StoryTime::start() const {
     const auto day = static_cast<double>(first);
     switch (precision) {
     case Precision::Month:
-        return day + MIDDLE_OF_MONTH;
+        // Months in a row start at the start of their first day, as days in a row do
+        return isSpan() ? day : day + MIDDLE_OF_MONTH;
     case Precision::Year:
         return day + MIDDLE_OF_YEAR;
     case Precision::Day:
@@ -328,11 +425,16 @@ StoryTime StoryTime::movedByDays(qint64 days) const {
     moved.first += days;
     moved.last += days;
     if (precision != Precision::Day) {
-        // A month or a year starts on its first day
+        // A month or a year starts on its first day; months in a row keep how many they are
         const CalendarDay day = CalendarDay::of(moved.first);
         const CalendarDay start{day.year, precision == Precision::Year ? 1 : day.month, 1};
         moved.first = start.julianDay().value_or(moved.first);
         moved.last = moved.first;
+        if (const int count = months(); count > 1) {
+            if (const std::optional<StoryTime> run = monthsInRow(start.year, start.month, count)) {
+                moved.last = run->last;
+            }
+        }
     }
     return moved;
 }
@@ -352,6 +454,13 @@ StoryTime StoryTime::movedByMonths(int months) const {
     StoryTime moved = *this;
     moved.first = moveDay(first);
     moved.last = isSpan() ? moveDay(last) : moved.first;
+    // Months in a row end on the last day of their last month
+    if (const int count = this->months(); count > 1) {
+        const CalendarDay start = CalendarDay::of(moved.first);
+        if (const std::optional<StoryTime> run = monthsInRow(start.year, start.month, count)) {
+            moved.last = run->last;
+        }
+    }
     if (moved.last < moved.first) {
         moved.last = moved.first;
     }
@@ -366,8 +475,9 @@ QString StoryTime::dateText(const StoryTimeStyle& style) const {
         text = yearText(from.year, style.language);
         break;
     case Precision::Month:
-        text = QStringLiteral("%1 %2").arg(monthName(from.month, style.language),
-                                           yearText(from.year, style.language));
+        text = isSpan() ? monthsText(from, CalendarDay::of(last), style.language)
+                        : QStringLiteral("%1 %2").arg(monthName(from.month, style.language),
+                                                      yearText(from.year, style.language));
         break;
     case Precision::Day:
         text = isSpan() ? daysInRow(from, CalendarDay::of(last), style) : oneDay(from, style);
@@ -465,7 +575,9 @@ QString StoryTime::monthName(int month, TimeLanguage language) {
 QJsonObject StoryTime::toJson() const {
     QJsonObject json{{QStringLiteral("from"), fileDay(first, precision)}};
     if (isSpan()) {
-        json.insert(QStringLiteral("to"), fileDay(last, Precision::Day));
+        json.insert(QStringLiteral("to"),
+                    fileDay(last, precision == Precision::Month ? Precision::Month
+                                                                : Precision::Day));
     }
     if (part == Part::Clock) {
         json.insert(QStringLiteral("part"), clockText(minutes));
@@ -488,10 +600,13 @@ std::optional<StoryTime> StoryTime::fromJson(const QJsonObject& json) {
     time.last = from->julianDay;
     time.precision = from->precision;
     time.approximate = json.value(QStringLiteral("approx")).toBool();
-    if (time.precision == Precision::Day && json.contains(QStringLiteral("to"))) {
+    if (time.precision != Precision::Year && json.contains(QStringLiteral("to"))) {
         const std::optional<FileDay> to = readFileDay(json.value(QStringLiteral("to")).toString());
-        if (to && to->precision == Precision::Day && to->julianDay >= time.first) {
-            time.last = to->julianDay;
+        if (to && to->precision == time.precision && to->julianDay >= time.first) {
+            // Months in a row end on the last day of their last month
+            time.last = time.precision == Precision::Month
+                            ? lastDayOfMonth(CalendarDay::of(to->julianDay)).value_or(time.first)
+                            : to->julianDay;
         }
     }
     if (time.precision == Precision::Day) {

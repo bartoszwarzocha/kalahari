@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file program_instance.cpp
 /// @brief One program for the writer: a later start hands its request to the program that
@@ -13,6 +14,7 @@
 #include <QDeadlineTimer>
 #include <QDir>
 #include <QFile>
+#include <QFileOpenEvent>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocalServer>
@@ -72,6 +74,23 @@ ProgramInstance::ProgramInstance(const QString& key, QObject* parent)
     : QObject(parent)
     , m_key(key)
 {
+    if (QCoreApplication* application = QCoreApplication::instance()) {
+        application->installEventFilter(this);
+    }
+}
+
+bool ProgramInstance::eventFilter(QObject* watched, QEvent* event)
+{
+    if (event->type() == QEvent::FileOpen && watched == QCoreApplication::instance()) {
+        const QString path = static_cast<QFileOpenEvent*>(event)->file();
+        if (!path.isEmpty()) {
+            core::Logger::getInstance().info("ProgramInstance: the system asks to open {}",
+                                             path.toStdString());
+            emit requested(path);
+            return true;
+        }
+    }
+    return QObject::eventFilter(watched, event);
 }
 
 ProgramInstance::~ProgramInstance()

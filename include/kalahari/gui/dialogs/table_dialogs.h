@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file table_dialogs.h
 /// @brief The windows of the Table menu: Split Cells..., Sort..., Text to Table..., Table to
@@ -311,6 +312,8 @@ private:
     LengthSpinBox* m_width = nullptr;
     QButtonGroup* m_alignment = nullptr;
     LengthSpinBox* m_indent = nullptr;
+    LengthSpinBox* m_spaceAbove = nullptr;  ///< The room from the text above the table
+    LengthSpinBox* m_spaceBelow = nullptr;  ///< and below it
 
     // Row
     QLabel* m_rowName = nullptr;

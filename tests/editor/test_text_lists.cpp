@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_text_lists.cpp
 /// @brief Bulleted and numbered lists: the numbers of the items, the formats of the levels and
@@ -370,4 +371,100 @@ TEST_CASE("Paragraph formatting in KML: read and written back", "[editor][kml][p
         CHECK(kmlNumber(-0.001) == QStringLiteral("0"));
         CHECK(kmlNumber(10.0) == QStringLiteral("10"));
     }
+}
+
+// =============================================================================
+// Multilevel numbers, text before the number
+// =============================================================================
+
+TEST_CASE("Lists: the text before the number and the numbers of the levels above",
+          "[editor][lists][multilevel]") {
+    ListDefinition definition = ListDefinition::numbered();
+    definition.levels[0].prefix = QStringLiteral("§ ");
+    definition.levels[1].format = ListNumberFormat::Decimal;
+    definition.levels[1].suffix = QStringLiteral(".");
+    definition.levels[1].shownLevels = 1;
+    definition.levels[2].format = ListNumberFormat::Decimal;
+    definition.levels[2].suffix = QStringLiteral(")");
+    definition.levels[2].prefix = QStringLiteral("(");
+    definition.levels[2].shownLevels = 2;
+
+    CHECK(listMarkerText(definition.levels[0], 3) == QStringLiteral("§ 3."));
+    CHECK(listMarkerText(definition, 0, ListPath{2}) == QStringLiteral("§ 2."));
+    CHECK(listMarkerText(definition, 1, ListPath{2, 3}) == QStringLiteral("2.3."));
+    CHECK(listMarkerText(definition, 2, ListPath{2, 3, 1}) == QStringLiteral("(2.3.1)"));
+    CHECK(ListDefinition::fromString(definition.toString()) == definition);
+    // A level above with bullets shows no number
+    definition.levels[0].format = ListNumberFormat::Bullet;
+    definition.levels[0].bullet = QString(QChar(BULLET_DISC));
+    CHECK(listMarkerText(definition, 1, ListPath{2, 3}) == QStringLiteral("3."));
+    CHECK(listMarkerText(definition, 0, ListPath{2}) == QString(QChar(BULLET_DISC)));
+
+    // The name of a definition: the marks of its first three levels
+    CHECK(listDefinitionSummary(ListDefinition::numbered()) == QStringLiteral("1. – a) – i."));
+    ListDefinition multilevel = ListDefinition::numbered();
+    for (int level = 1; level < 3; ++level) {
+        multilevel.levels[static_cast<size_t>(level)].format = ListNumberFormat::Decimal;
+        multilevel.levels[static_cast<size_t>(level)].suffix = QStringLiteral(".");
+        multilevel.levels[static_cast<size_t>(level)].shownLevels = level;
+    }
+    CHECK(listDefinitionSummary(multilevel) == QStringLiteral("1. – 1.1. – 1.1.1."));
+
+    // Kept as text, and the old text without them still read
+    CHECK(ListDefinition::fromString(multilevel.toString()) == multilevel);
+    CHECK(ListDefinition::fromString(ListDefinition::numbered().toString()) ==
+          ListDefinition::numbered());
+}
+
+TEST_CASE("Lists: the numbers of the items and of the levels above them",
+          "[editor][lists][multilevel]") {
+    ListDefinition multilevel = ListDefinition::numbered();
+    multilevel.levels[1].format = ListNumberFormat::Decimal;
+    multilevel.levels[1].suffix = QStringLiteral(".");
+    multilevel.levels[1].shownLevels = 1;
+    multilevel.levels[2].format = ListNumberFormat::Decimal;
+    multilevel.levels[2].suffix = QStringLiteral(".");
+    multilevel.levels[2].shownLevels = 2;
+    QTextDocument document;
+    fill(document, {{1, 0, std::nullopt, true, multilevel},
+                    {1, 1, std::nullopt, true, multilevel},
+                    {1, 1, std::nullopt, true, multilevel},
+                    {0, 0},
+                    {1, 2, std::nullopt, true, multilevel},
+                    {1, 0, std::nullopt, true, multilevel},
+                    {1, 1, std::nullopt, true, multilevel}});
+    CHECK(listMarkers(document) ==
+          std::vector<QString>{QStringLiteral("1."), QStringLiteral("1.1."),
+                               QStringLiteral("1.2."), QString(), QStringLiteral("1.2.1."),
+                               QStringLiteral("2."), QStringLiteral("2.1.")});
+    const std::vector<std::optional<ListPath>> paths = listPaths(document);
+    REQUIRE(paths.size() == 7);
+    CHECK_FALSE(paths[3].has_value());
+    REQUIRE(paths[4].has_value());
+    CHECK((*paths[4])[0] == 1);
+    CHECK((*paths[4])[1] == 2);
+    CHECK((*paths[4])[2] == 1);
+
+    // A level above without an item yet: the number it starts at
+    QTextDocument deep;
+    fill(deep, {{1, 2, std::nullopt, true, multilevel}});
+    CHECK(listMarkers(deep) == std::vector<QString>{QStringLiteral("1.1.1.")});
+}
+
+TEST_CASE("Lists in KML: the text before the number and the levels shown",
+          "[editor][lists][kml][multilevel]") {
+    const QString kml = QStringLiteral(
+        "<kml><ol prefix=\"§ \"><li>One<ol show-levels=\"1\"><li>One one</li></ol></li>"
+        "<li>Two</li></ol></kml>");
+    BookEditor editor;
+    editor.fromKml(kml);
+    CHECK(markersOf(editor) == std::vector<QString>{QStringLiteral("§ 1."),
+                                                    QStringLiteral("1.1."),
+                                                    QStringLiteral("§ 2.")});
+    CHECK(editor.toKml() == kml);
+    // More levels than there are above: as many as there are
+    CHECK(roundTrip(QStringLiteral("<kml><ol show-levels=\"3\"><li>One</li></ol></kml>")) ==
+          QStringLiteral("<kml><ol><li>One</li></ol></kml>"));
+    CHECK(roundTrip(QStringLiteral("<kml><ol show-levels=\"x\"><li>One</li></ol></kml>")) ==
+          QStringLiteral("<kml><ol><li>One</li></ol></kml>"));
 }

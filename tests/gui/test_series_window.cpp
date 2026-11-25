@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_series_window.cpp
 /// @brief A series in the window: the volumes in the Navigator and the current one, the window
@@ -786,7 +787,7 @@ TEST_CASE("Series: the plot board and the outline show the current volume, chose
     CHECK(outlineTitles(*panel).contains(QStringLiteral("The Oasis")));
     CHECK_FALSE(outlineTitles(*panel).contains(QStringLiteral("The Storm")));
 
-    // Show on the Plot Board of a text of the first volume: the board shows that volume
+    // Show in the Book Plan of a text of the first volume: the board shows that volume
     boards.showOnBoard(novel.chapterId);
     QCoreApplication::processEvents();
     CHECK(novel.pm.book()->id == sand);

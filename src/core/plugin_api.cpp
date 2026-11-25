@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plugin_api.cpp
 /// @brief The kalahari_api module of the Python plugins
@@ -263,7 +264,9 @@ void defineProgram(py::module_& m) {
         [](const std::string& title, const std::string& text) {
             PluginHost::getInstance().showMessage(title, text);
         },
-        py::arg("title"), py::arg("text"), "Show a message to the writer in a window");
+        py::arg("title"), py::arg("text"),
+        "Show a message to the writer as a notification of the program, where the writer's "
+        "settings show them (Settings > Notifications)");
     m.def(
         "program_language", []() { return PluginHost::getInstance().programLanguage(); },
         "The language of the program's windows (\"pl\", \"en\")");

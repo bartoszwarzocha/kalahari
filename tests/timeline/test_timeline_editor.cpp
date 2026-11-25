@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_timeline_editor.cpp
 /// @brief The editor of timelines: the timeline open on its tab with Undo, where the axis
@@ -13,7 +14,9 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/window_editor_provider.h>
+#include <kalahari/gui/icon_registrar.h>
 #include <kalahari/gui/settings/settings_page.h>
+#include <kalahari/gui/widgets/card_bar.h>
 #include <kalahari/timeline/timeline.h>
 #include <kalahari/timeline/timeline_axis_view.h>
 #include <kalahari/timeline/timeline_book_view.h>
@@ -30,12 +33,15 @@
 #include "kalahari_tests/test_support/window_parts.h"
 
 #include <QApplication>
+#include <QAction>
 #include <QComboBox>
+#include <QDialog>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QTemporaryDir>
+#include <QTimer>
 #include <QToolButton>
 #include <QTranslator>
 
@@ -460,6 +466,7 @@ TEST_CASE("Timeline module: the program finds its editor, its new files and its 
     if (!qgetenv("KALAHARI_TIMELINE_SHOT_PL").isEmpty()) {
         polish = std::make_unique<Polish>();
     }
+    kalahari::gui::registerAllIcons();  // the icons of the bar, in the picture
     registerTimelineModule();
     const std::shared_ptr<kalahari::core::IWindowEditorProvider> provider =
         kalahari::core::windowEditorProvider(QStringLiteral("timeline"));
@@ -546,4 +553,146 @@ TEST_CASE("Timeline module: the program finds its editor, its new files and its 
     REQUIRE(book.closeProject(false));
     kalahari::core::ExtensionPointRegistry::getInstance().unregisterPlugin("kalahari.timelines");
     CHECK(kalahari::core::windowEditorProvider(QStringLiteral("timeline")) == nullptr);
+}
+
+TEST_CASE("Timeline editor: the commands of its bar add, move, delete and undo events",
+          "[timeline][editor][gui]") {
+    kalahari::gui::registerAllIcons();
+    registerTimelineModule();
+    const std::shared_ptr<kalahari::core::IWindowEditorProvider> provider =
+        kalahari::core::windowEditorProvider(QStringLiteral("timeline"));
+    REQUIRE(provider != nullptr);
+    const QTemporaryDir dir;
+    auto& book = kalahari::test::book();
+    kalahari::core::ProjectManager::loadBookTypes(
+        {QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    REQUIRE(book.createProject(dir.path(), "Times", "Anna", "pl", true, "kalahari.novel"));
+    const kalahari::core::KindRef kind = book.bookTypes().findKind(
+        QStringLiteral("kalahari.base"), QStringLiteral("timeline"));
+    REQUIRE(kind);
+    const QString id = book.addElement(kind, "Czas akcji", kalahari::core::BookPlace::Workshop);
+    REQUIRE_FALSE(id.isEmpty());
+    const kalahari::core::WindowEditorContext context{book, kalahari::test::commands(), id, {},
+                                                      {}};
+    std::unique_ptr<QWidget> tab(provider->createEditor(context, nullptr));
+    auto* editor = qobject_cast<TimelineEditor*>(tab.get());
+    REQUIRE(editor != nullptr);
+    editor->resize(1100, 600);
+    editor->show();
+    QApplication::processEvents();
+    TimelineDocument& document = editor->document();
+    using Command = TimelineEditor::Command;
+    const auto command = [editor](Command which) { return editor->command(which); };
+    const auto button = [editor](const char* name) {
+        return editor->findChild<QToolButton*>(QString::fromLatin1(name));
+    };
+
+    // Without events: the axis says how to add one; only New Event can be given
+    REQUIRE(document.timeline().events().isEmpty());
+    CHECK_FALSE(TimelineAxisView::emptyHint().isEmpty());
+    CHECK(command(Command::New)->isEnabled());
+    for (const Command which : {Command::Edit, Command::Chapter, Command::Earlier, Command::Later,
+                                Command::Delete, Command::Undo, Command::Redo}) {
+        CHECK_FALSE(command(which)->isEnabled());
+    }
+    // The buttons: the main ones with their names, all with their keys in the tooltip
+    REQUIRE(button("timelineNewEvent") != nullptr);
+    CHECK(button("timelineNewEvent")->toolButtonStyle() == Qt::ToolButtonTextBesideIcon);
+    CHECK(button("timelineDeleteEvent")->toolButtonStyle() == Qt::ToolButtonTextBesideIcon);
+    CHECK(button("timelineUndo")->toolButtonStyle() == Qt::ToolButtonIconOnly);
+    CHECK(command(Command::New)->toolTip() ==
+          kalahari::gui::CardBar::withKeys(command(Command::New)->text(),
+                                           QKeyCombination(Qt::Key_Insert)));
+    CHECK(command(Command::Delete)->toolTip().endsWith(QLatin1Char(')')));
+    CHECK_FALSE(command(Command::New)->icon().isNull());
+    CHECK(button("timelineEarlier")->isVisible());
+
+    // New Event: on the axis, its title typed in place
+    command(Command::New)->trigger();
+    REQUIRE(editor->axis()->isEditing());
+    auto* title = editor->axis()->viewport()->findChild<QLineEdit*>();
+    REQUIRE(title != nullptr);
+    title->setText(QStringLiteral("Burza piaskowa"));
+    press(title, Qt::Key_Return);
+    REQUIRE(document.timeline().events().size() == 1);
+    const QString storm = document.selected();
+    REQUIRE(document.timeline().event(storm) != nullptr);
+    CHECK(document.timeline().event(storm)->title == QStringLiteral("Burza piaskowa"));
+
+    // The event selected: the commands that change it can be given
+    for (const Command which : {Command::Edit, Command::Delete, Command::Undo}) {
+        CHECK(command(which)->isEnabled());
+    }
+    CHECK_FALSE(command(Command::Chapter)->isEnabled());  // in no chapter yet
+
+    // Without a time it waits in the tray: no steps in time
+    CHECK_FALSE(document.timeline().event(storm)->time.has_value());
+    CHECK_FALSE(command(Command::Later)->isEnabled());
+
+    // Later: a step later on the axis; Undo and Redo
+    document.changeEvent(storm, QStringLiteral("time"),
+                         [](TimelineEvent& event) { event.time = StoryTime::day(APRIL_14); });
+    document.select(storm);
+    REQUIRE(command(Command::Later)->isEnabled());
+    command(Command::Later)->trigger();
+    CHECK(document.timeline().event(storm)->time->first == APRIL_14 + 1);
+    command(Command::Undo)->trigger();
+    CHECK(document.timeline().event(storm)->time->first == APRIL_14);
+    CHECK(command(Command::Redo)->isEnabled());
+    command(Command::Redo)->trigger();
+    CHECK(document.timeline().event(storm)->time->first == APRIL_14 + 1);
+    CHECK(command(Command::LaneUp)->isEnabled());
+
+    // Delete the Event, and Undo brings it back
+    document.select(storm);
+    command(Command::Delete)->trigger();
+    CHECK(document.timeline().event(storm) == nullptr);
+    command(Command::Undo)->trigger();
+    CHECK(document.timeline().event(storm) != nullptr);
+
+    // The list: no steps of the axis; New Event adds a row
+    QToolButton* listButton = nullptr;
+    QToolButton* bookButton = nullptr;
+    for (QToolButton* each : editor->findChildren<QToolButton*>()) {
+        if (each->text() == QStringLiteral("List")) {
+            listButton = each;
+        } else if (each->text() == QStringLiteral("Time and the Book")) {
+            bookButton = each;
+        }
+    }
+    REQUIRE(listButton != nullptr);
+    REQUIRE(bookButton != nullptr);
+    listButton->click();
+    QApplication::processEvents();
+    CHECK_FALSE(button("timelineEarlier")->isVisible());
+    CHECK_FALSE(TimelineList::emptyHint().isEmpty());
+    command(Command::New)->trigger();
+    QApplication::processEvents();
+    CHECK(document.timeline().events().size() == 2);
+    command(Command::Undo)->trigger();
+    QApplication::processEvents();
+    CHECK(document.timeline().events().size() == 1);
+
+    // The time and the book: a new event in the window "Event", gone when it is cancelled
+    bookButton->click();
+    QApplication::processEvents();
+    bool asked = false;
+    QTimer::singleShot(0, [&asked]() {
+        if (auto* window = qobject_cast<QDialog*>(QApplication::activeModalWidget())) {
+            asked = true;
+            window->reject();
+        }
+    });
+    press(editor->bookView(), Qt::Key_Insert);
+    CHECK(asked);
+    CHECK(document.timeline().events().size() == 1);
+    // Delete there deletes the event selected
+    document.select(storm);
+    press(editor->bookView(), Qt::Key_Delete);
+    CHECK(document.timeline().event(storm) == nullptr);
+    CHECK_FALSE(command(Command::Delete)->isEnabled());
+
+    tab.reset();
+    REQUIRE(book.closeProject(false));
+    kalahari::core::ExtensionPointRegistry::getInstance().unregisterPlugin("kalahari.timelines");
 }

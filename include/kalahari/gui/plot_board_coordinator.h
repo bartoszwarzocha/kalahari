@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plot_board_coordinator.h
 /// @brief The plot board of the book on its tab in the middle of the window, and the changes
@@ -13,8 +14,10 @@
 #include "kalahari/gui/plot_board.h"
 
 #include <QHash>
+#include <QJsonObject>
 #include <QList>
 #include <QObject>
+#include <QSet>
 #include <QString>
 
 #include <functional>
@@ -116,8 +119,20 @@ public:
     /// its first text; empty: the board as it was
     void showOnBoard(const QString& elementId);
 
+    /// @brief Give text in the plan @p textId its chapter file and open it (Create on its card,
+    /// Create the Chapter File in the Navigator); Ctrl+Z on the board puts it back into the
+    /// plan, its file to the Trash
+    void createFile(const QString& textId);
+
     /// @brief What can be undone and done again on the board
     [[nodiscard]] QUndoStack* undoStack() const { return m_undo; }
+
+    /// @brief The file of the plan of the time of the book in its folder: the events outside
+    /// the text, day one and the periods of the chronology (a timeline, .ktl)
+    static constexpr const char* PLAN_FILE = "book-plan.ktl";
+
+    /// @brief Where the open book keeps the plan of its time (PLAN_FILE); empty: no book
+    [[nodiscard]] QString planPath() const;
 
     /// @brief The card marked to move (Ctrl+X), a text or a scene; empty: none
     [[nodiscard]] QString markedCard() const { return m_marked; }
@@ -159,6 +174,27 @@ private:
 
     void refreshNow();
     void connectBoard(PlotBoardPanel* panel);
+
+    /// @name The plan of the time of the book in the chronology
+    /// (plot_board_coordinator_chronology.cpp)
+    /// @{
+    void connectChronology(PlotBoardPanel* panel);
+    /// @brief The chronology shows the plan of the open book, read from its file once
+    void showPlan();
+    /// @brief The plan in file @p path; a new one when there is none yet
+    [[nodiscard]] static QJsonObject readPlan(const QString& path);
+    /// @brief Keep @p plan in file @p path (planPath() of a volume)
+    /// @return false when the book is open to read or the file could not be written
+    bool writePlan(const QString& path, const QJsonObject& plan);
+    /// @brief Keep @p plan in file @p path, with the view the chronology has now, and show
+    /// it: Undo and Redo of a change of the plan
+    bool changePlan(const QString& path, const QJsonObject& plan);
+    /// @brief The chronology shown first for a book without a plan file: when the timelines
+    /// of the Workshop say when its texts happen ("In the book"), offer to copy those times,
+    /// points of view and places to the cards without a time, in one step of Undo; the
+    /// timelines stay as they are
+    void offerTimelineTimes();
+    /// @}
     void updateTab();
     void onCurrentTabChanged();
     /// @brief The book was saved: a change made elsewhere forgets what can be undone
@@ -178,6 +214,27 @@ private:
     void dropBeside(const QString& elementId, const QString& anchorId, bool after);
     void dropInPart(const QString& elementId, const QString& partId);
     void add(const QString& afterId);
+    /// @name The texts in the plan, and new texts (plot_board_coordinator_texts.cpp)
+    /// @{
+    /// @brief Add a text after text @p afterId (empty: at the end of the main section), in the
+    /// plan without a file (@p planned), and edit its card; one Ctrl+Z takes it out again
+    void addText(const QString& afterId, bool planned);
+    /// @brief Delete text in the plan @p textId, which has nothing but its card; Ctrl+Z puts
+    /// it back
+    void removePlannedText(const QString& textId);
+    /// @brief Add a scene written, a scene break: after scene @p cardId, else at the end of
+    /// text @p cardId
+    void newScene(const QString& cardId);
+    /// @brief Take text @p elementId added on the board out of the book again: its file to the
+    /// Trash; @p kml gets what its file had
+    bool takeOutText(const QString& elementId, std::optional<QString>& kml);
+    /// @brief Put @p element back at @p place, with its file of @p kml
+    bool putBackText(const core::ProjectElement& element, const core::ElementPlace& place,
+                     const std::optional<QString>& kml);
+    /// @brief Why text @p elementId cannot leave the book or the plan now: changes not saved in
+    /// its tab; empty: it can
+    [[nodiscard]] QString openChangesOf(const QString& elementId) const;
+    /// @}
     /// @brief Insert on the card of scene @p cardId: a scene after it, in the plan when the
     /// board shows the plans
     void addAfterScene(const QString& cardId);
@@ -345,9 +402,10 @@ private:
     void changeWithUndo(const QString& elementId, const CardText& text, const QString& message,
                         const QString& undoText);
     /// @brief Remember a change made on the board, @p undoText after "Undone:": Ctrl+Z calls
-    /// @p undoIt and Ctrl+Y @p redoIt, each false when the book could not take it
+    /// @p undoIt and Ctrl+Y @p redoIt, each false when the book could not take it; @p undoGuard
+    /// says why Ctrl+Z cannot undo it now (empty: it can), and then nothing is undone
     void pushChange(const QString& undoText, std::function<bool()> undoIt,
-                    std::function<bool()> redoIt);
+                    std::function<bool()> redoIt, std::function<QString()> undoGuard = {});
 
     /// @name The changes of the book, done and undone
     /// @return false when the book could not take the change
@@ -383,6 +441,9 @@ private:
     QString m_marked;     ///< The card marked to move (Ctrl+X): a text or a scene
     bool m_stale = false;  ///< The board behind another tab missed a change of the book
     int m_ownChanges = 0;  ///< > 0 while the board changes the book itself
+    QString m_planPath;    ///< The file of the plan shown (planPath()); empty: none read yet
+    QJsonObject m_plan;    ///< The plan of the time of the book, as its file keeps it
+    QSet<QString> m_timesOffered;  ///< The plan files offerTimelineTimes() asked about
     bool m_changedElsewhere = false;  ///< The scene undone last was changed in the editor
 };
 

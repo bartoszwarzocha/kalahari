@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file navigator_page.cpp
 /// @brief Settings page: Navigator
@@ -36,9 +37,10 @@
 /// synopsis also gives its length in standard pages and the parts of the set of a new book
 /// (core::PublishingTexts).
 
+#include "kalahari/editor/text_points.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/cover_names.h"
-#include "kalahari/gui/dialogs/publishing_templates_dialog.h"
+#include "kalahari/gui/widgets/cover_plan.h"
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/publishing_names.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -52,9 +54,7 @@
 #include <QComboBox>
 #include <QFormLayout>
 #include <QGridLayout>
-#include <QHBoxLayout>
 #include <QLabel>
-#include <QPushButton>
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QString>
@@ -102,9 +102,6 @@ constexpr int TARGET_SPACING = 8;
 /// Room between the two columns of the parts of a set
 constexpr int SET_COLUMN_SPACING = 16;
 
-/// The values of core::PublishingTexts::POINTS_SETTING
-constexpr const char* POINTS_BESIDE = "beside";
-constexpr const char* POINTS_IN_TEXT = "inText";
 
 /// The values of NavigatorPanel::QUICK_MATERIALS_SETTING
 constexpr const char* LINK = "link";
@@ -391,7 +388,7 @@ void NavigatorPage::createCover()
         grid->setVerticalSpacing(4);
         int row = 0;
         for (const char* part : {core::CoverMaterial::BLURB, core::CoverMaterial::TAGLINE,
-                                 core::CoverMaterial::OPINION}) {
+                                 core::CoverMaterial::OPINION, core::CoverMaterial::BIO}) {
             const QString partName = CoverNames::partName(QString::fromLatin1(part));
             auto* label = new QLabel(partName);
             auto* spin = new QSpinBox();
@@ -429,6 +426,24 @@ void NavigatorPage::createCover()
     };
     connect(m_coverUnit, &QComboBox::currentIndexChanged, this, showUnit);
     whenLoaded(showUnit);
+
+    // The colors a new pattern of an endpaper takes, and the paper of an endpaper without a
+    // fill (each book keeps the colors of its patterns)
+    //: The group of Settings > Navigator of the colors of the endpapers of the plan of the
+    //: cover. In Polish: Wyklejki
+    QFormLayout* endpapers = addGroup(tr("Endpapers"));
+    endpapers->parentWidget()->setObjectName(QStringLiteral("navigatorEndpapersGroup"));
+    //: In Polish: Kolory nowego wzoru na wyklejce; każda książka zachowuje kolory swoich wzorów.
+    addNote(endpapers, tr("The colors of a new pattern on an endpaper; each book keeps the "
+                          "colors of its patterns."));
+    //: In Polish: Wzór
+    addThemeColor(endpapers, tr("Pattern"), CoverPlan::PATTERN_COLOR_KEY);
+    //: The color under a pattern, and the one color of an endpaper at first. In Polish: Tło
+    //: wzoru i jeden kolor
+    addThemeColor(endpapers, tr("Pattern background and one color"), CoverPlan::PAPER_COLOR_KEY);
+    //: The paper of an endpaper without a fill. In Polish: Papier bez wypełnienia
+    addThemeColor(endpapers, tr("Paper without a fill"), CoverPlan::BLANK_COLOR_KEY);
+    addRestoreColorsButton(endpapers);
 }
 
 void NavigatorPage::createPublishing()
@@ -451,41 +466,34 @@ void NavigatorPage::createPublishing()
     //: wydawnictwa
     addSetChoice(addGroup(tr("Set for Publishers")));
 
-    //: The group of Settings > Navigator > Texts for Publishers. In Polish: Szablony
-    QFormLayout* templates = addGroup(tr("Templates"));
-    //: Opens the window of the templates of the texts for publishers. In Polish: Sza&blony...
-    auto* templatesButton = new QPushButton(tr("Te&mplates..."));
-    templatesButton->setObjectName(QStringLiteral("navigatorPublishingTemplates"));
-    connect(templatesButton, &QPushButton::clicked, this, [this]() {
-        dialogs::PublishingTemplatesDialog::editTemplates(nullptr, window());
-    });
-    auto* row = new QHBoxLayout();
-    row->addWidget(templatesButton);
-    row->addStretch(1);
-    templates->addRow(row);
-    //: In Polish: Szablony typów książek i Twoje własne, w osobnym oknie. Twoje szablony
-    //: zapisują się od razu i działają we wszystkich Twoich książkach.
-    addNote(templates, tr("The templates of the book types and your own, in a window of their "
-                          "own. Your templates are kept at once and work in all your books."));
-
-    QComboBox* points = addChoice(
-        templates,
-        //: The choice of the group Templates. In Polish: &Punkty streszczenia:
-        tr("&Points of a synopsis:"),
-        //: In Polish: Obok tekstu
-        {{tr("Beside the text"), QLatin1String(POINTS_BESIDE),
-          //: In Polish: Punkty szablonu są listą w panelu Właściwości. Narzędzia > Teksty dla
-          //: wydawnictwa > Wstaw szkielet wstawia je do tekstu, gdy chcesz.
-          tr("The points of the template are a list in the Properties panel. Tools > Texts for "
-             "Publishers > Insert Skeleton puts them in the text when you want.")},
-         //: In Polish: W tekście, jako nagłówki
-         {tr("In the text, as headings"), QLatin1String(POINTS_IN_TEXT),
-          //: In Polish: Nowe streszczenie zaczyna się od nagłówków punktów, każdy z szarą
-          //: podpowiedzią, która znika, gdy piszesz. Długość i zestaw pomijają nagłówki.
-          tr("A new synopsis starts with the headings of the points, each with a gray hint that "
-             "goes when you type. The length and the set leave the headings out.")}},
-        PublishingTexts::POINTS_SETTING);
-    points->setObjectName(QStringLiteral("navigatorPublishingPoints"));
+    //: The group of Settings > Navigator > Texts for Publishers. In Polish: Punkty streszczenia
+    //: w tekście
+    QFormLayout* linked = addGroup(tr("Points of a Synopsis in the Text"));
+    //: In Polish: Znacznik na marginesie
+    QCheckBox* bars = addCheckBox(linked, tr("A mark on the margin"),
+                                  PublishingTexts::POINT_BARS_SETTING);
+    bars->setObjectName(QStringLiteral("navigatorPublishingPointBars"));
+    //: In Polish: Ostrzeżenie o punktach bez fragmentu
+    QCheckBox* warnings = addCheckBox(linked, tr("Warn of points with no fragment"),
+                                      PublishingTexts::POINT_WARNINGS_SETTING);
+    warnings->setObjectName(QStringLiteral("navigatorPublishingPointWarnings"));
+    //: In Polish: Zaznacz fragment streszczenia i naciśnij Ctrl+Shift+D, aby powiązać go z
+    //: punktem szablonu. Znacznik to kreska na lewym marginesie obok fragmentu. Ostrzeżenie
+    //: pojawia się przy kopiowaniu i eksporcie zestawu, gdy punkt nie ma fragmentu w tekście.
+    //: Każdy punkt ma swój kolor: znacznika i podświetlenia fragmentów (Pokaż w tekście nad
+    //: punktami). Każdy motyw ma własne kolory: to są kolory bieżącego motywu.
+    addNote(linked, tr("Select a fragment of a synopsis and press Ctrl+Shift+D to link it to a "
+                       "point of its template. The mark is a bar on the left margin beside the "
+                       "fragment. The warning comes when the set is copied or exported and a "
+                       "point has no fragment in the text. Each point has its color: of the "
+                       "mark and of the fill of its fragments (Show in the Text over the "
+                       "points). Each theme has its own colors: these are the colors of the "
+                       "current theme."));
+    for (size_t i = 0; i < editor::TEMPLATE_POINT_COLOR_KEYS.size(); ++i) {
+        //: A color of the points of a synopsis. In Polish: Punkt %1
+        addThemeColor(linked, tr("Point %1").arg(i + 1), editor::TEMPLATE_POINT_COLOR_KEYS.at(i));
+    }
+    addRestoreColorsButton(linked);
 }
 
 void NavigatorPage::addPublishingTargets(QFormLayout* group)

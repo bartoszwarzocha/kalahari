@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file edit_dialogs.cpp
 /// @brief The windows of the Edit menu: Paste Special... and Go To...
@@ -22,6 +23,7 @@
 #include <QLatin1Char>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMenu>
 #include <QMimeData>
 #include <QPalette>
 #include <QPushButton>
@@ -136,6 +138,30 @@ QString formName(editor::PasteForm form)
         case editor::PasteForm::Image:
             //: In Polish: Obraz
             return PasteSpecialDialog::tr("Image");
+    }
+    return {};
+}
+
+/// The name of a form as an item of the submenu Paste Special, with its access key
+QString formItemName(editor::PasteForm form)
+{
+    switch (form) {
+        case editor::PasteForm::Kalahari:
+            //: An item of the submenu Paste Special of the text's context menu. In Polish:
+            //: Format &Kalahari (z uwagami)
+            return PasteSpecialDialog::tr("&Kalahari Format (with annotations)");
+        case editor::PasteForm::Source:
+            //: In Polish: &Zachowaj formatowanie źródła
+            return PasteSpecialDialog::tr("Keep &Source Formatting");
+        case editor::PasteForm::Merge:
+            //: In Polish: &Scal formatowanie
+            return PasteSpecialDialog::tr("&Merge Formatting");
+        case editor::PasteForm::Text:
+            //: In Polish: &Tylko tekst
+            return PasteSpecialDialog::tr("&Text Only");
+        case editor::PasteForm::Image:
+            //: In Polish: &Obraz
+            return PasteSpecialDialog::tr("&Image", "paste form");
     }
     return {};
 }
@@ -352,6 +378,23 @@ bool PasteSpecialDialog::pasteInto(editor::BookEditor& text, QWidget* parent)
     return true;
 }
 
+void PasteSpecialDialog::fillMenu(QMenu& menu, editor::BookEditor& text)
+{
+    const Data shown = dataFor(text, QGuiApplication::clipboard()->mimeData());
+    menu.setToolTipsVisible(true);
+    for (const editor::PasteForm form : PASTE_FORMS) {
+        QAction* item = menu.addAction(formItemName(form));
+        item->setObjectName(QStringLiteral("pasteSpecial%1").arg(static_cast<int>(form)));
+        if (std::ranges::find(shown.forms, form) == shown.forms.end()) {
+            item->setEnabled(false);
+            item->setToolTip(whyNoForm(form, shown));
+            continue;
+        }
+        QObject::connect(item, &QAction::triggered, &text,
+                         [&text, form]() { text.pasteInForm(form); });
+    }
+}
+
 QString PasteSpecialDialog::sourceName(editor::ClipboardSource source)
 {
     switch (source) {
@@ -446,9 +489,9 @@ QString kindHint(editor::PlaceKind kind)
 {
     switch (kind) {
         case editor::PlaceKind::Page:
-            //: In Polish: „3” – trzecia strona tekstu, „+2” – dwie strony dalej, „-1” – stronę
+            //: In Polish: „3” – strona o numerze 3, „+2” – dwie strony dalej, „-1” – stronę
             //: wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej strony.
-            return GoToDialog::tr("“3”: the third page of the text, “+2”: two pages on, “-1”: a "
+            return GoToDialog::tr("“3”: the page with the number 3, “+2”: two pages on, “-1”: a "
                                   "page back. Next and Previous go to the page after or before.");
         case editor::PlaceKind::Heading:
             //: In Polish: „3” – trzeci nagłówek tekstu, „+2” – dwa nagłówki dalej, „-1” –
@@ -493,6 +536,14 @@ QString pageOutcomeText(const editor::GoToOutcome& outcome)
 {
     switch (outcome.result) {
         case editor::GoToResult::Done:
+            if (outcome.firstNumber != 1) {
+                //: Where Go To went, the pages numbered through the book: the number the page
+                //: shows, then its page in the text. In Polish: Strona %1 (%2 z %3)
+                return GoToDialog::tr("Page %1 (%2 of %3)")
+                    .arg(outcome.firstNumber + outcome.ordinal - 1)
+                    .arg(outcome.ordinal)
+                    .arg(outcome.count);
+            }
             //: Where Go To went. In Polish: Strona %1 z %2
             return GoToDialog::tr("Page %1 of %2").arg(outcome.ordinal).arg(outcome.count);
         case editor::GoToResult::NoPlaces:
@@ -504,6 +555,12 @@ QString pageOutcomeText(const editor::GoToOutcome& outcome)
             //: In Polish: To pierwsza strona tekstu.
             return GoToDialog::tr("This is the first page of the text.");
         default:
+            if (outcome.firstNumber != 1) {
+                //: The pages numbered through the book. In Polish: Tekst ma strony od %1 do %2.
+                return GoToDialog::tr("The text has the pages %1 to %2.")
+                    .arg(outcome.firstNumber)
+                    .arg(outcome.firstNumber + outcome.count - 1);
+            }
             //: In Polish: Tekst ma %n stronę / strony / stron.
             return GoToDialog::tr("The text has %n page(s).", nullptr, outcome.count);
     }

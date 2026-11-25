@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file new_file_dialog.cpp
 /// @brief New File: a new element of the open book, of the kind, with the title and at the
@@ -78,6 +79,7 @@ namespace kalahari::gui::dialogs {
 namespace {
 
 constexpr int MINIMUM_WIDTH = 700;         ///< The description and three tiles in a row
+constexpr int BY_NAME_WIDTH = 520;         ///< Of the small window of a kind chosen by its name
 constexpr QSize DEFAULT_SIZE{880, 740};    ///< The tiles of the main part and the place, under
                                            ///< the heading
 constexpr int DESCRIPTION_WIDTH = 250;     ///< Of the description at the left, as in New Book
@@ -553,9 +555,11 @@ NewFileKind NewFileDialog::entryOf(const core::ProjectManager& pm, const core::K
                                           : kind.package->name.text(language);
 
     // The program makes the elements of a window kind of the Workshop that it has a window
-    // for (a material); in the book none yet (a table of contents)
-    const bool hasEditor =
-        workshop ? core::ProjectManager::canAdd(kind) : kind.kind->form != core::ElementForm::Window;
+    // for (a material); in the book only a spread (its card), not yet a table of contents
+    const bool hasEditor = workshop ? core::ProjectManager::canAdd(kind)
+                                    : kind.kind->form != core::ElementForm::Window ||
+                                          kind.kind->editor ==
+                                              QLatin1String(core::SpreadData::EDITOR);
     if (!hasEditor) {
         //: The tooltip of a greyed kind that opens in a window of its own, e.g. a table of
         //: contents. In Polish: Program nie ma jeszcze edytora {kind:genitive}.
@@ -578,9 +582,10 @@ NewFileKind NewFileDialog::entryOf(const core::ProjectManager& pm, const core::K
     }
 
     entry.title = pm.defaultTitle(kind);
-    if (kind.kind->form == core::ElementForm::Group) {
-        //: The file of a new group, e.g. a part: it has none. In Polish: brak – {kind} nie ma
-        //: własnego tekstu
+    if (kind.kind->form == core::ElementForm::Group ||
+        kind.kind->editor == QLatin1String(core::SpreadData::EDITOR)) {
+        //: The file of a new group, e.g. a part, or of a spread: it has none. In Polish: brak –
+        //: {kind} nie ma własnego tekstu
         entry.file = core::fillWords(tr("none: {kind:indefinite} has no text of its own"), nouns);
     } else if (kind.kind->isMaterial()) {
         //: The file of a new material: a copy of a file from the disk or of a picture from the
@@ -624,6 +629,7 @@ NewFileDialog::Book NewFileDialog::openBook(const core::ProjectManager& pm,
 {
     Book book;
     book.coverTitle = [&pm](const QString& part) { return CoverNames::newTitle(pm, part); };
+    book.coverParts = pm.coverParts();
     book.untitled = untitled;
     const core::BookProject* project = pm.project();
     const core::ProjectBook* projectBook = pm.book();
@@ -693,11 +699,25 @@ void NewFileDialog::setPublishing(Book& book, const core::ProjectManager& pm,
 NewFileDialog::Book NewFileDialog::forAdding(const core::ProjectManager& pm,
                                              const AddTarget& target, AddChooser chooser)
 {
+    // A kind chosen by its name: the small window of that kind at the place of the target, when
+    // an element of it can be made there; else the usual window, whose greyed tile says why
+    // not. The kinds stay, unseen: a tagline for publishers is a material of the cover.
+    if (target.byName && target.kind) {
+        AddTarget usual = target;
+        usual.byName = false;
+        Book book = forAdding(pm, usual, chooser);
+        if (book.current >= 0 && book.kinds.at(book.current).kind.kind == target.kind.kind) {
+            book.byName = true;
+            book.chooser = AddChooser::None;
+        }
+        return book;
+    }
     if (chooser == AddChooser::None) {
         return forPlace(pm, target);
     }
     Book book;
     book.coverTitle = [&pm](const QString& part) { return CoverNames::newTitle(pm, part); };
+    book.coverParts = pm.coverParts();
     setPublishing(book, pm, target);
     book.adding = true;
     book.chooser = chooser;
@@ -834,6 +854,7 @@ NewFileDialog::Book NewFileDialog::forPlace(const core::ProjectManager& pm,
 {
     Book book;
     book.coverTitle = [&pm](const QString& part) { return CoverNames::newTitle(pm, part); };
+    book.coverParts = pm.coverParts();
     setPublishing(book, pm, target);
     book.adding = true;
     book.coverPart = target.coverPart;
@@ -977,8 +998,9 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     setCompactHeading(true);
 
     // As wide as the description and three tiles in a row; the height of the content can be
-    // lower: on a small screen (1366x768 at 150%) the content scrolls above the buttons
-    setMinimumWidth(MINIMUM_WIDTH);
+    // lower: on a small screen (1366x768 at 150%) the content scrolls above the buttons. A kind
+    // chosen by its name has no tiles: its window is as wide as its title and source need.
+    setMinimumWidth(m_book.byName ? BY_NAME_WIDTH : MINIMUM_WIDTH);
 
     // Add Element with a choice at its top: the buttons over the whole width, first of the
     // keys; they are named once the window's other words with underlined letters are there
@@ -993,18 +1015,29 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     auto* columns = new QHBoxLayout(content);
     columns->setSpacing(11);
     columns->setContentsMargins(0, 0, 0, 0);
-    columns->addWidget(createDescriptionPanel(content));
+    QWidget* description = createDescriptionPanel(content);
+    columns->addWidget(description);
     auto* choices = new QVBoxLayout();
     choices->setSpacing(11);
     // The tiles and the place share the room the window has above their minimum, 3 to 2; the
     // source of a new material is chosen before its title, which follows it
-    choices->addWidget(createKindsGroup(content), 3);
+    QWidget* kinds = createKindsGroup(content);
+    choices->addWidget(kinds, 3);
     choices->addWidget(createCoverGroup(content));
     choices->addWidget(createPublishingGroup(content));
     choices->addWidget(createSourceGroup(content));
     choices->addLayout(createTitleRow(content));
-    choices->addWidget(createPlaceGroup(content), 2);
+    QWidget* place = createPlaceGroup(content);
+    choices->addWidget(place, 2);
     columns->addLayout(choices, 1);
+    // A kind chosen by its name: the window asks only for what the kind needs; the place is
+    // the one proposed, where its tile would have it
+    if (m_book.byName) {
+        for (QWidget* part : {description, kinds, place}) {
+            part->hide();
+        }
+        choices->addStretch(1);
+    }
 
     // The buttons of the choice at the top, and then of the source of a material: Alt with a
     // letter that no other word of the window underlines
@@ -1107,8 +1140,13 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
         onKindChanged();
     }
 
-    // The size of a big screen, higher by the heading, or less on a smaller one
-    utils::resizeWithinScreen(this, withHeading(DEFAULT_SIZE));
+    // The size of a big screen, higher by the heading, or less on a smaller one; the small
+    // window of a kind chosen by its name as big as what it asks for
+    if (m_book.byName) {
+        adjustSize();
+    } else {
+        utils::resizeWithinScreen(this, withHeading(DEFAULT_SIZE));
+    }
 
     // Typing replaces the title; of a material, the path or the address, which give the
     // title
@@ -1657,9 +1695,12 @@ QString NewFileDialog::placeNoteOf(const NewFileKind& entry) const
         //: Where a new material of the cover goes on the cover, after where it goes in the
         //: Workshop; %1 the place: back, front... In Polish: Na okładce: %1 – zmienisz to na
         //: karcie.
+        // A place of the cover by its name on the cover, one of the jacket with the jacket
+        const QString place = core::CoverMaterial::defaultPlaceOf(m_coverPart, m_book.coverParts);
         note += QLatin1Char(' ') +
                 tr("On the cover: %1 – you change it on the card.")
-                    .arg(CoverNames::placeName(core::CoverMaterial::defaultPlaceOf(m_coverPart))
+                    .arg((core::CoverMaterial::isJacketPlace(place) ? CoverNames::placeName(place)
+                                                                    : CoverNames::shortPlaceName(place))
                              .toLower());
     }
     return note;
@@ -2075,7 +2116,8 @@ void NewFileDialog::onKindChanged()
                                          : static_cast<QWidget*>(m_picker));
     m_outsideButton->setVisible(emptyFile);
     m_insideButton->setVisible(emptyFile);
-    const bool status = hasStatus(entry);
+    // A kind chosen by its name starts with the usual status (Draft)
+    const bool status = hasStatus(entry) && !m_book.byName;
     m_statusLabel->setVisible(status);
     m_statusBox->setVisible(status);
     m_sourceGroup->setVisible(isMaterial(entry));
@@ -2269,12 +2311,22 @@ void NewFileDialog::updateHeading()
         return;
     }
     const NewFileKind* entry = chosen();
+    // A kind chosen by its name has a small window named after it: "Add Mind Map"
+    const bool byName = m_book.byName && entry != nullptr;
     const bool workshop = workshopShown();
     QString description;
     if (isMaterial(entry)) {
         //: The heading of the Add Element window for a material. In Polish: Wybierz źródło
         //: {kind:genitive} i {kind:m=jego|f=jej|n=jego|p=ich} tytuł.
         description = named(tr("Choose the source of the {kind} and its title."));
+    } else if (byName && isPublishing(entry)) {
+        //: The heading of the small window of a text for publishers. In Polish: Wybierz
+        //: część tekstu, jego szablon i tytuł.
+        description = tr("Choose the part of the text, its template and its title.");
+    } else if (byName) {
+        //: The heading of the small window of an element of a kind chosen by its name, e.g.
+        //: Add Mind Map. In Polish: Wpisz tytuł {kind:genitive}.
+        description = named(tr("Type the title of the {kind}."));
     } else if (workshop) {
         //: The heading of the Add Element window in the Workshop. In Polish: Wybierz rodzaj
         //: nowego elementu Warsztatu i jego tytuł.
@@ -2287,6 +2339,12 @@ void NewFileDialog::updateHeading()
         //: The heading of the Add Element window. In Polish: Wybierz rodzaj nowego elementu,
         //: jego tytuł, stan i miejsce.
         description = tr("Choose the kind of the new element, its title, status and place.");
+    }
+    if (byName) {
+        //: The small window of an element of a kind chosen by its name, e.g. Add Mind Map...
+        //: in the Navigator. In Polish: Dodaj {kind:accusative}
+        setHeading(named(tr("Add {Kind}")), description);
+        return;
     }
     //: The window of a new element at the place of the Navigator or of the editor it was
     //: opened on. In Polish: Dodaj element

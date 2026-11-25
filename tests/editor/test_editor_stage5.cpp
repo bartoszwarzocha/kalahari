@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_editor_stage5.cpp
 /// @brief Editor Stage 5: one highlight layer (check results kept with the paragraphs, the
@@ -940,6 +941,35 @@ TEST_CASE("Stage5 continuous view: switching views leaves a view scrolled away f
     CHECK(editor->scrollOffset() == Approx(1300.0).margin(1.0));
     CHECK(layout->blockNumberAtY(editor->scrollOffset()) == topBlock);
     CHECK(editor->cursorPosition() == CursorPosition{0, 0});
+}
+
+TEST_CASE("Stage5 page view: the line of a cursor moved pages down stays in view when painted",
+          "[editor][stage5][pagemode]") {
+    // Regression: the view went to the line with only estimated heights above it; laid out
+    // afterwards (the paint lays them out), they put the line on another page, below the
+    // view
+    // (wide and narrow letters: the estimates are lines off)
+    QStringList paragraphs;
+    for (int i = 0; i < 120; ++i) {
+        const QString word = i % 2 == 0 ? QStringLiteral("WMWMWM") : QStringLiteral("iliili");
+        paragraphs << QStringList(30 + (i % 7) * 10, word).join(QLatin1Char(' '));
+    }
+    auto editor = editorWith(kmlOf(paragraphs));
+    editor->setViewMode(ViewMode::Page);
+    editorImage(*editor);
+
+    for (int paragraph = 9; paragraph < 120; paragraph += 11) {
+        CAPTURE(paragraph);
+        editor->setCursorPosition({paragraph, 0});
+        const QRectF moved = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+        const qreal scroll = editor->scrollOffset();
+        editorImage(*editor);
+        const QRectF painted = editor->inputMethodQuery(Qt::ImCursorRectangle).toRectF();
+        CHECK(editor->scrollOffset() == Approx(scroll).margin(0.5));
+        CHECK(painted.top() == Approx(moved.top()).margin(0.5));
+        CHECK(painted.top() >= 0.0);
+        CHECK(painted.bottom() <= editor->height());
+    }
 }
 
 TEST_CASE("Stage5 continuous view: a page wider than the view scrolls sideways to the cursor",

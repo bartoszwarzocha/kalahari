@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file text_captions.cpp
 /// @brief Numbered captions, cross-references to them and the list of figures
@@ -264,14 +265,13 @@ bool hasFields(const QTextBlock& block)
     return false;
 }
 
-namespace {
-
-/// Whether a block is a caption: a paragraph in the style Caption
 bool isCaptionBlock(const QTextBlock& block)
 {
     return block.isValid() &&
            paragraphStyleOf(block.blockFormat()) == QLatin1String(CAPTION_STYLE_ID);
 }
+
+namespace {
 
 /// Whether two blocks are next to each other in one place: both outside tables, or in one
 /// cell of a table
@@ -320,6 +320,30 @@ QTextBlock imageBlockOfCaption(const QTextBlock& captionBlock)
     return image.isValid() && hasImages(image) && captionBlockOf(image) == captionBlock
                ? image
                : QTextBlock();
+}
+
+QTextBlock captionBlockOfTable(const QTextTable& table)
+{
+    const QTextBlock before = table.firstCursorPosition().block().previous();
+    if (isCaptionBlock(before) && isCaptionAbove(before.blockFormat()) && tableOf(before) == nullptr) {
+        return before;
+    }
+    const QTextBlock after = table.lastCursorPosition().block().next();
+    if (isCaptionBlock(after) && !isCaptionAbove(after.blockFormat()) && tableOf(after) == nullptr) {
+        return after;
+    }
+    return QTextBlock();
+}
+
+QTextTable* tableOfCaption(const QTextBlock& captionBlock)
+{
+    if (!isCaptionBlock(captionBlock) || tableOf(captionBlock) != nullptr) {
+        return nullptr;
+    }
+    const QTextBlock beside =
+        isCaptionAbove(captionBlock.blockFormat()) ? captionBlock.next() : captionBlock.previous();
+    QTextTable* table = tableOf(beside);
+    return table != nullptr && captionBlockOfTable(*table) == captionBlock ? table : nullptr;
 }
 
 CaptionParts captionParts(const QTextBlock& block)
@@ -410,41 +434,60 @@ QString newCaptionId(const QSet<QString>& taken)
 // The captions of a text
 // =============================================================================
 
+namespace {
+
+/// The pieces of a block's text: its text, its numbers and its cross-references; the numbers
+/// (with their places) into @p numbers when it is given
+std::vector<CaptionPiece> piecesOf(const QTextBlock& block, std::vector<CaptionEntry>* numbers)
+{
+    std::vector<CaptionPiece> pieces;
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        if (!fragment.isValid()) {
+            continue;
+        }
+        const QTextCharFormat format = fragment.charFormat();
+        const QString text = fragment.text();
+        if (format.objectType() == QTextFormat::NoObject) {
+            appendText(pieces, plainPart(text));
+            continue;
+        }
+        const std::optional<CaptionNumberField> number = captionNumberOf(format);
+        const std::optional<CrossReference> reference = crossReferenceOf(format);
+        const CaptionNumberField* field = number ? &*number : nullptr;
+        const CrossReference* named = reference ? &*reference : nullptr;
+        for (qsizetype i = 0; i < text.size(); ++i) {
+            if (text.at(i) != QChar::ObjectReplacementCharacter) {
+                appendText(pieces, plainPart(text.mid(i, 1)));
+            } else if (field != nullptr) {
+                pieces.push_back(numberPiece(field->id));
+                if (numbers != nullptr) {
+                    numbers->push_back({field->id, field->label, {},
+                                        fragment.position() + static_cast<int>(i)});
+                }
+            } else if (named != nullptr) {
+                pieces.push_back(referencePiece(*named));
+            }
+            // Another object (an image) is no part of the caption's text
+        }
+    }
+    return pieces;
+}
+
+}  // namespace
+
+std::vector<CaptionPiece> captionPieces(const QTextBlock& block)
+{
+    return piecesOf(block, nullptr);
+}
+
 std::vector<CaptionEntry> captionEntries(const QTextDocument& document)
 {
     std::vector<CaptionEntry> entries;
     for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
         // The pieces of the paragraph, and its numbers
-        std::vector<CaptionPiece> pieces;
         std::vector<CaptionEntry> numbers;
-        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
-            const QTextFragment fragment = it.fragment();
-            if (!fragment.isValid()) {
-                continue;
-            }
-            const QTextCharFormat format = fragment.charFormat();
-            const QString text = fragment.text();
-            if (format.objectType() == QTextFormat::NoObject) {
-                appendText(pieces, plainPart(text));
-                continue;
-            }
-            const std::optional<CaptionNumberField> number = captionNumberOf(format);
-            const std::optional<CrossReference> reference = crossReferenceOf(format);
-            const CaptionNumberField* field = number ? &*number : nullptr;
-            const CrossReference* named = reference ? &*reference : nullptr;
-            for (qsizetype i = 0; i < text.size(); ++i) {
-                if (text.at(i) != QChar::ObjectReplacementCharacter) {
-                    appendText(pieces, plainPart(text.mid(i, 1)));
-                } else if (field != nullptr) {
-                    pieces.push_back(numberPiece(field->id));
-                    numbers.push_back({field->id, field->label, {},
-                                       fragment.position() + static_cast<int>(i)});
-                } else if (named != nullptr) {
-                    pieces.push_back(referencePiece(*named));
-                }
-                // Another object (an image) is no part of the caption's text
-            }
-        }
+        const std::vector<CaptionPiece> pieces = piecesOf(block, &numbers);
         for (CaptionEntry& entry : numbers) {
             entry.pieces = pieces;
             entries.push_back(std::move(entry));

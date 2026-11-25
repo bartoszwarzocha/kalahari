@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_pages.cpp
 /// @brief The pages of a book as the page view of the editor shows them, for a PDF file and
@@ -10,10 +11,13 @@
 #include "kalahari/editor/detail/book_editor_internal.h"
 #include "kalahari/editor/detail/book_export_internal.h"
 
+#include <kalahari/core/page_start.h>
 #include <kalahari/editor/editor_render_pipeline.h>
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/spread_look.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_images.h>
@@ -76,6 +80,11 @@ double numberOf(const QVariantMap& properties, const char* name, double fallback
     bool ok = false;
     const double value = properties.value(QLatin1String(name)).toDouble(&ok);
     return ok ? value : fallback;
+}
+
+/// @brief The quarter turns of a picture turned by @p degrees, clockwise (0 to 3)
+int quarterTurns(int degrees) {
+    return ((degrees / 90) % 4 + 4) % 4;
 }
 
 /// @brief Whether the first paragraph with text of a model is a heading: the text keeps its
@@ -157,6 +166,13 @@ void drawMarginLine(QPainter* painter, const QString& text, const QFont& font, c
     layout.draw(painter, QPointF(area.left(), area.top() + (area.height() - line.height()) / 2.0));
 }
 
+/// @brief With mirror margins, whether a text that @p start says where it starts waits for
+///        its side: the page of index @p page is not on it (a right page has an even index);
+///        a text that starts on the next page waits for none
+bool waitsForItsSide(core::PageStart start, int page) {
+    return start != core::PageStart::Next && (page % 2 == 1) != (start == core::PageStart::Left);
+}
+
 }  // namespace
 
 // =============================================================================
@@ -173,6 +189,9 @@ struct BookPages::Item {
     int firstPage = 0;    ///< Its first page in the book
     int pages = 1;        ///< Its pages
     bool goesOn = false;  ///< It starts on the last page of the item before it
+    QImage picture;       ///< Of a spread: its picture as turned; null: none, or unreadable
+
+    [[nodiscard]] bool spread() const { return source->kind == ExportItemKind::Spread; }
 
     /// @brief The page of the item a point of its document is on (document coordinates)
     int pageOf(double y, double pitch) const {
@@ -249,6 +268,7 @@ void BookPages::layOut(const ExportProgress& progress) {
 
     m_store = std::make_shared<ImageStore>();
     m_store->setFolder(m_book.imagesFolder);
+    m_store->setOutsideFiles(m_book.pictures);
 
     // The texts first, then the tables of contents with their headings
     const size_t count = m_book.items.size();
@@ -321,12 +341,7 @@ void BookPages::build(size_t index) {
     layout->setSceneBreakLook(m_book.sceneBreak);
     layout->setCaptionContext(source.captions);
     layout->setFootnoteContext(source.footnotes);
-    FieldContext fields;
-    fields.bookTitle = m_book.title;
-    fields.author = m_book.author;
-    fields.textTitle = source.title;
-    fields.language = m_book.language;
-    layout->setFieldContext(fields);
+    layout->setFieldContext(exportFieldContext(m_book, source));
     item.pipeline = std::make_unique<EditorRenderPipeline>();
     item.pipeline->setTextSource(std::make_unique<QTextDocumentSource>(document));
     item.pipeline->configure(m_context);
@@ -345,8 +360,19 @@ void BookPages::build(size_t index) {
     } else if (source.kind == ExportItemKind::Contents) {
         model.loadKml(contentsKml());
     }
-    item.titled = m_book.titleHeadings && !source.title.trimmed().isEmpty() &&
+    setTabGuidesOf(*document, model.tabGuides());  // its tabs go to its guides, as in the editor
+    // A spread shows no title on its pages: its picture and its caption only
+    item.titled = m_book.titleHeadings && !item.spread() && !source.title.trimmed().isEmpty() &&
                   (source.kind != ExportItemKind::Text || !modelStartsWithHeading(model, styles));
+    item.picture = QImage();
+    if (item.spread() && !source.spread.picture.isEmpty()) {
+        ImageProperties picture;
+        picture.source = source.spread.picture;
+        picture.rotation = quarterTurns(source.spread.rotation);
+        if (const std::optional<QSize> pixels = m_store->shownPixelSize(picture)) {
+            item.picture = m_store->shownImage(picture, *pixels);
+        }
+    }
     QTextCursor cursor(document);
     cursor.beginEditBlock();
     QTextBlockFormat plain;
@@ -414,6 +440,19 @@ void BookPages::findHeadings() {
             continue;
         }
         const ParagraphStyleSet& styles = m_book.styles;
+        if (item.spread()) {
+            // Its title only when it goes to the table of contents
+            if (item.source->inContents && !item.source->title.trimmed().isEmpty()) {
+                PageHeading heading;
+                heading.level = std::max(
+                    1, exporting::headingLevelOfStyle(
+                           styles, exporting::titleStyleOf(*item.source, styles)));
+                heading.text = item.source->title.simplified();
+                m_headings.push_back(heading);
+                m_headingBlocks.emplace_back(index, 0);
+            }
+            continue;
+        }
         if (item.titled) {
             PageHeading heading;
             heading.level = std::max(1, exporting::headingLevelOfStyle(
@@ -465,6 +504,7 @@ QString BookPages::contentsKml() const {
 
 void BookPages::place() {
     m_pages.clear();
+    m_spreads.clear();
     for (size_t index = 0; index < m_items.size(); ++index) {
         Item& item = *m_items[index];
 
@@ -472,7 +512,8 @@ void BookPages::place() {
         // texts), when the page has room for a few lines and no footnotes at its bottom
         double top = 0.0;
         item.goesOn = false;
-        if (index > 0 && !m_book.textsOnNewPage && !m_pages.empty()) {
+        if (index > 0 && !m_book.textsOnNewPage && !m_pages.empty() && !item.spread() &&
+            !m_items[index - 1]->spread()) {
             const Item& before = *m_items[index - 1];
             const int last = before.pages - 1;
             const double bottom = before.layout->contentBottom() - last * m_pitch;
@@ -485,12 +526,27 @@ void BookPages::place() {
         int start =
             item.goesOn ? static_cast<int>(m_pages.size()) - 1 : static_cast<int>(m_pages.size());
 
-        // With mirror margins a text starts on a right page (an even index), unless it starts
-        // on a left one: the page before it is left empty
+        // With mirror margins a text starts on a right page (an even index) or a left one: the
+        // page before it is left empty when needed; or on the next page
         if (!item.goesOn && index > 0 && m_book.textsOnNewPage && m_book.page.mirrored &&
-            (start % 2 == 1) != item.source->firstPageLeft) {
+            waitsForItsSide(item.source->start, start)) {
             m_pages.push_back(Page{{}, true});
             ++start;
+        }
+
+        // A spread on a left page (an odd index) and the right one after it, always: its
+        // picture goes across the fold
+        if (item.spread()) {
+            if (start % 2 == 0) {
+                m_pages.push_back(Page{{}, true});
+                ++start;
+            }
+            item.firstPage = start;
+            item.pages = 2;
+            m_pages.push_back(Page{{{index, 0}}, false});
+            m_pages.push_back(Page{{{index, 1}}, false});
+            m_spreads.push_back(PageSpread{item.source->elementId, item.source->title, start});
+            continue;
         }
 
         // The margins of its first page: the inner one on the left of a right page
@@ -567,6 +623,10 @@ void BookPages::collect() {
     for (size_t i = 0; i < m_headings.size(); ++i) {
         const auto [index, number] = m_headingBlocks[i];
         const Item& item = *m_items[index];
+        if (item.spread()) {
+            m_headings[i].place = PagePlace{item.firstPage, QPointF()};  // its left page
+            continue;
+        }
         const QTextBlock block = item.document->findBlockByNumber(number);
         QTextLayout* lines = KalahariTextDocumentLayout::blockLayout(block);
         const double top =
@@ -585,6 +645,20 @@ void BookPages::collect() {
     std::vector<Reference> references;
     for (const std::unique_ptr<Item>& owned : m_items) {
         const Item& item = *owned;
+        if (item.spread()) {
+            // Its picture, and its caption on its right page (a cross-reference goes there)
+            if (!item.source->spread.picture.isEmpty()) {
+                ++m_images;
+                if (item.picture.isNull()) {
+                    ++m_missingImages;
+                }
+            }
+            if (item.source->spreadCaption && !item.source->spreadLabel.trimmed().isEmpty()) {
+                captions.emplace(spreadCaptionId(item.source->elementId),
+                                 PagePlace{item.firstPage + 1, QPointF()});
+            }
+            continue;
+        }
         const QTextDocument& document = *item.document;
         for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
             for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
@@ -685,6 +759,9 @@ int BookPages::pageAt(const QString& elementId, int position) const {
         const Item& item = *owned;
         const bool same =
             elementId.isEmpty() ? m_items.size() == 1 : item.source->elementId == elementId;
+        if (same && item.spread()) {
+            return item.firstPage;
+        }
         if (!same || item.source->kind != ExportItemKind::Text || !item.document) {
             continue;
         }
@@ -704,10 +781,32 @@ void BookPages::paint(QPainter* painter, int page) const {
     const double scale = POINTS_PER_INCH / m_dpi;
     painter->scale(scale, scale);
     for (const auto& [index, itemPage] : m_pages[static_cast<size_t>(page)].parts) {
-        m_items[index]->pipeline->renderPrintedPage(painter, itemPage);
+        const Item& item = *m_items[index];
+        if (item.spread()) {
+            paintSpread(painter, item, itemPage == 1);
+        } else {
+            item.pipeline->renderPrintedPage(painter, itemPage);
+        }
     }
     paintMargins(painter, page);
     painter->restore();
+}
+
+void BookPages::paintSpread(QPainter* painter, const Item& item, bool right) const {
+    // The pages of the book in millimetres: the picture keeps within the top, bottom and outer
+    // margins (without mirror margins the wider of the left and right ones)
+    const ExportPage& page = m_book.page;
+    SpreadPage pages;
+    pages.size = QSizeF(page.width, page.height);
+    pages.top = page.top;
+    pages.bottom = page.bottom;
+    pages.outer = page.mirrored ? page.outer : std::max(page.left, page.right);
+    SpreadPaint paint;
+    paint.dpi = m_dpi;
+    paint.paper = m_context.colors.background;
+    paint.text = m_context.colors.text;
+    paint.font = m_context.font;
+    paintSpreadPage(painter, item.source->spread, pages, item.picture, right, paint);
 }
 
 void BookPages::paintMargins(QPainter* painter, int page) const {
@@ -717,12 +816,15 @@ void BookPages::paintMargins(QPainter* painter, int page) const {
     }
     // The text the page shows last; its first page opens it (as when another text starts on it)
     const Item& item = *m_items[shown.parts.back().first];
-    const bool opening = std::any_of(shown.parts.cbegin(), shown.parts.cend(),
-                                     [](const auto& part) { return part.second == 0; });
+    // Both pages of a spread are alike: its numbers and running head on both, or on neither
+    const bool opening =
+        !item.spread() && std::any_of(shown.parts.cbegin(), shown.parts.cend(),
+                                      [](const auto& part) { return part.second == 0; });
     // Neither on the pages of a part's title nor on those of a text without a title (the
     // title page, the copyright page, the dedication, the motto)
-    const bool text =
-        item.source->kind != ExportItemKind::Group && !item.source->title.trimmed().isEmpty();
+    const bool text = item.spread() ? item.source->spread.pageNumbers
+                                    : item.source->kind != ExportItemKind::Group &&
+                                          !item.source->title.trimmed().isEmpty();
 
     const RenderContext::Computed& computed = m_context.computed;
     const double left = leftMarginOf(page);

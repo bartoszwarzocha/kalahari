@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file repetitions_page.cpp
 /// @brief Settings page: Editor > Repetitions
@@ -260,13 +261,14 @@ EditorRepetitionsPage::EditorRepetitionsPage(CommandRegistry& commands, QWidget*
     style->addItem(tr("Background"), QStringLiteral("background"));
     //: How the repeated words are marked. In Polish: Falista linia
     style->addItem(tr("Wavy line"), QStringLiteral("wave"));
-    //: In Polish: Sposób zaznaczenia:
-    //: In Polish: Słowa są zaznaczone, gdy panel „Powtórzenia” jest widoczny; słowa wybranej
-    //: karty mają obwódkę. Widok > Powtórzenia w tekście też to włącza i wyłącza.
+    //: In Polish: Powtórzone słowa są zaznaczone w tekście na wierzchu, także przy zamkniętym
+    //: panelu „Powtórzenia”; słowa karty wybranej w panelu mają obwódkę. Widok > Powtórzenia
+    //: w tekście też to włącza i wyłącza.
     addOptionNote(marks, highlight,
-                  tr("The words are marked while the Repetitions panel is shown; the words of "
-                     "the card chosen are framed. View > Repetitions in Text turns it on and "
-                     "off too."));
+                  tr("The repeated words are marked in the text in front, with the Repetitions "
+                     "panel closed too; the words of the card chosen in the panel are framed. "
+                     "View > Repetitions in Text turns it on and off too."));
+    //: In Polish: Sposób zaznaczenia:
     QLabel* styleLabel = addField(marks, tr("Marked with:"), style, Coordinator::STYLE_KEY);
 
     // The color of the marks, apart from how they are made

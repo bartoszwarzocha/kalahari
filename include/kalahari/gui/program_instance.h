@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file program_instance.h
 /// @brief One program for the writer: a later start hands its request to the program that
@@ -71,8 +72,15 @@ public:
     static QString defaultKey();
 
 signals:
-    /// @brief A later start asks to show the window and to open @p path (empty: nothing)
+    /// @brief A later start asks to show the window and to open @p path (empty: nothing); so
+    /// does a book opened in Finder on macOS
     void requested(const QString& path);
+
+protected:
+    /// @brief A file opened from Finder: macOS asks the program that runs, or the one it starts
+    /// for it, with an event (QFileOpenEvent) instead of the command line, and the program
+    /// takes it as the request of a later start
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     /// @brief Read the request of a later start, answer it and pass it on

@@ -1,11 +1,12 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file text_captions.h
 /// @brief Numbered captions, cross-references to them and the list of figures
 ///
-/// A caption is a paragraph of text, as any other, in the style Caption next to its image:
-/// "Figure 3. The bridge in 1931". Its label ("Figure") is text the writer can change; its
+/// A caption is a paragraph of text, as any other, in the style Caption next to its image or
+/// table: "Figure 3. The bridge in 1931", "Table 2. The wells of the route". Its label ("Figure") is text the writer can change; its
 /// number is a field, a character of the paragraph (the object replacement character, U+FFFC)
 /// with a format of the object type CAPTION_NUMBER_OBJECT that keeps the label it counts and
 /// an id. The program gives the number: each label has a numbering of its own, through the
@@ -46,6 +47,7 @@ class QTextBlock;
 class QTextBlockFormat;
 class QTextCharFormat;
 class QTextDocument;
+class QTextTable;
 class QXmlStreamAttributes;
 
 namespace kalahari::editor {
@@ -69,8 +71,8 @@ inline constexpr int REFERENCE_SHOWS_PROPERTY = QTextFormat::UserProperty + 203;
 /// @brief A cross-reference that Ctrl+click does not follow (bool)
 inline constexpr int REFERENCE_PLAIN_PROPERTY = QTextFormat::UserProperty + 204;
 
-/// @brief A caption above its image, the image of the paragraph after it (bool, a property
-///        of the caption's block format); without it a caption is below its image
+/// @brief A caption above its image or table, that of the paragraph after it (bool, a
+///        property of the caption's block format); without it a caption is below it
 inline constexpr int CAPTION_ABOVE_PROPERTY = QTextFormat::UserProperty + 205;
 
 /// @brief The longest label (characters)
@@ -110,14 +112,14 @@ struct CaptionNumberField {
     bool operator==(const CaptionNumberField&) const = default;
 };
 
-/// @brief The caption of an image as Insert Caption and Image Properties show it: a paragraph
-///        in the style Caption next to the image's, "Figure 3. The bridge in 1931"
+/// @brief The caption of an image or a table as Insert Caption and Image Properties show it:
+///        a paragraph in the style Caption next to it, "Figure 3. The bridge in 1931"
 struct ImageCaption {
     bool shown = false;    ///< The image has one
     bool numbered = true;  ///< With its label and number; false: its text alone
     QString label;         ///< The label it counts (numbered)
     QString text;          ///< Its text after the number, or all of it
-    bool above = false;    ///< Above the image; false: below it
+    bool above = false;    ///< Above the image or the table; false: below it
     bool operator==(const ImageCaption&) const = default;
 };
 
@@ -163,6 +165,9 @@ bool isCaptionAbove(const QTextBlockFormat& format);
 /// @brief Put a caption paragraph above its image or below it
 void setCaptionAbove(QTextBlockFormat& format, bool above);
 
+/// @brief Whether a block is a caption: a paragraph in the style Caption
+bool isCaptionBlock(const QTextBlock& block);
+
 /// @brief The caption of the block of an image: the paragraph after it in the style Caption
 ///        (unless it is above the image after it), else the paragraph before it in the style
 ///        Caption above its image; in a table, in the same cell; invalid: none
@@ -170,6 +175,13 @@ QTextBlock captionBlockOf(const QTextBlock& imageBlock);
 
 /// @brief The block of the image a caption's block goes with; invalid: none
 QTextBlock imageBlockOfCaption(const QTextBlock& captionBlock);
+
+/// @brief The caption of a table: the paragraph right before it in the style Caption above
+///        it, else the paragraph right after it in the style Caption (not above); invalid: none
+QTextBlock captionBlockOfTable(const QTextTable& table);
+
+/// @brief The table a caption's block goes with; nullptr: none
+QTextTable* tableOfCaption(const QTextBlock& captionBlock);
 
 /// @brief A caption's block in parts: its first number, and where its text starts after the
 ///        number and the separator after it ("Figure 3. The bridge")
@@ -238,6 +250,10 @@ struct CaptionEntry {
 
     bool operator==(const CaptionEntry&) const = default;
 };
+
+/// @brief The pieces of a block's text: its text, its numbers and its cross-references (what
+///        CaptionNumbers::captionText() shows of a caption's paragraph)
+std::vector<CaptionPiece> captionPieces(const QTextBlock& block);
 
 /// @brief The number fields of a document, in text order, each with its paragraph
 std::vector<CaptionEntry> captionEntries(const QTextDocument& document);

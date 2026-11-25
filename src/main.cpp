@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file main.cpp
 /// @brief Kalahari Writer's IDE - Main entry point (Qt6)
@@ -12,6 +13,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QProcess>
 #include <QEventLoop>
 #include <QTimer>
@@ -23,6 +25,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
+#include "kalahari/gui/installation.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/version.h"
 #include "kalahari/core/settings_manager.h"
@@ -43,10 +46,15 @@
 #include "kalahari/mindmap/mind_map_module.h"
 #include "kalahari/timeline/timeline_module.h"
 
+#include <string>
+
 namespace {
 
-/// The log file of the program, in its working folder
-constexpr const char* LOG_FILE = "kalahari.log";
+/// The log file of the program (gui::logFilePath)
+std::string programLogFile(const kalahari::core::SettingsManager& settings) {
+    return kalahari::gui::logFilePath(QCoreApplication::applicationDirPath(),
+                                      settings.getSettingsFilePath().parent_path());
+}
 
 } // anonymous namespace
 
@@ -119,6 +127,11 @@ int main(int argc, char *argv[]) {
     auto& artProvider = kalahari::core::ArtProvider::getInstance();
     artProvider.initialize();
 
+    // The logo on every window, the taskbar and the Dock; on Linux the menu entry of the
+    // program (kalahari.desktop) gives the icon of its windows under Wayland
+    app.setWindowIcon(artProvider.getApplicationIcon());
+    QGuiApplication::setDesktopFileName(QStringLiteral("kalahari"));
+
     // UI language: English is the source language, other languages come from
     // the .qm files embedded under :/i18n. A change takes effect after restart.
     QTranslator translator;
@@ -144,6 +157,10 @@ int main(int argc, char *argv[]) {
         QCoreApplication::translate("main", "Enable developer tools (Dev Tools menu + CLI features)"));
     cmdLine.addSwitch("", "benchmark",
         QCoreApplication::translate("main", "Run performance benchmark and exit"));
+    cmdLine.addSwitch("", "self-test",
+        //: In Polish: Sprawdź instalację programu (zasoby, wtyczki Qt, Python) i zakończ
+        QCoreApplication::translate("main",
+            "Check the installation of the program (resources, Qt plugins, Python) and exit"));
     cmdLine.addOption("", "project",
         QCoreApplication::translate("main", "Open project from path (for --benchmark)"), "path");
     cmdLine.addOption("", "chapter",
@@ -185,11 +202,22 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // The check of an installation: the packages run it before they are published
+    if (cmdLine.hasSwitch("self-test")) {
+        logger.openFile(programLogFile(settings));
+        const kalahari::gui::InstallationCheck check = kalahari::gui::checkInstallation();
+        fprintf(stdout, "Kalahari %s\n%s\n%s\n", app.applicationVersion().toUtf8().constData(),
+                check.lines.join(QLatin1Char('\n')).toUtf8().constData(),
+                check.passed ? "The installation works." : "The installation is incomplete.");
+        fflush(stdout);
+        return check.passed ? 0 : 1;
+    }
+
     // ========================================================================
     // CLI Mode: Icon Downloader
     // ========================================================================
     if (cmdLine.hasSwitch("cli")) {
-        logger.openFile(LOG_FILE);
+        logger.openFile(programLogFile(settings));
     }
     if (cmdLine.hasSwitch("cli") && cmdLine.hasOption("get-icon")) {
         logger.info("CLI Mode: Icon download");
@@ -321,7 +349,7 @@ int main(int argc, char *argv[]) {
         }
         instance.listen();
     }
-    logger.openFile(LOG_FILE);
+    logger.openFile(programLogFile(settings));
 
     // The modules that edit window kinds of the Workshop: the program knows them only by what
     // they register (core::IWindowEditorProvider), so that each can leave as an add-on

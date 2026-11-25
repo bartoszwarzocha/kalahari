@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file annotations_page.cpp
 /// @brief Settings page: Annotations
@@ -12,6 +13,7 @@
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/annotation.h"
+#include "kalahari/gui/widgets/length_spin_box.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -34,6 +36,7 @@ using json = nlohmann::json;
 /// The size of the cards' text, in percent of the chapter's text
 constexpr int MIN_CARD_FONT = 60;
 constexpr int MAX_CARD_FONT = 130;
+constexpr double MAX_CARD_SIDE_MARGIN_MM = 30.0;  ///< As the editor takes it at most
 constexpr int CARD_FONT_STEP = 5;
 
 /// How much of the kind's color the cards have, in percent of the usual
@@ -174,6 +177,13 @@ void AnnotationsPage::addCardSettings()
     fontSize->setSingleStep(CARD_FONT_STEP);
     fontSize->setSuffix(tr(" % of the chapter's text"));
     addField(look, tr("Card text size:"), fontSize, "editor.annotationCards.fontSize");
+
+    // The same room on the left and the right of the cards
+    auto* sideMargin = new LengthSpinBox(LengthUnit::Millimeters, 0.0, MAX_CARD_SIDE_MARGIN_MM);
+    sideMargin->setObjectName(QStringLiteral("annotationCardsSideMargin"));
+    //: The room between a card and the left and right edges of the text. In Polish: Margines
+    //: z boków:
+    addField(look, tr("Margin on both sides:"), sideMargin, "editor.annotationCards.sideMargin");
 
     // How much of the kind's color the cards have: from subtle to strong
     auto* tintRow = new QWidget();

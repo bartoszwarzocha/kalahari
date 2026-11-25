@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file clippings_coordinator.cpp
 /// @brief Clippings: Edit > Cut to Clippings, Insert > Clipping..., and the way back to where
@@ -395,7 +396,7 @@ bool ClippingsCoordinator::takeSelectionOf(editor::BookEditor& text) {
 void ClippingsCoordinator::notice(editor::BookEditor* text, const QString& message,
                                   const QString& undoToolTip) {
     if (EditorPanel* panel = panelOf(text); m_showNotice && panel != nullptr) {
-        //: In Polish: &Cofnij
+        //: In Polish: Cofn&ij
         m_showNotice(panel, message, tr("&Undo"), undoToolTip, [this]() { undoLast(); });
     } else {
         say(message);
@@ -663,8 +664,8 @@ bool ClippingsCoordinator::restore(const QString& clippingId) {
                                "paragraph the fragment came from.");
     if (EditorPanel* panel = panelOf(text); m_showNotice && panel != nullptr) {
         // Into the text while it is open (by its id, as the notice may outlive it)
-        //: In Polish: &Wstaw tutaj / Wstaw wycinek w miejscu kursora
-        m_showNotice(panel, message, tr("&Insert Here"), tr("Insert the clipping at the cursor"),
+        //: In Polish: Wstaw t&utaj / Wstaw wycinek w miejscu kursora
+        m_showNotice(panel, message, tr("I&nsert Here"), tr("Insert the clipping at the cursor"),
                      [this, textId = clipping->clipping.origin.element, clippingId]() {
                          if (editor::BookEditor* into = editorOf(textId)) {
                              insertAt(into, clippingId);

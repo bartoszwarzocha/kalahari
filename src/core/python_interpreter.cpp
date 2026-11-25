@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file python_interpreter.cpp
 /// @brief Implementation of PythonInterpreter
@@ -8,6 +9,7 @@
 #include <kalahari/core/logger.h>
 #include <kalahari/core/unicode_paths.h>
 #include <pybind11/embed.h>
+#include <QStandardPaths>
 #include <stdexcept>
 #include <chrono>    // For finalization timing diagnostics
 #include <vector>    // For dist-packages paths
@@ -90,6 +92,19 @@ void PythonInterpreter::initialize() {
         // Detect stdlib path (platform-specific: Lib on Windows, lib/python3.X on Unix)
         std::filesystem::path pythonLib = detectPythonStdlib(pythonHome);
         Logger::getInstance().info("Python stdlib path: {}", pathText(pythonLib));
+
+        // The compiled modules go to the cache of the user, not next to the modules
+        if (const std::filesystem::path compiled = compiledModulesFolder(); !compiled.empty()) {
+#ifdef _WIN32
+            PyConfig_SetString(&config, &config.pycache_prefix, compiled.wstring().c_str());
+#else
+            if (wchar_t* compiledWide = Py_DecodeLocale(compiled.c_str(), nullptr)) {
+                PyConfig_SetString(&config, &config.pycache_prefix, compiledWide);
+                PyMem_RawFree(compiledWide);
+            }
+#endif
+            Logger::getInstance().info("Python compiled modules: {}", pathText(compiled));
+        }
 
 #ifdef _WIN32
         // Windows uses wchar_t
@@ -312,6 +327,14 @@ std::string PythonInterpreter::getPythonVersion() const {
 
 std::filesystem::path PythonInterpreter::getPythonHome() const {
     return getPlatformPythonHome();
+}
+
+std::filesystem::path PythonInterpreter::compiledModulesFolder() {
+    const QString cache = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
+    if (cache.isEmpty()) {
+        return {};
+    }
+    return pathOfText(cache.toStdString()) / "kalahari" / "python";
 }
 
 std::string PythonInterpreter::executeTest() {

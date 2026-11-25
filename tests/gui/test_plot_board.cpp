@@ -1,11 +1,13 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_plot_board.cpp
 /// @brief The plot board and the outline of the book: the cards of the texts, the places they
 /// move to, the cells of the outline, the keys, and what Ctrl+Z undoes
 
 #include "kalahari_tests/gui/context_menu_reader.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari_tests/gui/document_window.h"
 
 #include "kalahari/core/book_project.h"
@@ -13,6 +15,7 @@
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/chapter_document.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/theme.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -494,6 +497,105 @@ TEST_CASE("Plot board: the outline shows the parts over their texts and asks for
     CHECK_FALSE(model.flags(model.index(3, Column::POV_COLUMN)) & Qt::ItemIsEditable);
 }
 
+TEST_CASE("Plot board: the outline shows the colors of the cards as the board does",
+          "[gui][plotboard]") {
+    PlotNovel book;
+    using Column = gui::PlotOutlineModel;
+    gui::PlotColors colors;
+    colors.draft = QColor(Qt::gray);
+    colors.revision = QColor(Qt::blue);
+    colors.finished = QColor(Qt::green);
+    colors.own = {QColor(Qt::red), QColor(Qt::yellow)};
+
+    gui::PlotOutlineModel model;
+    model.setBands(PlotBoard::bandsOf(book.pm));
+    const int calm = model.rowOf(book.calm);
+    const int part = model.rowOf(book.part);
+    REQUIRE(calm >= 0);
+    REQUIRE(part >= 0);
+    const auto color = [&model](int row, int column) {
+        return model.index(row, column).data(Column::COLOR_ROLE);
+    };
+    const auto background = [&model](int row, int column) {
+        return model.index(row, column).data(Qt::BackgroundRole);
+    };
+
+    // Without colors (none set yet): nothing
+    CHECK_FALSE(color(calm, Column::TITLE_COLUMN).isValid());
+
+    // By state: the color of the card in every cell of its row (the delegate draws it at the
+    // left edge), no square before the title (test of 24.11)
+    QStringList changed;
+    QObject::connect(&model, &QAbstractItemModel::dataChanged,
+                     [&changed]() { changed << QStringLiteral("changed"); });
+    model.setColoring(QString::fromLatin1(PlotBoard::COLOR_STATUS), colors, false);
+    CHECK(changed.size() == 1);
+    CHECK(color(calm, Column::NUMBER_COLUMN).value<QColor>() == QColor(Qt::gray));
+    CHECK(color(calm, Column::DESCRIPTION_COLUMN).value<QColor>() == QColor(Qt::gray));
+    CHECK_FALSE(model.index(calm, Column::TITLE_COLUMN).data(Qt::DecorationRole).isValid());
+    CHECK_FALSE(background(calm, Column::TITLE_COLUMN).isValid());
+
+    // The background as the card's, with the tint; a part's row keeps its own
+    model.setColoring(QString::fromLatin1(PlotBoard::COLOR_STATUS), colors, true);
+    const QColor tinted = background(calm, Column::DESCRIPTION_COLUMN).value<QBrush>().color();
+    CHECK(tinted == kalahari::core::mixedColor(QPalette().color(QPalette::Base), QColor(Qt::gray),
+                                               gui::PlotColors::TINT_SHARE));
+    CHECK(background(part, Column::TITLE_COLUMN).value<QBrush>().color() ==
+          QPalette().color(QPalette::AlternateBase));
+    CHECK_FALSE(color(part, Column::NUMBER_COLUMN).isValid());
+
+    // Without colors on the board, none in the outline
+    model.setColoring(QString::fromLatin1(PlotBoard::COLOR_NONE), colors, true);
+    CHECK_FALSE(color(calm, Column::NUMBER_COLUMN).isValid());
+    CHECK_FALSE(background(calm, Column::TITLE_COLUMN).isValid());
+
+    // On the tab of the board the outline has the colors the board has
+    gui::registerAllIcons();
+    const KeptSetting colorBy(PlotBoard::COLOR_SETTING);
+    core::SettingsManager::getInstance().set<std::string>(PlotBoard::COLOR_SETTING,
+                                                          PlotBoard::COLOR_STATUS);
+    test::Window window;
+    gui::PlotBoardCoordinator boards{book.pm, window.tabs, &window.navigator, &window.statusBar,
+                                     [](bool) {}};
+    gui::PlotBoardPanel* panel =
+        boards.openBoard(QString::fromLatin1(PlotBoard::VIEW_OUTLINE), true);
+    REQUIRE(panel != nullptr);
+    const gui::PlotOutlineModel* outline = panel->outlineModel();
+    const QModelIndex title = outline->index(outline->rowOf(book.calm), Column::TITLE_COLUMN);
+    CHECK(title.data(Column::COLOR_ROLE).value<QColor>().isValid());
+
+    // The left edge of the row of the card is thick, in its color; further in it is not. The
+    // first column shown, also with the number hidden
+    gui::PlotOutlineDelegate delegate;
+    QTableView view;
+    view.setModel(&model);
+    view.setItemDelegate(&delegate);
+    model.setColoring(QString::fromLatin1(PlotBoard::COLOR_STATUS), colors, false);
+    view.resize(800, 400);
+    view.show();
+    REQUIRE(test::waitUntil([&view]() { return view.isVisible(); }));
+    for (const bool numberShown : {true, false}) {
+        view.setColumnHidden(Column::NUMBER_COLUMN, !numberShown);
+        const int first = numberShown ? Column::NUMBER_COLUMN : Column::TITLE_COLUMN;
+        const QRect cell = view.visualRect(model.index(calm, first));
+        REQUIRE(cell.isValid());
+        const QImage image = view.viewport()->grab().toImage();
+        const qreal ratio = image.devicePixelRatio();
+        const auto pixel = [&image, ratio](int x, int y) {
+            return image.pixelColor(qRound(x * ratio), qRound(y * ratio));
+        };
+        const int middle = cell.center().y();
+        CHECK(pixel(cell.left() + 1, middle) == QColor(Qt::gray));
+        CHECK(pixel(cell.left() + gui::PlotOutlineDelegate::EDGE_WIDTH - 1, middle) ==
+              QColor(Qt::gray));
+        CHECK(pixel(cell.left() + gui::PlotOutlineDelegate::EDGE_WIDTH + 2, middle) !=
+              QColor(Qt::gray));
+        // The other cells of the row have no edge
+        const QRect next = view.visualRect(model.index(calm, Column::DESCRIPTION_COLUMN));
+        CHECK(pixel(next.left() + 1, middle) != QColor(Qt::gray));
+    }
+}
+
 TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z undoes it",
           "[gui][plotboard]") {
     gui::registerAllIcons();
@@ -514,7 +616,7 @@ TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z u
         boards.openBoard(QString::fromLatin1(PlotBoard::VIEW_BOARD), true);
     REQUIRE(panel != nullptr);
     CHECK(window.tabs->currentWidget() == panel);
-    CHECK(window.tabs->tabText(window.tabs->indexOf(panel)) == QStringLiteral("Plot Board"));
+    CHECK(window.tabs->tabText(window.tabs->indexOf(panel)) == QStringLiteral("Book Plan"));
     CHECK(panel->view() == QLatin1String(PlotBoard::VIEW_BOARD));
     // One tab of the board
     CHECK(boards.openBoard(QString(), false) == panel);
@@ -603,6 +705,11 @@ TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z u
         CHECK(panel->message() ==
               QStringLiteral("\"The Storm\" is now in the state: Revision."));
 
+        // The cards colored by their state: a color chosen shows the own colors of the cards,
+        // and the board says so (test of 22.11)
+        const KeptSetting colorBy{PlotBoard::COLOR_SETTING};
+        auto& settings = core::SettingsManager::getInstance();
+        settings.set<std::string>(PlotBoard::COLOR_SETTING, PlotBoard::COLOR_STATUS);
         menu = panel->cardMenu(storm);
         const QAction* colors = actionOf(*menu, QStringLiteral("Card &Color"));
         REQUIRE(colors != nullptr);
@@ -610,11 +717,24 @@ TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z u
         REQUIRE(teal != nullptr);
         teal->trigger();
         CHECK(pm.findElement(storm)->plot.color == QStringLiteral("teal"));
+        CHECK(settings.get<std::string>(PlotBoard::COLOR_SETTING) == PlotBoard::COLOR_OWN);
+        CHECK(panel->message() ==
+              QStringLiteral("The card \"The Storm\" is now: Teal. \"Colors:\" – own colors of "
+                             "the cards now."));
 
         press(board, Qt::Key_Z, Qt::ControlModifier);
         CHECK(pm.findElement(storm)->plot.color.isEmpty());
         press(board, Qt::Key_Z, Qt::ControlModifier);
         CHECK(core::ProjectManager::statusOf(*pm.findElement(storm)) == QStringLiteral("draft"));
+
+        // With the own colors already: the color only
+        menu = panel->cardMenu(storm);
+        colors = actionOf(*menu, QStringLiteral("Card &Color"));
+        REQUIRE(colors != nullptr);
+        teal = actionOf(*colors->menu(), QStringLiteral("Teal"));
+        REQUIRE(teal != nullptr);
+        teal->trigger();
+        CHECK(panel->message() == QStringLiteral("The card \"The Storm\" is now: Teal."));
     }
 
     SECTION("Ctrl+X marks the card, Ctrl+V moves it after another, Esc forgets it") {
@@ -1681,9 +1801,9 @@ QStringList navigatorMenu(gui::NavigatorPanel& navigator, QTreeWidgetItem* item,
     return texts;
 }
 
-/// The text of Show on the Plot Board in the Navigator
+/// The text of Show in the Book Plan in the Navigator
 const QString& showOnBoardText() {
-    static const QString TEXT = QStringLiteral("Show on the Plot &Board");
+    static const QString TEXT = QStringLiteral("Show in the &Book Plan");
     return TEXT;
 }
 
@@ -1787,7 +1907,7 @@ TEST_CASE("Plot board: the Edit menu works on the board and in the outline",
     }
 }
 
-TEST_CASE("Plot board: Show on the Plot Board in the Navigator", "[gui][plotboard]") {
+TEST_CASE("Plot board: Show in the Book Plan in the Navigator", "[gui][plotboard]") {
     gui::registerAllIcons();
     StormBoard s;
     auto& pm = s.pm;
@@ -1807,7 +1927,7 @@ TEST_CASE("Plot board: Show on the Plot Board in the Navigator", "[gui][plotboar
 
     SECTION("a text: its card") {
         const QStringList texts =
-            navigatorMenu(navigator, navigatorItem(navigator, s.storm), QStringLiteral("Show on"));
+            navigatorMenu(navigator, navigatorItem(navigator, s.storm), QStringLiteral("Show in"));
         CHECK(texts.contains(showOnBoardText()));
         CHECK(s.board->currentCard() == s.storm);
         CHECK(s.window.tabs->currentWidget() == s.panel);
@@ -1815,14 +1935,14 @@ TEST_CASE("Plot board: Show on the Plot Board in the Navigator", "[gui][plotboar
 
     SECTION("a part: the card of its first text") {
         CHECK(navigatorMenu(navigator, navigatorItem(navigator, s.book.part),
-                            QStringLiteral("Show on"))
+                            QStringLiteral("Show in"))
                   .contains(showOnBoardText()));
         CHECK(s.board->currentCard() == s.book.calm);
     }
 
     SECTION("the book: the board as it was") {
         CHECK(navigatorMenu(navigator, navigatorItem(navigator, QString(), QStringLiteral("book")),
-                            QStringLiteral("Show on"))
+                            QStringLiteral("Show in"))
                   .contains(showOnBoardText()));
         CHECK(s.board->currentCard() == s.book.first);
         CHECK(s.window.tabs->currentWidget() == s.panel);
@@ -2093,7 +2213,7 @@ TEST_CASE("Plot board: the gear over the board and the outline opens Settings > 
     auto* gear = panel->findChild<QToolButton*>(QStringLiteral("plotBoardSettings"));
     REQUIRE(gear != nullptr);
     CHECK_FALSE(gear->icon().isNull());
-    CHECK(gear->toolTip() == QStringLiteral("Plot Board Settings"));
+    CHECK(gear->toolTip() == QStringLiteral("Book Plan Settings"));
     CHECK(gear->accessibleName() == gear->toolTip());
     CHECK(gear->focusPolicy() == Qt::TabFocus);
     CHECK_FALSE(gear->isHidden());

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file cursor_card_box.h
 /// @brief The card at the cursor in the Properties panel: the card whose name the cursor of a
@@ -43,6 +44,7 @@ class RelationsBox;
 /// (cardsAtCursor()) chooses what the Properties panel shows of the cards at the cursor.
 class CursorCardBox : public QGroupBox {
     Q_OBJECT
+    Q_MOC_INCLUDE("kalahari/gui/widgets/relations_box.h")
 
 public:
     /// @brief What the Properties panel shows of the cards at the cursor
@@ -102,6 +104,10 @@ signals:
 
     /// @brief Card @p cardId was made with a relation: the Navigator shows it
     void cardAdded(const QString& cardId);
+
+    /// @brief A relation was added on the card (RelationsBox::relationAdded())
+    void relationAdded(kalahari::gui::RelationsBox* box, const QString& cardId,
+                       const QString& otherId, const QString& relationId);
 
     /// @brief Open Settings > Cards
     void requestSettings();

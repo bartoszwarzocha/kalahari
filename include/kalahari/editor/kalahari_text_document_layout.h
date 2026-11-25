@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file kalahari_text_document_layout.h
 /// @brief Custom QAbstractTextDocumentLayout without Qt leading gaps (OpenSpec #00043)
@@ -20,6 +21,8 @@
 #include <QTextBlock>
 #include <QTextCharFormat>
 #include <QColor>
+#include <QList>
+#include <QTextOption>
 #include <QFont>
 #include <QHash>
 #include <QMarginsF>
@@ -173,6 +176,16 @@ public:
     /// @brief Set the view typography; every block waits for layout again when it changes
     void setTypography(const LayoutTypography& typography);
     const LayoutTypography& typography() const { return m_typography; }
+
+    /// @brief The tab guides of the text: those of its document (tab_guides.h), which the
+    ///        layout follows; millimetres from the left edge of the text, in order. A Tab of a
+    ///        paragraph outside a table goes to the next one, after the last one as without
+    ///        guides; every block waits for layout again when they change.
+    const std::vector<double>& tabGuides() const { return m_tabGuides; }
+
+    /// @brief The places of the tab guides in document units from the left edge of the text
+    ///        (LayoutTypography::pixelsPerMillimetre); none without them
+    [[nodiscard]] std::vector<qreal> tabGuidePositions() const;
 
     /// @brief Set the page flow; every block waits for layout again when it changes
     ///
@@ -667,6 +680,10 @@ protected:
     /// @brief Called by Qt when document content changes
     void documentChanged(int from, int charsRemoved, int charsAdded) override;
 
+    /// @brief The tab guides of the document changed (its property TAB_GUIDES_PROPERTY): the
+    ///        text is laid out with them
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
     /// @brief Size of an object of the text: as wide as the text, one line high
     void resizeInlineObject(QTextInlineObject item, int posInDocument,
                             const QTextFormat& format) override;
@@ -735,6 +752,12 @@ private:
     /// @brief The frame of a block's lines; @p cell: of a block of a table
     LineFrame lineFrame(const QTextBlock& block, const BlockMetrics& metrics,
                         const CellPlacement* cell = nullptr) const;
+
+    /// @brief The tab stops of a block at the tab guides (tabGuides()), counted from the start
+    ///        of its first line (@p frame); none in a table, in a right-to-left block or
+    ///        without guides
+    [[nodiscard]] QList<QTextOption::Tab> tabGuideTabs(const QTextBlock& block,
+                                                       const LineFrame& frame) const;
 
     /// @brief Height a block of the given text extent probably gets at the current settings
     /// @param width The width its lines have; negative: the width of the text
@@ -950,6 +973,8 @@ private:
         ImageWrap floatWrap = ImageWrap::Inline;  ///< FLOW_FLOAT: how the text flows around
                                                   ///< the block's image
         QSizeF floatSize;                ///< FLOW_FLOAT: the size of the block's image
+        qreal floatGap = 0;              ///< FLOW_FLOAT: the room between the image and the
+                                         ///< text beside it
     };
 
     /// @brief The page flow entry of a block in a style, with @p lead
@@ -1161,6 +1186,7 @@ private:
         size_t last = 0;
         ImageWrap wrap = ImageWrap::SquareLeft;
         QRectF rect;
+        qreal gap = 0.0;  ///< The room between the image and the text beside it
     };
 
     /// @brief Where a line goes among the images beside the text: its top, the left of its
@@ -1289,6 +1315,10 @@ private:
     // the style and the properties
     mutable std::map<QString, BlockMetrics> m_directMetrics;
 
+    // The metrics of a block with the room of an image or a table next to it (blockSpace()),
+    // by the metrics it has without it and the room
+    mutable std::map<QString, BlockMetrics> m_spaceMetrics;
+
     // The marks of the list items by block number (listMarkers()), whether the document has
     // list items, and whether the marks wait to be counted
     mutable std::vector<QString> m_listMarkers;
@@ -1300,6 +1330,7 @@ private:
 
     // How scene breaks look
     SceneBreakLook m_sceneBreakLook = SceneBreakLook::Asterisks;
+    std::vector<double> m_tabGuides;  ///< The tab guides, millimetres (tabGuides())
 
     // Page flow (page mode); its text areas in whole pixels
     PageFlow m_pageFlow;

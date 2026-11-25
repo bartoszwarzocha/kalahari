@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file resource_paths.cpp
 /// @brief Implementation of ResourcePaths singleton
@@ -65,7 +66,11 @@ void ResourcePaths::initSearchPaths() {
 #endif
 
 #ifdef Q_OS_LINUX
-    // Priority 2b: Linux FHS standard locations
+    // Priority 2b: an installation under any prefix, with the program in <prefix>/bin: the
+    // AppImage (usr/bin, usr/share), the .deb package (/opt/kalahari) and cmake --install
+    m_searchPaths << QDir::cleanPath(appDir + "/../share/kalahari/resources");
+
+    // Priority 2c: Linux FHS standard locations
     // System-wide installation
     m_searchPaths << "/usr/share/kalahari/resources";
     m_searchPaths << "/usr/local/share/kalahari/resources";

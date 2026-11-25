@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file annotation_cards.cpp
 /// @brief The cards of the annotations under their paragraphs (the continuous views)
@@ -32,7 +33,7 @@ namespace {
 
 // Lengths in ems of the cards' font, as in the mockup approved on 26.10.2026 (the text of a
 // card 14.4 pixels high under text of 16)
-constexpr qreal INDENT = 1.4;        ///< The cards start this far right of the text's edge
+constexpr qreal INDENT = 1.4;        ///< The room on each side of the cards, unless set
 constexpr qreal TOP_GAP = 0.3;       ///< Above the first card, below the paragraph's spacing
 constexpr qreal CARD_GAP = 0.4;      ///< Between two cards
 constexpr qreal BOTTOM_GAP = 0.75;   ///< Under the last card
@@ -333,6 +334,10 @@ QFont AnnotationCards::cardFont() const {
     return font;
 }
 
+QFont AnnotationCards::cardFontAt(qreal scale) const {
+    return scaledFont(cardFont(), scale);
+}
+
 qreal AnnotationCards::lineHeight() const {
     return metricsOf(cardFont()).lineHeight();
 }
@@ -495,8 +500,12 @@ std::vector<AnnotationCardBox> AnnotationCards::cardsOf(const QTextBlock& block,
     }
     const Metrics m = metricsOf(cardFont());
     const CardContext context{m, m_settings.compact};
-    const qreal left = INDENT * m.em;
-    const qreal cardWidth = std::max(MIN_WIDTH * m.em, width - left);
+    // As far from the text's right edge as from its left (test of 22.11); a card narrower
+    // than the narrowest in the middle
+    const qreal side = m_sideMargin >= 0.0 ? m_sideMargin : INDENT * m.em;
+    const qreal cardWidth = std::max(MIN_WIDTH * m.em, width - 2.0 * side);
+    const qreal left = width - 2.0 * side >= cardWidth ? side
+                                                       : std::max(0.0, (width - cardWidth) / 2.0);
 
     qreal y = top + TOP_GAP * m.em;
     for (const AnnotationMark& mark : marks) {
@@ -611,6 +620,59 @@ QRectF AnnotationCards::writingTextRect(const QTextBlock& block, qreal top, qrea
 // Drawing
 // =============================================================================
 
+namespace {
+
+/// @brief Draw the first @p shown lines of a card's text, as @p layout breaks it (document
+///        units), at @p box: in pixels of the view, in @p font (the text's at the view's
+///        @p scale, as the frame written on a card has it), the last one with an ellipsis when
+///        the text is @p cut short
+void drawCardText(QPainter* painter, const QTextLayout& layout, int shown, bool cut,
+                  const QRectF& box, qreal scale, const QFont& font) {
+    QTextLayout view(layout.text(), font);
+    view.setTextOption(layout.textOption());
+    QList<QTextLayout::FormatRange> formats = layout.formats();
+    for (QTextLayout::FormatRange& range : formats) {
+        if (range.format.hasProperty(QTextFormat::FontPointSize) ||
+            range.format.hasProperty(QTextFormat::FontPixelSize)) {
+            range.format.setFont(scaledFont(range.format.font(), scale));
+        }
+    }
+    view.setFormats(formats);
+    // The same lines, each in the middle of its line box
+    view.beginLayout();
+    for (int i = 0; i < shown && i < layout.lineCount(); ++i) {
+        const QTextLine source = layout.lineAt(i);
+        QTextLine line = view.createLine();
+        if (!line.isValid()) {
+            break;
+        }
+        line.setNumColumns(source.textLength());
+        line.setPosition(
+            QPointF(0.0, (source.y() + source.height() / 2.0) * scale - line.height() / 2.0));
+    }
+    view.endLayout();
+
+    painter->save();
+    painter->scale(1.0 / scale, 1.0 / scale);
+    const QPointF origin = box.topLeft() * scale;
+    for (int i = 0; i < view.lineCount(); ++i) {
+        const QTextLine line = view.lineAt(i);
+        if (cut && i == view.lineCount() - 1) {
+            QString rest = view.text().mid(line.textStart());
+            rest.replace(QChar::LineSeparator, QLatin1Char(' '));
+            painter->setFont(font);
+            painter->drawText(QPointF(origin.x(), origin.y() + line.y() + line.ascent()),
+                              QFontMetricsF(font).elidedText(rest.simplified(), Qt::ElideRight,
+                                                             box.width() * scale));
+        } else {
+            line.draw(painter, origin);
+        }
+    }
+    painter->restore();
+}
+
+}  // namespace
+
 void AnnotationCards::paint(QPainter* painter, const QTextBlock& block, qreal top,
                             qreal width) const {
     const std::vector<AnnotationCardBox> cards = cardsOf(block, top, width);
@@ -620,6 +682,10 @@ void AnnotationCards::paint(QPainter* painter, const QTextBlock& block, qreal to
     const Metrics m = metricsOf(cardFont());
     const CardContext context{m, m_settings.compact};
     const qreal tint = std::clamp(m_settings.tintPercent, 0, 400) / 100.0;
+    // The texts in pixels of the view, in the font the frame written on a card has
+    const qreal transformScale = painter->worldTransform().m11();
+    const qreal viewScale = transformScale > 0.0 ? transformScale : 1.0;
+    const QFont viewFont = cardFontAt(viewScale);
 
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
@@ -774,21 +840,8 @@ void AnnotationCards::paint(QPainter* painter, const QTextBlock& block, qreal to
         const int lines = layOutCardText(layout, card.mark, context, parts.text.width(),
                                          colors.secondary);
         painter->setPen(colors.text);
-        painter->setFont(m.text);
-        const int shown = cut ? std::min(card.shownLines, lines) : lines;
-        for (int i = 0; i < shown; ++i) {
-            const QTextLine line = layout.lineAt(i);
-            if (cut && i == shown - 1) {
-                // The last line shown ends with an ellipsis
-                QString rest = layout.text().mid(line.textStart());
-                rest.replace(QChar::LineSeparator, QLatin1Char(' '));
-                painter->drawText(QPointF(parts.text.left(), parts.text.top() + line.y() + line.ascent()),
-                                  QFontMetricsF(m.text).elidedText(rest.simplified(), Qt::ElideRight,
-                                                                   parts.text.width()));
-            } else {
-                line.draw(painter, parts.text.topLeft());
-            }
-        }
+        drawCardText(painter, layout, cut ? std::min(card.shownLines, lines) : lines, cut,
+                     parts.text, viewScale, viewFont);
         if (cut) {
             painter->setFont(m.link);
             painter->setPen(colors.kindName);

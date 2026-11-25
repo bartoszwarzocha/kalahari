@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file caption_settings.cpp
 /// @brief The settings of new images and of the captions of new books
@@ -12,6 +13,7 @@
 #include <QCoreApplication>
 
 #include <algorithm>
+#include <cmath>
 
 #include <nlohmann/json.hpp>
 
@@ -29,7 +31,13 @@ QStringList defaultCaptionLabels() {
     labels << QCoreApplication::translate("CaptionSettings", "Map");
     //: A label of captions. In Polish: Schemat
     labels << QCoreApplication::translate("CaptionSettings", "Diagram");
+    labels << defaultTableCaptionLabel();
     return labels;
+}
+
+QString defaultTableCaptionLabel() {
+    //: A label of captions, of the captions of tables. In Polish: Tabela
+    return QCoreApplication::translate("CaptionSettings", "Table");
 }
 
 QStringList settingsCaptionLabels() {
@@ -117,6 +125,13 @@ editor::BookEditor::NewImageOptions settingsNewImageOptions() {
     const int width = settings.get<int>(IMAGE_WIDTH_KEY, 0);
     options.widthPercent = width > 0 && width <= 100 ? width : 0;
     options.wrap = imageWrapOfSetting(settings.get<std::string>(IMAGE_LAYOUT_KEY, "inline"));
+    const auto space = [&settings](const char* key, double fallback) {
+        const double points = settings.get<double>(key, fallback);
+        return std::isfinite(points) ? std::clamp(points, 0.0, editor::MAX_IMAGE_SPACE) : fallback;
+    };
+    options.spaceAbove = space(IMAGE_SPACE_ABOVE_KEY, editor::DEFAULT_IMAGE_SPACE_ABOVE);
+    options.spaceBelow = space(IMAGE_SPACE_BELOW_KEY, editor::DEFAULT_IMAGE_SPACE_BELOW);
+    options.spaceBeside = space(IMAGE_SPACE_BESIDE_KEY, editor::DEFAULT_IMAGE_SPACE_BESIDE);
     if (settings.get<bool>(IMAGE_CAPTION_KEY, true)) {
         const QString label = editor::normalizedLabel(
             QString::fromStdString(settings.get<std::string>(IMAGE_CAPTION_LABEL_KEY, "")));
@@ -127,6 +142,23 @@ editor::BookEditor::NewImageOptions settingsNewImageOptions() {
                                     IMAGE_MAX_MAX_DPI);
     }
     return options;
+}
+
+editor::BookEditor::NewTableOptions settingsNewTableOptions() {
+    const auto& settings = core::SettingsManager::getInstance();
+    const auto space = [&settings](const char* key, double fallback) {
+        const double points = settings.get<double>(key, fallback);
+        return std::isfinite(points) ? std::clamp(points, 0.0, editor::MAX_TABLE_SPACE) : fallback;
+    };
+    editor::BookEditor::NewTableOptions options;
+    options.spaceAbove = space(TABLE_SPACE_ABOVE_KEY, editor::DEFAULT_TABLE_SPACE_ABOVE);
+    options.spaceBelow = space(TABLE_SPACE_BELOW_KEY, editor::DEFAULT_TABLE_SPACE_BELOW);
+    return options;
+}
+
+bool settingsTableCaptionAbove() {
+    return core::SettingsManager::getInstance().get<std::string>(TABLE_CAPTION_POSITION_KEY,
+                                                                 "above") != "below";
 }
 
 std::vector<std::pair<editor::ImageWrap, QString>> imageWrapChoices() {

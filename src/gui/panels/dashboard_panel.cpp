@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file dashboard_panel.cpp
 /// @brief Dashboard panel implementation - native Qt widgets
@@ -14,6 +15,7 @@
 #include "kalahari/gui/panels/dashboard_layouts.h"
 #include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/gui/utils/layout_utils.h"
+#include "kalahari/gui/widgets/loading_overlay.h"
 #include "kalahari/gui/widgets/path_label.h"
 #include "kalahari/gui/widgets/wrapping_label.h"
 #include "kalahari/core/art_provider.h"
@@ -812,7 +814,7 @@ QWidget* DashboardPanel::createRecentFileCard(const QString& filePath, QWidget* 
     // Set click handler
     card->onClick = [this, filePath]() {
         core::Logger::getInstance().info("DashboardPanel: Recent book clicked: {}", filePath.toStdString());
-        emit openRecentBookRequested(filePath);
+        openRecentBook(filePath);
     };
 
     // Store card reference for later
@@ -1061,7 +1063,44 @@ void DashboardPanel::refreshContent()
     auto& logger = core::Logger::getInstance();
     logger.debug("DashboardPanel::refreshContent called");
 
+    // The card of the book being opened stays, with its spinner, until the book is open
+    if (!m_openingPath.isEmpty()) {
+        m_refreshWaits = true;
+        return;
+    }
     updateRecentFilesList();
+}
+
+void DashboardPanel::openRecentBook(const QString& filePath)
+{
+    if (!m_openingPath.isEmpty()) {
+        return;
+    }
+    QWidget* card = nullptr;
+    for (const auto& [each, path] : m_fileCards) {
+        if (path == filePath) {
+            card = each;
+        }
+    }
+    m_openingPath = filePath;
+    // The card darkened, with a spinner turning on it, while the book loads (test of 23.11),
+    // on the screen before the loading keeps the program busy
+    if (card != nullptr) {
+        m_loading = new LoadingOverlay(card);
+    }
+    QTimer::singleShot(0, this, [this, self = QPointer<DashboardPanel>(this), filePath]() {
+        emit openRecentBookRequested(filePath);
+        // The Dashboard may be gone once the book is open
+        if (self.isNull()) {
+            return;
+        }
+        delete m_loading;
+        m_openingPath.clear();
+        if (m_refreshWaits) {
+            m_refreshWaits = false;
+            updateRecentFilesList();
+        }
+    });
 }
 
 void DashboardPanel::onThemeChanged()

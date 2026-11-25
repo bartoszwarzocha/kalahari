@@ -1,9 +1,10 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file image_properties_dialog.cpp
-/// @brief Image > Image Properties...: the file, size, crop, border, colors and description
-///        of the selected image
+/// @brief Image > Image Properties...: the file, size, crop, the text flowing around it, the
+///        room around it, border, colors, description and caption of the selected image
 
 #include "kalahari/gui/dialogs/image_properties_dialog.h"
 
@@ -23,6 +24,7 @@
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFileInfo>
+#include <QFormLayout>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -33,6 +35,7 @@
 #include <QLocale>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPen>
 #include <QPixmap>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -78,6 +81,14 @@ const QSize LARGE_PREVIEW(220, 150);
 const QSize COLORS_PREVIEW(170, 110);
 const QSize CAPTION_PREVIEW(150, 80);
 const QSize FILTER_TILE(72, 44);
+
+/// The pictures of the ways the text flows around an image (Text Flow), and the one of the
+/// room around it (Space Around)
+const QSize WRAP_TILE(84, 60);
+const QSize SPACE_PREVIEW(220, 150);
+
+/// The points a picture of the text flowing around an image shows across its column
+constexpr double WRAP_PICTURE_POINTS = 200.0;
 
 /// The width of the list of the pages
 constexpr int PAGE_LIST_WIDTH = 160;
@@ -327,6 +338,157 @@ void ImagePreview::paintEvent(QPaintEvent* event)
 }
 
 // =============================================================================
+// WrapPicture
+// =============================================================================
+
+WrapPicture::WrapPicture(const QSize& size, QWidget* parent)
+    : QFrame(parent)
+    , m_size(size)
+{
+    setFrameShape(QFrame::NoFrame);
+    setMinimumSize(size);
+}
+
+void WrapPicture::setWrap(ImageWrap wrap, double above, double below, double beside)
+{
+    m_wrap = wrap;
+    m_above = above;
+    m_below = below;
+    m_beside = beside;
+    update();
+}
+
+QSize WrapPicture::sizeHint() const
+{
+    return m_size;
+}
+
+QPixmap WrapPicture::pixmap(ImageWrap wrap, const QSize& size, const QPalette& palette,
+                            qreal devicePixelRatio)
+{
+    QPixmap pixmap(size * devicePixelRatio);
+    pixmap.setDevicePixelRatio(devicePixelRatio);
+    pixmap.fill(Qt::transparent);
+    QPainter painter(&pixmap);
+    // The ways of the page Text Flow: the room of a new image, a page's end where it matters
+    draw(painter, QRectF(QPointF(0, 0), QSizeF(size)), wrap, -1.0, -1.0, -1.0, palette);
+    return pixmap;
+}
+
+void WrapPicture::paintEvent(QPaintEvent* event)
+{
+    QFrame::paintEvent(event);
+    QPainter painter(this);
+    const QSizeF room = QSizeF(m_size).scaled(QSizeF(size()), Qt::KeepAspectRatio);
+    const QRectF rect(QPointF((width() - room.width()) / 2.0, (height() - room.height()) / 2.0),
+                      room);
+    draw(painter, rect, m_wrap, m_above, m_below, m_beside, palette());
+}
+
+void WrapPicture::draw(QPainter& painter, const QRectF& rect, ImageWrap wrap, double above,
+                       double below, double beside, const QPalette& palette)
+{
+    // A page of the paper's color, lines of text in the color of the text (pale), the image
+    // in the color of a selection with a mountain on it. Negative room: the room of a new
+    // image, and the end of a page where the way of the image shows there (in the text, the
+    // empty rest of the page; above and below the text, the text filling it)
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    const bool ways = above < 0.0;
+    painter.fillRect(rect, palette.color(QPalette::Base));
+    painter.setPen(QPen(palette.color(QPalette::Mid), 1.0));
+    painter.setBrush(Qt::NoBrush);
+    painter.drawRect(rect.adjusted(0.5, 0.5, -0.5, -0.5));
+
+    const qreal margin = std::max(4.0, std::round(rect.width() * 0.08));
+    const QRectF column = rect.adjusted(margin, margin, -margin, -margin);
+    const qreal scale = column.width() / WRAP_PICTURE_POINTS;
+    const qreal pitch = std::max(4.0, std::round(column.height() / 12.0));
+    const qreal thickness = std::max(1.5, std::round(pitch * 0.45));
+    const auto room = [scale, ways](double points, double fallback) {
+        return (ways ? fallback : points) * scale;
+    };
+    const qreal roomAbove = room(above, editor::DEFAULT_IMAGE_SPACE_ABOVE);
+    const qreal roomBelow = room(below, editor::DEFAULT_IMAGE_SPACE_BELOW);
+    const qreal roomBeside = room(beside, editor::DEFAULT_IMAGE_SPACE_BESIDE);
+
+    QColor lineColor = palette.color(QPalette::Text);
+    lineColor.setAlphaF(0.4F);
+    const auto line = [&painter, &lineColor, thickness](qreal left, qreal right, qreal top) {
+        if (right - left >= 1.0) {
+            painter.fillRect(QRectF(left, top, right - left, thickness), lineColor);
+        }
+    };
+    const auto lines = [&](qreal from, qreal to, qreal left, qreal right, bool lastShort) {
+        qreal y = from;
+        while (y + thickness <= to + 0.01) {
+            const bool last = lastShort && y + pitch + thickness > to + 0.01;
+            line(left, last ? left + (right - left) * 0.6 : right, y);
+            y += pitch;
+        }
+        return y;
+    };
+    const auto image = [&painter, &palette](const QRectF& box) {
+        painter.fillRect(box, palette.color(QPalette::Highlight));
+        QPainterPath mountain;
+        mountain.moveTo(box.left() + box.width() * 0.12, box.bottom() - box.height() * 0.15);
+        mountain.lineTo(box.left() + box.width() * 0.42, box.top() + box.height() * 0.35);
+        mountain.lineTo(box.left() + box.width() * 0.62, box.top() + box.height() * 0.6);
+        mountain.lineTo(box.left() + box.width() * 0.75, box.top() + box.height() * 0.45);
+        mountain.lineTo(box.right() - box.width() * 0.12, box.bottom() - box.height() * 0.15);
+        mountain.closeSubpath();
+        painter.fillPath(mountain, palette.color(QPalette::HighlightedText));
+    };
+    const auto pageEdge = [&painter, &palette, &rect](qreal y) {
+        QPen pen(palette.color(QPalette::Mid), 1.0, Qt::DashLine);
+        painter.setPen(pen);
+        painter.drawLine(QPointF(rect.left(), y), QPointF(rect.right(), y));
+    };
+
+    const qreal top = column.top();
+    const qreal bottom = column.bottom();
+    const bool square = wrap == ImageWrap::SquareLeft || wrap == ImageWrap::SquareRight;
+    if (square) {
+        // Two lines across the column, the image on its side with lines beside it, then
+        // across the column again below it
+        qreal y = lines(top, top + 2.0 * pitch - 1.0, column.left(), column.right(), true);
+        const QRectF box(wrap == ImageWrap::SquareLeft ? column.left()
+                                                       : column.right() - column.width() * 0.42,
+                         y + roomAbove, column.width() * 0.42, 4.0 * pitch);
+        image(box);
+        const qreal besideLeft = wrap == ImageWrap::SquareLeft ? box.right() + roomBeside
+                                                               : column.left();
+        const qreal besideRight = wrap == ImageWrap::SquareLeft ? column.right()
+                                                                : box.left() - roomBeside;
+        y = lines(y, box.bottom() + roomBelow, besideLeft, besideRight, false);
+        lines(std::max(y, box.bottom() + roomBelow), bottom, column.left(), column.right(),
+              true);
+    } else if (ways) {
+        // The end of a page: in the text the image goes on to the next page with the text,
+        // and leaves the rest empty; above and below the text the text after it fills that
+        // rest
+        const qreal edge = top + column.height() * 0.45;
+        const qreal filled = wrap == ImageWrap::TopBottom ? edge - 1.0 : top + 2.0 * pitch - 1.0;
+        lines(top, filled, column.left(), column.right(), wrap != ImageWrap::TopBottom);
+        pageEdge(edge);
+        const qreal width = column.width() * 0.6;
+        const QRectF box(column.center().x() - width / 2.0, edge + margin * 0.5,
+                         width, 3.0 * pitch);
+        image(box);
+        lines(box.bottom() + roomBelow, bottom, column.left(), column.right(), true);
+    } else {
+        // In a paragraph of its own: lines, the room above, the image, the room below, lines
+        const qreal y = lines(top, top + 3.0 * pitch - 1.0, column.left(), column.right(), true);
+        const qreal width = column.width() * 0.6;
+        const QRectF box(column.center().x() - width / 2.0, y - pitch + thickness + roomAbove,
+                         width, 4.0 * pitch);
+        image(box);
+        lines(box.bottom() + roomBelow, bottom, column.left(), column.right(), true);
+    }
+    painter.restore();
+}
+
+// =============================================================================
 // ImagePropertiesDialog
 // =============================================================================
 
@@ -341,10 +503,10 @@ ImagePropertiesDialog::ImagePropertiesDialog(const editor::ImagePropertiesData& 
 {
     //: In Polish: Właściwości obrazu
     setHeading(tr("Image Properties"),
-               //: In Polish: Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, obramowanie,
-               //: kolory, opis i podpis.
-               tr("The look of the selected image: its file, size, crop, border, colors, "
-                  "description and caption."));
+               //: In Polish: Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, opływanie,
+               //: odstępy, obramowanie, kolory, opis i podpis.
+               tr("The look of the selected image: its file, size, crop, text flow, space "
+                  "around, border, colors, description and caption."));
     setHeadingIcon(QStringLiteral("image.properties"));
     setCompactHeading(true);
     setAcceptText(tr("OK"));
@@ -366,6 +528,8 @@ ImagePropertiesDialog::ImagePropertiesDialog(const editor::ImagePropertiesData& 
     m_pages->addWidget(createImagePage());
     m_pages->addWidget(createSizePage());
     m_pages->addWidget(createCropPage());
+    m_pages->addWidget(createWrapPage());
+    m_pages->addWidget(createSpacePage());
     m_pages->addWidget(createBorderPage());
     m_pages->addWidget(createColorsPage());
     m_pages->addWidget(createDescriptionPage());
@@ -377,7 +541,11 @@ ImagePropertiesDialog::ImagePropertiesDialog(const editor::ImagePropertiesData& 
         tr("&Size and Rotation"),
         //: In Polish: &Przycięcie
         tr("&Crop"),
-        //: In Polish: Obramo&wanie
+        //: How the text flows around the image. In Polish: Opły&wanie
+        tr("Text &Flow"),
+        //: The room the image keeps from the text around it. In Polish: Odstęp&y
+        tr("Space Aro&und"),
+        //: In Polish: Obra&mowanie
         tr("&Border"),
         //: In Polish: &Kolory
         tr("C&olors"),
@@ -595,7 +763,7 @@ QWidget* ImagePropertiesDialog::createImagePage()
     column->addWidget(m_fileName);
 
     auto* buttons = new QHBoxLayout();
-    //: In Polish: Z&mień obraz...
+    //: In Polish: Zmień o&braz...
     m_changeButton = new QPushButton(tr("C&hange Image..."), page);
     m_changeButton->setAutoDefault(false);
     m_changeButton->setVisible(false);
@@ -620,27 +788,8 @@ QWidget* ImagePropertiesDialog::createImagePage()
                                    "original stays as it was."),
                                 page));
 
-    // How the text flows around it: as Image > Wrap Text
-    auto* wrapRow = new QHBoxLayout();
-    m_wrap = new QComboBox(page);
-    m_wrap->setObjectName(QStringLiteral("imageWrap"));
-    for (const auto& [wrap, text] : imageWrapChoices()) {
-        m_wrap->addItem(text, static_cast<int>(wrap));
-    }
-    //: How the text flows around the image. In Polish: Opływanie t&ekstem:
-    auto* wrapLabel = new QLabel(tr("&Wrap text:"), page);
-    wrapLabel->setBuddy(m_wrap);
-    wrapRow->addWidget(wrapLabel);
-    wrapRow->addWidget(m_wrap, 1);
-    column->addSpacing(8);
-    column->addLayout(wrapRow);
     column->addStretch(1);
     layout->addLayout(column, 1);
-    connect(m_wrap, &QComboBox::currentIndexChanged, this, [this]() {
-        if (!m_updating) {
-            m_image.wrap = static_cast<ImageWrap>(m_wrap->currentData().toInt());
-        }
-    });
 
     connect(m_keepSizeAndCrop, &QCheckBox::toggled, this, [](bool keep) {
         core::SettingsManager::getInstance().set<bool>("editor.images.keepSizeOnChange", keep);
@@ -726,9 +875,9 @@ QWidget* ImagePropertiesDialog::createSizePage()
     //: In Polish: Jednostka wysokości
     m_heightUnit->setAccessibleName(tr("Unit of the height"));
 
-    //: In Polish: &Szerokość
+    //: In Polish: S&zerokość
     auto* widthLabel = new QLabel(tr("&Width"), sizeGroup);
-    //: In Polish: W&ysokość
+    //: In Polish: Wy&sokość
     auto* heightLabel = new QLabel(tr("&Height"), sizeGroup);
     auto* widthFields = new QHBoxLayout();
     widthFields->addWidget(m_widthPercent);
@@ -1037,6 +1186,103 @@ QWidget* ImagePropertiesDialog::createCropPage()
     return page;
 }
 
+QWidget* ImagePropertiesDialog::createWrapPage()
+{
+    // Each way with its picture: a choice in a column, the arrows go through them
+    auto* page = new QWidget(this);
+    auto* layout = new QVBoxLayout(page);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(6);
+    m_wraps = new QButtonGroup(page);
+    for (const auto& [wrap, text] : imageWrapChoices()) {
+        auto* choice = new QRadioButton(text, page);
+        choice->setObjectName(QStringLiteral("imageWrap%1").arg(static_cast<int>(wrap)));
+        choice->setIcon(QIcon(WrapPicture::pixmap(wrap, WRAP_TILE, palette(), devicePixelRatioF())));
+        choice->setIconSize(WRAP_TILE);
+        m_wraps->addButton(choice, static_cast<int>(wrap));
+        layout->addWidget(choice);
+    }
+    m_wrapNote = hintLabel(QString(), page);
+    m_wrapNote->setObjectName(QStringLiteral("imageWrapNote"));
+    layout->addSpacing(4);
+    layout->addWidget(m_wrapNote);
+    layout->addStretch(1);
+    connect(m_wraps, &QButtonGroup::idToggled, this, [this](int id, bool checked) {
+        if (checked && !m_updating) {
+            m_image.wrap = static_cast<ImageWrap>(id);
+            refresh();
+        }
+    });
+    return page;
+}
+
+QWidget* ImagePropertiesDialog::createSpacePage()
+{
+    auto* page = new QWidget(this);
+    auto* layout = new QHBoxLayout(page);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(12);
+    m_spacePicture = new WrapPicture(SPACE_PREVIEW, page);
+    //: In Polish: Podgląd odstępów obrazu
+    m_spacePicture->setAccessibleName(tr("Preview of the space around the image"));
+    layout->addWidget(m_spacePicture, 0, Qt::AlignTop);
+
+    auto* column = new QVBoxLayout();
+    column->setSpacing(8);
+    auto* fields = new QFormLayout();
+    const QString names[] = {
+        //: The room between the image (or its caption above it) and the text above it. In
+        //: Polish: Odstęp &górny:
+        tr("&Above:"),
+        //: In Polish: Odstęp do&lny:
+        tr("B&elow:"),
+        //: The room between an image the text runs beside and that text. In Polish: Odstęp
+        //: &boczny:
+        tr("Beside the &text:")};
+    for (size_t side = 0; side < m_spaces.size(); ++side) {
+        m_spaces[side] = new LengthSpinBox(LengthUnit::Points, 0.0, editor::MAX_IMAGE_SPACE, page);
+        m_spaces[side]->setObjectName(QStringLiteral("imageSpace%1").arg(side));
+        m_spaces[side]->setFixedWidth(NUMBER_FIELD_WIDTH);
+        auto* label = new QLabel(names[side], page);
+        label->setBuddy(m_spaces[side]);
+        fields->addRow(label, m_spaces[side]);
+        connect(m_spaces[side], &QDoubleSpinBox::valueChanged, this, [this, side]() {
+            if (m_updating) {
+                return;
+            }
+            const double value = m_spaces[side]->storedValue();
+            double* spaces[] = {&m_image.spaceAbove, &m_image.spaceBelow, &m_image.spaceBeside};
+            *spaces[side] = value;
+            refresh();
+        });
+    }
+    column->addLayout(fields);
+    //: The room of new images (Settings > Editor > Images). In Polish: Jak w &Ustawieniach
+    m_spacesOfSettings = new QPushButton(tr("As in the Settin&gs"), page);
+    m_spacesOfSettings->setAutoDefault(false);
+    //: In Polish: Odstępy nowych obrazów z Ustawień > Edytor > Obrazy
+    m_spacesOfSettings->setToolTip(tr("The space around new images, from Settings > Editor > "
+                                      "Images"));
+    auto* buttons = new QHBoxLayout();
+    buttons->addWidget(m_spacesOfSettings);
+    buttons->addStretch(1);
+    column->addLayout(buttons);
+    m_spaceNote = hintLabel(QString(), page);
+    m_spaceNote->setObjectName(QStringLiteral("imageSpaceNote"));
+    column->addWidget(m_spaceNote);
+    column->addStretch(1);
+    layout->addLayout(column, 1);
+    connect(m_spacesOfSettings, &QPushButton::clicked, this, [this]() {
+        const editor::BookEditor::NewImageOptions options = settingsNewImageOptions();
+        m_image.spaceAbove = options.spaceAbove;
+        m_image.spaceBelow = options.spaceBelow;
+        m_image.spaceBeside = options.spaceBeside;
+        m_image = editor::normalizedImage(m_image);
+        refresh();
+    });
+    return page;
+}
+
 QWidget* ImagePropertiesDialog::createBorderPage()
 {
     auto* page = new QWidget(this);
@@ -1142,7 +1388,7 @@ QWidget* ImagePropertiesDialog::createColorsPage()
     m_filters = new QButtonGroup(this);
     auto* tiles = new QHBoxLayout();
     const QString names[] = {
-        //: The filters of an image. In Polish: Or&yginał
+        //: The filters of an image. In Polish (no access key, its letters are taken): Oryginał
         tr("Origin&al"),
         //: In Polish: Odcienie s&zarości
         tr("&Grayscale"),
@@ -1471,6 +1717,8 @@ void ImagePropertiesDialog::refresh()
     refreshImagePage();
     refreshSizePage();
     refreshCropPage();
+    refreshWrapPage();
+    refreshSpacePage();
     refreshBorderPage();
     refreshColorsPage();
     refreshCaptionPage();
@@ -1503,14 +1751,89 @@ void ImagePropertiesDialog::refreshImagePage()
                                   .arg(file.fileName()));
     m_saveButton->setVisible(static_cast<bool>(m_imageSaver));
     m_saveButton->setEnabled(m_data.newFile.isEmpty() && file.isFile());
-    m_wrap->setCurrentIndex(std::max(0, m_wrap->findData(static_cast<int>(m_image.wrap))));
+}
+
+void ImagePropertiesDialog::refreshWrapPage()
+{
+    if (QAbstractButton* chosen = m_wraps->button(static_cast<int>(m_image.wrap))) {
+        chosen->setChecked(true);
+    }
     // Only an image alone in its paragraph (an inline one may stay inline)
-    m_wrap->setEnabled(m_data.canWrap || m_image.wrap != ImageWrap::Inline);
-    //: Why the wrap of an image is greyed out. In Polish: Tekst opływa tylko obraz, który jest
-    //: sam w swoim akapicie, poza tabelą
-    m_wrap->setToolTip(m_data.canWrap ? QString()
-                                      : tr("The text flows only around an image alone in its "
-                                           "paragraph, outside a table"));
+    const bool canWrap = m_data.canWrap || m_image.wrap != ImageWrap::Inline;
+    for (QAbstractButton* choice : m_wraps->buttons()) {
+        choice->setEnabled(canWrap || m_wraps->id(choice) == static_cast<int>(ImageWrap::Inline));
+    }
+    if (!canWrap) {
+        //: Why the ways of the text flowing around an image are greyed out. In Polish: Tekst
+        //: opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą. Ten obraz jest
+        //: częścią wiersza tekstu.
+        m_wrapNote->setText(tr("The text flows only around an image alone in its paragraph, "
+                               "outside a table. This image is a part of a line of the text."));
+        return;
+    }
+    switch (m_image.wrap) {
+        case ImageWrap::Inline:
+            //: In Polish: Obraz jest we własnym akapicie, jak wiersz tekstu: gdy nie mieści się
+            //: na stronie, przechodzi na następną, a reszta strony zostaje pusta.
+            m_wrapNote->setText(tr("The image is in a paragraph of its own, as a line of the "
+                                   "text: when it does not fit on its page, it goes on to the "
+                                   "next one and the rest of the page stays empty."));
+            break;
+        case ImageWrap::SquareLeft:
+        case ImageWrap::SquareRight:
+            //: In Polish: Kolejne akapity biegną obok obrazu, a pod nim znów na całą
+            //: szerokość; gdy obok zostaje za mało miejsca, wiersz przechodzi pod obraz.
+            m_wrapNote->setText(tr("The next paragraphs run beside the image and below it across "
+                                   "the whole width again; with too little room beside it a "
+                                   "line goes on below the image."));
+            break;
+        case ImageWrap::TopBottom:
+            //: In Polish: Tekst jest nad obrazem i pod nim. W widoku stron obraz, który nie
+            //: mieści się na stronie, przechodzi z podpisem na następną, a tekst za nim wypełnia
+            //: resztę bieżącej strony.
+            m_wrapNote->setText(tr("The text is above and below the image. In the page view an "
+                                   "image that does not fit on its page goes on to the next one "
+                                   "with its caption, and the text after it fills the rest of "
+                                   "the page."));
+            break;
+    }
+}
+
+void ImagePropertiesDialog::refreshSpacePage()
+{
+    const double values[] = {m_image.spaceAbove, m_image.spaceBelow, m_image.spaceBeside};
+    for (size_t side = 0; side < m_spaces.size(); ++side) {
+        m_spaces[side]->setStoredValue(values[side]);
+    }
+    // The room is of an image alone in its paragraph; beside it, of one the text flows beside
+    const bool square = m_image.wrap == ImageWrap::SquareLeft ||
+                        m_image.wrap == ImageWrap::SquareRight;
+    m_spaces[0]->setEnabled(m_data.canWrap);
+    m_spaces[1]->setEnabled(m_data.canWrap);
+    m_spaces[2]->setEnabled(m_data.canWrap && square);
+    m_spacesOfSettings->setEnabled(m_data.canWrap);
+    m_spacePicture->setWrap(m_image.wrap, m_image.spaceAbove, m_image.spaceBelow,
+                            m_image.spaceBeside);
+    if (!m_data.canWrap) {
+        //: Why the room around an image is greyed out. In Polish: Odstępy ma tylko obraz, który
+        //: jest sam w swoim akapicie, poza tabelą. Ten obraz jest częścią wiersza tekstu.
+        m_spaceNote->setText(tr("Only an image alone in its paragraph, outside a table, keeps "
+                                "room around it. This image is a part of a line of the text."));
+    } else if (square) {
+        //: In Polish: Odstęp górny jest nad obrazem albo nad jego podpisem nad obrazem, dolny –
+        //: pod obrazem albo pod podpisem, a boczny – między obrazem a tekstem obok niego.
+        m_spaceNote->setText(tr("The space above is above the image or its caption above it, "
+                                "the space below below the image or its caption, and the space "
+                                "beside between the image and the text beside it."));
+    } else {
+        //: In Polish: Odstęp górny jest nad obrazem albo nad jego podpisem nad obrazem, a dolny –
+        //: pod obrazem albo pod podpisem. Odstęp boczny ma obraz, obok którego biegnie tekst
+        //: (karta „Opływanie”).
+        m_spaceNote->setText(tr("The space above is above the image or its caption above it, "
+                                "and the space below below the image or its caption. The space "
+                                "beside is of an image the text runs beside (the page Text "
+                                "Flow)."));
+    }
 }
 
 void ImagePropertiesDialog::refreshSizePage()

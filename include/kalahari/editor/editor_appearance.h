@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file editor_appearance.h
 /// @brief Visual appearance configuration for BookEditor (OpenSpec #00042 Phase 5)
@@ -63,6 +64,9 @@ struct PaperColorKeys {
                                   ///< book does not have
     const char* noteLine;         ///< The line above the notes
     const char* noteFrame;        ///< The frame a note's text is written in
+    const char* tabGuide;         ///< The dashed lines of the tab guides
+    const char* spreadFold;       ///< The band of the spine on the card of a spread
+    const char* spreadGuide;      ///< The frame of the picture's area on the card of a spread
 };
 
 /// @brief The names of the light paper's colors
@@ -70,13 +74,14 @@ inline constexpr PaperColorKeys LIGHT_PAPER_COLOR_KEYS{
     "paperLight", "textLight", "focusDimmedLight", "formattingMarksLight", "linkLight",
     "deskLight", "tableLinesLight", "tableHeaderLight", "tableGridlinesLight",
     "imageCropMarksLight", "imageMissingLight", "fieldLight", "brokenFieldLight",
-    "noteLineLight", "noteFrameLight"};
+    "noteLineLight", "noteFrameLight", "tabGuideLight", "spreadFoldLight", "spreadGuideLight"};
 
 /// @brief The names of the dark paper's colors
 inline constexpr PaperColorKeys DARK_PAPER_COLOR_KEYS{
     "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "linkDark", "deskDark",
     "tableLinesDark", "tableHeaderDark", "tableGridlinesDark", "imageCropMarksDark",
-    "imageMissingDark", "fieldDark", "brokenFieldDark", "noteLineDark", "noteFrameDark"};
+    "imageMissingDark", "fieldDark", "brokenFieldDark", "noteLineDark", "noteFrameDark",
+    "tabGuideDark", "spreadFoldDark", "spreadGuideDark"};
 
 /// @brief The names of the colors drawn under the text on both papers
 inline constexpr const char* SELECTION_COLOR_KEY = "selection";
@@ -234,6 +239,36 @@ struct EditorColors {
         return mode == EditorColorMode::Light ? footnotes.frameLight : footnotes.frameDark;
     }
 
+    /// @brief The dashed lines of the tab guides across the pages
+    struct TabGuideColors {
+        QColor light{143, 168, 208};             ///< On the light paper
+        QColor dark{111, 134, 176};              ///< On the dark paper
+    } tabGuides;
+
+    /// @brief The tab guides' color on the paper of a mode
+    [[nodiscard]] QColor tabGuideColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? tabGuides.light : tabGuides.dark;
+    }
+
+    /// @brief The hints of the card of a spread, which only the program shows: the band of the
+    /// spine and the frame of the picture's area
+    struct SpreadColors {
+        QColor foldLight{217, 72, 15};     ///< The band of the spine on the light paper
+        QColor foldDark{255, 138, 80};     ///< On the dark paper
+        QColor guideLight{29, 111, 196};   ///< The frame of the area on the light paper
+        QColor guideDark{108, 182, 255};   ///< On the dark paper
+    } spreads;
+
+    /// @brief The band of the spine of a spread on the paper of a mode
+    [[nodiscard]] QColor spreadFoldColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? spreads.foldLight : spreads.foldDark;
+    }
+
+    /// @brief The frame of the area of a spread's picture on the paper of a mode
+    [[nodiscard]] QColor spreadGuideColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? spreads.guideLight : spreads.guideDark;
+    }
+
     /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on
     /// that paper; not valid: the text's color)
     struct AnnotationColors {
@@ -325,6 +360,12 @@ struct PageLayout {
     qreal zoomLevel{1.0};                      ///< Zoom of a newly opened document (1.0 = 100%)
     qreal pageGap{20.0};                       ///< Gap between pages in pixels
     bool showPageNumbers{true};                ///< Page numbers at the bottom of the pages
+    bool fillsView{false};                     ///< A text field: in the continuous view the
+                                               ///< page fills the view, without the desk and
+                                               ///< the sheet (the page size is not used)
+    /// The number of the text's first page: 1, or its page in the whole book (set by the
+    /// book: gui::BookPageNumbers)
+    int firstPageNumber{1};
 
     /// @brief Page dimensions in millimetres
     [[nodiscard]] QSizeF pageSizeMm() const;
@@ -379,7 +420,9 @@ struct AnnotationCardSettings {
                                     ///< else its mark alone
     bool startCollapsed{false};     ///< Collapsed when the chapter opens
     int longLines{0};               ///< A longer text is cut to so many lines (0: whole)
-    int fontPercent{90};            ///< Size of the cards' text, in % of the text's
+    int fontPercent{70};            ///< Size of the cards' text, in % of the text's
+    qreal sideMarginMm{4.0};        ///< The room on each side of the cards, from the edges of
+                                    ///< the text (millimetres)
     int tintPercent{100};           ///< How much of the kind's color they have, in % of the usual
     bool highlightFragment{true};   ///< The fragment lights up while the mouse is on its card
     bool inDistractionFree{true};   ///< Shown in Distraction-Free writing too

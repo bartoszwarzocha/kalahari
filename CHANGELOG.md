@@ -11,6 +11,317 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Spreads: one picture over two pages of the book** - 2026-11-25. A new kind of element,
+  Spread, in every type of book: Book > New Spread... adds it right after the text or the spread
+  in front (else at the end of the main part), and it goes into the front part, between the
+  chapters or into the back part as a chapter does. A spread always starts on a left page, with
+  mirror margins or without them; the pages of the book leave an empty page before it when
+  needed, and the text after it starts where Settings > Editor > Pages and Margins say. Its card
+  shows the left and the right page side by side, in the size of the book's page (Whole Spread
+  fits them to the card, 100% shows their size on paper), with the spine band and the picture
+  area (both shown only by the program, each with its button on the bar) and their numbers.
+  Beside them: the picture from the Workshop's pictures (or Picture from Disk..., which adds it
+  to the Materials), what it takes (within the margins, across the spine without a break, or
+  to the edges of the paper), how it fits (the whole picture, or Fill: a drag or the arrows move
+  it, Shift with them by 10 mm, Ctrl+] and Ctrl+[ zoom it, Home centers it), the room at the
+  spine, a caption under the picture on the right page (with a label numbered with the captions
+  of the book, and in the list of illustrations), the page numbers and the running head, and its
+  title in the table of contents. The quality of the picture for print in dpi, and the place of
+  the spread among the small pages of the book with Move Earlier and Move Later. Every change is
+  saved in the .klh file (a spread has no file of its own). The Properties panel shows a
+  spread's settings in short, its first page (left, always) and its pages in the book. The
+  spread comes out on its two pages in the PDF and the print (Two Pages prints as an open book;
+  the print window says when a booklet puts the halves on different sheets, and To the Spread
+  goes to it); a Word file, an e-book and Markdown have its picture and caption as a page of
+  their own. The values of a new spread are in Settings > Editor > Images, the group Spreads;
+  the colors of the spine band and of the picture area are in Settings > Editor > Colors, with
+  the theme.
+- **The jacket and the endpapers on the plan of the cover** - 2026-11-25. Above the plan of the
+  cover three switches of the parts of the book, saved with it (the .klh file): Cover Flaps,
+  Jacket (always with its flaps) and Endpapers. The plan has a tab for each sheet, Cover,
+  Jacket and Endpapers, with the number of the materials on it (Ctrl+Page Down and Ctrl+Page
+  Up go between them); a part turned on shows its sheet. The jacket has its own columns and
+  designs, the cover under it is drawn as cloth, and its back flap keeps a place for the author
+  bio. A material on a part turned off is not lost: it waits under the plan, and its place says
+  "(jacket turned off)" or "(flaps turned off)" on the plan and in the list. The sheet of the
+  endpapers shows the front and the back one as spreads (pasted to the cover, the free leaf),
+  each with its fill beside it: a picture across both pages, a repeated picture with its size,
+  a ready-made pattern (dots, stripes, grid, diagonal lines, checkerboard, waves) in two colors,
+  one color, or none; Picture from Disk... adds a picture to the materials of the cover, and
+  the back endpaper may be the same as the front one. A click on a spread shows it in the
+  Properties. The colors of a new pattern and of the paper are in Settings > Navigator >
+  Endpapers, with the theme (each book keeps the colors of its patterns). Two new kinds of the
+  materials of the cover: Author bio (it takes the text of About the Author from the back part
+  on request) and Author photo (with its photographer and the consent). The places read with
+  their part ("Cover – back", "Jacket – front flap") and are grouped by it on the card.
+- **The Book Plan: the board, the outline and the chronology of the book** - 2026-11-24. The
+  plot board is now the Book Plan (Book > Book Plan, Ctrl+Shift+T), the first item of the
+  Workshop in the Navigator, with three views: Board, Outline and Chronology. Over the board and
+  the outline a bar of the commands of the card chosen, the main ones with their names: New
+  Chapter (Insert), Chapter in the Plan (Ctrl+Shift+Insert), New Scene (Alt+Shift+Insert, a
+  scene break in the text), Scene in the Plan (Insert on a scene, Alt+Insert), Edit the Card
+  (F2), Open (Enter), Card Color, State, Delete, Undo and Redo, the keys in their tooltips.
+  Every card has a pencil that edits it, and the card's own color comes before the color of the
+  board. A chapter in the plan is an element of the book without a chapter file (kept in the
+  .klh file): a dashed frame and "In the plan – no file" on its card, in italics with "in the
+  plan" in the Navigator, the state "In the Plan" in the outline, no words, not in an export or
+  a print; Create on its card, Enter or Create the Chapter File (also in the Navigator) gives it
+  its file, and Ctrl+Z puts it back into the plan, the file to the Trash. A scene in the plan
+  has Write the Scene. The chronology shows the scenes of the book in the order of the story:
+  their times in columns (days of the story, dates, or the order of the story), in bands of the
+  points of view, of the places or in one band; a gap without cards is one narrow column with
+  its length (Shorten Gaps); a scene told after a scene that happens later is a flashback, with
+  a ring in the color of Settings > Timelines; the number on a card is its place in the order of
+  reading (3.2). A scene without a time of its own has its text's. Insert adds an event outside
+  the text, F2 edits a card in the window Card, Ctrl+Left and Ctrl+Right move its time a day (a
+  month, a season, a year) earlier or later, Delete takes the time away, Ctrl+Z undoes it. The
+  events outside the text, day one and the periods are kept in book-plan.ktl in the folder of the
+  book. Periods... names periods of the writer ("Expedition" is "winter 1931"), which a time of
+  the action may say ("Expedition, in the evening"). The first time the chronology shows a book
+  whose timelines in the Workshop say when its texts happen ("In the book"), it offers to copy
+  those times, points of view and places to the cards without a time, in one step of Undo; the
+  timelines stay as they are.
+- **Times of the action in words** - 2026-11-24. A time of the action may be a season ("spring
+  1931", "wiosną 1931", "zima 1930/31"), a half of a year ("first half of 1931", "w drugiej
+  połowie 1931"), a year ("1931", "rok 1931"), a season without a year (the first after day one),
+  or a day of the story in words ("day one", "the second day", "dzień pierwszy", "drugiego
+  dnia"); a season is written back as its name, months in a row as "March – May 1931".
+- **The commands of a timeline in a bar** - 2026-11-23. A timeline has a bar of its commands
+  above its views: New Event and Delete the Event with their names, the window Event..., Open
+  the Chapter, on the axis Earlier and Later and To the Lane Above and Below, Undo and Redo,
+  each with its icon and, in its tooltip, its keys (Insert, Enter, Ctrl+Enter, Ctrl+arrows,
+  Delete, Ctrl+Z, Ctrl+Y); a command that can do nothing is grayed out. In the time and the
+  book, New Event (also Insert) opens the window Event of the new event, which goes away when
+  the window is cancelled, and Delete deletes the event selected. A timeline without events
+  says on its axis and in its list how to add the first. The commands of the bars of the tabs
+  share one look (gui::CardBar).
+- **The card For Publishers** - 2026-11-23. The texts for publishers have one card of their
+  own: Workshop > For Publishers in the Navigator and Book > For Publishers open it. On top the
+  set for a publisher as a row of tiles, one for each part in its order, with its version and
+  its length against the target: the check box (Space) puts the part in the set or leaves it
+  out, Alt+Left and Alt+Right move it, the arrows, Home and End choose another part, Enter goes
+  to its versions. Under them the versions of the part chosen: a star marks the version in the
+  set and a rejected one is struck through; Space puts the version in the set, Insert adds a
+  new one, F2 renames it, Delete deletes it, and the menu key has Choose for the Set, Reject or
+  Restore as a Draft, Rename, Copy of the Version, Copy the Text, Show in the Cover and Delete.
+  Beside them the text of the version is written in the card: a synopsis in the program's
+  editor (spelling, grammar and the Edit and Format menus work as in a chapter), a sentence
+  about the book with the fields of the pattern of its template over it; a tagline and a
+  description come from the Cover and the note about the author from the back part of the
+  book. On the right the template with the points of a synopsis and their hints, its length
+  against the target, its state and own target, and in a series its volume. The template is
+  changed in place: the pencil Change Template shows its name, its target length and the
+  points with their hints (Insert adds one, Delete removes it, Alt+Up and Alt+Down move it), or
+  the pattern of a sentence with its fields in braces; Ctrl+Enter keeps the changes, Esc drops
+  them. A built-in template stays as it is: the changes are kept as the writer's own template,
+  in all books; New Template... on the list of the templates starts one from scratch. All of
+  the card is saved at once, and its footer says when. The command bar has New Version, Copy of
+  the Version, Choose for the Set, Reject, Copy the Text, Earlier and Later in the Set, Copy
+  All, Export Set..., Print Set..., the preview of the set, Undo, Redo and the gear to Settings
+  > Navigator > Texts for Publishers. Gone: the submenu Tools > Texts for Publishers, the
+  window Templates of Texts for Publishers and its button in the Settings, the skeleton of a
+  synopsis in its text with the style Template Point (an old one is read as plain paragraphs),
+  the setting of where the points of a synopsis are, the card of a sentence, the group of a
+  text for publishers in the Properties panel, and the list Texts for Publishers in the
+  Materials with From the Cover, its view Set for the Publisher and the page of the set in the
+  Properties panel (the set is on the card).
+- **Fragments of a synopsis linked to the points of its template** - 2026-11-23. Link to a
+  Template Point (Ctrl+Shift+D) opens, under the cursor, the points of the template of the
+  synopsis in front with their numbers (1-9 as keys) and colors: a point chosen links the
+  selection to it, a ticked one takes the link away (without a selection, from the fragment at the
+  cursor); one undo step. A fragment may serve several points and continues across paragraphs. In
+  the text the fragments keep clean: a thin bar in the color of the point beside their lines on
+  the left margin, side by side for fragments that overlap, and a fill under them only on demand
+  (Show in the Text over the points) or for the point chosen in the list. Each point beside the
+  text on the card For Publishers has its number in its color, its state counted from the text
+  ("In the text: 2 fragments, 140 characters" or "Not in the text") beside the manual tick, and a
+  warning when it is ticked off without a fragment; over them "In the text: 3 of 5 · Done: 4 of 5"
+  and a gear to the settings. The keys in the points: arrows, Home and End, Enter selects the next
+  fragment of the point, Insert links the selection, Delete takes the links of the point away, Esc
+  goes back to the text; the name of a point is bold while the cursor is in its fragment. Copy All
+  and Export Set... of the set warn of the points without a fragment (Back to the Synopsis is the
+  default). Settings > Navigator > Texts for Publishers has the bar on the margin, the warning and
+  the eight colors of the points, kept for each theme. KML keeps a link as `<points ids="...">`
+  (docs/kml_format.md).
+- **The panel Images and Tables** - 2026-11-22. View > Panels > Images and Tables (also on the
+  Panels toolbar) lists the images and the tables of the text in front in text order, as cards:
+  a small picture of the image or a drawing of the table's rows and columns, the caption's
+  title ("Figure 3") in the color of its kind and its text, or the image's name and the size of
+  the table when there is no caption. The scope Book lists those of every text of the book (of a
+  series: of its volume) in reading order under the titles of the texts, their captions
+  numbered as in the book; the buttons All, Images and Tables with their counts and a search in
+  the captions and names narrow the list. A card selected goes to its image or table in the
+  text in front; Enter or a double click opens its text when it is closed and gives it the
+  keys; the context menu (also the Menu key and Shift+F10) has Go to Image/Table, Image/Table
+  Properties..., Insert Caption... or Edit Caption... and Copy Caption; Esc goes back to the
+  text. The list follows the text as it is written. Settings > Editor > Images has the pictures
+  on the cards and the lines of a caption on its card (the gear of the panel opens it), Settings
+  > Editor > Colors the colors of the images and the tables, from the theme.
+- **The search of the settings** - 2026-11-22. The Settings dialog has a field Search the
+  settings above the tree of its pages (Ctrl+F). The words typed narrow the tree to the pages
+  that hold them, in the name of the page or of its category or in the texts of its options:
+  labels and notes, check boxes and buttons, the titles of groups, the items of lists and the
+  placeholder texts of fields; a page with such options has its name in bold. Every word
+  counts, anywhere, without regard to case, accents and the access keys ("odstep gor" finds
+  "Odstęp górny:"), also in the closed Advanced Settings of a page, which open to show them.
+  On the page the options found are marked with a frame and a light fill in the color of the
+  search's hits of the editor (Settings > Editor > Colors), and the page scrolls to the first.
+  Enter goes to the first option found, Down to the tree, Esc clears the words; when nothing
+  is found, a note beside the field says so.
+- **Sets of list formats and multilevel numbers** - 2026-11-21. Format > Bullets and
+  Numbering... opens on a new first tab, Sets: the layout of all nine levels of a list at once,
+  as tiles in groups (Numbered: 1. – a) – i., 1) – a) – i), (1) – (a) – (i); Multilevel:
+  1. – 1.1. – 1.1.1., the outline I. – A. – 1. – a) and § 1. – 1) – a); Bulleted: • – ◦ – ▪,
+  dashes, ✓ – • – ◦), then the writer's own, in the book and in the program. A click or the
+  arrows and Enter give the whole list the set; the paragraphs selected outside a list become
+  one. Save as Set... keeps the formats of the window under a name, in the book (it goes with
+  the book) or in the program; the context menu of a set renames it, deletes it and makes it
+  the default of F12 or Shift+F12. The tab Numbering has three new fields: Text before number
+  ("§ ", "Step "), Text after number (any text, not only "." and ")") and Numbers of higher
+  levels (1.1., 1.1.1.). Format > List Sets lists every set to choose from the keyboard, and the
+  buttons Bullets and Numbering of the Format toolbar have an arrow with the tiles of their
+  sets, Restart at and Continue Numbering. The new page Settings > Editor > Lists has the
+  default sets of F12 and Shift+F12 and the sets of the program with Rename..., Delete,
+  Export... and Import...; the window has a gear to it. KML keeps the new formats as `prefix`
+  and `show-levels` of `<ol>`, Word as the text of its levels (read back from Word's own
+  documents too), the EPUB writes such marks out.
+- **Own fields of the book** - 2026-11-21. Insert > Field... has a new tab, Own: the writer's
+  fields of the book, such as the narrator's name or the publisher, with New Field...,
+  Change... and Delete. A field has a name, a value and a description for its tooltip, and in
+  a series it can be a field of the series, the same in all the volumes, a volume giving it a
+  value of its own when it needs one. A field inserted in the text shows its value on the gray
+  background of the fields; a new value changes it in the open texts at once, in the others as
+  they open, and the export and the printing take it as it is. A field without a value shows
+  its name in brackets. Deleting a field used in the texts asks whether its places become plain
+  text of its value or stay as empty fields to fix, and the bar at the bottom of the window,
+  or Ctrl+Z in a text, brings it back everywhere. The Properties panel of the book has a new
+  group, Own Fields: each value can be written there, Add Field... and Insert in Text..., with
+  a gear to the settings of the fields. Quick insert after # offers the own fields too (Settings
+  > Editor > Quick Insert, a new box ticked by default).
+- **Footnotes panel** - 2026-11-21. View > Panels > Footnotes (also on the Panels toolbar)
+  lists the footnotes and endnotes of the text in front, or of the whole book in reading order
+  under the titles of its texts (of a series: of the volume in front), as cards: the number in
+  the color of its kind, the last words of the text before the number and the beginning of the
+  note. A search in the notes, the kinds with their counts (All, Footnotes, Endnotes) and the
+  scope narrow the list. A card selected takes the text to the number; Enter or F2 opens the
+  note's frame (the note's text opens first when it is closed), Delete deletes the note, with
+  Undo in the bar under the text, and the context menu converts a footnote to an endnote and
+  back, copies the note's text and opens Format > Footnote Layout.... Esc goes back to the
+  text. Settings > Editor > Writing decides whether the cards show the words before the number
+  and how many lines of the note; Settings > Editor > Colors has the colors of the two kinds,
+  in every theme.
+- **Left and right pages through the book, and page numbers of the whole book** - 2026-11-20.
+  With mirror margins every text starts on the page its start says. Settings > Editor > Pages
+  and Margins > Texts start on: A right page (the default, as in a printed book: a text that
+  would start on a left page has an empty left page before it) or The next page, left or right
+  (no empty pages). The Properties panel of a text has First page: Automatic (the page its
+  kind or the setting gives, named in brackets), Right, Left or Next (left or right); a book
+  type can give it for a kind of text. The page view, the PDF, the print and DOCX follow it.
+  Settings > Editor > Page numbers: Through the whole book (the default: the first page of a
+  text has the number after the last page of the text before it, in reading order, a part with
+  a page of its title) or Each text from 1. The editor counts the pages of the texts as the
+  page view lays them out, while an editor shows pages, and again a moment after a text is
+  written longer or shorter; the page view, the status bar ("Page 7 (2 of 12)": the page of
+  the book and of the text) and Edit > Go To... (a page by the number it shows) use the
+  numbers of the book.
+- **Tab guides** - 2026-11-20. A text can have simple tab stops of its own: dashed vertical
+  lines down its pages, from its left edge, that a Tab aligns the text after it to. Format >
+  Align Text > Set or Remove Tab Guide (Alt+Shift+G) sets one where the cursor is or takes
+  away the one there; Move Tab Guide Left and Right (Alt+Shift+Left, Alt+Shift+Right) move the
+  guide nearest the cursor a millimetre, the text aligned to it with it; Remove All Tab
+  Guides takes them all away; the status bar says where the guide is, and each change is one
+  step of Undo. On macOS the keys are Option+Shift+Cmd with G and the arrows. Their color is
+  in Settings > Editor > Colors (Tab guides), for each paper. KML keeps them in a
+  `<tab-guides>` section of the text; DOCX gets them as the tab stops of its paragraphs, a PDF
+  and the print the text aligned to them, without the lines.
+- **Notifications where the writer wants them** - 2026-11-20. What the program says on its
+  own (the goals reached, the badges won, the deadlines coming and the challenges done, the
+  messages of the plugins, grammar checking ready after its preparation, a material that could
+  not be downloaded in the background) is a notification, and the new page Settings >
+  Notifications chooses where they show: in the bar at the bottom of the window, under the
+  text, with Copy (by default, as the messages of the statistics showed before); in the
+  program's own window over the book window, with Copy, which does not take the keys from the
+  text and takes in the next ones while it is open; as notifications of the system, in the
+  corner of the screen with the program's icon in the system tray (where the system has none,
+  the bar shows them); or in the new Notifications panel on the right (View > Panels >
+  Notifications), which opens with them. The notifications of one moment show together; those
+  of the whole program (the plugins, grammar checking) show once, in the window in front.
+  Whatever the place, the Notifications panel keeps the notifications of the session in
+  bubbles with their time and title, the latest at the bottom, with Copy (also Ctrl+C) and
+  Clear; it is closed until opened. The page shows a sample in the place chosen, before
+  Apply, and has the background and the border of the bar and of the bubbles, kept for each
+  theme; the bar, the window and the panel have the gear of these settings. The answers to
+  commands (a bar with Undo after a command, the status bar after a save) stay where they
+  were. The Assistant panel stays as it was. All of it in Polish too.
+- **Installers of the program** - 2026-11-20. Kalahari has packages for the three systems,
+  made from a Release build by `scripts/package.py` and in every run of the CI: for Windows an
+  installer (NSIS; for the current user without an administrator, or for all users; the Start
+  menu, optionally the desktop, the books (`.klh`) and the documents (`.kchapter`) opening in
+  the program; Polish or English, as Windows speaks) and a ZIP of the program without installation; for Linux an AppImage and a
+  `.deb` package for Ubuntu 24.04 and Linux Mint 22 (in `/opt/kalahari`, with a menu entry and
+  the types of the `.klh` and `.kchapter` files), whose windows for choosing a file are those of the system (the
+  GTK theme of Qt, the desktop portal) and otherwise Qt's own, in Polish; for macOS a `.dmg`
+  with `Kalahari.app` (signed ad hoc, books and documents opened in Finder go to the program). Each package
+  carries the Qt and the Python of the program and is checked before it is written by the new
+  `kalahari --self-test`, which checks the resources, the icon, the translations, the Qt
+  plugins of images, the database and secure connections, and the Python of the plugins. The
+  icon of the program is its logo, the lion with the book and the quill of the Dashboard
+  (`scripts/make_app_icons.py` makes its sizes, the `.ico` and the `.icns`): on the windows,
+  the taskbar, the Dock, `kalahari.exe`, the installer, the menus, and the books and the
+  documents in the file managers. `kalahari.exe` has its version too. A
+  version tag attaches the packages of main to the draft release. The log file `kalahari.log`
+  is in the folder of the program only where the program may write there; otherwise (an
+  installation for all users, the Linux packages, always on macOS) it is in the folder of the
+  settings, no longer in the working folder (a menu entry started the program in the home
+  folder). Python keeps its compiled modules in the cache folder of the user
+  (`kalahari/python`), not next to the modules, so the program writes nothing into its
+  installation. The Windows package carries the runtime of Visual C++ (a Windows without the
+  Visual C++ Redistributable has none), and every DLL of the package must be in it or in
+  Windows. The CI installs each package as a writer does and checks the installed program
+  (`scripts/package.py install-check`): the Windows installer silently for the current user
+  and for all users, then its uninstaller; the `.deb` with apt and the AppImage with FUSE on a
+  clean Ubuntu 24.04 in docker, the program as a user without and with an X server, the
+  removal by apt; `Kalahari.app` copied from the `.dmg`. Packaging: `cmake/Packaging.cmake`,
+  `packaging/`, BUILDING.md "Packages".
+  The new page Settings > Files > File Associations shows which program the system opens the
+  books and the documents with and has the button Associate with Kalahari: on Linux it makes
+  Kalahari their default program with xdg-utils (an AppImage first installs the types of its
+  files and its menu entry for the writer), on macOS 12 and later with NSWorkspace (the system
+  may ask first). Windows lets only the writer choose a default program: there the button
+  registers Kalahari for the writer as the installer does (a ProgID for each type, the
+  Capabilities of the program and its name in RegisteredApplications), and the button Default
+  Apps in Windows Settings opens the page of Kalahari in Windows Settings
+  (`gui/utils/file_associations.h`). The CI checks that Windows opens both kinds with the
+  installed program and that the uninstaller removes their registration, that Ubuntu knows
+  both types after the `.deb` is installed, and that `Info.plist` exports both.
+- **Writing schedule** - 2026-11-22. Tools > Writing Schedule... (also on the Writing
+  Statistics toolbar) opens a tab with a chart of the book in time: a row for the book, a row
+  for each part and a row for each text, with its state, its words and its plan. A text can have
+  a bar of writing and a bar of revisions (hatched); the bar of writing fills as the text grows
+  towards its target length and takes the colour of the done texts when the text is final, and a
+  bar that ends before today with the text not done gets a red border. Ticks under the bars mark
+  the days the text was written, and vertical lines show today, the deadline of the book and the
+  forecast of its end; the deadlines of the goals are diamonds. The scale is days, weeks or
+  months, and the days off can be shaded; both are kept in settings. A bar is moved by dragging
+  it and its end by dragging its right edge; dragging in an empty row plans writing, or
+  revisions when writing is already planned. The keyboard does it all too: the arrows and
+  Page Up/Down choose a text, Alt+Left/Right move its plan by a day, Alt+Shift+Left/Right change
+  its end, Enter opens Plan of the Text (the dates of writing and revisions and the target
+  length), Delete removes the plan, Esc cancels a drag, and Edit > Undo/Redo work in the tab.
+  The plan is kept in the book, for each volume of a series. Its colours (the bar of writing,
+  the bar of revisions, today, late) are in the theme and in Settings > Statistics and Goals >
+  Colors, and the gear of the tab opens them. Plan Texts... lays the writing of many texts at
+  once: those without a plan or all those in Draft, one after another in the order of the book,
+  on the writing days from a day to the deadline of the book, each by the words it still needs
+  (a text without a length takes the one the window gives); the window says how many words a
+  writing day needs before anything changes, the revisions planned stay, and Undo takes it all
+  back in one step. Writing Goals and Deadlines has a new option, Set the daily goal from the
+  schedule: the words the texts planned for today lack at the start of the day, over the
+  writing days left in their bars (all of them for a text whose bar has ended), with the words
+  it gives today beside it; one of the two options, the deadline or the schedule. The view
+  Today of the Statistics panel says where the daily goal comes from: the deadline of the book,
+  or the schedule and the texts planned for today.
+
 - **Texts for publishers** - 2026-11-18. The Materials have a new kind after the Cover, Texts
   for Publishers, with its number in the Navigator: the sentences about the book and the
   synopses, each a text of the book in as many versions as the writer wants, with a template of
@@ -252,6 +563,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The licence: the GNU GPL version 3 in place of MIT** - 2026-11-25. Kalahari and all its
+  plugins stay free; they are released under the GNU General Public License version 3
+  (`GPL-3.0-only`) with two additional terms of its section 7: every copy and every work based on
+  Kalahari keeps the attribution "Kalahari – created by BW Digital Systems & Publishing,
+  https://bwdsp.com.pl/" in its About window (7 b), and the licence grants no rights to the name
+  "Kalahari" or its logo (7 e). `LICENSE` is the text of the GPL; `NOTICE.md` has the copyright,
+  the additional terms and the third-party components (formerly in `LICENSE`). Every source file
+  names the licence and points to `NOTICE.md`. Help > About Kalahari: the About tab shows the
+  attribution with a link to the page of BW Digital Systems & Publishing, the copyright of
+  Bartosz W. Warzocha and that Kalahari is free software without warranty; the License tab has
+  the notice of the GPL, the additional terms and the English text of the licence, embedded in
+  the program (`:/licenses/LICENSE`). Hunspell is used under the LGPL 2.1 or later (one of its
+  three licences) instead of the MPL 1.1, which is not compatible with the GPL. The installers
+  carry `NOTICE.md` next to the licence; the publisher of the Windows installer and the company
+  of the program file is BW Digital Systems & Publishing; the copyright of the Debian package is
+  the notice and the licence; the example plugin, `vcpkg.json`, README and ROADMAP name the
+  GPL 3.0. Every dependency was checked against the GPL 3.0 (Qt 6.9 modules: LGPL-3.0-only OR
+  GPL-2.0-only OR GPL-3.0-only; the ports of vcpkg; the dictionaries, the icons, the libraries of
+  the Linux packages): all are compatible. The copyright line of `NOTICE.md` names the business
+  in full ("BW Digital Systems & Publishing – Bartosz Warzocha"). Help > About Kalahari in a new
+  layout (mockup of 25.11, layout A): the heading has the logo of Kalahari, the name and the
+  version and, at its right end behind a line, the full logo of BW Digital Systems &
+  Publishing (its black letters on a light theme, its white ones on a dark one, changed with
+  the theme; a click opens the company's page; `resources/images/bwdsp_logo_black.png` and
+  `bwdsp_logo_white.png`, embedded in the program); the About tab has parts apart with room
+  between them: what Kalahari is, Authors ("Idea and overall architecture: Bartosz W.
+  Warzocha"; "Kalahari – created by BW Digital Systems & Publishing", in Polish "Realizacja
+  programu Kalahari"), Thanks and Project (the technologies), and under a line the copyright
+  and the licence; the team, the vision, the address of e-mail and the dates of the project
+  are gone;
+  the second additional term (7 e) also covers the name and the logo of the company. README
+  shows the logo, for the light and the dark mode of GitHub.
+
+- **The bar under the text stands out** - 2026-11-22. The bar at the bottom of the text area
+  (the answers to commands, such as Undo after a deletion, the note of a file outside a book and
+  of a book open read-only) has colors of its own in both themes: a blue background with a
+  darker border, a message easy to read and filled buttons in bold. They differ from the paper
+  and from the other bars. Settings > Editor > Colors has a new group, Bar Under the Text, with
+  its background, border, message, button and button text, kept for each theme; the gear of the
+  bar opens this group. The buttons of the bars under the text and under the plot board have
+  access keys that no menu has: Alt+C of Undo in Polish only moved the focus to the button and
+  then opened the menu Help (Pomoc), so Undo is Alt+I in Polish now, and Insert Here is Alt+N
+  in English and Alt+U in Polish.
+
+- **File > Print: a large preview and the fields in sections** - 2026-11-22. The window has no
+  tabs: the preview takes its left half, with Whole Sheet and Width over it (a sheet as wide as
+  the preview scrolls, with its bar, the arrows and the wheel), and the fields are in sections
+  at the right that open and close: Printer, What to Print, Pages, Sheet, Book Page and Look of
+  the Text. A closed section says what it holds in its header ("A4 · one page · fitted"); a
+  click, Enter or Space opens it, and Alt with the key of its title opens it and goes to its
+  first field. The window remembers the sections open and the zoom. Printer has the paper
+  source and the quality where the system lists them, and Printer Properties... opens the
+  window of the printer's driver (Windows), whose settings, such as the type of paper or saving
+  the toner, go to the print and whose paper, copies, color, sides, source and quality go to
+  the fields. Book Page has the size and the margins of the page of Settings > Editor > Pages
+  and Margins: a change there or here changes both, and the preview lays the pages out again.
+  The chosen texts are checked in a window of their own, Choose Texts..., with how many are
+  chosen beside it.
+
+- **Insert toolbar** - 2026-11-21. Every command of the Insert menu is on it, in the groups of
+  the menu: images, tables and links; captions, cross-references and the lists of figures;
+  footnotes and endnotes; the annotations; the characters, quick insert and the clippings;
+  the date and the fields; the lines and the breaks. A toolbar customized before gets the new
+  buttons once, next to those it has, and keeps the order of the writer's.
+- **Mind maps as node editors** - 2026-11-24. A node of a mind map is a box with a header in the
+  color of its kind (idea, question, note, character, place, item, text, scene, thread) and
+  sockets on its edges: a branch joins the output on the right with the input on the left, and
+  the rows of a card (its fields, its family, its relations, its places and its items) have
+  sockets in their own colors, which join only with sockets of the same color. A link is drawn
+  from socket to socket; a link dropped in an empty place opens Add Node and the new node is
+  joined at once; a relation drawn between two cards opens the list of its kinds and is saved on
+  both cards. The bar over the map has Add Node... (Shift+A, a list of the kinds and of the cards
+  of the Workshop with a search field), Add Branch (Tab), Add Below and Above (Enter,
+  Shift+Enter), Edit Name (F2), Fold (H or the arrow of the header), Frame (Ctrl+J: a titled
+  frame that moves with its nodes), Arrange (both sides, to the right, down, the family in
+  generations), Delete (a node alone, its branches stay; a link; a frame), Undo and Redo (also
+  for moves and links) and the zoom; the bar of the view has the background (a grid by
+  default, dots, plain) and the lines (curved, straight, elbow). The wheel zooms smoothly around
+  the cursor, dragging the background or the middle button moves the map, Ctrl+0 is 100%, Home
+  the whole map, the arrows choose the next node. The line under the map says what was done,
+  with Undo, and what the selection is. A card dragged from the Navigator becomes its node with
+  its relations to the cards on the map. Node Properties has the name, the kind, the note, the
+  rows the node shows of the book, the writer's own attributes (a name and a value) and its
+  picture (the main portrait of a card, a picture of the Workshop). New Relation Map... (the
+  Book menu, the menu of the mind maps in the Navigator) makes a map of the cards of the kinds
+  chosen with their relations, the family in generations; new relations of the cards come to
+  it when it opens, and the first relation of a card offers such a map. The .kmap file keeps
+  the kinds, the cards, the folds, the frames and the sockets; the maps of before open with
+  their nodes as ideas. The colors of the kinds and the sockets are in the themes and in
+  Settings > Mind Maps.
+
 - **Settings: shorter pages, titled groups and a note under each option** - 2026-11-16. The
   long pages are split: Editor has General, Writing (the word count and the fields) and Margin
   Numbering; Annotations has General and Annotation Cards; Navigator has Adding, Material
@@ -262,6 +664,138 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Cards, Materials, Images, Auto-correct, Quick Insert, Clippings and Plot Board. A test makes
   sure that no page has radio buttons and that every page fits the narrowest window, in English
   and in Polish.
+
+### Fixed
+
+- **After the test of 24.11** - 2026-11-24.
+  - The outline of the Plot Board shows the color of a card as a thick left edge of its row,
+    in place of the square before its title.
+  - File > Import > DOCX, Markdown, Plain Text and Other Formats open the window of the import
+    at once, without the system window before it: Add... on its tab of the files chooses the
+    files of the format, and the window opens at it.
+  - The spinner on the card of a book being opened turns evenly, its angle taken from the
+    time, about 60 pictures a second, also while the book loads: the reading of the book, its
+    texts and the tree of the Navigator give it the beat (core::BusyPulse).
+  - About has a tab Build of its own, with three short rows (the commit and the branch, the
+    date and the configuration, the system and the compiler); the copyright has the sign ©
+    and the years from 2025 to this one, only 2025 on a clock set earlier.
+- **After the test of 23.11** - 2026-11-23.
+  - The outline of the Plot Board shows the colors of the cards as the board does: with the
+    tint of the cards on, the row tinted.
+  - Show Clipping has no System Program: a clipping is a file of the program.
+  - New Volume... is first in the menu of the project in the Navigator, no longer in the menu
+    of a book or of a volume, which add their parts.
+  - The window of File > Import > Text... opens higher, and its lists take the height.
+  - Format > Page Size and Margins... opens Settings > Editor > Pages and Margins.
+  - The card of a book on the Dashboard is darkened, with a spinner turning on it, until the
+    book is open.
+  - The icons of the light theme are grey and light grey by default (#8f8f8f and #ebebeb).
+- **After the test of 22.11** - 2026-11-22.
+  - The statistics count only writing: the words typed, deleted, cut or written in a note's
+    frame, and their Undo and Redo. A caption of an image or a table, a clipping cut out of the
+    text and its Undo, a paste, a field, a replacement and the changes of the program no longer
+    show as words written or deleted, so the chart of the status bar no longer jumps. Cutting
+    to the clippings keeps the words of the day by default (Settings > Statistics and Goals).
+    The text a command puts in (a field, the date, a quotation) is a step of Undo of its own,
+    apart from the text typed right before it and after it.
+  - The description of a character, a location or an item is a plain text field on the card:
+    no page, desk or margins, the colors of the theme's fields and the program's font a little
+    larger, the scroll bar only for a longer text; the spelling, the formats and the
+    annotations stay. The view modes are greyed out on the tab of a card.
+  - The context menu of the text has Paste Special under Paste, with the forms of the window
+    of Edit > Paste Special....
+  - The Navigator has the Plot Board under the book's dictionary, and the book toolbar has a
+    button to it; a toolbar customized before gets it once. A color given to a card from its
+    menu switches "Colors:" of the board to the cards' own colors and says so.
+  - A field of a card that names another card has an arrow at its end: it, a click in the
+    field or Alt+Down show all the cards, typing narrows them.
+  - Replace All in Book saves nothing: the texts it changes stay unsaved, and the bar under the
+    text offers Save All.
+  - The scissors of the clippings show in the text by default.
+  - The menu of a misspelled word opens at once; its submenu Suggestions says Loading... until
+    the words are found.
+  - The text of an annotation card keeps its size when the writer starts writing in it; cards
+    are 70% of the text by default, with the same margin on both sides.
+  - The highlights of PDF files are on by default (Settings > Materials > PDF Preview): they
+    change nothing in the file.
+  - File > Import > From DOCX... and the other imports of a book are no longer greyed out: the
+    items of the menus and toolbars take the state of their commands once the book window is
+    made. Window > Tab List works the same.
+  - About shows what the program was built from: the version, the commit (with changes not yet
+    committed, if any), its branch, the date and time of the build, Debug or Release, Qt, the
+    system and the compiler. Copy Build Information puts them on the clipboard.
+  - File > Export has the formats of the program together: PDF, DOCX, EPUB and Markdown; a
+    separator only before the formats not made yet (ICML, LaTeX).
+  - The menus, reviewed. View starts with the view modes and the zoom, then the marks, the
+    annotations, the paper and the margin numbering; the panels follow in the order of use,
+    with Toolbars right after them; the Dashboard, the perspectives and Reset Layout end the
+    menu. View > Show Status Bar hides and shows the status bar, and is remembered. Edit has
+    Paste Text Only with the other pastes and Find in Book with Find and Replace; Book has New
+    Volume and Join Book as Volume together; File > Import has the archive of a book after the
+    formats; Tools has the spelling, the grammar, the auto-correct and the next issue together,
+    then the goals, the challenges and the statistics, then the texts for publishers. Tools >
+    Customize Toolbars... is gone from the menu: View > Toolbars > Toolbar Manager... opens the
+    same window.
+  - A greyed out command says why, in its tooltip and in the status bar: no text in front, the
+    cursor not in a text of the book (in a field, in a panel), nothing to undo, nothing
+    selected, nothing on the clipboard to paste, a read-only text, no tab to move to a window
+    of its own; in the context menu of a list item, why its numbering or its level cannot
+    change.
+  - The volumes of a series collapse and expand in the lists of the Cover and of the texts for
+    publishers: the arrow of the row of a volume, a click, Space, the arrows Left and Right,
+    and its context menu (Collapse Volume, Collapse All Volumes, Expand All Volumes). A
+    material chosen elsewhere expands its volume.
+  - Printing: the marks of a scene break ("* * *" and the others) print as large as the text,
+    not several times larger on a printer or a PDF printer of many dots. The text after an
+    image above and below the text that goes to the next page no longer prints on the image:
+    the lines of a paragraph kept together go below it. File > Print has Reverse order beside
+    the pages that print: the last sheet first, for a printer that lays the sheets face up;
+    a sheet keeps its front and its back, the preview shows the sheets in that order, and the
+    window remembers the choice.
+  - Texts for publishers: the points of a synopsis ticked off while its text has changes not
+    saved are saved with the text and dropped with it (Don't Save when its tab or the book
+    closes), so the points ticked off always agree with the file; a text with no changes
+    saves them at once, as before. The set for the publisher (its list, Copy All, Export
+    Set...) has a text open in its editor as written, also before it is saved, as File >
+    Export has the open texts.
+  - Images have room around them: an image alone in its paragraph keeps 6 pt from the text
+    above and below it, with its caption inside that room, so no empty paragraph is needed. Its
+    own room is on the new page Space Around of Image Properties (above, below, beside the text,
+    As in the Settings); new images take it from Settings > Editor > Images. An image beside the
+    text keeps its room beside it (0.3 cm by default). Printing, PDF, DOCX and EPUB have the same
+    room.
+  - Image Properties has a page Text Flow: the four ways as large choices, each with a picture
+    of a page with the image and the text around it, and a note on what each way does. The
+    choice is no longer on the page Image, which chooses the file.
+  - Tables have room above and below them too: 6 pt from the text by default, with a caption
+    of the table inside it, so no empty paragraph is needed. A table's own room is on the tab
+    Table of Table Properties (with As in the Settings); new tables take it from the new page
+    Settings > Editor > Tables. Printing, PDF, DOCX and EPUB have the same room.
+  - A table has a numbered caption as an image has: Table > Insert Caption... (also in the
+    context menu of a cell) and Insert > Caption... with the cursor in a table give it one with
+    the label "Table", numbered on its own, above the table or below it (Settings > Editor >
+    Tables, and the window of the caption). The list of figures has the captions of tables too.
+  - In the page view the cursor moved several pages down (into a table, after a search) stays
+    in view: the view no longer goes to a place the pages above it then move.
+  - A button that is on is clearly on: a button with text alone (the days of writing, the
+    choices of a panel) is filled with the highlight color of the theme, its text in the
+    color of highlighted text; a button with an icon (Bold in the toolbar) gets a tint of that
+    color and a frame in it. Before, it was only a little darker than one that is off.
+  - A kind chosen by its name gets no window of all the kinds: Add Mind Map..., Add
+    Chapter..., Book > New Chapter, the Add button of a list of materials and the Workshop's
+    commands open a small window named after the kind, which asks only for the title (and for
+    the source of a material, the part of a text for publishers). A card (Add Character...,
+    Create Card in the text) needs no window at all: it is added at once and opens on its
+    form, its name selected. Only the general Add... shows the window with all the kinds.
+- **Repetitions: the marks in the text with the Repetitions panel closed** - 2026-11-20. With
+  "Mark the repetitions in the text" on (View > Repetitions in Text, Settings > Editor >
+  Repetitions) the repeated words of the text in front were marked only while the panel was
+  open. They are marked with the panel closed too, counted again as the writer types; the
+  frames of the words of the card chosen in the panel stay with the panel.
+- **The colors of the bars under the text and under the plot board** - 2026-11-20. A bar of
+  messages with a name of its own (the messages of the statistics until now, the bar under the
+  plot board) had none of the theme's background and border of the bars of messages: their
+  style looked for the bar by its name. It looks for the class of the bar now.
 
 ---
 

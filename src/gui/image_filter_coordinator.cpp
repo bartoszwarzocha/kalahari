@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file image_filter_coordinator.cpp
 /// @brief Image > Filter > Same Filter for All Images...: the filter of one image for every
@@ -230,7 +231,7 @@ int ImageFilterCoordinator::applyToBook(editor::BookEditor& text, int position)
     const QString message = tr("%n images have the filter \"%1\" now.", nullptr, changed).arg(name);
     EditorPanel* panel = panelOf(text);
     if (m_showNotice && panel != nullptr) {
-        //: In Polish: &Cofnij / Cofnij filtr obrazów
+        //: In Polish: Cofn&ij / Cofnij filtr obrazów
         m_showNotice(panel, message, tr("&Undo"), tr("Undo the filter of the images"),
                      [this]() { undo(); });
     } else {

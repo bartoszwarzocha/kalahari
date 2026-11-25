@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file editor_panel.h
 /// @brief Editor panel with BookEditor integration (OpenSpec #00042 Phase 7.1)
@@ -122,6 +123,14 @@ public:
     ///        those of "Base"; the names in the program's language
     [[nodiscard]] editor::ParagraphStyleSet paragraphStyles() const;
 
+    /// @brief Give the editor the formats of its new lists: those of the default sets of
+    ///        Settings > Editor > Lists, among them the book's own sets in a text of the book
+    void applyNewLists();
+
+    /// @brief Whether the text is a chapter of the book (NavigatorCoordinator tags it with
+    ///        its element), not a file outside it
+    [[nodiscard]] bool isBookText() const;
+
     /// @brief Get the underlying BookEditor widget
     /// @return Pointer to BookEditor widget
     ///
@@ -154,6 +163,19 @@ public:
     [[nodiscard]] editor::StatisticsCollector* statisticsCollector() const {
         return m_statisticsCollector;
     }
+
+    /// @brief Make the editor look and work as a plain text field of the program, or as the
+    ///        editor of the chapters again
+    ///
+    /// The description of a card: the paper fills the view, without the desk, the sheet and
+    /// the page's margins, in the colors of the theme's text fields and a little larger font
+    /// of the program; one view (Continuous) at 100%, without typewriter scrolling, Focus,
+    /// the numbers on the margin, the text frame border and the annotations' cards. The
+    /// spelling, the formats and the annotations' marks stay.
+    void setFieldLook(bool on);
+
+    /// @brief Whether the editor looks as a plain text field (setFieldLook())
+    [[nodiscard]] bool hasFieldLook() const { return m_fieldLook; }
 
     /// @brief Give the editor the editor settings ("editor." keys, with the defaults of the
     ///        settings schema)
@@ -242,9 +264,16 @@ public:
     ///        message in the status bar (editor::isOpenableLinkAddress())
     void openLink(const QString& address);
 
-    /// @brief Set whether the text starts on a left page: the chapter's own setting
-    ///        (ProjectElement::firstPageLeft), which the margins of its pages follow
-    void setFirstPageLeft(bool left);
+    /// @brief Set the first page of the text in the book: the number it shows and whether it
+    ///        is a left page, which the margins of its pages follow (gui::BookPageNumbers)
+    /// @param number 1, or its page in the whole book
+    /// @param left It is a left page (with mirror margins)
+    void setFirstPage(int number, bool left);
+
+    /// @brief The page of the cursor for the status bar: "Page 3 of 12", with the pages
+    ///        numbered through the book "Page 37 (3 of 12)"; empty without pages (not the Page
+    ///        Layout view)
+    [[nodiscard]] QString pageStatus() const;
 
 signals:
     /// @brief Emitted when editor content changes
@@ -294,6 +323,7 @@ private:
     int m_settingsListener{0};                              ///< SettingsManager::subscribe() id
     std::atomic<bool> m_settingsPending{false};             ///< scheduleSettings() waits for the
                                                             ///< event loop
+    bool m_fieldLook{false};                                ///< A plain text field (setFieldLook())
 
     /// @brief Statistics collector for tracking writing stats (OpenSpec #00042 Task 7.7)
     editor::StatisticsCollector* m_statisticsCollector{nullptr};

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file paragraph_styles.h
 /// @brief The paragraph styles of a book and the objects of its text (a horizontal line, the
@@ -49,6 +50,10 @@ inline constexpr int PARAGRAPH_STYLE_PROPERTY = QTextFormat::UserProperty + 110;
 
 /// @brief Id of the style Normal: the text of the book
 inline constexpr char NORMAL_STYLE_ID[] = "normal";
+
+/// @brief Id of the style of the headings of the skeleton of a text for publishers, which the
+///        program wrote earlier; such a paragraph is read as a plain one
+inline constexpr char OLD_TEMPLATE_POINT_STYLE_ID[] = "template_point";
 
 /// @brief Font size of Normal when the package gives none, in points (the size StyleResolver
 ///        assumes)

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file kml_document_model.cpp
 /// @brief KML reader: the paragraphs of a chapter with their text and formatting
@@ -14,7 +15,7 @@
 #include "kalahari/editor/text_footnotes.h"
 #include "kalahari/editor/text_images.h"
 #include "kalahari/editor/text_link.h"
-#include "kalahari/editor/text_skeleton.h"
+#include "kalahari/editor/tab_guides.h"
 #include "kalahari/core/logger.h"
 
 #include <QDateTime>
@@ -22,6 +23,7 @@
 #include <QXmlStreamReader>
 
 #include <algorithm>
+#include <cmath>
 #include <optional>
 
 namespace kalahari::editor {
@@ -158,9 +160,7 @@ bool KmlDocumentModel::loadKml(const QString& kml)
                 Paragraph para;
                 parseParagraphElement(reader, para);
                 m_paragraphs.push_back(std::move(para));
-            } else if (tag == QStringLiteral("annotations")) {
-                parseAnnotations(reader);  // stops at </annotations>
-            } else {
+            } else if (!parseSection(tag, reader)) {
                 // Skip unknown elements
                 reader.skipCurrentElement();
             }
@@ -190,6 +190,7 @@ void KmlDocumentModel::clear()
 {
     m_paragraphs.clear();
     m_tables.clear();
+    m_tabGuides.clear();
     m_annotations.clear();
     m_anchoredIds.clear();
     m_captionIds.clear();
@@ -314,14 +315,6 @@ bool KmlDocumentModel::paragraphCaptionAbove(size_t index) const
     return index < m_paragraphs.size() && m_paragraphs[index].captionAbove;
 }
 
-std::optional<SkeletonPoint> KmlDocumentModel::paragraphTemplatePoint(size_t index) const
-{
-    if (index >= m_paragraphs.size()) {
-        return std::nullopt;
-    }
-    return m_paragraphs[index].point;
-}
-
 std::optional<ListItem> KmlDocumentModel::paragraphList(size_t index) const
 {
     if (index >= m_paragraphs.size()) {
@@ -375,6 +368,35 @@ bool KmlDocumentModel::isBlockElement(QStringView tag)
         return true;
     }
     return headingLevelOfElement(tag) > 0 || textObjectOfElement(tag.toString()) != TextObject::None;
+}
+
+bool KmlDocumentModel::parseSection(QStringView tag, QXmlStreamReader& reader)
+{
+    if (tag == QStringLiteral("annotations")) {
+        parseAnnotations(reader);  // stops at </annotations>
+        return true;
+    }
+    if (tag == QStringLiteral("tab-guides")) {
+        parseTabGuides(reader);  // stops at </tab-guides>
+        return true;
+    }
+    return false;
+}
+
+void KmlDocumentModel::parseTabGuides(QXmlStreamReader& reader)
+{
+    std::vector<double> guides;
+    while (reader.readNextStartElement()) {
+        if (reader.name() == QStringLiteral("guide")) {
+            bool known = false;
+            const double at = reader.attributes().value(QStringLiteral("at")).toDouble(&known);
+            if (known && std::isfinite(at)) {
+                guides.push_back(at);
+            }
+        }
+        reader.skipCurrentElement();
+    }
+    m_tabGuides = normalizedTabGuides(std::move(guides));
 }
 
 void KmlDocumentModel::parseAnnotations(QXmlStreamReader& reader)
@@ -488,7 +510,10 @@ void KmlDocumentModel::readParagraphAttributes(QXmlStreamReader& reader, Paragra
         para.style = headingStyleId(level);
     } else {
         para.style = attrs.value(QStringLiteral("style")).toString().trimmed();
-        if (para.style == QLatin1String(NORMAL_STYLE_ID)) {
+        // The heading of a point of a skeleton of a text for publishers, which the program no
+        // longer writes (style="template_point" point="..." hint="..."): a plain paragraph
+        if (para.style == QLatin1String(NORMAL_STYLE_ID) ||
+            para.style == QLatin1String(OLD_TEMPLATE_POINT_STYLE_ID)) {
             para.style.clear();
         }
     }
@@ -510,12 +535,6 @@ void KmlDocumentModel::readParagraphAttributes(QXmlStreamReader& reader, Paragra
     para.format = paragraphFormatFromKml(attrs);
     para.captionAbove =
         attrs.value(QStringLiteral("caption")).toString().trimmed().toLower() == u"above";
-    // A heading of a point of the skeleton: the id of the point and its hint
-    if (const QString point = attrs.value(QStringLiteral("point")).toString().trimmed();
-        !point.isEmpty()) {
-        para.point =
-            SkeletonPoint{point, QString(), attrs.value(QStringLiteral("hint")).toString()};
-    }
 }
 
 void KmlDocumentModel::parseParagraphElement(QXmlStreamReader& reader, Paragraph& para)

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file cover_names.h
 /// @brief The materials of the cover in the program's words: the names of their parts, places,
@@ -51,9 +52,32 @@ public:
     /// @brief Icon of a material of @p part; empty for an unknown part
     static QString partIconId(const QString& part);
 
-    /// @brief Name of @p place: "Front", "Back"...; "Not set" for none; a place this version
-    /// does not know as it is written
+    /// @brief Name of @p place with the part of the cover it is on: "Cover – front", "Jacket
+    /// – back flap"...; "Not set" for none; a place this version does not know as it is written
     static QString placeName(const QString& place);
+
+    /// @brief Name of @p place on the sheet of its part: "Front", "Back flap"...; the name of
+    /// placeName() for a place this version does not know and for none
+    static QString shortPlaceName(const QString& place);
+
+    /// @brief Name of the part of the cover of @p place: "Cover", or "Jacket" for a place on
+    /// the jacket
+    static QString placeGroupName(const QString& place);
+
+    /// @brief What a place on a part of the cover turned off says after its name: "jacket
+    /// turned off", "flaps turned off"; empty for a place of a part @p parts has
+    static QString partOffText(const QString& place, const core::CoverParts& parts);
+
+    /// @brief Name of the fill of an endpaper (core::Endpaper::PICTURE...): "Picture across
+    /// both pages"...; "No fill" for none
+    static QString fillName(const QString& fill);
+
+    /// @brief Name of a pattern of the program (core::Endpaper::DOTS...): "dots"...
+    static QString patternName(const QString& pattern);
+
+    /// @brief How @p endpaper is filled in a few words, with the title of its picture
+    /// @p pictureTitle: "picture: Map of the route", "pattern: dots"...
+    static QString fillSummary(const core::Endpaper& endpaper, const QString& pictureTitle);
 
     /// @brief Name of @p state: "draft" for none, "chosen for the cover", "rejected"; a state
     /// this version does not know as it is written

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file art_provider.h
 /// @brief Central Visual Resource Manager for Kalahari application
@@ -141,6 +142,11 @@ public:
     QIcon getThemedIcon(const QString& cmdId,
                         const QColor& primary = QColor(),
                         const QColor& secondary = QColor());
+
+    /// @brief The icon of the program (its logo): the windows, the taskbar and the Dock show it
+    /// @return The sizes of resources/images/app_icon (kalahari_<N>.png, made by
+    ///         scripts/make_app_icons.py); an empty QIcon when the resources are not found
+    [[nodiscard]] QIcon getApplicationIcon() const;
 
     /// @brief Get template icon ID for a book genre
     /// @param genre Genre string from .klh file (e.g., "fiction", "poetry", "nonfiction")

@@ -36,9 +36,9 @@
       }
     }
   },
-  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface"],
-  "main":     ["prologue", "part", "chapter", "epilogue"],
-  "back":     ["afterword", "acknowledgments", "glossary", "about_author", "toc"],
+  "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface", "spread"],
+  "main":     ["prologue", "part", "chapter", "epilogue", "spread"],
+  "back":     ["afterword", "acknowledgments", "glossary", "about_author", "spread", "toc"],
   "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "clipping",
                "cover", "publishing", "quote", "web_page", "picture", "document", "publication",
                "recording", "other_file"],

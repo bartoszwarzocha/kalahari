@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file writing_goals.h
 /// @brief The goals of a book and its deadlines, and the reckoning of the words a deadline
@@ -45,6 +46,8 @@ struct BookGoals {
     int targetWords = 0;                ///< The length of the book in words; 0: none
     QDate deadline;                     ///< The day the book is due; invalid: none
     bool dailyGoalFromDeadline = false; ///< The daily goal is what the deadline needs
+    bool dailyGoalFromPlan = false;     ///< The daily goal is what the schedule needs
+                                        ///< (dailyGoalForPlan()); not with the one above
     QList<WritingDeadline> deadlines;   ///< The deadlines of the parts, by date
 
     /// @brief No goal and no deadline

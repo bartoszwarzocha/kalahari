@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_edit_dialogs.cpp
 /// @brief The windows of the Edit menu: Paste Special... and Go To..., and their commands
@@ -20,15 +21,21 @@
 #include "kalahari/gui/dialogs/edit_dialogs.h"
 #include "kalahari/gui/go_to_coordinator.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/context_menu_reader.h"
 #include "kalahari_tests/gui/dialog_checks.h"
 #include "kalahari_tests/test_support/window_parts.h"
 
+#include <QAction>
+#include <QApplication>
 #include <QClipboard>
+#include <QContextMenuEvent>
 #include <QGuiApplication>
 #include <QImage>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMenu>
 #include <QMimeData>
 #include <QPushButton>
 #include <QScrollBar>
@@ -228,6 +235,83 @@ TEST_CASE("Paste Special: Edit > Paste Special... pastes in the form chosen",
     text->setReadOnly(true);
     CHECK(test::accepting([&]() { pasted = PasteSpecialDialog::pasteInto(*text, nullptr); }) == 0);
     CHECK_FALSE(pasted);
+}
+
+TEST_CASE("Paste Special: the submenu of the text's context menu under Paste",
+          "[gui][paste][clipboard][contextmenu]") {
+    // Test of 22.11: the forms of Edit > Paste Special... at once, without the window
+    const PasteModeKept kept;
+    core::SettingsManager::getInstance().set<std::string>(editor::PASTE_MODE_KEY,
+                                                          editor::PASTE_MODE_MERGE);
+    auto text = editorWith(QStringLiteral("<kml><p>xy</p></kml>"));
+    text->setCursorPosition({.paragraph = 0, .offset = 1});
+    auto* data = new QMimeData();
+    data->setText(QStringLiteral("A B"));
+    data->setHtml(QStringLiteral("<p>A <b>B</b></p>"));
+    QGuiApplication::clipboard()->setMimeData(data);
+
+    // The forms, with their keys; those the clipboard has not greyed out, saying why
+    QMenu menu;
+    PasteSpecialDialog::fillMenu(menu, *text);
+    QStringList items;
+    for (const QAction* item : menu.actions()) {
+        items << item->text() + (item->isEnabled() ? QString() : QStringLiteral(" (off)"));
+    }
+    CHECK(items == QStringList{QStringLiteral("&Kalahari Format (with annotations) (off)"),
+                               QStringLiteral("Keep &Source Formatting"),
+                               QStringLiteral("&Merge Formatting"), QStringLiteral("&Text Only"),
+                               QStringLiteral("&Image (off)")});
+    CHECK(menu.toolTipsVisible());
+    CHECK(menu.actions().at(4)->toolTip() == QStringLiteral("The clipboard has no picture."));
+
+    // An item pastes in its form
+    menu.actions().at(3)->trigger();
+    CHECK(text->toKml() == QStringLiteral("<kml><p>xA By</p></kml>"));
+
+    // The text's context menu has it under Paste, with the items the program gives it
+    text->setContextMenuEditActions(
+        {.cut = nullptr,
+         .copy = nullptr,
+         .paste = nullptr,
+         .selectAll = nullptr,
+         .link = nullptr,
+         .cutToClippings = nullptr,
+         .insertClipping = nullptr,
+         .pasteSpecial = [](QMenu& submenu, editor::BookEditor& editor) {
+             PasteSpecialDialog::fillMenu(submenu, editor);
+         }});
+    test::ContextMenuReader reader(text.get());
+    const QPoint place(20, 20);
+    QContextMenuEvent event(QContextMenuEvent::Keyboard, place, text->mapToGlobal(place));
+    QCoreApplication::sendEvent(text.get(), &event);
+    CHECK(test::waitUntil([] { return QApplication::activePopupWidget() == nullptr; }));
+    REQUIRE(reader.menusRead() == 1);
+    QStringList texts;
+    const test::MenuItem* special = nullptr;
+    for (const test::MenuItem& item : reader.items()) {
+        texts << item.text;
+        if (item.text == QStringLiteral("Paste &Special")) {
+            special = &item;
+        }
+    }
+    INFO(texts.join(QStringLiteral(" | ")).toStdString());
+    REQUIRE(special != nullptr);
+    CHECK(texts.indexOf(QStringLiteral("Paste &Special")) ==
+          texts.indexOf(QStringLiteral("&Paste")) + 1);
+    CHECK(special->items.size() == 5);
+
+    // Not in a read-only text
+    text->setReadOnly(true);
+    test::ContextMenuReader readOnly(text.get());
+    QContextMenuEvent again(QContextMenuEvent::Keyboard, place, text->mapToGlobal(place));
+    QCoreApplication::sendEvent(text.get(), &again);
+    CHECK(test::waitUntil([] { return QApplication::activePopupWidget() == nullptr; }));
+    REQUIRE(readOnly.menusRead() == 1);
+    for (const test::MenuItem& item : readOnly.items()) {
+        if (item.text == QStringLiteral("Paste &Special")) {
+            CHECK_FALSE(item.enabled);
+        }
+    }
 }
 
 // =============================================================================

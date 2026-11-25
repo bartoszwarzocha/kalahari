@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_spelling.cpp
 /// @brief Spelling as you type in the editor: waves under the misspelled words, checked in
@@ -21,6 +22,7 @@
 #include <QElapsedTimer>
 #include <QKeyEvent>
 #include <QTextBlock>
+#include <QMenu>
 #include <QTimer>
 
 #include <algorithm>
@@ -91,6 +93,45 @@ void pressTextKey(BookEditor& editor, TextKeyAction action) {
     QKeyEvent press(QEvent::KeyPress, key->keys.key(), key->keys.keyboardModifiers());
     QCoreApplication::sendEvent(&editor, &press);
 }
+
+/// The first popup menu that shows while it lives, as it shows: its items, and those of its
+/// first submenu
+class MenuAtShow : public QObject {
+public:
+    MenuAtShow() { QCoreApplication::instance()->installEventFilter(this); }
+    ~MenuAtShow() override { QCoreApplication::instance()->removeEventFilter(this); }
+    MenuAtShow(const MenuAtShow&) = delete;
+    MenuAtShow& operator=(const MenuAtShow&) = delete;
+    MenuAtShow(MenuAtShow&&) = delete;
+    MenuAtShow& operator=(MenuAtShow&&) = delete;
+
+    QStringList texts;
+    QList<const QAction*> actions;
+    QStringList submenuTexts;
+    QList<bool> submenuEnabled;
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        const auto* menu = qobject_cast<QMenu*>(watched);
+        if (menu != nullptr && event->type() == QEvent::Show && texts.isEmpty()) {
+            const QMenu* submenu = nullptr;
+            for (const QAction* action : menu->actions()) {
+                texts << action->text();
+                actions << action;
+                if (submenu == nullptr) {
+                    submenu = action->menu();
+                }
+            }
+            if (submenu != nullptr) {
+                for (const QAction* action : submenu->actions()) {
+                    submenuTexts << action->text();
+                    submenuEnabled << action->isEnabled();
+                }
+            }
+        }
+        return QObject::eventFilter(watched, event);
+    }
+};
 
 /// The menu key: the context menu from the keyboard, at the cursor
 void pressMenuKey(BookEditor& editor) {
@@ -472,6 +513,70 @@ TEST_CASE("Spelling: the menu key and Shift+F10 offer what to put in place of th
         const QStringList texts = runPopupMenu([&editor]() { pressKey(*editor, Qt::Key_F10); });
         CHECK(texts.isEmpty());
     }
+}
+
+TEST_CASE("Spelling: the words for a misspelled one in the submenu Suggestions, Loading... "
+          "until they are found; the menu stays as it opened",
+          "[editor][spelling][menu]") {
+    auto spelling = englishService();
+    auto editor = shownEditor({QStringLiteral("The wrod is bad.")}, spelling.get());
+    REQUIRE(checked(*editor));
+    REQUIRE_FALSE(spelling->knownSuggestions(QStringLiteral("wrod")).has_value());
+    editor->setCursorPosition({0, 6});
+
+    // The menu as it shows, and once the words are found
+    const OffScreenPopups offScreen;
+    const MenuAtShow shownMenu;
+    QStringList afterwards;
+    QStringList wordsAfterwards;
+    QList<bool> boldAfterwards;
+    QList<const QAction*> itemsAfterwards;
+    bool stillLoading = true;
+    int ticks = 0;
+    QTimer poll;
+    QObject::connect(&poll, &QTimer::timeout, [&]() {
+        QMenu* menu = offScreen.shown();
+        if (menu == nullptr) {
+            return;
+        }
+        if (isFindingWords(menu) && ++ticks * 5 < DICTIONARY_WAIT_MS) {
+            return;
+        }
+        poll.stop();
+        stillLoading = isFindingWords(menu);
+        for (const QAction* action : menu->actions()) {
+            afterwards << action->text();
+            itemsAfterwards << action;
+            if (const QMenu* words = action->menu()) {
+                for (const QAction* word : words->actions()) {
+                    wordsAfterwards << word->text();
+                    boldAfterwards << word->font().bold();
+                }
+            }
+        }
+        menu->close();
+    });
+    poll.start(5);
+    pressMenuKey(*editor);
+
+    // On top the submenu, with Loading... only, which cannot be chosen
+    REQUIRE_FALSE(shownMenu.texts.isEmpty());
+    CHECK(shownMenu.texts.first() == QStringLiteral("&Suggestions"));
+    CHECK(shownMenu.submenuTexts == QStringList{QStringLiteral("Loading...")});
+    CHECK(shownMenu.submenuEnabled == QList<bool>{false});
+
+    // The words take its place in the submenu, in bold; the menu has the same items
+    CHECK_FALSE(stillLoading);
+    CHECK(afterwards == shownMenu.texts);
+    CHECK(itemsAfterwards == shownMenu.actions);
+    CHECK(wordsAfterwards.contains(QStringLiteral("word")));
+    CHECK_FALSE(wordsAfterwards.contains(QStringLiteral("Loading...")));
+    CHECK(std::all_of(boldAfterwards.cbegin(), boldAfterwards.cend(), [](bool bold) { return bold; }));
+
+    // Found once, the words are in the submenu as it opens
+    const QStringList texts = runPopupMenu([&editor]() { pressMenuKey(*editor); }, QStringLiteral("word"));
+    CHECK_FALSE(texts.contains(QStringLiteral("Loading...")));
+    CHECK(editor->textDocument()->findBlockByNumber(0).text() == QStringLiteral("The word is bad."));
 }
 
 TEST_CASE("Spelling: the keys of Next Spelling or Grammar Issue go on to the next issue from "

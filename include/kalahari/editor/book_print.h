@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_print.h
 /// @brief The print of a book: which of its pages go to the printer, how they go on the
@@ -31,7 +32,8 @@ class BookPages;
 /// @brief How the pages of the book go on a side of a sheet
 enum class SheetLayout {
     OnePage,   ///< A page on a side
-    TwoPages,  ///< Two pages side by side, on a sheet turned sideways
+    TwoPages,  ///< Two pages side by side, on a sheet turned sideways, as an open book shows
+               ///< them: page 1 alone on the right, then 2 and 3, 4 and 5...
     Booklet,   ///< Two pages side by side, in the order of a stack folded in half
 };
 
@@ -87,6 +89,12 @@ int sheetCount(int sides, bool twoSided);
 ///        of sides ends with an empty back, so the next copy starts on a sheet of its own
 std::vector<SheetSide> copiesOf(const std::vector<SheetSide>& sides, int copies, bool collate,
                                 bool twoSided);
+
+/// @brief The sides of @p sides with their sheets in the reverse order, the last sheet first
+///        (for a printer that lays the sheets face up); a sheet keeps its front and its back
+/// @param twoSided A sheet has a front and a back: of an odd number of sides the last sheet
+///        has an empty back, and it prints first
+std::vector<SheetSide> reversedSheets(const std::vector<SheetSide>& sides, bool twoSided);
 
 /// @brief The fronts (@p backs false) or the backs of the sheets of @p sides, two-sided, in
 ///        the order of the print: for two-sided printing by hand, the fronts first, then the

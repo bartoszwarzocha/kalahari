@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_note_checking.cpp
 /// @brief The texts of the notes in the tools of the text: the search and the replacement,
@@ -337,13 +338,22 @@ MenuSeen contextMenu(BookEditor& editor, const std::optional<QPoint>& point,
         }
         poll.stop();
         QAction* chosen = nullptr;
-        for (QAction* action : menu->actions()) {
+        // The words in bold are in the submenu Suggestions, read after its item
+        QList<QAction*> actions = menu->actions();
+        for (qsizetype i = 0; i < actions.size(); ++i) {
+            QAction* action = actions.at(i);
             const QString text = kalahari::gui::withoutAccessKey(action->text());
             seen.texts << (action->isSeparator() ? QStringLiteral("-") : text);
             seen.bold << action->font().bold();
             if (chooseFirstBold && chosen == nullptr && action->font().bold()) {
                 chosen = action;
                 seen.chosen = text;
+            }
+            if (const QMenu* submenu = action->menu()) {
+                const QList<QAction*> inner = submenu->actions();
+                for (qsizetype j = 0; j < inner.size(); ++j) {
+                    actions.insert(i + 1 + j, inner.at(j));
+                }
             }
         }
         menu->close();

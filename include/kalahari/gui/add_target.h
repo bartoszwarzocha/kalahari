@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file add_target.h
 /// @brief Where the Add Element window adds a new element: the node of the Navigator or the
@@ -45,6 +46,11 @@ struct AddTarget {
     /// A text for publishers: the part chosen at the start (core::PublishingTexts::PITCH...,
     /// also TAGLINE and BLURB, which go to the cover); empty: the one chosen last
     QString publishingPart;
+    /// The writer chose @c kind by its name (Add Mind Map..., Book > New Chapter, Create Card):
+    /// no window of the kinds. A card is added at once and its form opens; any other kind gets
+    /// the small window of its title, and of what else it needs (the source of a material).
+    /// Only the general Add... shows the kinds.
+    bool byName = false;
 };
 
 /// @brief What the top of the Add Element window chooses from, as Settings > Navigator sets it

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file writing_stats_panel.h
 /// @brief The Statistics panel: a list of small graphs of the writing, as in the Performance
@@ -132,6 +133,9 @@ private:
     /// @brief What a view shows
     void viewOf(View view, const Context& context, ViewData& viewData) const;
     void showToday(const Context& context, ViewData& viewData) const;
+    /// @brief The line of the details that says where the daily goal comes from, when it is
+    /// not the writer's own
+    void appendGoalSource(const Context& context, ViewData& viewData) const;
     void showWeek(const Context& context, ViewData& viewData) const;
     void showMonth(const Context& context, ViewData& viewData) const;
     void showBook(const Context& context, ViewData& viewData) const;

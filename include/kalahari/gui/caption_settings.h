@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file caption_settings.h
 /// @brief The settings of new images and of the captions of new books (Settings > Editor >
@@ -38,6 +39,11 @@ inline constexpr const char* IMAGE_ALIGNMENT_KEY = "editor.images.alignment";
 /// @brief The width of a new image: 0, as its file and at most the width of the text; else a
 ///        share of the width of the text in percent (100, 75, 50)
 inline constexpr const char* IMAGE_WIDTH_KEY = "editor.images.width";
+/// @brief The room a new image keeps from the text above it, below it and beside it, in
+///        points (Image Properties, Spacing)
+inline constexpr const char* IMAGE_SPACE_ABOVE_KEY = "editor.images.spaceAbove";
+inline constexpr const char* IMAGE_SPACE_BELOW_KEY = "editor.images.spaceBelow";
+inline constexpr const char* IMAGE_SPACE_BESIDE_KEY = "editor.images.spaceBeside";
 /// @brief Whether a new image gets a numbered caption under it
 inline constexpr const char* IMAGE_CAPTION_KEY = "editor.images.addCaption";
 /// @brief The label of that caption; empty: the first label of the captions of new books
@@ -56,6 +62,13 @@ inline constexpr int IMAGE_MAX_MAX_DPI = 2400;
 ///        yet)
 inline constexpr const char* IMAGE_MANUSCRIPT_KEY = "editor.images.manuscript";
 
+/// @brief The room a new table keeps from the text above it and below it, in points (Table
+///        Properties, Table)
+inline constexpr const char* TABLE_SPACE_ABOVE_KEY = "editor.tables.spaceAbove";
+inline constexpr const char* TABLE_SPACE_BELOW_KEY = "editor.tables.spaceBelow";
+/// @brief Where Insert Caption puts the caption of a table without one: "above" or "below" it
+inline constexpr const char* TABLE_CAPTION_POSITION_KEY = "editor.tables.captionPosition";
+
 /// @brief The labels of the captions of new books, in the order Insert Caption offers them;
 ///        an empty list: defaultCaptionLabels()
 inline constexpr const char* CAPTION_LABELS_KEY = "editor.captions.labels";
@@ -72,8 +85,11 @@ inline constexpr const char* CAPTION_REFERENCE_KEY = "editor.captions.reference"
 // =============================================================================
 
 /// @brief The labels a new book starts with, in the user's language: Figure, Photo,
-///        Illustration, Map, Diagram
+///        Illustration, Map, Diagram, Table
 QStringList defaultCaptionLabels();
+
+/// @brief The label of the caption of a table, in the user's language: Table
+QString defaultTableCaptionLabel();
 
 /// @brief The labels of the captions of new books, from the settings
 QStringList settingsCaptionLabels();
@@ -115,6 +131,17 @@ std::vector<std::pair<editor::ImageWrap, QString>> imageWrapChoices();
 ///        ImageWrap::Inline)
 std::string imageWrapSetting(editor::ImageWrap wrap);
 editor::ImageWrap imageWrapOfSetting(const std::string& value);
+
+// =============================================================================
+// New tables
+// =============================================================================
+
+/// @brief How a new table goes into the text, from the settings: the room it keeps from the
+///        text above it and below it
+editor::BookEditor::NewTableOptions settingsNewTableOptions();
+
+/// @brief Whether Insert Caption puts the caption of a table above it (the settings)
+bool settingsTableCaptionAbove();
 
 }  // namespace kalahari::gui
 

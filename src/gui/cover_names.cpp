@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file cover_names.cpp
 /// @brief The materials of the cover in the program's words
@@ -44,10 +45,21 @@ QString CoverNames::partName(const QString& part) {
         //: rekomendacja
         return tr("Opinion or recommendation");
     }
+    if (part == QLatin1String(CoverMaterial::BIO)) {
+        //: What a material of the cover is: a short text about the author for a flap or the
+        //: back, apart from the note About the Author at the end of the book. In Polish:
+        //: Notka biograficzna
+        return tr("Author bio");
+    }
     if (part == QLatin1String(CoverMaterial::DESIGN)) {
         //: A design of the cover by a designer, or the writer's own sketch. In Polish: Projekt
         //: lub szkic okładki
         return tr("Cover design or sketch");
+    }
+    if (part == QLatin1String(CoverMaterial::AUTHOR_PHOTO)) {
+        //: What a material of the cover is: a portrait of the author for a flap. In Polish:
+        //: Zdjęcie autora
+        return tr("Author photo");
     }
     if (part == QLatin1String(CoverMaterial::REFERENCE)) {
         //: A picture that shows a mood, colors or a typeface for the cover. In Polish:
@@ -74,9 +86,17 @@ QString CoverNames::groupName(const QString& part) {
         //: A group of the list of the cover. In Polish: Opinie i rekomendacje
         return tr("Opinions and recommendations");
     }
+    if (part == QLatin1String(CoverMaterial::BIO)) {
+        //: A group of the list of the cover. In Polish: Notki biograficzne
+        return tr("Author bios");
+    }
     if (part == QLatin1String(CoverMaterial::DESIGN)) {
         //: A group of the list of the cover. In Polish: Projekty i szkice
         return tr("Designs and sketches");
+    }
+    if (part == QLatin1String(CoverMaterial::AUTHOR_PHOTO)) {
+        //: A group of the list of the cover. In Polish: Zdjęcia autora
+        return tr("Author photos");
     }
     if (part == QLatin1String(CoverMaterial::REFERENCE)) {
         //: A group of the list of the cover. In Polish: Ilustracje referencyjne
@@ -102,9 +122,15 @@ QString CoverNames::newTitle(const core::ProjectManager& book, const QString& pa
     } else if (part == QLatin1String(CoverMaterial::OPINION)) {
         //: The title of a new opinion; %1 its number. In Polish: Opinia %1
         title = tr("Opinion %1");
+    } else if (part == QLatin1String(CoverMaterial::BIO)) {
+        //: The title of a new author bio; %1 its number. In Polish: Notka %1
+        title = tr("Bio %1");
     } else if (part == QLatin1String(CoverMaterial::DESIGN)) {
         //: The title of a new design of the cover; %1 its number. In Polish: Projekt %1
         title = tr("Design %1");
+    } else if (part == QLatin1String(CoverMaterial::AUTHOR_PHOTO)) {
+        //: The title of a new photo of the author; %1 its number. In Polish: Zdjęcie autora %1
+        title = tr("Author photo %1");
     } else if (part == QLatin1String(CoverMaterial::REFERENCE)) {
         //: The title of a new reference picture; %1 its number. In Polish: Ilustracja %1
         title = tr("Illustration %1");
@@ -140,8 +166,14 @@ QString CoverNames::partIconId(const QString& part) {
     if (part == QLatin1String(CoverMaterial::OPINION)) {
         return QStringLiteral("material.coverOpinion");
     }
+    if (part == QLatin1String(CoverMaterial::BIO)) {
+        return QStringLiteral("material.coverBio");
+    }
     if (part == QLatin1String(CoverMaterial::DESIGN)) {
         return QStringLiteral("material.coverDesign");
+    }
+    if (part == QLatin1String(CoverMaterial::AUTHOR_PHOTO)) {
+        return QStringLiteral("material.coverAuthorPhoto");
     }
     if (part == QLatin1String(CoverMaterial::REFERENCE)) {
         return QStringLiteral("common.image");
@@ -154,28 +186,55 @@ QString CoverNames::partIconId(const QString& part) {
 
 QString CoverNames::placeName(const QString& place) {
     if (place == QLatin1String(CoverMaterial::FRONT)) {
-        //: A place on the cover. In Polish: Przód
-        return tr("Front");
+        //: A place on the cover, in a list and a menu. In Polish: Okładka – przód
+        return tr("Cover – front");
     }
     if (place == QLatin1String(CoverMaterial::SPINE)) {
-        //: A place on the cover. In Polish: Grzbiet
-        return tr("Spine");
+        //: A place on the cover, in a list and a menu. In Polish: Okładka – grzbiet
+        return tr("Cover – spine");
     }
     if (place == QLatin1String(CoverMaterial::BACK)) {
-        //: A place on the cover. In Polish: Tył
-        return tr("Back");
+        //: A place on the cover, in a list and a menu. In Polish: Okładka – tył
+        return tr("Cover – back");
     }
     if (place == QLatin1String(CoverMaterial::FRONT_FLAP)) {
-        //: A place on the cover. In Polish: Skrzydełko przednie
-        return tr("Front flap");
+        //: A place on the cover, in a list and a menu. In Polish: Okładka – skrzydełko przednie
+        return tr("Cover – front flap");
     }
     if (place == QLatin1String(CoverMaterial::BACK_FLAP)) {
-        //: A place on the cover. In Polish: Skrzydełko tylne
-        return tr("Back flap");
+        //: A place on the cover, in a list and a menu. In Polish: Okładka – skrzydełko tylne
+        return tr("Cover – back flap");
     }
     if (place == QLatin1String(CoverMaterial::WHOLE)) {
-        //: The place of a design: the whole cover. In Polish: Cała okładka
-        return tr("Whole cover");
+        //: The place of a design: the whole cover, in a list and a menu. In Polish: Okładka –
+        //: cała okładka
+        return tr("Cover – whole cover");
+    }
+    if (place == QLatin1String(CoverMaterial::JACKET_FRONT)) {
+        //: A place on the jacket, in a list and a menu. In Polish: Obwoluta – przód
+        return tr("Jacket – front");
+    }
+    if (place == QLatin1String(CoverMaterial::JACKET_SPINE)) {
+        //: A place on the jacket, in a list and a menu. In Polish: Obwoluta – grzbiet
+        return tr("Jacket – spine");
+    }
+    if (place == QLatin1String(CoverMaterial::JACKET_BACK)) {
+        //: A place on the jacket, in a list and a menu. In Polish: Obwoluta – tył
+        return tr("Jacket – back");
+    }
+    if (place == QLatin1String(CoverMaterial::JACKET_FRONT_FLAP)) {
+        //: A place on the jacket, in a list and a menu. In Polish: Obwoluta – skrzydełko
+        //: przednie
+        return tr("Jacket – front flap");
+    }
+    if (place == QLatin1String(CoverMaterial::JACKET_BACK_FLAP)) {
+        //: A place on the jacket, in a list and a menu. In Polish: Obwoluta – skrzydełko tylne
+        return tr("Jacket – back flap");
+    }
+    if (place == QLatin1String(CoverMaterial::JACKET_WHOLE)) {
+        //: The place of a design: the whole jacket, in a list and a menu. In Polish: Obwoluta
+        //: – cała obwoluta
+        return tr("Jacket – whole jacket");
     }
     // A place a later version adds is shown as it is written
     if (!place.isEmpty()) {
@@ -183,6 +242,148 @@ QString CoverNames::placeName(const QString& place) {
     }
     //: A material without a place on the cover yet. In Polish: Nie ustalono
     return tr("Not set");
+}
+
+QString CoverNames::shortPlaceName(const QString& place) {
+    if (place == QLatin1String(CoverMaterial::FRONT) ||
+        place == QLatin1String(CoverMaterial::JACKET_FRONT)) {
+        //: A place on the sheet of the cover or of the jacket. In Polish: Przód
+        return tr("Front");
+    }
+    if (place == QLatin1String(CoverMaterial::SPINE) ||
+        place == QLatin1String(CoverMaterial::JACKET_SPINE)) {
+        //: A place on the sheet of the cover or of the jacket. In Polish: Grzbiet
+        return tr("Spine");
+    }
+    if (place == QLatin1String(CoverMaterial::BACK) ||
+        place == QLatin1String(CoverMaterial::JACKET_BACK)) {
+        //: A place on the sheet of the cover or of the jacket. In Polish: Tył
+        return tr("Back");
+    }
+    if (place == QLatin1String(CoverMaterial::FRONT_FLAP) ||
+        place == QLatin1String(CoverMaterial::JACKET_FRONT_FLAP)) {
+        //: A place on the sheet of the cover or of the jacket. In Polish: Skrzydełko przednie
+        return tr("Front flap");
+    }
+    if (place == QLatin1String(CoverMaterial::BACK_FLAP) ||
+        place == QLatin1String(CoverMaterial::JACKET_BACK_FLAP)) {
+        //: A place on the sheet of the cover or of the jacket. In Polish: Skrzydełko tylne
+        return tr("Back flap");
+    }
+    if (place == QLatin1String(CoverMaterial::WHOLE)) {
+        //: The place of a design: the whole cover. In Polish: Cała okładka
+        return tr("Whole cover");
+    }
+    if (place == QLatin1String(CoverMaterial::JACKET_WHOLE)) {
+        //: The place of a design: the whole jacket. In Polish: Cała obwoluta
+        return tr("Whole jacket");
+    }
+    return placeName(place);
+}
+
+QString CoverNames::placeGroupName(const QString& place) {
+    if (CoverMaterial::isJacketPlace(place)) {
+        //: The part of the cover a place is on: the jacket of a hardback. In Polish: Obwoluta
+        return tr("Jacket");
+    }
+    //: The part of the cover a place is on: the cover itself. In Polish: Okładka
+    return tr("Cover");
+}
+
+QString CoverNames::partOffText(const QString& place, const core::CoverParts& parts) {
+    if (CoverMaterial::isOn(place, parts)) {
+        return {};
+    }
+    if (CoverMaterial::isJacketPlace(place)) {
+        //: After the place of a material on the jacket, while the book has no jacket. In
+        //: Polish: obwoluta wyłączona
+        return tr("jacket turned off");
+    }
+    //: After the place of a material on a flap of the cover, while the cover has no flaps.
+    //: In Polish: skrzydełka wyłączone
+    return tr("flaps turned off");
+}
+
+QString CoverNames::fillName(const QString& fill) {
+    using core::Endpaper;
+    if (fill == QLatin1String(Endpaper::PICTURE)) {
+        //: How an endpaper is filled: one picture over both of its pages. In Polish: Obraz na
+        //: obie strony
+        return tr("Picture across both pages");
+    }
+    if (fill == QLatin1String(Endpaper::TILE)) {
+        //: How an endpaper is filled: a small picture repeated like a wallpaper. In Polish:
+        //: Obraz powtarzany
+        return tr("Repeated picture");
+    }
+    if (fill == QLatin1String(Endpaper::PATTERN)) {
+        //: How an endpaper is filled: a pattern of the program in two colors. In Polish:
+        //: Gotowy wzór
+        return tr("Ready-made pattern");
+    }
+    if (fill == QLatin1String(Endpaper::COLOR)) {
+        //: How an endpaper is filled: one color. In Polish: Jeden kolor
+        return tr("One color");
+    }
+    if (!fill.isEmpty()) {
+        return fill;
+    }
+    //: An endpaper of white paper. In Polish: Bez wypełnienia
+    return tr("No fill");
+}
+
+QString CoverNames::patternName(const QString& pattern) {
+    using core::Endpaper;
+    if (pattern == QLatin1String(Endpaper::STRIPES)) {
+        //: A pattern of an endpaper. In Polish: paski
+        return tr("stripes");
+    }
+    if (pattern == QLatin1String(Endpaper::GRID)) {
+        //: A pattern of an endpaper. In Polish: kratka
+        return tr("grid");
+    }
+    if (pattern == QLatin1String(Endpaper::DIAGONAL)) {
+        //: A pattern of an endpaper. In Polish: ukośne linie
+        return tr("diagonal lines");
+    }
+    if (pattern == QLatin1String(Endpaper::CHECKER)) {
+        //: A pattern of an endpaper. In Polish: szachownica
+        return tr("checkerboard");
+    }
+    if (pattern == QLatin1String(Endpaper::WAVES)) {
+        //: A pattern of an endpaper. In Polish: fale
+        return tr("waves");
+    }
+    //: A pattern of an endpaper. In Polish: kropki
+    return tr("dots");
+}
+
+QString CoverNames::fillSummary(const core::Endpaper& endpaper, const QString& pictureTitle) {
+    using core::Endpaper;
+    const QString& fill = endpaper.fill;
+    if (fill == QLatin1String(Endpaper::PICTURE)) {
+        //: How an endpaper is filled, in short: %1 the title of its picture. In Polish: obraz:
+        //: %1
+        return tr("picture: %1").arg(pictureTitle);
+    }
+    if (fill == QLatin1String(Endpaper::TILE)) {
+        //: How an endpaper is filled, in short: %1 the title of its picture, %2 its width in
+        //: percent of a page. In Polish: obraz powtarzany: %1, %2%
+        return tr("repeated picture: %1, %2%").arg(pictureTitle).arg(endpaper.scale);
+    }
+    if (fill == QLatin1String(Endpaper::PATTERN)) {
+        //: How an endpaper is filled, in short: %1 the name of its pattern. In Polish: wzór: %1
+        return tr("pattern: %1").arg(patternName(endpaper.shownPattern()));
+    }
+    if (fill == QLatin1String(Endpaper::COLOR)) {
+        //: How an endpaper is filled, in short. In Polish: jeden kolor
+        return tr("one color");
+    }
+    if (!fill.isEmpty()) {
+        return fill;
+    }
+    //: How an endpaper is filled, in short: white paper. In Polish: bez wypełnienia
+    return tr("no fill");
 }
 
 QString CoverNames::stateName(const QString& state) {

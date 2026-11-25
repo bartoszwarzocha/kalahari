@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file relations_box.cpp
 /// @brief The relations of a card of a character, a location or an item with the other cards
@@ -281,6 +282,8 @@ void RelationsBox::openRelation(const std::optional<core::ShownRelation>& edited
         return;
     }
     const QSet<QString> before = cardIds(m_book);
+    const QList<core::ShownRelation> had = m_book.cardRelations().of(m_cardId);
+    const QString cardId = m_cardId;
     const QString otherId = dialogs::editRelation(m_book, m_cardId, edited, window());
     if (otherId.isEmpty()) {
         return;
@@ -291,6 +294,24 @@ void RelationsBox::openRelation(const std::optional<core::ShownRelation>& edited
     refresh();
     selectRow([&otherId](const core::ShownRelation& each) { return each.otherId == otherId; });
     m_list->setFocus(Qt::OtherFocusReason);
+    if (!edited) {
+        // The relation the card did not have before
+        for (const core::ShownRelation& relation : m_book.cardRelations().of(cardId)) {
+            if (relation.otherId == otherId && !had.contains(relation)) {
+                emit relationAdded(this, cardId, otherId, relation.relation);
+                break;
+            }
+        }
+    }
+}
+
+void RelationsBox::showOffer(QWidget* offer) {
+    if (offer == nullptr) {
+        return;
+    }
+    offer->setParent(this);
+    layout()->addWidget(offer);
+    offer->show();
 }
 
 void RelationsBox::removeRelation() {

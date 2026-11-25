@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file dock_coordinator.cpp
 /// @brief Dock widget and panel coordination implementation
@@ -8,13 +9,13 @@
 
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/command_registry.h"
-#include "kalahari/gui/dialogs/publishing_templates_dialog.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/utils/panel_toggle.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/publishing_card_panel.h"
 #include "kalahari/gui/panels/publishing_text_box.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/panels/search_panel.h"
@@ -22,6 +23,9 @@
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/spelling_panel.h"
 #include "kalahari/gui/panels/repetitions_panel.h"
+#include "kalahari/gui/panels/figures_panel.h"
+#include "kalahari/gui/panels/footnotes_panel.h"
+#include "kalahari/gui/panels/notifications_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/panels/writing_stats_panel.h"
 #include "kalahari/gui/settings_dialog.h"
@@ -36,7 +40,6 @@
 #include "kalahari/core/package_card.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/editor/book_editor.h"
-#include "kalahari/editor/text_skeleton.h"
 #include <QMainWindow>
 #include <QDockWidget>
 #include <QPainter>
@@ -158,24 +161,36 @@ void DockCoordinator::createDocks() {
     createSearchDock();
     createAssistantDock();
     createAnnotationsDock();
+    createFootnotesDock();
+    createFiguresDock();
     createSpellingDock();
     createRepetitionsDock();
     createStatisticsDock();
+    createNotificationsDock();
 
     // Tab right-side docks: Paragraph and Styles next to Properties
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_paragraphDock);
     m_mainWindow->tabifyDockWidget(m_paragraphDock, m_searchDock);
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
-    m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
+    m_mainWindow->tabifyDockWidget(m_annotationsDock, m_footnotesDock);
+    m_mainWindow->tabifyDockWidget(m_footnotesDock, m_figuresDock);
+    m_mainWindow->tabifyDockWidget(m_figuresDock, m_spellingDock);
     m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
     m_mainWindow->tabifyDockWidget(m_repetitionsDock, m_statisticsDock);
+    m_mainWindow->tabifyDockWidget(m_statisticsDock, m_notificationsDock);
 
     // The Spelling and Grammar panel is closed until opened (View > Panels, Next Spelling or
     // Grammar Issue); then its tab is next to the Annotations tab, which is on top by default.
-    // The Repetitions panel likewise (View > Panels, Tools > Word Repetitions), after them
+    // The Repetitions panel likewise (View > Panels, Tools > Word Repetitions), after them, the
+    // Footnotes panel (View > Panels, the Panels toolbar), right after Annotations, the panel
+    // Images and Tables after it, and the Notifications panel (View > Panels, or the
+    // notifications when it is their place)
     m_spellingDock->hide();
     m_repetitionsDock->hide();
+    m_footnotesDock->hide();
+    m_figuresDock->hide();
+    m_notificationsDock->hide();
     m_annotationsDock->raise();
 
     // A panel on the right shown again: the bar that says they were hidden has done its job
@@ -204,8 +219,11 @@ void DockCoordinator::createDocks() {
     m_panelTabs->addPanel(m_searchDock, "view.search");
     m_panelTabs->addPanel(m_assistantDock, "view.assistant");
     m_panelTabs->addPanel(m_annotationsDock, "view.annotations");
+    m_panelTabs->addPanel(m_footnotesDock, "view.footnotes");
+    m_panelTabs->addPanel(m_figuresDock, "view.figures");
     m_panelTabs->addPanel(m_spellingDock, "view.spelling");
     m_panelTabs->addPanel(m_statisticsDock, "view.statistics");
+    m_panelTabs->addPanel(m_notificationsDock, "view.notifications");
     m_panelTabs->applySettings();
 
     // The Paragraph and Styles panel where the settings say
@@ -569,6 +587,37 @@ void DockCoordinator::createSpellingDock() {
     logger.debug("DockCoordinator: Spelling dock created");
 }
 
+void DockCoordinator::createFootnotesDock() {
+    m_footnotesPanel = new FootnotesPanel(m_commands, m_mainWindow);
+    //: The title of the Footnotes panel. In Polish: Przypisy
+    m_footnotesDock = new QDockWidget(tr("Footnotes"), m_mainWindow);
+    m_footnotesDock->setWidget(m_footnotesPanel);
+    m_footnotesDock->setObjectName("FootnotesDock");
+    setupDockTitleBar(m_footnotesDock, "view.footnotes", tr("Footnotes"));
+    // The cards of the panel are set in Settings > Editor > Writing, group Footnotes and Endnotes
+    //: The tooltip of the gear of the Footnotes panel. In Polish: Ustawienia przypisów
+    addSettingsButton(m_footnotesDock, QString::fromLatin1(SettingsDialog::FOOTNOTES_PAGE),
+                      tr("Footnote Settings"));
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_footnotesDock);
+    core::Logger::getInstance().debug("DockCoordinator: Footnotes dock created");
+}
+
+void DockCoordinator::createFiguresDock() {
+    m_figuresPanel = new FiguresPanel(m_mainWindow);
+    //: The title of the panel of the images and the tables of a text or the book. In Polish:
+    //: Obrazy i tabele
+    m_figuresDock = new QDockWidget(tr("Images and Tables"), m_mainWindow);
+    m_figuresDock->setWidget(m_figuresPanel);
+    m_figuresDock->setObjectName("FiguresDock");
+    setupDockTitleBar(m_figuresDock, "view.figures", tr("Images and Tables"));
+    // The cards of the panel are set in Settings > Editor > Images, group of the panel
+    //: The tooltip of the gear of the panel Images and Tables. In Polish: Ustawienia obrazów
+    addSettingsButton(m_figuresDock, QString::fromLatin1(SettingsDialog::FIGURES_PANEL_PAGE),
+                      tr("Image Settings"));
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_figuresDock);
+    core::Logger::getInstance().debug("DockCoordinator: Images and Tables dock created");
+}
+
 void DockCoordinator::createRepetitionsDock() {
     auto& logger = core::Logger::getInstance();
 
@@ -606,6 +655,24 @@ void DockCoordinator::createStatisticsDock() {
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_statisticsDock);
 
     core::Logger::getInstance().debug("DockCoordinator: Statistics dock created");
+}
+
+void DockCoordinator::createNotificationsDock() {
+    m_notificationsPanel = new NotificationsPanel(m_mainWindow);
+    //: The panel of the notifications of the session. In Polish: Powiadomienia
+    m_notificationsDock = new QDockWidget(tr("Notifications"), m_mainWindow);
+    m_notificationsDock->setWidget(scrollingPanel(m_notificationsPanel, m_notificationsDock));
+    m_notificationsDock->setObjectName("NotificationsDock");
+    setupDockTitleBar(m_notificationsDock, "view.notifications", tr("Notifications"));
+    // Where the notifications show and their colors are on the Notifications page, as the gear
+    // of their bar says
+    //: The gear of the Notifications panel. In Polish: Ustawienia powiadomień
+    addSettingsButton(m_notificationsDock,
+                      QString::fromLatin1(SettingsDialog::NOTIFICATIONS_PAGE),
+                      tr("Notification Settings"));
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_notificationsDock);
+
+    core::Logger::getInstance().debug("DockCoordinator: Notifications dock created");
 }
 
 void DockCoordinator::placeStatisticsPanel(bool savedLayout) {
@@ -789,9 +856,12 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.search", m_searchDock);
     connectPanelCommand("view.assistant", m_assistantDock);
     connectPanelCommand("view.annotations", m_annotationsDock);
+    connectPanelCommand("view.footnotes", m_footnotesDock);
+    connectPanelCommand("view.figures", m_figuresDock);
     connectPanelCommand("view.spelling", m_spellingDock);
     connectPanelCommand("view.repetitionsPanel", m_repetitionsDock);
     connectPanelCommand("view.statistics", m_statisticsDock);
+    connectPanelCommand("view.notifications", m_notificationsDock);
 
     // Paragraph and Styles: a panel of its own or the lower part of Properties
     auto& registry = m_commands;
@@ -800,7 +870,7 @@ void DockCoordinator::setupViewMenuActions() {
         command->isChecked = [this]() { return isParagraphOpen(); };
         registry.updateActionState("view.paragraph");
     }
-    connectTemplatePoints();
+    connectLinkPoint();
 
     // The panel toggles of the View > Panels submenu (built by MenuBuilder from the
     // commands) follow the docks' visibility
@@ -810,9 +880,12 @@ void DockCoordinator::setupViewMenuActions() {
     m_viewSearchAction = createPanelAction("view.search", m_searchDock);
     m_viewAssistantAction = createPanelAction("view.assistant", m_assistantDock);
     m_viewAnnotationsAction = createPanelAction("view.annotations", m_annotationsDock);
+    m_viewFootnotesAction = createPanelAction("view.footnotes", m_footnotesDock);
+    m_viewFiguresAction = createPanelAction("view.figures", m_figuresDock);
     m_viewSpellingAction = createPanelAction("view.spelling", m_spellingDock);
     m_viewRepetitionsAction = createPanelAction("view.repetitionsPanel", m_repetitionsDock);
     m_viewStatisticsAction = createPanelAction("view.statistics", m_statisticsDock);
+    m_viewNotificationsAction = createPanelAction("view.notifications", m_notificationsDock);
     m_viewParagraphAction = registry.getAction(std::string("view.paragraph"));
     if (m_viewParagraphAction != nullptr) {
         m_viewParagraphAction->setCheckable(true);
@@ -824,68 +897,26 @@ void DockCoordinator::setupViewMenuActions() {
     }
 }
 
-void DockCoordinator::connectTemplatePoints() {
-    Command* command = m_commands.getCommand("tools.publishing.templatePoints");
-    if (command == nullptr) {
+void DockCoordinator::connectLinkPoint() {
+    Command* link = m_commands.getCommand("tools.publishing.linkPoint");
+    if (link == nullptr) {
         return;
     }
-    command->execute = [this]() {
-        m_propertiesDock->show();
-        m_propertiesDock->raise();
-        if (m_propertiesDock->isFloating()) {
-            m_propertiesDock->activateWindow();
-        }
-        if (!m_propertiesPanel->focusTemplatePoints()) {
-            //: Tools > Texts for Publishers > Template Points, when the text in front has none.
-            //: In Polish: Tekst na wierzchu nie ma punktów szablonu.
+    link->execute = [this]() {
+        // The points of the version on the card For Publishers in front
+        auto* card = qobject_cast<PublishingCardPanel*>(
+            DocumentWindows::of(*m_centralTabs).frontPage());
+        PublishingTextBox* box = card != nullptr ? card->textBox() : nullptr;
+        if (box == nullptr || box->elementId().isEmpty() || box->points().isEmpty()) {
+            //: Ctrl+Shift+D (Link to a Point) when the text in front has no points of a
+            //: template. In Polish: Tekst na wierzchu nie ma punktów szablonu.
             m_mainWindow->statusBar()->showMessage(
                 tr("The text in front has no template points."), STATUS_MESSAGE_MS);
+            return;
         }
+        box->showLinkMenu();  // without a selection the status bar says why
     };
-    m_commands.updateActionState("tools.publishing.templatePoints");
-    if (Command* templates = m_commands.getCommand("tools.publishing.templates")) {
-        // The changes reach the open lists, cards and boxes through the settings
-        templates->execute = [this]() {
-            dialogs::PublishingTemplatesDialog::editTemplates(&m_book, m_mainWindow);
-        };
-        m_commands.updateActionState("tools.publishing.templates");
-    }
-    connectSkeleton();
-}
-
-void DockCoordinator::connectSkeleton() {
-    if (Command* insert = m_commands.getCommand("tools.publishing.insertSkeleton")) {
-        insert->execute = [this]() {
-            const PublishingTextBox* box = m_propertiesPanel->frontPublishingBox();
-            editor::BookEditor* editor = box != nullptr ? box->editor() : nullptr;
-            const QList<editor::SkeletonPoint> points =
-                box != nullptr ? box->skeletonPoints() : QList<editor::SkeletonPoint>();
-            if (editor == nullptr || points.isEmpty()) {
-                m_mainWindow->statusBar()->showMessage(
-                    tr("The text in front has no template points."), STATUS_MESSAGE_MS);
-                return;
-            }
-            editor->insertTemplateSkeleton(points);  // a read-only text says why it is not
-        };
-        m_commands.updateActionState("tools.publishing.insertSkeleton");
-    }
-    if (Command* remove = m_commands.getCommand("tools.publishing.removeSkeleton")) {
-        remove->execute = [this]() {
-            const PublishingTextBox* box = m_propertiesPanel->frontPublishingBox();
-            editor::BookEditor* editor = box != nullptr ? box->editor() : nullptr;
-            const int removed = editor != nullptr ? editor->removeTemplateSkeleton() : 0;
-            m_mainWindow->statusBar()->showMessage(
-                removed > 0
-                    //: Tools > Texts for Publishers > Remove Headings and Hints. In Polish:
-                    //: Usunięto %n nagłówek/nagłówki/nagłówków punktów z podpowiedziami.
-                    ? tr("Removed %n heading(s) of the points with their hints.", nullptr,
-                         removed)
-                    //: In Polish: Tekst na wierzchu nie ma nagłówków punktów szablonu.
-                    : tr("The text in front has no headings of template points."),
-                STATUS_MESSAGE_MS);
-        };
-        m_commands.updateActionState("tools.publishing.removeSkeleton");
-    }
+    m_commands.updateActionState("tools.publishing.linkPoint");
 }
 
 void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget* dock) {
@@ -937,10 +968,13 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->removeDockWidget(m_searchDock);
     m_mainWindow->removeDockWidget(m_assistantDock);
     m_mainWindow->removeDockWidget(m_annotationsDock);
+    m_mainWindow->removeDockWidget(m_footnotesDock);
+    m_mainWindow->removeDockWidget(m_figuresDock);
     m_mainWindow->removeDockWidget(m_spellingDock);
     m_mainWindow->removeDockWidget(m_repetitionsDock);
     m_mainWindow->removeDockWidget(m_paragraphDock);
     m_mainWindow->removeDockWidget(m_statisticsDock);
+    m_mainWindow->removeDockWidget(m_notificationsDock);
 
     // Re-add in default layout
     m_mainWindow->addDockWidget(Qt::LeftDockWidgetArea, m_navigatorDock);
@@ -950,21 +984,28 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_searchDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_assistantDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_annotationsDock);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_footnotesDock);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_figuresDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_spellingDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_repetitionsDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_statisticsDock);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_notificationsDock);
 
     // Tab right-side docks
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_paragraphDock);
     m_mainWindow->tabifyDockWidget(m_paragraphDock, m_searchDock);
     m_mainWindow->tabifyDockWidget(m_searchDock, m_assistantDock);
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
-    m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
+    m_mainWindow->tabifyDockWidget(m_annotationsDock, m_footnotesDock);
+    m_mainWindow->tabifyDockWidget(m_footnotesDock, m_figuresDock);
+    m_mainWindow->tabifyDockWidget(m_figuresDock, m_spellingDock);
     m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
     m_mainWindow->tabifyDockWidget(m_repetitionsDock, m_statisticsDock);
+    m_mainWindow->tabifyDockWidget(m_statisticsDock, m_notificationsDock);
 
     // Show docks (LogDock only in diagnostic/dev mode; the Spelling and Grammar panel and the
-    // Repetitions panel only when opened; Paragraph and Styles unfolded where the settings put it)
+    // Repetitions and Notifications panels only when opened; Paragraph and Styles unfolded where
+    // the settings put it)
     m_navigatorDock->show();
     m_propertiesDock->show();
     m_paragraphDock->setVisible(!paragraphInProperties());
@@ -976,7 +1017,10 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_annotationsDock->show();
     m_spellingDock->hide();
     m_repetitionsDock->hide();
+    m_footnotesDock->hide();
+    m_figuresDock->hide();
     m_statisticsDock->show();
+    m_notificationsDock->hide();
 
     // The Annotations tab is on top, as at the first start
     m_annotationsDock->raise();

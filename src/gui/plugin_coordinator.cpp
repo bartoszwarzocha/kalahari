@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plugin_coordinator.cpp
 /// @brief The commands and panels of the plugins in a book window, and what the program gives
@@ -21,6 +22,7 @@
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/main_window.h"
 #include "kalahari/gui/menu_builder.h"
+#include "kalahari/gui/notifications.h"
 #include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/shortcut_rules.h"
 #include "kalahari/gui/utils/access_keys.h"
@@ -595,6 +597,11 @@ core::PluginBook pluginBookOf(const editor::BookExport& book) {
             case editor::ExportItemKind::Contents:
                 text.kind = "contents";
                 break;
+            case editor::ExportItemKind::Spread:
+                // The book of a file has a spread as a text with its picture already
+                // (spreadsAsTexts()): only its title here
+                text.kind = "text";
+                break;
         }
         result.items.push_back(std::move(text));
     }
@@ -634,8 +641,15 @@ void installPluginHost() {
         }
         return pluginBookOf(*front).items.front();
     });
+    // A message of a plugin is a notification, in the window in front, where the settings show
+    // them; in the bar after its title, which says what it is about. Without a book window,
+    // in a message window
     host.setMessageSink([](const std::string& title, const std::string& text) {
-        dialogs::MessageDialog::information(MainWindow::frontWindow(), qt(title), qt(text));
+        Notification notification{qt(title), qt(text)};
+        notification.titleInBar = true;
+        if (!NotificationCoordinator::notifyFront(notification)) {
+            dialogs::MessageDialog::information(MainWindow::frontWindow(), qt(title), qt(text));
+        }
     });
     host.setPanelRefresh([](const std::string& pluginId, const std::string& panelId) {
         for (PluginCoordinator* coordinator : PluginCoordinator::coordinators()) {

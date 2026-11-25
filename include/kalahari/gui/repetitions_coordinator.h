@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file repetitions_coordinator.h
 /// @brief The repetitions of words: the panel Repetitions, the marks in the text and Next
@@ -51,9 +52,10 @@ class SpellingCoordinator;
 /// Counts the words of the text in front (a moment after the writing stops) or of all the
 /// texts of the book (when the writer chooses it or clicks Recount), as the settings of
 /// Settings > Editor > Repetitions say; the forms of a word count as one by the spelling
-/// dictionary of the text. While the panel shows, the words that come back too close are
-/// marked in the texts open (the setting editor.repetitions.highlight, also View >
-/// Repetitions in Text), and the words of the card or the word chosen in the panel are framed.
+/// dictionary of the text. The words that come back too close are marked in the texts open
+/// (the setting editor.repetitions.highlight, also View > Repetitions in Text), with the panel
+/// closed too: then the text in front is counted, whatever the panel counts. While the panel
+/// shows, the words of the card or the word chosen in it are framed.
 ///
 /// Tools > Word Repetitions opens the panel with the keys in it; Next Repetition goes to the
 /// next word of the text in front that comes back too close, with the panel closed too.
@@ -159,6 +161,11 @@ private:
     [[nodiscard]] QString baseFormOf(const QString& word, editor::SpellCheckService* service);
     void countChapter();
     void countBook();
+    /// @brief Whether the words are counted now: while the panel shows, or while they are
+    ///        marked in the text
+    [[nodiscard]] bool counts() const;
+    /// @brief Whether the whole book is counted: the panel's choice, while it shows
+    [[nodiscard]] bool countsBook() const;
     void onTextChanged(editor::BookEditor* editor);
     void onCurrentTabChanged();
 
@@ -166,6 +173,9 @@ private:
     void showResults();
     void updateMarks();
     [[nodiscard]] std::vector<editor::RepetitionMark> marksOf(int text) const;
+    /// @brief The words framed in the text: of the card or of the word chosen in the panel,
+    ///        while it shows; none else
+    [[nodiscard]] const QList<int>* framedWords() const;
     /// @brief The editor of a text counted, its chapter opened when @p open
     editor::BookEditor* editorOf(int text, bool open);
     /// @brief Whether the words are still where they were counted
@@ -196,7 +206,7 @@ private:
     editor::RepetitionAnalysis m_analysis;    ///< Their repetitions
     QSet<int> m_changedTexts;                 ///< Texts changed after they were counted
     bool m_shown = false;                     ///< The panel can be seen
-    bool m_stale = true;                      ///< Count again when the panel shows
+    bool m_stale = true;                      ///< Count again before the panel shows
     QSet<const editor::BookEditor*> m_followed;  ///< Editors whose changes are followed
     QHash<QString, QString> m_baseForms;      ///< Base forms by word, of m_baseFormsDictionary
     QString m_baseFormsDictionary;

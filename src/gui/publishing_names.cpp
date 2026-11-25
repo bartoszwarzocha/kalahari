@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file publishing_names.cpp
 /// @brief The texts for publishers in the program's words
@@ -67,32 +68,6 @@ QString PublishingNames::stateName(const QString& state) {
     return tr("draft");
 }
 
-QString PublishingNames::shortStateName(const QString& state) {
-    if (state == QLatin1String(PublishingTexts::CHOSEN)) {
-        //: The state of a text for publishers in a list. In Polish: ★ w zestawie
-        return tr("★ in the set");
-    }
-    return stateName(state);
-}
-
-QString PublishingNames::groupName(const QString& part) {
-    if (part == QLatin1String(PublishingTexts::PITCH)) {
-        //: A group of the list of the texts for publishers. In Polish: Zdania o książce
-        return tr("Sentences about the book");
-    }
-    if (part == QLatin1String(PublishingTexts::SYNOPSIS)) {
-        //: A group of the list of the texts for publishers. In Polish: Streszczenia
-        return tr("Synopses");
-    }
-    if (part == QLatin1String(PublishingTexts::BLURB) ||
-        part == QLatin1String(PublishingTexts::TAGLINE)) {
-        //: A group of the list of the texts for publishers: the descriptions or the taglines of
-        //: the Cover; %1 the group of the cover. In Polish: %1 · z Okładki
-        return tr("%1 · from the Cover").arg(CoverNames::groupName(part));
-    }
-    return {};
-}
-
 QString PublishingNames::partIconId(const QString& part) {
     if (part == QLatin1String(PublishingTexts::PITCH)) {
         return QStringLiteral("material.publishingPitch");
@@ -132,15 +107,6 @@ QString PublishingNames::noTemplateName() {
     return tr("No template");
 }
 
-QString PublishingNames::templateName(const core::ProjectManager& book,
-                                      const QString& reference) {
-    if (reference.isEmpty()) {
-        return noTemplateName();
-    }
-    const std::optional<core::PublishingTemplate> found = book.publishingTemplate(reference);
-    return found ? found->name.text(programLanguage()) : reference;
-}
-
 QString PublishingNames::lengthText(int length, int target, bool words) {
     if (target <= 0) {
         return CoverNames::lengthText(length, words);
@@ -153,25 +119,6 @@ QString PublishingNames::lengthText(int length, int target, bool words) {
     //: The length of a text for publishers in a list with its target: %1 its characters with
     //: spaces, %2 the target. In Polish: %1 / %2 zn.
     return tr("%1 / %2 ch.").arg(QLocale().toString(length), QLocale().toString(target));
-}
-
-QString PublishingNames::stateMessage(const QString& title, const QString& state,
-                                      const QStringList& drafts) {
-    QString text;
-    if (state == QLatin1String(PublishingTexts::CHOSEN)) {
-        //: The status bar: a text is chosen for the set for publishers; %1 its title. In
-        //: Polish: Wybrano do zestawu: „%1”
-        text = tr("Chosen for the set: “%1”").arg(title);
-    } else {
-        // Rejected or a draft again: as a material of the cover
-        text = CoverNames::stateMessage(title, state, {});
-    }
-    for (const QString& draft : drafts) {
-        //: The status bar, after a text is chosen for the set: the one chosen before for its
-        //: part is a draft again; %1 its title. In Polish: „%1” wraca do roboczych
-        text += QStringLiteral(" · ") + tr("“%1” is a draft again").arg(draft);
-    }
-    return text;
 }
 
 QString PublishingNames::pagesText(int characters) {

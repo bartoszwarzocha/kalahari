@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file kml_format_registry.cpp
 /// @brief KML Format Registry implementation (OpenSpec #00043)
@@ -50,7 +51,8 @@ const QSet<QString>& metadataTagSet()
 {
     static const QSet<QString> tags = {
         QStringLiteral("charref"),
-        QStringLiteral("locref")
+        QStringLiteral("locref"),
+        QStringLiteral("points")
     };
     return tags;
 }
@@ -68,6 +70,11 @@ const QVector<MetadataTagDef>& metadataDefinitions()
             QStringLiteral("locref"),
             KmlPropLocRef,
             {QStringLiteral("id"), QStringLiteral("target")}
+        },
+        {
+            QStringLiteral("points"),
+            KmlPropTemplatePoints,
+            {QStringLiteral("ids")}
         }
     };
     return defs;

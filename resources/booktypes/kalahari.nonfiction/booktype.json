@@ -13,6 +13,7 @@
   "kinds": {
     "abbreviations": {
       "form": "text", "places": ["front"], "limit": 1, "icon": "template.chapter",
+      "firstPage": "right",
       "name": { "pl": "Wykaz skrótów", "en": "List of abbreviations" },
       "plural": { "pl": "Wykazy skrótów", "en": "Lists of abbreviations" },
       "words": {
@@ -118,10 +119,10 @@
     }
   },
   "front":    ["title_page", "copyright", "dedication", "motto", "toc", "preface", "introduction",
-               "abbreviations"],
-  "main":     ["part", "chapter", "conclusion"],
+               "abbreviations", "spread"],
+  "main":     ["part", "chapter", "conclusion", "spread"],
   "back":     ["annex", "endnotes", "bibliography", "glossary", "index", "illustrations",
-               "acknowledgments", "about_author", "toc"],
+               "acknowledgments", "about_author", "spread", "toc"],
   "workshop": ["timeline", "mindmap", "work_note", "clipping", "cover", "publishing", "quote",
                "web_page", "picture", "document", "publication", "recording", "other_file"],
   "primary":  "chapter",

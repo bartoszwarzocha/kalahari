@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_own_windows.cpp
 /// @brief The program shows only its own windows: no window of the system but those that
@@ -17,24 +18,37 @@
 #include "kalahari/gui/dialogs/toolbar_manager_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/toolbar_manager.h"
+#include "kalahari/build_info.h"
 #include "kalahari/version.h"
 
 #include "kalahari_tests/gui/document_window.h"
 
 #include <QApplication>
+#include <QClipboard>
+#include <QDate>
+#include <QDateTime>
 #include <QDirIterator>
 #include <QFile>
+#include <QFormLayout>
 #include <QFrame>
+#include <QGuiApplication>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QLocale>
+#include <QLayout>
 #include <QMainWindow>
+#include <QPalette>
+#include <QPixmap>
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QScreen>
 #include <QString>
 #include <QStringList>
+#include <QSysInfo>
 #include <QTabWidget>
+#include <QTextEdit>
 #include <QTimer>
+#include <QTranslator>
 
 #include <algorithm>
 #include "kalahari_tests/test_support/window_parts.h"
@@ -251,7 +265,7 @@ TEST_CASE("Own windows: About has the heading of the program's dialogs and only 
     CHECK(showsText(dialog, QString::fromLatin1(kalahari::VERSION_STRING)));
     CHECK(showsText(dialog, QStringLiteral("Qt %1").arg(QString::fromLatin1(qVersion()))));
     REQUIRE(dialog.tabs() != nullptr);
-    CHECK(dialog.tabs()->count() == 3);
+    CHECK(dialog.tabs()->count() == 4);
 
     // Close is the only button: Enter presses it, and Esc closes the dialog too
     CHECK(dialog.acceptButton()->text() == QStringLiteral("Close"));
@@ -264,6 +278,301 @@ TEST_CASE("Own windows: About has the heading of the program's dialogs and only 
     QKeyEvent escape(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
     QApplication::sendEvent(&dialog, &escape);
     CHECK_FALSE(dialog.isVisible());
+}
+
+TEST_CASE("Own windows: About shows what the program was built from, and copies it",
+          "[gui][dialogs]") {
+    namespace build = kalahari::build;
+
+    // The build knows when and how it was built; the commit and its branch where there is git
+    const QDateTime built = QDateTime::fromString(QString::fromLatin1(build::builtAt()),
+                                                  Qt::ISODate);
+    REQUIRE(built.isValid());
+    CHECK(built.timeSpec() == Qt::UTC);
+    CHECK(built <= QDateTime::currentDateTimeUtc());
+    const QString configuration = QString::fromLatin1(build::configuration());
+    CHECK_FALSE(configuration.isEmpty());
+
+    AboutDialog dialog;
+    REQUIRE(dialog.tabs() != nullptr);
+    // The build on a tab of its own after About, not on the About tab (test of 24.11)
+    CHECK(dialog.tabs()->currentIndex() == 0);
+    CHECK(dialog.tabs()->tabText(0) == QStringLiteral("About"));
+    CHECK(dialog.tabs()->tabText(1) == QStringLiteral("Build"));
+    // When and how it was built, as the Build tab writes it, not on the About tab
+    const QString builtAs = QStringLiteral("%1, %2").arg(
+        QLocale().toString(built.toLocalTime(), QLocale::ShortFormat), configuration);
+    CHECK_FALSE(showsText(dialog, builtAs));
+    dialog.tabs()->setCurrentIndex(1);
+    CHECK(showsText(dialog, builtAs));
+    const QString commit = QString::fromLatin1(build::commit());
+    if (!commit.isEmpty()) {
+        CHECK(showsText(dialog, commit));
+        CHECK(showsText(dialog, build::modified()
+                                    ? QStringLiteral("%1 (with changes not committed)").arg(commit)
+                                    : commit));
+    }
+    const QString branch = QString::fromUtf8(build::branch());
+    if (!branch.isEmpty()) {
+        CHECK(showsText(dialog, branch));
+    }
+
+    // Short: three lines, the version and Qt are in the heading (test of 24.11)
+    const auto* tab = dialog.findChild<QWidget*>(QStringLiteral("aboutBuildTab"));
+    REQUIRE(tab != nullptr);
+    const auto* form = tab->findChild<QFormLayout*>();
+    REQUIRE(form != nullptr);
+    CHECK(form->rowCount() == 3);
+    CHECK(showsText(dialog, QSysInfo::prettyProductName()));
+    CHECK(showsText(dialog, QString::fromLatin1(kalahari::COMPILER)));
+
+    // The text to copy: a line for each, the same as the dialog shows
+    const QStringList lines = AboutDialog::buildInformation().split(QLatin1Char('\n'));
+    REQUIRE(lines.size() == 9);
+    CHECK(lines.at(0) == QStringLiteral("Kalahari Writer's IDE"));
+    CHECK(lines.at(1) == QStringLiteral("Version: %1").arg(QString::fromLatin1(
+                                                                kalahari::VERSION_STRING)));
+    CHECK(lines.at(2).startsWith(QStringLiteral("Commit: %1").arg(commit.isEmpty()
+                                                                      ? QStringLiteral("–")
+                                                                      : commit)));
+    CHECK(lines.at(5) == QStringLiteral("Configuration: %1").arg(configuration));
+
+    // Copy Build Information: on the clipboard, and the dialog says so
+    REQUIRE(dialog.copyButton() != nullptr);
+    CHECK(dialog.copyButton()->text() == QStringLiteral("&Copy Build Information"));
+    QGuiApplication::clipboard()->clear();
+    dialog.copyButton()->click();
+    CHECK(QGuiApplication::clipboard()->text() == AboutDialog::buildInformation());
+    CHECK(showsText(dialog, QStringLiteral("Copied to the clipboard.")));
+
+    // Opened, Enter still presses Close. The field of the dialog that has the keys, also
+    // where the system does not make the dialog the active window (macOS on CI)
+    dialog.show();
+    QApplication::processEvents();
+    QWidget* focused = dialog.focusWidget();
+    REQUIRE(focused != nullptr);
+    CHECK(focused != dialog.copyButton());
+    QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+    QApplication::sendEvent(focused, &enter);
+    CHECK_FALSE(dialog.isVisible());
+}
+
+TEST_CASE("Own windows: About has the copyright sign and the years up to this one",
+          "[gui][dialogs]") {
+    // 2025 and the year of the clock; a clock set before 2025 changes nothing (test of 24.11)
+    CHECK(AboutDialog::copyrightYears(2026) == QStringLiteral("2025–2026"));
+    CHECK(AboutDialog::copyrightYears(2031) == QStringLiteral("2025–2031"));
+    CHECK(AboutDialog::copyrightYears(2025) == QStringLiteral("2025"));
+    CHECK(AboutDialog::copyrightYears(2019) == QStringLiteral("2025"));
+    // The holder of the copyright (NOTICE.md), not a team or a project
+    const QString copyright =
+        QStringLiteral("Copyright © %1 Bartosz W. Warzocha")
+            .arg(AboutDialog::copyrightYears(QDate::currentDate().year()));
+    CHECK(AboutDialog::copyright() == copyright);
+
+    AboutDialog dialog;
+    const auto* label = dialog.findChild<QLabel*>(QStringLiteral("aboutCopyright"));
+    REQUIRE(label != nullptr);
+    CHECK(label->text() == copyright);
+    CHECK_FALSE(label->text().contains(QStringLiteral("(c)")));
+    // The License tab says the same
+    bool inLicense = false;
+    for (const QTextEdit* text : dialog.findChildren<QTextEdit*>()) {
+        inLicense = inLicense || text->toPlainText().contains(copyright);
+        CHECK_FALSE(text->toPlainText().contains(QStringLiteral("Copyright (c)")));
+    }
+    CHECK(inLicense);
+}
+
+TEST_CASE("Own windows: About keeps the authors and the notices of the GNU GPL",
+          "[gui][dialogs][license]") {
+    // The attribution every copy must keep (NOTICE.md, additional term 1)
+    const QString attribution = QStringLiteral(
+        "Kalahari – created by BW Digital Systems & Publishing, https://bwdsp.com.pl/");
+    CHECK(AboutDialog::authorAddress() == QStringLiteral("https://bwdsp.com.pl/"));
+    CHECK(AboutDialog::attribution() == attribution);
+
+    AboutDialog dialog;
+    REQUIRE(dialog.tabs() != nullptr);
+    REQUIRE(dialog.tabs()->count() == 4);
+    CHECK(dialog.tabs()->tabText(3) == QStringLiteral("License"));
+
+    // The About tab: the authors with their page as a link, above the copyright, and that
+    // Kalahari is free software without warranty
+    const auto* authors = dialog.findChild<QLabel*>(QStringLiteral("aboutAttribution"));
+    REQUIRE(authors != nullptr);
+    CHECK(authors->isVisibleTo(&dialog));
+    CHECK(authors->openExternalLinks());
+    CHECK(authors->text().contains(
+        QStringLiteral("<a href=\"https://bwdsp.com.pl/\">https://bwdsp.com.pl/</a>")));
+    CHECK(authors->text().contains(QStringLiteral("BW Digital Systems &amp; Publishing")));
+    const auto* notice = dialog.findChild<QLabel*>(QStringLiteral("aboutLicenseNotice"));
+    REQUIRE(notice != nullptr);
+    CHECK(notice->isVisibleTo(&dialog));
+    CHECK(notice->text().contains(QStringLiteral("GNU General Public License version 3")));
+    CHECK(notice->text().contains(QStringLiteral("no warranty")));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("MIT")));
+
+    // The License tab: the notice, no warranty, the additional terms and the whole licence
+    const QString text = AboutDialog::licenseText();
+    REQUIRE_FALSE(text.isEmpty());
+    CHECK(text.contains(QStringLiteral("GNU GENERAL PUBLIC LICENSE")));
+    CHECK(text.contains(QStringLiteral("Version 3, 29 June 2007")));
+    CHECK(text.contains(QStringLiteral("END OF TERMS AND CONDITIONS")));
+    // The text the program carries is the file of the repository, unchanged
+    QFile file(QStringLiteral(KALAHARI_SOURCE_DIR "/LICENSE"));
+    REQUIRE(file.open(QIODevice::ReadOnly | QIODevice::Text));
+    CHECK(text == QString::fromUtf8(file.readAll()));
+
+    const auto* license = dialog.findChild<QTextEdit*>(QStringLiteral("aboutLicenseText"));
+    REQUIRE(license != nullptr);
+    CHECK(license->isReadOnly());
+    const QString shown = license->toPlainText();
+    CHECK(shown.contains(AboutDialog::copyright()));
+    CHECK(shown.contains(attribution));
+    CHECK(shown.contains(QStringLiteral("under the terms of the GNU General Public License "
+                                        "version 3")));
+    CHECK(shown.contains(QStringLiteral("WITHOUT ANY WARRANTY")));
+    CHECK(shown.contains(QStringLiteral("Additional terms (section 7 of the GNU GPL)")));
+    CHECK(shown.contains(QStringLiteral("keeps the attribution \"%1\"").arg(attribution)));
+    CHECK(shown.contains(QStringLiteral("the name \"Kalahari\"")));
+    CHECK(shown.contains(QStringLiteral("NOTICE.md")));
+    CHECK(shown.endsWith(text));
+    CHECK_FALSE(shown.contains(QStringLiteral("MIT License")));
+    CHECK_FALSE(shown.contains(QStringLiteral("Permission is hereby granted")));
+
+    // The Third-Party Components tab: Hunspell under the LGPL, the licence compatible with
+    // the GPL, not under the MPL 1.1
+    bool hunspell = false;
+    for (const QTextEdit* edit : dialog.findChildren<QTextEdit*>()) {
+        hunspell = hunspell || edit->toPlainText().contains(QStringLiteral(
+                                   "License: LGPL 2.1 or later (of MPL 1.1 / GPL 2.0+ / "
+                                   "LGPL 2.1+)"));
+    }
+    CHECK(hunspell);
+}
+
+TEST_CASE("Own windows: About shows the full logo of the authors for a light and a dark theme",
+          "[gui][dialogs][license]") {
+    // Both logos are in the program, the full ones ("BW", "Digital Systems & Publishing",
+    // "Est 2013"): of one size, much wider than high
+    const QPixmap black(AboutDialog::companyLogo(false));
+    const QPixmap white(AboutDialog::companyLogo(true));
+    REQUIRE_FALSE(black.isNull());
+    REQUIRE_FALSE(white.isNull());
+    CHECK(black.size() == QSize(2358, 631));
+    CHECK(white.size() == black.size());
+    CHECK(black.toImage() != white.toImage());
+
+    AboutDialog dialog;
+    QLabel* logo = dialog.companyLogoLabel();
+    REQUIRE(logo != nullptr);
+    CHECK(logo->objectName() == QStringLiteral("aboutCompanyLogo"));
+    CHECK(logo->isVisibleTo(&dialog));
+    CHECK(logo->accessibleName() == QStringLiteral("BW Digital Systems & Publishing"));
+    CHECK(logo->toolTip().contains(QStringLiteral("https://bwdsp.com.pl/")));
+    // The whole logo, in its proportions, at the right end of the heading, after the logo of
+    // Kalahari and the name (layout A of the mockup of 25.11)
+    CHECK(logo->width() == 150);
+    CHECK(logo->height() == 150 * 631 / 2358);
+    CHECK(logo->hasScaledContents());
+    QWidget* heading = logo->parentWidget();
+    REQUIRE(heading != nullptr);
+    CHECK(heading->objectName() == QStringLiteral("kalahariDialogHeading"));
+    const QLayout* layout = heading->layout();
+    REQUIRE(layout != nullptr);
+    REQUIRE(dialog.programLogoLabel() != nullptr);
+    CHECK(dialog.programLogoLabel()->parentWidget() == heading);
+    CHECK(layout->indexOf(dialog.programLogoLabel()) < layout->indexOf(logo));
+    CHECK(layout->indexOf(logo) == layout->count() - 1);
+
+    // The heading has the background of text fields: on a light one the black letters, on a
+    // dark one the white ones; and back, as the theme changes while the window is open
+    const auto shownOn = [&dialog, logo](const char* base) {
+        QPalette palette = dialog.palette();
+        palette.setColor(QPalette::Base, QColor(QString::fromLatin1(base)));
+        dialog.setPalette(palette);
+        return logo->pixmap().toImage();
+    };
+    CHECK(shownOn("#ffffff") == black.toImage());
+    CHECK(shownOn("#3c3c3c") == white.toImage());
+    CHECK(shownOn("#f5f5f5") == black.toImage());
+}
+
+TEST_CASE("Own windows: the About tab has its parts apart, and the authors of 25.11",
+          "[gui][dialogs][license]") {
+    AboutDialog dialog;
+    // The heading names the program beside its logo; the window keeps its title
+    CHECK(dialog.windowTitle() == QStringLiteral("About Kalahari Writer's IDE"));
+    CHECK(showsText(dialog, QStringLiteral("Kalahari Writer's IDE")));
+
+    // The parts, each with its heading
+    for (const char* part : {"Authors", "Thanks", "Project"}) {
+        INFO(part);
+        CHECK(showsText(dialog, QString::fromLatin1(part)));
+    }
+    // Authors: the idea and the overall architecture, and the company that created Kalahari
+    // (test of 25.11: "that I had the idea and made the architecture of the whole, and that
+    // BW Digital Systems & Publishing made it")
+    CHECK(showsText(dialog, QStringLiteral("Idea and overall architecture")));
+    CHECK(showsText(dialog, QStringLiteral("<b>Bartosz W. Warzocha</b>")));
+    CHECK(showsText(dialog, QStringLiteral("Kalahari – created by")));
+    const auto* company = dialog.findChild<QLabel*>(QStringLiteral("aboutAttribution"));
+    REQUIRE(company != nullptr);
+    CHECK(company->text() ==
+          QStringLiteral("<b>BW Digital Systems &amp; Publishing</b>, "
+                         "<a href=\"https://bwdsp.com.pl/\">https://bwdsp.com.pl/</a>"));
+    // Gone: the team, the vision, the address of e-mail; and in Project only the technologies,
+    // no dates (test of 25.11: "they make no sense at all, remove them")
+    CHECK_FALSE(showsText(dialog, QStringLiteral("Development Team")));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("Vision")));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("@gmail.com")));
+    CHECK(showsText(dialog, QStringLiteral("Technologies")));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("Work began")));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("Release")));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("2027")));
+
+    // The legal notices at the bottom, under the parts
+    const auto* copyrightLabel = dialog.findChild<QLabel*>(QStringLiteral("aboutCopyright"));
+    REQUIRE(copyrightLabel != nullptr);
+    CHECK(company->parentWidget() == copyrightLabel->parentWidget());
+    dialog.show();
+    QApplication::processEvents();
+    CHECK(company->mapTo(&dialog, QPoint()).y() < copyrightLabel->mapTo(&dialog, QPoint()).y());
+    dialog.close();
+}
+
+TEST_CASE("Own windows: in Polish About keeps the name and the address of the authors",
+          "[gui][dialogs][license]") {
+    QTranslator polish;
+    REQUIRE(polish.load(QStringLiteral(":/i18n/kalahari_pl.qm")));
+    QCoreApplication::installTranslator(&polish);
+    // The attribution may be in the language of the user interface, with the name of the
+    // company and its address unchanged (NOTICE.md, additional term 1)
+    const QString attribution = AboutDialog::attribution();
+    CHECK(attribution == QStringLiteral(
+                             "Realizacja programu Kalahari: BW Digital Systems & Publishing, "
+                             "https://bwdsp.com.pl/"));
+    CHECK(AboutDialog::copyright().endsWith(QStringLiteral("Bartosz W. Warzocha")));
+    {
+        AboutDialog dialog;
+        CHECK(dialog.tabs()->tabText(3) == QStringLiteral("Licencja"));
+        // The About tab: the authors in the words of 25.11, the row of the company as the
+        // attribution reads
+        CHECK(showsText(dialog, QStringLiteral("Twórcy")));
+        CHECK(showsText(dialog, QStringLiteral("Pomysł i architektura całości")));
+        CHECK(showsText(dialog, QStringLiteral("Realizacja programu Kalahari")));
+        CHECK(attribution.startsWith(QStringLiteral("Realizacja programu Kalahari")));
+        const auto* license = dialog.findChild<QTextEdit*>(QStringLiteral("aboutLicenseText"));
+        REQUIRE(license != nullptr);
+        const QString shown = license->toPlainText();
+        CHECK(shown.contains(attribution));
+        CHECK(shown.contains(QStringLiteral("Warunki dodatkowe (sekcja 7 licencji GNU GPL)")));
+        CHECK(shown.contains(QStringLiteral("BEZ JAKIEJKOLWIEK GWARANCJI")));
+        // The licence itself only in English, the text that is legally binding
+        CHECK(shown.endsWith(AboutDialog::licenseText()));
+    }
+    QCoreApplication::removeTranslator(&polish);
 }
 
 TEST_CASE("Own windows: the Icon Downloader stays open after Download", "[gui][dialogs]") {

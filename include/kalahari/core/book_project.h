@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_project.h
 /// @brief Book project as its .klh file saves it: type, kinds, books and the Workshop
@@ -133,6 +134,12 @@
 /// - "paragraphStyles": the paragraph styles of the books (BookParagraphStyle): the writer's
 ///   own styles and the styles of the type that the project changes. A project without them
 ///   has none.
+/// - "listSets": the writer's own sets of list formats (BookListSet: "id", "name",
+///   "definition"); a project without them has none.
+/// - "customFields" of a book and "seriesFields" of the project: the writer's own fields
+///   (BookCustomField: "id", "name", "value", "description"), of the book alone and of all the
+///   volumes of the series; "seriesFieldValues" of a book: the values it gives the fields of
+///   the series, by their ids ({ "f2": "Tau" }). None: no such fields.
 /// - Fields this version of Kalahari does not know are kept and saved back.
 
 #ifndef KALAHARI_CORE_BOOK_PROJECT_H
@@ -143,8 +150,10 @@
 #include <kalahari/core/card_field_set.h>
 #include <kalahari/core/clipping.h>
 #include <kalahari/core/cover_material.h>
+#include <kalahari/core/page_start.h>
 #include <kalahari/core/publishing_texts.h>
 #include <kalahari/core/source_description.h>
+#include <kalahari/core/spread.h>
 #include <QByteArray>
 #include <QDateTime>
 #include <QJsonObject>
@@ -270,8 +279,9 @@ struct ProjectElement {
                                      ///< whose copy in the book is its file when it has one;
                                      ///< empty: none
     QString status;                  ///< "draft", "revision" or "final"; empty: none (groups)
-    bool firstPageLeft = false;      ///< Its text starts on a left page (mirror margins); in
-                                     ///< the file "firstPage": "left", without it a right page
+    PageStart firstPage = PageStart::Auto;  ///< The page its text starts on (page_start.h);
+                                            ///< in the file "firstPage": "right", "left" or
+                                            ///< "next", without it as its kind says
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
     QString description;             ///< Description of an element of the Workshop without a
                                      ///< text of its own (a material), the short one of a card
@@ -300,6 +310,8 @@ struct ProjectElement {
                                      ///< empty: not said
     PublishingData publishing;       ///< Of a text for publishers: what it is, its
                                      ///< template and its state; empty: none
+    std::optional<SpreadData> spread;  ///< Of a spread: its picture and how it lies on the
+                                       ///< two pages (spread.h); std::nullopt: none
     QString bookId;                  ///< Of a material of the cover or a text for
                                      ///< publishers of a series: the id of the volume it is
                                      ///< for (VolumeMaterials); empty: the whole series
@@ -406,6 +418,32 @@ struct BookFootnotes {
     bool operator==(const BookFootnotes&) const = default;
 };
 
+/// @brief A field of the writer's own (Insert > Field..., the tab Own): a name and a value that
+///        the fields of the texts show
+///
+/// A field in a text names it by its id, so a new name or value shows in every text at once.
+struct BookCustomField {
+    QString id;           ///< Unique among the fields of the project; the texts' fields name it
+    QString name;         ///< Its name: "Narrator's Name"
+    QString value;        ///< Its value; may be empty (the fields show the name in brackets)
+    QString description;  ///< A short description for the tip; may be empty
+    QJsonObject extra;    ///< Fields this version does not know, saved back
+
+    bool operator==(const BookCustomField&) const = default;
+};
+
+/// @brief A set of list formats that the writer saved in the project (Format > Bullets and
+///        Numbering..., Save as Set...): its name and the formats of the nine levels
+struct BookListSet {
+    QString id;          ///< Unique among the sets of the project
+    QString name;        ///< The writer's name of it
+    QString definition;  ///< The formats of the levels, as editor::ListDefinition::toString()
+                         ///< writes them
+    QJsonObject extra;   ///< Fields this version does not know, saved back
+
+    bool operator==(const BookListSet&) const = default;
+};
+
 /// @brief Book of a project: its data, settings and elements
 struct ProjectBook {
     static constexpr const char* CUSTOM_SECTIONS = "custom";  ///< Set of the writer's own names
@@ -442,8 +480,15 @@ struct ProjectBook {
     /// Its set of texts for publishers: which texts, in which order and which version of
     /// each; none: the Settings' set for new books (PublishingSet::defaults())
     std::optional<PublishingSet> publishingSet;
+    /// The parts of its cover besides the cover itself (its flaps, a jacket, endpapers) and
+    /// how its endpapers are filled; none: the flaps of the cover only
+    std::optional<CoverParts> coverParts;
     QString isbn;       ///< The ISBN of its e-book (File > Export > EPUB); empty: none
     QString publisher;  ///< Its publisher; empty: none
+    QList<BookCustomField> customFields;  ///< The writer's own fields of the book
+    /// The values the book gives the fields of its series (BookProject::seriesFields), by the
+    /// id of the field; a field without one has the series' value
+    QMap<QString, QString> seriesFieldValues;
     QJsonObject extra;                    ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectBook&) const = default;
@@ -531,6 +576,8 @@ struct BookProject {
     QString series;                   ///< Name of the series of its books; empty: none given
     ProjectWorkshop workshop;         ///< Workshop shared by the books
     QList<BookParagraphStyle> paragraphStyles;  ///< Own styles and changed styles of the type
+    QList<BookListSet> listSets;      ///< The writer's own sets of list formats
+    QList<BookCustomField> seriesFields;  ///< The writer's own fields of all the volumes
     QJsonObject extra;                ///< Fields this version does not know, saved back
 
     bool operator==(const BookProject&) const = default;

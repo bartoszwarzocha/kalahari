@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file edit_coordinator.cpp
 /// @brief Implementation of EditCoordinator
@@ -34,6 +35,7 @@
 #include <QToolBar>
 #include <QToolButton>
 
+#include <algorithm>
 #include <array>
 #include <utility>
 
@@ -53,6 +55,56 @@ constexpr std::array<std::pair<Edit, const char*>, 7> COMMANDS = {{
     {Edit::Delete, "edit.delete"},
     {Edit::SelectAll, "edit.selectAll"},
 }};
+
+/// The categories of the commands that work on the text in front (the ones of the Edit,
+/// Insert, Format, Table, Image, View and Tools menus and the Book menu's Scene Break)
+constexpr std::array<const char*, 8> TEXT_CATEGORIES = {"EDIT",  "INSERT", "FORMAT", "TABLE",
+                                                        "IMAGE", "VIEW",   "TOOLS",  "BOOK"};
+
+/// Whether @p edit changes what it works on
+bool changes(Edit edit) {
+    return edit != Edit::Copy && edit != Edit::SelectAll;
+}
+
+/// Why @p edit does nothing in a text or a field that it works in
+QString nothingFor(Edit edit) {
+    switch (edit) {
+    case Edit::Undo:
+        //: Why Edit > Undo is greyed out. In Polish: Nie ma czego cofnąć
+        return EditCoordinator::tr("There is nothing to undo");
+    case Edit::Redo:
+        //: Why Edit > Redo is greyed out. In Polish: Nie ma czego ponowić
+        return EditCoordinator::tr("There is nothing to redo");
+    case Edit::Cut:
+    case Edit::Copy:
+    case Edit::Delete:
+        //: Why Edit > Cut, Copy and Delete are greyed out. In Polish: Nic nie jest zaznaczone
+        return EditCoordinator::tr("Nothing is selected");
+    case Edit::Paste:
+        //: Why Edit > Paste is greyed out. In Polish: W schowku nie ma niczego, co można tu
+        //: wkleić
+        return EditCoordinator::tr("The clipboard holds nothing to paste here");
+    case Edit::SelectAll:
+        //: Why Edit > Select All is greyed out in an empty field. In Polish: Nie ma czego
+        //: zaznaczyć
+        return EditCoordinator::tr("There is nothing to select");
+    }
+    return {};
+}
+
+/// Why a command that changes the text is greyed out in a read-only text or field
+QString cannotChange() {
+    //: Why Undo, Redo, Cut, Paste, Delete and the commands that change the text are greyed
+    //: out in a text or a field that only shows. In Polish: Tego tekstu nie można zmieniać
+    return EditCoordinator::tr("This text cannot be changed");
+}
+
+/// Why a command of the text is greyed out with no text in front (the Dashboard, no tab)
+QString noTextInFront() {
+    //: Why the commands of the text are greyed out with no text in front (the Dashboard, no
+    //: tab). In Polish: Na wierzchu nie ma tekstu
+    return EditCoordinator::tr("No text is in front");
+}
 
 /// Whether a widget is a toolbar of the window, on its edge or floating (a panel's own
 /// toolbar is not)
@@ -325,11 +377,13 @@ EditCoordinator::EditCoordinator(CommandRegistry& commands, EditorInFront editor
     : QObject(parent), m_editorInFront(std::move(editorInFront)), m_commands(commands) {}
 
 EditCoordinator::~EditCoordinator() {
-    // Their states asked this coordinator
+    // Their states and the reasons asked this coordinator
     auto& registry = m_commands;
+    registry.setFallbackReason(nullptr);
     for (const auto& command : COMMANDS) {
         if (Command* found = registry.getCommand(command.second)) {
             found->isEnabled = nullptr;
+            found->disabledReason = nullptr;
         }
     }
     for (const auto& [id, can] : m_textCommands) {
@@ -344,8 +398,16 @@ void EditCoordinator::connectCommands() {
     for (const auto& [edit, id] : COMMANDS) {
         if (Command* command = registry.getCommand(id)) {
             command->isEnabled = [this, edit = edit]() { return canDo(edit, focusedElement()); };
+            command->disabledReason = [this, edit = edit]() {
+                return whyNot(edit, focusedElement());
+            };
         }
     }
+    // The other commands of the text say that no text is in front, or that the keys are not
+    // in it (test of 22.11: greyed out with no explanation)
+    registry.setFallbackReason(
+        [this](const Command& command) { return fallbackReason(command); });
+    registry.updateAllActionStates();
 
     if (auto* app = qobject_cast<QApplication*>(QCoreApplication::instance())) {
         connect(app, &QApplication::focusChanged, this, [this](QWidget*, QWidget* now) {
@@ -378,6 +440,28 @@ void EditCoordinator::addTextCommands(const std::vector<std::string>& ids, const
             registry.updateActionState(id);
         }
     }
+}
+
+QString EditCoordinator::fallbackReason(const Command& command) const {
+    const editor::BookEditor* front = m_editorInFront ? m_editorInFront() : nullptr;
+    const bool textCommand =
+        std::any_of(m_textCommands.cbegin(), m_textCommands.cend(),
+                    [&command](const auto& entry) { return entry.first == command.id; });
+    if (textCommand) {
+        const editor::BookEditor* text = textWithKeys();
+        if (text == nullptr) {
+            //: Why the commands of the book's text are greyed out with the keys in a field or
+            //: a panel. In Polish: Kursor nie jest w tekście książki
+            return front != nullptr ? tr("The cursor is not in a text of the book")
+                                    : noTextInFront();
+        }
+        return text->isReadOnly() ? cannotChange() : QString();
+    }
+    const bool ofText = std::any_of(TEXT_CATEGORIES.cbegin(), TEXT_CATEGORIES.cend(),
+                                    [&command](const char* category) {
+                                        return command.category == category;
+                                    });
+    return ofText && front == nullptr ? noTextInFront() : QString();
 }
 
 void EditCoordinator::setLastFocus(QWidget* element) {
@@ -503,6 +587,58 @@ bool EditCoordinator::canDo(Edit edit, QWidget* element) const {
         return copyCan(*target.copy, edit);
     }
     return target.list != nullptr && listCan(*target.list, edit);
+}
+
+QString EditCoordinator::whyNot(Edit edit, QWidget* element) const {
+    if (canDo(edit, element)) {
+        return {};
+    }
+    const Target target = targetOf(element);
+    if (target.isField()) {
+        if (target.line != nullptr && target.line->echoMode() != QLineEdit::Normal &&
+            target.line->hasSelectedText() && (edit == Edit::Cut || edit == Edit::Copy)) {
+            //: Why Cut and Copy are greyed out in a field of a password. In Polish: Hasła się
+            //: nie kopiuje
+            return tr("A password is not copied");
+        }
+        const bool readOnly = (target.line != nullptr && target.line->isReadOnly()) ||
+                              (target.text != nullptr && target.text->isReadOnly()) ||
+                              (target.plainText != nullptr && target.plainText->isReadOnly()) ||
+                              (target.book != nullptr && target.book->isReadOnly());
+        return readOnly && changes(edit) ? cannotChange() : nothingFor(edit);
+    }
+    const bool undoRedo = edit == Edit::Undo || edit == Edit::Redo;
+    const bool copies = edit == Edit::Copy || edit == Edit::SelectAll;
+    if (target.ownTakes(edit) || (target.history != nullptr && undoRedo) ||
+        (target.copy != nullptr && copies)) {
+        return nothingFor(edit);
+    }
+    if (target.list != nullptr) {
+        if (edit == Edit::Copy) {
+            //: Why Edit > Copy is greyed out in a list. In Polish: Żaden element listy nie
+            //: jest wybrany
+            return tr("No item of the list is chosen");
+        }
+        if (edit == Edit::SelectAll) {
+            const QAbstractItemModel* model = target.list->model();
+            return model != nullptr && model->rowCount(target.list->rootIndex()) > 0
+                       //: Why Edit > Select All is greyed out in a list. In Polish: Na tej
+                       //: liście wybiera się jeden element naraz
+                       ? tr("This list chooses one item at a time")
+                       //: Why Edit > Select All is greyed out in an empty list. In Polish:
+                       //: Lista jest pusta
+                       : tr("The list is empty");
+        }
+        if (edit == Edit::Paste && dynamic_cast<const PasteTarget*>(target.list) != nullptr) {
+            return nothingFor(edit);
+        }
+        //: Why Undo, Redo, Cut, Paste and Delete are greyed out in a list. In Polish: Na liście
+        //: nie można tego zrobić
+        return tr("This is not possible in a list");
+    }
+    //: Why the Edit commands are greyed out with the keys outside a text and a field (on a
+    //: button, in the Dashboard). In Polish: Kursor nie jest w tekście ani w polu
+    return tr("The cursor is not in a text or a field");
 }
 
 bool EditCoordinator::execute(Edit edit, QWidget* element) {

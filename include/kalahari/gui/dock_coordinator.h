@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file dock_coordinator.h
 /// @brief Dock widget and panel coordination for MainWindow
@@ -48,6 +49,9 @@ class AssistantPanel;
 class AnnotationsPanel;
 class SpellingPanel;
 class RepetitionsPanel;
+class FiguresPanel;
+class FootnotesPanel;
+class NotificationsPanel;
 class ParagraphPanel;
 class WritingStatsPanel;
 class FittingScrollArea;
@@ -225,8 +229,17 @@ public:
     /// @brief Get the Repetitions panel
     [[nodiscard]] RepetitionsPanel* repetitionsPanel() const { return m_repetitionsPanel; }
 
+    /// @brief Get the Footnotes panel
+    [[nodiscard]] FootnotesPanel* footnotesPanel() const { return m_footnotesPanel; }
+
+    /// @brief Get the panel Images and Tables
+    [[nodiscard]] FiguresPanel* figuresPanel() const { return m_figuresPanel; }
+
     /// @brief The Statistics panel (its statistics come from WritingStatsCoordinator)
     [[nodiscard]] WritingStatsPanel* statisticsPanel() const { return m_statisticsPanel; }
+
+    /// @brief The Notifications panel: the notifications of the session
+    [[nodiscard]] NotificationsPanel* notificationsPanel() const { return m_notificationsPanel; }
 
     /// @brief The Paragraph and Styles panel of its own (paragraphDock())
     [[nodiscard]] ParagraphPanel* paragraphPanel() const { return m_paragraphPanel; }
@@ -277,8 +290,17 @@ public:
     /// @brief Get the dock of the Repetitions panel
     [[nodiscard]] QDockWidget* repetitionsDock() const { return m_repetitionsDock; }
 
+    /// @brief Get the dock of the Footnotes panel
+    [[nodiscard]] QDockWidget* footnotesDock() const { return m_footnotesDock; }
+
+    /// @brief Get the dock of the panel Images and Tables
+    [[nodiscard]] QDockWidget* figuresDock() const { return m_figuresDock; }
+
     /// @brief The dock of the Statistics panel
     [[nodiscard]] QDockWidget* statisticsDock() const { return m_statisticsDock; }
+
+    /// @brief The dock of the Notifications panel
+    [[nodiscard]] QDockWidget* notificationsDock() const { return m_notificationsDock; }
 
     /// @brief The dock of the Paragraph and Styles panel of its own (hidden while the panel is
     /// in the Properties panel)
@@ -321,6 +343,15 @@ public:
 
     /// @brief Get the Repetitions toggle action
     [[nodiscard]] QAction* viewRepetitionsAction() const { return m_viewRepetitionsAction; }
+
+    /// @brief Get the Footnotes toggle action
+    [[nodiscard]] QAction* viewFootnotesAction() const { return m_viewFootnotesAction; }
+
+    /// @brief Get the Images and Tables toggle action
+    [[nodiscard]] QAction* viewFiguresAction() const { return m_viewFiguresAction; }
+
+    /// @brief The Notifications toggle action
+    [[nodiscard]] QAction* viewNotificationsAction() const { return m_viewNotificationsAction; }
 
     /// @brief The Paragraph and Styles toggle action
     [[nodiscard]] QAction* viewParagraphAction() const { return m_viewParagraphAction; }
@@ -417,8 +448,18 @@ private:
     /// @brief Create the dock of the Repetitions panel (hidden until opened)
     void createRepetitionsDock();
 
+    /// @brief Create the dock of the Footnotes panel (hidden until opened)
+    void createFootnotesDock();
+
+    /// @brief Create the dock of the panel Images and Tables (hidden until opened)
+    void createFiguresDock();
+
     /// @brief Create the dock of the Statistics panel, a tab after the Annotations panel
     void createStatisticsDock();
+
+    /// @brief Create the dock of the Notifications panel (hidden until opened), a tab after the
+    ///        Statistics panel
+    void createNotificationsDock();
 
     /// @brief Create the dock of the Paragraph and Styles panel of its own
     void createParagraphDock();
@@ -462,14 +503,9 @@ private:
     /// @brief Setup VIEW menu panel actions
     void setupViewMenuActions();
 
-    /// @brief Tools > Texts for Publishers > Template Points: the Properties panel open with
-    /// the keys in the points of the template of the text in front; Templates...: the window
-    /// of the templates
-    void connectTemplatePoints();
-
-    /// @brief Tools > Texts for Publishers > Insert Skeleton and Remove Headings and Hints, in
-    /// the editor of the text in front
-    void connectSkeleton();
+    /// @brief Link to a Point (Ctrl+Shift+D): the menu of the points of the version on the
+    /// card For Publishers in front
+    void connectLinkPoint();
 
     /// @brief Connect panel toggle command to dock widget
     /// @param cmdId Command ID (e.g., "view.navigator")
@@ -496,8 +532,11 @@ private:
     QDockWidget* m_annotationsDock{nullptr};
     QDockWidget* m_spellingDock{nullptr};
     QDockWidget* m_repetitionsDock{nullptr};
+    QDockWidget* m_footnotesDock{nullptr};
+    QDockWidget* m_figuresDock{nullptr};
     QDockWidget* m_paragraphDock{nullptr};
     QDockWidget* m_statisticsDock{nullptr};
+    QDockWidget* m_notificationsDock{nullptr};
 
     // Panels
     NavigatorPanel* m_navigatorPanel{nullptr};
@@ -509,7 +548,10 @@ private:
     AnnotationsPanel* m_annotationsPanel{nullptr};
     SpellingPanel* m_spellingPanel{nullptr};
     RepetitionsPanel* m_repetitionsPanel{nullptr};
+    FootnotesPanel* m_footnotesPanel{nullptr};
+    FiguresPanel* m_figuresPanel{nullptr};
     WritingStatsPanel* m_statisticsPanel{nullptr};
+    NotificationsPanel* m_notificationsPanel{nullptr};
     ParagraphPanel* m_paragraphPanel{nullptr};       ///< In its own dock
     ParagraphPanel* m_propertiesParagraph{nullptr};  ///< The lower part of Properties
     QSplitter* m_propertiesSplitter{nullptr};        ///< Properties | Paragraph and Styles
@@ -531,8 +573,11 @@ private:
     QAction* m_viewAnnotationsAction{nullptr};
     QAction* m_viewSpellingAction{nullptr};
     QAction* m_viewRepetitionsAction{nullptr};
+    QAction* m_viewFootnotesAction{nullptr};
+    QAction* m_viewFiguresAction{nullptr};
     QAction* m_viewParagraphAction{nullptr};
     QAction* m_viewStatisticsAction{nullptr};
+    QAction* m_viewNotificationsAction{nullptr};
 
     // Icon tracking for refresh
     QList<QLabel*> m_dockIconLabels;

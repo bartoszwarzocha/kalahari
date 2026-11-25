@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file paragraph_marks_clippings.cpp
 /// @brief The scissors beside the paragraphs clippings were cut from
@@ -54,7 +55,7 @@ QList<editor::ParagraphMark> ParagraphMarksCoordinator::clippingMarksOf(
     QList<editor::ParagraphMark> marks;
     const QTextDocument* document = editor.textDocument();
     if (elementId.isEmpty() || document == nullptr ||
-        !core::SettingsManager::getInstance().get<bool>(core::Clippings::MARKS_SETTING, false)) {
+        !core::SettingsManager::getInstance().get<bool>(core::Clippings::MARKS_SETTING, true)) {
         return marks;
     }
     const QStringList paragraphs = paragraphsOf(*document);

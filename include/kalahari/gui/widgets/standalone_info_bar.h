@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file standalone_info_bar.h
 /// @brief Info bar widget for standalone files (not part of the book), for a book open
@@ -49,6 +50,14 @@ class StandaloneInfoBar : public InfoBar {
     Q_OBJECT
 
 public:
+    /// The colors of the bar, in the theme's "editor" section (Settings > Editor > Colors, Bar
+    /// Under the Text): it stands out from the text, its button too
+    static constexpr const char* BACKGROUND_COLOR_KEY = "noticeBarBackground";
+    static constexpr const char* BORDER_COLOR_KEY = "noticeBarBorder";
+    static constexpr const char* TEXT_COLOR_KEY = "noticeBarText";
+    static constexpr const char* BUTTON_COLOR_KEY = "noticeBarButton";
+    static constexpr const char* BUTTON_TEXT_COLOR_KEY = "noticeBarButtonText";
+
     /// @brief Constructor
     /// @param parent Parent widget
     explicit StandaloneInfoBar(QWidget* parent = nullptr);
@@ -82,13 +91,18 @@ public:
     [[nodiscard]] bool showsReadOnlyBook() const { return m_readOnlyBook; }
 
     /// @brief Say @p message of what was just done to the text in front, with a button
-    /// @p actionText (noticeActionClicked()), in place of a file; setFilePath() and
-    /// showReadOnlyBook() show what they show again
+    /// @p actionText (noticeActionClicked()) and a second one @p secondText
+    /// (noticeSecondActionClicked()), in place of a file; setFilePath() and showReadOnlyBook()
+    /// show what they show again
     /// @param message The notice
     /// @param actionText Its button, with a mnemonic; empty: none
     /// @param actionToolTip The tooltip of its button
+    /// @param secondText Its second button, with a mnemonic; empty: none
+    /// @param secondToolTip The tooltip of its second button
     void showNotice(const QString& message, const QString& actionText,
-                    const QString& actionToolTip = QString());
+                    const QString& actionToolTip = QString(),
+                    const QString& secondText = QString(),
+                    const QString& secondToolTip = QString());
 
     /// @brief Whether it shows a notice (showNotice())
     [[nodiscard]] bool showsNotice() const { return m_notice; }
@@ -107,6 +121,9 @@ signals:
 
     /// @brief Emitted when the button of a notice is clicked (showNotice())
     void noticeActionClicked();
+
+    /// @brief Emitted when the second button of a notice is clicked (showNotice())
+    void noticeSecondActionClicked();
 
 private:
     /// Whether the button saves a new file that no book can take ("Save As...")

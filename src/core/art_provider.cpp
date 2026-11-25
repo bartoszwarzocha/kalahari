@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file art_provider.cpp
 /// @brief Implementation of ArtProvider - Central Visual Resource Manager
@@ -8,8 +9,12 @@
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/package_card.h"
+#include "kalahari/core/resource_paths.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
+
+#include <QFileInfo>
+#include <QSize>
 
 namespace kalahari::core {
 
@@ -192,6 +197,29 @@ QIcon ArtProvider::getThemedIcon(const QString& cmdId,
     // Use IconRegistry's getIconWithColors method
     return IconRegistry::getInstance().getIconWithColors(
         cmdId, m_iconTheme, 32, effectivePrimary, effectiveSecondary);
+}
+
+QIcon ArtProvider::getApplicationIcon() const {
+    // The sizes scripts/make_app_icons.py makes, each drawn for its size
+    static constexpr int APPLICATION_ICON_SIZES[] = {16, 24, 32, 48, 64, 128, 256, 512};
+
+    QIcon icon;
+    const QString resourcesDir = ResourcePaths::getInstance().getResourcesDir();
+    if (resourcesDir.isEmpty()) {
+        return icon;
+    }
+    for (const int size : APPLICATION_ICON_SIZES) {
+        const QString file =
+            QStringLiteral("%1/images/app_icon/kalahari_%2.png").arg(resourcesDir).arg(size);
+        if (QFileInfo::exists(file)) {
+            icon.addFile(file, QSize(size, size));
+        }
+    }
+    if (icon.isNull()) {
+        Logger::getInstance().warn("ArtProvider: no icon of the program in {}/images/app_icon",
+                                   resourcesDir.toStdString());
+    }
+    return icon;
 }
 
 QPixmap ArtProvider::getPreviewPixmap(const QString& cmdId,

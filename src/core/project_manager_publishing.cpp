@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file project_manager_publishing.cpp
 /// @brief ProjectManager: the texts for publishers of the open book (a sentence about the book
@@ -14,7 +15,6 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/volume_materials.h"
-#include "kalahari/editor/text_skeleton.h"
 
 #include <QFile>
 #include <QList>
@@ -109,30 +109,72 @@ QString ProjectManager::addPublishingText(const QString& part, const QString& te
         }
         return {};
     }
-    startWithSkeleton(textId, templateReference);
     return textId;
-}
-
-void ProjectManager::startWithSkeleton(const QString& textId, const QString& templateReference) {
-    if (!PublishingTexts::pointsInText()) {
-        return;
-    }
-    // The headings of the points of its template, each with its hint, in its text
-    const QList<editor::SkeletonPoint> skeleton = templateSkeleton(templateReference);
-    if (skeleton.isEmpty()) {
-        return;
-    }
-    setChapterContent(textId, QStringLiteral("<kml>") + editor::skeletonKml(skeleton) +
-                                  QStringLiteral("</kml>"));
-    if (!saveChapterContent(textId)) {
-        Logger::getInstance().warn("startWithSkeleton: The skeleton of {} is not saved yet",
-                                   textId.toStdString());
-    }
 }
 
 bool ProjectManager::setPublishing(const QString& elementId, const PublishingData& data) {
     return changeDetails("setPublishing", elementId,
                          [&data](ProjectElement& element) { element.publishing = data; });
+}
+
+bool ProjectManager::setPublishingPoints(const QString& elementId, const QStringList& done,
+                                         bool textChanged) {
+    const ProjectElement* element = findElement(elementId);
+    if (element == nullptr || !isPublishingText(*element)) {
+        Logger::getInstance().warn("setPublishingPoints: Not a text for publishers: {}",
+                                   elementId.toStdString());
+        return false;
+    }
+    if (refusesChange("setPublishingPoints")) {
+        return false;
+    }
+    ElementState* state = stateOf(elementId);
+    // The points wait for the changes of the text, to be saved or dropped with them
+    if (state != nullptr && (textChanged || hasUnsavedText(elementId))) {
+        if (done == element->publishing.done) {
+            state->waitingPoints.reset();
+        } else {
+            state->waitingPoints = done;
+        }
+        return true;
+    }
+    const bool saved = changeDetails("setPublishingPoints", elementId,
+                                     [&done](ProjectElement& text) { text.publishing.done = done; });
+    if (saved && state != nullptr) {
+        state->waitingPoints.reset();
+    }
+    return saved;
+}
+
+QStringList ProjectManager::publishingPointsOf(const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    QStringList saved = element != nullptr ? element->publishing.done : QStringList();
+    const auto state = m_elementStates.constFind(elementId);
+    return state != m_elementStates.cend() ? state->waitingPoints.value_or(std::move(saved))
+                                           : saved;
+}
+
+bool ProjectManager::hasWaitingPoints(const QString& elementId) const {
+    const auto state = m_elementStates.constFind(elementId);
+    return state != m_elementStates.cend() && state->waitingPoints.has_value();
+}
+
+bool ProjectManager::saveWaitingPoints(const QString& elementId) {
+    const auto state = m_elementStates.constFind(elementId);
+    if (state == m_elementStates.cend()) {
+        return true;
+    }
+    const std::optional<QStringList> waiting = state->waitingPoints;
+    if (!waiting) {
+        return true;
+    }
+    const QStringList& done = *waiting;
+    if (!changeDetails("saveWaitingPoints", elementId,
+                       [&done](ProjectElement& text) { text.publishing.done = done; })) {
+        return false;
+    }
+    m_elementStates[elementId].waitingPoints.reset();
+    return true;
 }
 
 bool ProjectManager::setPublishingState(const QString& elementId, const QString& state,
@@ -208,6 +250,33 @@ bool ProjectManager::setPublishingSetOf(ProjectBook& book, const PublishingSet& 
     return true;
 }
 
+CoverParts ProjectManager::coverParts() const {
+    const ProjectBook* current = book();
+    return current != nullptr && current->coverParts ? *current->coverParts : CoverParts{};
+}
+
+bool ProjectManager::setCoverParts(const CoverParts& parts) {
+    ProjectBook* current = book();
+    if (current == nullptr) {
+        Logger::getInstance().warn("setCoverParts: No project is open");
+        return false;
+    }
+    if (refusesChange("setCoverParts")) {
+        return false;
+    }
+    if (current->coverParts.value_or(CoverParts{}) == parts) {
+        return true;
+    }
+    const std::optional<CoverParts> previous = current->coverParts;
+    current->coverParts = parts;
+    if (!saveManifest()) {
+        current->coverParts = previous;
+        return false;
+    }
+    emit coverPartsChanged();
+    return true;
+}
+
 bool ProjectManager::pickForPublishingSet(const QString& elementId) {
     const ProjectElement* element = findElement(elementId);
     const ProjectBook* owner = setBookOf(elementId);
@@ -264,13 +333,52 @@ QString ProjectManager::publishingTextOf(const QString& elementId) const {
         return {};
     }
     if (!element->file.isEmpty() && formOf(*element) == ElementForm::Text) {
-        // Without the headings of the points of a skeleton, which are no text of the writer
-        const std::optional<QString> kml = textKmlOf(elementId);
-        return kml ? ChapterDocument::kmlToPlainText(
-                         *kml, QString::fromLatin1(editor::TEMPLATE_POINT_STYLE_ID))
-                   : QString();
+        // As in its editor
+        const auto state = m_elementStates.constFind(elementId);
+        const std::optional<QString> kml = state != m_elementStates.cend() && state->editorText
+                                               ? state->editorText
+                                               : textKmlOf(elementId);
+        return kml ? ChapterDocument::kmlToPlainText(*kml) : QString();
     }
     return element->description;
+}
+
+QList<PublishingTemplatePoint> ProjectManager::unlinkedPublishingPointsOf(
+    const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    if (element == nullptr || !PublishingTexts::hasPoints(element->publishing.part) ||
+        element->publishing.templateId.isEmpty() || element->file.isEmpty() ||
+        formOf(*element) != ElementForm::Text) {
+        return {};
+    }
+    const std::optional<PublishingTemplate> templ =
+        publishingTemplate(element->publishing.templateId);
+    if (!templ) {
+        return {};
+    }
+    const auto state = m_elementStates.constFind(elementId);
+    const std::optional<QString> kml = state != m_elementStates.cend() && state->editorText
+                                           ? state->editorText
+                                           : textKmlOf(elementId);
+    const QSet<QString> linked = kml ? PublishingTexts::linkedPointsOf(*kml) : QSet<QString>();
+    QList<PublishingTemplatePoint> unlinked;
+    for (const PublishingTemplatePoint& point : templ->pointsFor(mainTexts())) {
+        if (!linked.contains(point.id)) {
+            unlinked << point;
+        }
+    }
+    return unlinked;
+}
+
+void ProjectManager::setEditorText(const QString& elementId, const QString& kml) {
+    const ProjectElement* element = findElement(elementId);
+    ElementState* state = element != nullptr && isPublishingText(*element) ? stateOf(elementId)
+                                                                           : nullptr;
+    if (state == nullptr || state->editorText == kml) {
+        return;
+    }
+    state->editorText = kml;
+    emit publishingTextChanged(elementId);
 }
 
 QList<PublishingTemplate> ProjectManager::publishingTemplates() const {
@@ -324,19 +432,6 @@ QList<std::pair<QString, QString>> ProjectManager::mainTexts() const {
         }
     }
     return texts;
-}
-
-QList<editor::SkeletonPoint> ProjectManager::templateSkeleton(const QString& reference) const {
-    const std::optional<PublishingTemplate> templ = publishingTemplate(reference);
-    if (!templ || !PublishingTexts::hasPoints(templ->part)) {
-        return {};
-    }
-    const QString language = bookLanguage();
-    QList<editor::SkeletonPoint> skeleton;
-    for (const PublishingTemplatePoint& point : templ->pointsFor(mainTexts())) {
-        skeleton.append({point.id, point.name.text(language), point.hint.text(language)});
-    }
-    return skeleton;
 }
 
 int ProjectManager::publishingTargetOf(const QString& elementId, bool words) const {

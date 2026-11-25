@@ -1,9 +1,10 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file image_properties_dialog.h
-/// @brief Image > Image Properties...: the file, size, crop, border, colors, description and
-///        caption of the selected image
+/// @brief Image > Image Properties...: the file, size, crop, the text flowing around it, the
+///        room around it, border, colors, description and caption of the selected image
 
 #ifndef KALAHARI_GUI_DIALOGS_IMAGE_PROPERTIES_DIALOG_H
 #define KALAHARI_GUI_DIALOGS_IMAGE_PROPERTIES_DIALOG_H
@@ -76,9 +77,45 @@ private:
     bool m_showsCrop = false;
 };
 
+/// @brief A picture of how the text flows around an image: lines of text and the image as a
+///        box, with the room around it (the page Text Flow, its choices and the page Space
+///        Around); the colors of the window's palette
+class WrapPicture : public QFrame {
+    Q_OBJECT
+
+public:
+    /// @param size The room the picture takes
+    /// @param parent Parent widget
+    explicit WrapPicture(const QSize& size, QWidget* parent = nullptr);
+
+    /// @brief Draw the text flowing so around the image, with this room around it (points)
+    void setWrap(editor::ImageWrap wrap, double above, double below, double beside);
+
+    /// @brief The picture as a pixmap of @p size (the icons of the choices)
+    static QPixmap pixmap(editor::ImageWrap wrap, const QSize& size, const QPalette& palette,
+                          qreal devicePixelRatio);
+
+    [[nodiscard]] QSize sizeHint() const override;
+
+protected:
+    void paintEvent(QPaintEvent* event) override;
+
+private:
+    /// @brief Draw the picture in @p rect: the room in points shown in proportion to its width
+    static void draw(QPainter& painter, const QRectF& rect, editor::ImageWrap wrap, double above,
+                     double below, double beside, const QPalette& palette);
+
+    QSize m_size;
+    editor::ImageWrap m_wrap = editor::ImageWrap::Inline;
+    double m_above = editor::DEFAULT_IMAGE_SPACE_ABOVE;
+    double m_below = editor::DEFAULT_IMAGE_SPACE_BELOW;
+    double m_beside = editor::DEFAULT_IMAGE_SPACE_BESIDE;
+};
+
 /// @brief Image > Image Properties...: the look of the selected image in pages, chosen in a
-///        list on the left: Image (its file), Size and Rotation, Crop, Border, Colors,
-///        Description and Caption
+///        list on the left: Image (its file), Size and Rotation, Crop, Text Flow (how the text
+///        flows around it, each way with a picture of it), Space Around (the room it keeps
+///        from the text), Border, Colors, Description and Caption
 ///
 /// The window has the size of its largest page on every page. Each page has an access key
 /// (Alt with its letter), and Ctrl+Tab and Ctrl+Shift+Tab go to the next and the previous
@@ -93,6 +130,8 @@ public:
         ImagePage,
         SizePage,
         CropPage,
+        WrapPage,
+        SpacePage,
         BorderPage,
         ColorsPage,
         DescriptionPage,
@@ -147,6 +186,8 @@ private:
     QWidget* createImagePage();
     QWidget* createSizePage();
     QWidget* createCropPage();
+    QWidget* createWrapPage();
+    QWidget* createSpacePage();
     QWidget* createBorderPage();
     QWidget* createColorsPage();
     QWidget* createDescriptionPage();
@@ -157,6 +198,8 @@ private:
     void refreshImagePage();
     void refreshSizePage();
     void refreshCropPage();
+    void refreshWrapPage();
+    void refreshSpacePage();
     void refreshBorderPage();
     void refreshColorsPage();
     void refreshCaptionPage();
@@ -210,7 +253,6 @@ private:
     QPushButton* m_changeButton = nullptr;
     QPushButton* m_saveButton = nullptr;
     QCheckBox* m_keepSizeAndCrop = nullptr;
-    QComboBox* m_wrap = nullptr;  ///< How the text flows around it (ImageWrap)
 
     // Size and Rotation
     QDoubleSpinBox* m_widthPercent = nullptr;
@@ -234,6 +276,16 @@ private:
     QRadioButton* m_keepScale = nullptr;
     QPushButton* m_cropInText = nullptr;
     QPushButton* m_removeCrop = nullptr;
+
+    // Text Flow: a choice of each way (ImageWrap), with its picture
+    QButtonGroup* m_wraps = nullptr;
+    QLabel* m_wrapNote = nullptr;  ///< What the way chosen does, or why only one is offered
+
+    // Space Around: above, below and beside, with the picture of the room
+    std::array<LengthSpinBox*, 3> m_spaces{};
+    QPushButton* m_spacesOfSettings = nullptr;
+    QLabel* m_spaceNote = nullptr;
+    WrapPicture* m_spacePicture = nullptr;
 
     // Border
     QComboBox* m_line = nullptr;

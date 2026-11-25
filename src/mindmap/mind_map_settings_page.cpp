@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file mind_map_settings_page.cpp
 /// @brief Settings > Mind Maps
@@ -41,20 +42,20 @@ MindMapSettingsPage::MindMapSettingsPage(QWidget* parent) : gui::SettingsPage(pa
              tr("Layout of a new map:"),
              options({{tr("Both sides"), QStringLiteral("bothSides")},
                       {tr("To the right"), QStringLiteral("right")},
-                      {tr("Down"), QStringLiteral("down")},
-                      {tr("Free"), QStringLiteral("free")}},
+                      {tr("Down"), QStringLiteral("down")}},
                      QStringLiteral("mindMapsNewLayout")),
              MindMapSettings::NEW_LAYOUT);
     addField(added,
              //: In Polish: Mapa otwiera się:
              tr("A map opens on:"),
-             options({//: In Polish: na mapie
-                      {tr("the map"), QStringLiteral("map")},
-                      //: In Polish: na liście
-                      {tr("the list"), QStringLiteral("list")},
-                      //: In Polish: tam, gdzie ją zostawiono
-                      {tr("the view it was left on"), QStringLiteral("last")}},
-                     QStringLiteral("mindMapsOpenOn")),
+             options(
+                 {//: In Polish: na mapie
+                  {tr("the map"), QStringLiteral("map")},
+                  //: In Polish: na liście
+                  {tr("the list"), QStringLiteral("list")},
+                  //: In Polish: tam, gdzie ją zostawiono
+                  {tr("the view it was left on"), QStringLiteral("last")}},
+                 QStringLiteral("mindMapsOpenOn")),
              MindMapSettings::OPEN_ON);
 
     //: In Polish: Wygląd map
@@ -62,53 +63,50 @@ MindMapSettingsPage::MindMapSettingsPage(QWidget* parent) : gui::SettingsPage(pa
     addField(look,
              //: In Polish: Węzły:
              tr("Nodes:"),
-             options({//: In Polish: zaokrąglone
-                      {tr("rounded"), QStringLiteral("rounded")},
-                      //: In Polish: prostokąty
-                      {tr("rectangles"), QStringLiteral("rectangle")},
-                      //: In Polish: owale
-                      {tr("ovals"), QStringLiteral("oval")},
-                      //: In Polish: tekst nad linią
-                      {tr("text over a line"), QStringLiteral("underline")}},
-                     QStringLiteral("mindMapsNodes")),
+             options(
+                 {//: In Polish: zaokrąglone
+                  {tr("rounded"), QStringLiteral("rounded")},
+                  //: In Polish: prostokąty
+                  {tr("rectangles"), QStringLiteral("rectangle")}},
+                 QStringLiteral("mindMapsNodes")),
              MindMapSettings::SHAPE);
     addField(look,
              //: In Polish: Linie:
              tr("Lines:"),
-             options({//: In Polish: łuki
-                      {tr("curves"), QStringLiteral("curved")},
-                      //: In Polish: proste
-                      {tr("straight"), QStringLiteral("straight")},
-                      //: In Polish: łamane pod kątem prostym
-                      {tr("with right angles"), QStringLiteral("elbow")}},
-                     QStringLiteral("mindMapsLines")),
+             options(
+                 {//: In Polish: łuki
+                  {tr("curves"), QStringLiteral("curved")},
+                  //: In Polish: proste
+                  {tr("straight"), QStringLiteral("straight")},
+                  //: In Polish: łamane pod kątem prostym
+                  {tr("with right angles"), QStringLiteral("elbow")}},
+                 QStringLiteral("mindMapsLines")),
              MindMapSettings::LINES);
-    addCheckBox(look,
-                //: In Polish: Linie cieńsze w głębi gałęzi
-                tr("Thinner lines deeper in the branches"), MindMapSettings::THINNER);
     addField(look,
              //: In Polish: Kolory gałęzi:
              tr("Colors of the branches:"),
-             options({//: In Polish: każda gałąź główna swój kolor
-                      {tr("each main branch its own"), QStringLiteral("each")},
-                      //: In Polish: jeden kolor
-                      {tr("one color"), QStringLiteral("one")},
-                      //: In Polish: bez kolorów
-                      {tr("no colors"), QStringLiteral("none")}},
-                     QStringLiteral("mindMapsBranchColors")),
+             options(
+                 {//: In Polish: każda gałąź główna swój kolor
+                  {tr("each main branch its own"), QStringLiteral("each")},
+                  //: In Polish: jeden kolor
+                  {tr("one color"), QStringLiteral("one")},
+                  //: In Polish: bez kolorów
+                  {tr("no colors"), QStringLiteral("none")}},
+                 QStringLiteral("mindMapsBranchColors")),
              MindMapSettings::COLORS);
     addField(look,
              //: In Polish: Tło:
              tr("Background:"),
-             options({//: In Polish: gładkie
-                      {tr("plain"), QStringLiteral("theme")},
-                      //: In Polish: w kropki
-                      {tr("dots"), QStringLiteral("dots")},
-                      //: In Polish: w kratkę
-                      {tr("grid"), QStringLiteral("grid")},
-                      //: In Polish: własny kolor
-                      {tr("own color"), QStringLiteral("own")}},
-                     QStringLiteral("mindMapsBackground")),
+             options(
+                 {//: In Polish: gładkie
+                  {tr("plain"), QStringLiteral("theme")},
+                  //: In Polish: w kropki
+                  {tr("dots"), QStringLiteral("dots")},
+                  //: In Polish: w kratkę
+                  {tr("grid"), QStringLiteral("grid")},
+                  //: In Polish: własny kolor
+                  {tr("own color"), QStringLiteral("own")}},
+                 QStringLiteral("mindMapsBackground")),
              MindMapSettings::BACKGROUND);
     addCheckBox(look,
                 //: In Polish: Czcionka edytora (zamiast czcionki programu)
@@ -117,14 +115,35 @@ MindMapSettingsPage::MindMapSettingsPage(QWidget* parent) : gui::SettingsPage(pa
     addField(look,
              //: In Polish: Wielkość tekstu:
              tr("Size of the text:"),
-             options({//: In Polish: mała
-                      {tr("small"), QStringLiteral("small")},
-                      //: In Polish: średnia
-                      {tr("medium"), QStringLiteral("medium")},
-                      //: In Polish: duża
-                      {tr("large"), QStringLiteral("large")}},
-                     QStringLiteral("mindMapsTextSize")),
+             options(
+                 {//: In Polish: mała
+                  {tr("small"), QStringLiteral("small")},
+                  //: In Polish: średnia
+                  {tr("medium"), QStringLiteral("medium")},
+                  //: In Polish: duża
+                  {tr("large"), QStringLiteral("large")}},
+                 QStringLiteral("mindMapsTextSize")),
              MindMapSettings::TEXT_SIZE);
+
+    //: Settings > Mind Maps: the nodes. In Polish: Węzły
+    QFormLayout* nodes = addGroup(tr("Nodes"));
+    addCheckBox(nodes,
+                //: In Polish: Węzły kart pokazują główne portrety kart
+                tr("The nodes of the cards show the main portraits of the cards"),
+                MindMapSettings::PORTRAITS);
+    addCheckBox(nodes,
+                //: In Polish: Nowy węzeł pokazuje tylko nagłówek (rozwija go H)
+                tr("A new node shows only its header (H unfolds it)"), MindMapSettings::NEW_FOLDED);
+    QCheckBox* ask = addCheckBox(nodes,
+                                 //: In Polish: Pierwsza relacja karty proponuje mapę relacji
+                                 tr("The first relation of a card offers a relation map"),
+                                 MindMapSettings::ASK_RELATION_MAP);
+    alignWithText(addNote(nodes,
+                          //: In Polish: Mapa relacji pokazuje karty Warsztatu z relacjami, które
+                          //: mają. Nową tworzy Książka > Nowa mapa relacji…
+                          tr("A relation map shows the cards of the Workshop with the relations "
+                             "they have. Book > New Relation Map… makes a new one.")),
+                  ask);
 
     //: In Polish: Wklejanie
     QFormLayout* pasting = addGroup(tr("Pasting"));
@@ -151,35 +170,80 @@ MindMapSettingsPage::MindMapSettingsPage(QWidget* parent) : gui::SettingsPage(pa
     }
     //: In Polish: Tło
     addThemeColor(colors, tr("Background"), MindMapColorKeys::BACKGROUND);
-    //: In Polish: Kropki i kratka
-    addThemeColor(colors, tr("Dots and grid"), MindMapColorKeys::DOTS);
+    //: In Polish: Kropki
+    addThemeColor(colors, tr("Dots"), MindMapColorKeys::DOTS);
+    //: In Polish: Kratka
+    addThemeColor(colors, tr("Grid"), MindMapColorKeys::GRID);
+    //: In Polish: Co piąta linia kratki
+    addThemeColor(colors, tr("Every fifth line of the grid"), MindMapColorKeys::GRID_MAJOR);
     //: In Polish: Własny kolor tła
     addThemeColor(colors, tr("Own background"), MindMapColorKeys::OWN_BACKGROUND);
-    //: In Polish: Temat główny
-    addThemeColor(colors, tr("Main topic"), MindMapColorKeys::ROOT);
-    //: In Polish: Tekst tematu głównego
-    addThemeColor(colors, tr("Text of the main topic"), MindMapColorKeys::ROOT_TEXT);
     //: In Polish: Węzły
     addThemeColor(colors, tr("Nodes"), MindMapColorKeys::NODE);
+    //: In Polish: Krawędź węzła
+    addThemeColor(colors, tr("Edge of a node"), MindMapColorKeys::NODE_LINE);
+    //: In Polish: Tekst nagłówka
+    addThemeColor(colors, tr("Text of the header"), MindMapColorKeys::HEADER_TEXT);
     //: In Polish: Połączenia
     addThemeColor(colors, tr("Connections"), MindMapColorKeys::CONNECTION);
-    //: In Polish: Linie bez kolorów
-    addThemeColor(colors, tr("Lines without colors"), MindMapColorKeys::PLAIN);
-    //: In Polish: Miejsce upuszczenia węzła
-    addThemeColor(colors, tr("Where a dragged node goes"), MindMapColorKeys::DROP);
+    //: In Polish: Ramki
+    addThemeColor(colors, tr("Frames"), MindMapColorKeys::FRAME);
+    //: In Polish: Krawędź ramki
+    addThemeColor(colors, tr("Edge of a frame"), MindMapColorKeys::FRAME_LINE);
+    //: In Polish: Miejsce upuszczenia karty
+    addThemeColor(colors, tr("Where a dragged card goes"), MindMapColorKeys::DROP);
     //: In Polish: Znaki w znacznikach
     addThemeColor(colors, tr("Signs in the markers"), MindMapColorKeys::MARKER_TEXT);
-    const std::array<QString, 5> markers{
-        //: In Polish: Znacznik: pytanie
-        tr("Marker: question"),
-        //: In Polish: Znacznik: ważne
-        tr("Marker: important"),
-        //: In Polish: Znacznik: pomysł
-        tr("Marker: idea"),
-        //: In Polish: Znacznik: zrobione
-        tr("Marker: done"),
-        //: In Polish: Znacznik: do sprawdzenia
-        tr("Marker: to check")};
+    const std::array<QString, 11> kinds{
+        //: The color of the header of a kind of nodes. In Polish: Nagłówek: temat główny
+        tr("Header: main topic"),
+        //: In Polish: Nagłówek: pomysł
+        tr("Header: idea"),
+        //: In Polish: Nagłówek: pytanie
+        tr("Header: question"),
+        //: In Polish: Nagłówek: notatka
+        tr("Header: note"),
+        //: In Polish: Nagłówek: postać
+        tr("Header: character"),
+        //: In Polish: Nagłówek: miejsce
+        tr("Header: place"),
+        //: In Polish: Nagłówek: przedmiot
+        tr("Header: item"),
+        //: In Polish: Nagłówek: tekst
+        tr("Header: text"),
+        //: In Polish: Nagłówek: scena
+        tr("Header: scene"),
+        //: In Polish: Nagłówek: wątek
+        tr("Header: thread"),
+        //: In Polish: Nagłówek: inny element
+        tr("Header: another element")};
+    for (std::size_t i = 0; i < kinds.size(); ++i) {
+        addThemeColor(colors, kinds.at(i), MindMapColorKeys::KINDS.at(i));
+    }
+    const std::array<QString, 5> sockets{
+        //: The color of the sockets and links of a kind. In Polish: Gniazda: gałąź
+        tr("Sockets: branch"),
+        //: In Polish: Gniazda: rodzina
+        tr("Sockets: family"),
+        //: In Polish: Gniazda: relacje
+        tr("Sockets: relations"),
+        //: In Polish: Gniazda: miejsca
+        tr("Sockets: places"),
+        //: In Polish: Gniazda: przedmioty
+        tr("Sockets: items")};
+    for (std::size_t i = 0; i < sockets.size(); ++i) {
+        addThemeColor(colors, sockets.at(i), MindMapColorKeys::SOCKETS.at(i));
+    }
+    const std::array<QString, 5> markers{//: In Polish: Znacznik: pytanie
+                                         tr("Marker: question"),
+                                         //: In Polish: Znacznik: ważne
+                                         tr("Marker: important"),
+                                         //: In Polish: Znacznik: pomysł
+                                         tr("Marker: idea"),
+                                         //: In Polish: Znacznik: zrobione
+                                         tr("Marker: done"),
+                                         //: In Polish: Znacznik: do sprawdzenia
+                                         tr("Marker: to check")};
     for (std::size_t i = 0; i < markers.size(); ++i) {
         addThemeColor(colors, markers.at(i), MindMapColorKeys::MARKERS.at(i));
     }

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file publishing_texts.h
 /// @brief The texts for publishers: a sentence about the book and a synopsis, each in versions,
@@ -15,6 +16,7 @@
 #include <QJsonValue>
 #include <QList>
 #include <QMap>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QStringView>
@@ -279,9 +281,13 @@ struct PublishingTexts {
     /// pages (PAGE_CHARACTERS)
     static constexpr const char* PAGES_SETTING = "materials.publishing.pages";
 
-    /// @brief The setting of where the points of the template of a synopsis are: beside the
-    /// text, in the Properties ("beside"), or in the text, as headings ("inText")
-    static constexpr const char* POINTS_SETTING = "materials.publishing.templatePoints";
+    /// @brief The setting of whether the fragments of a synopsis linked to the points of its
+    /// template have a bar beside their lines on the left margin
+    static constexpr const char* POINT_BARS_SETTING = "materials.publishing.pointBars";
+
+    /// @brief The setting of whether copying and exporting the set warn of the points of its
+    /// synopsis with no fragment in its text
+    static constexpr const char* POINT_WARNINGS_SETTING = "materials.publishing.pointWarnings";
 
     /// @brief The setting of the parts of the set of a new book, in its order
     static constexpr const char* SET_SETTING = "materials.publishing.set";
@@ -301,11 +307,20 @@ struct PublishingTexts {
     /// @brief Whether a text of @p part has a template with a pattern (a sentence)
     static bool hasPattern(const QString& part);
 
-    /// @brief Whether the points of a template are in the text, as headings (POINTS_SETTING)
-    static bool pointsInText();
-
     /// @brief Whether the length of a synopsis is also given in standard pages (PAGES_SETTING)
     static bool showsPages();
+
+    /// @brief Whether the fragments linked to the points have a bar on the margin
+    ///        (POINT_BARS_SETTING)
+    static bool showsPointBars();
+
+    /// @brief Whether copying and exporting the set warn of the points with no fragment
+    ///        (POINT_WARNINGS_SETTING)
+    static bool warnsOfPoints();
+
+    /// @brief The ids of the points of the text @p kml has fragments of: <points ids> with
+    ///        text in it (editor/text_points.h)
+    static QSet<QString> linkedPointsOf(const QString& kml);
 
     /// @brief The setting of the default target length of @p part in words or in characters
     static std::string targetSettingOf(const QString& part, bool words);
@@ -351,6 +366,10 @@ struct PublishingTexts {
     /// @return The texts that are drafts again
     static QStringList setState(BookProject& project, const QString& elementId,
                                 const QString& state);
+
+    /// @brief The note about the author (ABOUT_AUTHOR_KIND) of the back part of @p book, the
+    /// first one; nullptr: none
+    static const ProjectElement* aboutAuthorOf(const ProjectBook& book);
 
     /// @brief The versions that can be the part @p part of a set (setParts()): the texts of the
     /// part, or the materials of the cover of a description or a tagline, in the order of the

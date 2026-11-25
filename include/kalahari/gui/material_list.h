@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file material_list.h
 /// @brief The lists of the materials of the Workshop on their tabs: the kinds of the Materials,
@@ -58,15 +59,15 @@ struct MaterialRow {
                                      ///< (CardList)
     QString color;                   ///< Of a card: its color ("#RRGGBB"); empty: none
     QString summary;                 ///< Of a card: In Short, on its tile
-    bool publishing = false;         ///< A text for publishers (core::PublishingData)
-    bool fromCover = false;          ///< In the list of the texts for publishers: a
-                                     ///< description or a tagline of the cover
-    QString volume;                  ///< Of a material of the cover or a text for publishers
-                                     ///< of a series: the name of its volume, or of the whole
-                                     ///< series (VolumeNames::nameOf()); empty: no series
+    QString volume;                  ///< Of a material of the cover of a series: the name
+                                     ///< of its volume, or of the whole series
+                                     ///< (VolumeNames::nameOf()); empty: no series
     int volumeOrder = 0;             ///< Its place: 0 the whole series, 1 the first volume...
                                      ///< (VolumeNames::orderOf()); the groups of a series go
                                      ///< by it first
+    bool volumeHeading = false;      ///< A row that names a volume of a series (or the whole
+                                     ///< series) above the groups of its materials: it
+                                     ///< collapses and expands them
 };
 
 /// @brief The lists of the materials of the book open in @p book: the kinds of the Materials of its
@@ -116,13 +117,7 @@ public:
     static constexpr const char* COVER_SOURCE = "coverSource"; ///< The cover: of an opinion
     static constexpr const char* COVER_DATE = "coverDate";     ///< The cover: of an opinion
     static constexpr const char* COVER_LICENSE = "coverLicense";  ///< The cover: of a picture
-    static constexpr const char* PUBLISHING_PART = "publishingPart";  ///< A text for publishers:
-                                                                        ///< what it is
-    static constexpr const char* PUBLISHING_TEXT = "publishingText";  ///< Its text or its title
-    static constexpr const char* PUBLISHING_TEMPLATE = "publishingTemplate";  ///< Its template
-    static constexpr const char* PUBLISHING_STATE = "publishingState";  ///< Chosen for the set...
-    static constexpr const char* PUBLISHING_LENGTH = "publishingLength";  ///< With its target
-    /// The cover and the texts for publishers of a series: the volume, or the whole series
+    /// The cover of a series: the volume, or the whole series
     static constexpr const char* VOLUME = "volume";
     static constexpr const char* CLIPPING_FROM = "from";  ///< A clipping: the text it was cut from
     static constexpr const char* CLIPPING_CUT = "cut";    ///< A clipping: when it was cut
@@ -264,59 +259,29 @@ public:
     /// in SOURCES the entry of a source in the bibliography of the book (rowsOf())
     static QString copyTextOf(const core::ProjectManager& book, const QString& elementId);
 
-    /// @brief Whether @p list is that of the texts for publishers
-    static bool isPublishing(const QString& list);
-
-    /// @brief Whether the rows of @p list can be in groups by what they are: the lists of the
-    /// cover and of the texts for publishers
+    /// @brief Whether the rows of @p list can be in groups by what they are: the list of the
+    /// cover
     static bool hasGroups(const QString& list);
 
     /// @brief The column of @p list that says what its rows are, which the groups hide:
-    /// COVER_PART, PUBLISHING_PART; empty for a list without groups
+    /// COVER_PART; empty for a list without groups
     static QString partColumnOf(const QString& list);
 
-    /// @brief Whether the list of the texts for publishers @p list shows the descriptions and
-    /// the taglines of the cover too (LISTS_SETTING); at first it does
-    static bool fromCoverShown(const QString& list);
-
-    /// @brief Keep whether the list of the texts for publishers @p list shows the descriptions
-    /// and the taglines of the cover
-    static void setFromCoverShown(const QString& list, bool shown);
-
-    /// @brief Columns of the list of the texts for publishers: what a text is, its text or
-    /// title, its template, its state, its length with the target and the time of its file;
-    /// the title and the links hidden
-    static QList<MaterialColumn> publishingColumns();
-
-    /// @brief The columns of a kind @p kindId with columns of its own: the clippings, the
-    /// texts for publishers; none for another kind
+    /// @brief The columns of a kind @p kindId with columns of its own: the clippings; none for
+    /// another kind
     static QList<MaterialColumn> ownColumnsOf(const QString& kindId);
 
-    /// @brief What text @p element for publishers of the book open in @p book shows in the
-    /// columns of its list; nothing for an element that is not a text for publishers
-    static void setPublishingTexts(MaterialRow& row, const core::ProjectManager& book,
-                                   const core::ProjectElement& element);
-
-    /// @brief The column of the volume of the lists of the cover and of the texts for
-    /// publishers (VOLUME) in @p columns of @p list, before what the rows are
-    /// (partColumnOf()), when the book open in @p book is a series
+    /// @brief The column of the volume of the list of the cover (VOLUME) in @p columns of
+    /// @p list, before what the rows are (partColumnOf()), when the book open in @p book is a
+    /// series
     static void addVolumeColumn(const core::ProjectManager& book, const QString& list,
                                 QList<MaterialColumn>& columns);
 
-    /// @brief What material @p element of the cover, or text @p element for publishers, of the
-    /// series open in @p book shows of its volume; nothing for another material, or in a book
+    /// @brief What material @p element of the cover of the series open in @p book shows of its
+    /// volume; nothing for another material, or in a book
     /// that is no series
     static void setVolumeTexts(MaterialRow& row, const core::ProjectManager& book,
                                const core::ProjectElement& element);
-
-    /// @brief What a description or a tagline @p element of the cover shows in the columns of
-    /// the list of the texts for publishers, as a row from the cover
-    static void setPublishingCoverTexts(MaterialRow& row, const core::ProjectElement& element);
-
-    /// @brief The descriptions and the taglines of the cover of the book open in @p book, as
-    /// the list of the texts for publishers shows them: the versions of the parts of its set
-    static QList<const core::ProjectElement*> publishingCoverTexts(
-        const core::ProjectManager& book);
 
     /// @brief Columns of the list of the clippings: the title, where it comes from, when it
     /// was cut, the words, the note and when it was inserted (shown when a clipping inserted

@@ -1,12 +1,14 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file quick_insert.h
 /// @brief Quick insert: what the list at the cursor offers and how the typed letters find it
 ///
 /// Typed at the start of a word, @ or # opens a list at the cursor: the names of the book's
 /// dictionary with their forms and the names of the cards of the Workshop (characters,
-/// locations, items), the writer's text fragments and typographic characters (Settings >
+/// locations, items), the writer's text fragments, typographic characters and the own fields
+/// of the book, inserted as fields (Settings >
 /// Editor > Quick Insert says which list each character opens). The letters typed after it
 /// narrow the list, and the item chosen takes the place of the character and the letters
 /// (QuickInsertController).
@@ -25,7 +27,8 @@ enum class QuickInsertSource {
     Name,      ///< A name of the book's dictionary, with its forms
     Card,      ///< The name of a card of the Workshop: a character, a location, an item
     Fragment,  ///< A text fragment of the writer
-    Character  ///< A typographic character (–, —, …, „”)
+    Character,  ///< A typographic character (–, —, …, „”)
+    Field       ///< An own field of the book: it goes in as a field that shows its value
 };
 
 /// @brief A form of a name in the list of quick insert
@@ -46,6 +49,7 @@ struct QuickInsertItem {
     QString owner;   ///< The name it is another name of ("Anna Wolska" for "Ania"), or empty
     QList<QuickInsertForm> forms;  ///< The forms of a name (→ shows them), its own first
     QString color{};  ///< The color of the card it is the name of ("#c0504d"); empty: none
+    QString field{};  ///< QuickInsertSource::Field: the id of the own field (TextField::key)
 
     bool operator==(const QuickInsertItem&) const = default;
 };

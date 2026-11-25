@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_document_commands.cpp
 /// @brief The commands that work on the document in front are greyed out without one, those of
@@ -51,11 +52,12 @@ CommandCallbacks runningCallbacks() {
           &callbacks.onSuperscript, &callbacks.onSubscript, &callbacks.onSmallCaps,
           &callbacks.onAllCaps, &callbacks.onFontColor, &callbacks.onHighlightColor,
           &callbacks.onCopyFormatting, &callbacks.onPasteFormatting, &callbacks.onInsertLink,
-          &callbacks.onInsertTable, &callbacks.onInsertImage}) {
+          &callbacks.onInsertTable, &callbacks.onInsertImage, &callbacks.onListSets}) {
         *callback = none;
     }
     callbacks.onParagraphStyle = [](const QString&) {};
     callbacks.onChangeCase = [](kalahari::editor::CaseChange) {};
+    callbacks.onTabGuide = [](TabGuideCommand) {};
     return callbacks;
 }
 
@@ -98,8 +100,8 @@ TEST_CASE("Document commands: greyed out without a document in front, with their
         CHECK(command->canExecute());
         REQUIRE(registry.getAction(id) != nullptr);
     }
-    // Find, the windows and the formats, the alignments, the styles, the view mode and the
-    // zoom, each with its keys
+    // Find, the windows and the formats, the alignments and the tab guides, the styles, the
+    // view mode and the zoom, each with its keys
     for (const char* id : {"edit.find", "edit.findNext", "edit.findPrevious", "edit.findReplace",
                            "format.font", "format.paragraph", "insert.link", "insert.table",
                            "insert.image", "format.bold", "format.italic", "format.underline",
@@ -110,8 +112,10 @@ TEST_CASE("Document commands: greyed out without a document in front, with their
                            "format.copyFormatting", "format.pasteFormatting",
                            "format.clearFormatting", "format.alignLeft",
                            "format.alignCenter", "format.alignRight", "format.justify",
+                           "format.tabGuide.toggle", "format.tabGuide.moveLeft",
+                           "format.tabGuide.moveRight", "format.tabGuide.removeAll",
                            "format.increaseIndent", "format.decreaseIndent", "format.bullets",
-                           "format.numbering", "format.bulletsNumbering",
+                           "format.numbering", "format.listSets", "format.bulletsNumbering",
                            "format.style.heading1",
                            "format.style.heading2", "format.style.heading3", "format.style.body",
                            "format.style.quote", "format.style.dialogue", "format.style.code",
@@ -172,8 +176,10 @@ TEST_CASE("Document commands: over a read-only chapter those that change it are 
                                    "format.clearFormatting", "format.alignLeft",
                                    "format.alignCenter",
                                    "format.alignRight", "format.justify",
+                                   "format.tabGuide.toggle", "format.tabGuide.moveLeft",
+                                   "format.tabGuide.moveRight", "format.tabGuide.removeAll",
                                    "format.increaseIndent", "format.decreaseIndent",
-                                   "format.bullets", "format.numbering",
+                                   "format.bullets", "format.numbering", "format.listSets",
                                    "format.bulletsNumbering",
                                    "format.style.heading1", "format.style.heading2",
                                    "format.style.heading3", "format.style.body",

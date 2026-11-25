@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file command_registry.cpp
 /// @brief CommandRegistry implementation
@@ -248,6 +249,10 @@ void CommandRegistry::setErrorHandler(CommandErrorHandler handler) {
     m_errorHandler = handler;
 }
 
+void CommandRegistry::setFallbackReason(FallbackReason reason) {
+    m_fallbackReason = std::move(reason);
+}
+
 CommandErrorHandler CommandRegistry::getErrorHandler() const {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_errorHandler;
@@ -349,8 +354,13 @@ void CommandRegistry::applyActionAvailability(QAction* action, const Command& cm
     QString tooltip = QString::fromStdString(cmd.tooltip.empty() ? cmd.label : cmd.tooltip);
     const bool enabled = cmd.canExecute() && cmd.checkEnabled();
     // Why a command that runs is greyed out now ("No book is open")
-    const QString reason =
+    QString reason =
         cmd.canExecute() && !enabled && cmd.disabledReason ? cmd.disabledReason() : QString();
+    if (cmd.canExecute() && !enabled && reason.isEmpty() && m_fallbackReason) {
+        // The commands of the text, greyed out where there is none (test of 22.11: no
+        // explanation)
+        reason = m_fallbackReason(cmd);
+    }
 
     if (!cmd.canExecute()) {
         // As the list of the keyboard shortcuts says it

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_editor.h
 /// @brief BookEditor - Custom text editor widget (OpenSpec #00042 Phase 3.1-3.5)
@@ -31,6 +32,7 @@
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/table_editing.h>
+#include <kalahari/editor/tab_guides.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
@@ -41,6 +43,7 @@
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/text_highlight.h>
 #include <kalahari/editor/text_link.h>
+#include <kalahari/editor/text_points.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
 // KML → QTextDocument (with QTextCharFormat) → Render visible fragment
@@ -57,8 +60,10 @@
 #include <QList>
 #include <QMap>
 #include <QPointer>
+#include <QScopedValueRollback>
 #include <QSet>
 #include <QTextTable>
+#include <array>
 #include <functional>
 #include <map>
 #include <memory>
@@ -94,7 +99,6 @@ namespace kalahari::editor {
 // Forward declarations
 class FindReplaceBar;
 class KmlDocumentModel;
-struct SkeletonPoint;
 class SpellCheckService;
 class GrammarCheckService;
 class SharedHistory;
@@ -511,6 +515,29 @@ public:
     ///        (Edit > Cut to Clippings follows its step with it)
     [[nodiscard]] int undoLevel() const { return m_undoLevel; }
 
+    /// @brief Whether the change being made now (contentChanged()) is the writer's own
+    ///        writing, which the statistics of writing count
+    ///
+    /// Writing is typing (the characters, the input method, Tab, Enter), deleting with the
+    /// keys, Cut, Edit > Delete, a cut to the clippings that deletes (takeSelection()), the
+    /// text of a note written in its frame (HandWriting), and Undo and Redo of those steps.
+    /// Nothing else is: a caption, an image, a table, a field, a clipping, a replacement, a
+    /// format, a style, a version, a text loaded, nor Undo and Redo of those steps (test of
+    /// 22.11: the graph of writing shows the writing only). A paste is counted apart
+    /// (pastingStarted()).
+    [[nodiscard]] bool isWriting() const { return m_handWriting; }
+
+    /// @brief While it lives, the changes made to the editor are the writer's own writing
+    ///        (isWriting()), and so are their undo levels: the text of a note written in its
+    ///        frame, put into the text when the frame closes
+    class HandWriting {
+    public:
+        explicit HandWriting(BookEditor& editor) : m_writing(editor.m_handWriting, true) {}
+
+    private:
+        QScopedValueRollback<bool> m_writing;
+    };
+
     /// @brief What the break of scene @p scene (from 1: the first scene break of the text) says
     ///        of its scene: its title, description... (sceneBreakAttributeNames())
     /// @return None for a break without them, or when the text has no such break
@@ -899,6 +926,35 @@ public:
     /// The objects among the paragraphs do not count; a selection of objects only has none.
     [[nodiscard]] QString selectedParagraphStyle() const;
 
+    // =========================================================================
+    // Tab guides (tab_guides.h): dashed lines down the text that a Tab aligns it to
+    // =========================================================================
+
+    /// @brief The tab guides of the text: millimetres from its left edge, in order
+    [[nodiscard]] std::vector<double> tabGuides() const;
+
+    /// @brief Give the text its tab guides (normalizedTabGuides()) as one undo step, which
+    ///        changes the text (isModified()); refused in a text only read
+    /// @return Whether they changed
+    bool setTabGuides(const std::vector<double>& guides);
+
+    /// @brief Where the cursor is: millimetres from the left edge of the text; nothing without
+    ///        a text
+    [[nodiscard]] std::optional<double> cursorMillimetres() const;
+
+    /// @brief Format > Align Text > Set or Remove Tab Guide: the guide at the cursor (closer than
+    ///        TAB_GUIDE_MIN_GAP_MM) taken away, or else a new one there, on a step
+    TabGuideOutcome toggleTabGuideAtCursor();
+
+    /// @brief Format > Align Text > Move Tab Guide Left / Right: the guide nearest the cursor
+    ///        @p steps steps (TAB_GUIDE_STEP_MM) right, left when negative, not past the
+    ///        guides beside it (TAB_GUIDE_MIN_GAP_MM) nor the edges of the text. While the
+    ///        cursor stays, the next move takes the same guide, though another one is nearer.
+    TabGuideOutcome moveTabGuide(int steps);
+
+    /// @brief Format > Align Text > Remove All Tab Guides
+    TabGuideOutcome clearTabGuides();
+
     /// @brief The object at the cursor (a horizontal line, a break); None in a paragraph of
     ///        text
     [[nodiscard]] TextObject currentObject() const;
@@ -921,9 +977,16 @@ public:
     ///
     /// When all of them are items of the kind with numbers or bullets, they leave their
     /// lists. Otherwise they all become items: of the list of the kind one of them is in,
-    /// else of the list of the kind right before or after them, else of a new one. An item
-    /// keeps its level.
+    /// else of the list of the kind right before or after them, else of a new one (with the
+    /// formats of newListDefinition()). An item keeps its level.
     void toggleList(ListKind kind);
+
+    /// @brief The formats a new list of a kind gets (F12, Shift+F12, a list started by
+    ///        autocorrect): the default set of the kind (Settings > Editor > Lists)
+    [[nodiscard]] const ListDefinition& newListDefinition(ListKind kind) const;
+
+    /// @brief Give the new lists of a kind these formats
+    void setNewListDefinition(ListKind kind, const ListDefinition& definition);
 
     /// @brief The kind of the list item at the cursor; nothing outside a list and for an
     ///        item without a number or bullet
@@ -1278,6 +1341,11 @@ public:
         ImageWrap wrap = ImageWrap::Inline;  ///< How the text flows around it (unless it has
                                              ///< a wrap of its own)
         int widthPercent = 0;  ///< Of the width of its lines; 0: its file's own (at most theirs)
+        /// The room it keeps from the text above it, below it and beside it, in points (unless
+        /// it has a room of its own)
+        double spaceAbove = DEFAULT_IMAGE_SPACE_ABOVE;
+        double spaceBelow = DEFAULT_IMAGE_SPACE_BELOW;
+        double spaceBeside = DEFAULT_IMAGE_SPACE_BESIDE;
         QString captionLabel;  ///< A numbered caption of this label under it; empty: none
         /// The copy of a file with more dots per inch at the image's width in the text is made
         /// smaller to these; 0: the copy is the file itself
@@ -1288,6 +1356,14 @@ public:
     /// @brief Set how a new image goes into the text
     void setNewImageOptions(const NewImageOptions& options) { m_newImageOptions = options; }
     [[nodiscard]] const NewImageOptions& newImageOptions() const { return m_newImageOptions; }
+
+    /// @brief How a new table goes into the text (Insert > Table..., Text to Table...)
+    struct NewTableOptions {
+        /// The room it keeps from the text above it and below it, in points
+        double spaceAbove = DEFAULT_TABLE_SPACE_ABOVE;
+        double spaceBelow = DEFAULT_TABLE_SPACE_BELOW;
+        bool operator==(const NewTableOptions&) const = default;
+    };
 
     // =========================================================================
     // Captions, cross-references and the list of figures
@@ -1324,6 +1400,22 @@ public:
     /// @brief The number a caption of a label has, or would get, at the image at a position
     ///        ("3", "2.3"): the hint of the windows
     [[nodiscard]] QString captionNumberAt(int position, const QString& label) const;
+
+    /// @brief The table a caption command acts on: the one the cursor is in, or the one whose
+    ///        caption the cursor is in (a position in it: of its first cell); std::nullopt: none
+    [[nodiscard]] std::optional<int> captionTargetTable() const;
+
+    /// @brief The caption of the table at a position (ImageCaption::shown false without one):
+    ///        the paragraph in the style Caption right before it (above it) or after it;
+    ///        std::nullopt: no table there
+    [[nodiscard]] std::optional<ImageCaption> tableCaptionOf(int position) const;
+
+    /// @brief Insert Caption for a table: give the table at a position this caption, as
+    ///        setImageCaption() gives an image its own
+    bool setTableCaption(int position, const ImageCaption& caption);
+
+    /// @brief The number a caption of a label has, or would get, at the table at a position
+    [[nodiscard]] QString tableCaptionNumberAt(int position, const QString& label) const;
 
     /// @brief Insert > Cross-Reference: a cross-reference at the cursor, in place of the
     ///        selection, as one undo step
@@ -1378,17 +1470,33 @@ public:
     /// @return false in a read-only text
     bool insertField(const TextField& field);
 
-    /// @brief Tools > Texts for Publishers > Insert Skeleton: the headings of @p points with
-    ///        their hints at the cursor, in paragraphs of their own (text_skeleton.h), as one
-    ///        undo step; the cursor goes to the empty paragraph under the first heading
-    /// @return false in a read-only text, without points, or in a table
-    bool insertTemplateSkeleton(const QList<SkeletonPoint>& points);
+    /// @brief Show the fragments linked to the points of a text for publishers as @p look
+    ///        says (text_points.h)
+    void setTemplatePointLook(const TemplatePointLook& look);
 
-    /// @brief Tools > Texts for Publishers > Remove Headings and Hints: the headings of the
-    ///        points, each with the empty paragraph of its hint, as one undo step; the cursor
-    ///        stays at its character
-    /// @return The headings removed; 0 without any and in a read-only text
-    int removeTemplateSkeleton();
+    /// @brief How the fragments linked to the points show
+    [[nodiscard]] const TemplatePointLook& templatePointLook() const { return m_pointLook; }
+
+    /// @brief The fragments of each point of a text for publishers, in the order of the text
+    [[nodiscard]] QHash<QString, QList<PointFragment>> templatePointFragments() const;
+
+    /// @brief The points of the selected characters; without a selection, of the characters
+    ///        next to the cursor
+    [[nodiscard]] QStringList templatePointsAtCursor() const;
+
+    /// @brief Tools > Texts for Publishers > Link to a Point: link the selection to the point
+    ///        @p id, or take the link away (@p linked false); without a selection, take away
+    ///        the fragment of the point at the cursor; one undo step
+    /// @return false in a read-only text, and when no character changed
+    bool linkToTemplatePoint(const QString& id, bool linked);
+
+    /// @brief Take the point @p id away from the whole text, as one undo step
+    /// @return false in a read-only text, and when the text has no fragment of it
+    bool unlinkTemplatePointEverywhere(const QString& id);
+
+    /// @brief Put the cursor at the start of fragment @p index of the point @p id and show it
+    /// @return false when the point has no such fragment
+    bool goToTemplatePointFragment(const QString& id, int index);
 
     /// @brief The field the field commands act on (of text_fields.h): the one selected alone,
     ///        else the one just before the cursor, else the one just after it; std::nullopt:
@@ -1411,6 +1519,12 @@ public:
     ///        formatting, as one undo step
     /// @return false without a field of text_fields.h there or in a read-only text
     bool convertFieldToText(int position);
+
+    /// @brief The own fields of the id @p key (text_fields.h) become the text they show of
+    ///        @p field, in their format and formatting; with @p asText false they stay fields
+    ///        with the name of @p field (shown once the book has no such field). One undo step.
+    /// @return How many it changed; 0 without such fields or in a read-only text
+    int changeCustomFields(const QString& key, const CustomFieldValue& field, bool asText);
 
     /// @brief The field of any kind under a point of the widget (its character); std::nullopt:
     ///        none there
@@ -1608,6 +1722,9 @@ public:
     /// @param columns 1 to MAX_INSERTED_TABLE_COLUMNS
     /// @param rows 1 to MAX_INSERTED_TABLE_ROWS
     /// @param headerRow The first row is a header row
+    /// @param options The room the table keeps from the text (Settings > Editor > Tables);
+    ///        without them the default room
+    void insertTable(int columns, int rows, bool headerRow, const NewTableOptions& options);
     void insertTable(int columns, int rows, bool headerRow);
 
     // =========================================================================
@@ -1734,7 +1851,10 @@ public:
     [[nodiscard]] bool canConvertTextToTable() const;
 
     /// @brief Table > Convert > Text to Table...: the paragraphs of paragraphsForTable()
-    ///        become a table (textToTable()); the cursor goes to its first cell
+    ///        become a table (textToTable()) keeping the room of @p options from the text; the
+    ///        cursor goes to its first cell
+    void convertTextToTable(QChar separator, int columns, bool headerRow,
+                            const NewTableOptions& options);
     void convertTextToTable(QChar separator, int columns, bool headerRow);
 
     /// @brief The texts of the cells of the cursor's table by row, a cell's paragraphs
@@ -1817,6 +1937,9 @@ public:
         /// their own names, with the icons, the keys and the state of the commands
         QAction* cutToClippings = nullptr;
         QAction* insertClipping = nullptr;  ///< Insert > Clipping (see cutToClippings)
+        /// The items of the submenu Paste Special under Paste: the forms of Edit > Paste
+        /// Special... (the application's); without it the menu has none
+        std::function<void(QMenu& submenu, BookEditor& text)> pasteSpecial{};
     };
 
     /// @brief The commands of the Edit menu the text's context menu shows as its editing
@@ -2011,6 +2134,10 @@ public:
     /// @return Total page count, or 0 if no document
     [[nodiscard]] int totalPages() const;
 
+    /// @brief The number its first page shows: 1, or its page in the whole book
+    ///        (PageLayout::firstPageNumber); page n shows this number + n - 1
+    [[nodiscard]] int firstPageNumber() const { return m_appearance.pageLayout.firstPageNumber; }
+
     /// @brief Navigate to a specific page
     /// @param page The page number (1-based)
     void goToPage(int page);
@@ -2107,8 +2234,9 @@ public:
     [[nodiscard]] bool isSpellCheckPending() const;
 
     /// @brief A property of the context menu (bool) true while the words to put in place of a
-    ///        misspelled word are being found: they come first in the menu once they are, its
-    ///        first item saying so until then
+    ///        misspelled word are being found: they come in its submenu Suggestions once they
+    ///        are, the submenu's only item, Loading..., saying so until then; the menu itself
+    ///        stays as it opened
     static constexpr const char* SUGGESTIONS_PENDING_PROPERTY = "kalahariSuggestionsPending";
 
     /// @brief What goToNextIssue() did
@@ -2711,6 +2839,17 @@ private:
     /// (isReadOnly()); then it says so (changeRefused())
     bool refusesChange();
 
+    /// @brief The document and the view take tab guides (setTabGuidesOf()), without an undo
+    ///        step: setTabGuides() and its undo and redo
+    void applyTabGuides(const std::vector<double>& guides);
+
+    /// @brief The width of the text, in millimetres; 0 before it has one
+    [[nodiscard]] double textWidthMillimetres() const;
+
+    /// @brief The guide of @p guides moveTabGuide() moves: the one it moved last, while the
+    ///        cursor stays, else the one nearest the cursor; none without guides
+    [[nodiscard]] std::optional<size_t> tabGuideToMove(const std::vector<double>& guides) const;
+
     /// @brief An item of the context menu that changes the text: greyed out while the text is
     /// only read, with the reason as its tooltip and its status tip (setReadOnlyReason())
     void disableWhileReadOnly(QAction* action) const;
@@ -2799,6 +2938,7 @@ private:
     struct LevelKind {
         bool pasting = false;  ///< A paste (m_pasteLevels)
         bool moving = false;   ///< Words moved, not written (m_movedLevels)
+        bool writing = false;  ///< The writer's own writing (m_writingLevels, isWriting())
     };
 
     /// @brief Announce that undo or redo changes level @p level: pastingStarted() for a paste,
@@ -3284,6 +3424,26 @@ private:
                                   const QTextBlockFormat& format, const QTextCharFormat& charFormat,
                                   bool above);
 
+    /// @brief The caption of a caption's block, as the windows show it (shown false for an
+    ///        invalid block)
+    [[nodiscard]] ImageCaption captionOfBlock(const QTextBlock& block) const;
+
+    /// @brief The number a caption of a label has in a caption's block (invalid: none), or
+    ///        would get at a place of the document
+    [[nodiscard]] QString captionNumberIn(const QTextBlock& caption, int place,
+                                          const QString& label) const;
+
+    /// @brief Give the image (@p table false) or the table at a position the caption, as one
+    ///        undo step (setImageCaption(), setTableCaption())
+    bool setCaptionOf(int position, bool table, const ImageCaption& caption);
+
+    /// @brief A new caption's block right before a table (@p above) or right after it, the
+    ///        cursor in it: an empty paragraph the table needs there (at the start of the text,
+    ///        between two tables) becomes the caption
+    QTextBlock insertTableCaptionBlock(QTextCursor& cursor, const QTextTable& table,
+                                       const QTextBlockFormat& format,
+                                       const QTextCharFormat& charFormat, bool above);
+
     /// @brief Write a caption into its block: the text after its number when it changed, and
     ///        the label and the number before it (a number keeps its id)
     void writeCaption(QTextCursor& cursor, const QTextBlock& block, const ImageCaption& wanted,
@@ -3534,6 +3694,10 @@ private:
     qreal m_cursorLineHeightOnFirstShow = -1.0;             ///< scrollCursorLineTo() waits for the
                                                             ///< first paint (none below 0)
 
+    // The guide moveTabGuide() moved last, and the cursor it was moved from
+    std::optional<double> m_movedTabGuide;
+    CursorPosition m_movedTabGuideCursor;
+
     // Cursor state (Phase 3.4 + 3.5)
     CursorPosition m_cursorPosition;                            ///< Current cursor position
     QTimer* m_cursorBlinkTimer = nullptr;                       ///< Timer for cursor blinking
@@ -3666,6 +3830,8 @@ private:
 
     // Autocorrect: the changes of the text as it is typed (typeText())
     AutoCorrectOptions m_autoCorrect;          ///< What is changed
+    /// The formats of a new numbered and a new bulleted list (newListDefinition())
+    std::array<ListDefinition, 2> m_newLists{ListDefinition::numbered(), ListDefinition::bulleted()};
     std::function<QString()> m_textLanguage;  ///< The language of the text (setTextLanguage())
 
     PasteMode m_pasteMode = PasteMode::Merge;  ///< How text from other programs is pasted
@@ -3687,6 +3853,11 @@ private:
     /// The levels of undo that took text to another text (takeSelection()): undoing and
     /// redoing them is moving too
     QSet<int> m_movedLevels;
+    /// The levels of undo made by the writer's own writing (isWriting()): undoing and
+    /// redoing them is writing too
+    QSet<int> m_writingLevels;
+    /// The change being made now is the writer's own writing (isWriting(), HandWriting)
+    bool m_handWriting = false;
 
     /// @brief The last level of undo pasted or dropped text: pastingFinished()
     void finishPasting();
@@ -3813,6 +3984,14 @@ private:
     /// @param always Also when they are where they were (a new icon)
     void syncParagraphMarks(bool always = false);
 
+    /// @brief Give the render pipeline the marks of the fragments linked to the points, after
+    ///        the text and m_pointLook
+    void syncTemplatePointMarks();
+
+    /// @brief Link the characters from @p from to @p to to the point @p id, or take the link
+    ///        away, as one undo step that brings back the cursor and the selection
+    bool changeTemplatePointLink(int from, int to, const QString& id, bool linked);
+
     /// @brief The material or the card a paperclip or a sign of cards beside a paragraph names
     /// is chosen: at once when it names one, else in a menu at @p globalPos; the scissors open
     /// their menu there
@@ -3862,8 +4041,9 @@ private:
     [[nodiscard]] std::tuple<QString, int, int> getMisspelledWordAt(
         int paraIndex, int offset, HighlightKind* kind = nullptr) const;
 
-    /// @brief Put on the context menu what is offered for a misspelled word: the words to
-    ///        put in its place (as soon as they are found, SUGGESTIONS_PENDING_PROPERTY),
+    /// @brief Put on the context menu what is offered for a misspelled word: the submenu
+    ///        Suggestions with the words to put in its place (Loading... until they are
+    ///        found, SUGGESTIONS_PENDING_PROPERTY),
     ///        Ignore All, Add to Book Dictionary (with the book's dictionary), Add to Your Words
     ///        (All Books), Add Name... (with the book's dictionary), then Create Card
     ///        (addCreateCardMenu()), which addCardMenus() goes on after
@@ -4035,6 +4215,9 @@ private:
     /// @brief Set by the undo items of a step being undone or redone (see
     /// setParagraphAlignment(), beginAnnotationStep() and setupFindReplace())
     std::optional<StepCursor> m_stepCursor;
+
+    /// @brief How the fragments linked to the points of a text for publishers show
+    TemplatePointLook m_pointLook;
 
     /// @brief Create the document with the given content and connect it to the view
     ///

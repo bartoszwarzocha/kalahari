@@ -1,10 +1,11 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file quick_insert_items.h
 /// @brief What the list of quick insert offers: the names of the book's dictionary and the
-///        cards of its Workshop, the writer's text fragments and the typographic characters,
-///        as Settings > Editor > Quick Insert chooses for @ and #
+///        cards of its Workshop, the writer's text fragments, the typographic characters and
+///        the own fields of the book, as Settings > Editor > Quick Insert chooses for @ and #
 
 #ifndef KALAHARI_GUI_QUICK_INSERT_ITEMS_H
 #define KALAHARI_GUI_QUICK_INSERT_ITEMS_H
@@ -15,6 +16,8 @@
 #include <QList>
 #include <QString>
 #include <QStringList>
+
+#include <optional>
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -33,7 +36,7 @@ namespace quick_insert_keys {
 /// Whether @ and # typed at the start of a word open the list
 inline constexpr const char* ENABLED = "editor.quickInsert.enabled";
 /// What @ opens: a list of SOURCE_CARDS (the names of the book's dictionary and of the cards),
-/// SOURCE_FRAGMENTS, SOURCE_CHARACTERS
+/// SOURCE_FRAGMENTS, SOURCE_CHARACTERS, SOURCE_FIELDS (the own fields of the book)
 inline constexpr const char* AT_SOURCES = "editor.quickInsert.at";
 /// What # opens, as AT_SOURCES
 inline constexpr const char* HASH_SOURCES = "editor.quickInsert.hash";
@@ -44,6 +47,7 @@ inline constexpr const char* ITEMS = "editor.quickInsert.items";
 inline constexpr const char* SOURCE_CARDS = "cards";
 inline constexpr const char* SOURCE_FRAGMENTS = "fragments";
 inline constexpr const char* SOURCE_CHARACTERS = "characters";
+inline constexpr const char* SOURCE_FIELDS = "fields";
 }  // namespace quick_insert_keys
 
 /// @brief The typographic characters quick insert has before the writer changes them, named in
@@ -90,11 +94,20 @@ QList<editor::QuickInsertItem> dictionaryItems(const core::BookDictionary& dicti
 /// @brief The characters that open the list as the settings are: "@#", "@", "#" or none
 QString quickInsertTriggers();
 
+/// @brief The own fields of the volume @p bookId of @p book (empty: the current book), each
+///        named by its name with its value beside it, inserted as a field (own_fields.h)
+QList<editor::QuickInsertItem> fieldItems(const core::ProjectManager& book,
+                                          const QString& bookId = QString());
+
 /// @brief The items of the list opened by @p trigger ('@', '#'; QChar(): all of them, for
 ///        Insert > Quick Insert...), with the names of the dictionary and the cards of the book
 ///        open in @p book (a card whose name the dictionary has is its name there, and the
 ///        names of a card have its color)
-QList<editor::QuickInsertItem> quickInsertItems(const core::ProjectManager& book, QChar trigger);
+/// @param fieldsOf The own fields of which volume (empty: the current book); std::nullopt: a
+///        text outside the book, which has none
+QList<editor::QuickInsertItem> quickInsertItems(
+    const core::ProjectManager& book, QChar trigger,
+    const std::optional<QString>& fieldsOf = std::nullopt);
 
 }  // namespace kalahari::gui
 

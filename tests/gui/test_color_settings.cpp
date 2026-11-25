@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_color_settings.cpp
 /// @brief The colors the writer can change in the Settings dialog: the waves under the
@@ -348,13 +349,13 @@ TEST_CASE("Settings: the colors of the papers, on the Editor > Colors page",
     for (const auto& [title, keys] : papers) {
         const QList<ColorConfigWidget*> colors = colorsOfGroup(page, title);
         const std::string names[] = {keys->paper,      keys->text,        keys->focusDimmed,
-                                     keys->formattingMarks, keys->link,  keys->tableLines,
-                                     keys->tableHeader, keys->tableGridlines,
+                                     keys->formattingMarks, keys->tabGuide, keys->link,
+                                     keys->tableLines, keys->tableHeader, keys->tableGridlines,
                                      keys->imageCropMarks, keys->imageMissing, keys->field,
                                      keys->brokenField, keys->noteLine, keys->noteFrame,
-                                     keys->desk};
-        REQUIRE(colors.size() == 15);
-        for (int i = 0; i < 15; ++i) {
+                                     keys->spreadFold, keys->spreadGuide, keys->desk};
+        REQUIRE(colors.size() == 18);
+        for (int i = 0; i < 18; ++i) {
             INFO(title.toStdString() << " " << names[i]);
             REQUIRE(themeColor(names[i]).isValid());
             CHECK(colors.at(i)->color() == themeColor(names[i]));

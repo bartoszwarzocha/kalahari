@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_epub_export.cpp
 /// @brief Export of a book to EPUB 3: the archive, the package with its data, the documents
@@ -227,8 +228,10 @@ TEST_CASE("EPUB: the texts as the reader shows them", "[export][epub]") {
             QStringLiteral("<li value=\"2\"><p class=\"s-normal\">Two</p><ol type=\"a\">\n<li "
                            "value=\"1\"><p class=\"s-normal\">Two a</p></li>\n</ol>\n</li>")));
         CHECK(chapter.contains(QStringLiteral("<li value=\"7\">")));
-        CHECK(chapter.contains(
-            QStringLiteral("<ul>\n<li><p class=\"s-normal\">Bullet</p></li>\n</ul>")));
+        // (the item before the table keeps the table's room below it)
+        CHECK(chapter.contains(QStringLiteral(
+            "<ul>\n<li><p class=\"s-normal\" style=\"margin-bottom: ")));
+        CHECK(chapter.contains(QStringLiteral("em\">Bullet</p></li>\n</ul>")));
         CHECK(chapter.contains(QStringLiteral(
             "<colgroup><col style=\"width: 40%\"/><col style=\"width: 60%\"/></colgroup>")));
         CHECK(chapter.contains(QStringLiteral("<thead>\n<tr><th ")));

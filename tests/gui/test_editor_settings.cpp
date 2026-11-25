@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_editor_settings.cpp
 /// @brief The editors follow the editor settings, wherever they are changed; the Settings
@@ -12,6 +13,9 @@
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/kalahari_text_document_layout.h"
+#include "kalahari/gui/command.h"
+#include "kalahari/gui/command_registrar.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/settings_dialog.h"
@@ -719,6 +723,37 @@ TEST_CASE("Settings dialog: the words of the notes counted or not, in the open e
     restore(before);
 }
 
+TEST_CASE("Editor settings: the color of the tab guides on each paper reaches every editor",
+          "[gui][editor][settings][tabguides]") {
+    auto& settings = core::SettingsManager::getInstance();
+    auto& themes = core::ThemeManager::getInstance();
+    const std::string theme = themes.getCurrentTheme().name;
+    const std::string light =
+        core::ThemeManager::editorColorSetting(theme, editor::LIGHT_PAPER_COLOR_KEYS.tabGuide);
+    const std::string dark =
+        core::ThemeManager::editorColorSetting(theme, editor::DARK_PAPER_COLOR_KEYS.tabGuide);
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
+
+    // The theme's colors
+    const editor::EditorColors& colors = panel.getBookEditor()->appearance().colors;
+    CHECK(colors.tabGuides.light ==
+          themes.editorColor(editor::LIGHT_PAPER_COLOR_KEYS.tabGuide, QColor()));
+    CHECK(colors.tabGuides.dark ==
+          themes.editorColor(editor::DARK_PAPER_COLOR_KEYS.tabGuide, QColor()));
+
+    // Those of the Settings
+    settings.set<std::string>(light, "#123456");
+    settings.set<std::string>(dark, "#abcdef");
+    QCoreApplication::processEvents();  // the theme follows the settings
+    QCoreApplication::processEvents();  // and the editors the theme
+    CHECK(panel.getBookEditor()->appearance().colors.tabGuides.light ==
+          QColor(QStringLiteral("#123456")));
+    CHECK(panel.getBookEditor()->appearance().colors.tabGuides.dark ==
+          QColor(QStringLiteral("#abcdef")));
+    settings.removeKey(light);
+    settings.removeKey(dark);
+}
+
 TEST_CASE("Editor settings: View > Show Formatting Marks and the look of the scene breaks reach "
           "every editor",
           "[gui][editor][settings][marks]") {
@@ -867,4 +902,32 @@ TEST_CASE("Settings dialog: the look of the scene breaks, with its preview, and 
     CHECK(markColors == 2);
 
     restore(before);
+}
+
+TEST_CASE("Format > Page Size and Margins... opens Settings > Editor > Pages and Margins",
+          "[gui][settings][commands]") {
+    gui::CommandRegistry registry;
+    int opened = 0;
+    gui::CommandCallbacks callbacks;
+    callbacks.onPageSettings = [&opened]() { ++opened; };
+    gui::registerAllCommands(registry, callbacks);
+
+    // In the Format menu after Bullets and Numbering..., before Footnote Layout...
+    const gui::Command* page = registry.getCommand("format.page");
+    const gui::Command* bullets = registry.getCommand("format.bulletsNumbering");
+    const gui::Command* footnotes = registry.getCommand("insert.footnoteSettings");
+    REQUIRE(page != nullptr);
+    REQUIRE(bullets != nullptr);
+    REQUIRE(footnotes != nullptr);
+    CHECK(page->menuPath == "FORMAT/Page Size and Margins...");
+    CHECK(bullets->menuOrder < page->menuOrder);
+    CHECK(page->menuOrder < footnotes->menuOrder);
+    CHECK(page->showInMenu);
+    REQUIRE(page->execute);
+    page->execute();
+    CHECK(opened == 1);
+
+    // The page it opens has the format of the pages and their margins
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::PAGES_PAGE)));
 }

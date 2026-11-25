@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file navigator_panel_series.cpp
 /// @brief NavigatorPanel: the books of the project, one book or the volumes of a series
@@ -243,8 +244,8 @@ QTreeWidgetItem* NavigatorPanel::itemOfBookNodeKey(const QString& key) const {
 QAction* NavigatorPanel::addNewVolumeAction(QMenu& menu) const {
     QAction* action = menu.addAction(
         core::ArtProvider::getInstance().getIcon("book.newVolume", core::IconContext::Menu),
-        //: The command of the series and of its volumes in the Navigator, as Book > New
-        //: Volume... In Polish: N&owy tom...
+        //: The command of the project's node in the Navigator (a book or a series), as Book >
+        //: New Volume... In Polish: N&owy tom...
         tr("New &Volume..."));
     connect(action, &QAction::triggered, this, &NavigatorPanel::requestNewVolume);
     return action;
@@ -257,7 +258,8 @@ QList<QAction*> NavigatorPanel::addVolumeActions(QMenu& menu, const QTreeWidgetI
     const qsizetype index = project != nullptr ? project->bookIndex(bookId) : -1;
     const qsizetype count = project != nullptr ? project->books.size() : 0;
 
-    QList<QAction*> actions{addNewVolumeAction(menu)};
+    // New Volume... is in the menu of the project, which has the volumes
+    QList<QAction*> actions;
     QAction* earlier = menu.addAction(
         artProvider.getIcon("navigation.up", core::IconContext::Menu),
         //: The command of a volume in the Navigator: it comes before the volume before it.
@@ -304,13 +306,8 @@ QList<QAction*> NavigatorPanel::addBookActions(QMenu& menu, const QTreeWidgetIte
     if (showsVolumes()) {
         return addVolumeActions(menu, item);
     }
-    QList<QAction*> actions{
-        addRenameAction(menu, [this]() { emit requestRenameNode(QStringLiteral("book")); })};
-    // A book becomes volume 1 of a series with its second volume
-    if (m_book.isProjectOpen()) {
-        actions << addNewVolumeAction(menu);
-    }
-    return actions;
+    // New Volume..., which makes the book volume 1 of a series, is in the menu of the project
+    return {addRenameAction(menu, [this]() { emit requestRenameNode(QStringLiteral("book")); })};
 }
 
 QString NavigatorPanel::bookPropertiesText() const {
@@ -331,7 +328,7 @@ QList<QAction*> NavigatorPanel::addVolumeRemovalActions(QMenu& menu,
     return {addDeleteVolumeAction(menu, item)};
 }
 
-void NavigatorPanel::addProjectActions(QMenu& menu, QList<QAction*>& changing) {
+void NavigatorPanel::addProjectActions(QMenu& menu) {
     auto& artProvider = core::ArtProvider::getInstance();
     if (!showsVolumes()) {
         QAction* propertiesAction = menu.addAction(
@@ -347,7 +344,6 @@ void NavigatorPanel::addProjectActions(QMenu& menu, QList<QAction*>& changing) {
         propertiesAction->setStatusTip(why);
         return;
     }
-    changing << addNewVolumeAction(menu);
     QAction* properties = menu.addAction(
         artProvider.getIcon("view.properties", core::IconContext::Menu),
         //: The command of the node of a series in the Navigator: its name and its volumes in

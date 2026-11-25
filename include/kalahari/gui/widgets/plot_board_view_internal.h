@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plot_board_view_internal.h
 /// @brief PlotBoardView: the sizes of the cards, the parts and the drawers, the fonts of the
@@ -56,7 +57,8 @@ constexpr double MARKED_OPACITY = 0.55;     ///< Of a card marked to move (Ctrl+
 constexpr float PLANNED_OPACITY = 0.6F;     ///< Of a scene in the plan among the scenes written
 constexpr double SECTION_OPACITY = 0.7;     ///< Of a text of the front or the back section
 constexpr double HALF_PIXEL = 0.5;          ///< The border of a card on the middle of a pixel
-constexpr double TINT_SHARE = 0.22;         ///< Of the color of a card in its background
+/// Of the color of a card in its background
+constexpr double TINT_SHARE = PlotColors::TINT_SHARE;
 constexpr double READABLE_CONTRAST = 4.5;   ///< Of the texts on the background of the board
 constexpr float QUIET_RING_ALPHA = 0.5F;    ///< The ring of the card chosen without the keys
 

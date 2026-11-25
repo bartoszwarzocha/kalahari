@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_publishing_settings.cpp
 /// @brief The texts for publishers in the program: the names of their parts and states, the
@@ -60,7 +61,6 @@ public:
         settings().set<std::string>(core::CoverMaterial::UNIT_SETTING, "characters");
         settings().set<nlohmann::json>(PublishingTexts::TARGETS_SETTING, nlohmann::json::object());
         settings().set<bool>(PublishingTexts::PAGES_SETTING, true);
-        settings().set<std::string>(PublishingTexts::POINTS_SETTING, "beside");
         settings().set<nlohmann::json>(PublishingTexts::SET_SETTING,
                                        nlohmann::json{"pitch", "tagline", "blurb", "synopsis",
                                                       "aboutAuthor"});
@@ -80,10 +80,9 @@ public:
     KeptSettings& operator=(KeptSettings&&) = delete;
 
 private:
-    static constexpr std::array<const char*, 5> KEYS{
+    static constexpr std::array<const char*, 4> KEYS{
         core::CoverMaterial::UNIT_SETTING, PublishingTexts::TARGETS_SETTING,
-        PublishingTexts::PAGES_SETTING, PublishingTexts::POINTS_SETTING,
-        PublishingTexts::SET_SETTING};
+        PublishingTexts::PAGES_SETTING, PublishingTexts::SET_SETTING};
     static core::SettingsManager& settings() { return core::SettingsManager::getInstance(); }
     std::vector<nlohmann::json> m_values;
 };
@@ -215,30 +214,4 @@ TEST_CASE("Texts for publishers: the set of a new book in Settings > Navigator",
     CHECK(defaults.includes(QStringLiteral("tagline")));
     CHECK(defaults.includes(QStringLiteral("synopsis")));
     CHECK_FALSE(defaults.includes(QStringLiteral("pitch")));
-}
-
-TEST_CASE("Texts for publishers: where the points of a synopsis are, in Settings > Navigator",
-          "[gui][publishing][settings]") {
-    const KeptSettings kept;
-    gui::NavigatorPage page(kalahari::test::book(), gui::NavigatorPage::Part::Publishing);
-    page.load();
-    auto* points = childOf<QComboBox>(page, QStringLiteral("navigatorPublishingPoints"));
-    // Beside the text, as the program starts; its note says what it means
-    CHECK(points->currentData().toString() == QStringLiteral("beside"));
-    CHECK(points->count() == 2);
-    CHECK(points->accessibleDescription().contains(QStringLiteral("Insert Skeleton")));
-    CHECK_FALSE(PublishingTexts::pointsInText());
-
-    points->setCurrentIndex(points->findData(QStringLiteral("inText")));
-    CHECK(page.isChanged());
-    CHECK(points->accessibleDescription().startsWith(QStringLiteral("A new synopsis starts")));
-    page.apply();
-    CHECK(PublishingTexts::pointsInText());
-
-    gui::NavigatorPage again(kalahari::test::book(), gui::NavigatorPage::Part::Publishing);
-    again.load();
-    CHECK_FALSE(again.isChanged());
-    CHECK(childOf<QComboBox>(again, QStringLiteral("navigatorPublishingPoints"))
-              ->currentData()
-              .toString() == QStringLiteral("inText"));
 }

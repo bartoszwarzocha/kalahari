@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file card_panel.cpp
 /// @brief The full card of a character, a location or an item on a tab beside the chapters
@@ -26,6 +27,8 @@ CardPanel::CardPanel(core::ProjectManager& book, CommandRegistry& commands,
     m_page->setDescriptionWidget(description);
     //: The editor of the long description of a card, for screen readers. In Polish: Opis karty
     description->setAccessibleName(tr("Description of the card"));
+    // A plain text field, as the other fields of the card (the test of 22.11)
+    setFieldLook(true);
     m_page->showCard(elementId);
 }
 

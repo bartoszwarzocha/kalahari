@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file versions_coordinator.cpp
 /// @brief Save Version and Version History, and what the window of the versions chose
@@ -282,7 +283,7 @@ bool VersionsCoordinator::restoreVersion(EditorPanel* editor, const core::Chapte
     }
     if (m_showNotice) {
         m_showNotice(editor, message,
-                     //: The button of the bar after a version was restored. In Polish: &Cofnij
+                     //: The button of the bar after a version was restored. In Polish: Cofn&ij
                      tr("&Undo"),
                      //: In Polish: Cofnij przywrócenie, jak Ctrl+Z
                      tr("Undo the restoring, as Ctrl+Z does"), [this, elementId]() {

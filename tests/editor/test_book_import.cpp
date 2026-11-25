@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_book_import.cpp
 /// @brief Import of DOCX, Markdown and plain text into a book: the encodings, the readers, the
@@ -1435,4 +1436,37 @@ TEST_CASE("Import: the files of other programs", "[import][docx][markdown][text]
               QStringLiteral("<kml><p>Zażółć gęślą jaźń. „Cytat” – tak…</p><p>Drugi akapit w dwóch wierszach.</p></kml>"));
         CHECK(pieces[1].title == QStringLiteral("Rozdział 2"));
     }
+}
+
+TEST_CASE("Import: the text around the numbers of a Word list and the numbers above",
+          "[import][docx][export][lists]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    ExportItem chapter;
+    chapter.title = QStringLiteral("Regulamin");
+    chapter.titleStyle = QStringLiteral("chapter_title");
+    chapter.kml = QStringLiteral(
+        "<kml><ol prefix=\"§ \"><li>Jeden<ol show-levels=\"1\"><li>Jeden jeden<ol "
+        "show-levels=\"2\" suffix=\")\"><li>Głęboko</li></ol></li></ol></li></ol></kml>");
+    BookExport book;
+    book.title = QStringLiteral("Umowa");
+    book.language = QStringLiteral("pl");
+    book.styles = novelStyles();
+    book.items = {chapter};
+    const QString path = folder.filePath(QStringLiteral("Umowa.docx"));
+    REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+
+    // Read back the same (Word's text of the levels: test_book_export.cpp)
+    ImportDocument document;
+    ImportProblem problem;
+    REQUIRE(readDocx(path, &document, &problem));
+    REQUIRE_FALSE(document.lists.empty());
+    const ListDefinition& list = document.lists.front();
+    CHECK(list.levels[0].prefix == QStringLiteral("§ "));
+    CHECK(list.levels[0].suffix == QStringLiteral("."));
+    CHECK(list.levels[0].shownLevels == 0);
+    CHECK(list.levels[1].prefix.isEmpty());
+    CHECK(list.levels[1].shownLevels == 1);
+    CHECK(list.levels[2].shownLevels == 2);
+    CHECK(list.levels[2].suffix == QStringLiteral(")"));
 }

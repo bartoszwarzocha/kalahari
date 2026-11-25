@@ -1,11 +1,13 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_series_cover.cpp
 /// @brief A series in the window: the cover and the texts for publishers of each volume – the
 /// list Volume in the Properties panel, the lists in groups of the volumes, the plan of the
 /// cover, the set for the publisher and the export of each volume
 
+#include "kalahari_tests/gui/context_menu_reader.h"
 #include "kalahari_tests/gui/dialog_checks.h"
 #include "kalahari_tests/gui/document_window.h"
 #include "kalahari_tests/gui/publishing_test_utils.h"
@@ -36,6 +38,9 @@
 #include <QCoreApplication>
 #include <QLabel>
 #include <QSortFilterProxyModel>
+#include <QKeyEvent>
+#include <QMouseEvent>
+#include <QTableView>
 #include <QString>
 #include <QStringList>
 
@@ -105,6 +110,25 @@ QStringList headingsOf(const MaterialListPanel& panel) {
         }
     }
     return headings;
+}
+
+/// A click of the left button at @p pos of @p widget, as the mouse gives it
+void click(QWidget* widget, const QPoint& pos) {
+    const QPointF globalPos = widget->mapToGlobal(QPointF(pos));
+    QMouseEvent press(QEvent::MouseButtonPress, QPointF(pos), globalPos, Qt::LeftButton,
+                      Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(widget, &press);
+    QMouseEvent release(QEvent::MouseButtonRelease, QPointF(pos), globalPos, Qt::LeftButton,
+                        Qt::NoButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(widget, &release);
+}
+
+/// A key pressed and released in @p widget
+void press(QWidget* widget, int key) {
+    QKeyEvent pressed(QEvent::KeyPress, key, Qt::NoModifier);
+    QCoreApplication::sendEvent(widget, &pressed);
+    QKeyEvent released(QEvent::KeyRelease, key, Qt::NoModifier);
+    QCoreApplication::sendEvent(widget, &released);
 }
 
 /// The text of the column @p title of the row of material @p id in @p panel; empty: none
@@ -275,16 +299,19 @@ TEST_CASE("Series: the list of the cover in groups of each volume, with the colu
     MaterialListPanel* panel = lists.openList(COVER_LIST, false);
     REQUIRE(panel != nullptr);
 
-    // The groups: the whole series first, then each volume, each by its kinds
+    // The groups: the whole series first, then each volume, each under the row of its volume
+    // by its kinds
     panel->showGroups(true);
     CHECK(headingsOf(*panel) ==
-          QStringList({QStringLiteral("Whole series – Cover descriptions · 1"),
-                       QStringLiteral("Volume 1: Sand – Cover descriptions · 1"),
-                       QStringLiteral("Volume 1: Sand – Taglines · 1"),
-                       QStringLiteral("Volume 2: Dunes – Cover descriptions · 1")}));
+          QStringList({QStringLiteral("Whole series · 1"), QStringLiteral("Cover descriptions · 1"),
+                       QStringLiteral("Volume 1: Sand · 2"),
+                       QStringLiteral("Cover descriptions · 1"), QStringLiteral("Taglines · 1"),
+                       QStringLiteral("Volume 2: Dunes · 1"),
+                       QStringLiteral("Cover descriptions · 1")}));
     // Kind: one kind in each volume
     panel->setPartFilter(QStringLiteral("tagline"));
-    CHECK(headingsOf(*panel) == QStringList{QStringLiteral("Volume 1: Sand – Taglines · 1")});
+    CHECK(headingsOf(*panel) ==
+          QStringList({QStringLiteral("Volume 1: Sand · 2"), QStringLiteral("Taglines · 1")}));
     panel->setPartFilter(QString());
 
     // The column Volume
@@ -311,6 +338,156 @@ TEST_CASE("Series: the list of the cover in groups of each volume, with the colu
     CHECK(plan->hasCard(series));
     CHECK_FALSE(plan->hasCard(second));
     panel->showPlan(false);
+}
+
+TEST_CASE("Series: a volume of the list of the cover collapses and expands, with the mouse, the "
+          "keys and its menu",
+          "[gui][series][cover][materials]") {
+    // Test of 22.11 (part 52): the volumes of the list of materials did not collapse
+    gui::registerAllIcons();
+    const test::PublishingSettings kept;
+    test::OpenNovel novel(QStringLiteral("Sand"));
+    auto& pm = novel.pm;
+    const QString first = addCover("Description 1", CoverMaterial::BLURB, CoverMaterial::BACK);
+    const QString tagline = addCover("Tagline 1", CoverMaterial::TAGLINE, CoverMaterial::FRONT);
+    const QString dunes = addDunes(pm);
+    REQUIRE(pm.setCurrentBook(dunes));
+    const QString second = addCover("Description 2", CoverMaterial::BLURB, CoverMaterial::BACK);
+    REQUIRE(pm.setCurrentBook(pm.project()->books.at(0).id));
+
+    test::Window window;
+    gui::MaterialListCoordinator lists(pm, window.tabs, &window.navigator, &window.statusBar,
+                                       [](bool) {});
+    MaterialListPanel* panel = lists.openList(COVER_LIST, false);
+    REQUIRE(panel != nullptr);
+    panel->showGroups(true);
+    window.window.resize(900, 600);
+    window.window.show();
+    QTableView* table = panel->table();
+    const QSortFilterProxyModel* rows = panel->rows();
+
+    // The rows shown, by their headings or the ids of their materials
+    const auto shown = [table, rows]() {
+        QStringList texts;
+        for (int row = 0; row < rows->rowCount(); ++row) {
+            if (table->isRowHidden(row)) {
+                continue;
+            }
+            const QModelIndex index = rows->index(row, 0);
+            const QString heading = index.data(MaterialListPanel::HEADING_ROLE).toString();
+            texts << (heading.isEmpty() ? index.data(MaterialListPanel::ID_ROLE).toString()
+                                        : heading);
+        }
+        return texts;
+    };
+    const auto rowOf = [rows](const QString& heading) {
+        for (int row = 0; row < rows->rowCount(); ++row) {
+            if (rows->index(row, 0).data(MaterialListPanel::HEADING_ROLE).toString() == heading) {
+                return rows->index(row, 0);
+            }
+        }
+        return QModelIndex();
+    };
+    const QString sand = QStringLiteral("Volume 1: Sand · 2");
+    const QString ofDunes = QStringLiteral("Volume 2: Dunes · 1");
+    const QStringList all = {sand,
+                             QStringLiteral("Cover descriptions · 1"),
+                             first,
+                             QStringLiteral("Taglines · 1"),
+                             tagline,
+                             ofDunes,
+                             QStringLiteral("Cover descriptions · 1"),
+                             second};
+    CHECK(shown() == all);
+    const QModelIndex sandRow = rowOf(sand);
+    REQUIRE(sandRow.isValid());
+    CHECK(sandRow.data(MaterialListPanel::COLLAPSED_ROLE) == QVariant(false));
+    CHECK(sandRow.flags().testFlag(Qt::ItemIsSelectable));
+    CHECK(sandRow.data(Qt::AccessibleTextRole).toString() == sand + QStringLiteral(", expanded"));
+    CHECK_FALSE(rowOf(QStringLiteral("Taglines · 1")).flags().testFlag(Qt::ItemIsSelectable));
+
+    // A click on the row of the volume collapses it and expands it
+    const QPoint place = table->visualRect(sandRow).center();
+    click(table->viewport(), place);
+    CHECK(panel->isVolumeCollapsed(1));
+    CHECK(shown() == QStringList({sand, ofDunes, QStringLiteral("Cover descriptions · 1"), second}));
+    CHECK(rowOf(sand).data(MaterialListPanel::COLLAPSED_ROLE) == QVariant(true));
+    CHECK(rowOf(sand).data(Qt::AccessibleTextRole).toString() == sand + QStringLiteral(", collapsed"));
+    click(table->viewport(), table->visualRect(rowOf(sand)).center());
+    CHECK_FALSE(panel->isVolumeCollapsed(1));
+    CHECK(shown() == all);
+
+    // The keys on the row of the volume: Left collapses it, Right expands it, Space and Enter
+    // do one or the other; the row stays chosen
+    table->setFocus();
+    table->setCurrentIndex(rowOf(ofDunes));
+    press(table, Qt::Key_Left);
+    CHECK(panel->isVolumeCollapsed(2));
+    CHECK(shown() == QStringList({sand, QStringLiteral("Cover descriptions · 1"), first,
+                                  QStringLiteral("Taglines · 1"), tagline, ofDunes}));
+    CHECK(table->currentIndex().data(MaterialListPanel::HEADING_ROLE).toString() == ofDunes);
+    press(table, Qt::Key_Left);
+    CHECK(panel->isVolumeCollapsed(2));
+    press(table, Qt::Key_Right);
+    CHECK_FALSE(panel->isVolumeCollapsed(2));
+    press(table, Qt::Key_Space);
+    CHECK(panel->isVolumeCollapsed(2));
+    press(table, Qt::Key_Return);
+    CHECK_FALSE(panel->isVolumeCollapsed(2));
+    // The row of a volume is no material: nothing to open, no material chosen
+    CHECK(panel->currentMaterial().isEmpty());
+
+    // Collapsed with the keys in it, the keys go to the row of the volume
+    table->setCurrentIndex(rows->index(rows->rowCount() - 1, 0));
+    REQUIRE(panel->currentMaterial() == second);
+    panel->setVolumeCollapsed(2, true);
+    CHECK(table->currentIndex().data(MaterialListPanel::HEADING_ROLE).toString() == ofDunes);
+
+    // A material chosen elsewhere (the Navigator, the plan) opens its volume
+    CHECK(panel->selectMaterial(second));
+    CHECK_FALSE(panel->isVolumeCollapsed(2));
+    CHECK(panel->currentMaterial() == second);
+
+    // The plan keeps the materials of a collapsed volume. Without the keys in the list: with
+    // them the plan would take them on its first card, which opens its volume (Windows on CI)
+    panel->setVolumeCollapsed(1, true);
+    table->clearFocus();
+    panel->showPlan(true);
+    REQUIRE(panel->plan() != nullptr);
+    CHECK(panel->plan()->hasCard(first));
+    CHECK(panel->plan()->hasCard(tagline));
+    panel->showPlan(false);
+    CHECK(panel->isVolumeCollapsed(1));
+    CHECK(shown().mid(0, 2) == QStringList({sand, ofDunes}));
+
+    // The menu of the row of a volume
+    table->setCurrentIndex(rowOf(sand));
+    {
+        test::ContextMenuReader reader(panel);
+        reader.chooseItem(QStringLiteral("Expand All Vol&umes"));
+        emit table->customContextMenuRequested(table->visualRect(rowOf(sand)).center());
+        REQUIRE(reader.menusRead() == 1);
+        QStringList texts;
+        for (const test::MenuItem& item : reader.items()) {
+            if (!item.separator) {
+                texts << item.text;
+            }
+        }
+        CHECK(texts.mid(0, 3) == QStringList({QStringLiteral("&Expand Volume"),
+                                              QStringLiteral("Collapse &All Volumes"),
+                                              QStringLiteral("Expand All Vol&umes")}));
+    }
+    CHECK_FALSE(panel->isVolumeCollapsed(1));
+    CHECK(shown() == all);
+
+    // Without the groups nothing is collapsed
+    panel->setVolumeCollapsed(1, true);
+    panel->showGroups(false);
+    for (int row = 0; row < rows->rowCount(); ++row) {
+        CHECK_FALSE(table->isRowHidden(row));
+    }
+    panel->showGroups(true);
+    CHECK(shown().mid(0, 2) == QStringList({sand, ofDunes}));
 }
 
 TEST_CASE("Series: the set for the publisher and the export of each volume, with the texts of "

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_new_book.cpp
 /// @brief A new book: the palette of the kinds of a user project, the window of its kinds, and
@@ -346,12 +347,13 @@ TEST_CASE("Palette: the kinds of all book types, each in the parts of the book i
     // The kinds of "Base" first, then those of the types, each type in the order of its lists;
     // a table of contents can be at the beginning and at the end of a book
     CHECK(idsOf(palette.kindsIn(BookPlace::Front)) ==
-          "title_page, copyright, dedication, motto, toc, preface, introduction, abbreviations");
+          "title_page, copyright, dedication, motto, toc, preface, introduction, spread, "
+          "abbreviations");
     CHECK(idsOf(palette.kindsIn(BookPlace::Main)) ==
-          "chapter, part, conclusion, prologue, epilogue, cycle, poem, act, episode, story, "
-          "section");
+          "spread, chapter, part, conclusion, prologue, epilogue, cycle, poem, act, episode, "
+          "story, section");
     CHECK(idsOf(palette.kindsIn(BookPlace::Back)) ==
-          "toc, afterword, acknowledgments, glossary, about_author, annex, endnotes, "
+          "toc, spread, afterword, acknowledgments, glossary, about_author, annex, endnotes, "
           "bibliography, index, illustrations, explanatory_notes, first_lines, publisher_note, "
           "contributors, first_publications");
     CHECK(idsOf(palette.kindsIn(BookPlace::Workshop)) ==
@@ -471,7 +473,7 @@ TEST_CASE("Palette: all kinds, only the kinds of \"Base\", or none at once", "[g
 
     // The prologue of the novel goes, with its element; the chapter of "Base" stays
     palette.checkOnly(QStringLiteral("kalahari.base"));
-    CHECK(palette.checkedCount() == 29);
+    CHECK(palette.checkedCount() == 30);
     CHECK(packagesOf(palette.choice().kinds) == "kalahari.base");
     CHECK(elementsOf(palette.choice()) == "chapter in main");
 
@@ -546,7 +548,7 @@ TEST_CASE("User project: the window starts with the kinds of \"Base\" and a chap
 
     CHECK(dialog.windowTitle() == QStringLiteral("New Book – User Project"));
     CHECK(showsText(dialog, QStringLiteral("Kinds of Elements of the Book \"Desert\"")));
-    CHECK(showsText(dialog, QStringLiteral("Checked kinds: 29")));
+    CHECK(showsText(dialog, QStringLiteral("Checked kinds: 30")));
     CHECK(dialog.acceptButton()->text() == QStringLiteral("Create Book"));
     CHECK(dialog.acceptButton()->isEnabled());
 
@@ -561,7 +563,7 @@ TEST_CASE("User project: the window starts with the kinds of \"Base\" and a chap
     dialog.hide();
 
     const PaletteChoice first = dialog.palette()->choice();
-    CHECK(first.kinds.size() == 29);
+    CHECK(first.kinds.size() == 30);
     CHECK(packagesOf(first.kinds) == "kalahari.base");
     CHECK(elementsOf(first) == "chapter in main");
     CHECK(idsOf(dialog.firstChoice().kinds) == idsOf(first.kinds));
@@ -630,7 +632,7 @@ TEST_CASE("User project: the links over the palette, and Create Book with no kin
 
     clickLink(dialog, QStringLiteral("Only \"Base\""));
     CHECK(packagesOf(dialog.palette()->choice().kinds) == "kalahari.base");
-    CHECK(showsText(dialog, QStringLiteral("Checked kinds: 29")));
+    CHECK(showsText(dialog, QStringLiteral("Checked kinds: 30")));
 }
 
 TEST_CASE("User project: Create Book takes the palette as it is, Skip as it was at first",
@@ -660,7 +662,7 @@ TEST_CASE("User project: Create Book takes the palette as it is, Skip as it was 
         CHECK(dialog.skipButton()->text() == QStringLiteral("Skip"));
         dialog.skipButton()->click();
         CHECK(dialog.result() == QDialog::Accepted);
-        CHECK(dialog.choice().kinds.size() == 29);
+        CHECK(dialog.choice().kinds.size() == 30);
         CHECK(packagesOf(dialog.choice().kinds) == "kalahari.base");
         CHECK(elementsOf(dialog.choice()) == "chapter in main");
         CHECK(dialog.opens());
@@ -976,6 +978,6 @@ TEST_CASE("New Book: with a book open, the window of the kinds of a user project
     CHECK(hasCard(window, created));
     const core::BookProject saved = savedProject(created);
     CHECK(saved.isUserProject());
-    CHECK(saved.kinds.size() == 29);
+    CHECK(saved.kinds.size() == 30);
     CHECK(titlesOf(saved.books.first().mainElements) == "Chapter 1");
 }

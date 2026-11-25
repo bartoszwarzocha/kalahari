@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_print.cpp
 /// @brief The print of a book: the pages that go to the printer, the sides of the sheets, and
@@ -127,9 +128,19 @@ std::vector<SheetSide> sheetSides(const std::vector<int>& pages, SheetLayout lay
             }
             break;
         case SheetLayout::TwoPages:
-            for (int i = 0; i < count; i += 2) {
-                sides.push_back({pages[static_cast<size_t>(i)],
-                                 i + 1 < count ? pages[static_cast<size_t>(i) + 1] : -1});
+            // As an open book: a left page (an odd index) and the right one after it, so the
+            // halves of a spread lie on one side; page 1 alone on the right, and so is each
+            // page whose neighbour does not print
+            for (size_t i = 0; i < pages.size(); ++i) {
+                const int page = pages[i];
+                if (page % 2 == 0) {
+                    sides.push_back({-1, page});
+                } else if (i + 1 < pages.size() && pages[i + 1] == page + 1) {
+                    sides.push_back({page, page + 1});
+                    ++i;
+                } else {
+                    sides.push_back({page, -1});
+                }
             }
             break;
         case SheetLayout::Booklet: {
@@ -177,6 +188,24 @@ std::vector<SheetSide> copiesOf(const std::vector<SheetSide>& sides, int copies,
         }
     }
     return printed;
+}
+
+std::vector<SheetSide> reversedSheets(const std::vector<SheetSide>& sides, bool twoSided) {
+    std::vector<SheetSide> sheets = sides;
+    if (!twoSided) {
+        std::ranges::reverse(sheets);
+        return sheets;
+    }
+    if (sheets.size() % 2 != 0) {
+        sheets.emplace_back();
+    }
+    std::vector<SheetSide> reversed;
+    reversed.reserve(sheets.size());
+    for (size_t end = sheets.size(); end >= 2; end -= 2) {
+        reversed.push_back(sheets[end - 2]);
+        reversed.push_back(sheets[end - 1]);
+    }
+    return reversed;
 }
 
 std::vector<SheetSide> sidesOfSheets(const std::vector<SheetSide>& sides, bool backs) {

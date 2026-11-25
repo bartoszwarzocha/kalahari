@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_publishing_texts.cpp
 /// @brief The texts for publishers: their data in the book file, their templates and lengths,
@@ -15,7 +16,6 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/publishing_texts.h>
 #include <kalahari/core/settings_manager.h>
-#include <kalahari/editor/text_skeleton.h>
 
 #include "kalahari_tests/test_support/window_parts.h"
 
@@ -33,6 +33,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 using kalahari::core::BookProject;
 using kalahari::core::BookTypeRegistry;
@@ -51,7 +52,6 @@ using kalahari::core::PublishingTemplate;
 using kalahari::core::PublishingTemplatePoint;
 using kalahari::core::PublishingTexts;
 using kalahari::core::SettingsManager;
-using kalahari::editor::SkeletonPoint;
 
 namespace {
 
@@ -373,13 +373,10 @@ TEST_CASE("Texts for publishers: lengths and targets", "[core][publishing]") {
     CHECK(PublishingTexts::lengthOf(u"Trzy dni drogi.", true) == 3);
     CHECK(PublishingTexts::lengthOf(u"Trzy dni drogi.", false) == 15);
 
-    // Where the points of a template are, and the pages
-    CHECK_FALSE(PublishingTexts::pointsInText());
+    // The pages
     CHECK(PublishingTexts::showsPages());
     {
-        const ChangedSetting<std::string> inText(PublishingTexts::POINTS_SETTING, "inText");
         const ChangedSetting<bool> pages(PublishingTexts::PAGES_SETTING, false);
-        CHECK(PublishingTexts::pointsInText());
         CHECK_FALSE(PublishingTexts::showsPages());
     }
     CHECK(PublishingTexts::hasPoints(QStringLiteral("synopsis")));
@@ -939,62 +936,96 @@ TEST_CASE("ProjectManager adds texts for publishers of their kind, after the Cov
               .isEmpty());
 }
 
-TEST_CASE("ProjectManager starts a synopsis with the skeleton of its template when the points "
-          "are in the text",
+TEST_CASE("ProjectManager: a new synopsis is empty; the headings of an old skeleton are its text",
           "[core][publishing]") {
     const QTemporaryDir dir;
     auto& pm = projects();
     REQUIRE(pm.createProject(dir.path(), "Karawana", "Ewa Lis", "pl", true, "kalahari.novel"));
-    const QString synopsis = QString::fromLatin1(PublishingTexts::SYNOPSIS);
-    const QString onePage = QStringLiteral("kalahari.novel:one_page");
-    const QString heading = QStringLiteral("style=\"template_point\"");
-
-    // The skeleton of a template, in the language of the book
-    const QList<SkeletonPoint> skeleton = pm.templateSkeleton(onePage);
-    REQUIRE(skeleton.size() == 5);
-    CHECK(skeleton.first() ==
-          SkeletonPoint{QStringLiteral("hero"), QStringLiteral("Bohater i świat"),
-                        QStringLiteral("Kim jest bohater, gdzie i kiedy toczy się akcja.")});
-    CHECK(pm.templateSkeleton(QStringLiteral("kalahari.novel:when_must")).isEmpty());
-    CHECK(pm.templateSkeleton(QStringLiteral("kalahari.novel:missing")).isEmpty());
-    CHECK(pm.templateSkeleton(QString()).isEmpty());
-
-    // Beside the text, as the program starts: an empty text
-    const QString beside = [&pm, &synopsis, &onePage]() {
-        const ChangedSetting<std::string> points(PublishingTexts::POINTS_SETTING, "beside");
-        return pm.addPublishingText(synopsis, onePage, QStringLiteral("Obok"));
-    }();
-    REQUIRE_FALSE(beside.isEmpty());
-    CHECK_FALSE(pm.chapterText(beside).contains(heading));
-
-    // In the text: the headings with their hints, saved in its file
-    const ChangedSetting<std::string> inText(PublishingTexts::POINTS_SETTING, "inText");
-    const QString text = pm.addPublishingText(synopsis, onePage, QStringLiteral("W tekście"));
+    const QString text = pm.addPublishingText(QString::fromLatin1(PublishingTexts::SYNOPSIS),
+                                              QStringLiteral("kalahari.novel:one_page"),
+                                              QStringLiteral("Streszczenie"));
     REQUIRE_FALSE(text.isEmpty());
-    const QString kml = pm.loadChapterContent(text);
-    CHECK(kml.count(heading) == 5);
-    CHECK(kml.contains(QStringLiteral("point=\"hero\"")));
-    CHECK(kml.contains(
-        QStringLiteral("hint=\"Kim jest bohater, gdzie i kiedy toczy się akcja.\"")));
-    CHECK(kml.contains(QStringLiteral(">Bohater i świat</p>")));
-    // No text of the writer: no length, nothing to copy
     CHECK(pm.publishingTextOf(text).trimmed().isEmpty());
-    CHECK(PublishingTexts::lengthOf(pm.publishingTextOf(text), false) == 0);
-    // The writer's words count, the headings do not
+    // A heading of a skeleton the program wrote earlier counts as the writer's words
     pm.setChapterContent(text, QStringLiteral("<kml><p style=\"template_point\" point=\"hero\">"
                                               "Bohater i świat</p><p>Leila idzie.</p></kml>"));
-    CHECK(pm.publishingTextOf(text) == QStringLiteral("Leila idzie."));
+    CHECK(pm.publishingTextOf(text) == QStringLiteral("Bohater i świat\nLeila idzie."));
+    REQUIRE(pm.closeProject(false));
+}
 
-    // Without a template, and a sentence: no skeleton
-    const QString plain = pm.addPublishingText(synopsis, QString(), QStringLiteral("Bez"));
-    REQUIRE_FALSE(plain.isEmpty());
-    CHECK_FALSE(pm.chapterText(plain).contains(heading));
-    const QString pitch =
-        pm.addPublishingText(QString::fromLatin1(PublishingTexts::PITCH),
-                             QStringLiteral("kalahari.novel:when_must"), QStringLiteral("Zdanie"));
-    REQUIRE_FALSE(pitch.isEmpty());
-    CHECK_FALSE(pm.chapterText(pitch).contains(heading));
+TEST_CASE("ProjectManager saves the points ticked off of a synopsis with its text, and drops "
+          "them with it",
+          "[core][publishing]") {
+    // Test of 22.11 (part 38): the points ticked off were saved at once, the text not, so the
+    // book could say a point was written when its file did not have it
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Karawana", "Ewa Lis", "pl", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString id = pm.addPublishingText(QString::fromLatin1(PublishingTexts::SYNOPSIS),
+                                            QStringLiteral("kalahari.novel:one_page"),
+                                            QStringLiteral("Streszczenie"));
+    REQUIRE_FALSE(id.isEmpty());
+    const auto savedPoints = [&manifest, &id]() {
+        QStringList problems;
+        const std::optional<BookProject> saved = BookProject::load(manifest, problems);
+        REQUIRE(saved);
+        const ProjectElement* text = saved->findElement(id);
+        REQUIRE(text != nullptr);
+        return text->publishing.done;
+    };
+    const QString written =
+        QStringLiteral("<kml><p>Lejla idzie do ostatniej studni.</p></kml>");
 
+    // A text without changes: saved at once
+    REQUIRE(pm.setPublishingPoints(id, {QStringLiteral("hero")}, false));
+    CHECK_FALSE(pm.hasWaitingPoints(id));
+    CHECK(savedPoints() == QStringList{QStringLiteral("hero")});
+
+    // Changes of its editor: the points wait for them, and the book has something to save
+    REQUIRE(pm.setPublishingPoints(id, {QStringLiteral("hero"), QStringLiteral("event")}, true));
+    CHECK(pm.hasWaitingPoints(id));
+    CHECK(pm.publishingPointsOf(id) == QStringList{QStringLiteral("hero"), QStringLiteral("event")});
+    CHECK(pm.findElement(id)->publishing.done == QStringList{QStringLiteral("hero")});
+    CHECK(savedPoints() == QStringList{QStringLiteral("hero")});
+    const std::vector<QString> dirty = pm.getDirtyElements();
+    CHECK(std::find(dirty.cbegin(), dirty.cend(), id) != dirty.cend());
+    // Saved with its text
+    pm.setChapterContent(id, written);
+    REQUIRE(pm.saveAllDirty());
+    CHECK_FALSE(pm.hasWaitingPoints(id));
+    CHECK(savedPoints() == QStringList{QStringLiteral("hero"), QStringLiteral("event")});
+    CHECK(pm.savedChapterText(id).contains(QStringLiteral("ostatniej studni")));
+
+    // A text not saved yet (Replace All in Book) holds them too; dropped with it
+    pm.setChapterContent(id, QStringLiteral("<kml><p>Inny tekst.</p></kml>"));
+    REQUIRE(pm.setPublishingPoints(id, {}, false));
+    CHECK(pm.hasWaitingPoints(id));
+    CHECK(pm.publishingPointsOf(id).isEmpty());
+    pm.discardChapterContent(id);
+    CHECK_FALSE(pm.hasWaitingPoints(id));
+    CHECK(pm.publishingPointsOf(id) == QStringList{QStringLiteral("hero"), QStringLiteral("event")});
+    CHECK(pm.getDirtyElements().empty());
+
+    // Ticked back as saved: nothing waits
+    REQUIRE(pm.setPublishingPoints(id, {QStringLiteral("hero")}, true));
+    REQUIRE(pm.setPublishingPoints(id, {QStringLiteral("hero"), QStringLiteral("event")}, true));
+    CHECK_FALSE(pm.hasWaitingPoints(id));
+
+    // The text back to the saved one: the points waiting are those of the saved text
+    REQUIRE(pm.setPublishingPoints(id, {QStringLiteral("hero")}, true));
+    REQUIRE(pm.saveWaitingPoints(id));
+    CHECK_FALSE(pm.hasWaitingPoints(id));
+    CHECK(savedPoints() == QStringList{QStringLiteral("hero")});
+
+    // The book closed without saving: the points waiting go with the changes of the text
+    REQUIRE(pm.setPublishingPoints(id, {QStringLiteral("hero"), QStringLiteral("climax")}, true));
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.publishingPointsOf(id) == QStringList{QStringLiteral("hero")});
+    CHECK_FALSE(pm.hasWaitingPoints(id));
+    // Another element is no text for publishers
+    CHECK_FALSE(pm.setPublishingPoints(QStringLiteral("missing"), {}, false));
     REQUIRE(pm.closeProject(false));
 }
 

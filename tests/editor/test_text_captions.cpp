@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_text_captions.cpp
 /// @brief Numbered captions of images, cross-references and the list of figures: KML, the
@@ -82,11 +83,6 @@ std::string shownFields(BookEditor& editor) {
 std::string firstField(BookEditor& editor) {
     const std::string fields = shownFields(editor);
     return fields.substr(0, fields.find('|'));
-}
-
-/// Whether a block is a caption: in the style Caption
-bool isCaptionBlock(const QTextBlock& block) {
-    return paragraphStyleOf(block.blockFormat()) == QLatin1String(CAPTION_STYLE_ID);
 }
 
 /// The position of the first image of the document

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file new_file_dialog.h
 /// @brief New File: a new element of the open book, of the kind, with the title and at the
@@ -154,6 +155,9 @@ public:
         /// The title of a new material of the cover of a part, from the book
         /// (CoverNames::newTitle()); none: no title
         std::function<QString(const QString& part)> coverTitle;
+        /// The parts of the cover of the book, for the place of a new material of the cover
+        /// (core::CoverMaterial::defaultPlaceOf())
+        core::CoverParts coverParts;
         /// A text for publishers: the part chosen at the start (core::PublishingTexts::PITCH...;
         /// TAGLINE and BLURB go to the cover); empty: the one chosen last
         QString publishingPart;
@@ -164,6 +168,11 @@ public:
         /// (PublishingNames::newTitle(), of a description or a tagline CoverNames::newTitle());
         /// none: the title of its kind
         std::function<QString(const QString& part)> publishingTitle;
+        /// The writer chose the kind of @c current by its name (AddTarget::byName): a small
+        /// window, named after the kind, asks only for what the kind needs – its title, of a
+        /// material its source, of the cover its part, of a text for publishers its part and
+        /// template – without the tiles, the description, the status and the place
+        bool byName = false;
     };
 
     /// @brief The kinds and the parts of the book open in @p pm; at the start the main text
@@ -181,6 +190,8 @@ public:
     /// With a choice at the top (@p chooser) the window has all the kinds of the book and of
     /// the Workshop, and starts at the part of @p target; those of @p target's place go there
     /// (right after its element, inside its group). Without it, only the kinds of that place.
+    /// A kind chosen by its name (AddTarget::byName) that can be made there gets the small
+    /// window of that kind (Book::byName).
     static Book forAdding(const core::ProjectManager& pm, const AddTarget& target,
                           AddChooser chooser);
 

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file icon_registrar.cpp
 /// @brief Application icon registration with IconRegistry
@@ -97,6 +98,12 @@ void registerAllIcons() {
                               "Take Out as a Book");
     iconRegistry.registerIcon("book.joinVolume", "resources/icons/twotone/layers.svg",
                               "Join Book as Volume");
+    iconRegistry.registerIcon("book.newSpread", "resources/icons/twotone/auto_stories.svg", "New Spread");
+    iconRegistry.registerIcon("book.spread", "resources/icons/twotone/auto_stories.svg", "Spread");
+    iconRegistry.registerIcon("spread.fold", "resources/icons/twotone/align_horizontal_center.svg",
+                              "Spine Band");
+    iconRegistry.registerIcon("spread.guides", "resources/icons/twotone/text_frame.svg",
+                              "Picture Area");
     iconRegistry.registerIcon("book.newScene", "resources/icons/twotone/theaters.svg", "New Scene");
     iconRegistry.registerIcon("book.newCharacter", "resources/icons/twotone/person.svg", "New Character");
     iconRegistry.registerIcon("book.newLocation", "resources/icons/twotone/place.svg", "New Location");
@@ -182,11 +189,17 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.alignCenter", "resources/icons/twotone/format_align_center.svg", "Align Center");
     iconRegistry.registerIcon("format.alignRight", "resources/icons/twotone/format_align_right.svg", "Align Right");
     iconRegistry.registerIcon("format.justify", "resources/icons/twotone/format_align_justify.svg", "Justify");
+    iconRegistry.registerIcon("format.tabGuide.toggle", "resources/icons/twotone/align_horizontal_center.svg", "Set or Remove Tab Guide");
+    iconRegistry.registerIcon("format.tabGuide.moveLeft", "resources/icons/twotone/arrow_back.svg", "Move Tab Guide Left");
+    iconRegistry.registerIcon("format.tabGuide.moveRight", "resources/icons/twotone/arrow_forward.svg", "Move Tab Guide Right");
+    iconRegistry.registerIcon("format.tabGuide.removeAll", "resources/icons/twotone/close.svg", "Remove All Tab Guides");
     iconRegistry.registerIcon("format.increaseIndent", "resources/icons/twotone/format_indent_increase.svg", "Increase Indent");
     iconRegistry.registerIcon("format.decreaseIndent", "resources/icons/twotone/format_indent_decrease.svg", "Decrease Indent");
     iconRegistry.registerIcon("format.bullets", "resources/icons/twotone/format_list_bulleted.svg", "Bullets");
     iconRegistry.registerIcon("format.numbering", "resources/icons/twotone/format_list_numbered.svg", "Numbering");
     iconRegistry.registerIcon("format.bulletsNumbering", "resources/icons/twotone/format_list_numbered.svg", "Bullets and Numbering");
+    iconRegistry.registerIcon("format.page", "resources/icons/twotone/fit_page.svg", "Page Size and Margins");
+    iconRegistry.registerIcon("format.listSets", "resources/icons/twotone/view_list.svg", "Pick List Set");
     iconRegistry.registerIcon("format.fontColor", "resources/icons/twotone/format_color_text.svg", "Font Color");
     iconRegistry.registerIcon("format.highlightColor", "resources/icons/twotone/border_color.svg", "Highlight Color");
     iconRegistry.registerIcon("format.copyFormatting", "resources/icons/twotone/format_paint.svg", "Copy Formatting");
@@ -220,6 +233,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("table.sort", "resources/icons/twotone/sort.svg", "Sort");
     iconRegistry.registerIcon("table.textToTable", "resources/icons/twotone/grid_on.svg", "Text to Table");
     iconRegistry.registerIcon("table.tableToText", "resources/icons/twotone/subject.svg", "Table to Text");
+    iconRegistry.registerIcon("table.caption", "resources/icons/twotone/subtitles.svg", "Insert Caption");
     iconRegistry.registerIcon("table.properties", "resources/icons/twotone/tune.svg", "Table Properties");
 
     // -------------------------------------------------------------------------
@@ -268,18 +282,15 @@ void registerAllIcons() {
     iconRegistry.registerIcon("tools.challenges", "resources/icons/twotone/emoji_events.svg", "Writing Challenges");
     iconRegistry.registerIcon("tools.addChallenge", "resources/icons/twotone/add_challenge.svg", "Add Challenge");
     iconRegistry.registerIcon("tools.writingGoals", "resources/icons/twotone/track_changes.svg", "Writing Goals");
+    iconRegistry.registerIcon("tools.writingSchedule", "resources/icons/twotone/calendar_month.svg", "Writing Schedule");
     iconRegistry.registerIcon("tools.statsSettings", "resources/icons/twotone/tune.svg", "Statistics Settings");
     // The button on the graph of the statistics bar that puts now in the middle
     iconRegistry.registerIcon("stats.nowInMiddle", "resources/icons/twotone/align_horizontal_center.svg", "Now in the Middle");
     iconRegistry.registerIcon("tools.readability", "resources/icons/twotone/auto_stories.svg", "Readability Analysis");
-    iconRegistry.registerIcon("tools.publishing.templatePoints", "resources/icons/twotone/fact_check.svg", "Template Points");
-    iconRegistry.registerIcon("tools.publishing.insertSkeleton",
-                              "resources/icons/twotone/segment.svg", "Insert Skeleton");
-    iconRegistry.registerIcon("tools.publishing.removeSkeleton",
-                              "resources/icons/twotone/subject.svg", "Remove Headings and Hints");
-    iconRegistry.registerIcon("tools.publishing.templates",
-                              "resources/icons/twotone/view_quilt.svg",
-                              "Templates of Texts for Publishers");
+    iconRegistry.registerIcon("tools.publishing.linkPoint", "resources/icons/twotone/link.svg",
+                              "Link to a Point");
+    iconRegistry.registerIcon("publishing.changeTemplate", "resources/icons/twotone/edit.svg",
+                              "Change Template");
     iconRegistry.registerIcon("tools.toolbarManager", "resources/icons/twotone/build.svg", "Toolbar Manager");
 
     // -------------------------------------------------------------------------
@@ -300,11 +311,21 @@ void registerAllIcons() {
     // -------------------------------------------------------------------------
     iconRegistry.registerIcon("view.dashboard", "resources/icons/twotone/home.svg", "Dashboard");
     iconRegistry.registerIcon("view.plotBoard", "resources/icons/twotone/view_module.svg", "Plot Board");
+    iconRegistry.registerIcon("book.publishing", "resources/icons/twotone/outbox.svg", "For Publishers");
     iconRegistry.registerIcon("view.outline", "resources/icons/twotone/table_chart.svg", "Outline");
     // The point of view, the place and the time of the action on the cards of the plot board
     iconRegistry.registerIcon("plotBoard.pov", "resources/icons/twotone/visibility.svg", "Point of View");
     iconRegistry.registerIcon("plotBoard.place", "resources/icons/twotone/place.svg", "Place");
     iconRegistry.registerIcon("plotBoard.time", "resources/icons/twotone/schedule.svg", "Time of the Action");
+    // The commands of the bar over the plan of the book
+    iconRegistry.registerIcon("plotBoard.planText", "resources/icons/twotone/add_box.svg", "Chapter in the Plan");
+    iconRegistry.registerIcon("plotBoard.planScene", "resources/icons/twotone/view_agenda.svg", "Scene in the Plan");
+    iconRegistry.registerIcon("plotBoard.createFile", "resources/icons/twotone/note_add.svg", "Create the Chapter File");
+    iconRegistry.registerIcon("plotBoard.writeScene", "resources/icons/twotone/edit_note.svg", "Write the Scene");
+    iconRegistry.registerIcon("plotBoard.state", "resources/icons/twotone/label.svg", "State");
+    iconRegistry.registerIcon("plotBoard.chronology", "resources/icons/twotone/timeline.svg", "Chronology");
+    iconRegistry.registerIcon("plotBoard.periods", "resources/icons/twotone/calendar_month.svg", "Periods of the Story");
+    iconRegistry.registerIcon("plotBoard.outside", "resources/icons/twotone/event.svg", "Event outside the Text");
     iconRegistry.registerIcon("view.navigator", "resources/icons/twotone/import_contacts.svg", "Navigator");
     iconRegistry.registerIcon("view.search", "resources/icons/twotone/search.svg", "Search Panel");
     iconRegistry.registerIcon("view.properties", "resources/icons/twotone/tune.svg", "Properties");
@@ -313,10 +334,14 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.assistant", "resources/icons/twotone/pets.svg", "Assistant");
     iconRegistry.registerIcon("view.log", "resources/icons/twotone/description.svg", "Log");
     iconRegistry.registerIcon("view.annotations", "resources/icons/twotone/comment.svg", "Annotations");
+    iconRegistry.registerIcon("view.footnotes", "resources/icons/twotone/superscript.svg", "Footnotes");
+    iconRegistry.registerIcon("view.figures", "resources/icons/twotone/photo_library.svg", "Images and Tables");
     iconRegistry.registerIcon("view.spelling", "resources/icons/twotone/spellcheck.svg",
                               "Spelling and Grammar");
     iconRegistry.registerIcon("view.repetitionsPanel", "resources/icons/twotone/repeat.svg", "Repetitions");
     iconRegistry.registerIcon("view.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
+    iconRegistry.registerIcon("view.notifications", "resources/icons/twotone/notifications.svg",
+                              "Notifications");
     iconRegistry.registerIcon("view.perspectives.writer", "resources/icons/twotone/edit.svg", "Writer Perspective");
     iconRegistry.registerIcon("view.perspectives.editor", "resources/icons/twotone/rate_review.svg", "Editor Perspective");
     iconRegistry.registerIcon("view.perspectives.researcher", "resources/icons/twotone/science.svg", "Researcher Perspective");
@@ -388,7 +413,6 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.imageFilter", "resources/icons/twotone/palette.svg", "Filter");
     iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("menu.plugins", "resources/icons/twotone/extension.svg", "Plugins");
-    iconRegistry.registerIcon("menu.publishing", "resources/icons/twotone/outbox.svg", "Texts for Publishers");
     iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");
     iconRegistry.registerIcon("menu.viewMode", "resources/icons/twotone/visibility.svg", "View Mode");
     iconRegistry.registerIcon("menu.zoom", "resources/icons/twotone/zoom_in.svg", "Zoom");
@@ -488,6 +512,15 @@ void registerAllIcons() {
                               "Cover Design or Sketch");
     iconRegistry.registerIcon("material.coverNote", "resources/icons/twotone/edit_note.svg",
                               "Cover Note");
+    iconRegistry.registerIcon("material.coverBio", "resources/icons/twotone/person.svg",
+                              "Author Bio");
+    iconRegistry.registerIcon("material.coverAuthorPhoto",
+                              "resources/icons/twotone/photo_library.svg", "Author Photo");
+    // The sheets of the plan of the cover: the cover and the jacket, the endpapers
+    iconRegistry.registerIcon("cover.sheet", "resources/icons/twotone/book_cover.svg",
+                              "Sheet of the Cover Plan");
+    iconRegistry.registerIcon("cover.endpapers", "resources/icons/twotone/menu_book.svg",
+                              "Endpapers");
     // Chosen for the cover, rejected
     iconRegistry.registerIcon("cover.choose", "resources/icons/twotone/star.svg",
                               "Choose for the Cover");

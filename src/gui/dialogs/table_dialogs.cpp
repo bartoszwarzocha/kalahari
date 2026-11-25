@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file table_dialogs.cpp
 /// @brief The windows of the Table menu: Split Cells..., Sort..., Text to Table..., Table to
@@ -10,6 +11,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/text_tables.h"
+#include "kalahari/gui/caption_settings.h"
 #include "kalahari/gui/dialogs/color_palettes.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/color_menu.h"
@@ -1076,6 +1078,8 @@ editor::TablePropertiesData TablePropertiesDialog::data() const
                                                  : std::nullopt;
     data.table.alignment = static_cast<editor::TableAlignment>(std::max(0, m_alignment->checkedId()));
     data.table.indent = data.table.alignment == editor::TableAlignment::Left ? m_indent->storedValue() : 0.0;
+    data.table.spaceAbove = m_spaceAbove->storedValue();
+    data.table.spaceBelow = m_spaceBelow->storedValue();
     const double total = std::accumulate(m_columnShares.begin(), m_columnShares.end(), 0.0);
     if (total > 0.0 && m_columnShares.size() == m_data.columnWidths.size()) {
         const double before =
@@ -1118,10 +1122,10 @@ QWidget* TablePropertiesDialog::createTableTab()
     (m_data.table.width ? m_fixedWidth : m_textWidth)->setChecked(true);
     m_width->setEnabled(m_fixedWidth->isChecked());
     connect(m_fixedWidth, &QRadioButton::toggled, m_width, &QWidget::setEnabled);
-    widthLayout->addWidget(m_textWidth, 0, 0, 1, 2);
-    widthLayout->addWidget(m_fixedWidth, 1, 0);
-    widthLayout->addWidget(m_width, 1, 1);
-    widthLayout->setColumnStretch(2, 1);
+    widthLayout->addWidget(m_textWidth, 0, 0);
+    widthLayout->addWidget(m_fixedWidth, 0, 1);
+    widthLayout->addWidget(m_width, 0, 2);
+    widthLayout->setColumnStretch(3, 1);
     layout->addWidget(widthGroup);
 
     // The alignment, and the indent of a table at the left
@@ -1152,6 +1156,48 @@ QWidget* TablePropertiesDialog::createTableTab()
     alignmentLayout->addWidget(m_indent, 1, 1, 1, 2);
     alignmentLayout->setColumnStretch(3, 1);
     layout->addWidget(alignmentGroup);
+
+    // The room from the text above and below it (no empty paragraphs there)
+    //: Table Properties, the Table tab. In Polish: Odstępy
+    auto* spaceGroup = new QGroupBox(tr("Space Around"), tab);
+    auto* spaceLayout = new QHBoxLayout(spaceGroup);
+    const auto spaceField = [spaceGroup](const char* name, double points) {
+        auto* field = new LengthSpinBox(LengthUnit::Points, 0.0, editor::MAX_TABLE_SPACE, spaceGroup);
+        field->setObjectName(QLatin1String(name));
+        field->setStoredValue(points);
+        return field;
+    };
+    m_spaceAbove = spaceField("tableSpaceAbove", m_data.table.spaceAbove);
+    m_spaceBelow = spaceField("tableSpaceBelow", m_data.table.spaceBelow);
+    //: The room between the table (or its caption above it) and the text above it. In Polish:
+    //: Odstęp &górny
+    auto* aboveLabel = new QLabel(tr("&Space above"), spaceGroup);
+    aboveLabel->setBuddy(m_spaceAbove);
+    //: In Polish: Między tekstem nad tabelą a tabelą albo jej podpisem nad nią
+    m_spaceAbove->setToolTip(tr("Between the text above and the table, or its caption above it"));
+    //: In Polish: Odstęp &dolny
+    auto* belowLabel = new QLabel(tr("Space bel&ow"), spaceGroup);
+    belowLabel->setBuddy(m_spaceBelow);
+    //: In Polish: Między tabelą albo jej podpisem pod nią a tekstem pod nią
+    m_spaceBelow->setToolTip(tr("Between the table, or its caption below it, and the text below"));
+    //: The room of new tables. In Polish: Jak w Ustawi&eniach
+    auto* asSettings = new QPushButton(tr("As in the Settin&gs"), spaceGroup);
+    asSettings->setObjectName(QStringLiteral("tableSpaceAsSettings"));
+    //: In Polish: Odstępy, które dostaje nowa tabela (Ustawienia > Edytor > Tabele)
+    asSettings->setToolTip(tr("The space a new table gets (Settings > Editor > Tables)"));
+    connect(asSettings, &QPushButton::clicked, this, [this]() {
+        const editor::BookEditor::NewTableOptions options = settingsNewTableOptions();
+        m_spaceAbove->setStoredValue(options.spaceAbove);
+        m_spaceBelow->setStoredValue(options.spaceBelow);
+    });
+    spaceLayout->addWidget(aboveLabel);
+    spaceLayout->addWidget(m_spaceAbove);
+    spaceLayout->addSpacing(12);
+    spaceLayout->addWidget(belowLabel);
+    spaceLayout->addWidget(m_spaceBelow);
+    spaceLayout->addStretch(1);
+    spaceLayout->addWidget(asSettings);
+    layout->addWidget(spaceGroup);
 
     auto* note = new QLabel(tr("A table is never wider than the text."), tab);
     note->setWordWrap(true);

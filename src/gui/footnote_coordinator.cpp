@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file footnote_coordinator.cpp
 /// @brief Insert > Footnote and Endnote, the frame a note's text is written in, and the
@@ -463,6 +464,8 @@ void FootnoteCoordinator::saveWriting() {
     }
     const Writing writing = *m_writing;
     if (writing.editor != nullptr && m_frame != nullptr) {
+        // The text of the note is the writer's own writing, as the text typed in the editor
+        const editor::BookEditor::HandWriting hand(*writing.editor);
         writing.editor->setNoteContent(writing.id, m_frame->content(), writing.isNew);
     }
     closeFrame();

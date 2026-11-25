@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file text_lists.cpp
 /// @brief Bulleted and numbered lists: items, formats of the levels, numbers
@@ -39,8 +40,17 @@ constexpr std::array<RomanNumeral, 13> ROMAN_NUMERALS = {{
 constexpr QChar LEVEL_SEPARATOR = QLatin1Char(';');
 constexpr QChar PART_SEPARATOR = QLatin1Char(',');
 
-/// Parts of a level in the definition's text
+/// Parts of a level in the definition's text; a level with a prefix or with numbers of the
+/// levels above it has two more: the prefix and how many levels it shows
 constexpr int LEVEL_PARTS = 6;
+constexpr int PREFIX_PART = 6;
+constexpr int SHOWN_LEVELS_PART = 7;
+
+/// What goes after the number of a level above in an item's number: 1.2.
+constexpr QChar LEVEL_NUMBER_SEPARATOR = QLatin1Char('.');
+
+/// How many levels make the name of a list (listDefinitionSummary())
+constexpr int SUMMARY_LEVELS = 3;
 
 /// The bullets of <ul type="...">, by name
 struct BulletName {
@@ -199,10 +209,14 @@ QString ListDefinition::toString() const {
     parts.reserve(LIST_LEVELS);
     for (const ListLevel& level : levels) {
         const QString text = level.isBullet() ? level.bullet : level.suffix;
-        parts.append(QStringList{formatCode(level.format), percentEncoded(text),
-                                 QString::number(level.start), kmlNumber(level.markerIndent),
-                                 kmlNumber(level.textIndent), alignmentCode(level.alignment)}
-                         .join(PART_SEPARATOR));
+        QStringList levelParts{formatCode(level.format), percentEncoded(text),
+                               QString::number(level.start), kmlNumber(level.markerIndent),
+                               kmlNumber(level.textIndent), alignmentCode(level.alignment)};
+        // The two more parts only when they say something: the texts of earlier lists stay
+        if (!level.isBullet() && (!level.prefix.isEmpty() || level.shownLevels > 0)) {
+            levelParts << percentEncoded(level.prefix) << QString::number(level.shownLevels);
+        }
+        parts.append(levelParts.join(PART_SEPARATOR));
     }
     return parts.join(LEVEL_SEPARATOR);
 }
@@ -222,12 +236,19 @@ ListDefinition ListDefinition::fromString(const QString& text) {
         ListLevel& level = definition.levels[static_cast<size_t>(i)];
         level.format = *format;
         const QString textPart = percentDecoded(parts.at(1));
+        level.prefix.clear();
+        level.shownLevels = 0;
         if (level.isBullet()) {
             level.suffix.clear();
             level.bullet = textPart.isEmpty() ? QString(QChar(BULLET_DISC)) : firstCharacter(textPart);
         } else {
             level.suffix = textPart;
             level.bullet.clear();
+            if (parts.size() > SHOWN_LEVELS_PART) {
+                level.prefix = percentDecoded(parts.at(PREFIX_PART));
+                level.shownLevels = std::clamp(static_cast<int>(numberOfPart(parts.at(SHOWN_LEVELS_PART), 0)),
+                                               0, static_cast<int>(i));
+            }
         }
         level.start = std::clamp(static_cast<int>(numberOfPart(parts.at(2), 1)), MIN_LIST_NUMBER,
                                  MAX_LIST_NUMBER);
@@ -334,7 +355,37 @@ QString listMarkerText(const ListLevel& level, int number) {
     if (level.isBullet()) {
         return level.bullet;
     }
-    return listNumberText(number, level.format) + level.suffix;
+    return level.prefix + listNumberText(number, level.format) + level.suffix;
+}
+
+QString listMarkerText(const ListDefinition& definition, int level, const ListPath& numbers) {
+    const int index = std::clamp(level, 0, LIST_LEVELS - 1);
+    const ListLevel& format = definition.levels[static_cast<size_t>(index)];
+    if (format.isBullet()) {
+        return format.bullet;
+    }
+    QString mark = format.prefix;
+    for (int above = index - std::clamp(format.shownLevels, 0, index); above < index; ++above) {
+        const ListLevel& aboveFormat = definition.levels[static_cast<size_t>(above)];
+        if (!aboveFormat.isBullet()) {
+            mark += listNumberText(numbers[static_cast<size_t>(above)], aboveFormat.format) +
+                    LEVEL_NUMBER_SEPARATOR;
+        }
+    }
+    return mark + listNumberText(numbers[static_cast<size_t>(index)], format.format) + format.suffix;
+}
+
+QString listDefinitionSummary(const ListDefinition& definition) {
+    // The first item of each level, under the first items of the levels above
+    ListPath numbers{};
+    QStringList marks;
+    for (int level = 0; level < LIST_LEVELS; ++level) {
+        numbers[static_cast<size_t>(level)] = definition.levels[static_cast<size_t>(level)].start;
+    }
+    for (int level = 0; level < SUMMARY_LEVELS; ++level) {
+        marks << listMarkerText(definition, level, numbers).trimmed();
+    }
+    return marks.join(QStringLiteral(" – "));
 }
 
 // =============================================================================
@@ -410,23 +461,34 @@ void giveListsNewIds(QTextDocument& content, const QTextDocument& target) {
     }
 }
 
-std::vector<int> listNumbers(const QTextDocument& document) {
+namespace {
+
+/// The numbers of the items of a document, by block number, with those of the levels above
+/// each item; nothing outside a list and for an item without a number
+std::vector<std::optional<ListPath>> countListItems(const QTextDocument& document) {
     // The counters of each list, by level; a level without a counter starts at its start
     struct Counters {
-        std::array<int, LIST_LEVELS> value{};
+        ListPath value{};
         std::array<bool, LIST_LEVELS> started{};
     };
     std::unordered_map<int, Counters> lists;
-    std::vector<int> numbers;
-    numbers.reserve(static_cast<size_t>(document.blockCount()));
+    // The items of a list share their definition: read once
+    std::unordered_map<QString, ListDefinition> definitions;
+    std::vector<std::optional<ListPath>> paths;
+    paths.reserve(static_cast<size_t>(document.blockCount()));
     for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
         const QTextBlockFormat format = block.blockFormat();
         const int id = format.intProperty(LIST_ID_PROPERTY);
         if (id <= 0 || format.boolProperty(LIST_UNNUMBERED_PROPERTY)) {
-            numbers.push_back(-1);
+            paths.emplace_back();
             continue;
         }
         const int level = std::clamp(format.intProperty(LIST_LEVEL_PROPERTY), 0, LIST_LEVELS - 1);
+        const QString text = format.stringProperty(LIST_DEFINITION_PROPERTY);
+        auto definition = definitions.find(text);
+        if (definition == definitions.end()) {
+            definition = definitions.emplace(text, ListDefinition::fromString(text)).first;
+        }
         Counters& counters = lists[id];
         const auto index = static_cast<size_t>(level);
         // A deeper level starts again after an item of this one
@@ -437,26 +499,54 @@ std::vector<int> listNumbers(const QTextDocument& document) {
         } else if (counters.started[index]) {
             counters.value[index] = std::min(counters.value[index] + 1, MAX_LIST_NUMBER);
         } else {
-            counters.value[index] =
-                ListDefinition::fromString(format.stringProperty(LIST_DEFINITION_PROPERTY))
-                    .levels[index]
-                    .start;
+            counters.value[index] = definition->second.levels[index].start;
         }
         counters.started[index] = true;
-        numbers.push_back(counters.value[index]);
+        ListPath path = counters.value;
+        for (size_t above = 0; above < index; ++above) {
+            if (!counters.started[above]) {
+                path[above] = definition->second.levels[above].start;
+            }
+        }
+        paths.emplace_back(path);
+    }
+    return paths;
+}
+
+}  // namespace
+
+std::vector<int> listNumbers(const QTextDocument& document) {
+    const std::vector<std::optional<ListPath>> paths = countListItems(document);
+    std::vector<int> numbers;
+    numbers.reserve(paths.size());
+    QTextBlock block = document.begin();
+    for (size_t i = 0; i < paths.size() && block.isValid(); ++i, block = block.next()) {
+        const std::optional<ListPath>& path = paths[i];
+        if (!path) {
+            numbers.push_back(-1);
+            continue;
+        }
+        const int level =
+            std::clamp(block.blockFormat().intProperty(LIST_LEVEL_PROPERTY), 0, LIST_LEVELS - 1);
+        numbers.push_back((*path)[static_cast<size_t>(level)]);
     }
     return numbers;
 }
 
+std::vector<std::optional<ListPath>> listPaths(const QTextDocument& document) {
+    return countListItems(document);
+}
+
 std::vector<QString> listMarkers(const QTextDocument& document, bool* hasItems) {
-    const std::vector<int> numbers = listNumbers(document);
-    std::vector<QString> markers(numbers.size());
+    const std::vector<std::optional<ListPath>> paths = countListItems(document);
+    std::vector<QString> markers(paths.size());
     // The items of a list share their definition: read once
     std::unordered_map<QString, ListDefinition> definitions;
     bool items = false;
     QTextBlock block = document.begin();
-    for (size_t i = 0; i < numbers.size() && block.isValid(); ++i, block = block.next()) {
-        if (numbers[i] < 0) {
+    for (size_t i = 0; i < paths.size() && block.isValid(); ++i, block = block.next()) {
+        const std::optional<ListPath>& path = paths[i];
+        if (!path) {
             items = items || isListItem(block.blockFormat());
             continue;
         }
@@ -468,7 +558,7 @@ std::vector<QString> listMarkers(const QTextDocument& document, bool* hasItems) 
             definition = definitions.emplace(text, ListDefinition::fromString(text)).first;
         }
         const int level = std::clamp(format.intProperty(LIST_LEVEL_PROPERTY), 0, LIST_LEVELS - 1);
-        markers[i] = listMarkerText(definition->second.levels[static_cast<size_t>(level)], numbers[i]);
+        markers[i] = listMarkerText(definition->second, level, *path);
     }
     if (hasItems != nullptr) {
         *hasItems = items;
@@ -501,6 +591,9 @@ ListLevel listLevelFromKml(bool numbered, const QXmlStreamAttributes& attributes
         if (ok) {
             format.start = std::clamp(start, MIN_LIST_NUMBER, MAX_LIST_NUMBER);
         }
+        format.prefix = attributeOf(attributes, "prefix");
+        const int shown = attributeOf(attributes, "show-levels").trimmed().toInt(&ok);
+        format.shownLevels = ok ? std::clamp(shown, 0, std::clamp(level, 0, LIST_LEVELS - 1)) : 0;
     } else {
         format.format = ListNumberFormat::Bullet;
         format.suffix.clear();
@@ -557,6 +650,12 @@ QString listLevelToKml(const ListLevel& level, int levelIndex) {
         }
         if (level.start != 1) {
             attributes += attribute("start", QString::number(level.start));
+        }
+        if (!level.prefix.isEmpty()) {
+            attributes += attribute("prefix", level.prefix);
+        }
+        if (level.shownLevels > 0) {
+            attributes += attribute("show-levels", QString::number(level.shownLevels));
         }
     }
     ListLevel defaults;

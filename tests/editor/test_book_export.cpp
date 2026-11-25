@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_book_export.cpp
 /// @brief Export of a book to DOCX and Markdown: the parts of the Word document, its styles,
@@ -11,7 +12,9 @@
 #include "test_support/export_samples.h"
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/page_start.h>
 #include <kalahari/editor/book_export.h>
+#include <kalahari/editor/text_fields.h>
 
 #include <QDir>
 #include <QFile>
@@ -212,6 +215,90 @@ TEST_CASE("DOCX: an image the text flows around is anchored to its paragraph",
     CHECK(document.contains(QStringLiteral("<wp:align>center</wp:align>")));
     // An image with text in its paragraph stays in its line
     CHECK(count(document, QStringLiteral("<wp:inline ")) == 1);
+    // The room of an image beside the text: below it and beside it (8.5 pt in EMU)
+    CHECK(document.contains(QStringLiteral("distB=\"76200\" distL=\"107950\" distR=\"107950\"")));
+}
+
+TEST_CASE("DOCX: the room around an image is in the spacing of its paragraph and its caption",
+          "[export][docx][images]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    writeRedSquare(folder.path());
+    BookExport book = sampleBook(folder.path());
+    book.items.resize(3);  // the contents, the part and the first chapter
+    book.items.back().kml = QStringLiteral(
+        "<kml><p>Before.</p>"
+        "<p><img src=\"images/red.png\" alt=\"Alone\" space-above=\"12pt\" space-below=\"9pt\"/></p>"
+        "<p>Between.</p>"
+        "<p><img src=\"images/red.png\" alt=\"With a caption\" space-above=\"10pt\" space-below=\"20pt\"/></p>"
+        "<p style=\"caption\">The well</p>"
+        "<p>After.</p></kml>");
+    const QString path = folder.filePath(QStringLiteral("space.docx"));
+    REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+    const QString document =
+        QString::fromUtf8(zipEntries(path).value(QStringLiteral("word/document.xml")));
+    // Twips: the image alone 12 and 9 pt over its style's nothing; with a caption below it the
+    // room above on the image, the room below under the caption (over the style's own)
+    CHECK(document.contains(QStringLiteral("<w:spacing w:before=\"240\" w:after=\"180\"/>")));
+    CHECK(document.contains(QStringLiteral("<w:spacing w:before=\"200\"/>")));
+    CHECK(count(document, QStringLiteral("w:after=\"")) >= 2);
+}
+
+TEST_CASE("DOCX: the room around a table is in the spacing of the paragraphs next to it",
+          "[export][docx][tables]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    writeRedSquare(folder.path());
+    BookExport book = sampleBook(folder.path());
+    book.items.resize(3);  // the contents, the part and the first chapter
+    book.items.back().kml = QStringLiteral(
+        "<kml><p>Before.</p>"
+        "<table space-above=\"12pt\" space-below=\"9pt\"><tr><td><p>A</p></td></tr></table>"
+        "<p>Between.</p>"
+        "<p style=\"caption\" caption=\"above\">The wells</p>"
+        "<table space-above=\"10pt\" space-below=\"0pt\"><tr><td><p>B</p></td></tr></table>"
+        "<p>After.</p></kml>");
+    const QString path = folder.filePath(QStringLiteral("tables.docx"));
+    REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+    const QString document =
+        QString::fromUtf8(zipEntries(path).value(QStringLiteral("word/document.xml")));
+    // Twips: 12 pt after the paragraph before the first table, 9 pt before the one after it;
+    // above the second table its caption takes the room above it
+    CHECK(document.contains(QStringLiteral("w:after=\"240\"")));
+    CHECK(document.contains(QStringLiteral("w:before=\"180\"")));
+    CHECK(document.contains(QStringLiteral("w:before=\"200\"")));
+}
+
+TEST_CASE("DOCX: the tab guides of a text are the tab stops of its paragraphs",
+          "[export][docx][tabguides]") {
+    const QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    writeRedSquare(folder.path());
+    BookExport book = sampleBook(folder.path());
+    book.items.resize(3);  // the contents, the part and the first chapter
+    book.items.back().kml = QStringLiteral(
+        "<kml><tab-guides><guide at=\"40\"/><guide at=\"100\"/></tab-guides>"
+        "<p>Guided\tJohn</p><table><tr><td><p>Celled\tSmith</p></td></tr></table></kml>");
+    const QString path = folder.filePath(QStringLiteral("tabs.docx"));
+    REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+    const QByteArray xml = zipEntries(path).value(QStringLiteral("word/document.xml"));
+    CHECK(wellFormed(xml));
+    const QString document = QString::fromUtf8(xml);
+
+    // 40 mm and 100 mm from the left margin: 2268 and 5669 twentieths of a point
+    const QString tabs = QStringLiteral("<w:tabs><w:tab w:val=\"left\" w:pos=\"2268\"/>"
+                                        "<w:tab w:val=\"left\" w:pos=\"5669\"/></w:tabs>");
+    const qsizetype guided = document.indexOf(QStringLiteral("Guided"));
+    REQUIRE(guided >= 0);
+    CHECK(document.lastIndexOf(tabs, guided) >
+          document.lastIndexOf(QStringLiteral("<w:p>"), guided));
+    // A cell has its own edges
+    const qsizetype celled = document.indexOf(QStringLiteral("Celled"));
+    REQUIRE(celled >= 0);
+    CHECK(document.lastIndexOf(QStringLiteral("<w:tabs>"), celled) <
+          document.lastIndexOf(QStringLiteral("<w:p>"), celled));
+    // The other texts have none: its paragraph and the one after its table only
+    CHECK(count(document, QStringLiteral("<w:tabs>")) <= 2);
 }
 
 TEST_CASE("DOCX: the options of the export", "[export][docx]") {
@@ -258,12 +345,23 @@ TEST_CASE("DOCX: the options of the export", "[export][docx]") {
 
     SECTION("Mirror margins: a text starts on a right page, or on a left one of its own") {
         book.page.mirrored = true;
-        book.items[3].firstPageLeft = true;
+        book.items[3].start = kalahari::core::PageStart::Left;
         REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
         keepSample(path, QStringLiteral("options-4.docx"));
-        const QString document = QString::fromUtf8(zipEntries(path).value(QStringLiteral("word/document.xml")));
+        const QString document =
+            QString::fromUtf8(zipEntries(path).value(QStringLiteral("word/document.xml")));
         CHECK(count(document, QStringLiteral("<w:type w:val=\"oddPage\"/>")) == 2);
         CHECK(count(document, QStringLiteral("<w:type w:val=\"evenPage\"/>")) == 1);
+    }
+
+    SECTION("Mirror margins: a text that starts on the next page, left or right") {
+        book.page.mirrored = true;
+        book.items[3].start = kalahari::core::PageStart::Next;
+        REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+        const QString document = QString::fromUtf8(zipEntries(path).value(QStringLiteral("word/document.xml")));
+        CHECK(count(document, QStringLiteral("<w:type w:val=\"oddPage\"/>")) == 2);
+        CHECK(count(document, QStringLiteral("<w:type w:val=\"evenPage\"/>")) == 0);
+        CHECK(count(document, QStringLiteral("<w:type w:val=\"nextPage\"/>")) == 1);
     }
 
     SECTION("Notes numbered through the book: the second chapter goes on") {
@@ -453,4 +551,66 @@ TEST_CASE("Markdown: images named in the book's folder without a copy", "[export
     CHECK(markdown.contains(QStringLiteral("![Red square](../book/images/red.png)")));
     CHECK(result.imagesFolder.isEmpty());
     CHECK_FALSE(QFileInfo::exists(folder.filePath(QStringLiteral("out/book – images"))));
+}
+
+TEST_CASE("Export: multilevel lists and the book's own fields in DOCX, EPUB and Markdown",
+          "[export][lists][fields]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    const TextField narrator{.type = FieldType::Custom, .format = QString(),
+                             .key = QStringLiteral("field-1"), .name = QStringLiteral("Narrator")};
+    const TextField gone{.type = FieldType::Custom, .format = QString(),
+                         .key = QStringLiteral("field-9"), .name = QStringLiteral("Publisher")};
+    BookExport book = bookOf({textItem(
+        QStringLiteral("rules"), QStringLiteral("Rules"),
+        QStringLiteral("<kml><ol prefix=\"§ \"><li>One<ol show-levels=\"1\"><li>One one<ol "
+                       "show-levels=\"2\" suffix=\")\"><li>Deep</li></ol></li></ol></li></ol>"
+                       "<ul type=\"dash\"><li>Dash</li></ul><p>Told by ") +
+            textFieldKml(narrator) + QStringLiteral(" for ") + textFieldKml(gone) +
+            QStringLiteral(".</p></kml>"))});
+    book.customFields.insert(QStringLiteral("field-1"),
+                             CustomFieldValue{.name = QStringLiteral("Narrator"),
+                                              .value = QStringLiteral("Hilary")});
+
+    SECTION("DOCX: Word's text of each level, the values of the fields") {
+        const QString path = folder.filePath(QStringLiteral("rules.docx"));
+        REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
+        const QHash<QString, QByteArray> entries = zipEntries(path);
+        const QString numbering = QString::fromUtf8(entries.value(QStringLiteral("word/numbering.xml")));
+        CHECK(numbering.contains(QStringLiteral("<w:lvlText w:val=\"§ %1.\"/>")));
+        CHECK(numbering.contains(QStringLiteral("<w:lvlText w:val=\"%1.%2.\"/>")));
+        CHECK(numbering.contains(QStringLiteral("<w:lvlText w:val=\"%1.%2.%3)\"/>")));
+        const QString document = QString::fromUtf8(entries.value(QStringLiteral("word/document.xml")));
+        CHECK(document.contains(QStringLiteral("Hilary")));
+        CHECK(document.contains(QStringLiteral("[Publisher]")));
+    }
+
+    SECTION("EPUB: the marks written out where HTML has none of its own") {
+        const QString path = folder.filePath(QStringLiteral("rules.epub"));
+        REQUIRE(exportEpub(book, path, {}, nullptr, nullptr));
+        const QHash<QString, QByteArray> entries = zipEntries(path);
+        QString chapter;
+        for (auto it = entries.cbegin(); it != entries.cend(); ++it) {
+            if (it.key().startsWith(QStringLiteral("OEBPS/text/")) &&
+                it.value().contains("One one")) {
+                chapter = QString::fromUtf8(it.value());
+            }
+        }
+        REQUIRE_FALSE(chapter.isEmpty());
+        CHECK(chapter.contains(QStringLiteral("<ol class=\"marks\">")));
+        CHECK(chapter.contains(QStringLiteral("<span class=\"list-mark\">§ 1.</span> One")));
+        CHECK(chapter.contains(QStringLiteral("<span class=\"list-mark\">1.1.</span> One one")));
+        CHECK(chapter.contains(QStringLiteral("<span class=\"list-mark\">1.1.1)</span> Deep")));
+        CHECK(chapter.contains(QStringLiteral("<ul class=\"marks\">")));
+        CHECK(chapter.contains(QStringLiteral("Told by Hilary for [Publisher].")));
+    }
+
+    SECTION("Markdown: the values of the fields") {
+        const QString path = folder.filePath(QStringLiteral("rules.md"));
+        REQUIRE(exportMarkdown(book, path, QStringLiteral("rules – images"), {}, nullptr, nullptr));
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::ReadOnly));
+        const QString markdown = QString::fromUtf8(file.readAll());
+        CHECK(markdown.contains(QStringLiteral("Told by Hilary for \\[Publisher\\].")));
+    }
 }

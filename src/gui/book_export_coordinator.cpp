@@ -1,11 +1,13 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file book_export_coordinator.cpp
 /// @brief File > Export > DOCX, PDF, Markdown and EPUB, and File > Print: the windows of the
 ///        export and of the print, and the book as the program has it (the open texts with
 ///        their unsaved changes) for the file or the printer
 
+#include "kalahari/gui/own_fields.h"
 #include "kalahari/gui/book_export_coordinator.h"
 #include "kalahari/gui/plugin_coordinator.h"
 
@@ -35,6 +37,7 @@
 #include "kalahari/gui/footnote_coordinator.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/printer_driver.h"
 #include "kalahari/gui/publishing_set.h"
 #include "kalahari/gui/utils/language_names.h"
 #include "kalahari/gui/utils/program_folders.h"
@@ -256,14 +259,51 @@ void addRowsOf(const core::ProjectManager& projects, const QList<core::ProjectEl
         const bool group = form == core::ElementForm::Group;
         const bool contents =
             form == core::ElementForm::Window && isContentsKind(element.kind.kindId);
-        if (text || group || contents) {
-            rows.append(ExportRow{element.id, element.title, text ? element.status : QString(),
+        const bool spread = projects.isSpread(element);
+        if (text || group || contents || spread) {
+            rows.append(ExportRow{element.id, element.title,
+                                  text || spread ? element.status : QString(),
                                   NavigatorPanel::iconIdOf(projects.bookTypes(), element),
                                   at.level, !group});
         }
         if (group) {
             pending.push_back({&element.elements, 0, at.level + 1});
         }
+    }
+}
+
+/// The spread in front of the window, from the tab @p front shows; nullptr: none
+const core::ProjectElement* frontSpread(const core::ProjectManager& projects, const QWidget* front) {
+    if (front == nullptr) {
+        return nullptr;
+    }
+    const QString elementId = front->property("elementId").toString();
+    const core::ProjectElement* element =
+        elementId.isEmpty() ? nullptr : projects.findElement(elementId);
+    return element != nullptr && projects.isSpread(*element) ? element : nullptr;
+}
+
+/// Give the spreads of @p book their pictures: the files of the materials they show, outside
+/// the folder of images (editor::BookExport::pictures), turned as the Workshop shows them
+void addSpreadPictures(const core::ProjectManager& projects, editor::BookExport& book) {
+    for (editor::ExportItem& item : book.items) {
+        if (item.kind != editor::ExportItemKind::Spread) {
+            continue;
+        }
+        const core::ProjectElement* element = projects.findElement(item.elementId);
+        const QString materialId =
+            element != nullptr ? core::ProjectManager::spreadOf(*element).picture : QString();
+        const core::ProjectElement* material =
+            materialId.isEmpty() ? nullptr : projects.findElement(materialId);
+        const QString file = material != nullptr ? projects.filePathOf(*material) : QString();
+        if (file.isEmpty()) {
+            continue;
+        }
+        // A source of its own, which no image of the texts has
+        item.spread.picture =
+            QStringLiteral("spread-%1/%2").arg(item.elementId, QFileInfo(file).fileName());
+        item.spread.rotation = material->rotation;
+        book.pictures.insert(item.spread.picture, file);
     }
 }
 
@@ -503,7 +543,16 @@ bool BookExportCoordinator::writeFile(const editor::BookExport& book, const QStr
     return false;  // A format the program does not write
 }
 
+void BookExportCoordinator::printSet() {
+    printContent(dialogs::BookOutputDialog::Content::Set);
+}
+
 void BookExportCoordinator::printBook() {
+    printContent(std::nullopt);
+}
+
+void BookExportCoordinator::printContent(
+    std::optional<dialogs::BookOutputDialog::Content> content) {
     if (!whyNotPrint().isEmpty()) {
         return;
     }
@@ -526,7 +575,13 @@ void BookExportCoordinator::printBook() {
                 logger.error("Print: {}", problem->constLast().toStdString());
                 return false;
             }
+            // The settings of the driver, which outlive the printer that holds them
+            printer_driver::PrintSettings driverSettings;
             QPrinter printer(info, QPrinter::HighResolution);
+            if (driverSettings.apply(printer, choice)) {
+                logger.info("Print: the settings of the driver of {}",
+                            choice.printer.toStdString());
+            }
             // The name of the print in the queue of the printer
             QString title = book.title;
             if (choice.content == dialogs::BookOutputDialog::Content::Front || title.isEmpty()) {
@@ -548,6 +603,13 @@ void BookExportCoordinator::printBook() {
         },
         {}, m_window);
     dialog.setVolumeBook([this](const QString& volumeId) { return dialogBook(volumeId); });
+    // Printer Properties...: the window of the driver of the printer, where the system has one
+    if (printer_driver::hasDriverWindow()) {
+        dialog.setDriverWindow(&printer_driver::showDriverWindow);
+    }
+    if (content) {
+        dialog.setContent(*content);
+    }
     dialog.exec();
 }
 
@@ -559,9 +621,14 @@ dialogs::ExportBookDialog::Book BookExportCoordinator::dialogBook(
         projectBook != nullptr ? bookOfVolume(projects, *projectBook)
                                : dialogs::ExportBookDialog::Book();
 
-    // The text in front: of the book, or a file outside it
+    // The text in front: of the book, or a file outside it; or a spread
     const EditorPanel* front = m_currentEditor ? m_currentEditor() : nullptr;
-    if (front != nullptr && front->getBookEditor() != nullptr) {
+    if (const core::ProjectElement* spread = frontSpread(
+            projects, m_centralTabs != nullptr ? DocumentWindows::of(*m_centralTabs).frontPage()
+                                               : nullptr)) {
+        book.frontId = spread->id;
+        book.frontTitle = spread->title;
+    } else if (front != nullptr && front->getBookEditor() != nullptr) {
         const QString elementId = front->property("elementId").toString();
         const core::ProjectElement* element =
             elementId.isEmpty() ? nullptr : projects.findElement(elementId);
@@ -598,6 +665,11 @@ editor::BookExport BookExportCoordinator::bookExport(
         const auto& settings = core::SettingsManager::getInstance();
         book.fontFamily = QString::fromStdString(settings.get<std::string>("editor.fontFamily"));
     }
+    // A file that shows a page at a time gets each spread as a text: its whole picture with
+    // its caption
+    if (choice.format != editor::ExportFormat::Pdf) {
+        editor::spreadsAsTexts(book);
+    }
     book.epub.bookStyles = choice.bookStyles;
     book.epub.embedFont = choice.embedFont;
     book.epub.coverImage = choice.coverImage;
@@ -629,6 +701,7 @@ editor::BookExport BookExportCoordinator::bookExport(
         book.author = projectBook->author;
         book.language = projectBook->language;
         book.imagesFolder = projects.imagesBaseFolder();
+        book.customFields = own_fields::values(projects, *projectBook);
     }
     book.styles = bookParagraphStyles(m_book);
     // The pages of a PDF and of the print have the colors of the light paper (Settings >
@@ -652,6 +725,7 @@ editor::BookExport BookExportCoordinator::bookExport(
     const QHash<QString, const editor::BookEditor*> open = openEditors();
     if (layout.content == Content::Front) {
         addFrontText(open, book);
+        addSpreadPictures(projects, book);
         return book;
     }
     if (projectBook == nullptr) {
@@ -668,6 +742,7 @@ editor::BookExport BookExportCoordinator::bookExport(
     addItems(projectBook->frontElements, wanted, open, book.items);
     addItems(projectBook->mainElements, wanted, open, book.items);
     addItems(projectBook->backElements, wanted, open, book.items);
+    addSpreadPictures(projects, book);
 
     // The endnotes of a book that has them at its end
     book.endnotesAtBookEnd = std::any_of(book.items.cbegin(), book.items.cend(),
@@ -713,12 +788,49 @@ editor::ExportItem BookExportCoordinator::textItem(
     if (m_footnotes != nullptr) {
         item.footnotes = m_footnotes->contextFor(element.id);
     }
-    item.firstPageLeft = element.firstPageLeft;
+    item.start = m_book.pageStartOf(element);
+    return item;
+}
+
+editor::ExportItem BookExportCoordinator::spreadItem(const core::ProjectElement& element) const {
+    // Its look; its picture comes with the pictures of the book (addSpreadPictures())
+    const core::SpreadData data = core::ProjectManager::spreadOf(element);
+    editor::ExportItem item;
+    item.kind = editor::ExportItemKind::Spread;
+    item.elementId = element.id;
+    item.title = element.title;
+    item.titleStyle = CHAPTER_TITLE_STYLE;
+    item.start = core::PageStart::Left;
+    item.inContents = data.inContents;
+    item.spreadCaption = data.caption;
+    item.spreadLabel = data.captionLabel;
+    item.spreadText = data.captionText;
+    if (m_captions != nullptr) {
+        item.captions = m_captions->contextFor(element.id);
+    }
+    editor::SpreadLook& look = item.spread;
+    look.toEdges = data.toEdges();
+    look.fills = data.fills();
+    look.cropX = data.cropX;
+    look.cropY = data.cropY;
+    look.zoom = data.zoom;
+    look.gutter = data.gutter;
+    look.pageNumbers = data.pageNumbers;
+    if (data.caption) {
+        look.caption = editor::spreadCaptionText(data.captionLabel, data.captionText, item.captions);
+    }
     return item;
 }
 
 void BookExportCoordinator::addFrontText(const QHash<QString, const editor::BookEditor*>& open,
                                          editor::BookExport& book) const {
+    // A spread in front
+    if (const core::ProjectElement* spread = frontSpread(
+            m_book, m_centralTabs != nullptr ? DocumentWindows::of(*m_centralTabs).frontPage()
+                                             : nullptr)) {
+        book.items.push_back(spreadItem(*spread));
+        return;
+    }
     const EditorPanel* front = m_currentEditor ? m_currentEditor() : nullptr;
     if (front == nullptr || front->getBookEditor() == nullptr) {
         return;
@@ -768,13 +880,17 @@ void BookExportCoordinator::addItems(const QList<core::ProjectElement>& elements
                 group.elementId = element.id;
                 group.title = element.title;
                 group.titleStyle = PART_TITLE_STYLE;
-                group.firstPageLeft = element.firstPageLeft;
+                group.start = m_book.pageStartOf(element);
                 items.push_back(std::move(group));
                 std::move(inside.begin(), inside.end(), std::back_inserter(items));
             }
         } else if (form == core::ElementForm::Text && !element.file.isEmpty()) {
             if (wanted(element)) {
                 items.push_back(textItem(element, open));
+            }
+        } else if (m_book.isSpread(element)) {
+            if (wanted(element)) {
+                items.push_back(spreadItem(element));
             }
         } else if (form == core::ElementForm::Window && isContentsKind(element.kind.kindId) &&
                    wanted(element)) {
@@ -853,6 +969,14 @@ dialogs::PrintBookDialog::LaidOut BookExportCoordinator::printedPages(
     printed->pages->layOut();
     laidOut.pages = std::shared_ptr<const editor::BookPages>(printed, printed->pages.get());
 
+    // The first page of a spread in front
+    if (const core::ProjectElement* spread = frontSpread(
+            m_book, m_centralTabs != nullptr ? DocumentWindows::of(*m_centralTabs).frontPage()
+                                             : nullptr)) {
+        laidOut.current = laidOut.pages->pageAt(spread->id, 0);
+        return laidOut;
+    }
+
     // The page of the cursor of the text in front: of the book, or the file outside it alone
     const EditorPanel* front = m_currentEditor ? m_currentEditor() : nullptr;
     const editor::BookEditor* editor = front != nullptr ? front->getBookEditor() : nullptr;
@@ -910,6 +1034,8 @@ QList<dialogs::PrintBookDialog::Printer> BookExportCoordinator::systemPrinters()
             layout.setUnits(QPageLayout::Point);
             return layout.minimumMargins();
         };
+        // Its paper sources and qualities, where the system lists them
+        printer_driver::addSourcesAndQualities(printer);
         printers.append(std::move(printer));
     }
     return printers;

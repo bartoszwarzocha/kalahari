@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file version_comparison.cpp
 /// @brief A version of a text compared with the text as it is now, as a text to read
@@ -8,6 +9,7 @@
 #include <kalahari/core/text_diff.h>
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_serializer.h>
+#include <kalahari/editor/tab_guides.h>
 #include "kalahari/editor/detail/book_editor_internal.h"
 
 #include <QStringList>
@@ -113,6 +115,7 @@ VersionComparison compareVersions(const QString& olderKml, const QString& newerK
 
     QTextDocument shown;
     shown.setUndoRedoEnabled(false);
+    setTabGuidesOf(shown, tabGuidesOf(newer));  // its lines as the newer version has them
     QTextCursor cursor(&shown);
     cursor.beginEditBlock();
 

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file chapter_document.h
 /// @brief KChapter document format for rich chapter storage
@@ -267,10 +268,6 @@ public:
     /// @return Text of the paragraphs, one per line, with entities decoded and the line
     ///         breaks in them as QChar::LineSeparator - the same text the editor shows
     static QString kmlToPlainText(const QString& kml);
-
-    /// @brief The text of @p kml as kmlToPlainText() gives it, without the paragraphs in the
-    ///        style @p skippedStyle (the headings of the points of a text for publishers)
-    static QString kmlToPlainText(const QString& kml, QStringView skippedStyle);
 
     /// @brief The words of a text's KML under any rules of counting, as the editor counts
     ///        them: of its paragraphs (kmlToPlainText()) and of the texts of its footnotes and

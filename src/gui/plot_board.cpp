@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plot_board.cpp
 /// @brief What the plot board and the outline show of the book, the places a card moves to,
@@ -190,7 +191,9 @@ PlotCard plainCard(const core::ProjectManager& book, const core::ProjectElement&
     card.description = element.description;
     card.plot = element.plot;
     card.status = core::ProjectManager::statusOf(element);
-    card.words = book.wordCount(element.id);
+    // A text in the plan has no file: no words and no state yet
+    card.planned = book.isPlannedText(element);
+    card.words = card.planned ? 0 : book.wordCount(element.id);
     return card;
 }
 
@@ -273,10 +276,13 @@ QString PlotBoard::scenesVariant() {
 QString PlotBoard::startView() {
     auto& settings = core::SettingsManager::getInstance();
     const auto start = settings.get<std::string>(START_VIEW_SETTING, START_LAST);
-    const auto view = start == VIEW_BOARD || start == VIEW_OUTLINE
+    const auto view = start == VIEW_BOARD || start == VIEW_OUTLINE || start == VIEW_CHRONOLOGY
                           ? start
                           : settings.get<std::string>(VIEW_SETTING, VIEW_BOARD);
-    return QString::fromLatin1(view == VIEW_OUTLINE ? VIEW_OUTLINE : VIEW_BOARD);
+    if (view == VIEW_OUTLINE || view == VIEW_CHRONOLOGY) {
+        return QString::fromStdString(view);
+    }
+    return QString::fromLatin1(VIEW_BOARD);
 }
 
 std::string PlotBoard::fieldSetting(const char* field) {
@@ -698,6 +704,14 @@ QColor PlotColors::ofPov(const QString& pov, const QStringList& povs) const {
 
 QColor PlotColors::ofCard(const PlotCard& card, const QString& colorBy,
                           const QStringList& povs) const {
+    if (colorBy == QLatin1String(PlotBoard::COLOR_NONE)) {
+        return {};
+    }
+    // The writer's own color of the card comes first: it shows at once, whatever colors the
+    // other cards
+    if (const QColor color = ofOwn(card.plot.color); color.isValid()) {
+        return color;
+    }
     if (colorBy == QLatin1String(PlotBoard::COLOR_STATUS)) {
         return ofStatus(card);
     }
