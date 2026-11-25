@@ -176,8 +176,10 @@ QFont fontOfBook(const core::ProjectManager& book) {
         core::SettingsManager::getInstance().get<std::string>("editor.fontFamily")));
     double points = editor::DEFAULT_NORMAL_POINT_SIZE;
     if (book.project() != nullptr) {
-        const QVariantMap& normal = bookParagraphStyles(book).normal().properties;
-        const double own = normal.value(QStringLiteral("fontSize")).toDouble();
+        // The styles kept while their Normal is read: normal() is a reference into them
+        const editor::ParagraphStyleSet styles = bookParagraphStyles(book);
+        const double own =
+            styles.normal().properties.value(QStringLiteral("fontSize")).toDouble();
         points = own > 0.0 ? own : points;
     }
     font.setPointSizeF(points);
