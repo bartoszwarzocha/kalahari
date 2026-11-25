@@ -253,7 +253,7 @@ void ScheduleView::scrollToDay(const QDate& day, double share)
         return;
     }
     const int lanes = std::max(0, viewport()->width() - m_leftWidth);
-    const int x = m_first.daysTo(day) * dayWidth() - qRound(lanes * share);
+    const int x = static_cast<int>(m_first.daysTo(day)) * dayWidth() - qRound(lanes * share);
     horizontalScrollBar()->setValue(x);
 }
 

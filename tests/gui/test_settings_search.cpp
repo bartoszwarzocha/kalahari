@@ -38,19 +38,23 @@ using namespace kalahari::gui;
 
 namespace {
 
-/// A page of the tree by its category ("" for a page at the top) and its name
+/// A page of the tree by its category ("" for a page at the top) and its name; the test fails
+/// without it (no code after FAIL, which MSVC counts as unreachable)
 QTreeWidgetItem* itemOf(const SettingsDialog& dialog, const QString& category,
                         const QString& title) {
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
-    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
+    QTreeWidgetItem* page = nullptr;
+    for (QTreeWidgetItemIterator it(tree); *it != nullptr && page == nullptr; ++it) {
         const QTreeWidgetItem* parent = (*it)->parent();
         if ((*it)->text(0) == title && (parent ? parent->text(0) : QString()) == category) {
-            return *it;
+            page = *it;
         }
     }
-    FAIL("No page " << title.toStdString());
-    return nullptr;
+    if (page == nullptr) {
+        FAIL("No page " << title.toStdString());
+    }
+    return page;
 }
 
 /// Whether the tree shows a page: neither it nor its category is left out

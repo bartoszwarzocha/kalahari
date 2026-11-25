@@ -839,11 +839,11 @@ QWidget* CoverPlan::newEndpaperRow(const QString& side) {
     //: The pattern of an endpaper. In Polish: Wzór:
     controls.form->addRow(tr("Pattern:"), controls.patterns);
 
-    const auto swatch = [this, &side](const char* name, const QString& text,
+    const auto swatch = [this, &side](const char* id, const QString& text,
                                       QString Endpaper::*field, QWidget* parent,
                                       QColor (*shown)(const Endpaper&)) {
         auto* button = new QToolButton(parent);
-        button->setObjectName(QStringLiteral("%1_%2").arg(QLatin1String(name), side));
+        button->setObjectName(QStringLiteral("%1_%2").arg(QLatin1String(id), side));
         button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
         button->setIconSize(QSize(SWATCH_WIDTH, SWATCH_HEIGHT));
         button->setText(text);
