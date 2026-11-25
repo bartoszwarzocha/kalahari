@@ -30,6 +30,7 @@ set(KALAHARI_CORE_SOURCES
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
     editor/book_export.cpp             # Export of a book: the texts read as the editor reads them
+    editor/spread_look.cpp             # How a spread lies on its two pages and how they are drawn
     editor/docx_writer.cpp             # Export of a book to a Word document (DOCX)
     editor/markdown_writer.cpp         # Export of a book to Markdown (GitHub Flavored)
     editor/book_import.cpp             # Import of a file into a book: texts, parts, kinds, styles
@@ -580,7 +581,6 @@ set(KALAHARI_SOURCES
     editor/editor_render_pipeline.cpp         # OpenSpec #00043 Phase 12.1: Unified render pipeline
     # The pages of a book use the layout of the editor above, so they are not in kalahari_core
     editor/book_pages.cpp                     # The pages of a book as the page view shows them (PDF, printer)
-    editor/spread_look.cpp                    # How a spread lies on its two pages and how they are drawn
     editor/book_print.cpp                     # The print of a book: the pages on the sheets, their drawing
     editor/pdf_writer.cpp                     # Export of a book to a PDF document
     editor/editor_benchmark.cpp               # OpenSpec #00043 Phase 11.11: Performance benchmarks
