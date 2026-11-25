@@ -303,6 +303,8 @@ TEST_CASE("Cover parts: the flaps and the jacket above the plan, their sheets an
         CHECK(plan->sheet() == QStringLiteral("jacket"));
         press(QApplication::focusWidget(), Qt::Key_PageUp, Qt::ControlModifier);
         CHECK(plan->sheet() == QStringLiteral("cover"));
+    } else {
+        WARN("Ctrl+Page Down and Ctrl+Page Up not checked: " << NEEDS_OFFSCREEN);
     }
 
     // A change of the parts elsewhere (another window of the book) shows on the plan

@@ -277,9 +277,10 @@ Endpaper Endpaper::fromJson(const QJsonObject& json, const QString& field,
     Endpaper endpaper;
     endpaper.fill = takeText(rest, "fill", field, problems);
     endpaper.picture = takeText(rest, "picture", field, problems);
-    if (const QJsonValue scale = rest.take(QLatin1String("scale")); !scale.isUndefined()) {
-        const double value = scale.toDouble(-1);
-        if (!scale.isDouble() || value != static_cast<int>(value) || value < MIN_SCALE ||
+    // Not a local named "scale", which would hide the member (MSVC C4458)
+    if (const QJsonValue size = rest.take(QLatin1String("scale")); !size.isUndefined()) {
+        const double value = size.toDouble(-1);
+        if (!size.isDouble() || value != static_cast<int>(value) || value < MIN_SCALE ||
             value > MAX_SCALE) {
             addProblem(problems, pathOf(field, "scale"),
                        QStringLiteral("must be a whole number from %1 to %2")
