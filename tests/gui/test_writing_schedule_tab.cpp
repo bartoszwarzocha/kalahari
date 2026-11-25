@@ -815,8 +815,11 @@ TEST_CASE("Writing schedule: Plan the Texts lays texts one after another by thei
     CHECK(child<QSpinBox>(dialog, "spreadLength")->value() == 6400);
     child<QSpinBox>(dialog, "spreadLength")->setValue(2000);
     auto* note = child<QLabel>(dialog, "spreadNote");
+    // The numbers in the form of the system's language, as the program shows them
     CHECK(note->text().toStdString()
-          == "2 texts lack 4,000 words, on 10 writing days: about 400 words a writing day.");
+          == QStringLiteral("2 texts lack %1, on 10 writing days: about %2 a writing day.")
+                 .arg(gui::stats_painter::words(4000), gui::stats_painter::words(400))
+                 .toStdString());
     CHECK(dialog.acceptButton()->isEnabled());
     CHECK(dialog.plan()
           == SpreadPlanDialog::spread(caravan(), caravanPlan(), Texts::WithoutPlan, monday,
