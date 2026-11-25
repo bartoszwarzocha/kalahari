@@ -35,7 +35,10 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLocale>
+#include <QLayout>
 #include <QMainWindow>
+#include <QPalette>
+#include <QPixmap>
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QScreen>
@@ -448,6 +451,48 @@ TEST_CASE("Own windows: About keeps the authors and the notices of the GNU GPL",
                                    "LGPL 2.1+)"));
     }
     CHECK(hunspell);
+}
+
+TEST_CASE("Own windows: About shows the full logo of the authors for a light and a dark theme",
+          "[gui][dialogs][license]") {
+    // Both logos are in the program, the full ones ("BW", "Digital Systems & Publishing",
+    // "Est 2013"): of one size, much wider than high
+    const QPixmap black(AboutDialog::companyLogo(false));
+    const QPixmap white(AboutDialog::companyLogo(true));
+    REQUIRE_FALSE(black.isNull());
+    REQUIRE_FALSE(white.isNull());
+    CHECK(black.size() == QSize(2358, 631));
+    CHECK(white.size() == black.size());
+    CHECK(black.toImage() != white.toImage());
+
+    AboutDialog dialog;
+    QLabel* logo = dialog.companyLogoLabel();
+    REQUIRE(logo != nullptr);
+    CHECK(logo->objectName() == QStringLiteral("aboutCompanyLogo"));
+    CHECK(logo->isVisibleTo(&dialog));
+    CHECK(logo->accessibleName() == QStringLiteral("BW Digital Systems & Publishing"));
+    // The whole logo, in its proportions, above the authors
+    CHECK(logo->width() == 240);
+    CHECK(logo->height() == 240 * 631 / 2358);
+    CHECK(logo->hasScaledContents());
+    const auto* authors = dialog.findChild<QLabel*>(QStringLiteral("aboutAttribution"));
+    REQUIRE(authors != nullptr);
+    REQUIRE(logo->parentWidget() == authors->parentWidget());
+    const QLayout* layout = logo->parentWidget()->layout();
+    REQUIRE(layout != nullptr);
+    CHECK(layout->indexOf(logo) < layout->indexOf(authors));
+
+    // A light theme: the black letters; a dark one: the white ones; and back, as the theme
+    // changes while the window is open
+    const auto shownOn = [&dialog, logo](const char* window) {
+        QPalette palette = dialog.palette();
+        palette.setColor(QPalette::Window, QColor(QString::fromLatin1(window)));
+        dialog.setPalette(palette);
+        return logo->pixmap().toImage();
+    };
+    CHECK(shownOn("#f0f0f0") == black.toImage());
+    CHECK(shownOn("#2b2b2b") == white.toImage());
+    CHECK(shownOn("#ffffff") == black.toImage());
 }
 
 TEST_CASE("Own windows: in Polish About keeps the name and the address of the authors",

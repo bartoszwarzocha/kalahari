@@ -556,7 +556,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the notice and the licence; the example plugin, `vcpkg.json`, README and ROADMAP name the
   GPL 3.0. Every dependency was checked against the GPL 3.0 (Qt 6.9 modules: LGPL-3.0-only OR
   GPL-2.0-only OR GPL-3.0-only; the ports of vcpkg; the dictionaries, the icons, the libraries of
-  the Linux packages): all are compatible.
+  the Linux packages): all are compatible. The copyright line of `NOTICE.md` names the business
+  in full ("BW Digital Systems & Publishing – Bartosz Warzocha"). The About tab shows the full
+  logo of BW Digital Systems & Publishing above the attribution: its black letters on a light
+  theme, its white ones on a dark one, and it changes with the theme
+  (`resources/images/bwdsp_logo_black.png` and `bwdsp_logo_white.png`, embedded in the program);
+  the second additional term (7 e) also covers the name and the logo of the company. README
+  shows the logo, for the light and the dark mode of GitHub.
 
 - **The bar under the text stands out** - 2026-11-22. The bar at the bottom of the text area
   (the answers to commands, such as Undo after a deletion, the note of a file outside a book and

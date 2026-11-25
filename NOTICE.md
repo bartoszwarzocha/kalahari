@@ -42,14 +42,16 @@ The attribution may be shown in the language of the user interface. A modified v
 in its own About window or, when it has none, in the place of its user interface that shows its
 legal notices; it may add that it is a modified version, and by whom it was modified.
 
-### 2. The name and the logo – section 7(e)
+### 2. The names and the logos – section 7(e)
 
 This licence grants no rights under trademark law to the name "Kalahari" or to the logo of
-Kalahari. A modified version, or any other product, may not use them as its name or its logo
-without the permission of the copyright holder; it may be distributed under a name of its own.
-Saying that a work is based on Kalahari, as the attribution of term 1 does, is not such a use.
+Kalahari, nor to the name "BW Digital Systems & Publishing" or to its logo (the files
+`resources/images/bwdsp_logo_black.png` and `resources/images/bwdsp_logo_white.png`). A modified
+version, or any other product, may not use them as its name or its logo without the permission
+of the copyright holder; it may be distributed under a name of its own. Saying that a work is
+based on Kalahari, and naming its authors, as the attribution of term 1 does, is not such a use.
 
-For permissions concerning the name and the logo, contact: bartosz.warzocha@gmail.com
+For permissions concerning the names and the logos, contact: bartosz.warzocha@gmail.com
 
 ---
 

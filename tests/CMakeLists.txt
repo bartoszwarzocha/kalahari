@@ -1091,6 +1091,15 @@ qt_add_resources(kalahari-tests "kalahari_test_licenses"
     FILES ${CMAKE_SOURCE_DIR}/LICENSE
 )
 
+# The logo of the authors for the About tab, as in the program (src/CMakeLists.txt)
+qt_add_resources(kalahari-tests "kalahari_test_company_logo"
+    PREFIX "/images"
+    BASE ${CMAKE_SOURCE_DIR}/resources/images
+    FILES
+        ${CMAKE_SOURCE_DIR}/resources/images/bwdsp_logo_black.png
+        ${CMAKE_SOURCE_DIR}/resources/images/bwdsp_logo_white.png
+)
+
 # Link libraries
 target_link_libraries(kalahari-tests PRIVATE
     Catch2::Catch2  # Changed from Catch2WithMain - we have custom main()

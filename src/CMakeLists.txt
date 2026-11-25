@@ -874,6 +874,16 @@ qt_add_resources(kalahari "kalahari_licenses"
     FILES ${CMAKE_SOURCE_DIR}/LICENSE
 )
 
+# The full logo of the authors for the About tab, its black letters for a light theme and
+# its white ones for a dark one, under :/images/ (AboutDialog::companyLogo())
+qt_add_resources(kalahari "kalahari_company_logo"
+    PREFIX "/images"
+    BASE ${CMAKE_SOURCE_DIR}/resources/images
+    FILES
+        ${CMAKE_SOURCE_DIR}/resources/images/bwdsp_logo_black.png
+        ${CMAKE_SOURCE_DIR}/resources/images/bwdsp_logo_white.png
+)
+
 # Target properties
 set_target_properties(kalahari PROPERTIES
     OUTPUT_NAME "kalahari"

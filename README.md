@@ -48,11 +48,11 @@ Kalahari • Okavango • Zambezi
 - **Testing:** Catch2 v3 (BDD style)
 
 **Core Libraries:**
-- **Qt6** - Cross-platform GUI framework (LGPL v3, dynamically linked)
+- **Qt6** - Cross-platform GUI framework (LGPL v3)
 - **spdlog** - Fast structured logging (MIT)
 - **nlohmann_json** - Modern C++ JSON (MIT)
 - **libzip** - Project file compression (.klh format, BSD)
-- **Hunspell** - Spell checking library (LGPL/MPL)
+- **Hunspell** - Spell checking library (used under the LGPL 2.1 or later)
 - **OpenSSL** - Plugin signature verification (Apache 2.0)
 - **Catch2** - Unit testing framework (BSL-1.0)
 - **pybind11** - C++/Python bindings (BSD)
@@ -340,12 +340,12 @@ For now, please:
 
 **GNU General Public License version 3** (`GPL-3.0-only`) with additional terms under its section 7 – the text of the licence is in [LICENSE](LICENSE); the copyright, the additional terms and the third-party dependencies are in [NOTICE.md](NOTICE.md).
 
-Copyright (c) 2025-2026 Bartosz W. Warzocha
+Copyright (c) 2025-2026 Bartosz W. Warzocha, BW Digital Systems & Publishing – Bartosz Warzocha
 Kalahari – created by BW Digital Systems & Publishing, https://bwdsp.com.pl/
 
 **Key Points:**
 - ✅ Kalahari application code and all plugins: **GPL 3.0** (free and open source, copyleft)
-- ✅ Additional terms (section 7): every copy and every work based on Kalahari keeps the attribution above in its About window; the licence grants no rights to the name "Kalahari" or its logo
+- ✅ Additional terms (section 7): every copy and every work based on Kalahari keeps the attribution above in its About window; the licence grants no rights to the name "Kalahari" or its logo, nor to the name or the logo of BW Digital Systems & Publishing
 - ✅ Qt6 Framework: **LGPL v3**; all other dependencies are compatible with the GPL 3.0
 
 **Redistribution:** If distributing binaries, include `LICENSE` and `NOTICE.md`, provide the source code of the version you distribute (GPL section 6) and the Qt libraries, and inform users they can replace them. See [NOTICE.md](NOTICE.md) for details.
@@ -353,6 +353,17 @@ Kalahari – created by BW Digital Systems & Publishing, https://bwdsp.com.pl/
 ---
 
 ## 🦁 About
+
+<p align="center">
+  <a href="https://bwdsp.com.pl/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="resources/images/bwdsp_logo_white.png">
+      <img src="resources/images/bwdsp_logo_black.png" alt="BW Digital Systems &amp; Publishing" width="300">
+    </picture>
+  </a>
+</p>
+
+Kalahari is created by **BW Digital Systems & Publishing** – https://bwdsp.com.pl/
 
 Created with passion for writers who deserve better tools.
 

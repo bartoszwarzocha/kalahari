@@ -13,6 +13,7 @@
 #include <QClipboard>
 #include <QDate>
 #include <QDateTime>
+#include <QEvent>
 #include <QFile>
 #include <QFormLayout>
 #include <QGuiApplication>
@@ -21,6 +22,8 @@
 #include <QList>
 #include <QLocale>
 #include <QPair>
+#include <QPalette>
+#include <QPixmap>
 #include <QPushButton>
 #include <QSysInfo>
 #include <QTabWidget>
@@ -33,6 +36,21 @@ namespace {
 
 /// @brief The address of the authors of the program (NOTICE.md, additional term 1)
 constexpr const char* AUTHOR_ADDRESS = "https://bwdsp.com.pl/";
+
+/// @brief The name of the authors of the program, beside their logo
+constexpr const char* COMPANY_NAME = "BW Digital Systems & Publishing";
+
+/// @brief The full logo of the authors, its black letters for a light background and its white
+/// ones for a dark one (resources/images, in the program by src/CMakeLists.txt)
+constexpr const char* COMPANY_LOGO_BLACK = ":/images/bwdsp_logo_black.png";
+constexpr const char* COMPANY_LOGO_WHITE = ":/images/bwdsp_logo_white.png";
+
+/// @brief How wide the logo is on the About tab, in logical pixels; its height keeps the
+/// proportions of the image
+constexpr int COMPANY_LOGO_WIDTH = 240;
+
+/// @brief A background darker than this lightness (0–255) is dark
+constexpr int DARK_LIGHTNESS = 128;
 
 /// @brief The text of the licence in the program (src/CMakeLists.txt, qt_add_resources)
 constexpr const char* LICENSE_RESOURCE = ":/licenses/LICENSE";
@@ -191,6 +209,36 @@ QString AboutDialog::attribution() {
     return tr("Kalahari – created by BW Digital Systems & Publishing, %1").arg(authorAddress());
 }
 
+QString AboutDialog::companyLogo(bool darkBackground) {
+    return QString::fromLatin1(darkBackground ? COMPANY_LOGO_WHITE : COMPANY_LOGO_BLACK);
+}
+
+void AboutDialog::updateCompanyLogo() {
+    if (m_companyLogo == nullptr) {
+        return;
+    }
+    // The background of the window: the window has the palette of a new theme before its
+    // tabs do, when it hears of the change
+    const QColor background = palette().color(QPalette::Window);
+    const QPixmap logo(companyLogo(background.lightness() < DARK_LIGHTNESS));
+    if (logo.isNull()) {
+        m_companyLogo->hide();
+        return;
+    }
+    // Drawn from the whole image at the size of the label, sharp at any scaling of the screen
+    m_companyLogo->setFixedSize(COMPANY_LOGO_WIDTH,
+                                COMPANY_LOGO_WIDTH * logo.height() / logo.width());
+    m_companyLogo->setPixmap(logo);
+    m_companyLogo->show();
+}
+
+void AboutDialog::changeEvent(QEvent* event) {
+    KalahariDialog::changeEvent(event);
+    if (event->type() == QEvent::PaletteChange) {
+        updateCompanyLogo();
+    }
+}
+
 QString AboutDialog::licenseText() {
     QFile file(QString::fromLatin1(LICENSE_RESOURCE));
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -270,6 +318,17 @@ QWidget* AboutDialog::createAboutTab() {
     credits->setWordWrap(true);
     layout->addWidget(credits);
     layout->addStretch(1);
+
+    // The logo of the authors, for the background of the theme, light or dark
+    layout->addSpacing(12);
+    m_companyLogo = new QLabel(widget);
+    m_companyLogo->setObjectName(QStringLiteral("aboutCompanyLogo"));
+    m_companyLogo->setAccessibleName(QString::fromLatin1(COMPANY_NAME));
+    m_companyLogo->setToolTip(QString::fromLatin1(COMPANY_NAME));
+    m_companyLogo->setScaledContents(true);
+    updateCompanyLogo();
+    layout->addWidget(m_companyLogo, 0, Qt::AlignHCenter);
+    layout->addSpacing(6);
 
     // The authors, as the licence requires every copy to show them (NOTICE.md, additional term
     // 1); the address is a link to their page
@@ -421,12 +480,14 @@ QWidget* AboutDialog::createLicenseTab() {
                   "interface.")
                    .arg(attribution()) +
                paragraph;
-    //: The second additional term of the licence (NOTICE.md). In Polish: 2. Nazwa i logo
+    //: The second additional term of the licence (NOTICE.md). In Polish: 2. Nazwy i logo
     //: (sekcja 7 e): licencja nie daje praw z zakresu znaków towarowych do nazwy „Kalahari” ani
-    //: do jej logo. Zmienioną wersję rozpowszechnia się pod własną nazwą.
-    license += tr("2. The name and the logo (section 7 e): the licence grants no rights under "
-                  "trademark law to the name \"Kalahari\" or to its logo. A modified version is "
-                  "distributed under a name of its own.") +
+    //: do jej logo, ani do nazwy i logo BW Digital Systems & Publishing. Zmienioną wersję
+    //: rozpowszechnia się pod własną nazwą.
+    license += tr("2. The names and the logos (section 7 e): the licence grants no rights under "
+                  "trademark law to the name \"Kalahari\" or to its logo, nor to the name or the "
+                  "logo of BW Digital Systems & Publishing. A modified version is distributed "
+                  "under a name of its own.") +
                paragraph;
     //: In Polish: Pełna treść warunków jest w pliku NOTICE.md, dołączonym do programu.
     license += tr("The full text of the terms is in the file NOTICE.md, which comes with the "

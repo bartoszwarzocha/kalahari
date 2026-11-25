@@ -62,7 +62,7 @@ Windows and Linux. What each version brings is in `CHANGELOG.md`.
 ### Part A – Editor
 
 - [x] Stage 0 – Foundation: tests on three systems, disabled unimplemented commands,
-      this roadmap and the MIT license
+      this roadmap and the MIT license (since 2026-11-25 the GNU GPL 3.0)
 - [x] Stage 1 – Speed: a 150k-word chapter opens in a fraction of a second, typing stays smooth
       (one layout core, layout on demand, the old document model removed)
 - [x] Stage 2 – Typography (line spacing, paragraph spacing, indents), paste and undo,

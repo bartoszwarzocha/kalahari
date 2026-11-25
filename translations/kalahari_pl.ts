@@ -18953,9 +18953,9 @@ In Polish: Powiadomienia</extracomment>
         <translation>1. Autorstwo (sekcja 7 b): każda rozpowszechniana kopia programu Kalahari i każde dzieło na nim oparte zachowuje w swoim oknie „O programie” informację „%1”, bez zmian i wyraźnie widoczną; może ona być w języku interfejsu.</translation>
     </message>
     <message>
-        <source>2. The name and the logo (section 7 e): the licence grants no rights under trademark law to the name &quot;Kalahari&quot; or to its logo. A modified version is distributed under a name of its own.</source>
-        <extracomment>The second additional term of the licence (NOTICE.md). In Polish: 2. Nazwa i logo (sekcja 7 e): licencja nie daje praw z zakresu znaków towarowych do nazwy „Kalahari” ani do jej logo. Zmienioną wersję rozpowszechnia się pod własną nazwą.</extracomment>
-        <translation>2. Nazwa i logo (sekcja 7 e): licencja nie daje praw z zakresu znaków towarowych do nazwy „Kalahari” ani do jej logo. Zmienioną wersję rozpowszechnia się pod własną nazwą.</translation>
+        <source>2. The names and the logos (section 7 e): the licence grants no rights under trademark law to the name &quot;Kalahari&quot; or to its logo, nor to the name or the logo of BW Digital Systems &amp; Publishing. A modified version is distributed under a name of its own.</source>
+        <extracomment>The second additional term of the licence (NOTICE.md). In Polish: 2. Nazwy i logo (sekcja 7 e): licencja nie daje praw z zakresu znaków towarowych do nazwy „Kalahari” ani do jej logo, ani do nazwy i logo BW Digital Systems &amp; Publishing. Zmienioną wersję rozpowszechnia się pod własną nazwą.</extracomment>
+        <translation>2. Nazwy i logo (sekcja 7 e): licencja nie daje praw z zakresu znaków towarowych do nazwy „Kalahari” ani do jej logo, ani do nazwy i logo BW Digital Systems &amp; Publishing. Zmienioną wersję rozpowszechnia się pod własną nazwą.</translation>
     </message>
     <message>
         <source>The full text of the terms is in the file NOTICE.md, which comes with the program.</source>
