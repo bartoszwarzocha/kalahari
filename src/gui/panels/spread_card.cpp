@@ -1181,85 +1181,85 @@ void SpreadCard::connectFields() {
         if (m_loading) {
             return;
         }
-        core::SpreadData data = m_data;
-        change(data);
-        store(data, later);
+        core::SpreadData spread = m_data;
+        change(spread);
+        store(spread, later);
     };
     connect(m_pictureBox, &QComboBox::currentIndexChanged, this, [this, edited](int index) {
         const QString picture = m_pictureBox->itemData(index).toString();
-        edited([&picture](core::SpreadData& data) { data.picture = picture; });
+        edited([&picture](core::SpreadData& spread) { spread.picture = picture; });
     });
     connect(m_diskButton, &QPushButton::clicked, this, &SpreadCard::pictureFromDisk);
     connect(m_marginsButton, &QRadioButton::toggled, this, [edited](bool checked) {
         if (checked) {
-            edited([](core::SpreadData& data) {
-                data.area = QString::fromLatin1(core::SpreadData::MARGINS);
+            edited([](core::SpreadData& spread) {
+                spread.area = QString::fromLatin1(core::SpreadData::MARGINS);
             });
         }
     });
     connect(m_edgeButton, &QRadioButton::toggled, this, [edited](bool checked) {
         if (checked) {
-            edited([](core::SpreadData& data) {
-                data.area = QString::fromLatin1(core::SpreadData::EDGE);
+            edited([](core::SpreadData& spread) {
+                spread.area = QString::fromLatin1(core::SpreadData::EDGE);
             });
         }
     });
     connect(m_wholeButton, &QRadioButton::toggled, this, [edited](bool checked) {
         if (checked) {
-            edited([](core::SpreadData& data) {
-                data.fit = QString::fromLatin1(core::SpreadData::WHOLE);
+            edited([](core::SpreadData& spread) {
+                spread.fit = QString::fromLatin1(core::SpreadData::WHOLE);
             });
         }
     });
     connect(m_fillButton, &QRadioButton::toggled, this, [edited](bool checked) {
         if (checked) {
-            edited([](core::SpreadData& data) {
-                data.fit = QString::fromLatin1(core::SpreadData::FILL);
+            edited([](core::SpreadData& spread) {
+                spread.fit = QString::fromLatin1(core::SpreadData::FILL);
             });
         }
     });
     connect(m_centerButton, &QPushButton::clicked, this, [edited]() {
-        edited([](core::SpreadData& data) {
-            data.cropX = 0.0;
-            data.cropY = 0.0;
-            data.zoom = core::SpreadData::MIN_ZOOM;
+        edited([](core::SpreadData& spread) {
+            spread.cropX = 0.0;
+            spread.cropY = 0.0;
+            spread.zoom = core::SpreadData::MIN_ZOOM;
         });
     });
     connect(m_gutterBox, &QDoubleSpinBox::valueChanged, this, [this, edited]() {
         const double gutter = m_gutterBox->storedValue();
-        edited([gutter](core::SpreadData& data) { data.gutter = gutter; }, true);
+        edited([gutter](core::SpreadData& spread) { spread.gutter = gutter; }, true);
     });
     connect(m_captionBox, &QCheckBox::toggled, this, [edited](bool checked) {
-        edited([checked](core::SpreadData& data) { data.caption = checked; });
+        edited([checked](core::SpreadData& spread) { spread.caption = checked; });
     });
     connect(m_labelBox, &QComboBox::currentIndexChanged, this, [this, edited](int index) {
         const QString label = m_labelBox->itemData(index).toString();
-        edited([&label](core::SpreadData& data) { data.captionLabel = label; });
+        edited([&label](core::SpreadData& spread) { spread.captionLabel = label; });
     });
     connect(m_captionField, &QLineEdit::textEdited, this, [edited](const QString& text) {
-        edited([&text](core::SpreadData& data) { data.captionText = text; }, true);
+        edited([&text](core::SpreadData& spread) { spread.captionText = text; }, true);
     });
     connect(m_captionField, &QLineEdit::editingFinished, this, &SpreadCard::saveNow);
     connect(m_numbersBox, &QCheckBox::toggled, this, [edited](bool checked) {
-        edited([checked](core::SpreadData& data) { data.pageNumbers = checked; });
+        edited([checked](core::SpreadData& spread) { spread.pageNumbers = checked; });
     });
     connect(m_contentsBox, &QCheckBox::toggled, this, [edited](bool checked) {
-        edited([checked](core::SpreadData& data) { data.inContents = checked; });
+        edited([checked](core::SpreadData& spread) { spread.inContents = checked; });
     });
 
     // The pages: a drag or the arrows, the zoom of a picture that fills its area, the middle
     connect(m_view, &SpreadPagesView::cropMoved, this, [edited](double cropX, double cropY) {
         edited(
-            [cropX, cropY](core::SpreadData& data) {
-                data.cropX = cropX;
-                data.cropY = cropY;
+            [cropX, cropY](core::SpreadData& spread) {
+                spread.cropX = cropX;
+                spread.cropY = cropY;
             },
             true);
     });
     connect(m_view, &SpreadPagesView::zoomStepped, this, [edited](int step) {
         edited(
-            [step](core::SpreadData& data) {
-                data.zoom = std::clamp(data.zoom + step * ZOOM_STEP, core::SpreadData::MIN_ZOOM,
+            [step](core::SpreadData& spread) {
+                spread.zoom = std::clamp(spread.zoom + step * ZOOM_STEP, core::SpreadData::MIN_ZOOM,
                                        core::SpreadData::MAX_ZOOM);
             },
             true);
@@ -1450,21 +1450,21 @@ void SpreadCard::showPicture() {
     m_view->setPicture(m_picture);
 }
 
-editor::SpreadLook SpreadCard::lookOf(const core::SpreadData& data) const {
+editor::SpreadLook SpreadCard::lookOf(const core::SpreadData& spread) const {
     editor::SpreadLook look;
-    look.picture = data.picture;
-    look.toEdges = data.toEdges();
-    look.fills = data.fills();
-    look.cropX = data.cropX;
-    look.cropY = data.cropY;
-    look.zoom = data.zoom;
-    look.gutter = data.gutter;
-    if (data.caption) {
+    look.picture = spread.picture;
+    look.toEdges = spread.toEdges();
+    look.fills = spread.fills();
+    look.cropX = spread.cropX;
+    look.cropY = spread.cropY;
+    look.zoom = spread.zoom;
+    look.gutter = spread.gutter;
+    if (spread.caption) {
         const editor::CaptionContext context =
             m_captions.context ? m_captions.context(m_elementId) : editor::CaptionContext{};
-        look.caption = editor::spreadCaptionText(data.captionLabel, data.captionText, context);
+        look.caption = editor::spreadCaptionText(spread.captionLabel, spread.captionText, context);
     }
-    look.pageNumbers = data.pageNumbers;
+    look.pageNumbers = spread.pageNumbers;
     return look;
 }
 
@@ -1660,12 +1660,12 @@ void SpreadCard::showMoves() {
 // Changes
 // =============================================================================
 
-void SpreadCard::store(const core::SpreadData& data, bool later) {
+void SpreadCard::store(const core::SpreadData& spread, bool later) {
     if (m_book.isReadOnly()) {
         showLook();  // the pages as they were
         return;
     }
-    m_data = data.normalized();
+    m_data = spread.normalized();
     if (later) {
         showLook();
         showQuality();
@@ -1738,9 +1738,9 @@ void SpreadCard::pictureFromDisk() {
     }
     emit materialAdded(materialId);
     fillPictures();
-    core::SpreadData data = m_data;
-    data.picture = materialId;
-    store(data);
+    core::SpreadData spread = m_data;
+    spread.picture = materialId;
+    store(spread);
 }
 
 QString SpreadCard::qualityText() const {

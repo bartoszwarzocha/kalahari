@@ -315,14 +315,15 @@ private:
     void showColors();
     void showMoves();
 
-    /// @brief Give the spread @p data (the book saves it); @p later: in SAVE_DELAY_MS
-    void store(const core::SpreadData& data, bool later = false);
+    /// @brief Give the spread the settings @p spread (the book saves them); @p later: in
+    ///        SAVE_DELAY_MS
+    void store(const core::SpreadData& spread, bool later = false);
 
     /// @brief The look and the page shown, as m_data has them
     void showLook();
 
-    /// @brief The look of the pages from @p data
-    [[nodiscard]] editor::SpreadLook lookOf(const core::SpreadData& data) const;
+    /// @brief The look of the pages from the settings @p spread
+    [[nodiscard]] editor::SpreadLook lookOf(const core::SpreadData& spread) const;
 
     /// @brief Choose a picture on the disk: it goes to Materials > Pictures and the spread
     ///        shows it

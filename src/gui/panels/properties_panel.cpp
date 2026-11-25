@@ -1903,9 +1903,9 @@ void PropertiesPanel::setPageNumbers(const BookPageNumbers* pages) {
 }
 
 void PropertiesPanel::showSpread(const core::ProjectElement& element) {
-    const core::SpreadData data = core::ProjectManager::spreadOf(element);
+    const core::SpreadData spread = core::ProjectManager::spreadOf(element);
     const core::ProjectElement* picture =
-        data.picture.isEmpty() ? nullptr : m_book.findElement(data.picture);
+        spread.picture.isEmpty() ? nullptr : m_book.findElement(spread.picture);
     QString pictureName;
     if (picture == nullptr) {
         //: A spread without a picture. In Polish: brak
@@ -1914,17 +1914,17 @@ void PropertiesPanel::showSpread(const core::ProjectElement& element) {
         pictureName = picture->title.isEmpty() ? picture->file : picture->title;
     }
     m_spreadPicture->setText(pictureName);
-    m_spreadArea->setText(data.toEdges()
+    m_spreadArea->setText(spread.toEdges()
                               //: In Polish: do krawędzi papieru
                               ? tr("to the edges of the paper")
                               //: In Polish: w marginesach
                               : tr("within the margins"));
-    m_spreadFit->setText(data.fills()
+    m_spreadFit->setText(spread.fills()
                              //: In Polish: wypełnij
                              ? tr("fill")
                              //: In Polish: cały obraz
                              : tr("the whole picture"));
-    m_spreadGutter->setText(lengthText(data.gutter, LengthUnit::Millimeters));
+    m_spreadGutter->setText(lengthText(spread.gutter, LengthUnit::Millimeters));
 }
 
 void PropertiesPanel::showChapterPages() {
