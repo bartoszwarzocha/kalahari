@@ -95,14 +95,18 @@ void keepOnly(OpenNovel& novel) {
 core::KindRef pictureKindOf(const core::ProjectManager& pm) {
     const core::BookProject* project = pm.project();
     REQUIRE(project != nullptr);
+    std::optional<core::KindRef> found;
     for (const core::KindRef& kind : project->kindsIn(pm.bookTypes(), core::BookPlace::Workshop)) {
         if (kind.kind->isMaterial() &&
             kind.kind->id == QLatin1String(core::MaterialKinds::PICTURE)) {
-            return kind;
+            found = kind;
+            break;
         }
     }
-    FAIL("The Workshop has no pictures");
-    return {};
+    if (!found.has_value()) {
+        FAIL("The Workshop has no pictures");
+    }
+    return *found;
 }
 
 /// The settings of spread @p id, as the book has them
