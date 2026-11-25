@@ -1,7 +1,7 @@
 # Kalahari – copyright, licence and additional terms
 
 Kalahari Writer's IDE
-Copyright (C) 2025-2026 Bartosz W. Warzocha
+Copyright (C) 2025-2026 Bartosz W. Warzocha, BW Digital Systems & Publishing – Bartosz Warzocha
 Created by BW Digital Systems & Publishing – https://bwdsp.com.pl/
 
 Kalahari is free software: you can redistribute it and/or modify it under the terms of the

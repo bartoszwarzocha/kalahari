@@ -590,6 +590,9 @@ class PackagingFilesTest(unittest.TestCase):
         notice = (REPO_ROOT / "NOTICE.md").read_text(encoding="utf-8")
         self.assertIn("Kalahari – created by BW Digital Systems & Publishing, "
                       "https://bwdsp.com.pl/", notice)
+        # The holder of the rights, with the full name of the business
+        self.assertIn("Copyright (C) 2025-2026 Bartosz W. Warzocha, "
+                      "BW Digital Systems & Publishing – Bartosz Warzocha\n", notice)
         # The Debian package: the notice, then the licence, in its copyright file
         script = (REPO_ROOT / "scripts" / "package.py").read_text(encoding="utf-8")
         self.assertIn('(REPO_ROOT / "NOTICE.md").read_text(encoding="utf-8") + "\\n\\n" +', script)
