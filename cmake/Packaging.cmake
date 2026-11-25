@@ -4,7 +4,7 @@
 #
 #   Windows  <prefix>/kalahari.exe, kalahari_core.dll and the DLLs of vcpkg, the Qt plugins
 #            (platforms, styles, imageformats, tls, sqldrivers), resources/, the Python of the
-#            plugins (Lib/, DLLs/), LICENSE.txt, THIRD-PARTY.md, licenses/
+#            plugins (Lib/, DLLs/), LICENSE.txt, NOTICE.md, THIRD-PARTY.md, licenses/
 #   macOS    <prefix>/kalahari.app: Contents/MacOS/kalahari, Contents/Frameworks (the libraries
 #            of the program), Contents/Resources (resources/, python3/, kalahari.icns,
 #            licenses/)
@@ -16,7 +16,9 @@
 # Included by the root CMakeLists.txt after the targets kalahari and kalahari_core.
 
 set(KALAHARI_PACKAGING_DIR "${CMAKE_SOURCE_DIR}/packaging")
-set(KALAHARI_COPYRIGHT "Copyright (c) 2025-2026 Bartosz W. Warzocha & Kalahari Team")
+set(KALAHARI_COPYRIGHT "Copyright (c) 2025-2026 Bartosz W. Warzocha")
+# Who makes the program: the publisher of the installer and the company of the program file
+set(KALAHARI_PUBLISHER "BW Digital Systems & Publishing")
 # The application id of the desktop: kalahari.desktop on Linux, the bundle id on macOS
 set(KALAHARI_BUNDLE_ID "io.github.bartoszwarzocha.kalahari")
 # The sizes of resources/images/app_icon (scripts/make_app_icons.py)
@@ -25,8 +27,8 @@ set(KALAHARI_PYTHON_VERSION "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
 
 # The parts of the standard library of Python the plugins do not need: its tests and test
 # modules, the editor IDLE, Tk, pip's installer and the libraries Python was built from, and
-# the modules of a terminal and of dbm files whose libraries the packages would carry (GNU
-# readline and gdbm are under the GPL)
+# the modules of a terminal and of dbm files, whose libraries (GNU readline, gdbm) the packages
+# would otherwise carry
 set(KALAHARI_PYTHON_EXCLUDES
     PATTERN "readline.cpython-*" EXCLUDE
     PATTERN "_curses*" EXCLUDE
@@ -135,7 +137,8 @@ if(WIN32)
             ${KALAHARI_PYTHON_EXCLUDES})
 
     install(FILES "${CMAKE_SOURCE_DIR}/LICENSE" DESTINATION . RENAME LICENSE.txt)
-    install(FILES "${KALAHARI_PACKAGING_DIR}/THIRD-PARTY.md" DESTINATION .)
+    install(FILES "${CMAKE_SOURCE_DIR}/NOTICE.md" "${KALAHARI_PACKAGING_DIR}/THIRD-PARTY.md"
+            DESTINATION .)
     set(_kalahari_licenses_destination "licenses")
 elseif(APPLE)
     # ------------------------------------------------------------------------------------------
@@ -191,7 +194,8 @@ elseif(APPLE)
                         "installed bundle has no Python for the plugins")
     endif()
 
-    install(FILES "${CMAKE_SOURCE_DIR}/LICENSE" "${KALAHARI_PACKAGING_DIR}/THIRD-PARTY.md"
+    install(FILES "${CMAKE_SOURCE_DIR}/LICENSE" "${CMAKE_SOURCE_DIR}/NOTICE.md"
+                  "${KALAHARI_PACKAGING_DIR}/THIRD-PARTY.md"
             DESTINATION "${_kalahari_bundle}/Resources/licenses")
     set(_kalahari_licenses_destination "${_kalahari_bundle}/Resources/licenses")
 else()
@@ -238,7 +242,8 @@ else()
                 ${KALAHARI_PYTHON_EXCLUDES})
     endif()
 
-    install(FILES "${CMAKE_SOURCE_DIR}/LICENSE" "${KALAHARI_PACKAGING_DIR}/THIRD-PARTY.md"
+    install(FILES "${CMAKE_SOURCE_DIR}/LICENSE" "${CMAKE_SOURCE_DIR}/NOTICE.md"
+                  "${KALAHARI_PACKAGING_DIR}/THIRD-PARTY.md"
             DESTINATION share/doc/kalahari)
     set(_kalahari_licenses_destination "share/doc/kalahari/licenses")
 endif()

@@ -511,7 +511,11 @@ def make_deb(appdir: Path, work: Path, out: Path, version: str) -> Path:
     (root / "usr" / "bin" / "kalahari").symlink_to("/opt/kalahari/bin/kalahari")
     doc = shared / "doc" / "kalahari"
     doc.mkdir(parents=True)
-    shutil.copyfile(REPO_ROOT / "LICENSE", doc / "copyright")
+    # The copyright of the package: the notice with the additional terms of the licence, then the
+    # text of the licence (the GNU GPL version 3)
+    (doc / "copyright").write_text(
+        (REPO_ROOT / "NOTICE.md").read_text(encoding="utf-8") + "\n\n" +
+        (REPO_ROOT / "LICENSE").read_text(encoding="utf-8"), encoding="utf-8")
 
     # The libraries of the system the package needs; its own ones are in /opt/kalahari. Each
     # of its own is in shlibs.local without a package: dpkg-shlibdeps would otherwise name the
@@ -542,7 +546,8 @@ def make_deb(appdir: Path, work: Path, out: Path, version: str) -> Path:
         "Package: kalahari",
         f"Version: {debian_version(version)}",
         "Architecture: amd64",
-        "Maintainer: Kalahari Team <https://github.com/bartoszwarzocha/kalahari/issues>",
+        ("Maintainer: BW Digital Systems & Publishing "
+         "<https://github.com/bartoszwarzocha/kalahari/issues>"),
         f"Installed-Size: {size_kb}",
         f"Depends: {depends}" if depends else "",
         # Settings > Files > File Associations: xdg-mime and xdg-desktop-menu

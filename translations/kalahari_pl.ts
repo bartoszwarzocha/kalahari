@@ -18802,10 +18802,11 @@ In Polish: Powiadomienia</extracomment>
 </translation>
     </message>
     <message>
-        <source>  License: LGPL v3 / Commercial
+        <source>  License: LGPL v3
 
 </source>
-        <translation>  Licencja: LGPL v3 / komercyjna
+        <extracomment>The licence of Qt in Kalahari. In Polish: Licencja: LGPL v3</extracomment>
+        <translation>  Licencja: LGPL v3
 
 </translation>
     </message>
@@ -18932,112 +18933,44 @@ In Polish: Powiadomienia</extracomment>
 </translation>
     </message>
     <message>
-        <source>MIT License
-
-</source>
-        <translation>Licencja MIT (oryginalny tekst)
-
-</translation>
+        <source>Kalahari is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation, with the additional terms below, which its section 7 permits.</source>
+        <extracomment>The notice of the GNU GPL on the License tab of About. In Polish: Kalahari jest wolnym oprogramowaniem: można je rozpowszechniać i zmieniać na warunkach Powszechnej Licencji Publicznej GNU (GNU General Public License) w wersji 3, opublikowanej przez Free Software Foundation, z poniższymi warunkami dodatkowymi, na które pozwala jej sekcja 7.</extracomment>
+        <translation>Kalahari jest wolnym oprogramowaniem: można je rozpowszechniać i zmieniać na warunkach Powszechnej Licencji Publicznej GNU (GNU General Public License) w wersji 3, opublikowanej przez Free Software Foundation, z poniższymi warunkami dodatkowymi, na które pozwala jej sekcja 7.</translation>
     </message>
     <message>
-        <source>Permission is hereby granted, free of charge, to any person obtaining a copy
-</source>
-        <translation>Permission is hereby granted, free of charge, to any person obtaining a copy
-</translation>
+        <source>Kalahari is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License below for more details.</source>
+        <extracomment>In Polish: Program Kalahari jest rozpowszechniany w nadziei, że będzie użyteczny, ale BEZ JAKIEJKOLWIEK GWARANCJI, nawet domyślnej gwarancji PRZYDATNOŚCI HANDLOWEJ albo PRZYDATNOŚCI DO OKREŚLONYCH ZASTOSOWAŃ. Szczegóły podaje tekst licencji GNU General Public License poniżej.</extracomment>
+        <translation>Program Kalahari jest rozpowszechniany w nadziei, że będzie użyteczny, ale BEZ JAKIEJKOLWIEK GWARANCJI, nawet domyślnej gwarancji PRZYDATNOŚCI HANDLOWEJ albo PRZYDATNOŚCI DO OKREŚLONYCH ZASTOSOWAŃ. Szczegóły podaje tekst licencji GNU General Public License poniżej.</translation>
     </message>
     <message>
-        <source>of this software and associated documentation files (the &quot;Software&quot;), to deal
-</source>
-        <translation>of this software and associated documentation files (the &quot;Software&quot;), to deal
-</translation>
+        <source>Additional terms (section 7 of the GNU GPL)</source>
+        <extracomment>A heading on the License tab of About. In Polish: Warunki dodatkowe (sekcja 7 licencji GNU GPL)</extracomment>
+        <translation>Warunki dodatkowe (sekcja 7 licencji GNU GPL)</translation>
     </message>
     <message>
-        <source>in the Software without restriction, including without limitation the rights
-</source>
-        <translation>in the Software without restriction, including without limitation the rights
-</translation>
+        <source>1. Author attribution (section 7 b): every copy of Kalahari, and every work based on it, that is distributed keeps the attribution &quot;%1&quot; in its About window, unchanged and clearly visible; it may be in the language of the user interface.</source>
+        <extracomment>The first additional term of the licence (NOTICE.md). %1: the authors, as attribution() writes them. In Polish: 1. Autorstwo (sekcja 7 b): każda rozpowszechniana kopia programu Kalahari i każde dzieło na nim oparte zachowuje w swoim oknie „O programie” informację „%1”, bez zmian i wyraźnie widoczną; może ona być w języku interfejsu.</extracomment>
+        <translation>1. Autorstwo (sekcja 7 b): każda rozpowszechniana kopia programu Kalahari i każde dzieło na nim oparte zachowuje w swoim oknie „O programie” informację „%1”, bez zmian i wyraźnie widoczną; może ona być w języku interfejsu.</translation>
     </message>
     <message>
-        <source>to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-</source>
-        <translation>to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-</translation>
+        <source>2. The name and the logo (section 7 e): the licence grants no rights under trademark law to the name &quot;Kalahari&quot; or to its logo. A modified version is distributed under a name of its own.</source>
+        <extracomment>The second additional term of the licence (NOTICE.md). In Polish: 2. Nazwa i logo (sekcja 7 e): licencja nie daje praw z zakresu znaków towarowych do nazwy „Kalahari” ani do jej logo. Zmienioną wersję rozpowszechnia się pod własną nazwą.</extracomment>
+        <translation>2. Nazwa i logo (sekcja 7 e): licencja nie daje praw z zakresu znaków towarowych do nazwy „Kalahari” ani do jej logo. Zmienioną wersję rozpowszechnia się pod własną nazwą.</translation>
     </message>
     <message>
-        <source>copies of the Software, and to permit persons to whom the Software is
-</source>
-        <translation>copies of the Software, and to permit persons to whom the Software is
-</translation>
+        <source>The full text of the terms is in the file NOTICE.md, which comes with the program.</source>
+        <extracomment>In Polish: Pełna treść warunków jest w pliku NOTICE.md, dołączonym do programu.</extracomment>
+        <translation>Pełna treść warunków jest w pliku NOTICE.md, dołączonym do programu.</translation>
     </message>
     <message>
-        <source>furnished to do so, subject to the following conditions:
-
-</source>
-        <translation>furnished to do so, subject to the following conditions:
-
-</translation>
+        <source>The text of the GNU General Public License version 3: %1</source>
+        <extracomment>When the program carries no text of the licence. %1: its address. In Polish: Tekst licencji GNU General Public License w wersji 3: %1</extracomment>
+        <translation>Tekst licencji GNU General Public License w wersji 3: %1</translation>
     </message>
     <message>
-        <source>The above copyright notice and this permission notice shall be included in all
-</source>
-        <translation>The above copyright notice and this permission notice shall be included in all
-</translation>
-    </message>
-    <message>
-        <source>copies or substantial portions of the Software.
-
-</source>
-        <translation>copies or substantial portions of the Software.
-
-</translation>
-    </message>
-    <message>
-        <source>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-</source>
-        <translation>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-</translation>
-    </message>
-    <message>
-        <source>IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-</source>
-        <translation>IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-</translation>
-    </message>
-    <message>
-        <source>FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-</source>
-        <translation>FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-</translation>
-    </message>
-    <message>
-        <source>AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-</source>
-        <translation>AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-</translation>
-    </message>
-    <message>
-        <source>LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-</source>
-        <translation>LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-</translation>
-    </message>
-    <message>
-        <source>OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-</source>
-        <translation>OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-</translation>
-    </message>
-    <message>
-        <source>SOFTWARE.
-
-</source>
-        <translation>SOFTWARE.
-
-</translation>
-    </message>
-    <message>
-        <source>Note: The &quot;Kalahari&quot; name and branding are trademarked.</source>
-        <translation>Uwaga: nazwa i znak „Kalahari” są znakami towarowymi.</translation>
+        <source>The GNU General Public License version 3 – the original English text, the only one that is legally binding:</source>
+        <extracomment>Before the English text of the GNU GPL. In Polish: Licencja GNU General Public License w wersji 3 – oryginalny tekst angielski, jedyny wiążący prawnie:</extracomment>
+        <translation>Licencja GNU General Public License w wersji 3 – oryginalny tekst angielski, jedyny wiążący prawnie:</translation>
     </message>
     <message>
         <source>Hunspell (hunspell.github.io)
@@ -19052,10 +18985,11 @@ In Polish: Powiadomienia</extracomment>
 </translation>
     </message>
     <message>
-        <source>  License: MPL 1.1 / GPL 2.0 / LGPL 2.1
+        <source>  License: LGPL 2.1 or later (of MPL 1.1 / GPL 2.0+ / LGPL 2.1+)
 
 </source>
-        <translation>  Licencja: MPL 1.1 / GPL 2.0 / LGPL 2.1
+        <extracomment>Hunspell offers three licences; Kalahari uses it under the LGPL. In Polish: Licencja: LGPL 2.1 lub nowsza (wybrana spośród MPL 1.1 / GPL 2.0+ / LGPL 2.1+)</extracomment>
+        <translation>  Licencja: LGPL 2.1 lub nowsza (wybrana spośród MPL 1.1 / GPL 2.0+ / LGPL 2.1+)
 
 </translation>
     </message>
@@ -19225,9 +19159,19 @@ Harmonogram projektu:
         <translation>Kompilacja</translation>
     </message>
     <message>
-        <source>Copyright © %1 Kalahari Project</source>
-        <extracomment>The copyright of About and of its License tab. %1: the years, &quot;2025–2026&quot;. In Polish: Copyright © %1 Kalahari Project</extracomment>
-        <translation>Copyright © %1 Kalahari Project</translation>
+        <source>Copyright © %1 Bartosz W. Warzocha</source>
+        <extracomment>The copyright of About and of its License tab. %1: the years, &quot;2025–2026&quot;. In Polish: Copyright © %1 Bartosz W. Warzocha</extracomment>
+        <translation>Copyright © %1 Bartosz W. Warzocha</translation>
+    </message>
+    <message>
+        <source>Kalahari – created by BW Digital Systems &amp; Publishing, %1</source>
+        <extracomment>The authors of the program on the About tab and the License tab. Every copy of Kalahari must keep it (NOTICE.md, additional term 1): keep the name of the company and the address. %1: https://bwdsp.com.pl/. In Polish: Autor programu Kalahari: BW Digital Systems &amp; Publishing, %1</extracomment>
+        <translation>Autor programu Kalahari: BW Digital Systems &amp; Publishing, %1</translation>
+    </message>
+    <message>
+        <source>Kalahari is free software under the GNU General Public License version 3, with no warranty. Its text and the additional terms are on the License tab.</source>
+        <extracomment>Under the copyright on the About tab. In Polish: Kalahari to wolne oprogramowanie na licencji GNU General Public License w wersji 3, bez żadnej gwarancji. Jej tekst i warunki dodatkowe są na karcie Licencja.</extracomment>
+        <translation>Kalahari to wolne oprogramowanie na licencji GNU General Public License w wersji 3, bez żadnej gwarancji. Jej tekst i warunki dodatkowe są na karcie Licencja.</translation>
     </message>
     <message>
         <source>&amp;Copy Build Information</source>

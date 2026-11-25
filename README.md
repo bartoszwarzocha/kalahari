@@ -9,7 +9,7 @@
   [![WINDOWS](https://github.com/bartoszwarzocha/kalahari/actions/workflows/ci-windows.yml/badge.svg)](https://github.com/bartoszwarzocha/kalahari/actions/workflows/ci-windows.yml)
   [![MACOS](https://github.com/bartoszwarzocha/kalahari/actions/workflows/ci-macos.yml/badge.svg)](https://github.com/bartoszwarzocha/kalahari/actions/workflows/ci-macos.yml)
 
-  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+  [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
   [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://isocpp.org/)
   [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/bartoszwarzocha/kalahari)
 </div>
@@ -278,7 +278,7 @@ Menu commands that are not implemented yet are shown disabled.
 
 ## 💚 Free and Open Source
 
-Kalahari is free software. Every component – the application, the plugin system and all plugins, present and future – is released under the **MIT License**. There are no paid plugins, subscriptions or cloud services; your work stays on your computer.
+Kalahari is free software. Every component – the application, the plugin system and all plugins, present and future – is free and released under the **GNU General Public License version 3**. There are no paid plugins, subscriptions or cloud services; your work stays on your computer.
 
 ---
 
@@ -338,17 +338,17 @@ For now, please:
 
 ## 📄 License
 
-**MIT License** - See [LICENSE](LICENSE) for complete license text and third-party dependencies.
+**GNU General Public License version 3** (`GPL-3.0-only`) with additional terms under its section 7 – the text of the licence is in [LICENSE](LICENSE); the copyright, the additional terms and the third-party dependencies are in [NOTICE.md](NOTICE.md).
 
-Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+Copyright (c) 2025-2026 Bartosz W. Warzocha
+Kalahari – created by BW Digital Systems & Publishing, https://bwdsp.com.pl/
 
 **Key Points:**
-- ✅ Kalahari application code and all plugins: **MIT License** (permissive, open source)
-- ✅ Qt6 Framework: **LGPL v3** (dynamically linked for compliance)
-- ✅ All other dependencies: MIT/BSD/permissive licenses
-- ✅ Commercial use: **Allowed** (LGPL v3 compliant via dynamic linking)
+- ✅ Kalahari application code and all plugins: **GPL 3.0** (free and open source, copyleft)
+- ✅ Additional terms (section 7): every copy and every work based on Kalahari keeps the attribution above in its About window; the licence grants no rights to the name "Kalahari" or its logo
+- ✅ Qt6 Framework: **LGPL v3**; all other dependencies are compatible with the GPL 3.0
 
-**Redistribution:** If distributing binaries, include Qt dynamic libraries (.dll, .so, .dylib) and inform users they can replace them. See [LICENSE](LICENSE) for full LGPL v3 requirements.
+**Redistribution:** If distributing binaries, include `LICENSE` and `NOTICE.md`, provide the source code of the version you distribute (GPL section 6) and the Qt libraries, and inform users they can replace them. See [NOTICE.md](NOTICE.md) for details.
 
 ---
 

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file about_dialog.cpp
 /// @brief Implementation of AboutDialog
@@ -12,6 +13,7 @@
 #include <QClipboard>
 #include <QDate>
 #include <QDateTime>
+#include <QFile>
 #include <QFormLayout>
 #include <QGuiApplication>
 #include <QHBoxLayout>
@@ -28,6 +30,15 @@
 using namespace kalahari::gui::dialogs;
 
 namespace {
+
+/// @brief The address of the authors of the program (NOTICE.md, additional term 1)
+constexpr const char* AUTHOR_ADDRESS = "https://bwdsp.com.pl/";
+
+/// @brief The text of the licence in the program (src/CMakeLists.txt, qt_add_resources)
+constexpr const char* LICENSE_RESOURCE = ":/licenses/LICENSE";
+
+/// @brief Where the text of the licence is when the program does not carry it
+constexpr const char* LICENSE_ADDRESS = "https://www.gnu.org/licenses/gpl-3.0.html";
 
 /// @brief A text of the build, or "–" where the build does not know it (no git, no branch)
 QString orDash(const char* text) {
@@ -163,9 +174,29 @@ QString AboutDialog::copyrightYears(int year) {
 
 QString AboutDialog::copyright() {
     //: The copyright of About and of its License tab. %1: the years, "2025–2026". In Polish:
-    //: Copyright © %1 Kalahari Project
-    return tr("Copyright © %1 Kalahari Project")
+    //: Copyright © %1 Bartosz W. Warzocha
+    return tr("Copyright © %1 Bartosz W. Warzocha")
         .arg(copyrightYears(QDate::currentDate().year()));
+}
+
+QString AboutDialog::authorAddress() {
+    return QString::fromLatin1(AUTHOR_ADDRESS);
+}
+
+QString AboutDialog::attribution() {
+    //: The authors of the program on the About tab and the License tab. Every copy of Kalahari
+    //: must keep it (NOTICE.md, additional term 1): keep the name of the company and the
+    //: address. %1: https://bwdsp.com.pl/. In Polish: Autor programu Kalahari: BW Digital
+    //: Systems & Publishing, %1
+    return tr("Kalahari – created by BW Digital Systems & Publishing, %1").arg(authorAddress());
+}
+
+QString AboutDialog::licenseText() {
+    QFile file(QString::fromLatin1(LICENSE_RESOURCE));
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return {};
+    }
+    return QString::fromUtf8(file.readAll());
 }
 
 QWidget* AboutDialog::createBuildTab() {
@@ -240,11 +271,38 @@ QWidget* AboutDialog::createAboutTab() {
     layout->addWidget(credits);
     layout->addStretch(1);
 
+    // The authors, as the licence requires every copy to show them (NOTICE.md, additional term
+    // 1); the address is a link to their page
+    const QString address = authorAddress();
+    auto* attributionLabel = new QLabel(widget);
+    attributionLabel->setObjectName(QStringLiteral("aboutAttribution"));
+    attributionLabel->setTextFormat(Qt::RichText);
+    attributionLabel->setText(attribution().toHtmlEscaped().replace(
+        address, QStringLiteral("<a href=\"%1\">%1</a>").arg(address)));
+    attributionLabel->setOpenExternalLinks(true);
+    attributionLabel->setAlignment(Qt::AlignCenter);
+    attributionLabel->setWordWrap(true);
+    layout->addWidget(attributionLabel);
+
     // Copyright, the years up to this one
     auto* copyrightLabel = new QLabel(copyright(), widget);
     copyrightLabel->setObjectName(QStringLiteral("aboutCopyright"));
     copyrightLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(copyrightLabel);
+
+    // Free software without warranty, and where the licence is: the legal notices the GNU GPL
+    // asks of a program with a user interface (its sections 0 and 5 d)
+    //: Under the copyright on the About tab. In Polish: Kalahari to wolne oprogramowanie na
+    //: licencji GNU General Public License w wersji 3, bez żadnej gwarancji. Jej tekst i warunki
+    //: dodatkowe są na karcie Licencja.
+    auto* noticeLabel = new QLabel(
+        tr("Kalahari is free software under the GNU General Public License version 3, with no "
+           "warranty. Its text and the additional terms are on the License tab."),
+        widget);
+    noticeLabel->setObjectName(QStringLiteral("aboutLicenseNotice"));
+    noticeLabel->setAlignment(Qt::AlignCenter);
+    noticeLabel->setWordWrap(true);
+    layout->addWidget(noticeLabel);
 
     // The texts scroll in a low window, e.g. on 1366x768 at 150%
     auto* area = new kalahari::gui::FittingScrollArea(widget);
@@ -267,7 +325,8 @@ QWidget* AboutDialog::createComponentsTab() {
 
     components += tr("Qt 6 (www.qt.io)\n");
     components += tr("  Cross-platform GUI framework\n");
-    components += tr("  License: LGPL v3 / Commercial\n\n");
+    //: The licence of Qt in Kalahari. In Polish:   Licencja: LGPL v3
+    components += tr("  License: LGPL v3\n\n");
 
     components += tr("nlohmann_json (github.com/nlohmann/json)\n");
     components += tr("  JSON for Modern C++\n");
@@ -295,7 +354,9 @@ QWidget* AboutDialog::createComponentsTab() {
 
     components += tr("Hunspell (hunspell.github.io)\n");
     components += tr("  Spell checking library\n");
-    components += tr("  License: MPL 1.1 / GPL 2.0 / LGPL 2.1\n\n");
+    //: Hunspell offers three licences; Kalahari uses it under the LGPL. In Polish:
+    //:   Licencja: LGPL 2.1 lub nowsza (wybrana spośród MPL 1.1 / GPL 2.0+ / LGPL 2.1+)
+    components += tr("  License: LGPL 2.1 or later (of MPL 1.1 / GPL 2.0+ / LGPL 2.1+)\n\n");
 
     components += tr("Polish spelling dictionary (sjp.pl, Marek Futrega)\n");
     components += tr("  From the LibreOffice dictionaries\n");
@@ -320,32 +381,73 @@ QWidget* AboutDialog::createLicenseTab() {
     QWidget* widget = new QWidget();
     QVBoxLayout* layout = new QVBoxLayout(widget);
 
-    // Read-only text edit with MIT license
+    // Read-only: the notice of the licence, the additional terms and the text of the licence
     QTextEdit* textEdit = new QTextEdit(widget);
+    textEdit->setObjectName(QStringLiteral("aboutLicenseText"));
     textEdit->setReadOnly(true);
     textEdit->setWordWrapMode(QTextOption::WordWrap);
 
-    QString license;
-    license += tr("MIT License\n\n");
-    license += copyright() + QStringLiteral("\n\n");
-    license += tr("Permission is hereby granted, free of charge, to any person obtaining a copy\n");
-    license += tr("of this software and associated documentation files (the \"Software\"), to deal\n");
-    license += tr("in the Software without restriction, including without limitation the rights\n");
-    license += tr("to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n");
-    license += tr("copies of the Software, and to permit persons to whom the Software is\n");
-    license += tr("furnished to do so, subject to the following conditions:\n\n");
-    license += tr("The above copyright notice and this permission notice shall be included in all\n");
-    license += tr("copies or substantial portions of the Software.\n\n");
-    license += tr("THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n");
-    license += tr("IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n");
-    license += tr("FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n");
-    license += tr("AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n");
-    license += tr("LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n");
-    license += tr("OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n");
-    license += tr("SOFTWARE.\n\n");
-    license += tr("Note: The \"Kalahari\" name and branding are trademarked.");
+    const QString paragraph = QStringLiteral("\n\n");
+    QString license = QStringLiteral("Kalahari Writer's IDE\n") + copyright() +
+                      QLatin1Char('\n') + attribution() + paragraph;
+    //: The notice of the GNU GPL on the License tab of About. In Polish: Kalahari jest wolnym
+    //: oprogramowaniem: można je rozpowszechniać i zmieniać na warunkach Powszechnej Licencji
+    //: Publicznej GNU (GNU General Public License) w wersji 3, opublikowanej przez Free Software
+    //: Foundation, z poniższymi warunkami dodatkowymi, na które pozwala jej sekcja 7.
+    license += tr("Kalahari is free software: you can redistribute it and/or modify it under the "
+                  "terms of the GNU General Public License version 3 as published by the Free "
+                  "Software Foundation, with the additional terms below, which its section 7 "
+                  "permits.") +
+               paragraph;
+    //: In Polish: Program Kalahari jest rozpowszechniany w nadziei, że będzie użyteczny, ale BEZ
+    //: JAKIEJKOLWIEK GWARANCJI, nawet domyślnej gwarancji PRZYDATNOŚCI HANDLOWEJ albo
+    //: PRZYDATNOŚCI DO OKREŚLONYCH ZASTOSOWAŃ. Szczegóły podaje tekst licencji GNU General
+    //: Public License poniżej.
+    license += tr("Kalahari is distributed in the hope that it will be useful, but WITHOUT ANY "
+                  "WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR "
+                  "A PARTICULAR PURPOSE. See the GNU General Public License below for more "
+                  "details.") +
+               paragraph;
+    //: A heading on the License tab of About. In Polish: Warunki dodatkowe (sekcja 7 licencji
+    //: GNU GPL)
+    license += tr("Additional terms (section 7 of the GNU GPL)") + paragraph;
+    //: The first additional term of the licence (NOTICE.md). %1: the authors, as attribution()
+    //: writes them. In Polish: 1. Autorstwo (sekcja 7 b): każda rozpowszechniana kopia programu
+    //: Kalahari i każde dzieło na nim oparte zachowuje w swoim oknie „O programie” informację
+    //: „%1”, bez zmian i wyraźnie widoczną; może ona być w języku interfejsu.
+    license += tr("1. Author attribution (section 7 b): every copy of Kalahari, and every work "
+                  "based on it, that is distributed keeps the attribution \"%1\" in its About "
+                  "window, unchanged and clearly visible; it may be in the language of the user "
+                  "interface.")
+                   .arg(attribution()) +
+               paragraph;
+    //: The second additional term of the licence (NOTICE.md). In Polish: 2. Nazwa i logo
+    //: (sekcja 7 e): licencja nie daje praw z zakresu znaków towarowych do nazwy „Kalahari” ani
+    //: do jej logo. Zmienioną wersję rozpowszechnia się pod własną nazwą.
+    license += tr("2. The name and the logo (section 7 e): the licence grants no rights under "
+                  "trademark law to the name \"Kalahari\" or to its logo. A modified version is "
+                  "distributed under a name of its own.") +
+               paragraph;
+    //: In Polish: Pełna treść warunków jest w pliku NOTICE.md, dołączonym do programu.
+    license += tr("The full text of the terms is in the file NOTICE.md, which comes with the "
+                  "program.") +
+               paragraph;
 
-    textEdit->setText(license);
+    const QString text = licenseText();
+    if (text.isEmpty()) {
+        //: When the program carries no text of the licence. %1: its address. In Polish: Tekst
+        //: licencji GNU General Public License w wersji 3: %1
+        license += tr("The text of the GNU General Public License version 3: %1")
+                       .arg(QString::fromLatin1(LICENSE_ADDRESS));
+    } else {
+        //: Before the English text of the GNU GPL. In Polish: Licencja GNU General Public
+        //: License w wersji 3 – oryginalny tekst angielski, jedyny wiążący prawnie:
+        license += tr("The GNU General Public License version 3 – the original English text, the "
+                      "only one that is legally binding:") +
+                   paragraph + text;
+    }
+
+    textEdit->setPlainText(license);
     layout->addWidget(textEdit);
 
     widget->setLayout(layout);

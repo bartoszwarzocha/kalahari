@@ -44,7 +44,7 @@ Every feature designed with writers in mind:
 ### 2. **Open & Extensible**
 
 **Open Source Core:**
-- MIT License (free forever)
+- GNU GPL 3.0 with additional terms (free forever)
 - Transparent & auditable code
 - Community-driven development
 - No vendor lock-in
@@ -52,7 +52,7 @@ Every feature designed with writers in mind:
 **Plugin Architecture:**
 - Python plugins for features
 - Community can extend functionality
-- All plugins free and MIT-licensed, like the core
+- All plugins free and under the GPL 3.0, like the core
 - Open API for third-party integrations
 
 ### 3. **Native Performance**
@@ -146,7 +146,7 @@ Native look & feel on each platform (Qt6).
 
 ### vs Ulysses
 - ❌ Ulysses: macOS/iOS only, subscription required, limited features
-- ✅ Kalahari: All platforms, free and open source (MIT), no subscription, richer feature set
+- ✅ Kalahari: All platforms, free and open source (GPL 3.0), no subscription, richer feature set
 
 ### vs Notion / Obsidian
 - ❌ Notion/Obsidian: Note-taking tools, not designed for linear long-form writing
@@ -204,7 +204,7 @@ Each animal has unique communication style while providing same core functions:
 - Collaboration (beta-readers, editors, track changes)
 
 **Plugins:**
-- All plugins free and MIT-licensed (official and community)
+- All plugins free (official ones under the GPL 3.0; community ones under GPL-compatible licences)
 - Easy installation (.kplugin drag & drop)
 
 ---
@@ -292,7 +292,8 @@ My Novel.klh
 **Progress:**
 - ✅ Concept finalized
 - ✅ Tech stack decided (C++20, Qt6, Python plugins) - Migrated to Qt6 2025-11-19
-- ✅ Licensing decided: everything MIT, no paid plugins or cloud services (2026-10-03)
+- ✅ Licensing decided: everything free, no paid plugins or cloud services (2026-10-03); GPL 3.0
+  with additional terms in place of MIT (2026-11-25)
 - ✅ Roadmap created (Phases 0-5)
 - ✅ Documentation structure established
 - ⏳ Waiting for: wxFormBuilder GUI layout, i18n pattern
@@ -403,7 +404,7 @@ To learn more about specific aspects:
 
 **Repository:** github.com/[your-username]/kalahari (when public)
 **Website:** kalahari.app (planned)
-**License:** MIT (all components, including plugins)
+**License:** GNU GPL 3.0 with additional terms – LICENSE and NOTICE.md (all components, including plugins)
 
 **Want to contribute?** See [CONTRIBUTING.md](../CONTRIBUTING.md) (when available)
 

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file about_dialog.h
 /// @brief About dialog for Kalahari Writer's IDE
@@ -22,7 +23,11 @@ namespace kalahari::gui::dialogs {
 /// Qt it runs with; under it four tabs: About, Build, Third-Party Components and License. The
 /// Build tab has, short, what the program was built from (the commit and its branch, when,
 /// Debug or Release, the system and the compiler); Copy Build Information puts all of it on the
-/// clipboard. The copyright has the years up to this one. Close (or Esc) closes the dialog.
+/// clipboard. The copyright has the years up to this one. The About tab names the authors of the
+/// program, as the licence requires of every copy (NOTICE.md, additional term 1), and says that
+/// Kalahari is free software without warranty; the License tab has the notice of the GNU GPL
+/// version 3, the additional terms and the text of the licence (LICENSE, embedded in the program
+/// as :/licenses/LICENSE). Close (or Esc) closes the dialog.
 ///
 /// @see MainWindow::onAbout()
 class AboutDialog : public KalahariDialog {
@@ -49,8 +54,20 @@ public:
     /// clock set earlier)
     [[nodiscard]] static QString copyrightYears(int year);
 
-    /// @brief "Copyright © 2025–…", up to the year of the system's clock
+    /// @brief "Copyright © 2025–… Bartosz W. Warzocha", up to the year of the system's clock
     [[nodiscard]] static QString copyright();
+
+    /// @brief The authors of the program, as every copy and every work based on it keeps them
+    /// (NOTICE.md, additional term 1): "Kalahari – created by BW Digital Systems & Publishing,
+    /// https://bwdsp.com.pl/", in the language of the user interface
+    [[nodiscard]] static QString attribution();
+
+    /// @brief The address in attribution(), a link on the About tab
+    [[nodiscard]] static QString authorAddress();
+
+    /// @brief The text of the GNU GPL version 3 the program carries (LICENSE); empty if the
+    /// program has none
+    [[nodiscard]] static QString licenseText();
 
 private:
     /// @brief Creates "About" tab content
@@ -62,7 +79,8 @@ private:
     QWidget* createComponentsTab();
 
     /// @brief Creates "License" tab content
-    /// @return Widget containing full MIT license text
+    /// @return Widget with the notice of the GNU GPL version 3, the additional terms and the
+    /// text of the licence
     QWidget* createLicenseTab();
 
     /// @brief The Build tab: what the program was built from, short, and Copy Build Information

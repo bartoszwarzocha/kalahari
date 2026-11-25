@@ -1,7 +1,10 @@
 # Third-party components
 
-Kalahari is free software under the MIT License (`LICENSE`). Its packages carry the libraries
-below; each keeps its own licence. The texts of the licences are in the `licenses` folder of
+Kalahari is free software under the GNU General Public License version 3 (`LICENSE`), with the
+additional terms of `NOTICE.md` (section 7 of the licence). Its source code is at
+https://github.com/bartoszwarzocha/kalahari, the source of each release under its tag. Its
+packages carry the libraries below; each keeps its own licence, and all are compatible with the
+GPL 3.0. The texts of the licences are in the `licenses` folder of
 the program (Windows and macOS: one file per package of vcpkg the program is built with; Linux:
 `share/doc/kalahari/licenses`), and the source code of each library is at the address given.
 
@@ -11,7 +14,7 @@ the program (Windows and macOS: one file per package of vcpkg the program is bui
 | Python 3 (interpreter and standard library) | the plugins | PSF License 2.0 | https://www.python.org/downloads/source/ |
 | pybind11 | the interface of the plugins | BSD 3-Clause | https://github.com/pybind/pybind11 |
 | PDFium (pdfium-binaries) | the preview of PDF files | BSD 3-Clause, Apache 2.0 and the licences of its libraries (`licenses/pdfium`) | https://pdfium.googlesource.com/pdfium/, https://github.com/bblanchon/pdfium-binaries |
-| Hunspell | the spelling check | MPL 1.1 / GPL 2.0 / LGPL 2.1 (LGPL 2.1 applies) | https://github.com/hunspell/hunspell |
+| Hunspell | the spelling check | MPL 1.1 / GPL 2.0 or later / LGPL 2.1 or later (LGPL 2.1 or later applies) | https://github.com/hunspell/hunspell |
 | spdlog, fmt | the log | MIT | https://github.com/gabime/spdlog, https://github.com/fmtlib/fmt |
 | nlohmann/json | settings and book files | MIT | https://github.com/nlohmann/json |
 | libzip, zlib | book archives, packages of book types and plugins | BSD 3-Clause, zlib | https://libzip.org/, https://zlib.net/ |

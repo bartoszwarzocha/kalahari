@@ -567,15 +567,39 @@ class MacBundleTest(unittest.TestCase):
             "io.github.bartoszwarzocha.kalahari.document: the program opens it as 'Alternate'"])
 
     def test_the_copyright_escaped_for_the_xml(self):
-        # cmake/Packaging.cmake writes "&" of the copyright as "&amp;" into Info.plist
+        # cmake/Packaging.cmake writes an "&" of the copyright (the name of a company may have
+        # one, as the publisher has) as "&amp;" into Info.plist
         packaging = (REPO_ROOT / "cmake" / "Packaging.cmake").read_text(encoding="utf-8")
-        self.assertIn("&", re.search(r'set\(KALAHARI_COPYRIGHT "([^"]+)"\)', packaging).group(1))
+        self.assertIsNotNone(re.search(r'set\(KALAHARI_COPYRIGHT "([^"]+)"\)', packaging))
+        self.assertIn("&", re.search(r'set\(KALAHARI_PUBLISHER "([^"]+)"\)', packaging).group(1))
         self.assertIn('string(REPLACE "&" "&amp;" _kalahari_plist_copyright', packaging)
         self.assertIn('MACOSX_BUNDLE_COPYRIGHT "${_kalahari_plist_copyright}"', packaging)
 
 
 class PackagingFilesTest(unittest.TestCase):
     """The files of the packages name the same things."""
+
+    def test_the_licence_and_its_additional_terms(self):
+        # Every package carries the GNU GPL (LICENSE) and its additional terms (NOTICE.md)
+        packaging = (REPO_ROOT / "cmake" / "Packaging.cmake").read_text(encoding="utf-8")
+        self.assertEqual(packaging.count('"${CMAKE_SOURCE_DIR}/LICENSE"'), 3)
+        self.assertEqual(packaging.count('"${CMAKE_SOURCE_DIR}/NOTICE.md"'), 3)
+        licence = (REPO_ROOT / "LICENSE").read_text(encoding="utf-8")
+        self.assertIn("GNU GENERAL PUBLIC LICENSE", licence)
+        self.assertIn("Version 3, 29 June 2007", licence)
+        notice = (REPO_ROOT / "NOTICE.md").read_text(encoding="utf-8")
+        self.assertIn("Kalahari – created by BW Digital Systems & Publishing, "
+                      "https://bwdsp.com.pl/", notice)
+        # The Debian package: the notice, then the licence, in its copyright file
+        script = (REPO_ROOT / "scripts" / "package.py").read_text(encoding="utf-8")
+        self.assertIn('(REPO_ROOT / "NOTICE.md").read_text(encoding="utf-8") + "\\n\\n" +', script)
+        # The publisher of the installer of Windows and of the program file
+        installer = (REPO_ROOT / "packaging" / "windows" / "kalahari.nsi").read_text(
+            encoding="utf-8")
+        self.assertIn('!define PUBLISHER "BW Digital Systems & Publishing"', installer)
+        resource = (REPO_ROOT / "packaging" / "windows" / "kalahari.rc.in").read_text(
+            encoding="utf-8")
+        self.assertIn('VALUE "CompanyName", "@KALAHARI_PUBLISHER@"', resource)
 
     def test_the_sizes_of_the_icon(self):
         packaging = (REPO_ROOT / "cmake" / "Packaging.cmake").read_text(encoding="utf-8")
