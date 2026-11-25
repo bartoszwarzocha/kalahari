@@ -1138,7 +1138,7 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD("view.footnotes", QT_TRANSLATE_NOOP("CommandRegistrar", "&Footnotes"), "VIEW/Panels/Footnotes", 54, false, 0);
     // The images and tables of the text in front or of the book, with their captions; no key
     // of its own. In Polish: &Obrazy i tabele
-    REG_CMD("view.figures", QT_TRANSLATE_NOOP("CommandRegistrar", "&Images and Tables"), "VIEW/Panels/Images and Tables", 55, false, 0);
+    REG_CMD("view.figures", QT_TRANSLATE_NOOP("CommandRegistrar", "I&mages and Tables"), "VIEW/Panels/Images and Tables", 55, false, 0);
     REG_CMD("view.spelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Spelling and &Grammar"), "VIEW/Panels/Spelling and Grammar", 57, false, 0);
     // No key of its own: Tools > Word Repetitions opens it with the keyboard in it
     REG_CMD("view.repetitionsPanel", QT_TRANSLATE_NOOP("CommandRegistrar", "R&epetitions"), "VIEW/Panels/Repetitions", 58, false, 0);

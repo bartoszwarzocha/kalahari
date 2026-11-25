@@ -1450,8 +1450,8 @@
         <translation>Usuń &amp;wszystkie linie tabulatorów</translation>
     </message>
     <message>
-        <source>&amp;Images and Tables</source>
-        <translation>&amp;Obrazy i tabele</translation>
+        <source>I&amp;mages and Tables</source>
+        <translation>O&amp;brazy i tabele</translation>
     </message>
     <message>
         <source>Writing Sc&amp;hedule...</source>

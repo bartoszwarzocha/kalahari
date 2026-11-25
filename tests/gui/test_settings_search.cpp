@@ -268,7 +268,7 @@ TEST_CASE("Settings search: the tree narrows to the pages of the words, their op
 
     // A page opened from outside while the search leaves it out: every page again
     dialog.findSettings(QStringLiteral("space abov"));
-    REQUIRE_FALSE(shown(itemOf(dialog, QString(), QStringLiteral("Plot Board"))));
+    REQUIRE_FALSE(shown(itemOf(dialog, QString(), QStringLiteral("Book Plan"))));
     CHECK(dialog.openPage(QString::fromLatin1(SettingsDialog::PLOT_BOARD_PAGE)));
     CHECK(dialog.searchField()->text().isEmpty());
     CHECK(shownPages(dialog) == everyPage);
