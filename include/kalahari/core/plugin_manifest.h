@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file plugin_manifest.h
 /// @brief Plugin manifest structure and JSON parsing
@@ -17,7 +18,7 @@
 ///   "version": "0.1.0",
 ///   "description": "Export documents to DOCX format",
 ///   "author": "Kalahari Team",
-///   "license": "MIT",
+///   "license": "GPL-3.0-only",
 ///   "api_version": "0.1",
 ///   "entry_point": "plugin.py:ExporterPlugin",
 ///   "extension_points": ["IExporter"],
@@ -52,7 +53,7 @@ struct PluginManifest {
     // Optional fields
     std::string description;                  ///< Plugin description
     std::string author;                       ///< Plugin author/organization
-    std::string license;                      ///< License identifier (e.g., MIT, GPL-3.0)
+    std::string license;                      ///< License identifier (e.g., GPL-3.0-only, MIT)
     std::vector<std::string> extension_points; ///< Extension points implemented
     std::vector<std::string> dependencies;     ///< Python package dependencies
     std::vector<std::string> permissions;      ///< Required permissions

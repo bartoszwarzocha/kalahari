@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file kml_document_model.cpp
 /// @brief KML reader: the paragraphs of a chapter with their text and formatting

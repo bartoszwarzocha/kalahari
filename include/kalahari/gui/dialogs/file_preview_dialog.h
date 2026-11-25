@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file file_preview_dialog.h
 /// @brief Preview of a chapter file that no element of the book has: its text, read-only,

@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file test_own_windows.cpp
 /// @brief The program shows only its own windows: no window of the system but those that
@@ -44,6 +45,7 @@
 #include <QTabWidget>
 #include <QTextEdit>
 #include <QTimer>
+#include <QTranslator>
 
 #include <algorithm>
 #include "kalahari_tests/test_support/window_parts.h"
@@ -360,8 +362,9 @@ TEST_CASE("Own windows: About has the copyright sign and the years up to this on
     CHECK(AboutDialog::copyrightYears(2031) == QStringLiteral("2025–2031"));
     CHECK(AboutDialog::copyrightYears(2025) == QStringLiteral("2025"));
     CHECK(AboutDialog::copyrightYears(2019) == QStringLiteral("2025"));
+    // The holder of the copyright (NOTICE.md), not a team or a project
     const QString copyright =
-        QStringLiteral("Copyright © %1 Kalahari Project")
+        QStringLiteral("Copyright © %1 Bartosz W. Warzocha")
             .arg(AboutDialog::copyrightYears(QDate::currentDate().year()));
     CHECK(AboutDialog::copyright() == copyright);
 
@@ -377,6 +380,101 @@ TEST_CASE("Own windows: About has the copyright sign and the years up to this on
         CHECK_FALSE(text->toPlainText().contains(QStringLiteral("Copyright (c)")));
     }
     CHECK(inLicense);
+}
+
+TEST_CASE("Own windows: About keeps the authors and the notices of the GNU GPL",
+          "[gui][dialogs][license]") {
+    // The attribution every copy must keep (NOTICE.md, additional term 1)
+    const QString attribution = QStringLiteral(
+        "Kalahari – created by BW Digital Systems & Publishing, https://bwdsp.com.pl/");
+    CHECK(AboutDialog::authorAddress() == QStringLiteral("https://bwdsp.com.pl/"));
+    CHECK(AboutDialog::attribution() == attribution);
+
+    AboutDialog dialog;
+    REQUIRE(dialog.tabs() != nullptr);
+    REQUIRE(dialog.tabs()->count() == 4);
+    CHECK(dialog.tabs()->tabText(3) == QStringLiteral("License"));
+
+    // The About tab: the authors with their page as a link, above the copyright, and that
+    // Kalahari is free software without warranty
+    const auto* authors = dialog.findChild<QLabel*>(QStringLiteral("aboutAttribution"));
+    REQUIRE(authors != nullptr);
+    CHECK(authors->isVisibleTo(&dialog));
+    CHECK(authors->openExternalLinks());
+    CHECK(authors->text().contains(
+        QStringLiteral("<a href=\"https://bwdsp.com.pl/\">https://bwdsp.com.pl/</a>")));
+    CHECK(authors->text().contains(QStringLiteral("BW Digital Systems &amp; Publishing")));
+    const auto* notice = dialog.findChild<QLabel*>(QStringLiteral("aboutLicenseNotice"));
+    REQUIRE(notice != nullptr);
+    CHECK(notice->isVisibleTo(&dialog));
+    CHECK(notice->text().contains(QStringLiteral("GNU General Public License version 3")));
+    CHECK(notice->text().contains(QStringLiteral("no warranty")));
+    CHECK_FALSE(showsText(dialog, QStringLiteral("MIT")));
+
+    // The License tab: the notice, no warranty, the additional terms and the whole licence
+    const QString text = AboutDialog::licenseText();
+    REQUIRE_FALSE(text.isEmpty());
+    CHECK(text.contains(QStringLiteral("GNU GENERAL PUBLIC LICENSE")));
+    CHECK(text.contains(QStringLiteral("Version 3, 29 June 2007")));
+    CHECK(text.contains(QStringLiteral("END OF TERMS AND CONDITIONS")));
+    // The text the program carries is the file of the repository, unchanged
+    QFile file(QStringLiteral(KALAHARI_SOURCE_DIR "/LICENSE"));
+    REQUIRE(file.open(QIODevice::ReadOnly | QIODevice::Text));
+    CHECK(text == QString::fromUtf8(file.readAll()));
+
+    const auto* license = dialog.findChild<QTextEdit*>(QStringLiteral("aboutLicenseText"));
+    REQUIRE(license != nullptr);
+    CHECK(license->isReadOnly());
+    const QString shown = license->toPlainText();
+    CHECK(shown.contains(AboutDialog::copyright()));
+    CHECK(shown.contains(attribution));
+    CHECK(shown.contains(QStringLiteral("under the terms of the GNU General Public License "
+                                        "version 3")));
+    CHECK(shown.contains(QStringLiteral("WITHOUT ANY WARRANTY")));
+    CHECK(shown.contains(QStringLiteral("Additional terms (section 7 of the GNU GPL)")));
+    CHECK(shown.contains(QStringLiteral("keeps the attribution \"%1\"").arg(attribution)));
+    CHECK(shown.contains(QStringLiteral("the name \"Kalahari\"")));
+    CHECK(shown.contains(QStringLiteral("NOTICE.md")));
+    CHECK(shown.endsWith(text));
+    CHECK_FALSE(shown.contains(QStringLiteral("MIT License")));
+    CHECK_FALSE(shown.contains(QStringLiteral("Permission is hereby granted")));
+
+    // The Third-Party Components tab: Hunspell under the LGPL, the licence compatible with
+    // the GPL, not under the MPL 1.1
+    bool hunspell = false;
+    for (const QTextEdit* edit : dialog.findChildren<QTextEdit*>()) {
+        hunspell = hunspell || edit->toPlainText().contains(QStringLiteral(
+                                   "License: LGPL 2.1 or later (of MPL 1.1 / GPL 2.0+ / "
+                                   "LGPL 2.1+)"));
+    }
+    CHECK(hunspell);
+}
+
+TEST_CASE("Own windows: in Polish About keeps the name and the address of the authors",
+          "[gui][dialogs][license]") {
+    QTranslator polish;
+    REQUIRE(polish.load(QStringLiteral(":/i18n/kalahari_pl.qm")));
+    QCoreApplication::installTranslator(&polish);
+    // The attribution may be in the language of the user interface, with the name of the
+    // company and its address unchanged (NOTICE.md, additional term 1)
+    const QString attribution = AboutDialog::attribution();
+    CHECK(attribution == QStringLiteral(
+                             "Autor programu Kalahari: BW Digital Systems & Publishing, "
+                             "https://bwdsp.com.pl/"));
+    CHECK(AboutDialog::copyright().endsWith(QStringLiteral("Bartosz W. Warzocha")));
+    {
+        AboutDialog dialog;
+        CHECK(dialog.tabs()->tabText(3) == QStringLiteral("Licencja"));
+        const auto* license = dialog.findChild<QTextEdit*>(QStringLiteral("aboutLicenseText"));
+        REQUIRE(license != nullptr);
+        const QString shown = license->toPlainText();
+        CHECK(shown.contains(attribution));
+        CHECK(shown.contains(QStringLiteral("Warunki dodatkowe (sekcja 7 licencji GNU GPL)")));
+        CHECK(shown.contains(QStringLiteral("BEZ JAKIEJKOLWIEK GWARANCJI")));
+        // The licence itself only in English, the text that is legally binding
+        CHECK(shown.endsWith(AboutDialog::licenseText()));
+    }
+    QCoreApplication::removeTranslator(&polish);
 }
 
 TEST_CASE("Own windows: the Icon Downloader stays open after Download", "[gui][dialogs]") {

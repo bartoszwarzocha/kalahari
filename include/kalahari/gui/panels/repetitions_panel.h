@@ -1,5 +1,6 @@
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2025 Bartosz W. Warzocha
+// Additional terms under section 7 of the GNU GPL apply: see NOTICE.md
 
 /// @file repetitions_panel.h
 /// @brief The panel Repetitions: the words of the text in front, or of the whole book, that

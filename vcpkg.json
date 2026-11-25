@@ -4,7 +4,7 @@
   "version": "0.4.0",
   "description": "Writer's IDE - Advanced writing environment for book authors",
   "homepage": "https://github.com/kalahari-project/kalahari",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "builtin-baseline": "271a5b8850aa50f9a40269cbf3cf414b36e333d6",
   "default-features": ["qt6"],
   "features": {

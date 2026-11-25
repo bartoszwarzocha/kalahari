@@ -538,6 +538,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The licence: the GNU GPL version 3 in place of MIT** - 2026-11-25. Kalahari and all its
+  plugins stay free; they are released under the GNU General Public License version 3
+  (`GPL-3.0-only`) with two additional terms of its section 7: every copy and every work based on
+  Kalahari keeps the attribution "Kalahari – created by BW Digital Systems & Publishing,
+  https://bwdsp.com.pl/" in its About window (7 b), and the licence grants no rights to the name
+  "Kalahari" or its logo (7 e). `LICENSE` is the text of the GPL; `NOTICE.md` has the copyright,
+  the additional terms and the third-party components (formerly in `LICENSE`). Every source file
+  names the licence and points to `NOTICE.md`. Help > About Kalahari: the About tab shows the
+  attribution with a link to the page of BW Digital Systems & Publishing, the copyright of
+  Bartosz W. Warzocha and that Kalahari is free software without warranty; the License tab has
+  the notice of the GPL, the additional terms and the English text of the licence, embedded in
+  the program (`:/licenses/LICENSE`). Hunspell is used under the LGPL 2.1 or later (one of its
+  three licences) instead of the MPL 1.1, which is not compatible with the GPL. The installers
+  carry `NOTICE.md` next to the licence; the publisher of the Windows installer and the company
+  of the program file is BW Digital Systems & Publishing; the copyright of the Debian package is
+  the notice and the licence; the example plugin, `vcpkg.json`, README and ROADMAP name the
+  GPL 3.0. Every dependency was checked against the GPL 3.0 (Qt 6.9 modules: LGPL-3.0-only OR
+  GPL-2.0-only OR GPL-3.0-only; the ports of vcpkg; the dictionaries, the icons, the libraries of
+  the Linux packages): all are compatible.
+
 - **The bar under the text stands out** - 2026-11-22. The bar at the bottom of the text area
   (the answers to commands, such as Undo after a deletion, the note of a file outside a book and
   of a book open read-only) has colors of its own in both themes: a blue background with a

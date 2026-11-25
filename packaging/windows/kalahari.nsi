@@ -28,7 +28,8 @@ ManifestDPIAware true
 
 !define APP_NAME "Kalahari"
 !define APP_EXE "kalahari.exe"
-!define PUBLISHER "Bartosz W. Warzocha & Kalahari Team"
+!define PUBLISHER "BW Digital Systems & Publishing"
+!define COPYRIGHT "Copyright (c) 2025-2026 Bartosz W. Warzocha"
 !define URL "https://github.com/bartoszwarzocha/kalahari"
 !define REGISTRY_KEY "Software\Kalahari"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\Kalahari"
@@ -108,7 +109,7 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "${VERSION}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${VERSION}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "${APP_NAME} ${VERSION} Setup"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "${PUBLISHER}"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "${PUBLISHER}"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "${COPYRIGHT}"
 
 ; ----------------------------------------------------------------------------------------------
 ; Functions

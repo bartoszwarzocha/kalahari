@@ -1084,6 +1084,13 @@ qt_add_resources(kalahari-tests "kalahari_test_translations"
     FILES ${KALAHARI_TEST_QM_FILES}
 )
 
+# The text of the licence for the License tab of About, as in the program (src/CMakeLists.txt)
+qt_add_resources(kalahari-tests "kalahari_test_licenses"
+    PREFIX "/licenses"
+    BASE ${CMAKE_SOURCE_DIR}
+    FILES ${CMAKE_SOURCE_DIR}/LICENSE
+)
+
 # Link libraries
 target_link_libraries(kalahari-tests PRIVATE
     Catch2::Catch2  # Changed from Catch2WithMain - we have custom main()

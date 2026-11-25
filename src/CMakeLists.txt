@@ -866,6 +866,14 @@ qt_add_translations(kalahari
     LUPDATE_OPTIONS -no-obsolete -locations none
 )
 
+# The text of the licence (the GNU GPL version 3) for the License tab of About, under
+# :/licenses/LICENSE (AboutDialog::licenseText())
+qt_add_resources(kalahari "kalahari_licenses"
+    PREFIX "/licenses"
+    BASE ${CMAKE_SOURCE_DIR}
+    FILES ${CMAKE_SOURCE_DIR}/LICENSE
+)
+
 # Target properties
 set_target_properties(kalahari PROPERTIES
     OUTPUT_NAME "kalahari"

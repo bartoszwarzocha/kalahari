@@ -12,7 +12,7 @@ Hunspell dictionaries shipped with Kalahari. `SpellCheckService` finds them in t
 
 The Polish dictionary is offered under a choice of licenses: GPL, LGPL, MPL, Apache 2.0 or
 Creative Commons ShareAlike. Kalahari uses it under the **Apache License 2.0**, which is
-permissive and compatible with Kalahari's MIT license.
+permissive and compatible with Kalahari's licence, the GNU GPL version 3.
 
 ## Changes
 

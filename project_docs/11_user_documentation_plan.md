@@ -134,7 +134,7 @@ docs/                       # MkDocs source
 └── about/                 # Meta information
     ├── changelog.md       # Version history (link to CHANGELOG.md)
     ├── roadmap.md         # Future plans (link to ROADMAP.md)
-    ├── license.md         # MIT License
+    ├── license.md         # GNU GPL 3.0 and its additional terms
     └── contributing.md    # Contribution guide
 
 mkdocs.yml                 # MkDocs configuration
